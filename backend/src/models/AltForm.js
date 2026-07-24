@@ -218,6 +218,12 @@ const altFormSchema = mongoose.Schema(
     sheet: mongoose.Types.ObjectId,
 
     isActive: { type: Boolean, default: true },
+    /**
+     * 비공개(true): 작성자만 목록·열람. 응답·캘린더 없음.
+     * 공개(false): 멤버에게 노출.
+     * DB 기본은 공개(false). 신규 비공개 생성은 컨트롤러에서 isDraft:true 로 지정.
+     */
+    isDraft: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

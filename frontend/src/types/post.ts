@@ -47,6 +47,8 @@ export type TPost = {
   category?: string;
   isPinned: boolean;
   isActive: boolean;
+  /** 비공개(true): 작성자만 열람 / 공개(false) */
+  isDraft?: boolean;
   viewCount: number;
   attachments: TPostAttachment[];
   permissionRead?: TBoardMembers;

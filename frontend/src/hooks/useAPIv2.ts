@@ -3310,6 +3310,7 @@ export default function useAPIv2() {
       attachments?: TPostAttachment[];
       permissionRead?: TBoardMembers;
       surveys?: TSurvey[];
+      isDraft?: boolean;
     };
   }) {
     const { post } = await database.C({
@@ -3371,6 +3372,7 @@ export default function useAPIv2() {
       attachments?: TPostAttachment[];
       permissionRead?: TBoardMembers | null;
       surveys?: TSurvey[];
+      isDraft?: boolean;
     };
   }) {
     const { post } = await database.U({
@@ -4367,6 +4369,7 @@ export default function useAPIv2() {
       description?: string;
       fields?: TAltFormField[];
       settings?: Partial<TAltFormSettings>;
+      isDraft?: boolean;
     };
   }) {
     const { form, sheet } = await database.C({
@@ -4397,6 +4400,7 @@ export default function useAPIv2() {
       description?: string;
       fields?: TAltFormField[];
       settings?: Partial<TAltFormSettings>;
+      isDraft?: boolean;
     };
   }) {
     const { form } = await database.U({

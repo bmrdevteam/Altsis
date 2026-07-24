@@ -112,6 +112,8 @@ export const create = async (req, res) => {
       description: req.body.description || "",
       fields: ensureFieldIds(req.body.fields),
       settings: req.body.settings || { allowResubmit: false },
+      // 기본 비공개. 명시적으로 isDraft:false 일 때만 공개 생성
+      isDraft: "isDraft" in req.body ? !!req.body.isDraft : true,
     });
 
     // AltSheet 자동 생성
@@ -125,10 +127,12 @@ export const create = async (req, res) => {
     form.sheet = sheet._id;
     await form.save();
 
-    // 캘린더 마감일 동기화
-    syncFormCalendar(req.user.academyId, form, board, req.user).catch((err) =>
-      logger.error(`Form calendar sync failed: ${err.message}`)
-    );
+    // 게시된 양식만 캘린더 동기화
+    if (!form.isDraft) {
+      syncFormCalendar(req.user.academyId, form, board, req.user).catch((err) =>
+        logger.error(`Form calendar sync failed: ${err.message}`)
+      );
+    }
 
     return res.status(200).send({ form, sheet });
   } catch (err) {
@@ -149,6 +153,18 @@ async function syncFormCalendar(academyId, form, board, user) {
     sourceId: sourceIdPrefix,
   });
 
+  const clearMemberEvents = () =>
+    CalendarEvent(academyId).deleteMany({
+      sourceType: "altForm",
+      sourceId: { $regex: `^${sourceIdPrefix}-` },
+    });
+
+  // 비공개·비활성 양식은 캘린더에서 제거
+  if (form.isDraft || form.isActive === false) {
+    await clearMemberEvents();
+    return;
+  }
+
   const enabled = await isBoardNotificationEnabled(
     academyId,
     board.school,
@@ -158,10 +174,7 @@ async function syncFormCalendar(academyId, form, board, user) {
 
   if (!enabled || !form.settings?.closeAt) {
     // 설정 비활성 또는 마감일 없음 → 멤버별 이벤트도 삭제
-    await CalendarEvent(academyId).deleteMany({
-      sourceType: "altForm",
-      sourceId: { $regex: `^${sourceIdPrefix}-` },
-    });
+    await clearMemberEvents();
     return;
   }
 
@@ -232,7 +245,13 @@ export const find = async (req, res) => {
       }
 
       const role = getAltBoardRole(board, req.user);
-      if (!role) {
+      if (form.isDraft) {
+        const isCreator =
+          form.creator && form.creator.equals(req.user._id);
+        if (!isCreator) {
+          return res.status(403).send({ message: PERMISSION_DENIED });
+        }
+      } else if (!role) {
         // 역할 없지만 승인자로 지정된 경우 접근 허용
         const approvalFieldIds = form.fields
           .filter((f) => f.type === "approval")
@@ -266,7 +285,14 @@ export const find = async (req, res) => {
     const role = getAltBoardRole(board, req.user);
 
     const forms = await AltForm(req.user.academyId)
-      .find({ board: board._id, isActive: true })
+      .find({
+        board: board._id,
+        isActive: true,
+        $or: [
+          { isDraft: { $ne: true } },
+          { creator: req.user._id },
+        ],
+      })
       .sort({ createdAt: -1 });
 
     if (!role) {
@@ -355,6 +381,10 @@ export const update = async (req, res) => {
       form.markModified("settings");
     }
 
+    if ("isDraft" in req.body) {
+      form.isDraft = !!req.body.isDraft;
+    }
+
     await form.save();
 
     // Sheet 이름 동기화
@@ -377,7 +407,7 @@ export const update = async (req, res) => {
       );
     }
 
-    // 캘린더 마감일 동기화
+    // 공개면 동기화, 비공개면 일정 제거
     syncFormCalendar(req.user.academyId, form, board, req.user).catch((err) =>
       logger.error(`Form calendar sync failed: ${err.message}`)
     );
@@ -411,6 +441,13 @@ export const remove = async (req, res) => {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
+    // 공개 중이면 삭제 불가 — 비공개로 전환 후 삭제
+    if (!form.isDraft) {
+      return res.status(400).send({
+        message: "공개 중인 양식은 비공개로 전환한 뒤 삭제할 수 있습니다.",
+      });
+    }
+
     form.isActive = false;
     await form.save();
 
@@ -424,6 +461,11 @@ export const remove = async (req, res) => {
     await AltSheetRow(req.user.academyId).updateMany(
       { form: form._id },
       { isActive: false }
+    );
+
+    // 캘린더 잔여 일정 정리
+    syncFormCalendar(req.user.academyId, form, board, req.user).catch((err) =>
+      logger.error(`Form calendar sync failed: ${err.message}`)
     );
 
     return res.status(200).send();

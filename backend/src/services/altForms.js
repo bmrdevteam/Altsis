@@ -52,6 +52,10 @@ export const canManageForm = (board, user) => {
  * @returns {boolean}
  */
 export const canModifyForm = (form, board, user) => {
+  // 비공개는 작성자만 수정
+  if (form.isDraft) {
+    return !!(form.creator && form.creator.equals(user._id));
+  }
   if (form.creator && form.creator.equals(user._id)) return true;
   if (getAltBoardRole(board, user) === "admin") return true;
   if (user.auth === "manager") return true;
@@ -69,6 +73,10 @@ export const canRespondForm = (form, board, user) => {
   const role = getAltBoardRole(board, user);
   if (!role) {
     return { allowed: false, message: "보드 멤버가 아닙니다." };
+  }
+
+  if (form.isDraft) {
+    return { allowed: false, message: "비공개 양식입니다." };
   }
 
   const now = new Date();

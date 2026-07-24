@@ -118,6 +118,8 @@ export type TAltForm = {
   settings: TAltFormSettings;
   sheet: string;
   isActive: boolean;
+  /** 비공개(true): 작성자만 목록·열람 / 공개(false) */
+  isDraft?: boolean;
   createdAt: string;
   updatedAt: string;
   /** 목록 API 메타: 응답 행 수 (_respondent 있는 행) */

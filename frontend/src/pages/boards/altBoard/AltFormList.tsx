@@ -232,6 +232,13 @@ const AltFormList = ({
     ).length >= 1;
 
   const renderSubmitBadge = (form: TAltForm) => {
+    if (form.isDraft) {
+      return (
+        <span className={`${style.formCardBadge} ${style.badgePending}`}>
+          비공개
+        </span>
+      );
+    }
     if (form.settings.directInputMode) {
       return (
         <span
@@ -275,6 +282,10 @@ const AltFormList = ({
   };
 
   const handleCardActivate = (form: TAltForm) => {
+    if (form.isDraft) {
+      if (canModifyForm(form)) onFormClick(form);
+      return;
+    }
     if (form.settings.directInputMode) {
       if (onOpenSheet) onOpenSheet(form._id);
       else if (canModifyForm(form)) onFormClick(form);
@@ -288,7 +299,7 @@ const AltFormList = ({
     const period = getPeriodKind(form);
     const isDirect = !!form.settings.directInputMode;
     const canEditForm = canModifyForm(form);
-    const showRespond = !isDirect;
+    const showRespond = !isDirect && !form.isDraft;
     const showMyResponses =
       !isDirect &&
       !!form.mySubmitted &&
@@ -471,17 +482,60 @@ const AltFormList = ({
                       조합 생성
                     </div>
                   )}
-                  <div
-                    className={`${style.formActionItem} ${style.formActionItemDanger}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDeleteForm(form);
-                      setActionMenu(null);
-                    }}
-                  >
-                    <Svg type="trash" width="16px" height="16px" />
-                    삭제
-                  </div>
+                  {form.isDraft ? (
+                    <>
+                      <div
+                        className={style.formActionItem}
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          setActionMenu(null);
+                          try {
+                            await AltFormAPI.UAltForm({
+                              params: { _id: form._id },
+                              data: { isDraft: false },
+                            });
+                            onRefresh();
+                          } catch (err) {
+                            ALERT_ERROR(err);
+                          }
+                        }}
+                      >
+                        <Svg type="unarchive" width="16px" height="16px" />
+                        공개
+                      </div>
+                      <div
+                        className={`${style.formActionItem} ${style.formActionItemDanger}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteForm(form);
+                          setActionMenu(null);
+                        }}
+                      >
+                        <Svg type="trash" width="16px" height="16px" />
+                        삭제
+                      </div>
+                    </>
+                  ) : (
+                    <div
+                      className={style.formActionItem}
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        setActionMenu(null);
+                        try {
+                          await AltFormAPI.UAltForm({
+                            params: { _id: form._id },
+                            data: { isDraft: true },
+                          });
+                          onRefresh();
+                        } catch (err) {
+                          ALERT_ERROR(err);
+                        }
+                      }}
+                    >
+                      <Svg type="archive" width="16px" height="16px" />
+                      비공개로
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -622,9 +676,25 @@ const AltFormList = ({
           }
         >
           <div style={{ padding: "8px 4px", lineHeight: 1.6 }}>
-            <strong>{deleteForm.title}</strong> 양식을 삭제하시겠습니까?
+            <div
+              style={{
+                marginBottom: 12,
+                padding: "10px 12px",
+                borderRadius: 8,
+                background: "var(--status-error-bg)",
+                color: "var(--status-error)",
+                fontSize: 13,
+                fontWeight: 600,
+              }}
+            >
+              경고: 삭제하면 복구할 수 없습니다.
+            </div>
+            <strong>{deleteForm.title}</strong> 양식을 정말 삭제하시겠습니까?
             <br />
-            모든 응답 데이터도 함께 삭제되며, 이 작업은 되돌릴 수 없습니다.
+            <span style={{ color: "var(--text-color-2)", fontSize: 13 }}>
+              연결된 응답·기록 데이터도 함께 삭제됩니다. 이 작업은 되돌릴 수
+              없습니다.
+            </span>
           </div>
         </Popup>
       )}

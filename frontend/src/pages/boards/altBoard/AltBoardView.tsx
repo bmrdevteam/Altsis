@@ -171,6 +171,13 @@ const AltBoardView = ({ board, embedded }: Props) => {
         setRendererFormId(urlFormId);
         setBuilderFormId(null);
       }
+    } else if (
+      // 방금 저장한 비공개 양식 등은 목록에 아직 없을 수 있음 → URL 유지·편집 계속
+      (urlMode === "edit" || !urlMode) &&
+      canManage
+    ) {
+      setBuilderFormId(urlFormId);
+      setRendererFormId(null);
     } else {
       // 잘못된 formId — 파라미터 제거
       setSearchParams(
@@ -182,7 +189,7 @@ const AltBoardView = ({ board, embedded }: Props) => {
         { replace: true }
       );
     }
-  }, [isLoading, urlFormId, urlMode]);
+  }, [isLoading, urlFormId, urlMode, forms, canManage]);
 
   // 구 해시 #양식 → #활동 호환
   useEffect(() => {
@@ -343,6 +350,7 @@ const AltBoardView = ({ board, embedded }: Props) => {
           onCopyFormLink={handleCopyFormLink}
           onFormCreated={(id) => {
             setBuilderFormId(id);
+            loadForms();
             if (!embedded) {
               navigate(`/boards/${board._id}?form=${id}&mode=edit`, {
                 replace: true,

@@ -75,6 +75,8 @@ const PostCreate = () => {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  /** 비공개(true) / 공개(false). 신규는 비공개 */
+  const [isDraft, setIsDraft] = useState(!postId);
 
   // 첨부파일
   const [attachments, setAttachments] = useState<TPostAttachment[]>([]);
@@ -125,6 +127,7 @@ const PostCreate = () => {
           if (postRes?.post) {
             const post: TPost = postRes.post;
             setTitle(post.title);
+            setIsDraft(!!post.isDraft);
             // S3 서명 URL → 만료되지 않는 리다이렉트 URL로 변환
             const fixedContent = post.content.replace(
               /https?:\/\/[^/\s)]*\.s3\.[^/\s)]*\.amazonaws\.com\/([^?\s)]+\/posts\/[^?\s)]+)\?[^\s)]*/g,
@@ -532,7 +535,10 @@ const PostCreate = () => {
     setShowHtmlEmbedPopup(false);
   };
 
-  const handleSubmit = async () => {
+  /**
+   * @param visibility keep=현재 유지 저장, private=비공개, public=공개
+   */
+  const handleSubmit = async (visibility: "keep" | "private" | "public") => {
     if (!title.trim()) {
       alert("제목을 입력해주세요.");
       return;
@@ -550,6 +556,8 @@ const PostCreate = () => {
 
     try {
       const postPermissionRead = useSpecificPermission ? permissionRead : undefined;
+      const asDraft =
+        visibility === "keep" ? isDraft : visibility === "private";
 
       if (isEditMode && postId) {
         await PostAPI.UPost({
@@ -559,14 +567,21 @@ const PostCreate = () => {
             content: content.trim(),
             attachments,
             permissionRead: useSpecificPermission ? permissionRead : null,
+            isDraft: asDraft,
           },
         });
-        alert("수정되었습니다.");
-        // 드래프트 클리어
         if (boardId) {
           localStorage.removeItem(`editor-draft-${boardId}-${postId || "new"}`);
         }
-        navigate(`/boards/${boardId}/post/${postId}`);
+        setIsDraft(asDraft);
+        if (visibility === "public") {
+          alert("공개되었습니다.");
+          navigate(`/boards/${boardId}/post/${postId}`);
+        } else if (visibility === "private") {
+          alert("비공개로 전환되었습니다.");
+        } else {
+          alert("저장되었습니다.");
+        }
       } else {
         const { post } = await PostAPI.CPost({
           data: {
@@ -575,14 +590,20 @@ const PostCreate = () => {
             content: content.trim(),
             attachments,
             permissionRead: postPermissionRead,
+            isDraft: asDraft,
           },
         });
-        alert("작성되었습니다.");
-        // 드래프트 클리어
         if (boardId) {
           localStorage.removeItem(`editor-draft-${boardId}-new`);
         }
-        navigate(`/boards/${boardId}/post/${post._id}`);
+        setIsDraft(asDraft);
+        if (asDraft) {
+          alert("저장되었습니다.");
+          navigate(`/boards/${boardId}/edit/${post._id}`, { replace: true });
+        } else {
+          alert("공개되었습니다.");
+          navigate(`/boards/${boardId}/post/${post._id}`);
+        }
       }
     } catch (err) {
       ALERT_ERROR(err);
@@ -1130,17 +1151,45 @@ const PostCreate = () => {
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: "12px" }}>
+        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+          <span
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              color: isDraft ? "var(--status-warning)" : "var(--status-success)",
+              marginRight: "auto",
+            }}
+          >
+            {isDraft ? "비공개" : "공개"}
+          </span>
           <Button type="ghost" onClick={() => navigate(`/boards/${boardId}`)}>
             취소
           </Button>
-          <Button type="ghost" onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting
-              ? "처리 중..."
-              : isEditMode
-              ? "수정 완료"
-              : "작성 완료"}
+          <Button
+            type="ghost"
+            onClick={() => handleSubmit("keep")}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "처리 중..." : "저장"}
           </Button>
+          {isDraft ? (
+            <Button
+              type="ghost"
+              onClick={() => handleSubmit("public")}
+              disabled={isSubmitting}
+              style={{ color: "var(--status-success)" }}
+            >
+              {isSubmitting ? "처리 중..." : "공개"}
+            </Button>
+          ) : (
+            <Button
+              type="ghost"
+              onClick={() => handleSubmit("private")}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "처리 중..." : "비공개"}
+            </Button>
+          )}
         </div>
       </div>
 

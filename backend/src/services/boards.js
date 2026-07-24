@@ -360,6 +360,13 @@ export const validatePostPermission = (board, postPermission) => {
  * @returns {boolean}
  */
 export const canUserSeePost = (post, user, role) => {
+  // 비공개는 작성자만 (시스템 admin/보드 관리자도 제외)
+  if (post.isDraft) {
+    return (
+      post.author?.equals?.(user._id) || post.authorId === user.userId
+    );
+  }
+
   // admin은 항상 볼 수 있음
   if (user.auth === "admin") return true;
 

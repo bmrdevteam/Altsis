@@ -254,6 +254,15 @@ const postSchema = mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    /**
+     * 비공개(true): 작성자만 열람. 알림·postCount 미반영.
+     * 공개(false): 권한 범위 내 멤버 열람.
+     * DB 기본은 공개(false). 신규 비공개 생성은 컨트롤러에서 isDraft:true 로 지정.
+     */
+    isDraft: {
+      type: Boolean,
+      default: false,
+    },
     viewCount: {
       type: Number,
       default: 0,

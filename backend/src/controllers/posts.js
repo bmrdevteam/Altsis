@@ -290,6 +290,9 @@ export const create = async (req, res) => {
       }
     }
 
+    // 기본 비공개. 명시적으로 isDraft:false 일 때만 공개 생성
+    const isDraft = "isDraft" in req.body ? !!req.body.isDraft : true;
+
     const post = await Post(req.user.academyId).create({
       board: board._id,
       author: req.user._id,
@@ -301,58 +304,61 @@ export const create = async (req, res) => {
       postType,
       category: req.body.category || "",
       attachments: req.body.attachments || [],
+      isDraft,
       ...(permissionRead && { permissionRead }),
       ...(surveys.length > 0 && { surveys }),
     });
 
-    // 게시글 수 증가
-    board.postCount = (board.postCount || 0) + 1;
-    await board.save();
+    // 초안은 게시글 수·알림 제외
+    if (!isDraft) {
+      board.postCount = (board.postCount || 0) + 1;
+      await board.save();
 
-    // 열람 권한 대상에게 알림 발송 (작성자 제외)
-    try {
-      const notifEnabled = await isBoardNotificationEnabled(
-        req.user.academyId,
-        board.school,
-        board,
-        "newPost"
-      );
-
-      if (notifEnabled) {
-        const usersWithPermission = await getPostReaders(
+      // 열람 권한 대상에게 알림 발송 (작성자 제외)
+      try {
+        const notifEnabled = await isBoardNotificationEnabled(
           req.user.academyId,
+          board.school,
           board,
-          post
+          "newPost"
         );
 
-        const notifyUsers = usersWithPermission.filter(
-          (u) => u.userId !== req.user.userId
-        );
-
-        logger.info(
-          `Sending notifications to ${notifyUsers.length} users for new post: ${post.title}`
-        );
-
-        if (notifyUsers.length > 0) {
-          const result = await sendAutoNotification({
-            academyId: req.user.academyId,
-            toUserList: notifyUsers.slice(0, 100), // 최대 100명까지
-            notificationType: "newPost",
-            category: board.name,
-            title: `[새 게시글] ${post.title}`,
-            description: `${board.name}에 새 게시글이 등록되었습니다.`,
-            relatedEntity: { type: "post", id: post._id },
-            fromUser: req.user,
-          });
-          logger.info(
-            `Notifications created: ${result?.length || 0} notifications`
+        if (notifEnabled) {
+          const usersWithPermission = await getPostReaders(
+            req.user.academyId,
+            board,
+            post
           );
+
+          const notifyUsers = usersWithPermission.filter(
+            (u) => u.userId !== req.user.userId
+          );
+
+          logger.info(
+            `Sending notifications to ${notifyUsers.length} users for new post: ${post.title}`
+          );
+
+          if (notifyUsers.length > 0) {
+            const result = await sendAutoNotification({
+              academyId: req.user.academyId,
+              toUserList: notifyUsers.slice(0, 100), // 최대 100명까지
+              notificationType: "newPost",
+              category: board.name,
+              title: `[새 게시글] ${post.title}`,
+              description: `${board.name}에 새 게시글이 등록되었습니다.`,
+              relatedEntity: { type: "post", id: post._id },
+              fromUser: req.user,
+            });
+            logger.info(
+              `Notifications created: ${result?.length || 0} notifications`
+            );
+          }
         }
+      } catch (notifyErr) {
+        // 알림 실패는 게시글 생성 성공에 영향을 주지 않음
+        logger.error(`Failed to send notifications: ${notifyErr.message}`);
+        logger.error(notifyErr.stack);
       }
-    } catch (notifyErr) {
-      // 알림 실패는 게시글 생성 성공에 영향을 주지 않음
-      logger.error(`Failed to send notifications: ${notifyErr.message}`);
-      logger.error(notifyErr.stack);
     }
 
     return res.status(200).send({ post });
@@ -519,7 +525,14 @@ export const find = async (req, res) => {
     }
 
     const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 100);
-    const query = { board: board._id, isActive: true };
+    const query = {
+      board: board._id,
+      isActive: true,
+      $or: [
+        { isDraft: { $ne: true } },
+        { author: req.user._id },
+      ],
+    };
 
     if (req.query.before) {
       query.createdAt = { $lt: new Date(req.query.before) };
@@ -561,18 +574,29 @@ export const update = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("post") });
     }
 
-    // 작성자 또는 관리자만 수정 가능
+    // 작성자 또는 관리자만 수정 가능 (비공개는 작성자만)
     const isAuthor = post.author.equals(req.user._id);
     const isManager = req.user.auth === "admin" || req.user.auth === "manager";
+
+    if (post.isDraft && !isAuthor) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
 
     if (!isAuthor && !isManager) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
+    const wasDraft = !!post.isDraft;
+
     if (req.body.title) post.title = req.body.title;
     if (req.body.content) post.content = req.body.content;
     if ("category" in req.body) post.category = req.body.category;
     if (req.body.attachments) post.attachments = req.body.attachments;
+
+    // 비공개 ↔ 공개 양방향
+    if ("isDraft" in req.body) {
+      post.isDraft = !!req.body.isDraft;
+    }
 
     // permissionRead 수정 + 검증
     if ("permissionRead" in req.body) {
@@ -625,6 +649,57 @@ export const update = async (req, res) => {
     }
 
     await post.save();
+
+    // 비공개 → 공개: postCount + 알림
+    if (wasDraft && !post.isDraft) {
+      const board = await Board(req.user.academyId).findById(post.board);
+      if (board) {
+        board.postCount = (board.postCount || 0) + 1;
+        await board.save();
+
+        try {
+          const notifEnabled = await isBoardNotificationEnabled(
+            req.user.academyId,
+            board.school,
+            board,
+            "newPost"
+          );
+          if (notifEnabled) {
+            const usersWithPermission = await getPostReaders(
+              req.user.academyId,
+              board,
+              post
+            );
+            const notifyUsers = usersWithPermission.filter(
+              (u) => u.userId !== req.user.userId
+            );
+            if (notifyUsers.length > 0) {
+              await sendAutoNotification({
+                academyId: req.user.academyId,
+                toUserList: notifyUsers.slice(0, 100),
+                notificationType: "newPost",
+                category: board.name,
+                title: `[새 게시글] ${post.title}`,
+                description: `${board.name}에 새 게시글이 등록되었습니다.`,
+                relatedEntity: { type: "post", id: post._id },
+                fromUser: req.user,
+              });
+            }
+          }
+        } catch (notifyErr) {
+          logger.error(`Failed to send notifications: ${notifyErr.message}`);
+        }
+      }
+    }
+
+    // 공개 → 비공개: postCount 감소 (알림 없음)
+    if (!wasDraft && post.isDraft) {
+      const board = await Board(req.user.academyId).findById(post.board);
+      if (board) {
+        board.postCount = Math.max(0, (board.postCount || 0) - 1);
+        await board.save();
+      }
+    }
 
     return res.status(200).send({ post });
   } catch (err) {
@@ -717,14 +792,15 @@ export const remove = async (req, res) => {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
+    // 공개 중이면 삭제 불가 — 비공개로 전환 후 삭제
+    if (!post.isDraft) {
+      return res.status(400).send({
+        message: "공개 중인 문서는 비공개로 전환한 뒤 삭제할 수 있습니다.",
+      });
+    }
+
     post.isActive = false;
     await post.save();
-
-    const board = await Board(req.user.academyId).findById(post.board);
-    if (board) {
-      board.postCount = Math.max(0, (board.postCount || 0) - 1);
-      await board.save();
-    }
 
     // 설문 응답 정리
     if (post.surveys && post.surveys.length > 0) {

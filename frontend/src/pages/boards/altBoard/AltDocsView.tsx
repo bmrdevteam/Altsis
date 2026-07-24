@@ -269,10 +269,26 @@ const AltDocsView = ({ board }: Props) => {
       }
     >
       <div style={{ padding: "8px 4px", lineHeight: 1.6 }}>
-        <strong>{deletePost.title || "문서"}</strong> 게시글을
+        <div
+          style={{
+            marginBottom: 12,
+            padding: "10px 12px",
+            borderRadius: 8,
+            background: "var(--status-error-bg)",
+            color: "var(--status-error)",
+            fontSize: 13,
+            fontWeight: 600,
+          }}
+        >
+          경고: 삭제하면 복구할 수 없습니다.
+        </div>
+        <strong>{deletePost.title || "문서"}</strong> 문서를 정말
         삭제하시겠습니까?
         <br />
-        이 작업은 되돌릴 수 없습니다.
+        <span style={{ color: "var(--text-color-2)", fontSize: 13 }}>
+          이 작업은 되돌릴 수 없습니다. 공개 문서는 먼저 비공개로 전환한 뒤
+          삭제할 수 있습니다.
+        </span>
       </div>
     </Popup>
   ) : null;
@@ -340,6 +356,13 @@ const AltDocsView = ({ board }: Props) => {
                             공지
                           </span>
                         )}
+                        {post.isDraft && (
+                          <span
+                            className={`${style.formCardBadge} ${style.badgePending}`}
+                          >
+                            비공개
+                          </span>
+                        )}
                         {post.authorName && <span>{post.authorName}</span>}
                         <span>{formatDate(post.createdAt)}</span>
                         <span>읽기: {formatPermissionRead(post)}</span>
@@ -380,18 +403,41 @@ const AltDocsView = ({ board }: Props) => {
                         >
                           <Svg type="copy" width="20px" height="20px" />
                         </button>
-                        <button
-                          type="button"
-                          className={`${style.formCardIconBtn} ${style.formCardIconBtnDanger}`}
-                          title="삭제"
-                          disabled={isDeleting}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeletePost(post);
-                          }}
-                        >
-                          <Svg type="trash" width="20px" height="20px" />
-                        </button>
+                        {post.isDraft ? (
+                          <button
+                            type="button"
+                            className={`${style.formCardIconBtn} ${style.formCardIconBtnDanger}`}
+                            title="삭제"
+                            disabled={isDeleting}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeletePost(post);
+                            }}
+                          >
+                            <Svg type="trash" width="20px" height="20px" />
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className={style.formCardIconBtn}
+                            title="비공개로"
+                            disabled={isDeleting}
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              try {
+                                await PostAPI.UPost({
+                                  params: { _id: post._id },
+                                  data: { isDraft: true },
+                                });
+                                await loadPosts();
+                              } catch (err) {
+                                ALERT_ERROR(err);
+                              }
+                            }}
+                          >
+                            <Svg type="archive" width="20px" height="20px" />
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>

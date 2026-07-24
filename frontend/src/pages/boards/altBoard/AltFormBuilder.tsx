@@ -14,6 +14,8 @@ import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 import Svg from "assets/svg/Svg";
 import { MarkdownEditor } from "components/markdown";
+import Button from "components/button/Button";
+import Popup from "components/popup/Popup";
 import AltSubmissionTracker from "./AltSubmissionTracker";
 
 const toLocalDatetimeString = (date: Date) => {
@@ -171,6 +173,10 @@ const AltFormBuilder = ({
   const [showTracker, setShowTracker] = useState(false);
   const [currentFormId, setCurrentFormId] = useState(formId);
   const [isDirty, setIsDirty] = useState(false);
+  /** 비공개(true) / 공개(false). 신규는 비공개 */
+  const [isDraft, setIsDraft] = useState(!formId);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const savedSnapshotRef = useRef<string | null>(null);
 
   // Google Forms style: active field (expanded) + builder tab
@@ -215,7 +221,12 @@ const AltFormBuilder = ({
   }, []);
 
   useEffect(() => {
+    // 첫 임시 저장 후 부모가 formId를 넘길 때: 이미 편집 중이면 재조회 생략
+    if (formId && formId === currentFormId) {
+      return;
+    }
     setCurrentFormId(formId);
+    if (!formId) setIsDraft(true);
   }, [formId]);
 
   useEffect(() => {
@@ -227,6 +238,11 @@ const AltFormBuilder = ({
       }
       return;
     }
+    // 방금 생성해 currentFormId가 이미 같으면 스킵 (깜빡임·메뉴 전환 방지)
+    if (formId === currentFormId && savedSnapshotRef.current !== null) {
+      return;
+    }
+    setIsLoading(true);
     AltFormAPI.RAltForm({ params: { _id: formId } })
       .then(({ form }) => {
         const nextSettings: Settings = {
@@ -253,6 +269,8 @@ const AltFormBuilder = ({
         setDescription(form.description);
         setFields(form.fields);
         setSettings(nextSettings);
+        setIsDraft(!!form.isDraft);
+        setCurrentFormId(form._id);
         savedSnapshotRef.current = JSON.stringify({
           title: form.title.trim(),
           description: (form.description || "").trim(),
@@ -274,7 +292,10 @@ const AltFormBuilder = ({
     setIsDirty(getSnapshot() !== savedSnapshotRef.current);
   }, [getSnapshot, isLoading]);
 
-  const handleSave = async () => {
+  /**
+   * @param visibility keep=현재 상태 유지, private=비공개, public=공개
+   */
+  const handleSave = async (visibility: "keep" | "private" | "public") => {
     if (!title.trim()) {
       alert("제목을 입력해주세요.");
       return;
@@ -282,6 +303,8 @@ const AltFormBuilder = ({
 
     setIsSaving(true);
     try {
+      const asDraft =
+        visibility === "keep" ? isDraft : visibility === "private";
       const data = {
         title: title.trim(),
         description: description.trim(),
@@ -298,6 +321,7 @@ const AltFormBuilder = ({
           showOwnerFields: settings.showOwnerFields,
           showOwnResponse: settings.showOwnResponse,
         },
+        isDraft: asDraft,
       };
 
       if (currentFormId) {
@@ -310,16 +334,40 @@ const AltFormBuilder = ({
         onFormCreated?.(form._id);
       }
 
+      setIsDraft(asDraft);
       savedSnapshotRef.current = getSnapshot({
         title: data.title,
         description: data.description,
         fields: data.fields,
         settings,
       });
-      setIsDirty(false);    } catch (err) {
+      setIsDirty(false);
+    } catch (err) {
       ALERT_ERROR(err);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const requestDelete = () => {
+    if (!currentFormId || !isDraft) {
+      alert("공개 중인 양식은 비공개로 전환한 뒤 삭제할 수 있습니다.");
+      return;
+    }
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!currentFormId || !isDraft) return;
+    setIsDeleting(true);
+    try {
+      await AltFormAPI.DAltForm({ params: { _id: currentFormId } });
+      setShowDeleteConfirm(false);
+      onBack();
+    } catch (err) {
+      ALERT_ERROR(err);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -1875,12 +1923,18 @@ const AltFormBuilder = ({
           <button className={style.backBtn} onClick={onBack}>
             <Svg type="chevronLeft" width="20px" height="20px" />
           </button>
-          <span style={{ fontSize: "16px", fontWeight: 600 }}>
-            {currentFormId ? "양식 관리" : "새 양식"}
+          <span style={{ fontSize: "16px", fontWeight: 600 }}>양식 관리</span>
+          <span
+            className={`${style.formCardBadge} ${
+              isDraft ? style.badgePending : style.badgeOpen
+            }`}
+            style={{ marginLeft: 8 }}
+          >
+            {isDraft ? "비공개" : "공개"}
           </span>
         </div>
         <div className={style.builderHeaderActions}>
-          {currentFormId && onCopyFormLink && (
+          {currentFormId && !isDraft && onCopyFormLink && (
             <button
               type="button"
               className={style.formCardIconBtn}
@@ -1890,7 +1944,7 @@ const AltFormBuilder = ({
               <Svg type="link" width="20px" height="20px" />
             </button>
           )}
-          {currentFormId && onRespondForm && (
+          {currentFormId && onRespondForm && !isDraft && (
             <button
               type="button"
               className={style.formCardIconBtn}
@@ -1900,7 +1954,7 @@ const AltFormBuilder = ({
               <Svg type="edit" width="20px" height="20px" />
             </button>
           )}
-          {currentFormId && (
+          {currentFormId && !isDraft && (
             <button
               type="button"
               className={style.formCardIconBtn}
@@ -1915,12 +1969,49 @@ const AltFormBuilder = ({
             className={`${style.formCardIconBtn} ${
               isDirty ? style.formCardIconBtnDirty : ""
             }`}
-            title={isSaving ? "저장 중..." : isDirty ? "저장 (변경됨)" : "저장"}
-            onClick={handleSave}
-            disabled={isSaving || !isDirty}
+            title={isSaving ? "저장 중..." : "저장"}
+            onClick={() => handleSave("keep")}
+            disabled={isSaving || isDeleting || (!isDirty && !!currentFormId)}
           >
             <Svg type="save" width="20px" height="20px" />
+            <span className={style.builderActionLabel}>저장</span>
           </button>
+          {isDraft ? (
+            <button
+              type="button"
+              className={style.formCardIconBtn}
+              title={isSaving ? "공개 중..." : "공개"}
+              onClick={() => handleSave("public")}
+              disabled={isSaving || isDeleting || !title.trim()}
+              style={{ color: "var(--status-success)" }}
+            >
+              <Svg type="unarchive" width="20px" height="20px" />
+              <span className={style.builderActionLabel}>공개</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              className={style.formCardIconBtn}
+              title={isSaving ? "비공개 전환 중..." : "비공개"}
+              onClick={() => handleSave("private")}
+              disabled={isSaving || isDeleting || !title.trim()}
+            >
+              <Svg type="archive" width="20px" height="20px" />
+              <span className={style.builderActionLabel}>비공개</span>
+            </button>
+          )}
+          {currentFormId && isDraft && (
+            <button
+              type="button"
+              className={`${style.formCardIconBtn} ${style.formCardIconBtnDanger}`}
+              title="삭제"
+              onClick={requestDelete}
+              disabled={isSaving || isDeleting}
+            >
+              <Svg type="trash" width="20px" height="20px" />
+              <span className={style.builderActionLabel}>삭제</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -2218,6 +2309,64 @@ const AltFormBuilder = ({
           form={{ _id: currentFormId, title } as TAltForm}
           onClose={() => setShowTracker(false)}
         />
+      )}
+
+      {showDeleteConfirm && (
+        <Popup
+          title="양식 삭제"
+          setState={(v: boolean) => {
+            if (!v && !isDeleting) setShowDeleteConfirm(false);
+          }}
+          closeBtn={!isDeleting}
+          style={{ maxWidth: "420px", width: "100%" }}
+          footer={
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "8px",
+              }}
+            >
+              <Button
+                type="ghost"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+              >
+                취소
+              </Button>
+              <Button
+                type="ghost"
+                onClick={handleDeleteConfirm}
+                disabled={isDeleting}
+                style={{ color: "var(--status-error)" }}
+              >
+                {isDeleting ? "삭제 중..." : "삭제"}
+              </Button>
+            </div>
+          }
+        >
+          <div style={{ padding: "8px 4px", lineHeight: 1.6 }}>
+            <div
+              style={{
+                marginBottom: 12,
+                padding: "10px 12px",
+                borderRadius: 8,
+                background: "var(--status-error-bg)",
+                color: "var(--status-error)",
+                fontSize: 13,
+                fontWeight: 600,
+              }}
+            >
+              경고: 삭제하면 복구할 수 없습니다.
+            </div>
+            <strong>{title || "양식"}</strong> 양식을 정말 삭제하시겠습니까?
+            <br />
+            <span style={{ color: "var(--text-color-2)", fontSize: 13 }}>
+              연결된 응답·기록 데이터도 함께 삭제됩니다. 이 작업은 되돌릴 수
+              없습니다.
+            </span>
+          </div>
+        </Popup>
       )}
     </div>
   );
