@@ -2096,19 +2096,21 @@ const AltFormBuilder = ({
       <div className={style.builderBody} ref={builderBodyRef}>
         {/* Title Card */}
         <div className={`${style.gfCard} ${style.titleCard}`}>
-          <div className={style.titleCardAccent} />
           <div className={style.titleCardBody}>
+            <span className={style.titleCardEyebrow}>양식 정보</span>
             <input
               className={style.gfTitleInput}
               placeholder="양식 제목"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              aria-label="양식 제목"
             />
             <input
               className={style.gfDescInput}
               placeholder="양식 설명 (선택)"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              aria-label="양식 설명"
             />
           </div>
         </div>
