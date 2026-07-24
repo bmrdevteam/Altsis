@@ -22,6 +22,7 @@ import {
 import {
   isBoardMemberAsUser,
   getUserRoleInSeason,
+  canAccessSeasonBoard,
 } from "../services/boards.js";
 import { sendAutoNotification, isBoardNotificationEnabled } from "../services/notifications.js";
 import {
@@ -1464,21 +1465,47 @@ export const findSchoolTodos = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("school") });
     }
 
+    const currentSeasonId = req.query.season || null;
+
     const seasonRole = await getUserRoleInSeason(
       req.user.academyId,
       school.schoolId,
-      req.user
+      req.user,
+      currentSeasonId
     );
 
     const boards = await Board(req.user.academyId).find({
       school: school._id,
       isActive: true,
       boardMode: "alt",
+      $or: [
+        { scope: "school" },
+        { scope: { $exists: false } },
+        { scope: null },
+        ...(currentSeasonId
+          ? [{ scope: "season", season: currentSeasonId }]
+          : []),
+      ],
     });
 
-    const accessibleBoards = boards.filter((board) =>
-      isBoardMemberAsUser(board, req.user, seasonRole)
-    );
+    const accessibleBoards = [];
+    for (const board of boards) {
+      if (!(await canAccessSeasonBoard(req.user.academyId, board, req.user))) {
+        continue;
+      }
+      const boardRole =
+        board.scope === "season" && board.season
+          ? await getUserRoleInSeason(
+              req.user.academyId,
+              board.schoolId,
+              req.user,
+              board.season
+            )
+          : seasonRole;
+      if (isBoardMemberAsUser(board, req.user, boardRole)) {
+        accessibleBoards.push(board);
+      }
+    }
 
     const todos = [];
     const now = new Date();

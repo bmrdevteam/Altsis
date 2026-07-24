@@ -81,6 +81,10 @@ const boardPermissionSchema = mongoose.Schema(
  * @prop {ObjectId} school - school._id
  * @prop {string} schoolId - school.schoolId
  * @prop {string} schoolName - school.schoolName
+ * @prop {"school"|"season"} scope - 보드 범위 (기본 school)
+ * @prop {ObjectId} [season] - scope가 season일 때 season._id
+ * @prop {string} [seasonYear] - 표시용 학년도 캐시
+ * @prop {string} [seasonTerm] - 표시용 학기 캐시
  * @prop {string} name - 게시판 이름
  * @prop {string} slug - URL 슬러그
  * @prop {string} description - 게시판 설명
@@ -108,6 +112,16 @@ const boardSchema = mongoose.Schema(
       type: String,
       required: true,
     },
+
+    // 보드 범위: school(학교 전체) | season(특정 시즌만)
+    scope: {
+      type: String,
+      enum: ["school", "season"],
+      default: "school",
+    },
+    season: mongoose.Types.ObjectId,
+    seasonYear: String,
+    seasonTerm: String,
 
     name: {
       type: String,
@@ -230,6 +244,7 @@ const boardSchema = mongoose.Schema(
 
 boardSchema.index({ school: 1 });
 boardSchema.index({ school: 1, slug: 1 }, { unique: true });
+boardSchema.index({ school: 1, scope: 1, season: 1, isActive: 1 });
 
 export const Board = (dbName) => {
   return conn[dbName].model("Board", boardSchema);

@@ -4,6 +4,12 @@
  */
 
 import { Registration, User } from "../models/index.js";
+import {
+  isSeasonScopedBoard,
+  canBypassSeasonRegistration,
+} from "../utils/boardSeasonScope.js";
+
+export { isSeasonScopedBoard, canBypassSeasonRegistration };
 
 /**
  * 보드 관리 권한 확인 (admin/manager 또는 보드 생성자)
@@ -22,6 +28,38 @@ export const canManageBoard = (board, user) => {
 };
 
 /**
+ * 시즌 보드의 해당 시즌에 활성화된 Registration이 있는지 확인
+ * @param {string} academyId
+ * @param {Object} board
+ * @param {Object} user - { _id } 또는 user ObjectId
+ * @returns {Promise<boolean>}
+ */
+export const hasActiveSeasonRegistration = async (academyId, board, user) => {
+  if (!isSeasonScopedBoard(board)) return true;
+  const userId = user._id ?? user;
+  const registration = await Registration(academyId).findOne({
+    user: userId,
+    schoolId: board.schoolId,
+    season: board.season,
+    isActivated: true,
+  });
+  return !!registration;
+};
+
+/**
+ * 시즌 보드 접근 가능 여부 (규칙 B + 운영 예외)
+ * @param {string} academyId
+ * @param {Object} board
+ * @param {Object} user
+ * @returns {Promise<boolean>}
+ */
+export const canAccessSeasonBoard = async (academyId, board, user) => {
+  if (!isSeasonScopedBoard(board)) return true;
+  if (canBypassSeasonRegistration(board, user)) return true;
+  return hasActiveSeasonRegistration(academyId, board, user);
+};
+
+/**
  * 현재 시즌에서 사용자의 역할 조회
  * @memberof Services.BoardService
  * @function getUserRoleInSeason
@@ -29,15 +67,24 @@ export const canManageBoard = (board, user) => {
  * @param {string} academyId - 아카데미 ID
  * @param {string} schoolId - 학교 ID
  * @param {Object} user - 사용자 객체
+ * @param {string|ObjectId} [seasonId] - 특정 시즌 ID (전달 시 해당 시즌만)
  *
  * @returns {Promise<string|null>} 역할 ("student" | "teacher" | null)
  */
-export const getUserRoleInSeason = async (academyId, schoolId, user) => {
-  const registration = await Registration(academyId).findOne({
+export const getUserRoleInSeason = async (
+  academyId,
+  schoolId,
+  user,
+  seasonId = null
+) => {
+  const query = {
     user: user._id,
     schoolId,
     isActivated: true,
-  });
+  };
+  if (seasonId) query.season = seasonId;
+
+  const registration = await Registration(academyId).findOne(query);
 
   return registration?.role || null;
 };
@@ -203,6 +250,8 @@ export const isBoardWriter = (board, user, role) => {
  */
 export const getBoardMembers = async (academyId, board, seasonId) => {
   const users = [];
+  const effectiveSeasonId =
+    seasonId || (isSeasonScopedBoard(board) ? board.season : null);
 
   // 기본 보드(공지사항): 전체 학교 구성원 반환
   if (board.isDefault) {
@@ -222,7 +271,7 @@ export const getBoardMembers = async (academyId, board, seasonId) => {
     }
 
     const regQuery = { schoolId: board.schoolId, isActivated: true };
-    if (seasonId) regQuery.season = seasonId;
+    if (effectiveSeasonId) regQuery.season = effectiveSeasonId;
     const registrations = await Registration(academyId).find(regQuery);
     for (const reg of registrations) {
       if (!users.some((u) => u.userId === reg.userId)) {
@@ -250,6 +299,41 @@ export const getBoardMembers = async (academyId, board, seasonId) => {
     for (const u of members.users || []) {
       if (!users.some((x) => x.userId === u.userId)) {
         users.push({ user: u.user, userId: u.userId, userName: u.userName });
+      }
+    }
+  }
+
+  // 시즌 보드(규칙 B): 해당 시즌 Registration과 교집합
+  if (isSeasonScopedBoard(board)) {
+    const seasonForFilter = board.season;
+    const registrations = await Registration(academyId)
+      .find({
+        schoolId: board.schoolId,
+        season: seasonForFilter,
+        isActivated: true,
+      })
+      .select("user userId")
+      .lean();
+    const registeredUserIds = new Set(
+      registrations.map((r) => r.user.toString())
+    );
+    // admin/manager/creator는 교집합 밖에서도 유지(운영)
+    const opsUsers = await User(academyId)
+      .find({
+        $or: [
+          { auth: "admin" },
+          { auth: "manager", "schools.schoolId": board.schoolId },
+        ],
+      })
+      .select("_id")
+      .lean();
+    const opsIds = new Set(opsUsers.map((u) => u._id.toString()));
+    if (board.creator) opsIds.add(board.creator.toString());
+
+    for (let i = users.length - 1; i >= 0; i--) {
+      const uid = users[i].user?.toString?.() ?? String(users[i].user);
+      if (!registeredUserIds.has(uid) && !opsIds.has(uid)) {
+        users.splice(i, 1);
       }
     }
   }

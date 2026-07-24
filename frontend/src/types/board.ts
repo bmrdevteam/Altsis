@@ -33,6 +33,7 @@ export type TBoardContentViewMode = "table" | "blog";
 export type TBoardListViewMode = "table" | "gallery";
 export type TBoardType = "official" | "user";
 export type TBoardMode = "alt";
+export type TBoardScope = "school" | "season";
 export type TAltBoardRole = "admin" | "writer" | "respondent";
 
 export type TBoardNotificationEvents = {
@@ -48,6 +49,11 @@ export type TBoard = {
   school: string;
   schoolId: string;
   schoolName: string;
+  /** school: 학교 전체 / season: 특정 시즌만 (기본 school) */
+  scope?: TBoardScope;
+  season?: string;
+  seasonYear?: string;
+  seasonTerm?: string;
   name: string;
   slug: string;
   description: string;

@@ -135,7 +135,10 @@ const BoardManagePopup = ({ board, setState, onSuccess }: Props) => {
   const [coverRemoved, setCoverRemoved] = useState(false);
 
   useEffect(() => {
-    const seasonId = currentRegistration?.season || currentSeason?._id;
+    const seasonId =
+      board.scope === "season" && board.season
+        ? board.season
+        : currentRegistration?.season || currentSeason?._id;
     if (seasonId) {
       RegistrationAPI.RRegistrations({
         query: { season: seasonId },
@@ -613,6 +616,44 @@ const BoardManagePopup = ({ board, setState, onSuccess }: Props) => {
                 기본 보드의 이름은 변경할 수 없습니다.
               </p>
             )}
+          </div>
+          <div style={{ marginBottom: "16px" }}>
+            <div
+              style={{
+                display: "block",
+                fontSize: "14px",
+                fontWeight: 500,
+                marginBottom: "6px",
+              }}
+            >
+              보드 범위
+            </div>
+            <p
+              style={{
+                fontSize: "13px",
+                color: "var(--text-color)",
+                margin: 0,
+              }}
+            >
+              {board.scope === "season"
+                ? board.seasonYear && board.seasonTerm
+                  ? `시즌 (${board.seasonYear} ${board.seasonTerm})`
+                  : "시즌"
+                : "학교 전체"}
+            </p>
+            <p
+              style={{
+                fontSize: "12px",
+                color: "var(--text-color-2)",
+                marginTop: "4px",
+                marginBottom: 0,
+              }}
+            >
+              생성 후 범위는 변경할 수 없습니다.
+              {board.scope === "season"
+                ? " 해당 시즌 등록자만 초대·접근할 수 있습니다."
+                : ""}
+            </p>
           </div>
           <div style={{ marginBottom: "16px" }}>
             <Textarea

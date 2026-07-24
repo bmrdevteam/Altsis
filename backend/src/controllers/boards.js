@@ -14,6 +14,7 @@ import {
   CalendarEvent,
   Post,
   School,
+  Season,
   SurveyResponse,
   Syllabus,
 } from "../models/index.js";
@@ -23,6 +24,9 @@ import {
   isBoardMemberAsUser,
   getUserRoleInSeason,
   getBoardMembers,
+  isSeasonScopedBoard,
+  canAccessSeasonBoard,
+  hasActiveSeasonRegistration,
 } from "../services/boards.js";
 import { sendAutoNotification, isBoardNotificationEnabled } from "../services/notifications.js";
 import {
@@ -115,6 +119,31 @@ export const create = async (req, res) => {
     // boardType 결정: admin/manager → official, 그 외 → user
     const boardType = isAdminOrManager ? "official" : "user";
 
+    const scope = req.body.scope === "season" ? "season" : "school";
+    let season = undefined;
+    let seasonYear = undefined;
+    let seasonTerm = undefined;
+
+    if (scope === "season") {
+      if (!req.body.season) {
+        return res.status(400).send({ message: FIELD_REQUIRED("season") });
+      }
+      const seasonDoc = await Season(req.user.academyId).findById(
+        req.body.season
+      );
+      if (!seasonDoc) {
+        return res.status(404).send({ message: __NOT_FOUND("season") });
+      }
+      if (seasonDoc.school.toString() !== school._id.toString()) {
+        return res.status(400).send({
+          message: "시즌이 해당 학교에 속하지 않습니다.",
+        });
+      }
+      season = seasonDoc._id;
+      seasonYear = seasonDoc.year;
+      seasonTerm = seasonDoc.term;
+    }
+
     const altBoardRole = new Map();
     altBoardRole.set(req.user._id.toString(), "admin");
 
@@ -122,6 +151,10 @@ export const create = async (req, res) => {
       school: school._id,
       schoolId: school.schoolId,
       schoolName: school.schoolName,
+      scope,
+      ...(scope === "season"
+        ? { season, seasonYear, seasonTerm }
+        : {}),
       name: req.body.name,
       slug,
       description: req.body.description || "",
@@ -157,11 +190,18 @@ export const find = async (req, res) => {
         return res.status(404).send({ message: __NOT_FOUND("board") });
       }
 
-      // 멤버 확인
+      if (
+        !(await canAccessSeasonBoard(req.user.academyId, board, req.user))
+      ) {
+        return res.status(403).send({ message: PERMISSION_DENIED });
+      }
+
+      // 멤버 확인 (시즌 보드는 해당 시즌 Registration 역할 사용)
       const role = await getUserRoleInSeason(
         req.user.academyId,
         board.schoolId,
-        req.user
+        req.user,
+        isSeasonScopedBoard(board) ? board.season : null
       );
       if (!isBoardMember(board, req.user, role)) {
         return res.status(403).send({ message: PERMISSION_DENIED });
@@ -180,10 +220,14 @@ export const find = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("school") });
     }
 
+    const currentSeasonId = req.query.season || null;
+    const isManageMode = req.query.mode === "manage";
+
     const role = await getUserRoleInSeason(
       req.user.academyId,
       school.schoolId,
-      req.user
+      req.user,
+      currentSeasonId
     );
 
     // 기본 게시판(공지사항)이 없으면 자동 생성
@@ -195,22 +239,52 @@ export const find = async (req, res) => {
       await createDefaultBoard(req.user.academyId, school);
     }
 
+    const listFilter = {
+      school: school._id,
+      isActive: true,
+      $or: [
+        { scope: "school" },
+        { scope: { $exists: false } },
+        { scope: null },
+      ],
+    };
+    if (isManageMode) {
+      // 관리 모드: 모든 시즌 보드 포함
+      listFilter.$or.push({ scope: "season" });
+    } else if (currentSeasonId) {
+      listFilter.$or.push({ scope: "season", season: currentSeasonId });
+    }
+
     const boards = await Board(req.user.academyId)
-      .find({ school: school._id, isActive: true })
+      .find(listFilter)
       .sort({ isDefault: -1, boardType: 1, order: 1, createdAt: 1 });
 
     // 멤버인 게시판만 필터링
-    const isManageMode = req.query.mode === "manage";
-
     if (isManageMode && !canManageBoard({ creator: null }, req.user)) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
-    const accessibleBoards = boards.filter((board) =>
-      isManageMode
-        ? canManageBoard(board, req.user)
-        : isBoardMemberAsUser(board, req.user, role)
-    );
+    const accessibleBoards = [];
+    for (const board of boards) {
+      if (isManageMode) {
+        if (canManageBoard(board, req.user)) accessibleBoards.push(board);
+        continue;
+      }
+      if (!(await canAccessSeasonBoard(req.user.academyId, board, req.user))) {
+        continue;
+      }
+      const boardRole = isSeasonScopedBoard(board)
+        ? await getUserRoleInSeason(
+            req.user.academyId,
+            board.schoolId,
+            req.user,
+            board.season
+          )
+        : role;
+      if (isBoardMemberAsUser(board, req.user, boardRole)) {
+        accessibleBoards.push(board);
+      }
+    }
 
     // 즐겨찾기 정보 조회
     const favorites = await BoardFavorite(req.user.academyId).find({
@@ -309,6 +383,19 @@ export const addMemberUser = async (req, res) => {
     for (let field of ["user", "userId", "userName"]) {
       if (!(field in req.body)) {
         return res.status(400).send({ message: FIELD_REQUIRED(field) });
+      }
+    }
+
+    if (isSeasonScopedBoard(board)) {
+      const registered = await hasActiveSeasonRegistration(
+        req.user.academyId,
+        board,
+        { _id: req.body.user }
+      );
+      if (!registered) {
+        return res.status(400).send({
+          message: "해당 시즌에 등록된 사용자만 초대할 수 있습니다.",
+        });
       }
     }
 
@@ -470,6 +557,19 @@ export const addWriterUser = async (req, res) => {
     for (let field of ["user", "userId", "userName"]) {
       if (!(field in req.body)) {
         return res.status(400).send({ message: FIELD_REQUIRED(field) });
+      }
+    }
+
+    if (isSeasonScopedBoard(board)) {
+      const registered = await hasActiveSeasonRegistration(
+        req.user.academyId,
+        board,
+        { _id: req.body.user }
+      );
+      if (!registered) {
+        return res.status(400).send({
+          message: "해당 시즌에 등록된 사용자만 초대할 수 있습니다.",
+        });
       }
     }
 
@@ -702,6 +802,7 @@ export const createDefaultBoard = async (academyId, school) => {
     school: school._id,
     schoolId: school.schoolId,
     schoolName: school.schoolName,
+    scope: "school",
     name: "공지사항",
     slug: "announcements",
     description: "학교 공지사항입니다.",
@@ -733,10 +834,17 @@ export const findMemberList = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("board") });
     }
 
+    if (
+      !(await canAccessSeasonBoard(req.user.academyId, board, req.user))
+    ) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
     const role = await getUserRoleInSeason(
       req.user.academyId,
       board.schoolId,
-      req.user
+      req.user,
+      isSeasonScopedBoard(board) ? board.season : null
     );
     if (!isBoardMember(board, req.user, role)) {
       return res.status(403).send({ message: PERMISSION_DENIED });
@@ -745,7 +853,7 @@ export const findMemberList = async (req, res) => {
     const users = await getBoardMembers(
       req.user.academyId,
       board,
-      req.query.season
+      isSeasonScopedBoard(board) ? board.season : req.query.season
     );
     return res.status(200).send({ users });
   } catch (err) {

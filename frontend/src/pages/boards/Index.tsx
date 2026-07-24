@@ -33,7 +33,8 @@ import BoardsActivityTodos, {
 const Boards = () => {
   const navigate = useAppNavigate();
   const location = useLocation();
-  const { currentUser, currentSchool, currentRegistration } = useAuth();
+  const { currentUser, currentSchool, currentRegistration, currentSeason } =
+    useAuth();
   const { BoardAPI, BoardFavoriteAPI, AltSheetRowAPI } = useAPIv2();
 
   const [boards, setBoards] = useState<TBoard[]>([]);
@@ -58,6 +59,19 @@ const Boards = () => {
   const isManager =
     currentUser?.auth === "admin" || currentUser?.auth === "manager";
 
+  const currentSeasonId =
+    currentRegistration?.season || currentSeason?._id || undefined;
+
+  const boardScopeLabel = (board: TBoard) => {
+    if (board.scope === "season") {
+      if (board.seasonYear && board.seasonTerm) {
+        return `${board.seasonYear} ${board.seasonTerm}`;
+      }
+      return "시즌";
+    }
+    return "학교";
+  };
+
   const canCreateBoard = useMemo(() => {
     if (isManager) return true;
     const permission = currentSchool?.boardCreationPermission;
@@ -74,11 +88,19 @@ const Boards = () => {
     return false;
   };
 
+  // 학교·시즌 변경 시 목록 다시 로드
+  useEffect(() => {
+    if (currentSchool) setIsLoading(true);
+  }, [currentSchool?._id, currentSeasonId]);
+
   // 게시판 목록 로드
   useEffect(() => {
     if (isLoading && currentSchool) {
       BoardAPI.RBoards({
-        query: { school: currentSchool._id },
+        query: {
+          school: currentSchool._id,
+          ...(currentSeasonId ? { season: currentSeasonId } : {}),
+        },
       })
         .then(({ boards }) => {
           setBoards(boards);
@@ -94,7 +116,7 @@ const Boards = () => {
           setIsLoading(false);
         });
     }
-  }, [isLoading, currentSchool]);
+  }, [isLoading, currentSchool, currentSeasonId]);
 
   // 전역 할 일 로드
   useEffect(() => {
@@ -102,7 +124,10 @@ const Boards = () => {
     setTodosReady(false);
     setTodosLoading(true);
     AltSheetRowAPI.RAltSheetRowSchoolTodos({
-      query: { school: currentSchool._id },
+      query: {
+        school: currentSchool._id,
+        ...(currentSeasonId ? { season: currentSeasonId } : {}),
+      },
     })
       .then(({ items }) => {
         setTodos(items);
@@ -115,7 +140,7 @@ const Boards = () => {
         setTodosLoading(false);
         setTodosReady(true);
       });
-  }, [currentSchool?._id]);
+  }, [currentSchool?._id, currentSeasonId]);
 
   const handleBoardClick = (board: TBoard) => {
     navigate(`/boards/${board._id}`);
@@ -296,6 +321,11 @@ const Boards = () => {
                         {board.name}
                       </div>
                       <div className={aStyle.formCardMeta}>
+                        <span
+                          className={`${aStyle.formCardBadge} ${aStyle.badgeOptional}`}
+                        >
+                          {boardScopeLabel(board)}
+                        </span>
                         {board.boardType === "user" && (
                           <span
                             className={`${aStyle.formCardBadge} ${aStyle.badgeOptional}`}

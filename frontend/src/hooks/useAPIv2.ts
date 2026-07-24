@@ -3027,6 +3027,8 @@ export default function useAPIv2() {
       coverColor?: string;
       members?: TBoardMembers;
       writers?: TBoardMembers;
+      scope?: "school" | "season";
+      season?: string;
     };
   }) {
     const { board } = await database.C({
@@ -3042,7 +3044,9 @@ export default function useAPIv2() {
    * @version 1.0.0
    * @auth user
    */
-  async function RBoards(props: { query: { school: string; mode?: string } }) {
+  async function RBoards(props: {
+    query: { school: string; mode?: string; season?: string };
+  }) {
     const { boards } = await database.R({
       location: "boards" + QUERY_BUILDER(props.query),
     });
@@ -4616,7 +4620,7 @@ export default function useAPIv2() {
   }
 
   async function RAltSheetRowSchoolTodos(props: {
-    query: { school: string };
+    query: { school: string; season?: string };
   }) {
     const { items, count } = await database.R({
       location: "alt-sheet-rows/school-todos" + QUERY_BUILDER(props.query),

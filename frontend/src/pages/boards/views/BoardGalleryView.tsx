@@ -59,6 +59,13 @@ const BoardGalleryView = ({
             <div className={style.cardName}>
               {board.isDefault && "📢 "}
               {board.name}
+              <span className={`${style.badge} ${style.badgeUser}`}>
+                {board.scope === "season"
+                  ? board.seasonYear && board.seasonTerm
+                    ? `${board.seasonYear} ${board.seasonTerm}`
+                    : "시즌"
+                  : "학교"}
+              </span>
               {board.boardType === "user" && (
                 <span className={`${style.badge} ${style.badgeUser}`}>
                   사용자

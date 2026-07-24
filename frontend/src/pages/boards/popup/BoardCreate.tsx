@@ -19,7 +19,7 @@ import Input from "components/input/Input";
 import Button from "components/button/Button";
 import Textarea from "components/textarea/Textarea";
 import CourseCoverImageEditor from "pages/courses/view/CourseCoverImageEditor";
-import { TBoardContentViewMode } from "types/board";
+import { TBoardContentViewMode, TBoardScope } from "types/board";
 import bStyle from "../boards.module.scss";
 
 type Props = {
@@ -28,12 +28,13 @@ type Props = {
 };
 
 const BoardCreatePopup = ({ setState, onSuccess }: Props) => {
-  const { currentSchool } = useAuth();
+  const { currentSchool, currentSeason, currentRegistration } = useAuth();
   const { BoardAPI } = useAPIv2();
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [coverColor, setCoverColor] = useState("");
+  const [scope, setScope] = useState<TBoardScope>("school");
   const [contentViewMode, setContentViewMode] =
     useState<TBoardContentViewMode>("table");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,6 +42,12 @@ const BoardCreatePopup = ({ setState, onSuccess }: Props) => {
   // 이미지 파일/URL은 보드 생성 후 업로드
   const coverFileRef = useRef<File | null>(null);
   const coverUrlRef = useRef<string>("");
+
+  const seasonId = currentRegistration?.season || currentSeason?._id;
+  const seasonLabel =
+    currentSeason?.year && currentSeason?.term
+      ? `${currentSeason.year} ${currentSeason.term}`
+      : "이번 시즌";
 
   const handleSubmit = async () => {
     if (!name.trim()) {
@@ -50,6 +57,11 @@ const BoardCreatePopup = ({ setState, onSuccess }: Props) => {
 
     if (!currentSchool) {
       alert("학교 정보가 없습니다.");
+      return;
+    }
+
+    if (scope === "season" && !seasonId) {
+      alert("시즌 정보가 없어 시즌 보드를 생성할 수 없습니다.");
       return;
     }
 
@@ -63,6 +75,8 @@ const BoardCreatePopup = ({ setState, onSuccess }: Props) => {
           description: description.trim(),
           coverColor: coverColor || undefined,
           contentViewMode,
+          scope,
+          ...(scope === "season" ? { season: seasonId } : {}),
         },
       });
 
@@ -126,6 +140,51 @@ const BoardCreatePopup = ({ setState, onSuccess }: Props) => {
             placeholder="보드에 대한 설명을 입력하세요"
             onChange={(e: any) => setDescription(e.target.value)}
           />
+        </div>
+        <div style={{ marginBottom: "16px" }}>
+          <div
+            style={{
+              display: "block",
+              fontSize: "14px",
+              fontWeight: 500,
+              marginBottom: "6px",
+            }}
+          >
+            보드 범위
+          </div>
+          <div className={bStyle.segmentGroup}>
+            <button
+              type="button"
+              className={`${bStyle.segmentBtn} ${
+                scope === "school" ? bStyle.segmentBtnActive : ""
+              }`}
+              onClick={() => setScope("school")}
+            >
+              학교 전체
+            </button>
+            <button
+              type="button"
+              className={`${bStyle.segmentBtn} ${
+                scope === "season" ? bStyle.segmentBtnActive : ""
+              }`}
+              onClick={() => setScope("season")}
+              disabled={!seasonId}
+            >
+              이번 시즌만
+            </button>
+          </div>
+          <p
+            style={{
+              fontSize: "12px",
+              color: "var(--text-color-2)",
+              marginTop: "6px",
+              marginBottom: 0,
+            }}
+          >
+            {scope === "season"
+              ? `${seasonLabel}에 등록된 구성원만 사용할 수 있습니다. 생성 후 범위를 바꿀 수 없습니다.`
+              : "모든 시즌에서 보이며, 학교 구성원이 계속 사용할 수 있습니다."}
+          </p>
         </div>
         <div style={{ marginBottom: "16px" }}>
           <div

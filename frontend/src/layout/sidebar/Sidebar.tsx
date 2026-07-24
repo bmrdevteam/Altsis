@@ -21,7 +21,8 @@ type Props = {};
 const Sidebar = (props: Props) => {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
-  const { currentUser, currentRegistration, currentSchool } = useAuth();
+  const { currentUser, currentRegistration, currentSchool, currentSeason } =
+    useAuth();
   const { AltSheetRowAPI } = useAPIv2();
   const [boardsTodoCount, setBoardsTodoCount] = useState(0);
 
@@ -37,6 +38,9 @@ const Sidebar = (props: Props) => {
     }
   }, [sidebarOpen]);
 
+  const currentSeasonId =
+    currentRegistration?.season || currentSeason?._id || undefined;
+
   // 보드 할 일 뱃지 (사이드바)
   useEffect(() => {
     if (
@@ -49,7 +53,10 @@ const Sidebar = (props: Props) => {
     }
     let cancelled = false;
     AltSheetRowAPI.RAltSheetRowSchoolTodos({
-      query: { school: currentSchool._id },
+      query: {
+        school: currentSchool._id,
+        ...(currentSeasonId ? { season: currentSeasonId } : {}),
+      },
     })
       .then(({ count }) => {
         if (!cancelled) setBoardsTodoCount(count || 0);
@@ -60,7 +67,7 @@ const Sidebar = (props: Props) => {
     return () => {
       cancelled = true;
     };
-  }, [currentSchool?._id, location.pathname]);
+  }, [currentSchool?._id, currentSeasonId, location.pathname]);
 
   return (
     <Nav open={sidebarOpen}>
