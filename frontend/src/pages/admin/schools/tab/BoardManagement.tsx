@@ -28,11 +28,11 @@ const NOTIFICATION_EVENT_LABELS: Record<
   },
   altFormApprovalRequest: {
     label: "승인 요청 알림",
-    description: "양식 제출 시 승인자에게 알림",
+    description: "양식 제출·다음 단계 시 승인자에게 알림",
   },
   altFormApprovalResult: {
     label: "승인 결과 알림",
-    description: "승인/반려 시 제출자에게 알림",
+    description: "단계·최종 승인/반려 시 제출자에게 알림",
   },
   formDeadlineCalendar: {
     label: "양식 마감 일정 등록",

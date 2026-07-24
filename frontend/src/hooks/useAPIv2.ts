@@ -4586,25 +4586,31 @@ export default function useAPIv2() {
   async function RAltSheetRowPendingApprovals(props: {
     query: { board: string };
   }) {
-    const { items, count } = await database.R({
+    const { items, outgoing, count } = await database.R({
       location:
         "alt-sheet-rows/pending-approvals" + QUERY_BUILDER(props.query),
     });
+    type PendingApprovalItem = {
+      rowId: string;
+      formId: string;
+      formTitle: string;
+      fieldId: string;
+      fieldLabel: string;
+      stepLabel?: string;
+      respondentName?: string;
+      respondentId?: string;
+      currentApproverName?: string;
+      currentApproverId?: string;
+      currentStep?: number;
+      totalSteps?: number;
+      submittedAt?: string;
+      approval?: any;
+      rowData?: Record<string, any>;
+      fields?: TAltFormField[];
+    };
     return {
-      items: (items || []) as {
-        rowId: string;
-        formId: string;
-        formTitle: string;
-        fieldId: string;
-        fieldLabel: string;
-        stepLabel?: string;
-        respondentName?: string;
-        respondentId?: string;
-        submittedAt?: string;
-        approval?: any;
-        rowData?: Record<string, any>;
-        fields?: TAltFormField[];
-      }[],
+      items: (items || []) as PendingApprovalItem[],
+      outgoing: (outgoing || []) as PendingApprovalItem[],
       count: (count as number) || 0,
     };
   }

@@ -789,27 +789,65 @@ export const update = async (req, res) => {
                     fromUser: req.user,
                   });
                 }
-              } else if (!result.finished && result.nextApprover?.user) {
-                const reqNotifEnabled = await isBoardNotificationEnabled(
-                  req.user.academyId,
-                  board.school,
-                  board,
-                  "altFormApprovalRequest"
-                );
-                if (reqNotifEnabled) {
-                  const stepLabel =
-                    result.value.steps[result.value.currentStep]?.label ||
-                    "다음";
-                  await sendAutoNotification({
-                    academyId: req.user.academyId,
-                    toUserList: [result.nextApprover],
-                    notificationType: "altFormApprovalRequest",
-                    category: "Alt Board",
-                    title: `${form.title} - 승인 요청`,
-                    description: `「${stepLabel}」승인이 필요합니다.`,
-                    relatedEntity: { type: "altSheetRow", id: row._id },
-                    fromUser: req.user,
-                  });
+              } else if (!result.finished) {
+                // 중간 단계 승인: 제출자에게 진행 알림
+                if (row._respondent) {
+                  const resultNotifEnabled = await isBoardNotificationEnabled(
+                    req.user.academyId,
+                    board.school,
+                    board,
+                    "altFormApprovalResult"
+                  );
+                  if (resultNotifEnabled) {
+                    const actedStep =
+                      result.value.steps?.[
+                        (result.value.currentStep || 1) - 1
+                      ];
+                    const nextStep =
+                      result.value.steps?.[result.value.currentStep];
+                    const actedLabel = actedStep?.label || "이전 단계";
+                    const nextLabel = nextStep?.label || "다음";
+                    await sendAutoNotification({
+                      academyId: req.user.academyId,
+                      toUserList: [
+                        {
+                          user: row._respondent,
+                          userId: row._respondentId,
+                          userName: row._respondentName,
+                        },
+                      ],
+                      notificationType: "altFormApprovalResult",
+                      category: "Alt Board",
+                      title: `${form.title} - 「${actedLabel}」승인됨`,
+                      description: `다음: 「${nextLabel}」승인 대기`,
+                      relatedEntity: { type: "altSheetRow", id: row._id },
+                      fromUser: req.user,
+                    });
+                  }
+                }
+                // 다음 승인자에게 요청 알림
+                if (result.nextApprover?.user) {
+                  const reqNotifEnabled = await isBoardNotificationEnabled(
+                    req.user.academyId,
+                    board.school,
+                    board,
+                    "altFormApprovalRequest"
+                  );
+                  if (reqNotifEnabled) {
+                    const stepLabel =
+                      result.value.steps[result.value.currentStep]?.label ||
+                      "다음";
+                    await sendAutoNotification({
+                      academyId: req.user.academyId,
+                      toUserList: [result.nextApprover],
+                      notificationType: "altFormApprovalRequest",
+                      category: "Alt Board",
+                      title: `${form.title} - 승인 요청`,
+                      description: `「${stepLabel}」승인이 필요합니다.`,
+                      relatedEntity: { type: "altSheetRow", id: row._id },
+                      fromUser: req.user,
+                    });
+                  }
                 }
               }
             } catch (e) {
@@ -1277,7 +1315,7 @@ export const importCsv = async (req, res) => {
 /**
  * @memberof APIs.AltSheetRowAPI
  * @function RAltSheetRowPendingApprovals API
- * @description 보드에서 내가 현재 승인해야 할 행 목록
+ * @description 보드에서 내가 승인해야 할 행 + 내가 제출해 승인 대기 중인 행
  */
 export const findPendingApprovals = async (req, res) => {
   try {
@@ -1295,6 +1333,7 @@ export const findPendingApprovals = async (req, res) => {
       .lean();
 
     const items = [];
+    const outgoing = [];
 
     for (const form of forms) {
       const approvalFields = (form.fields || []).filter(
@@ -1340,13 +1379,62 @@ export const findPendingApprovals = async (req, res) => {
           });
         }
       }
+
+      // 내가 제출했고 아직 승인 진행 중인 행
+      const myRows = await AltSheetRow(req.user.academyId)
+        .find({
+          form: form._id,
+          isActive: true,
+          _respondent: req.user._id,
+        })
+        .sort({ _submittedAt: -1 })
+        .limit(100)
+        .lean();
+
+      for (const row of myRows) {
+        for (const field of approvalFields) {
+          const fid = field._id.toString();
+          const raw = row.data?.[fid];
+          // 내가 현재 승인해야 하는 건은 items 쪽에만 표시
+          if (isCurrentApprover(raw, req.user.userId, field)) continue;
+          const normalized = normalizeApprovalValue(raw, field);
+          if (!normalized || normalized.overallStatus !== "pending") continue;
+          const step = normalized.steps?.[normalized.currentStep];
+          outgoing.push({
+            rowId: row._id,
+            formId: form._id,
+            formTitle: form.title,
+            fieldId: fid,
+            fieldLabel: field.label,
+            stepLabel: step?.label,
+            currentApproverName: step?.approver?.userName,
+            currentApproverId: step?.approver?.userId,
+            currentStep:
+              typeof normalized.currentStep === "number"
+                ? normalized.currentStep
+                : 0,
+            totalSteps: normalized.steps?.length || 0,
+            submittedAt: row._submittedAt || row.createdAt,
+            approval: normalized,
+            rowData: row.data,
+            fields: form.fields,
+          });
+        }
+      }
     }
 
     items.sort(
       (a, b) => new Date(b.submittedAt) - new Date(a.submittedAt)
     );
+    outgoing.sort(
+      (a, b) => new Date(b.submittedAt) - new Date(a.submittedAt)
+    );
 
-    return res.status(200).send({ items, count: items.length });
+    return res.status(200).send({
+      items,
+      outgoing,
+      count: items.length + outgoing.length,
+    });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });

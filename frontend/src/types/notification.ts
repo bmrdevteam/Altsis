@@ -7,7 +7,8 @@ export type TNotificationType =
   | "newPost"
   | "reminder"
   | "boardInvitation"
-  | "altFormApprovalRequest";
+  | "altFormApprovalRequest"
+  | "altFormApprovalResult";
 
 export type TRelatedEntity = {
   type:

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import style from "./altBoard.module.scss";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import Button from "components/button/Button";
@@ -29,11 +29,17 @@ type PendingItem = {
   stepLabel?: string;
   respondentName?: string;
   respondentId?: string;
+  currentApproverName?: string;
+  currentApproverId?: string;
+  currentStep?: number;
+  totalSteps?: number;
   submittedAt?: string;
   approval?: any;
   rowData?: Record<string, any>;
   fields?: FieldMeta[];
 };
+
+type ActiveKind = "approve" | "outgoing";
 
 type Props = {
   boardId: string;
@@ -43,6 +49,9 @@ type Props = {
   /** 알림 딥링크 등으로 특정 행을 바로 열기 */
   openRowId?: string | null;
   onOpenHandled?: () => void;
+  /** 할 일 섹션 하단: 미제출 카드들 */
+  unsubmittedCards?: ReactNode;
+  unsubmittedCount?: number;
 };
 
 type UploadedFile = { originalName: string; key: string };
@@ -217,27 +226,38 @@ const PendingApprovalsPanel = ({
   onSettled,
   openRowId,
   onOpenHandled,
+  unsubmittedCards,
+  unsubmittedCount = 0,
 }: Props) => {
   const { AltSheetRowAPI, FileAPI } = useAPIv2();
   const [items, setItems] = useState<PendingItem[]>([]);
+  const [outgoing, setOutgoing] = useState<PendingItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState<PendingItem | null>(null);
+  const [activeKind, setActiveKind] = useState<ActiveKind>("approve");
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const openedRef = useRef<string | null>(null);
   const settledOnceRef = useRef(false);
   const loadGenRef = useRef(0);
 
+  const openItem = (item: PendingItem, kind: ActiveKind) => {
+    setActive(item);
+    setActiveKind(kind);
+    setReason("");
+  };
+
   const load = async (opts?: { announceSettled?: boolean }) => {
     const gen = ++loadGenRef.current;
     setLoading(true);
     try {
-      const { items: list, count } =
+      const { items: list, outgoing: outList, count } =
         await AltSheetRowAPI.RAltSheetRowPendingApprovals({
           query: { board: boardId },
         });
       if (gen !== loadGenRef.current) return;
       setItems(list);
+      setOutgoing(outList);
       onCountChange?.(count);
     } catch (err) {
       if (gen !== loadGenRef.current) return;
@@ -255,24 +275,36 @@ const PendingApprovalsPanel = ({
   useEffect(() => {
     settledOnceRef.current = false;
     setItems([]);
+    setOutgoing([]);
     setActive(null);
     load({ announceSettled: true });
   }, [boardId]);
 
   useEffect(() => {
-    if (!openRowId || items.length === 0) return;
+    if (!openRowId) return;
     if (openedRef.current === openRowId) return;
-    const match = items.find((i) => String(i.rowId) === String(openRowId));
-    if (match) {
+    if (loading) return;
+    const approveMatch = items.find(
+      (i) => String(i.rowId) === String(openRowId)
+    );
+    if (approveMatch) {
       openedRef.current = openRowId;
-      setActive(match);
-      setReason("");
+      openItem(approveMatch, "approve");
+      onOpenHandled?.();
+      return;
+    }
+    const outgoingMatch = outgoing.find(
+      (i) => String(i.rowId) === String(openRowId)
+    );
+    if (outgoingMatch) {
+      openedRef.current = openRowId;
+      openItem(outgoingMatch, "outgoing");
       onOpenHandled?.();
     }
-  }, [openRowId, items, onOpenHandled]);
+  }, [openRowId, items, outgoing, loading, onOpenHandled]);
 
   const handleAction = async (status: "approved" | "rejected") => {
-    if (!active) return;
+    if (!active || activeKind !== "approve") return;
     setBusy(true);
     try {
       await AltSheetRowAPI.UAltSheetRow({
@@ -305,8 +337,18 @@ const PendingApprovalsPanel = ({
     }
   };
 
-  if (loading && items.length === 0) return null;
-  if (items.length === 0) return null;
+  if (
+    loading &&
+    items.length === 0 &&
+    outgoing.length === 0 &&
+    unsubmittedCount === 0
+  ) {
+    return null;
+  }
+
+  const todoCount = items.length + outgoing.length + unsubmittedCount;
+  const showTodoSection = todoCount > 0;
+  const isReadonly = activeKind === "outgoing";
 
   const visibleFields = (active?.fields || []).filter(
     (f) => f.type !== "approval"
@@ -423,78 +465,149 @@ const PendingApprovalsPanel = ({
 
   return (
     <>
-      <section className={style.formSectionPanel} style={{ marginBottom: 16 }}>
-        <div className={style.formSectionHeaderStatic}>
-          <div className={style.formSectionHeaderMain}>
-            <h3 className={style.formSectionTitle}>승인 대기</h3>
-            <span className={style.formSectionCount}>{items.length}</span>
+      {showTodoSection && (
+        <section className={style.formSectionPanel} style={{ marginBottom: 16 }}>
+          <div className={style.formSectionHeaderStatic}>
+            <div className={style.formSectionHeaderMain}>
+              <h3 className={style.formSectionTitle}>할 일</h3>
+              <span className={style.formSectionCount}>{todoCount}</span>
+            </div>
           </div>
-          <div className={style.formSectionStats}>
-            <span>내가 처리할 결재</span>
-          </div>
-        </div>
-        <div className={style.formSectionBody}>
-          <div className={style.formCardList}>
-            {items.map((item) => (
-              <div
-                key={`${item.rowId}_${item.fieldId}`}
-                className={style.formCard}
-                title="결재 검토하기"
-                onClick={() => {
-                  setActive(item);
-                  setReason("");
-                }}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    setActive(item);
-                    setReason("");
-                  }
-                }}
-              >
+          <div className={style.formSectionBody}>
+            <div className={style.formCardList}>
+              {items.map((item) => (
                 <div
-                  className={`${style.formCardLeadIcon} ${style.formCardLeadIconPending}`}
-                  aria-hidden
+                  key={`approve_${item.rowId}_${item.fieldId}`}
+                  className={style.formCard}
+                  title="결재 검토하기"
+                  onClick={() => openItem(item, "approve")}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      openItem(item, "approve");
+                    }
+                  }}
                 >
-                  <Svg type="list_check" width="20px" height="20px" />
-                </div>
-                <div className={style.formCardLeft}>
-                  <div className={style.formCardTitle}>{item.formTitle}</div>
-                  <div className={style.formCardMeta}>
-                    <span
-                      className={`${style.formCardBadge} ${style.badgePending}`}
-                    >
-                      {item.stepLabel || item.fieldLabel}
-                    </span>
-                    {item.respondentName && (
-                      <span>
-                        {item.respondentName}
-                        {item.respondentId ? `(${item.respondentId})` : ""}
+                  <div
+                    className={`${style.formCardLeadIcon} ${style.formCardLeadIconWarning}`}
+                    aria-hidden
+                  >
+                    <Svg type="list_check" width="20px" height="20px" />
+                  </div>
+                  <div className={style.formCardLeft}>
+                    <div className={style.formCardTitle}>{item.formTitle}</div>
+                    <div className={style.formCardMeta}>
+                      <span
+                        className={`${style.formCardBadge} ${style.badgeApproval}`}
+                      >
+                        {item.stepLabel || item.fieldLabel}
                       </span>
-                    )}
-                    {item.submittedAt && (
-                      <span>
-                        {new Date(item.submittedAt).toLocaleString("ko-KR", {
-                          month: "2-digit",
-                          day: "2-digit",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                    )}
+                      {item.respondentName && (
+                        <span>
+                          {item.respondentName}
+                          {item.respondentId ? `(${item.respondentId})` : ""}
+                        </span>
+                      )}
+                      {item.submittedAt && (
+                        <span>
+                          {new Date(item.submittedAt).toLocaleString("ko-KR", {
+                            month: "2-digit",
+                            day: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+              {outgoing.map((item) => {
+                const stepNum =
+                  typeof item.currentStep === "number"
+                    ? item.currentStep + 1
+                    : null;
+                const total = item.totalSteps || 0;
+                return (
+                  <div
+                    key={`outgoing_${item.rowId}_${item.fieldId}`}
+                    className={style.formCard}
+                    title="승인 진행 확인"
+                    onClick={() => openItem(item, "outgoing")}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        openItem(item, "outgoing");
+                      }
+                    }}
+                  >
+                    <div
+                      className={`${style.formCardLeadIcon} ${style.formCardLeadIconInfo}`}
+                      aria-hidden
+                    >
+                      <Svg type="list_check" width="20px" height="20px" />
+                    </div>
+                    <div className={style.formCardLeft}>
+                      <div className={style.formCardTitle}>{item.formTitle}</div>
+                      <div className={style.formCardMeta}>
+                        <span
+                          className={`${style.formCardBadge} ${style.badgeOptional}`}
+                        >
+                          승인 진행
+                          {stepNum != null && total > 0
+                            ? ` ${stepNum}/${total}`
+                            : ""}
+                        </span>
+                        {item.stepLabel && (
+                          <span
+                            className={`${style.formCardBadge} ${style.badgeApproval}`}
+                          >
+                            {item.stepLabel} 대기
+                          </span>
+                        )}
+                        {item.currentApproverName && (
+                          <span>
+                            {item.currentApproverName}
+                            {item.currentApproverId
+                              ? `(${item.currentApproverId})`
+                              : ""}
+                          </span>
+                        )}
+                        {item.submittedAt && (
+                          <span>
+                            {new Date(item.submittedAt).toLocaleString(
+                              "ko-KR",
+                              {
+                                month: "2-digit",
+                                day: "2-digit",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              }
+                            )}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {unsubmittedCards}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {active && (
         <Popup
-          title={`${active.formTitle} · ${active.stepLabel || "승인"}`}
+          title={`${active.formTitle} · ${
+            isReadonly
+              ? "승인 진행"
+              : active.stepLabel || "승인"
+          }`}
           setState={(v: boolean) => {
             if (!v && !busy) setActive(null);
           }}
@@ -520,22 +633,26 @@ const PendingApprovalsPanel = ({
               >
                 닫기
               </Button>
-              <Button
-                type="ghost"
-                disabled={busy}
-                style={{ color: "var(--status-error)" }}
-                onClick={() => handleAction("rejected")}
-              >
-                반려
-              </Button>
-              <Button
-                type="ghost"
-                disabled={busy}
-                style={{ color: "var(--status-success)" }}
-                onClick={() => handleAction("approved")}
-              >
-                승인
-              </Button>
+              {!isReadonly && (
+                <>
+                  <Button
+                    type="ghost"
+                    disabled={busy}
+                    style={{ color: "var(--status-error)" }}
+                    onClick={() => handleAction("rejected")}
+                  >
+                    반려
+                  </Button>
+                  <Button
+                    type="ghost"
+                    disabled={busy}
+                    style={{ color: "var(--status-success)" }}
+                    onClick={() => handleAction("approved")}
+                  >
+                    승인
+                  </Button>
+                </>
+              )}
             </div>
           }
         >
@@ -543,20 +660,52 @@ const PendingApprovalsPanel = ({
             <div className={style.rendererBody}>
               <div className={style.rendererMeta}>
                 <span
-                  className={`${style.formCardBadge} ${style.badgePending}`}
+                  className={`${style.formCardBadge} ${
+                    isReadonly ? style.badgeOptional : style.badgeApproval
+                  }`}
                 >
-                  {active.stepLabel || active.fieldLabel || "승인"}
+                  {isReadonly
+                    ? "승인 진행"
+                    : active.stepLabel || active.fieldLabel || "승인"}
                 </span>
+                {isReadonly && active.stepLabel && (
+                  <span
+                    className={`${style.formCardBadge} ${style.badgeApproval}`}
+                  >
+                    {active.stepLabel} 대기
+                  </span>
+                )}
               </div>
 
               <div className={style.readonlyBanner}>
                 <div className={style.readonlyBannerText}>
-                  <strong>
-                    {active.respondentName || "제출자"}
-                    {active.respondentId ? ` (${active.respondentId})` : ""}
-                  </strong>
-                  {activeSubmittedAt && (
-                    <span>제출일: {activeSubmittedAt}</span>
+                  {isReadonly ? (
+                    <>
+                      <strong>내가 제출한 응답의 승인 진행 상황입니다.</strong>
+                      {active.currentApproverName && (
+                        <span>
+                          현재 승인자: {active.currentApproverName}
+                          {active.currentApproverId
+                            ? ` (${active.currentApproverId})`
+                            : ""}
+                        </span>
+                      )}
+                      {activeSubmittedAt && (
+                        <span>제출일: {activeSubmittedAt}</span>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <strong>
+                        {active.respondentName || "제출자"}
+                        {active.respondentId
+                          ? ` (${active.respondentId})`
+                          : ""}
+                      </strong>
+                      {activeSubmittedAt && (
+                        <span>제출일: {activeSubmittedAt}</span>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -571,7 +720,8 @@ const PendingApprovalsPanel = ({
                       (Array.isArray(val) && val.length === 0);
                 if (empty && f.type === "content" && !f.content) return null;
 
-                const showLabel = f.type !== "content" || Boolean(f.label?.trim());
+                const showLabel =
+                  f.type !== "content" || Boolean(f.label?.trim());
 
                 return (
                   <div key={f._id} className={style.questionItem}>
@@ -594,19 +744,24 @@ const PendingApprovalsPanel = ({
                 activeApprovalData?.currentStep ?? 0
               )}
 
-              <div className={style.approvalReasonSection}>
-                <label className={style.approvalReasonLabel} htmlFor="approval-reason">
-                  의견
-                </label>
-                <input
-                  id="approval-reason"
-                  className={style.approvalReasonInput}
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  disabled={busy}
-                  placeholder="의견을 입력하세요"
-                />
-              </div>
+              {!isReadonly && (
+                <div className={style.approvalReasonSection}>
+                  <label
+                    className={style.approvalReasonLabel}
+                    htmlFor="approval-reason"
+                  >
+                    의견
+                  </label>
+                  <input
+                    id="approval-reason"
+                    className={style.approvalReasonInput}
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    disabled={busy}
+                    placeholder="의견을 입력하세요"
+                  />
+                </div>
+              )}
             </div>
           </div>
         </Popup>

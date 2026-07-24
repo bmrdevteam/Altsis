@@ -117,6 +117,7 @@ const notificationSchema = mongoose.Schema(
         "reminder",
         "boardInvitation",
         "altFormApprovalRequest",
+        "altFormApprovalResult",
       ],
       default: "direct",
     },

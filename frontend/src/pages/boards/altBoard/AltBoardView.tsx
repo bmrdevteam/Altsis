@@ -123,11 +123,12 @@ const AltBoardView = ({ board, embedded }: Props) => {
     loadPendingApprovals();
   }, [board._id]);
 
-  // 활동 뱃지: 미제출(공개·진행 중) + 승인 대기
+  // 활동 뱃지: 필수·미제출 + 승인해야 함 + 승인 진행 중
   const activityBadgeCount = (() => {
     const now = new Date();
     const unsubmitted = forms.filter((f) => {
       if (f.isDraft) return false;
+      if (f.settings?.requiredMode !== true) return false;
       if (f.settings?.directInputMode) return false;
       if (f.settings?.closeAt && new Date(f.settings.closeAt) < now) return false;
       if (f.settings?.openAt && new Date(f.settings.openAt) > now) return false;

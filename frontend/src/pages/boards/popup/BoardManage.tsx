@@ -84,8 +84,8 @@ const NOTIF_LABELS: Record<
 > = {
   newPost: { label: "새 게시글 알림", desc: "새 게시글 등록 시 멤버에게 알림" },
   boardInvitation: { label: "보드 초대 알림", desc: "새 멤버 초대 시 알림" },
-  altFormApprovalRequest: { label: "승인 요청 알림", desc: "양식 제출 시 승인자에게 알림" },
-  altFormApprovalResult: { label: "승인 결과 알림", desc: "승인/반려 시 제출자에게 알림" },
+  altFormApprovalRequest: { label: "승인 요청 알림", desc: "양식 제출·다음 단계 시 승인자에게 알림" },
+  altFormApprovalResult: { label: "승인 결과 알림", desc: "단계·최종 승인/반려 시 제출자에게 알림" },
   formDeadlineCalendar: { label: "양식 마감 일정 등록", desc: "양식 마감일을 멤버 캘린더에 등록" },
 };
 
