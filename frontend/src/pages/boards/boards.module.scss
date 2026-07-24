@@ -106,7 +106,32 @@
   }
 }
 
-/* ─── Board list (table view) — card style ─── */
+/* Color bar inside formCard-style board rows */
+.boardFormCard {
+  padding-left: 12px;
+  gap: 4px;
+}
+
+.boardItemColorBar {
+  width: 4px;
+  align-self: stretch;
+  border-radius: 2px;
+  flex-shrink: 0;
+  margin-right: 8px;
+}
+
+.boardMetaDesc {
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.favoriteIconActive {
+  color: var(--accent-1) !important;
+}
+
+/* ─── Board list (legacy table view styles kept for gallery/other) ─── */
 .boardList {
   display: flex;
   flex-direction: column;
@@ -129,14 +154,6 @@
     border-color: var(--accent-1);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   }
-}
-
-.boardItemColorBar {
-  width: 4px;
-  align-self: stretch;
-  border-radius: 2px;
-  flex-shrink: 0;
-  margin-right: 8px;
 }
 
 .boardItemLeft {

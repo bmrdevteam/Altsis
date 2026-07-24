@@ -72,7 +72,7 @@ const BoardGalleryView = ({
 
             <div className={style.cardFooter}>
               <div className={style.cardMeta}>
-                <span>게시글 {board.postCount}개</span>
+                <span>게시글 {board.postCount ?? 0}개</span>
                 {board.creatorName && <span>by {board.creatorName}</span>}
               </div>
             </div>
