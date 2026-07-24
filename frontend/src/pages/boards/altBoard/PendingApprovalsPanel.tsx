@@ -37,6 +37,8 @@ type PendingItem = {
 type Props = {
   boardId: string;
   onCountChange?: (count: number) => void;
+  /** 첫 조회(또는 board 변경 후 조회) 완료 — 레이아웃 밀림 방지용 */
+  onSettled?: () => void;
   /** 알림 딥링크 등으로 특정 행을 바로 열기 */
   openRowId?: string | null;
   onOpenHandled?: () => void;
@@ -211,6 +213,7 @@ const renderApprovalProgress = (
 const PendingApprovalsPanel = ({
   boardId,
   onCountChange,
+  onSettled,
   openRowId,
   onOpenHandled,
 }: Props) => {
@@ -221,25 +224,38 @@ const PendingApprovalsPanel = ({
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const openedRef = useRef<string | null>(null);
+  const settledOnceRef = useRef(false);
+  const loadGenRef = useRef(0);
 
-  const load = async () => {
+  const load = async (opts?: { announceSettled?: boolean }) => {
+    const gen = ++loadGenRef.current;
     setLoading(true);
     try {
       const { items: list, count } =
         await AltSheetRowAPI.RAltSheetRowPendingApprovals({
           query: { board: boardId },
         });
+      if (gen !== loadGenRef.current) return;
       setItems(list);
       onCountChange?.(count);
     } catch (err) {
+      if (gen !== loadGenRef.current) return;
       ALERT_ERROR(err);
     } finally {
+      if (gen !== loadGenRef.current) return;
       setLoading(false);
+      if (opts?.announceSettled !== false && !settledOnceRef.current) {
+        settledOnceRef.current = true;
+        onSettled?.();
+      }
     }
   };
 
   useEffect(() => {
-    load();
+    settledOnceRef.current = false;
+    setItems([]);
+    setActive(null);
+    load({ announceSettled: true });
   }, [boardId]);
 
   useEffect(() => {

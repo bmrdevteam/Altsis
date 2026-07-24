@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import style from "./altBoard.module.scss";
 import { TAltForm } from "types/altForm";
 import { TAltBoardRole, TBoard } from "types/board";
@@ -108,7 +108,12 @@ const AltFormList = ({
   const [deleteForm, setDeleteForm] = useState<TAltForm | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [actionMenu, setActionMenu] = useState<string | null>(null);
+  const [approvalsSettled, setApprovalsSettled] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setApprovalsSettled(false);
+  }, [board._id]);
 
   /** 제출형 활동 (통계·정렬용) */
   const submitForms = useMemo(() => {
@@ -550,6 +555,7 @@ const AltFormList = ({
       <PendingApprovalsPanel
         boardId={board._id}
         openRowId={openApprovalRowId}
+        onSettled={() => setApprovalsSettled(true)}
         onOpenHandled={() => {
           // URL에서 approval 파라미터만 제거 (탭·해시 유지)
           if (typeof window === "undefined") return;
@@ -563,6 +569,9 @@ const AltFormList = ({
           );
         }}
       />
+      {!approvalsSettled ? (
+        <div className={style.emptyState}>불러오는 중...</div>
+      ) : (
       <section className={style.formSectionPanel}>
         <div className={style.formSectionHeaderStatic}>
           <div className={style.formSectionHeaderMain}>
@@ -632,6 +641,7 @@ const AltFormList = ({
           )}
         </div>
       </section>
+      )}
 
       {comboForm && (
         <CombinationGenerator

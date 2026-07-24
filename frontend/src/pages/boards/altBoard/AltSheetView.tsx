@@ -1443,7 +1443,7 @@ const AltSheetView = ({
               title="컬럼 설정"
               onClick={() => setShowColumnSettings(!showColumnSettings)}
             >
-              <Svg type="settings" width="20px" height="20px" />
+              <Svg type="list_check" width="20px" height="20px" />
             </button>
             {showColumnSettings && (
               <div className={style.columnSettingsDropdown}>
