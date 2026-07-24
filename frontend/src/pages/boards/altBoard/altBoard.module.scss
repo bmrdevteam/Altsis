@@ -226,6 +226,62 @@
   padding: 0;
 }
 
+.formCardLeadIcon {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  margin-right: 4px;
+  border-radius: 8px;
+  background: var(--background-color-2);
+  color: var(--accent-1);
+
+  svg {
+    fill: var(--accent-1);
+  }
+}
+
+.formCardLeadIconPending {
+  background: var(--status-warning-bg);
+  color: var(--status-warning);
+
+  svg {
+    fill: var(--status-warning);
+  }
+}
+
+.formCardLeadIconSubmitted {
+  background: var(--status-success-bg);
+  color: var(--status-success);
+
+  svg {
+    fill: var(--status-success);
+  }
+}
+
+.formCardLeadIconClosed {
+  background: var(--status-error-bg);
+  color: var(--status-error);
+
+  svg {
+    fill: var(--status-error);
+  }
+}
+
+.formCardLeadIconInfo {
+  background: var(--status-info-bg);
+  color: var(--status-info);
+
+  svg {
+    fill: var(--status-info);
+  }
+}
+
 .formCardTitle {
   font-size: 14px;
   font-weight: 600;

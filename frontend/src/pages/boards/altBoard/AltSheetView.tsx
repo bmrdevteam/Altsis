@@ -1272,23 +1272,35 @@ const AltSheetView = ({
           <div className={style.formSectionBody}>
             <div className={style.formCardList}>
               {availableForms.map((form) => (
-                <div key={form._id} className={style.formCard}>
-                  <div
-                    className={style.formCardLeft}
-                    onClick={() => {
+                <div
+                  key={form._id}
+                  className={style.formCard}
+                  title="기록 열기"
+                  onClick={() => {
+                    setSelectedFormId(form._id);
+                    onFormSelect?.(form._id);
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
                       setSelectedFormId(form._id);
                       onFormSelect?.(form._id);
-                    }}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        setSelectedFormId(form._id);
-                        onFormSelect?.(form._id);
-                      }
-                    }}
+                    }
+                  }}
+                >
+                  <div
+                    className={`${style.formCardLeadIcon} ${
+                      form.settings.shareResponses
+                        ? style.formCardLeadIconInfo
+                        : ""
+                    }`}
+                    aria-hidden
                   >
+                    <Svg type="table" width="20px" height="20px" />
+                  </div>
+                  <div className={style.formCardLeft}>
                     <div className={style.formCardTitle}>{form.title}</div>
                     <div className={style.formCardMeta}>
                       <span>

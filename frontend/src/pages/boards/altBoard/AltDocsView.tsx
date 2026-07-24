@@ -331,10 +331,16 @@ const AltDocsView = ({ board, onPostsChanged }: Props) => {
             <div className={style.formCardList}>
               {posts.map((post) => {
                 const editable = canEditPost(post);
+                const leadToneClass = post.isUnread || post.isDraft
+                  ? style.formCardLeadIconPending
+                  : post.isPinned
+                    ? style.formCardLeadIconInfo
+                    : "";
                 return (
                   <div
                     key={post._id}
                     className={style.formCard}
+                    title="문서 보기"
                     onClick={() => handleClickPost(post)}
                     role="button"
                     tabIndex={0}
@@ -345,6 +351,12 @@ const AltDocsView = ({ board, onPostsChanged }: Props) => {
                       }
                     }}
                   >
+                    <div
+                      className={`${style.formCardLeadIcon} ${leadToneClass}`}
+                      aria-hidden
+                    >
+                      <Svg type="menuBook" width="20px" height="20px" />
+                    </div>
                     <div className={style.formCardLeft}>
                       <div className={style.formCardTitle}>{post.title}</div>
                       <div className={style.formCardMeta}>
@@ -378,7 +390,7 @@ const AltDocsView = ({ board, onPostsChanged }: Props) => {
                         <span>읽기: {formatPermissionRead(post)}</span>
                       </div>
                     </div>
-                    {editable && (
+                    {editable ? (
                       <div className={style.formCardRight}>
                         <button
                           type="button"
@@ -449,7 +461,7 @@ const AltDocsView = ({ board, onPostsChanged }: Props) => {
                           </button>
                         )}
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 );
               })}

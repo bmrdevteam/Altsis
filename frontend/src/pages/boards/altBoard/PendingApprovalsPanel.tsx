@@ -3,6 +3,7 @@ import style from "./altBoard.module.scss";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import Button from "components/button/Button";
 import Popup from "components/popup/Popup";
+import Svg from "assets/svg/Svg";
 import { MarkdownViewer } from "components/markdown";
 import {
   normalizeApprovalValue,
@@ -438,6 +439,7 @@ const PendingApprovalsPanel = ({
               <div
                 key={`${item.rowId}_${item.fieldId}`}
                 className={style.formCard}
+                title="결재 검토하기"
                 onClick={() => {
                   setActive(item);
                   setReason("");
@@ -452,6 +454,12 @@ const PendingApprovalsPanel = ({
                   }
                 }}
               >
+                <div
+                  className={`${style.formCardLeadIcon} ${style.formCardLeadIconPending}`}
+                  aria-hidden
+                >
+                  <Svg type="list_check" width="20px" height="20px" />
+                </div>
                 <div className={style.formCardLeft}>
                   <div className={style.formCardTitle}>{item.formTitle}</div>
                   <div className={style.formCardMeta}>

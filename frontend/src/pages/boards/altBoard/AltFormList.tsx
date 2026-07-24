@@ -304,7 +304,6 @@ const AltFormList = ({
     const period = getPeriodKind(form);
     const isDirect = !!form.settings.directInputMode;
     const canEditForm = canModifyForm(form);
-    const showRespond = !isDirect && !form.isDraft;
     const showMyResponses =
       !isDirect &&
       !!form.mySubmitted &&
@@ -318,12 +317,35 @@ const AltFormList = ({
       ? `응답 ${count}건`
       : `제출 ${count}명`;
 
+    const primaryAction = (() => {
+      if (form.isDraft) {
+        if (!canEditForm) return null;
+        return { icon: "settings" as const, title: "양식 수정" };
+      }
+      if (isDirect) {
+        if (onOpenSheet) return { icon: "table" as const, title: "기록 보기" };
+        if (canEditForm) return { icon: "settings" as const, title: "양식 수정" };
+        return null;
+      }
+      return { icon: "write" as const, title: "응답 작성" };
+    })();
+
+    const leadToneClass = (() => {
+      if (form.isDraft || isDirect) return style.formCardLeadIconPending;
+      if (period === "closed" || period === "scheduled") {
+        return style.formCardLeadIconClosed;
+      }
+      if (form.mySubmitted) return style.formCardLeadIconSubmitted;
+      return style.formCardLeadIconPending; // 미제출
+    })();
+
     return (
       <div
         key={form._id}
         className={`${style.formCard} ${
           actionMenu === form._id ? style.formCardMenuOpen : ""
         }`}
+        title={primaryAction?.title}
         onClick={() => handleCardActivate(form)}
         role="button"
         tabIndex={0}
@@ -334,6 +356,14 @@ const AltFormList = ({
           }
         }}
       >
+        {primaryAction && (
+          <div
+            className={`${style.formCardLeadIcon} ${leadToneClass}`}
+            aria-hidden
+          >
+            <Svg type={primaryAction.icon} width="20px" height="20px" />
+          </div>
+        )}
         <div className={style.formCardLeft}>
           <div className={style.formCardTitle}>{form.title}</div>
           <div className={style.formCardMeta}>
@@ -385,19 +415,6 @@ const AltFormList = ({
               }}
             >
               <Svg type="menuBook" width="20px" height="20px" />
-            </button>
-          )}
-          {showRespond && (
-            <button
-              type="button"
-              className={style.formCardIconBtn}
-              title="응답 작성"
-              onClick={(e) => {
-                e.stopPropagation();
-                onRespondForm(form._id);
-              }}
-            >
-              <Svg type="write" width="20px" height="20px" />
             </button>
           )}
           {canEditForm && (
