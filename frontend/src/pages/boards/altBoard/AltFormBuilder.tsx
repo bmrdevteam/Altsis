@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
 import style from "./altBoard.module.scss";
 import { TBoard } from "types/board";
 import {
@@ -53,6 +53,29 @@ const FIELD_TYPE_LABELS: Record<TAltFormFieldType, string> = {
   link: "링크",
   content: "문서",
   docResponse: "문서 응답",
+};
+
+/** 접힌 항목 목록용 Material 아이콘 (유형별 구분) */
+const FIELD_TYPE_ICONS: Record<TAltFormFieldType, string> = {
+  text: "short_text",
+  textarea: "notes",
+  number: "pin",
+  date: "calendar_today",
+  multiDate: "date_range",
+  time: "schedule",
+  file: "attach_file",
+  select: "arrow_drop_down_circle",
+  multiSelect: "checklist",
+  checkbox: "check_box",
+  radio: "radio_button_checked",
+  userSelect: "person_search",
+  rating: "star",
+  scale: "linear_scale",
+  counter: "exposure_plus_1",
+  approval: "verified_user",
+  link: "link",
+  content: "article",
+  docResponse: "edit_note",
 };
 
 const FIELD_TYPE_GROUPS: { label: string; types: TAltFormFieldType[] }[] = [
@@ -373,13 +396,10 @@ const AltFormBuilder = ({
 
   // ─── Field operations ───
 
-  const addField = () => {
-    const newField = createEmptyField();
-    if (settings.directInputMode) {
-      newField.permission = "owner";
-    }
-    setFields([...fields, newField]);
-    setActiveFieldId(newField._id);
+  const getAddFieldInsertIndex = () => {
+    if (!activeFieldId) return fields.length;
+    const idx = fields.findIndex((f) => f._id === activeFieldId);
+    return idx >= 0 ? idx + 1 : fields.length;
   };
 
   const addFieldAtIndex = (
@@ -394,6 +414,10 @@ const AltFormBuilder = ({
     next.splice(index, 0, newField);
     setFields(next);
     setActiveFieldId(newField._id);
+  };
+
+  const addFieldOfType = (type: TAltFormFieldType = "text") => {
+    addFieldAtIndex(getAddFieldInsertIndex(), type);
   };
 
   const duplicateField = (index: number) => {
@@ -428,12 +452,77 @@ const AltFormBuilder = ({
     if (activeFieldId === removedId) setActiveFieldId(null);
   };
 
-  const moveField = (index: number, direction: -1 | 1) => {
-    const newIndex = index + direction;
-    if (newIndex < 0 || newIndex >= fields.length) return;
-    const next = [...fields];
-    [next[index], next[newIndex]] = [next[newIndex], next[index]];
-    setFields(next);
+  const reorderField = (from: number, to: number) => {
+    setFields((prev) => {
+      if (from < 0 || from >= prev.length) return prev;
+      // to: 삽입 위치 (0…length)
+      let insertAt = Math.max(0, Math.min(to, prev.length));
+      // 제자리(바로 다음 칸 포함)면 변화 없음
+      if (from === insertAt || from === insertAt - 1) return prev;
+      const next = [...prev];
+      const [item] = next.splice(from, 1);
+      if (from < insertAt) insertAt -= 1;
+      next.splice(insertAt, 0, item);
+      return next;
+    });
+  };
+
+  const [dragFromIndex, setDragFromIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const dragFromIndexRef = useRef<number | null>(null);
+  const suppressCollapseClickRef = useRef(false);
+
+  const getInsertIndex = (e: DragEvent, index: number) => {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const mid = rect.top + rect.height / 2;
+    return e.clientY < mid ? index : index + 1;
+  };
+
+  const handleFieldDragStart = (e: DragEvent, index: number) => {
+    suppressCollapseClickRef.current = false;
+    dragFromIndexRef.current = index;
+    setDragFromIndex(index);
+    setDragOverIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", String(index));
+    if (e.currentTarget instanceof HTMLElement) {
+      e.dataTransfer.setDragImage(
+        e.currentTarget.closest("[data-field-card]") || e.currentTarget,
+        24,
+        16
+      );
+    }
+  };
+
+  const handleFieldDragOver = (e: DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    const insertAt = getInsertIndex(e, index);
+    if (dragOverIndex !== insertAt) setDragOverIndex(insertAt);
+  };
+
+  const handleFieldDrop = (e: DragEvent, index: number) => {
+    e.preventDefault();
+    const raw = e.dataTransfer.getData("text/plain");
+    const from =
+      dragFromIndexRef.current ??
+      dragFromIndex ??
+      parseInt(raw, 10);
+    const insertAt = getInsertIndex(e, index);
+    if (!Number.isNaN(from)) reorderField(from, insertAt);
+    suppressCollapseClickRef.current = true;
+    dragFromIndexRef.current = null;
+    setDragFromIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleFieldDragEnd = () => {
+    if (dragFromIndexRef.current !== null) {
+      suppressCollapseClickRef.current = true;
+    }
+    dragFromIndexRef.current = null;
+    setDragFromIndex(null);
+    setDragOverIndex(null);
   };
 
   const addOption = (fieldIndex: number) => {
@@ -1617,27 +1706,25 @@ const AltFormBuilder = ({
 
   const renderActiveField = (field: TAltFormField, index: number) => (
     <>
-      {/* Drag handle / move */}
+      {/* 드래그 핸들 — 드래그로 순서 변경, 클릭 시 접기 */}
       <div className={style.fieldDragHandle}>
-        <button
-          className={style.moveBtn}
-          onClick={() => moveField(index, -1)}
-          disabled={index === 0}
-          title="위로 이동"
+        <span
+          className={style.dragDots}
+          draggable
+          title="드래그하여 순서 변경 · 클릭하여 접기"
+          onDragStart={(e) => handleFieldDragStart(e, index)}
+          onDragEnd={handleFieldDragEnd}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (suppressCollapseClickRef.current) {
+              suppressCollapseClickRef.current = false;
+              return;
+            }
+            setActiveFieldId(null);
+          }}
         >
-          <MI icon="arrow_upward" size={18} />
-        </button>
-        <span className={style.dragDots}>
           <MI icon="drag_indicator" size={20} />
         </span>
-        <button
-          className={style.moveBtn}
-          onClick={() => moveField(index, 1)}
-          disabled={index === fields.length - 1}
-          title="아래로 이동"
-        >
-          <MI icon="arrow_downward" size={18} />
-        </button>
       </div>
 
       {/* Label + type selector */}
@@ -1823,15 +1910,15 @@ const AltFormBuilder = ({
     </>
   );
 
-  // ─── Floating toolbar ───
+  // ─── Floating toolbar (양식 탭에서 항상 표시) ───
 
-  const renderFloatingToolbar = (index: number) => (
+  const renderFloatingToolbar = () => (
     <div className={style.fieldAddToolbar} data-field-toolbar>
       <button
         type="button"
         className={style.toolbarBtn}
         onMouseDown={(e) => e.preventDefault()}
-        onClick={() => addFieldAtIndex(index + 1, "text")}
+        onClick={() => addFieldOfType("text")}
         title="단답형"
       >
         <MI icon="short_text" size={22} />
@@ -1840,7 +1927,7 @@ const AltFormBuilder = ({
         type="button"
         className={style.toolbarBtn}
         onMouseDown={(e) => e.preventDefault()}
-        onClick={() => addFieldAtIndex(index + 1, "textarea")}
+        onClick={() => addFieldOfType("textarea")}
         title="장문형"
       >
         <MI icon="notes" size={22} />
@@ -1850,7 +1937,7 @@ const AltFormBuilder = ({
         type="button"
         className={style.toolbarBtn}
         onMouseDown={(e) => e.preventDefault()}
-        onClick={() => addFieldAtIndex(index + 1, "radio")}
+        onClick={() => addFieldOfType("radio")}
         title="객관식 질문"
       >
         <MI icon="radio_button_checked" size={22} />
@@ -1859,7 +1946,7 @@ const AltFormBuilder = ({
         type="button"
         className={style.toolbarBtn}
         onMouseDown={(e) => e.preventDefault()}
-        onClick={() => addFieldAtIndex(index + 1, "checkbox")}
+        onClick={() => addFieldOfType("checkbox")}
         title="체크박스"
       >
         <MI icon="check_box" size={22} />
@@ -1868,7 +1955,7 @@ const AltFormBuilder = ({
         type="button"
         className={style.toolbarBtn}
         onMouseDown={(e) => e.preventDefault()}
-        onClick={() => addFieldAtIndex(index + 1, "select")}
+        onClick={() => addFieldOfType("select")}
         title="드롭다운"
       >
         <MI icon="arrow_drop_down_circle" size={22} />
@@ -1878,7 +1965,7 @@ const AltFormBuilder = ({
         type="button"
         className={style.toolbarBtn}
         onMouseDown={(e) => e.preventDefault()}
-        onClick={() => addFieldAtIndex(index + 1, "content")}
+        onClick={() => addFieldOfType("content")}
         title="문서"
       >
         <MI icon="article" size={22} />
@@ -1887,7 +1974,7 @@ const AltFormBuilder = ({
         type="button"
         className={style.toolbarBtn}
         onMouseDown={(e) => e.preventDefault()}
-        onClick={() => addFieldAtIndex(index + 1, "docResponse")}
+        onClick={() => addFieldOfType("docResponse")}
         title="문서 응답"
       >
         <MI icon="edit_note" size={22} />
@@ -1896,19 +1983,10 @@ const AltFormBuilder = ({
         type="button"
         className={style.toolbarBtn}
         onMouseDown={(e) => e.preventDefault()}
-        onClick={() => addFieldAtIndex(index + 1, "date")}
+        onClick={() => addFieldOfType("date")}
         title="날짜"
       >
         <MI icon="calendar_today" size={22} />
-      </button>
-      <button
-        type="button"
-        className={style.toolbarBtn}
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={() => addFieldAtIndex(index + 1)}
-        title="항목 추가"
-      >
-        <MI icon="add_circle_outline" size={22} />
       </button>
     </div>
   );
@@ -2035,272 +2113,334 @@ const AltFormBuilder = ({
           </div>
         </div>
 
-        {/* 양식 / 설정 탭 */}
+        {/* 양식 / 설정 탭 — 보드 Tab과 동일한 밑줄형 */}
         <div className={style.builderTabBar}>
-          <div className={style.tabContainer}>
-            <button
-              type="button"
-              className={`${style.tab} ${
-                builderTab === "form" ? style.tabActive : ""
-              }`}
-              onClick={() => setBuilderTab("form")}
-            >
-              양식
-            </button>
-            <button
-              type="button"
-              className={`${style.tab} ${
-                builderTab === "settings" ? style.tabActive : ""
-              }`}
-              onClick={() => setBuilderTab("settings")}
-            >
-              설정
-            </button>
-          </div>
+          <button
+            type="button"
+            className={`${style.builderTabItem} ${
+              builderTab === "form" ? style.builderTabItemActive : ""
+            }`}
+            onClick={() => setBuilderTab("form")}
+          >
+            양식
+          </button>
+          <button
+            type="button"
+            className={`${style.builderTabItem} ${
+              builderTab === "settings" ? style.builderTabItemActive : ""
+            }`}
+            onClick={() => setBuilderTab("settings")}
+          >
+            설정
+          </button>
         </div>
 
         {builderTab === "settings" && (
           <div className={`${style.gfCard} ${style.settingsCard}`}>
-            <div className={style.settingsPanel}>
-              <div className={style.settingsItem}>
-                <span className={style.settingsLabel}>시작일</span>
-                <input
-                  type="datetime-local"
-                  className={style.settingsDateInput}
-                  value={settings.openAt}
-                  onChange={(e) =>
-                    setSettings((s) => ({ ...s, openAt: e.target.value }))
-                  }
-                />
-              </div>
-              <div className={style.settingsItem}>
-                <span className={style.settingsLabel}>마감일</span>
-                <input
-                  type="datetime-local"
-                  className={style.settingsDateInput}
-                  value={settings.closeAt}
-                  onChange={(e) =>
-                    setSettings((s) => ({ ...s, closeAt: e.target.value }))
-                  }
-                />
-              </div>
-              <div className={style.settingsItem}>
-                <span className={style.settingsLabel}>재제출 허용</span>
-                <div className={style.settingsToggle}>
-                  <ToggleSwitch
-                    checked={settings.allowResubmit}
-                    disabled={settings.allowMultipleResponses}
-                    onChange={(v) =>
-                      setSettings((s) => ({ ...s, allowResubmit: v }))
-                    }
-                  />
-                  <span className={style.settingsToggleText}>
-                    {settings.allowResubmit ? "허용" : "비허용"}
-                  </span>
-                </div>
-              </div>
-              <div className={style.settingsItem}>
-                <span className={style.settingsLabel}>복수 응답 허용</span>
-                <div className={style.settingsToggle}>
-                  <ToggleSwitch
-                    checked={settings.allowMultipleResponses}
-                    onChange={(v) =>
-                      setSettings((s) => ({
-                        ...s,
-                        allowMultipleResponses: v,
-                        ...(v && { allowResubmit: false }),
-                      }))
-                    }
-                  />
-                  <span className={style.settingsToggleText}>
-                    {settings.allowMultipleResponses ? "허용" : "비허용"}
-                  </span>
-                </div>
-              </div>
-              <div className={style.settingsItem}>
-                <span className={style.settingsLabel}>퀴즈 모드</span>
-                <div className={style.settingsToggle}>
-                  <ToggleSwitch
-                    checked={settings.quizMode}
-                    onChange={(v) =>
-                      setSettings((s) => ({ ...s, quizMode: v }))
-                    }
-                  />
-                  <span className={style.settingsToggleText}>
-                    {settings.quizMode ? "사용" : "미사용"}
-                  </span>
-                </div>
-              </div>
-              {settings.quizMode && (
-                <>
+            <div className={style.settingsSections}>
+              <section className={style.settingsSection}>
+                <h4 className={style.settingsSectionTitle}>기간</h4>
+                <div className={style.settingsSectionGrid}>
                   <div className={style.settingsItem}>
-                    <span className={style.settingsLabel}>점수 공개</span>
-                    <select
-                      className={style.selectInput}
-                      style={{ fontSize: "13px", padding: "4px 8px" }}
-                      value={settings.quizSettings.scoreReveal}
+                    <span className={style.settingsLabel}>시작일</span>
+                    <input
+                      type="datetime-local"
+                      className={style.settingsDateInput}
+                      value={settings.openAt}
                       onChange={(e) =>
-                        setSettings((s) => ({
-                          ...s,
-                          quizSettings: {
-                            ...s.quizSettings,
-                            scoreReveal: e.target
-                              .value as TQuizSettings["scoreReveal"],
-                          },
-                        }))
+                        setSettings((s) => ({ ...s, openAt: e.target.value }))
                       }
-                    >
-                      <option value="immediately">제출 즉시</option>
-                      <option value="afterDeadline">마감 후</option>
-                      <option value="never">비공개</option>
-                    </select>
+                    />
                   </div>
                   <div className={style.settingsItem}>
-                    <span className={style.settingsLabel}>정답 공개</span>
-                    <select
-                      className={style.selectInput}
-                      style={{ fontSize: "13px", padding: "4px 8px" }}
-                      value={settings.quizSettings.answerReveal}
+                    <span className={style.settingsLabel}>마감일</span>
+                    <input
+                      type="datetime-local"
+                      className={style.settingsDateInput}
+                      value={settings.closeAt}
                       onChange={(e) =>
-                        setSettings((s) => ({
-                          ...s,
-                          quizSettings: {
-                            ...s.quizSettings,
-                            answerReveal: e.target
-                              .value as TQuizSettings["answerReveal"],
-                          },
-                        }))
+                        setSettings((s) => ({ ...s, closeAt: e.target.value }))
                       }
-                    >
-                      <option value="immediately">제출 즉시</option>
-                      <option value="afterDeadline">마감 후</option>
-                      <option value="never">비공개</option>
-                    </select>
+                    />
                   </div>
-                </>
-              )}
-              <div className={style.settingsItem}>
-                <span className={style.settingsLabel}>직접 입력 모드</span>
-                <div className={style.settingsToggle}>
-                  <ToggleSwitch
-                    checked={settings.directInputMode}
-                    onChange={(v) =>
-                      setSettings((s) => ({ ...s, directInputMode: v }))
-                    }
-                  />
-                  <span className={style.settingsToggleText}>
-                    {settings.directInputMode ? "사용" : "미사용"}
-                  </span>
                 </div>
-              </div>
-              {settings.directInputMode && (
-                <div
-                  style={{
-                    fontSize: "12px",
-                    color: "var(--text-color-2)",
-                    padding: "4px 0",
-                  }}
-                >
-                  모든 필드가 관리자 입력으로 설정됩니다. Sheet에서 직접
-                  데이터를 입력하세요.
+              </section>
+
+              <section className={style.settingsSection}>
+                <h4 className={style.settingsSectionTitle}>응답</h4>
+                <div className={style.settingsSectionGrid}>
+                  <div className={style.settingsItemRow}>
+                    <div className={style.settingsItemText}>
+                      <span className={style.settingsLabel}>재제출 허용</span>
+                    </div>
+                    <div className={style.settingsToggle}>
+                      <ToggleSwitch
+                        checked={settings.allowResubmit}
+                        disabled={settings.allowMultipleResponses}
+                        onChange={(v) =>
+                          setSettings((s) => ({ ...s, allowResubmit: v }))
+                        }
+                      />
+                      <span className={style.settingsToggleText}>
+                        {settings.allowResubmit ? "허용" : "비허용"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className={style.settingsItemRow}>
+                    <div className={style.settingsItemText}>
+                      <span className={style.settingsLabel}>복수 응답 허용</span>
+                    </div>
+                    <div className={style.settingsToggle}>
+                      <ToggleSwitch
+                        checked={settings.allowMultipleResponses}
+                        onChange={(v) =>
+                          setSettings((s) => ({
+                            ...s,
+                            allowMultipleResponses: v,
+                            ...(v && { allowResubmit: false }),
+                          }))
+                        }
+                      />
+                      <span className={style.settingsToggleText}>
+                        {settings.allowMultipleResponses ? "허용" : "비허용"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className={style.settingsItemRow}>
+                    <div className={style.settingsItemText}>
+                      <span className={style.settingsLabel}>본인 응답 확인</span>
+                    </div>
+                    <div className={style.settingsToggle}>
+                      <ToggleSwitch
+                        checked={settings.showOwnResponse}
+                        onChange={(v) =>
+                          setSettings((s) => ({ ...s, showOwnResponse: v }))
+                        }
+                      />
+                      <span className={style.settingsToggleText}>
+                        {settings.showOwnResponse ? "허용" : "비허용"}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              )}
-              <div className={style.settingsItem}>
-                <span className={style.settingsLabel}>본인 응답 확인</span>
-                <div className={style.settingsToggle}>
-                  <ToggleSwitch
-                    checked={settings.showOwnResponse}
-                    onChange={(v) =>
-                      setSettings((s) => ({ ...s, showOwnResponse: v }))
-                    }
-                  />
-                  <span className={style.settingsToggleText}>
-                    {settings.showOwnResponse ? "허용" : "비허용"}
-                  </span>
+              </section>
+
+              <section className={style.settingsSection}>
+                <h4 className={style.settingsSectionTitle}>모드</h4>
+                <div className={style.settingsSectionGrid}>
+                  <div className={style.settingsItemRow}>
+                    <div className={style.settingsItemText}>
+                      <span className={style.settingsLabel}>퀴즈 모드</span>
+                    </div>
+                    <div className={style.settingsToggle}>
+                      <ToggleSwitch
+                        checked={settings.quizMode}
+                        onChange={(v) =>
+                          setSettings((s) => ({ ...s, quizMode: v }))
+                        }
+                      />
+                      <span className={style.settingsToggleText}>
+                        {settings.quizMode ? "사용" : "미사용"}
+                      </span>
+                    </div>
+                  </div>
+                  {settings.quizMode && (
+                    <>
+                      <div className={style.settingsItem}>
+                        <span className={style.settingsLabel}>점수 공개</span>
+                        <select
+                          className={style.selectInput}
+                          style={{ fontSize: "13px", padding: "6px 10px" }}
+                          value={settings.quizSettings.scoreReveal}
+                          onChange={(e) =>
+                            setSettings((s) => ({
+                              ...s,
+                              quizSettings: {
+                                ...s.quizSettings,
+                                scoreReveal: e.target
+                                  .value as TQuizSettings["scoreReveal"],
+                              },
+                            }))
+                          }
+                        >
+                          <option value="immediately">제출 즉시</option>
+                          <option value="afterDeadline">마감 후</option>
+                          <option value="never">비공개</option>
+                        </select>
+                      </div>
+                      <div className={style.settingsItem}>
+                        <span className={style.settingsLabel}>정답 공개</span>
+                        <select
+                          className={style.selectInput}
+                          style={{ fontSize: "13px", padding: "6px 10px" }}
+                          value={settings.quizSettings.answerReveal}
+                          onChange={(e) =>
+                            setSettings((s) => ({
+                              ...s,
+                              quizSettings: {
+                                ...s.quizSettings,
+                                answerReveal: e.target
+                                  .value as TQuizSettings["answerReveal"],
+                              },
+                            }))
+                          }
+                        >
+                          <option value="immediately">제출 즉시</option>
+                          <option value="afterDeadline">마감 후</option>
+                          <option value="never">비공개</option>
+                        </select>
+                      </div>
+                    </>
+                  )}
+                  <div className={style.settingsItemRow}>
+                    <div className={style.settingsItemText}>
+                      <span className={style.settingsLabel}>직접 입력 모드</span>
+                      {settings.directInputMode && (
+                        <span className={style.settingsHint}>
+                          Sheet에서 직접 데이터를 입력합니다.
+                        </span>
+                      )}
+                    </div>
+                    <div className={style.settingsToggle}>
+                      <ToggleSwitch
+                        checked={settings.directInputMode}
+                        onChange={(v) =>
+                          setSettings((s) => ({ ...s, directInputMode: v }))
+                        }
+                      />
+                      <span className={style.settingsToggleText}>
+                        {settings.directInputMode ? "사용" : "미사용"}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className={style.settingsItem}>
-                <span className={style.settingsLabel}>응답 결과 공유</span>
-                <div className={style.settingsToggle}>
-                  <ToggleSwitch
-                    checked={settings.shareResponses}
-                    onChange={(v) =>
-                      setSettings((s) => ({ ...s, shareResponses: v }))
-                    }
-                  />
-                  <span className={style.settingsToggleText}>
-                    {settings.shareResponses ? "공개" : "비공개"}
-                  </span>
+              </section>
+
+              <section className={style.settingsSection}>
+                <h4 className={style.settingsSectionTitle}>공개</h4>
+                <div className={style.settingsSectionGrid}>
+                  <div className={style.settingsItemRow}>
+                    <div className={style.settingsItemText}>
+                      <span className={style.settingsLabel}>응답 결과 공유</span>
+                    </div>
+                    <div className={style.settingsToggle}>
+                      <ToggleSwitch
+                        checked={settings.shareResponses}
+                        onChange={(v) =>
+                          setSettings((s) => ({ ...s, shareResponses: v }))
+                        }
+                      />
+                      <span className={style.settingsToggleText}>
+                        {settings.shareResponses ? "공개" : "비공개"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className={style.settingsItemRow}>
+                    <div className={style.settingsItemText}>
+                      <span className={style.settingsLabel}>관리자 필드 공개</span>
+                    </div>
+                    <div className={style.settingsToggle}>
+                      <ToggleSwitch
+                        checked={settings.showOwnerFields}
+                        onChange={(v) =>
+                          setSettings((s) => ({ ...s, showOwnerFields: v }))
+                        }
+                      />
+                      <span className={style.settingsToggleText}>
+                        {settings.showOwnerFields ? "공개" : "비공개"}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className={style.settingsItem}>
-                <span className={style.settingsLabel}>관리자 필드 공개</span>
-                <div className={style.settingsToggle}>
-                  <ToggleSwitch
-                    checked={settings.showOwnerFields}
-                    onChange={(v) =>
-                      setSettings((s) => ({ ...s, showOwnerFields: v }))
-                    }
-                  />
-                  <span className={style.settingsToggleText}>
-                    {settings.showOwnerFields ? "공개" : "비공개"}
-                  </span>
-                </div>
-              </div>
+              </section>
             </div>
           </div>
         )}
 
         {builderTab === "form" && (
-          <>
-            {/* Field Cards */}
-            {fields.map((field, index) => {
-              const isActive = activeFieldId === field._id;
-              return (
-                <div key={field._id} className={style.fieldCardRow}>
+          <div className={style.formFieldsWithToolbar}>
+            <div className={style.formFieldsList}>
+              {fields.map((field, index) => {
+                const isActive = activeFieldId === field._id;
+                const isDragging = dragFromIndex === index;
+                const showLineBefore =
+                  dragOverIndex === index && dragFromIndex !== index;
+                const showLineAfter =
+                  dragOverIndex === index + 1 &&
+                  dragFromIndex !== index &&
+                  dragFromIndex !== index + 1;
+                return (
                   <div
-                    data-field-card
-                    className={`${style.fieldCardGf} ${
-                      isActive
-                        ? style.fieldCardActive
-                        : style.fieldCardInactive
-                    }`}
-                    onClick={() => {
-                      if (!isActive) setActiveFieldId(field._id);
-                    }}
+                    key={field._id}
+                    className={`${style.fieldCardRow} ${
+                      showLineBefore ? style.fieldCardRowDragOverBefore : ""
+                    } ${
+                      showLineAfter ? style.fieldCardRowDragOverAfter : ""
+                    } ${isDragging ? style.fieldCardRowDragging : ""}`}
+                    onDragOver={(e) => handleFieldDragOver(e, index)}
+                    onDrop={(e) => handleFieldDrop(e, index)}
                   >
-                    {isActive ? (
-                      renderActiveField(field, index)
-                    ) : (
-                      <div className={style.fieldCollapsedContent}>
-                        <span className={style.fieldCollapsedLabel}>
-                          {field.label ||
-                            (field.type === "content"
-                              ? "(문서)"
-                              : field.type === "docResponse"
-                                ? "(문서 응답)"
-                                : "(이름 없음)")}
-                          {field.required && (
-                            <span className={style.requiredMark}> *</span>
-                          )}
-                        </span>
-                        <span className={style.fieldCollapsedType}>
-                          {FIELD_TYPE_LABELS[field.type]}
-                        </span>
-                      </div>
-                    )}
+                    <div
+                      data-field-card
+                      className={`${style.fieldCardGf} ${
+                        isActive
+                          ? style.fieldCardActive
+                          : style.fieldCardInactive
+                      }`}
+                      onClick={() => {
+                        if (!isActive) setActiveFieldId(field._id);
+                      }}
+                    >
+                      {isActive ? (
+                        renderActiveField(field, index)
+                      ) : (
+                        <div className={style.fieldCollapsedContent}>
+                          <div className={style.fieldCollapsedMain}>
+                            <span
+                              className={style.dragDots}
+                              draggable
+                              title="드래그하여 순서 변경"
+                              onDragStart={(e) =>
+                                handleFieldDragStart(e, index)
+                              }
+                              onDragEnd={handleFieldDragEnd}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MI icon="drag_indicator" size={18} />
+                            </span>
+                            <span
+                              className={style.fieldCollapsedIcon}
+                              aria-hidden
+                            >
+                              <MI
+                                icon={FIELD_TYPE_ICONS[field.type]}
+                                size={18}
+                              />
+                            </span>
+                            <span className={style.fieldCollapsedLabel}>
+                              {field.label ||
+                                (field.type === "content"
+                                  ? "(문서)"
+                                  : field.type === "docResponse"
+                                    ? "(문서 응답)"
+                                    : "(이름 없음)")}
+                              {field.required && (
+                                <span className={style.requiredMark}> *</span>
+                              )}
+                            </span>
+                          </div>
+                          <span className={style.fieldCollapsedType}>
+                            {FIELD_TYPE_LABELS[field.type]}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-
-                  {isActive && renderFloatingToolbar(index)}
-                </div>
-              );
-            })}
-
-            {/* Add field button */}
-            <button className={style.addFieldBtn} onClick={addField}>
-              + 항목 추가
-            </button>
-          </>
+                );
+              })}
+            </div>
+            {renderFloatingToolbar()}
+          </div>
         )}
       </div>
 

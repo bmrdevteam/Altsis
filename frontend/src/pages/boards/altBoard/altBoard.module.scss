@@ -40,7 +40,8 @@
 .tabActive {
   color: var(--text-color-1);
   background: var(--background-color);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  font-weight: 600;
 }
 
 /* ─── Form List ─── */
@@ -507,7 +508,7 @@
   justify-content: space-between;
   margin-bottom: 20px;
   gap: 12px;
-  max-width: 820px;
+  max-width: 880px;
   margin-left: auto;
   margin-right: auto;
   padding: 0 16px;
@@ -546,12 +547,13 @@
 }
 
 .builderBody {
-  max-width: 820px;
+  max-width: 880px;
   margin: 0 auto;
   padding: 20px 16px;
   background: var(--background-color-2);
   border-radius: 0 0 8px 8px;
-  min-height: 400px;
+  min-height: 0;
+  overflow: visible;
 }
 
 /* Card system */
@@ -637,13 +639,100 @@
   padding: 20px 24px;
 }
 
+.settingsSections {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 4px 0;
+}
+
+.settingsSection {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-default-color, var(--border-color));
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.settingsSectionTitle {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-color-1);
+}
+
+.settingsSectionGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settingsItemRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 32px;
+}
+
+.settingsItemText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.settingsHint {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-color-2);
+  text-transform: none;
+  letter-spacing: normal;
+}
+
 .builderTabBar {
   display: flex;
   justify-content: center;
+  align-items: stretch;
+  width: 100%;
   margin-bottom: 16px;
+  border-bottom: var(--border-default);
+}
 
-  .tabContainer {
-    margin-bottom: 0;
+.builderTabItem {
+  cursor: pointer;
+  white-space: nowrap;
+  color: var(--accent-3);
+  border: none;
+  background: none;
+  display: flex;
+  font-size: 14px;
+  height: 44px;
+  padding: 0 16px;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  font-family: inherit;
+  font-weight: 600;
+  transition: color 0.15s;
+
+  &:hover {
+    color: var(--text-color-1);
+  }
+}
+
+.builderTabItemActive {
+  color: var(--primary-text-color, var(--text-color-1));
+
+  &::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 1px 1px 0 0;
+    border-bottom: 2px solid var(--primary-text-color, var(--text-color-1));
   }
 }
 
@@ -654,22 +743,26 @@
 }
 
 .settingsLabel {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-color-2);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-color-1);
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 .settingsToggle {
   display: flex;
+  flex-direction: row-reverse;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .settingsToggleText {
   font-size: 13px;
   color: var(--text-color-2);
+  min-width: 3.5em;
+  text-align: right;
 }
 
 .settingsDateInput {
@@ -689,17 +782,47 @@
 
 /* Field card row: card + floating toolbar */
 .fieldCardRow {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
+  position: relative;
   margin-bottom: 12px;
+}
+
+.fieldCardRowDragOverBefore {
+  &::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -6px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--accent-1);
+    z-index: 2;
+  }
+}
+
+.fieldCardRowDragOverAfter {
+  &::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -6px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--accent-1);
+    z-index: 2;
+  }
+}
+
+.fieldCardRowDragging {
+  opacity: 0.55;
 }
 
 .fieldCardGf {
   flex: 1;
   min-width: 0;
   background: var(--background-color);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default-color, var(--border-color));
   border-radius: 8px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   transition: box-shadow 0.2s, border-color 0.2s;
@@ -712,12 +835,14 @@
 
 .fieldCardInactive {
   cursor: pointer;
-  padding: 16px 24px;
+  padding: 14px 20px 14px 16px;
+  border-left: 3px solid var(--border-default-color, var(--border-color));
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 
   &:hover {
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
-    border-color: rgba(var(--accent-1-rgb, 55, 53, 47), 0.3);
+    border-color: var(--accent-1);
+    border-left-color: var(--accent-1);
   }
 }
 
@@ -728,8 +853,33 @@
   gap: 12px;
 }
 
+.fieldCollapsedMain {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.fieldCollapsedIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: var(--background-color-2);
+  color: var(--accent-3);
+
+  svg {
+    fill: var(--accent-3);
+  }
+}
+
 .fieldCollapsedLabel {
   font-size: 14px;
+  font-weight: 500;
   color: var(--text-color-1);
   white-space: nowrap;
   overflow: hidden;
@@ -737,10 +887,17 @@
 }
 
 .fieldCollapsedType {
-  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 3px;
+  border: 1px solid var(--border-default-color, var(--border-color));
+  background: var(--background-color-2);
+  font-size: 11px;
+  font-weight: 500;
   color: var(--text-color-2);
   white-space: nowrap;
-  flex-shrink: 0;
 }
 
 /* Drag handle */
@@ -750,21 +907,36 @@
   justify-content: center;
   gap: 8px;
   padding: 6px 0 4px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.15s;
+
+  &:hover {
+    background: var(--background-color-2);
+  }
 }
 
 .dragDots {
   color: var(--text-color-2);
-  opacity: 0.3;
+  opacity: 0.45;
   font-size: 14px;
   letter-spacing: 3px;
   cursor: grab;
-  padding: 2px 8px;
+  padding: 4px 8px;
   border-radius: 4px;
   transition: opacity 0.15s, background 0.15s;
+  display: inline-flex;
+  align-items: center;
+  user-select: none;
+  touch-action: none;
 
   &:hover {
-    opacity: 0.6;
+    opacity: 0.85;
     background: var(--background-color-2);
+  }
+
+  &:active {
+    cursor: grabbing;
   }
 }
 
@@ -962,18 +1134,31 @@
   }
 }
 
-/* Floating toolbar */
+/* Form fields + always-visible add toolbar */
+.formFieldsWithToolbar {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.formFieldsList {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Sticky type picker — 문서 흐름을 늘리지 않음 */
 .fieldAddToolbar {
   display: flex;
   flex-direction: column;
   gap: 2px;
   padding: 8px 4px;
   background: var(--background-color);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default-color, var(--border-color));
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   position: sticky;
-  top: 80px;
+  top: 16px;
+  z-index: 5;
   flex-shrink: 0;
 }
 
@@ -1048,20 +1233,21 @@
   justify-content: center;
   gap: 8px;
   padding: 14px;
-  border: 1px dashed var(--border-color);
-  border-radius: 6px;
+  border: 1px dashed var(--border-default-color, var(--border-color));
+  border-radius: 8px;
   cursor: pointer;
   color: var(--text-color-2);
   font-size: 14px;
-  background: none;
+  background: var(--background-color);
   width: 100%;
   transition: all 0.15s;
   font-family: inherit;
 
   &:hover {
     border-color: var(--accent-1);
+    border-style: solid;
     color: var(--accent-1);
-    background: rgba(var(--accent-1-rgb, 55, 53, 47), 0.03);
+    background: var(--background-color);
   }
 }
 
@@ -2876,8 +3062,25 @@ tbody tr:hover .actionCell {
 /* ─── Responsive ─── */
 
 @media (max-width: 900px) {
+  .formFieldsWithToolbar {
+    flex-direction: column;
+  }
+
   .fieldAddToolbar {
-    display: none;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    position: sticky;
+    top: 0;
+    width: 100%;
+    order: -1;
+    margin-bottom: 4px;
+  }
+
+  .toolbarDivider {
+    width: 1px;
+    height: 24px;
+    margin: 8px 4px;
   }
 
   .fieldCardRow {
