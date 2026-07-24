@@ -15,6 +15,10 @@ import { INavLink, SidebarData } from "./SidebarData";
 import useAPIv2 from "hooks/useAPIv2";
 
 import { useLocation } from "react-router-dom";
+import {
+  getSchoolTodosCached,
+  schoolTodosCacheKey,
+} from "pages/boards/schoolTodosCache";
 
 type Props = {};
 
@@ -41,7 +45,7 @@ const Sidebar = (props: Props) => {
   const currentSeasonId =
     currentRegistration?.season || currentSeason?._id || undefined;
 
-  // 보드 할 일 뱃지 (사이드바)
+  // 보드 할 일 뱃지 (사이드바) — school/season 변경 시에만 (pathname마다 재호출하지 않음)
   useEffect(() => {
     if (
       !currentSchool?._id ||
@@ -52,12 +56,15 @@ const Sidebar = (props: Props) => {
       return;
     }
     let cancelled = false;
-    AltSheetRowAPI.RAltSheetRowSchoolTodos({
-      query: {
-        school: currentSchool._id,
-        ...(currentSeasonId ? { season: currentSeasonId } : {}),
-      },
-    })
+    const key = schoolTodosCacheKey(currentSchool._id, currentSeasonId);
+    getSchoolTodosCached(key, () =>
+      AltSheetRowAPI.RAltSheetRowSchoolTodos({
+        query: {
+          school: currentSchool._id,
+          ...(currentSeasonId ? { season: currentSeasonId } : {}),
+        },
+      })
+    )
       .then(({ count }) => {
         if (!cancelled) setBoardsTodoCount(count || 0);
       })
@@ -67,7 +74,7 @@ const Sidebar = (props: Props) => {
     return () => {
       cancelled = true;
     };
-  }, [currentSchool?._id, currentSeasonId, location.pathname]);
+  }, [currentSchool?._id, currentSeasonId]);
 
   return (
     <Nav open={sidebarOpen}>

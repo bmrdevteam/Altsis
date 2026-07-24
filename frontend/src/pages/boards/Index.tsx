@@ -29,6 +29,10 @@ import BoardGalleryView from "./views/BoardGalleryView";
 import BoardsActivityTodos, {
   TSchoolTodoItem,
 } from "./BoardsActivityTodos";
+import {
+  getSchoolTodosCached,
+  schoolTodosCacheKey,
+} from "./schoolTodosCache";
 
 const Boards = () => {
   const navigate = useAppNavigate();
@@ -118,19 +122,22 @@ const Boards = () => {
     }
   }, [isLoading, currentSchool, currentSeasonId]);
 
-  // 전역 할 일 로드
+  // 전역 할 일 로드 (사이드바와 캐시 공유)
   useEffect(() => {
     if (!currentSchool) return;
     setTodosReady(false);
     setTodosLoading(true);
-    AltSheetRowAPI.RAltSheetRowSchoolTodos({
-      query: {
-        school: currentSchool._id,
-        ...(currentSeasonId ? { season: currentSeasonId } : {}),
-      },
-    })
+    const key = schoolTodosCacheKey(currentSchool._id, currentSeasonId);
+    getSchoolTodosCached(key, () =>
+      AltSheetRowAPI.RAltSheetRowSchoolTodos({
+        query: {
+          school: currentSchool._id,
+          ...(currentSeasonId ? { season: currentSeasonId } : {}),
+        },
+      })
+    )
       .then(({ items }) => {
-        setTodos(items);
+        setTodos(items as TSchoolTodoItem[]);
       })
       .catch((err) => {
         ALERT_ERROR(err);
