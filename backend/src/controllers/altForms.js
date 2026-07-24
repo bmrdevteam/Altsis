@@ -487,6 +487,14 @@ export const exportForm = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("form") });
     }
 
+    const board = await Board(req.user.academyId).findById(form.board);
+    if (!board) {
+      return res.status(404).send({ message: __NOT_FOUND("board") });
+    }
+    if (!canModifyForm(form, board, req.user)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
     const exported = {
       title: form.title,
       description: form.description,

@@ -738,13 +738,14 @@ export const update = async (req, res) => {
       }
     }
 
-    // 공개 → 비공개: postCount 감소 (알림 없음)
+    // 공개 → 비공개: postCount 감소 + 읽음 기록 초기화 (재공개 시 안 읽음으로)
     if (!wasDraft && post.isDraft) {
       const board = await Board(req.user.academyId).findById(post.board);
       if (board) {
         board.postCount = Math.max(0, (board.postCount || 0) - 1);
         await board.save();
       }
+      await PostRead(req.user.academyId).deleteMany({ post: post._id });
     }
 
     return res.status(200).send({ post });
@@ -836,6 +837,9 @@ export const findReaders = async (req, res) => {
     if (!isBoardMember(board, req.user, role)) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
+    if (!canUserSeePost(post, req.user, role)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
 
     const users = await getPostReaders(req.user.academyId, board, post);
     return res.status(200).send({ users });
@@ -902,6 +906,8 @@ export const remove = async (req, res) => {
 
     post.isActive = false;
     await post.save();
+
+    await PostRead(req.user.academyId).deleteMany({ post: post._id });
 
     // 설문 응답 정리
     if (post.surveys && post.surveys.length > 0) {
@@ -1055,6 +1061,31 @@ export const duplicate = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("post") });
     }
 
+    const board = await Board(req.user.academyId).findById(post.board);
+    if (!board) {
+      return res.status(404).send({ message: __NOT_FOUND("board") });
+    }
+
+    const role = await getUserRoleInSeason(
+      req.user.academyId,
+      board.schoolId,
+      req.user
+    );
+    if (!isBoardMember(board, req.user, role)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+    if (!canUserSeePost(post, req.user, role)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    const isAuthor =
+      post.author?.equals?.(req.user._id) || post.authorId === req.user.userId;
+    const isManager =
+      req.user.auth === "admin" || req.user.auth === "manager";
+    if (!isAuthor && !isManager && !isBoardWriter(board, req.user, role)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
     const newPost = await Post(req.user.academyId).create({
       board: post.board,
       author: req.user._id,
@@ -1064,6 +1095,7 @@ export const duplicate = async (req, res) => {
       title: `${post.title} (복사)`,
       content: post.content || "",
       isActive: true,
+      isDraft: true,
     });
 
     return res.status(200).send({ post: newPost });

@@ -257,13 +257,39 @@ const PostPid = () => {
   }, [isCommentsLoading, postId]);
 
   const handleDelete = async () => {
-    if (!postId) return;
+    if (!postId || !post) return;
+    if (!post.isDraft) {
+      alert("공개 중인 문서는 비공개로 전환한 뒤 삭제할 수 있습니다.");
+      return;
+    }
     if (!window.confirm("정말 삭제하시겠습니까?")) return;
 
     try {
       await PostAPI.DPost({ params: { _id: postId } });
       alert("삭제되었습니다.");
       navigate(`/boards/${boardId}#문서`);
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+  };
+
+  const handleSetDraft = async () => {
+    if (!postId || !post || post.isDraft) return;
+    if (
+      !window.confirm(
+        "이 문서를 비공개로 전환할까요? 작성자만 볼 수 있게 됩니다."
+      )
+    ) {
+      return;
+    }
+    try {
+      const { post: updated } = await PostAPI.UPost({
+        params: { _id: postId },
+        data: { isDraft: true },
+      });
+      setPost((prev) =>
+        prev ? { ...prev, isDraft: updated?.isDraft ?? true } : prev
+      );
     } catch (err) {
       ALERT_ERROR(err);
     }
@@ -483,14 +509,25 @@ const PostPid = () => {
                 >
                   <Svg type="write" width="20px" height="20px" />
                 </button>
-                <button
-                  type="button"
-                  className={`${abStyle.formCardIconBtn} ${abStyle.formCardIconBtnDanger}`}
-                  title="삭제"
-                  onClick={handleDelete}
-                >
-                  <Svg type="trash" width="20px" height="20px" />
-                </button>
+                {post.isDraft ? (
+                  <button
+                    type="button"
+                    className={`${abStyle.formCardIconBtn} ${abStyle.formCardIconBtnDanger}`}
+                    title="삭제"
+                    onClick={handleDelete}
+                  >
+                    <Svg type="trash" width="20px" height="20px" />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className={abStyle.formCardIconBtn}
+                    title="비공개로"
+                    onClick={handleSetDraft}
+                  >
+                    <Svg type="archive" width="20px" height="20px" />
+                  </button>
+                )}
               </>
             )}
           </div>

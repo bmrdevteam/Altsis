@@ -210,9 +210,10 @@ const AltBoardView = ({ board, embedded }: Props) => {
         setBuilderFormId(null);
       }
     } else if (
-      // 방금 저장한 비공개 양식 등은 목록에 아직 없을 수 있음 → URL 유지·편집 계속
+      // 방금 저장한 비공개 양식 등은 목록에 아직 없을 수 있음 → 이미 빌더에 열린 경우만 유지
       (urlMode === "edit" || !urlMode) &&
-      canManage
+      canManage &&
+      builderFormId === urlFormId
     ) {
       setBuilderFormId(urlFormId);
       setRendererFormId(null);
@@ -227,7 +228,7 @@ const AltBoardView = ({ board, embedded }: Props) => {
         { replace: true }
       );
     }
-  }, [isLoading, urlFormId, urlMode, forms, canManage]);
+  }, [isLoading, urlFormId, urlMode, forms, canManage, builderFormId]);
 
   // 구 해시 #양식 → #활동 호환
   useEffect(() => {
@@ -467,6 +468,7 @@ const AltBoardView = ({ board, embedded }: Props) => {
           }}
           onCopyFormLink={handleCopyFormLink}
           openApprovalRowId={urlApprovalRowId}
+          onPendingApprovalCountChange={setPendingApprovalCount}
         />
       </div>
     ),

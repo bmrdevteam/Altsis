@@ -28,6 +28,8 @@ type Props = {
   onCopyFormLink?: (formId: string) => void;
   /** 알림 딥링크: 승인 대기 행 자동 열기 */
   openApprovalRowId?: string | null;
+  /** 승인 대기 건수 변경 시 탭 뱃지 동기화 */
+  onPendingApprovalCountChange?: (count: number) => void;
 };
 
 type PeriodKind = "open" | "scheduled" | "closed";
@@ -101,6 +103,7 @@ const AltFormList = ({
   onRefresh,
   onCopyFormLink,
   openApprovalRowId,
+  onPendingApprovalCountChange,
 }: Props) => {
   const { AltFormAPI } = useAPIv2();
 
@@ -139,6 +142,7 @@ const AltFormList = ({
     let scheduled = 0;
     let closed = 0;
     for (const f of submitForms) {
+      if (f.isDraft) continue;
       const period = getPeriodKind(f);
       if (period === "closed") closed += 1;
       else if (period === "scheduled") scheduled += 1;
@@ -146,7 +150,7 @@ const AltFormList = ({
       else pending += 1;
     }
     return {
-      total: submitForms.length,
+      total: submitForms.filter((f) => !f.isDraft).length,
       pending,
       done,
       scheduled,
@@ -573,6 +577,7 @@ const AltFormList = ({
         boardId={board._id}
         openRowId={openApprovalRowId}
         onSettled={() => setApprovalsSettled(true)}
+        onCountChange={onPendingApprovalCountChange}
         onOpenHandled={() => {
           // URL에서 approval 파라미터만 제거 (탭·해시 유지)
           if (typeof window === "undefined") return;
