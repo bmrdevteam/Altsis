@@ -25,6 +25,7 @@ import { Form } from "../models/Form.js";
 import { Notification } from "../models/Notification.js";
 import { NotificationSetting } from "../models/NotificationSetting.js";
 import { Post } from "../models/Post.js";
+import { PostRead } from "../models/PostRead.js";
 import { Reminder } from "../models/Reminder.js";
 import { Registration } from "../models/Registration.js";
 
@@ -60,6 +61,7 @@ export {
   Notification,
   NotificationSetting,
   Post,
+  PostRead,
   Reminder,
   Registration,
 

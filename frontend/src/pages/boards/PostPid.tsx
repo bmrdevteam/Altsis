@@ -262,7 +262,7 @@ const PostPid = () => {
     try {
       await PostAPI.DPost({ params: { _id: postId } });
       alert("삭제되었습니다.");
-      navigate(`/boards/${boardId}`);
+      navigate(`/boards/${boardId}#문서`);
     } catch (err) {
       ALERT_ERROR(err);
     }
@@ -373,7 +373,7 @@ const PostPid = () => {
         >
           <div
             style={{ cursor: "pointer", display: "flex", alignItems: "center" }}
-            onClick={() => navigate(`/boards/${boardId}`)}
+            onClick={() => navigate(`/boards/${boardId}#문서`)}
           >
             <Svg type="chevronLeft" width="24px" height="24px" />
           </div>
@@ -933,7 +933,10 @@ const PostPid = () => {
         </div>
 
         <div style={{ marginTop: "24px" }}>
-          <Button type="ghost" onClick={() => navigate(`/boards/${boardId}`)}>
+          <Button
+            type="ghost"
+            onClick={() => navigate(`/boards/${boardId}#문서`)}
+          >
             목록으로
           </Button>
         </div>

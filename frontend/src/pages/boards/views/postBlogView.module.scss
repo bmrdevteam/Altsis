@@ -15,6 +15,17 @@
   overflow: hidden;
 }
 
+.unreadBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--status-warning-bg);
+  color: var(--status-warning);
+}
+
 .cardBody {
   padding: 20px 24px 16px;
 }

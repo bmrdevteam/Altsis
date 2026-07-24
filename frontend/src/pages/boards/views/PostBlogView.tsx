@@ -181,6 +181,7 @@ const PostStreamCard = ({
         <span>{post.authorName}</span>
         <span className={style.dot}>·</span>
         <span>{formatDate(post.createdAt)}</span>
+        {post.isUnread && <span className={style.unreadBadge}>안 읽음</span>}
       </div>
 
       {/* 헤더: 뱃지 + 제목 */}

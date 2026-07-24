@@ -26,7 +26,7 @@ type Props = {
 
 const AltBoardView = ({ board, embedded }: Props) => {
   const { currentUser, currentSchool } = useAuth();
-  const { AltFormAPI, BoardChatAPI } = useAPIv2();
+  const { AltFormAPI, BoardChatAPI, PostAPI, AltSheetRowAPI } = useAPIv2();
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const prefix = useAppPrefix();
@@ -38,8 +38,10 @@ const AltBoardView = ({ board, embedded }: Props) => {
     null
   );
 
-  // 채팅 뱃지
+  // 탭 뱃지
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
+  const [docsUnreadCount, setDocsUnreadCount] = useState(0);
+  const [pendingApprovalCount, setPendingApprovalCount] = useState(0);
   const activeTabRef = useRef<string>("");
 
   // 현재 유저의 Alt Board 역할
@@ -101,9 +103,38 @@ const AltBoardView = ({ board, embedded }: Props) => {
       });
   };
 
+  const loadDocsUnread = useCallback(() => {
+    PostAPI.RPostUnreadCount({ query: { board: board._id } })
+      .then(({ count }) => setDocsUnreadCount(count))
+      .catch(() => setDocsUnreadCount(0));
+  }, [board._id]);
+
+  const loadPendingApprovals = useCallback(() => {
+    AltSheetRowAPI.RAltSheetRowPendingApprovals({
+      query: { board: board._id },
+    })
+      .then(({ count }) => setPendingApprovalCount(count))
+      .catch(() => setPendingApprovalCount(0));
+  }, [board._id]);
+
   useEffect(() => {
     loadForms();
+    loadDocsUnread();
+    loadPendingApprovals();
   }, [board._id]);
+
+  // 활동 뱃지: 미제출(공개·진행 중) + 승인 대기
+  const activityBadgeCount = (() => {
+    const now = new Date();
+    const unsubmitted = forms.filter((f) => {
+      if (f.isDraft) return false;
+      if (f.settings?.directInputMode) return false;
+      if (f.settings?.closeAt && new Date(f.settings.closeAt) < now) return false;
+      if (f.settings?.openAt && new Date(f.settings.openAt) > now) return false;
+      return !f.mySubmitted;
+    }).length;
+    return unsubmitted + pendingApprovalCount;
+  })();
 
   // 채팅 뱃지: 초기 unread count 로드 + 소켓 리스너
   useEffect(() => {
@@ -146,7 +177,14 @@ const AltBoardView = ({ board, embedded }: Props) => {
       setChatUnreadCount(0);
       BoardChatAPI.UBoardChatRead({ params: { boardId: board._id } }).catch(() => {});
     }
-  }, [board._id]);
+    if (tabKey === "문서") {
+      loadDocsUnread();
+    }
+    if (tabKey === "활동") {
+      loadForms();
+      loadPendingApprovals();
+    }
+  }, [board._id, loadDocsUnread, loadPendingApprovals]);
 
   // URL → State 동기화: ?form=<id>&mode=<respond|responses|edit> 처리
   useEffect(() => {
@@ -409,7 +447,6 @@ const AltBoardView = ({ board, embedded }: Props) => {
   }
 
   const tabItems: Record<string, React.ReactNode> = {
-    "문서": <div style={{ paddingTop: 20 }}><AltDocsView board={board} /></div>,
     "활동": (
       <div style={{ paddingTop: 20 }}>
         <AltFormList
@@ -424,7 +461,10 @@ const AltBoardView = ({ board, embedded }: Props) => {
           onViewMyResponses={handleOpenMyResponses}
           onOpenSheet={embedded ? undefined : handleOpenSheet}
           onCreateForm={() => handleOpenBuilder()}
-          onRefresh={loadForms}
+          onRefresh={() => {
+            loadForms();
+            loadPendingApprovals();
+          }}
           onCopyFormLink={handleCopyFormLink}
           openApprovalRowId={urlApprovalRowId}
         />
@@ -450,6 +490,11 @@ const AltBoardView = ({ board, embedded }: Props) => {
         )}
       </div>
     ),
+    "문서": (
+      <div style={{ paddingTop: 20 }}>
+        <AltDocsView board={board} onPostsChanged={loadDocsUnread} />
+      </div>
+    ),
   };
 
   if (isChatEnabled) {
@@ -464,14 +509,19 @@ const AltBoardView = ({ board, embedded }: Props) => {
     );
   }
 
+  const tabBadges: Record<string, number> = {};
+  if (activityBadgeCount > 0) tabBadges["활동"] = activityBadgeCount;
+  if (docsUnreadCount > 0) tabBadges["문서"] = docsUnreadCount;
+  if (isChatEnabled && chatUnreadCount > 0) tabBadges["채팅"] = chatUnreadCount;
+
   return (
     <>
       <Tab
         items={tabItems}
         align="center"
         dontUsePaths={embedded}
-        defaultTab={undefined}
-        badges={isChatEnabled ? { "채팅": chatUnreadCount } : undefined}
+        defaultTab="활동"
+        badges={tabBadges}
         onTabChange={handleTabChange}
       />
       {linkCopiedPopup}

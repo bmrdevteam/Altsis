@@ -49,6 +49,8 @@ export type TPost = {
   isActive: boolean;
   /** 비공개(true): 작성자만 열람 / 공개(false) */
   isDraft?: boolean;
+  /** 목록용: 현재 사용자 기준 안 읽음 (작성자·비공개 제외) */
+  isUnread?: boolean;
   viewCount: number;
   attachments: TPostAttachment[];
   permissionRead?: TBoardMembers;

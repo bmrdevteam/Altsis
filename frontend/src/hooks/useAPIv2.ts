@@ -3340,6 +3340,17 @@ export default function useAPIv2() {
   }
 
   /**
+   * RPostUnreadCount API
+   * @description 보드별 안 읽은 공개 게시글 수
+   */
+  async function RPostUnreadCount(props: { query: { board: string } }) {
+    const { count } = await database.R({
+      location: "posts/unread-count" + QUERY_BUILDER(props.query),
+    });
+    return { count: (count as number) || 0 };
+  }
+
+  /**
    * RPost API
    * @description 게시글 상세 조회 API
    * @version 1.0.0
@@ -3347,7 +3358,12 @@ export default function useAPIv2() {
    */
   async function RPost(props: {
     params: { _id: string };
-    query?: { merge?: "true"; userId?: string; filters?: string };
+    query?: {
+      merge?: "true";
+      userId?: string;
+      filters?: string;
+      skipRead?: "true";
+    };
   }) {
     const { post, board } = await database.R({
       location:
@@ -4794,6 +4810,7 @@ export default function useAPIv2() {
     PostAPI: {
       CPost,
       RPosts,
+      RPostUnreadCount,
       RPost,
       UPost,
       UPostPin,

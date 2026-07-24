@@ -1276,7 +1276,7 @@ export const findPendingApprovals = async (req, res) => {
     }
 
     const forms = await AltForm(req.user.academyId)
-      .find({ board: board._id, isActive: true })
+      .find({ board: board._id, isActive: true, isDraft: { $ne: true } })
       .lean();
 
     const items = [];

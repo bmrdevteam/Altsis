@@ -664,7 +664,7 @@ const PostCreate = () => {
               display: "flex",
               alignItems: "center",
             }}
-            onClick={() => navigate(`/boards/${boardId}`)}
+            onClick={() => navigate(`/boards/${boardId}#문서`)}
           >
             <Svg type="chevronLeft" width="24px" height="24px" />
           </div>
@@ -1162,7 +1162,10 @@ const PostCreate = () => {
           >
             {isDraft ? "비공개" : "공개"}
           </span>
-          <Button type="ghost" onClick={() => navigate(`/boards/${boardId}`)}>
+          <Button
+            type="ghost"
+            onClick={() => navigate(`/boards/${boardId}#문서`)}
+          >
             취소
           </Button>
           <Button

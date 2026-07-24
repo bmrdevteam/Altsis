@@ -13,6 +13,8 @@ import { TPost } from "types/post";
 
 type Props = {
   board: TBoard;
+  /** 문서 목록/삭제 등 변경 후 안 읽음 뱃지 갱신 */
+  onPostsChanged?: () => void;
 };
 
 const formatPermissionRead = (post: TPost): string => {
@@ -43,7 +45,7 @@ const formatDate = (dateStr: string) =>
     day: "2-digit",
   });
 
-const AltDocsView = ({ board }: Props) => {
+const AltDocsView = ({ board, onPostsChanged }: Props) => {
   const navigate = useAppNavigate();
   const { currentUser } = useAuth();
   const { PostAPI } = useAPIv2();
@@ -98,7 +100,7 @@ const AltDocsView = ({ board }: Props) => {
               try {
                 const { post: mergedPost } = await PostAPI.RPost({
                   params: { _id: p._id },
-                  query: { merge: "true" },
+                  query: { merge: "true", skipRead: "true" },
                 });
                 return { ...p, content: mergedPost.content };
               } catch {
@@ -116,6 +118,7 @@ const AltDocsView = ({ board }: Props) => {
       ALERT_ERROR(err);
     }
     setIsLoading(false);
+    onPostsChanged?.();
   };
 
   useEffect(() => {
@@ -345,6 +348,13 @@ const AltDocsView = ({ board }: Props) => {
                     <div className={style.formCardLeft}>
                       <div className={style.formCardTitle}>{post.title}</div>
                       <div className={style.formCardMeta}>
+                        {post.isUnread && (
+                          <span
+                            className={`${style.formCardBadge} ${style.badgePending}`}
+                          >
+                            안 읽음
+                          </span>
+                        )}
                         {post.isPinned && (
                           <span
                             className={style.formCardBadge}

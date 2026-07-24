@@ -18,6 +18,9 @@ router.get("/file/signed", isLoggedIn, posts.signPostFile);
 // OG 메타데이터 조회 (링크 첨부용)
 router.get("/og-meta", isLoggedIn, posts.fetchOgMeta);
 
+// 안 읽은 게시글 수 (/:_id? 위에 배치)
+router.get("/unread-count", isLoggedIn, posts.unreadCount);
+
 router.post("/:_id/duplicate", isLoggedIn, posts.duplicate);
 router.get("/:_id?", isLoggedIn, posts.find);
 router.put("/:_id", isLoggedIn, posts.update);

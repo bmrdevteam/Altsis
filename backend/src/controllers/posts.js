@@ -8,7 +8,15 @@ import _ from "lodash";
 import https from "https";
 import http from "http";
 import zlib from "zlib";
-import { AltForm, AltSheet, AltSheetRow, Board, Post, SurveyResponse } from "../models/index.js";
+import {
+  AltForm,
+  AltSheet,
+  AltSheetRow,
+  Board,
+  Post,
+  PostRead,
+  SurveyResponse,
+} from "../models/index.js";
 import {
   parseSheetDeclaration,
   renderMerge,
@@ -404,6 +412,26 @@ export const find = async (req, res) => {
         return res.status(403).send({ message: PERMISSION_DENIED });
       }
 
+      // 개인 읽음 기록 (작성자 제외·공개 글만, 목록 미리보기 skipRead 제외)
+      if (
+        !post.isDraft &&
+        !post.author.equals(req.user._id) &&
+        req.query.skipRead !== "true"
+      ) {
+        PostRead(req.user.academyId)
+          .updateOne(
+            { user: req.user._id, post: post._id },
+            {
+              $set: { readAt: new Date(), board: post.board },
+              $setOnInsert: { user: req.user._id, post: post._id },
+            },
+            { upsert: true }
+          )
+          .catch((err) =>
+            logger.error(`PostRead upsert failed: ${err.message}`)
+          );
+      }
+
       // 조회수 증가
       post.viewCount = (post.viewCount || 0) + 1;
       await post.save();
@@ -554,7 +582,25 @@ export const find = async (req, res) => {
       canUserSeePost(post, req.user, role)
     );
 
-    return res.status(200).send({ posts: filteredPosts, board });
+    // 개인 안 읽음 표시 (작성자·비공개 제외)
+    const postIds = filteredPosts.map((p) => p._id);
+    const readIds =
+      postIds.length > 0
+        ? await PostRead(req.user.academyId).distinct("post", {
+            user: req.user._id,
+            post: { $in: postIds },
+          })
+        : [];
+    const readSet = new Set(readIds.map((id) => String(id)));
+    const postsWithUnread = filteredPosts.map((post) => {
+      const obj = post.toObject ? post.toObject() : { ...post };
+      const isAuthor = post.author.equals(req.user._id);
+      obj.isUnread =
+        !post.isDraft && !isAuthor && !readSet.has(String(post._id));
+      return obj;
+    });
+
+    return res.status(200).send({ posts: postsWithUnread, board });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });
@@ -702,6 +748,61 @@ export const update = async (req, res) => {
     }
 
     return res.status(200).send({ post });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.PostAPI
+ * @function RPostUnreadCount API
+ * @description 보드별 안 읽은 공개 게시글 수 (작성자 본인 글 제외)
+ */
+export const unreadCount = async (req, res) => {
+  try {
+    if (!("board" in req.query)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("board") });
+    }
+
+    const board = await Board(req.user.academyId).findById(req.query.board);
+    if (!board) {
+      return res.status(404).send({ message: __NOT_FOUND("board") });
+    }
+
+    const role = await getUserRoleInSeason(
+      req.user.academyId,
+      board.schoolId,
+      req.user
+    );
+    if (!isBoardMember(board, req.user, role)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    const posts = await Post(req.user.academyId)
+      .find({
+        board: board._id,
+        isActive: true,
+        isDraft: { $ne: true },
+        author: { $ne: req.user._id },
+      })
+      .select("_id author authorId permissionRead targetAudience isDraft isActive")
+      .lean();
+
+    const visible = posts.filter((p) => canUserSeePost(p, req.user, role));
+    if (visible.length === 0) {
+      return res.status(200).send({ count: 0 });
+    }
+
+    const visibleIds = visible.map((p) => p._id);
+    const readIds = await PostRead(req.user.academyId).distinct("post", {
+      user: req.user._id,
+      post: { $in: visibleIds },
+    });
+    const readSet = new Set(readIds.map((id) => String(id)));
+    const count = visibleIds.filter((id) => !readSet.has(String(id))).length;
+
+    return res.status(200).send({ count });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });
