@@ -82,10 +82,20 @@ const getDeadlineHint = (form: TAltForm): string | null => {
 const submitSortRank = (form: TAltForm): number => {
   const period = getPeriodKind(form);
   const submitted = !!form.mySubmitted;
-  if (!submitted && period === "open") return 0;
+  const required = form.settings?.requiredMode === true;
+  if (!submitted && period === "open" && required) return 0;
   if (period === "scheduled") return 1;
   if (submitted && period !== "closed") return 2;
-  return 3; // closed
+  return 3; // closed / optional unsubmitted
+};
+
+/** 필수+복수일 때 목표 제출 횟수. 해당 아니면 null */
+const getRequiredResponseCount = (form: TAltForm): number | null => {
+  if (form.settings?.requiredMode !== true) return null;
+  if (!form.settings?.allowMultipleResponses) return null;
+  const n = Number(form.settings.requiredResponseCount);
+  if (!Number.isFinite(n) || n < 1) return 1;
+  return Math.floor(n);
 };
 
 const AltFormList = ({
@@ -124,39 +134,61 @@ const AltFormList = ({
     return forms.filter((f) => !f.settings.directInputMode);
   }, [forms, myRole]);
 
-  /** 단일 활동 목록: 멤버는 제출형만, 관리자는 전체(직접입력 포함) */
+  /** 할 일: 필수·진행 중·미제출 */
+  const todoUnsubmitted = useMemo(() => {
+    const now = new Date();
+    return forms.filter((f) => {
+      if (f.isDraft) return false;
+      if (f.settings?.requiredMode !== true) return false;
+      if (f.settings?.directInputMode) return false;
+      if (f.settings.closeAt && new Date(f.settings.closeAt) < now) return false;
+      if (f.settings.openAt && new Date(f.settings.openAt) > now) return false;
+      return !f.mySubmitted;
+    });
+  }, [forms]);
+
+  const todoUnsubmittedIds = useMemo(
+    () => new Set(todoUnsubmitted.map((f) => f._id)),
+    [todoUnsubmitted]
+  );
+
+  /** 활동 목록: 할 일(미제출) 제외. 제출 권한만 있으면 마감도 제외 */
   const activityForms = useMemo(() => {
     if (!myRole) return [];
-    const list = (canManage ? forms : submitForms).slice();
+    const list = (canManage ? forms : submitForms).filter((f) => {
+      if (todoUnsubmittedIds.has(f._id)) return false;
+      if (!canManage && getPeriodKind(f) === "closed") return false;
+      return true;
+    });
     return list.sort((a, b) => {
       const aDirect = a.settings.directInputMode ? 1 : 0;
       const bDirect = b.settings.directInputMode ? 1 : 0;
       if (aDirect !== bDirect) return aDirect - bDirect;
       return submitSortRank(a) - submitSortRank(b);
     });
-  }, [forms, myRole, canManage, submitForms]);
+  }, [forms, myRole, canManage, submitForms, todoUnsubmittedIds]);
 
   const submitStats = useMemo(() => {
-    let pending = 0;
     let done = 0;
     let scheduled = 0;
     let closed = 0;
     for (const f of submitForms) {
       if (f.isDraft) continue;
       const period = getPeriodKind(f);
-      if (period === "closed") closed += 1;
-      else if (period === "scheduled") scheduled += 1;
-      else if (f.mySubmitted) done += 1;
-      else pending += 1;
+      if (period === "closed") {
+        if (canManage) closed += 1;
+      } else if (period === "scheduled") scheduled += 1;
+      else if (f.settings?.requiredMode !== true) {
+        if (f.mySubmitted) done += 1;
+      } else if (f.mySubmitted) done += 1;
+      // 미제출(필수·진행 중)은 할 일 섹션에만
     }
     return {
-      total: submitForms.filter((f) => !f.isDraft).length,
-      pending,
       done,
       scheduled,
       closed,
     };
-  }, [submitForms]);
+  }, [submitForms, canManage]);
 
   const manageStats = useMemo(() => {
     if (!canManage) return null;
@@ -276,10 +308,33 @@ const AltFormList = ({
         </span>
       );
     }
+    const target = getRequiredResponseCount(form);
+    const mine = form.myResponseCount ?? 0;
+    if (target != null) {
+      if (form.mySubmitted) {
+        return (
+          <span className={`${style.formCardBadge} ${style.badgeSubmitted}`}>
+            제출완료
+          </span>
+        );
+      }
+      return (
+        <span className={`${style.formCardBadge} ${style.badgePending}`}>
+          {mine}/{target}
+        </span>
+      );
+    }
     if (form.mySubmitted) {
       return (
         <span className={`${style.formCardBadge} ${style.badgeSubmitted}`}>
           제출완료
+        </span>
+      );
+    }
+    if (form.settings?.requiredMode !== true) {
+      return (
+        <span className={`${style.formCardBadge} ${style.badgeOptional}`}>
+          선택
         </span>
       );
     }
@@ -340,6 +395,9 @@ const AltFormList = ({
         return style.formCardLeadIconClosed;
       }
       if (form.mySubmitted) return style.formCardLeadIconSubmitted;
+      if (form.settings?.requiredMode !== true) {
+        return style.formCardLeadIconInfo; // 선택
+      }
       return style.formCardLeadIconPending; // 미제출
     })();
 
@@ -390,6 +448,7 @@ const AltFormList = ({
             )}
             {form.mySubmitted &&
               form.settings.allowMultipleResponses &&
+              getRequiredResponseCount(form) == null &&
               period === "open" &&
               !isDirect && (
                 <span className={style.formCardHint}>추가 제출 가능</span>
@@ -578,6 +637,8 @@ const AltFormList = ({
         openRowId={openApprovalRowId}
         onSettled={() => setApprovalsSettled(true)}
         onCountChange={onPendingApprovalCountChange}
+        unsubmittedCount={todoUnsubmitted.length}
+        unsubmittedCards={todoUnsubmitted.map(renderActivityCard)}
         onOpenHandled={() => {
           // URL에서 approval 파라미터만 제거 (탭·해시 유지)
           if (typeof window === "undefined") return;
@@ -604,9 +665,6 @@ const AltFormList = ({
           </div>
           <div className={style.formSectionStats}>
             <span>
-              미제출 <strong>{submitStats.pending}</strong>
-            </span>
-            <span>
               제출완료 <strong>{submitStats.done}</strong>
             </span>
             {submitStats.scheduled > 0 && (
@@ -614,7 +672,7 @@ const AltFormList = ({
                 예정 <strong>{submitStats.scheduled}</strong>
               </span>
             )}
-            {submitStats.closed > 0 && (
+            {canManage && submitStats.closed > 0 && (
               <span>
                 마감 <strong>{submitStats.closed}</strong>
               </span>

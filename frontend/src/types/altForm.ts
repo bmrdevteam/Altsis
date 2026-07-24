@@ -97,6 +97,16 @@ export type TAltFormSettings = {
   closeAt?: string;
   allowResubmit: boolean;
   allowMultipleResponses?: boolean;
+  /**
+   * 필수 + 복수 응답일 때 목표 제출 횟수.
+   * 내 제출 수 >= 이 값이면 제출완료(n/n).
+   */
+  requiredResponseCount?: number | null;
+  /**
+   * 필수 모드: 미제출 뱃지·활동 탭 카운트에 포함.
+   * true일 때만 필수. 미설정·false는 선택(미제출 미표시).
+   */
+  requiredMode?: boolean;
   quizMode?: boolean;
   quizSettings?: TQuizSettings;
   directInputMode?: boolean;
@@ -124,6 +134,8 @@ export type TAltForm = {
   updatedAt: string;
   /** 목록 API 메타: 응답 행 수 (_respondent 있는 행) */
   responseCount?: number;
-  /** 목록 API 메타: 내가 제출했는지 */
+  /** 목록 API 메타: 제출완료 여부 (필수+복수면 목표 횟수 달성 시) */
   mySubmitted?: boolean;
+  /** 목록 API 메타: 내 제출 건수 */
+  myResponseCount?: number;
 };

@@ -138,6 +138,9 @@ const createEmptyField = (
 type Settings = {
   allowResubmit: boolean;
   allowMultipleResponses: boolean;
+  /** 필수+복수일 때 목표 제출 횟수 */
+  requiredResponseCount: number;
+  requiredMode: boolean;
   openAt: string;
   closeAt: string;
   quizMode: boolean;
@@ -178,6 +181,8 @@ const AltFormBuilder = ({
   const [settings, setSettings] = useState<Settings>({
     allowResubmit: false,
     allowMultipleResponses: false,
+    requiredResponseCount: 2,
+    requiredMode: false,
     openAt: "",
     closeAt: "",
     quizMode: false,
@@ -271,6 +276,12 @@ const AltFormBuilder = ({
         const nextSettings: Settings = {
           allowResubmit: form.settings.allowResubmit,
           allowMultipleResponses: form.settings.allowMultipleResponses || false,
+          requiredResponseCount:
+            form.settings.requiredResponseCount &&
+            form.settings.requiredResponseCount >= 1
+              ? Math.floor(form.settings.requiredResponseCount)
+              : 2,
+          requiredMode: form.settings.requiredMode === true,
           openAt: form.settings.openAt
             ? toLocalDatetimeString(new Date(form.settings.openAt))
             : "",
@@ -335,6 +346,11 @@ const AltFormBuilder = ({
         settings: {
           allowResubmit: settings.allowResubmit,
           allowMultipleResponses: settings.allowMultipleResponses,
+          requiredMode: settings.requiredMode,
+          requiredResponseCount:
+            settings.requiredMode && settings.allowMultipleResponses
+              ? Math.max(1, Math.floor(settings.requiredResponseCount) || 1)
+              : undefined,
           openAt: settings.openAt ? new Date(settings.openAt).toISOString() : undefined,
           closeAt: settings.closeAt ? new Date(settings.closeAt).toISOString() : undefined,
           quizMode: settings.quizMode,
@@ -2142,7 +2158,7 @@ const AltFormBuilder = ({
             <div className={style.settingsSections}>
               <section className={style.settingsSection}>
                 <h4 className={style.settingsSectionTitle}>기간</h4>
-                <div className={style.settingsSectionGrid}>
+                <div className={style.settingsDateGrid}>
                   <div className={style.settingsItem}>
                     <span className={style.settingsLabel}>시작일</span>
                     <input
@@ -2152,6 +2168,14 @@ const AltFormBuilder = ({
                       onChange={(e) =>
                         setSettings((s) => ({ ...s, openAt: e.target.value }))
                       }
+                      onClick={(e) => {
+                        const el = e.currentTarget;
+                        try {
+                          el.showPicker?.();
+                        } catch {
+                          /* 일부 환경에서 showPicker 미지원/거부 */
+                        }
+                      }}
                     />
                   </div>
                   <div className={style.settingsItem}>
@@ -2163,6 +2187,14 @@ const AltFormBuilder = ({
                       onChange={(e) =>
                         setSettings((s) => ({ ...s, closeAt: e.target.value }))
                       }
+                      onClick={(e) => {
+                        const el = e.currentTarget;
+                        try {
+                          el.showPicker?.();
+                        } catch {
+                          /* 일부 환경에서 showPicker 미지원/거부 */
+                        }
+                      }}
                     />
                   </div>
                 </div>
@@ -2230,6 +2262,59 @@ const AltFormBuilder = ({
               <section className={style.settingsSection}>
                 <h4 className={style.settingsSectionTitle}>모드</h4>
                 <div className={style.settingsSectionGrid}>
+                  <div className={style.settingsItemRow}>
+                    <div className={style.settingsItemText}>
+                      <span className={style.settingsLabel}>필수 모드</span>
+                      <span className={style.settingsHint}>
+                        켜면 미제출로 표시되고 활동 뱃지에 포함됩니다. 복수
+                        응답과 함께 쓰면 목표 횟수를 채울 때까지 n/n으로
+                        표시됩니다.
+                      </span>
+                    </div>
+                    <div className={style.settingsToggle}>
+                      <ToggleSwitch
+                        checked={settings.requiredMode}
+                        onChange={(v) =>
+                          setSettings((s) => ({ ...s, requiredMode: v }))
+                        }
+                      />
+                      <span className={style.settingsToggleText}>
+                        {settings.requiredMode ? "필수" : "선택"}
+                      </span>
+                    </div>
+                  </div>
+                  {settings.requiredMode &&
+                    settings.allowMultipleResponses && (
+                      <div className={style.settingsItem}>
+                        <span className={style.settingsLabel}>
+                          목표 제출 횟수
+                        </span>
+                        <span className={style.settingsHint}>
+                          사용자가 이 횟수만큼 제출하면 제출완료가 됩니다.
+                          목표에 도달하면 추가 제출은 할 수 없습니다.
+                        </span>
+                        <input
+                          type="number"
+                          className={style.selectInput}
+                          style={{
+                            fontSize: "13px",
+                            padding: "6px 10px",
+                            width: "100px",
+                          }}
+                          min={1}
+                          step={1}
+                          value={settings.requiredResponseCount}
+                          onChange={(e) => {
+                            const n = parseInt(e.target.value, 10);
+                            setSettings((s) => ({
+                              ...s,
+                              requiredResponseCount:
+                                Number.isFinite(n) && n >= 1 ? n : 1,
+                            }));
+                          }}
+                        />
+                      </div>
+                    )}
                   <div className={style.settingsItemRow}>
                     <div className={style.settingsItemText}>
                       <span className={style.settingsLabel}>퀴즈 모드</span>

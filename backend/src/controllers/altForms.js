@@ -6,7 +6,7 @@
 import crypto from "crypto";
 import { logger } from "../log/logger.js";
 import { AltForm, AltSheet, AltSheetRow, Board, CalendarEvent } from "../models/index.js";
-import { canManageForm, canModifyForm, getAltBoardRole } from "../services/altForms.js";
+import { canManageForm, canModifyForm, getAltBoardRole, hasSubmittedForList } from "../services/altForms.js";
 import { isBoardNotificationEnabled } from "../services/notifications.js";
 import { getBoardMembers } from "../services/boards.js";
 import {
@@ -56,21 +56,28 @@ const enrichFormsWithListMeta = async (
         _respondent: userId,
         isActive: true,
       })
-      .select("form")
+      .select("form createdAt")
       .lean(),
   ]);
 
   const countByForm = new Map(
     countAgg.map((r) => [r._id.toString(), r.count])
   );
-  const myFormIds = new Set(myRows.map((row) => row.form.toString()));
+  const myRowsByForm = new Map();
+  for (const row of myRows) {
+    const fid = row.form.toString();
+    if (!myRowsByForm.has(fid)) myRowsByForm.set(fid, []);
+    myRowsByForm.get(fid).push(row);
+  }
 
   return forms.map((form) => {
     const plain = typeof form.toObject === "function" ? form.toObject() : form;
     const id = plain._id.toString();
+    const mine = myRowsByForm.get(id) || [];
     const meta = {
       ...plain,
-      mySubmitted: myFormIds.has(id),
+      mySubmitted: hasSubmittedForList(plain, mine),
+      myResponseCount: mine.length,
     };
     if (includeResponseCount) {
       meta.responseCount = countByForm.get(id) || 0;
@@ -378,6 +385,16 @@ export const update = async (req, res) => {
     if ("fields" in req.body) form.fields = ensureFieldIds(req.body.fields);
     if ("settings" in req.body) {
       Object.assign(form.settings, req.body.settings);
+      // 레거시 필드 정리
+      form.settings.maxResponsesPerUser = undefined;
+      form.settings.responseInterval = undefined;
+      if (!form.settings.requiredMode || !form.settings.allowMultipleResponses) {
+        form.settings.requiredResponseCount = undefined;
+      } else {
+        const n = Number(form.settings.requiredResponseCount);
+        form.settings.requiredResponseCount =
+          Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
+      }
       form.markModified("settings");
     }
 
@@ -515,9 +532,17 @@ export const exportForm = async (req, res) => {
       })),
       settings: {
         allowResubmit: form.settings?.allowResubmit,
+        allowMultipleResponses: form.settings?.allowMultipleResponses,
+        requiredResponseCount: form.settings?.requiredResponseCount,
+        requiredMode: form.settings?.requiredMode,
         quizMode: form.settings?.quizMode,
         quizSettings: form.settings?.quizSettings,
         directInputMode: form.settings?.directInputMode,
+        shareResponses: form.settings?.shareResponses,
+        showOwnerFields: form.settings?.showOwnerFields,
+        showOwnResponse: form.settings?.showOwnResponse,
+        openAt: form.settings?.openAt,
+        closeAt: form.settings?.closeAt,
       },
     };
 
@@ -630,9 +655,17 @@ export const duplicate = async (req, res) => {
       fields: clonedFields,
       settings: {
         allowResubmit: original.settings?.allowResubmit,
+        allowMultipleResponses: original.settings?.allowMultipleResponses,
+        requiredResponseCount: original.settings?.requiredResponseCount,
+        requiredMode: original.settings?.requiredMode === true,
         quizMode: original.settings?.quizMode,
         quizSettings: original.settings?.quizSettings,
         directInputMode: original.settings?.directInputMode,
+        shareResponses: original.settings?.shareResponses,
+        showOwnerFields: original.settings?.showOwnerFields,
+        showOwnResponse: original.settings?.showOwnResponse,
+        openAt: original.settings?.openAt,
+        closeAt: original.settings?.closeAt,
       },
     });
 

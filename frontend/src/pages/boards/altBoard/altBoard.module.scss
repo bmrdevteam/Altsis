@@ -248,11 +248,11 @@
 }
 
 .formCardLeadIconPending {
-  background: var(--status-warning-bg);
-  color: var(--status-warning);
+  background: var(--status-error-bg);
+  color: var(--status-error);
 
   svg {
-    fill: var(--status-warning);
+    fill: var(--status-error);
   }
 }
 
@@ -266,11 +266,11 @@
 }
 
 .formCardLeadIconClosed {
-  background: var(--status-error-bg);
-  color: var(--status-error);
+  background: var(--background-color-2);
+  color: var(--text-color-2, var(--accent-3));
 
   svg {
-    fill: var(--status-error);
+    fill: var(--text-color-2, var(--accent-3));
   }
 }
 
@@ -280,6 +280,15 @@
 
   svg {
     fill: var(--status-info);
+  }
+}
+
+.formCardLeadIconWarning {
+  background: var(--status-warning-bg);
+  color: var(--status-warning);
+
+  svg {
+    fill: var(--status-warning);
   }
 }
 
@@ -313,11 +322,21 @@
 }
 
 .badgeClosed {
+  background: var(--background-color-2);
+  color: var(--text-color-2, var(--accent-3));
+}
+
+.badgePending {
   background: var(--status-error-bg);
   color: var(--status-error);
 }
 
-.badgePending {
+.badgeOptional {
+  background: var(--status-info-bg);
+  color: var(--status-info);
+}
+
+.badgeApproval {
   background: var(--status-warning-bg);
   color: var(--status-warning);
 }
@@ -518,6 +537,21 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.rendererHeaderTitle {
+  font-size: 16px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.builderHeaderLeft .formCardBadge {
+  flex-shrink: 0;
 }
 
 .backBtn {
@@ -649,7 +683,7 @@
 
 /* Settings card */
 .settingsCard {
-  overflow: hidden;
+  overflow: visible;
 }
 
 .settingsPanel {
@@ -686,6 +720,13 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.settingsDateGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  align-items: flex-start;
 }
 
 .settingsItemRow {
@@ -786,17 +827,20 @@
 }
 
 .settingsDateInput {
+  /* width 고정 금지 — datetime-local 고유 너비에 맞춰 달력이 아이콘 옆에 붙음 */
   padding: 6px 10px;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
+  border: 1px solid var(--border-default-color, var(--border-color));
+  border-radius: 6px;
   font-size: 13px;
+  font-family: inherit;
   background: var(--background-color);
   color: var(--text-color-1);
   transition: border-color 0.15s;
+  max-width: 100%;
 
   &:focus {
     outline: none;
-    border-color: var(--accent-1);
+    border-color: var(--primary-color, var(--accent-1));
   }
 }
 

@@ -9,6 +9,7 @@ import {
   getAltBoardRole,
   canManageForm,
   canRespondForm,
+  checkMultipleResponseLimit,
   getVisibleFields,
   isFieldVisible,
   gradeQuizRow,
@@ -121,7 +122,7 @@ export const create = async (req, res) => {
       return res.status(403).send({ message: respondCheck.message });
     }
 
-    // 기존 응답 확인 (복수 응답 허용 시 건너뜀)
+    // 기존 응답 확인 (복수 응답 허용 시 제한만 검사)
     if (!form.settings.allowMultipleResponses) {
       const existing = await AltSheetRow(req.user.academyId).findOne({
         form: form._id,
@@ -162,6 +163,20 @@ export const create = async (req, res) => {
         await existing.save();
 
         return res.status(200).send({ row: existing });
+      }
+    } else {
+      const myRows = await AltSheetRow(req.user.academyId)
+        .find({
+          form: form._id,
+          _respondent: req.user._id,
+          isActive: true,
+        })
+        .select("createdAt")
+        .sort({ createdAt: -1 })
+        .lean();
+      const limitCheck = checkMultipleResponseLimit(form, myRows);
+      if (!limitCheck.allowed) {
+        return res.status(409).send({ message: limitCheck.message });
       }
     }
 

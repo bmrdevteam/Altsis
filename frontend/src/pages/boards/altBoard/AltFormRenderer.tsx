@@ -30,6 +30,16 @@ type Props = {
 
 type TViewMode = "compose" | "review";
 
+/** 필수+복수일 때 목표 제출 횟수. 해당 아니면 null */
+const getRequiredResponseCount = (form: TAltForm | null): number | null => {
+  if (!form) return null;
+  if (form.settings?.requiredMode !== true) return null;
+  if (!form.settings?.allowMultipleResponses) return null;
+  const n = Number(form.settings.requiredResponseCount);
+  if (!Number.isFinite(n) || n < 1) return 1;
+  return Math.floor(n);
+};
+
 /* ── 시스템 변수 ── */
 
 const getSystemVariableValue = (varId: string): string => {
@@ -203,11 +213,17 @@ const AltFormRenderer = ({
           // 다중 응답: 작성 모드는 빈 폼 (이전 응답은 개별 보기에서만)
           setMyRow(null);
           setIsSubmitted(false);
-          if (startInReview) {
+          const target = getRequiredResponseCount(loadedForm);
+          const quotaReached =
+            target != null && loadedRows.length >= target;
+          if (startInReview || (quotaReached && canReview)) {
             const row = loadedRows[0];
             setData(
               withDocResponseDefaults(loadedForm.fields, row?.data || {})
             );
+            if (quotaReached && !startInReview) {
+              setViewMode("review");
+            }
           } else {
             setData(withDocResponseDefaults(loadedForm.fields));
           }
@@ -344,6 +360,14 @@ const AltFormRenderer = ({
       return;
     }
     // compose
+    const target = getRequiredResponseCount(form);
+    if (
+      form.settings.allowMultipleResponses &&
+      target != null &&
+      myRows.length >= target
+    ) {
+      return; // 목표 횟수 달성 시 추가 작성 불가
+    }
     if (form.settings.allowMultipleResponses) {
       setData(withDocResponseDefaults(form.fields));
       setMyRow(null);
@@ -411,11 +435,19 @@ const AltFormRenderer = ({
     form?.settings.openAt && new Date(form.settings.openAt) > new Date();
 
   const canSubmit = !isClosed && !isNotOpen;
+  const requiredTarget = getRequiredResponseCount(form);
+  const multipleQuotaReached =
+    requiredTarget != null && myRows.length >= requiredTarget;
+  const canComposeMultiple =
+    !!form?.settings.allowMultipleResponses &&
+    canSubmit &&
+    !multipleQuotaReached;
   const canResubmit =
     !isReviewMode &&
     (form?.settings.allowResubmit || form?.settings.allowMultipleResponses) &&
     isSubmitted &&
-    canSubmit;
+    canSubmit &&
+    !multipleQuotaReached;
 
   // 퀴즈 결과 가시성
   const quizScoreVisible = useMemo(() => {
@@ -562,10 +594,20 @@ const AltFormRenderer = ({
       if (form.settings.allowMultipleResponses) {
         // 다중 응답: 제출 후 목록에 추가하고 작성 폼 초기화
         alert("응답이 제출되었습니다.");
-        setMyRows((prev) => [row, ...prev]);
+        const nextRows = [row, ...myRows];
+        setMyRows(nextRows);
         setMyRow(null);
-        setData(withDocResponseDefaults(form.fields));
-        setIsSubmitted(false);
+        const target = getRequiredResponseCount(form);
+        if (target != null && nextRows.length >= target) {
+          setReviewIndex(0);
+          setData(withDocResponseDefaults(form.fields, row.data || {}));
+          setViewMode("review");
+          onViewModeChange?.("review");
+          setIsSubmitted(false);
+        } else {
+          setData(withDocResponseDefaults(form.fields));
+          setIsSubmitted(false);
+        }
       } else {
         setMyRow(row);
         setMyRows([row]);
@@ -1857,9 +1899,23 @@ const AltFormRenderer = ({
           <button className={style.backBtn} onClick={onBack}>
             <Svg type="chevronLeft" width="20px" height="20px" />
           </button>
-          <span style={{ fontSize: "16px", fontWeight: 600 }}>
-            {form.title}
-          </span>
+          <span className={style.rendererHeaderTitle}>{form.title}</span>
+          {requiredTarget != null && (
+            <span
+              className={`${style.formCardBadge} ${
+                multipleQuotaReached
+                  ? style.badgeSubmitted
+                  : style.badgePending
+              }`}
+              title={
+                multipleQuotaReached
+                  ? "목표 제출 횟수를 모두 채웠습니다."
+                  : `필수 제출 ${Math.min(myRows.length, requiredTarget)}/${requiredTarget}`
+              }
+            >
+              {Math.min(myRows.length, requiredTarget)}/{requiredTarget}
+            </span>
+          )}
         </div>
         {canShowOwnResponses && (
           <div className={style.viewModeToggle}>
@@ -1869,6 +1925,12 @@ const AltFormRenderer = ({
                 viewMode === "compose" ? style.viewModeBtnActive : ""
               }`}
               onClick={() => switchViewMode("compose")}
+              disabled={multipleQuotaReached}
+              title={
+                multipleQuotaReached
+                  ? "목표 제출 횟수를 모두 채웠습니다."
+                  : undefined
+              }
             >
               작성
             </button>
@@ -1893,28 +1955,33 @@ const AltFormRenderer = ({
         </div>
       )}
 
-      <div className={style.rendererMeta}>
-        {isClosed && (
-          <span className={`${style.formCardBadge} ${style.badgeClosed}`}>
-            마감됨
-          </span>
-        )}
-        {isNotOpen && (
-          <span className={`${style.formCardBadge} ${style.badgeClosed}`}>
-            아직 시작 전
-          </span>
-        )}
-        {!isReviewMode && isSubmitted && (
-          <span className={`${style.formCardBadge} ${style.badgeOpen}`}>
-            응답 완료
-          </span>
-        )}
-        {isReviewMode && (
-          <span className={`${style.formCardBadge} ${style.badgeSubmitted}`}>
-            개별 보기
-          </span>
-        )}
-      </div>
+      {(isClosed ||
+        isNotOpen ||
+        (!isReviewMode && isSubmitted) ||
+        isReviewMode) && (
+        <div className={style.rendererMeta}>
+          {isClosed && (
+            <span className={`${style.formCardBadge} ${style.badgeClosed}`}>
+              마감됨
+            </span>
+          )}
+          {isNotOpen && (
+            <span className={`${style.formCardBadge} ${style.badgeClosed}`}>
+              아직 시작 전
+            </span>
+          )}
+          {!isReviewMode && isSubmitted && (
+            <span className={`${style.formCardBadge} ${style.badgeOpen}`}>
+              응답 완료
+            </span>
+          )}
+          {isReviewMode && (
+            <span className={`${style.formCardBadge} ${style.badgeSubmitted}`}>
+              개별 보기
+            </span>
+          )}
+        </div>
+      )}
 
       {isReviewMode && myRows.length > 0 && (
         <div className={style.reviewNav}>
@@ -2120,7 +2187,9 @@ const AltFormRenderer = ({
                 응답 철회
               </Button>
             )}
-          {(!isSubmitted || canResubmit) && canSubmit && (
+          {(!isSubmitted || canResubmit) &&
+            canSubmit &&
+            (!form?.settings.allowMultipleResponses || canComposeMultiple) && (
             <Button
               type="ghost"
               onClick={handleSubmit}
@@ -2128,11 +2197,17 @@ const AltFormRenderer = ({
             >
               {isSubmitting
                 ? "제출 중..."
-                : isSubmitted
-                  ? form?.settings.allowMultipleResponses
-                    ? "추가 제출"
-                    : "수정 제출"
-                  : "제출"}
+                : (() => {
+                    const base = isSubmitted
+                      ? form?.settings.allowMultipleResponses
+                        ? "추가 제출"
+                        : "수정 제출"
+                      : "제출";
+                    if (requiredTarget == null || !canComposeMultiple) {
+                      return base;
+                    }
+                    return `${base} (${myRows.length}/${requiredTarget})`;
+                  })()}
             </Button>
           )}
         </div>

@@ -63,6 +63,72 @@ export const canModifyForm = (form, board, user) => {
 };
 
 /**
+ * 필수 모드 여부 (미제출 표시 대상).
+ * true일 때만 필수. 미설정·false는 선택.
+ * @param {Object} form
+ * @returns {boolean}
+ */
+export const isFormRequiredMode = (form) =>
+  form?.settings?.requiredMode === true;
+
+/**
+ * 필수+복수일 때 목표 제출 횟수. 해당이 아니면 null.
+ * @param {Object} form
+ * @returns {number|null}
+ */
+export const getRequiredResponseCount = (form) => {
+  if (!isFormRequiredMode(form)) return null;
+  if (!form?.settings?.allowMultipleResponses) return null;
+  const n = Number(form.settings.requiredResponseCount);
+  if (!Number.isFinite(n) || n < 1) return 1;
+  return Math.floor(n);
+};
+
+/**
+ * 필수+복수 목표 횟수에 도달하면 추가 제출 불가.
+ * @param {Object} form
+ * @param {Array} myRows
+ * @returns {{ allowed: boolean, message?: string }}
+ */
+export const checkMultipleResponseLimit = (form, myRows = []) => {
+  if (!form?.settings?.allowMultipleResponses) {
+    return { allowed: true };
+  }
+  const target = getRequiredResponseCount(form);
+  if (target == null) {
+    return { allowed: true };
+  }
+  if (myRows.length >= target) {
+    return {
+      allowed: false,
+      message: `목표 제출 횟수(${target}회)를 모두 채웠습니다.`,
+    };
+  }
+  return { allowed: true };
+};
+
+/**
+ * 목록용 mySubmitted.
+ * - 단수: 행이 있으면 제출완료
+ * - 복수(선택): 한 번이라도 내면 제출완료로 보지 않음 → 미제출 뱃지 안 씀(필수 아님)
+ *   다만 mySubmitted는 "한 번이라도 냄"으로 두어 본인 응답 확인 등에 사용
+ * - 필수+복수+목표 N: 내 제출 수 >= N 이면 제출완료
+ * @param {Object} form
+ * @param {Array} myRows
+ * @returns {boolean}
+ */
+export const hasSubmittedForList = (form, myRows = []) => {
+  if (!myRows.length) return false;
+  const target = getRequiredResponseCount(form);
+  if (target != null) {
+    return myRows.length >= target;
+  }
+  // 복수·비필수: 한 번 내도 "제출완료" 뱃지용으로는 true (선택 뱃지 분기에서 가림)
+  // 단수: 행 있으면 true
+  return true;
+};
+
+/**
  * Form 응답 권한 확인 (respondent 이상 + 공개 기간 확인)
  * @param {Object} form - AltForm 문서
  * @param {Object} board - Board 문서

@@ -148,6 +148,16 @@ const altFormSettingsSchema = mongoose.Schema(
     closeAt: { type: Date },
     allowResubmit: { type: Boolean, default: false },
     allowMultipleResponses: { type: Boolean, default: false },
+    /**
+     * 필수 + 복수 응답일 때 목표 제출 횟수.
+     * myResponseCount >= requiredResponseCount 이면 제출완료.
+     */
+    requiredResponseCount: { type: Number, min: 1 },
+    /**
+     * 필수 모드: 미제출 표시·활동 뱃지 대상.
+     * true일 때만 필수. 필드 없는 기존 양식·false는 선택 제출.
+     */
+    requiredMode: { type: Boolean, default: false },
 
     // Phase 2: 퀴즈 모드
     quizMode: { type: Boolean, default: false },
