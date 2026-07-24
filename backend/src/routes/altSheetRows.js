@@ -10,6 +10,7 @@ router.get("/submission-status", isLoggedIn, altSheetRows.findSubmissionStatus);
 router.get("/count", isLoggedIn, altSheetRows.findCount);
 router.get("/available-combinations", isLoggedIn, altSheetRows.findAvailableCombinations);
 router.get("/pending-approvals", isLoggedIn, altSheetRows.findPendingApprovals);
+router.get("/school-todos", isLoggedIn, altSheetRows.findSchoolTodos);
 router.post("/bulk", isLoggedIn, altSheetRows.createBulk);
 router.post("/send-reminder", isLoggedIn, altSheetRows.sendReminder);
 router.post("/import-csv", isLoggedIn, altSheetRows.importCsv);

@@ -4,18 +4,25 @@
  * @see TAltSheetRow in {@link Models.AltSheetRow}
  */
 import { logger } from "../log/logger.js";
-import { AltForm, AltFormDupCounter, AltSheet, AltSheetRow, Board, User } from "../models/index.js";
+import { AltForm, AltFormDupCounter, AltSheet, AltSheetRow, Board, User, School } from "../models/index.js";
 import {
   getAltBoardRole,
   canManageForm,
   canRespondForm,
   checkMultipleResponseLimit,
+  hasSubmittedForList,
+  isFormRequiredMode,
+  getRequiredResponseCount,
   getVisibleFields,
   isFieldVisible,
   gradeQuizRow,
   getDuplicateCheckFields,
   buildDupCounterKeys,
 } from "../services/altForms.js";
+import {
+  isBoardMemberAsUser,
+  getUserRoleInSeason,
+} from "../services/boards.js";
 import { sendAutoNotification, isBoardNotificationEnabled } from "../services/notifications.js";
 import {
   FIELD_REQUIRED,
@@ -1435,6 +1442,201 @@ export const findPendingApprovals = async (req, res) => {
       outgoing,
       count: items.length + outgoing.length,
     });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.AltSheetRowAPI
+ * @function RAltSheetRowSchoolTodos API
+ * @description 학교 내 가입 Alt Board의 전역 할 일 (승인·승인진행·미제출)
+ */
+export const findSchoolTodos = async (req, res) => {
+  try {
+    if (!("school" in req.query)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("school") });
+    }
+
+    const school = await School(req.user.academyId).findById(req.query.school);
+    if (!school) {
+      return res.status(404).send({ message: __NOT_FOUND("school") });
+    }
+
+    const seasonRole = await getUserRoleInSeason(
+      req.user.academyId,
+      school.schoolId,
+      req.user
+    );
+
+    const boards = await Board(req.user.academyId).find({
+      school: school._id,
+      isActive: true,
+      boardMode: "alt",
+    });
+
+    const accessibleBoards = boards.filter((board) =>
+      isBoardMemberAsUser(board, req.user, seasonRole)
+    );
+
+    const todos = [];
+    const now = new Date();
+
+    for (const board of accessibleBoards) {
+      const boardId = board._id;
+      const boardTitle = board.name;
+      const forms = await AltForm(req.user.academyId)
+        .find({ board: boardId, isActive: true, isDraft: { $ne: true } })
+        .lean();
+
+      if (!forms.length) continue;
+
+      const formIds = forms.map((f) => f._id);
+      const myRowsAll = await AltSheetRow(req.user.academyId)
+        .find({
+          form: { $in: formIds },
+          _respondent: req.user._id,
+          isActive: true,
+        })
+        .select("form createdAt data _submittedAt")
+        .lean();
+
+      const myRowsByForm = new Map();
+      for (const row of myRowsAll) {
+        const fid = row.form.toString();
+        if (!myRowsByForm.has(fid)) myRowsByForm.set(fid, []);
+        myRowsByForm.get(fid).push(row);
+      }
+
+      const altRole = getAltBoardRole(board, req.user);
+
+      for (const form of forms) {
+        const formId = form._id;
+        const formIdStr = formId.toString();
+        const myRows = myRowsByForm.get(formIdStr) || [];
+        const approvalFields = (form.fields || []).filter(
+          (f) => f.type === "approval"
+        );
+
+        // 승인해야 함 / 승인 진행
+        if (approvalFields.length > 0) {
+          const fieldIds = approvalFields.map((f) => f._id.toString());
+          const orConds = fieldIds.flatMap((fid) => [
+            { [`data.${fid}.currentApproverUserId`]: req.user.userId },
+            { [`data.${fid}.approver.userId`]: req.user.userId },
+          ]);
+
+          const approverRows = await AltSheetRow(req.user.academyId)
+            .find({
+              form: formId,
+              isActive: true,
+              $or: orConds,
+            })
+            .sort({ _submittedAt: -1 })
+            .limit(50)
+            .lean();
+
+          for (const row of approverRows) {
+            for (const field of approvalFields) {
+              const fid = field._id.toString();
+              const raw = row.data?.[fid];
+              if (!isCurrentApprover(raw, req.user.userId, field)) continue;
+              const normalized = normalizeApprovalValue(raw, field);
+              todos.push({
+                kind: "approve",
+                boardId,
+                boardTitle,
+                formId,
+                formTitle: form.title,
+                rowId: row._id,
+                fieldId: fid,
+                fieldLabel: field.label,
+                stepLabel: normalized?.steps?.[normalized.currentStep]?.label,
+                respondentName: row._respondentName,
+                respondentId: row._respondentId,
+                submittedAt: row._submittedAt || row.createdAt,
+              });
+            }
+          }
+
+          for (const row of myRows) {
+            for (const field of approvalFields) {
+              const fid = field._id.toString();
+              const raw = row.data?.[fid];
+              if (isCurrentApprover(raw, req.user.userId, field)) continue;
+              const normalized = normalizeApprovalValue(raw, field);
+              if (!normalized || normalized.overallStatus !== "pending") {
+                continue;
+              }
+              const step = normalized.steps?.[normalized.currentStep];
+              const currentStep =
+                typeof normalized.currentStep === "number"
+                  ? normalized.currentStep
+                  : 0;
+              const totalSteps = normalized.steps?.length || 0;
+              todos.push({
+                kind: "outgoing",
+                boardId,
+                boardTitle,
+                formId,
+                formTitle: form.title,
+                rowId: row._id,
+                fieldId: fid,
+                fieldLabel: field.label,
+                stepLabel: step?.label,
+                currentApproverName: step?.approver?.userName,
+                currentApproverId: step?.approver?.userId,
+                currentStep,
+                totalSteps,
+                progress:
+                  totalSteps > 0
+                    ? `${Math.min(currentStep + 1, totalSteps)}/${totalSteps}`
+                    : undefined,
+                submittedAt: row._submittedAt || row.createdAt,
+              });
+            }
+          }
+        }
+
+        // 미제출 (필수·진행 중) — 응답 권한이 있을 때만
+        if (!altRole) continue;
+        if (!isFormRequiredMode(form)) continue;
+        if (form.settings?.directInputMode) continue;
+        if (form.settings?.closeAt && new Date(form.settings.closeAt) < now) {
+          continue;
+        }
+        if (form.settings?.openAt && new Date(form.settings.openAt) > now) {
+          continue;
+        }
+        if (hasSubmittedForList(form, myRows)) continue;
+
+        const target = getRequiredResponseCount(form);
+        todos.push({
+          kind: "unsubmitted",
+          boardId,
+          boardTitle,
+          formId,
+          formTitle: form.title,
+          myResponseCount: myRows.length,
+          requiredResponseCount: target,
+          progress:
+            target != null ? `${myRows.length}/${target}` : undefined,
+        });
+      }
+    }
+
+    // 승인해야 함 → 승인 진행 → 미제출, 각 그룹 내 최신순
+    const kindRank = { approve: 0, outgoing: 1, unsubmitted: 2 };
+    todos.sort((a, b) => {
+      const kr = (kindRank[a.kind] ?? 9) - (kindRank[b.kind] ?? 9);
+      if (kr !== 0) return kr;
+      const at = a.submittedAt ? new Date(a.submittedAt).getTime() : 0;
+      const bt = b.submittedAt ? new Date(b.submittedAt).getTime() : 0;
+      return bt - at;
+    });
+
+    return res.status(200).send({ items: todos, count: todos.length });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });

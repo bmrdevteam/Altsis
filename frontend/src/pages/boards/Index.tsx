@@ -1,7 +1,5 @@
 /**
- * @file Boards List Page - Board list with tab/gallery views, favorites
- *
- * @author
+ * @file Boards List Page - Activity todos + board list tabs
  *
  * -------------------------------------------------------
  *
@@ -11,6 +9,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
@@ -18,23 +17,31 @@ import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import style from "style/pages/enrollment.module.scss";
 import bStyle from "./boards.module.scss";
 
-
 import Svg from "assets/svg/Svg";
+import Tab from "components/tab/Tab";
 
 import { TBoard, TBoardListViewMode } from "types/board";
 
 import BoardCreatePopup from "./popup/BoardCreate";
 import BoardManagePopup from "./popup/BoardManage";
 import BoardGalleryView from "./views/BoardGalleryView";
+import BoardsActivityTodos, {
+  TSchoolTodoItem,
+} from "./BoardsActivityTodos";
 
 const Boards = () => {
   const navigate = useAppNavigate();
+  const location = useLocation();
   const { currentUser, currentSchool, currentRegistration } = useAuth();
-  const { BoardAPI, BoardFavoriteAPI } = useAPIv2();
+  const { BoardAPI, BoardFavoriteAPI, AltSheetRowAPI } = useAPIv2();
 
   const [boards, setBoards] = useState<TBoard[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [boardEnabled, setBoardEnabled] = useState<boolean | null>(null);
+
+  const [todos, setTodos] = useState<TSchoolTodoItem[]>([]);
+  const [todosLoading, setTodosLoading] = useState(true);
+  const [todosReady, setTodosReady] = useState(false);
 
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [boardListViewMode, setBoardListViewMode] =
@@ -58,7 +65,7 @@ const Boards = () => {
     if (currentRegistration?.role === "student" && permission?.student)
       return true;
     return false;
-  }, [currentUser, currentSchool, currentRegistration]);
+  }, [currentUser, currentSchool, currentRegistration, isManager]);
 
   const canManageBoard = (board: TBoard) => {
     if (isManager) return true;
@@ -88,18 +95,36 @@ const Boards = () => {
     }
   }, [isLoading, currentSchool]);
 
-  // 보드 클릭 → 상세 페이지로 이동
+  // 전역 할 일 로드
+  useEffect(() => {
+    if (!currentSchool) return;
+    setTodosReady(false);
+    setTodosLoading(true);
+    AltSheetRowAPI.RAltSheetRowSchoolTodos({
+      query: { school: currentSchool._id },
+    })
+      .then(({ items }) => {
+        setTodos(items);
+      })
+      .catch((err) => {
+        ALERT_ERROR(err);
+        setTodos([]);
+      })
+      .finally(() => {
+        setTodosLoading(false);
+        setTodosReady(true);
+      });
+  }, [currentSchool?._id]);
+
   const handleBoardClick = (board: TBoard) => {
     navigate(`/boards/${board._id}`);
   };
 
-  // 보드 목록 뷰 모드 변경
   const handleListViewModeChange = (mode: TBoardListViewMode) => {
     setBoardListViewMode(mode);
     localStorage.setItem("boardListViewMode", mode);
   };
 
-  // 즐겨찾기 토글
   const handleToggleFavorite = async (board: TBoard) => {
     if (!currentSchool) return;
 
@@ -124,20 +149,38 @@ const Boards = () => {
     }
   };
 
-  // 보드 관리 팝업 열기
   const handleManageBoard = (board: TBoard) => {
     setManagingBoard(board);
     setShowBoardManagePopup(true);
   };
 
-  // 즐겨찾기 필터 적용된 보드 목록
+  const handleOpenTodo = (item: TSchoolTodoItem) => {
+    if (item.kind === "approve" || item.kind === "outgoing") {
+      const rowId = item.rowId ? encodeURIComponent(String(item.rowId)) : "";
+      navigate(
+        `/boards/${item.boardId}${
+          rowId ? `?approval=${rowId}` : ""
+        }#활동`
+      );
+      return;
+    }
+    // unsubmitted → 해당 양식 응답 화면
+    navigate(`/boards/${item.boardId}?form=${item.formId}&mode=respond#활동`);
+  };
+
+  const handleGoToBoardsTab = () => {
+    navigate(`${location.pathname}${location.search}#보드`, { replace: true });
+  };
+
   const displayBoards = useMemo(
     () =>
-      showFavoritesOnly
-        ? boards.filter((b) => b.isFavorited)
-        : boards,
+      showFavoritesOnly ? boards.filter((b) => b.isFavorited) : boards,
     [boards, showFavoritesOnly]
   );
+
+  const defaultTab = todos.length > 0 ? "활동" : "보드";
+  const tabBadges: Record<string, number> = {};
+  if (todos.length > 0) tabBadges["활동"] = todos.length;
 
   if (boardEnabled === false) {
     return (
@@ -157,143 +200,174 @@ const Boards = () => {
     );
   }
 
+  const boardListContent = (
+    <>
+      <div className={bStyle.header} style={{ marginTop: 8 }}>
+        <div />
+        <div className={bStyle.toolbar}>
+          {canCreateBoard && (
+            <button
+              className={bStyle.iconBtn}
+              onClick={() => setShowBoardCreatePopup(true)}
+              title="보드 생성"
+            >
+              <Svg type="plus" width="18px" height="18px" />
+            </button>
+          )}
+
+          <button
+            className={`${bStyle.iconBtn} ${
+              showFavoritesOnly ? bStyle.iconBtnActive : ""
+            }`}
+            onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+            title="즐겨찾기만 보기"
+          >
+            <span className={bStyle.starIcon}>
+              {showFavoritesOnly ? "★" : "☆"}
+            </span>
+          </button>
+
+          <button
+            className={bStyle.iconBtn}
+            onClick={() =>
+              handleListViewModeChange(
+                boardListViewMode === "table" ? "gallery" : "table"
+              )
+            }
+            title={boardListViewMode === "table" ? "갤러리 보기" : "탭 보기"}
+          >
+            <Svg
+              type={boardListViewMode === "table" ? "list" : "dashboard"}
+              width="18px"
+              height="18px"
+            />
+          </button>
+        </div>
+      </div>
+
+      {boardListViewMode === "table" ? (
+        <>
+          {displayBoards.length > 0 && (
+            <div className={bStyle.boardList}>
+              {displayBoards.map((board) => (
+                <div
+                  key={board._id}
+                  className={bStyle.boardItem}
+                  onClick={() => handleBoardClick(board)}
+                >
+                  {board.coverColor && (
+                    <div
+                      className={bStyle.boardItemColorBar}
+                      style={{ backgroundColor: board.coverColor }}
+                    />
+                  )}
+                  <div className={bStyle.boardItemLeft}>
+                    <div className={bStyle.boardItemInfo}>
+                      <div className={bStyle.boardNameRow}>
+                        <span className={bStyle.boardName}>
+                          {board.isDefault && "📢 "}
+                          {board.name}
+                        </span>
+                        {board.boardType === "user" && (
+                          <span
+                            className={`${bStyle.badge} ${bStyle.badgeUser}`}
+                          >
+                            사용자
+                          </span>
+                        )}
+                        <button
+                          className={`${bStyle.favoriteBtn} ${
+                            board.isFavorited ? bStyle.favoriteBtnActive : ""
+                          }`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleFavorite(board);
+                          }}
+                          title={
+                            board.isFavorited
+                              ? "즐겨찾기 해제"
+                              : "즐겨찾기 추가"
+                          }
+                        >
+                          {board.isFavorited ? "★" : "☆"}
+                        </button>
+                      </div>
+                      {board.description && (
+                        <span className={bStyle.boardDescription}>
+                          {board.description}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className={bStyle.boardItemRight}>
+                    <span>게시글 {board.postCount}개</span>
+                    {canManageBoard(board) && (
+                      <button
+                        className={bStyle.iconBtn}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleManageBoard(board);
+                        }}
+                        title="보드 관리"
+                      >
+                        <Svg type="settings" width="16px" height="16px" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      ) : (
+        <BoardGalleryView
+          boards={displayBoards}
+          selectedBoard={null}
+          onSelect={handleBoardClick}
+          onToggleFavorite={handleToggleFavorite}
+        />
+      )}
+
+      {boards.length === 0 && !isLoading && (
+        <div className={bStyle.empty}>보드가 없습니다.</div>
+      )}
+    </>
+  );
+
   return (
     <>
       <div className={`${style.section} ${bStyle.page}`}>
-        {/* 상단 헤더: 제목 + 툴바 */}
         <div className={bStyle.header}>
           <div className={style.title} style={{ margin: 0 }}>
             보드
           </div>
-
-          {/* 툴바 */}
-          <div className={bStyle.toolbar}>
-            {canCreateBoard && (
-              <button
-                className={bStyle.iconBtn}
-                onClick={() => setShowBoardCreatePopup(true)}
-                title="보드 생성"
-              >
-                <Svg type="plus" width="18px" height="18px" />
-              </button>
-            )}
-
-            <button
-              className={`${bStyle.iconBtn} ${
-                showFavoritesOnly ? bStyle.iconBtnActive : ""
-              }`}
-              onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-              title="즐겨찾기만 보기"
-            >
-              <span className={bStyle.starIcon}>
-                {showFavoritesOnly ? "★" : "☆"}
-              </span>
-            </button>
-
-            <button
-              className={bStyle.iconBtn}
-              onClick={() =>
-                handleListViewModeChange(
-                  boardListViewMode === "table" ? "gallery" : "table"
-                )
-              }
-              title={boardListViewMode === "table" ? "갤러리 보기" : "탭 보기"}
-            >
-              <Svg
-                type={boardListViewMode === "table" ? "list" : "dashboard"}
-                width="18px"
-                height="18px"
-              />
-            </button>
-          </div>
         </div>
 
-        {/* 보드 목록 */}
-        {boardListViewMode === "table" ? (
-          <>
-            {displayBoards.length > 0 && (
-              <div className={bStyle.boardList}>
-                {displayBoards.map((board) => (
-                  <div
-                    key={board._id}
-                    className={bStyle.boardItem}
-                    onClick={() => handleBoardClick(board)}
-                  >
-                    {board.coverColor && (
-                      <div
-                        className={bStyle.boardItemColorBar}
-                        style={{ backgroundColor: board.coverColor }}
-                      />
-                    )}
-                    <div className={bStyle.boardItemLeft}>
-                      <div className={bStyle.boardItemInfo}>
-                        <div className={bStyle.boardNameRow}>
-                          <span className={bStyle.boardName}>
-                            {board.isDefault && "📢 "}
-                            {board.name}
-                          </span>
-                          {board.boardType === "user" && (
-                            <span
-                              className={`${bStyle.badge} ${bStyle.badgeUser}`}
-                            >
-                              사용자
-                            </span>
-                          )}
-                          <button
-                            className={`${bStyle.favoriteBtn} ${
-                              board.isFavorited ? bStyle.favoriteBtnActive : ""
-                            }`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleToggleFavorite(board);
-                            }}
-                            title={board.isFavorited ? "즐겨찾기 해제" : "즐겨찾기 추가"}
-                          >
-                            {board.isFavorited ? "★" : "☆"}
-                          </button>
-                        </div>
-                        {board.description && (
-                          <span className={bStyle.boardDescription}>
-                            {board.description}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className={bStyle.boardItemRight}>
-                      <span>게시글 {board.postCount}개</span>
-                      {canManageBoard(board) && (
-                        <button
-                          className={bStyle.iconBtn}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleManageBoard(board);
-                          }}
-                          title="보드 관리"
-                        >
-                          <Svg type="settings" width="16px" height="16px" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
-        ) : (
-          <BoardGalleryView
-            boards={displayBoards}
-            selectedBoard={null}
-            onSelect={handleBoardClick}
-            onToggleFavorite={handleToggleFavorite}
+        {/* 할 일 로드 후 기본 탭 결정 (해시 있으면 해시 우선) */}
+        {todosReady ? (
+          <Tab
+            items={{
+              활동: (
+                <BoardsActivityTodos
+                  items={todos}
+                  loading={todosLoading}
+                  onOpenTodo={handleOpenTodo}
+                  onGoToBoards={handleGoToBoardsTab}
+                />
+              ),
+              보드: boardListContent,
+            }}
+            align="flex-start"
+            defaultTab={defaultTab}
+            badges={tabBadges}
           />
-        )}
-
-        {boards.length === 0 && !isLoading && (
-          <div className={bStyle.empty}>보드가 없습니다.</div>
+        ) : (
+          <div className={bStyle.empty} style={{ paddingTop: 40 }}>
+            불러오는 중…
+          </div>
         )}
       </div>
 
-      {/* 팝업 */}
       {showBoardCreatePopup && (
         <BoardCreatePopup
           setState={setShowBoardCreatePopup}

@@ -4615,6 +4615,38 @@ export default function useAPIv2() {
     };
   }
 
+  async function RAltSheetRowSchoolTodos(props: {
+    query: { school: string };
+  }) {
+    const { items, count } = await database.R({
+      location: "alt-sheet-rows/school-todos" + QUERY_BUILDER(props.query),
+    });
+    return {
+      items: (items || []) as {
+        kind: "approve" | "outgoing" | "unsubmitted";
+        boardId: string;
+        boardTitle: string;
+        formId: string;
+        formTitle: string;
+        rowId?: string;
+        fieldId?: string;
+        fieldLabel?: string;
+        stepLabel?: string;
+        respondentName?: string;
+        respondentId?: string;
+        currentApproverName?: string;
+        currentApproverId?: string;
+        currentStep?: number;
+        totalSteps?: number;
+        progress?: string;
+        myResponseCount?: number;
+        requiredResponseCount?: number | null;
+        submittedAt?: string;
+      }[],
+      count: (count as number) || 0,
+    };
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -4909,6 +4941,7 @@ export default function useAPIv2() {
       RAltSheetRowAvailableCombinations,
       CAltSheetRowImportCsv,
       RAltSheetRowPendingApprovals,
+      RAltSheetRowSchoolTodos,
     },
   };
 }
