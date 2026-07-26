@@ -22,6 +22,7 @@ import Svg from "assets/svg/Svg";
 import Tab from "components/tab/Tab";
 
 import { TBoard, TBoardListViewMode } from "types/board";
+import { resolveBoardCoverColor } from "utils/boardCoverColor";
 
 import BoardCreatePopup from "./popup/BoardCreate";
 import BoardManagePopup from "./popup/BoardManage";
@@ -318,8 +319,10 @@ const Boards = () => {
                     <div
                       className={bStyle.boardItemColorBar}
                       style={{
-                        backgroundColor:
-                          board.coverColor || "var(--border-color)",
+                        backgroundColor: resolveBoardCoverColor(
+                          board.coverColor,
+                          board._id || board.name
+                        ),
                       }}
                     />
                     <div className={aStyle.formCardLeft}>

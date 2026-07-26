@@ -10,7 +10,7 @@
  * -------------------------------------------------------
  */
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "contexts/authContext";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
@@ -20,6 +20,7 @@ import Button from "components/button/Button";
 import Textarea from "components/textarea/Textarea";
 import CourseCoverImageEditor from "pages/courses/view/CourseCoverImageEditor";
 import { TBoardContentViewMode, TBoardScope } from "types/board";
+import { getBoardPlaceholderColor } from "utils/boardCoverColor";
 import bStyle from "../boards.module.scss";
 
 type Props = {
@@ -34,6 +35,7 @@ const BoardCreatePopup = ({ setState, onSuccess }: Props) => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [coverColor, setCoverColor] = useState("");
+  const [coverColorTouched, setCoverColorTouched] = useState(false);
   const [scope, setScope] = useState<TBoardScope>("school");
   const [contentViewMode, setContentViewMode] =
     useState<TBoardContentViewMode>("table");
@@ -48,6 +50,13 @@ const BoardCreatePopup = ({ setState, onSuccess }: Props) => {
     currentSeason?.year && currentSeason?.term
       ? `${currentSeason.year} ${currentSeason.term}`
       : "이번 시즌";
+
+  // 색상을 직접 고르지 않으면 보드 이름으로 플레이스홀더 색 자동 지정
+  useEffect(() => {
+    if (coverColorTouched) return;
+    const trimmed = name.trim();
+    setCoverColor(trimmed ? getBoardPlaceholderColor(trimmed) : "");
+  }, [name, coverColorTouched]);
 
   const handleSubmit = async () => {
     if (!name.trim()) {
@@ -67,13 +76,16 @@ const BoardCreatePopup = ({ setState, onSuccess }: Props) => {
 
     setIsSubmitting(true);
 
+    const resolvedCoverColor =
+      coverColor.trim() || getBoardPlaceholderColor(name.trim());
+
     try {
       const { board } = await BoardAPI.CBoard({
         data: {
           school: currentSchool._id,
           name: name.trim(),
           description: description.trim(),
-          coverColor: coverColor || undefined,
+          coverColor: resolvedCoverColor,
           contentViewMode,
           scope,
           ...(scope === "season" ? { season: seasonId } : {}),
@@ -239,6 +251,15 @@ const BoardCreatePopup = ({ setState, onSuccess }: Props) => {
           >
             커버 (선택)
           </label>
+          <p
+            style={{
+              fontSize: "12px",
+              color: "var(--text-color-2)",
+              margin: "0 0 8px",
+            }}
+          >
+            플레이스홀더 색상을 고르지 않으면 보드 이름 기준으로 자동 지정됩니다.
+          </p>
           <CourseCoverImageEditor
             coverColor={coverColor}
             onImageSelected={(file) => {
@@ -253,7 +274,10 @@ const BoardCreatePopup = ({ setState, onSuccess }: Props) => {
               coverFileRef.current = null;
               coverUrlRef.current = "";
             }}
-            onColorChanged={(color) => setCoverColor(color)}
+            onColorChanged={(color) => {
+              setCoverColorTouched(true);
+              setCoverColor(color);
+            }}
           />
         </div>
       </div>

@@ -22,6 +22,7 @@ import bStyle from "./boards.module.scss";
 import Svg from "assets/svg/Svg";
 
 import { TBoard } from "types/board";
+import { resolveBoardCoverColor } from "utils/boardCoverColor";
 
 import BoardManagePopup from "./popup/BoardManage";
 import UserListPopup from "./popup/UserListPopup";
@@ -109,16 +110,17 @@ const BoardPid = () => {
                     gap: "8px",
                   }}
                 >
-                  {board.coverColor && (
-                    <div
-                      className={bStyle.boardColorDot}
-                      style={{
-                        backgroundColor: board.coverColor,
-                        width: "12px",
-                        height: "12px",
-                      }}
-                    />
-                  )}
+                  <div
+                    className={bStyle.boardColorDot}
+                    style={{
+                      backgroundColor: resolveBoardCoverColor(
+                        board.coverColor,
+                        board._id || board.name
+                      ),
+                      width: "12px",
+                      height: "12px",
+                    }}
+                  />
                   {board.name}
                 </div>
                 {board.description && (

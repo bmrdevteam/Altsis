@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Svg from "assets/svg/Svg";
 import style from "./courseCoverImageEditor.module.scss";
 
@@ -45,6 +45,10 @@ const CourseCoverImageEditor = ({
       : ""
   );
   const [selectedColor, setSelectedColor] = useState<string>(coverColor || "");
+
+  useEffect(() => {
+    setSelectedColor(coverColor || "");
+  }, [coverColor]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;

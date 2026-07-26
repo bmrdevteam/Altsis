@@ -1,4 +1,5 @@
 import { TBoard } from "types/board";
+import { resolveBoardCoverColor } from "utils/boardCoverColor";
 import style from "./boardGalleryView.module.scss";
 
 type Props = {
@@ -28,20 +29,21 @@ const BoardGalleryView = ({
           }`}
           onClick={() => onSelect(board)}
         >
-          {/* 커버 영역 */}
-          {(board.coverImage || board.coverColor) && (
-            <div
-              className={style.cardCover}
-              style={{
-                backgroundImage: board.coverImage
-                  ? `url(${board.coverImage})`
-                  : undefined,
-                backgroundColor: !board.coverImage
-                  ? board.coverColor
-                  : undefined,
-              }}
-            />
-          )}
+          {/* 커버 영역 — 이미지 없으면 플레이스홀더 색상 */}
+          <div
+            className={style.cardCover}
+            style={{
+              backgroundImage: board.coverImage
+                ? `url(${board.coverImage})`
+                : undefined,
+              backgroundColor: !board.coverImage
+                ? resolveBoardCoverColor(
+                    board.coverColor,
+                    board._id || board.name
+                  )
+                : undefined,
+            }}
+          />
 
           <div className={style.cardBody}>
             <button

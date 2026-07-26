@@ -165,7 +165,12 @@ export const create = async (req, res) => {
       boardType,
       altBoardRole,
       contentViewMode: req.body.contentViewMode || "table",
-      coverColor: req.body.coverColor || boardPresetColors[hashStringToIndex(req.body.name, boardPresetColors.length)],
+      coverColor:
+        (typeof req.body.coverColor === "string" &&
+          req.body.coverColor.trim()) ||
+        boardPresetColors[
+          hashStringToIndex(req.body.name, boardPresetColors.length)
+        ],
     });
 
     return res.status(200).send({ board });
