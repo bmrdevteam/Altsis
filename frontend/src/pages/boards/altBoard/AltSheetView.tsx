@@ -1404,28 +1404,25 @@ const AltSheetView = ({
           </div>
         </div>
         <div className={style.builderHeaderActions}>
-          <div className={style.viewModeToggle}>
-            <button
-              type="button"
-              className={`${style.formCardIconBtn} ${
-                viewMode === "table" ? style.formCardIconBtnActive : ""
-              }`}
-              onClick={() => setViewMode("table")}
-              title="테이블 보기"
-            >
-              <Svg type="table" width="20px" height="20px" />
-            </button>
-            <button
-              type="button"
-              className={`${style.formCardIconBtn} ${
-                viewMode === "doc" ? style.formCardIconBtnActive : ""
-              }`}
-              onClick={() => setViewMode("doc")}
-              title="문서 보기"
-            >
-              <Svg type="article" width="20px" height="20px" />
-            </button>
-          </div>
+          <button
+            type="button"
+            className={style.formCardIconBtn}
+            onClick={() =>
+              setViewMode(viewMode === "table" ? "doc" : "table")
+            }
+            title={
+              viewMode === "table" ? "문서 보기로 전환" : "테이블 보기로 전환"
+            }
+            aria-label={
+              viewMode === "table" ? "문서 보기로 전환" : "테이블 보기로 전환"
+            }
+          >
+            <Svg
+              type={viewMode === "table" ? "article" : "table"}
+              width="20px"
+              height="20px"
+            />
+          </button>
           {onCopySheetLink && (
             <button
               type="button"
