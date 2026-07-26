@@ -1345,29 +1345,52 @@
     margin-left: 0;
     margin-right: 0;
     padding: 0;
+    min-height: 36px;
+    margin-bottom: 16px;
   }
 }
 
 .rendererBody {
-  max-width: 820px;
+  max-width: 880px;
   margin: 0 auto;
+  padding: 20px 16px;
+  background: var(--background-color-2);
+  border-radius: 0 0 8px 8px;
+  min-height: 0;
 }
 
 .rendererHeader {
-  margin-bottom: 24px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border-default-color, var(--border-color));
+  border-left: 4px solid var(--primary-color, var(--accent-1));
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  background: var(--background-color);
+}
+
+.rendererHeaderBody {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px 22px 20px;
 }
 
 .rendererTitle {
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 600;
+  line-height: 1.35;
   color: var(--text-color-1);
-  margin-bottom: 4px;
+  margin: 0;
+  padding: 4px 0 4px;
 }
 
 .rendererDesc {
   font-size: 14px;
   color: var(--text-color-2);
-  line-height: 1.6;
+  line-height: 1.5;
+  margin: 0;
+  padding: 2px 0 0;
 }
 
 .rendererMeta {
@@ -1377,24 +1400,30 @@
   flex-wrap: wrap;
   font-size: 12px;
   color: var(--text-color-2);
-  margin-top: 12px;
+  margin-bottom: 12px;
 }
 
 .questionItem {
-  padding: 20px 24px;
+  padding: 16px 20px 18px;
   margin-bottom: 12px;
-  border: 1px solid transparent;
+  border: 1px solid var(--border-default-color, var(--border-color));
+  border-left: 3px solid var(--border-default-color, var(--border-color));
   border-radius: 8px;
   background: var(--background-color);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
   transition: border-color 0.2s, box-shadow 0.2s;
 
   &:hover {
-    border-color: var(--border-color);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+    border-color: var(--accent-1);
+    border-left-color: var(--accent-1);
   }
 
   &:focus-within {
-    border-color: var(--accent-1);
-    box-shadow: 0 0 0 1px var(--accent-1);
+    border-left: 4px solid var(--accent-1);
+    border-color: var(--border-default-color, var(--border-color));
+    border-left-color: var(--accent-1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
   }
 }
 
@@ -1402,12 +1431,12 @@
   display: flex;
   align-items: baseline;
   gap: 4px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .questionLabelText {
-  font-weight: 600;
-  font-size: 15px;
+  font-weight: 500;
+  font-size: 14px;
   color: var(--text-color-1);
 }
 
@@ -1442,12 +1471,16 @@
   max-width: 100%;
   overflow-x: auto;
   box-sizing: border-box;
+  padding: 12px 14px;
+  border: 1px solid var(--border-default-color, var(--border-color));
+  border-radius: 8px;
+  background: var(--background-color);
 }
 
 .textInput {
   width: 100%;
   padding: 10px 14px;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default-color, var(--border-color));
   border-radius: 6px;
   font-size: 14px;
   background: var(--background-color);
@@ -1476,7 +1509,7 @@
 .textArea {
   width: 100%;
   padding: 10px 14px;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default-color, var(--border-color));
   border-radius: 6px;
   font-size: 14px;
   resize: vertical;
@@ -1728,38 +1761,57 @@
 }
 
 .viewModeToggle {
-  display: flex;
-  align-items: center;
+  display: inline-flex;
+  align-items: stretch;
   gap: 0;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default-color, var(--border-color));
   border-radius: 8px;
   overflow: hidden;
   flex-shrink: 0;
+  background: var(--background-color);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .viewModeBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: none;
-  background: var(--background-color);
+  background: transparent;
   color: var(--text-color-2);
   font-size: 13px;
-  padding: 6px 14px;
+  font-weight: 500;
+  font-family: inherit;
+  line-height: 1;
+  min-height: 32px;
+  padding: 0 16px;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 
-  &:hover {
-    background: var(--background-hover-color);
+  &:hover:not(:disabled):not(.viewModeBtnActive) {
+    background: var(--background-color-2);
     color: var(--text-color-1);
   }
 
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
   & + & {
-    border-left: 1px solid var(--border-color);
+    border-left: 1px solid var(--border-default-color, var(--border-color));
   }
 }
 
 .viewModeBtnActive {
-  background: var(--background-hover-color);
-  color: var(--text-color-1);
+  background: var(--accent-1);
+  color: #fff;
   font-weight: 600;
+
+  &:hover:not(:disabled) {
+    background: var(--accent-1);
+    color: #fff;
+  }
 }
 
 .reviewNav {
@@ -2893,11 +2945,13 @@ tbody tr:hover .actionCell {
 
 .questionCorrect {
   border-color: var(--status-success) !important;
+  border-left-color: var(--status-success) !important;
   background: rgba(var(--status-success-rgb, 34, 154, 22), 0.02);
 }
 
 .questionWrong {
   border-color: var(--status-error) !important;
+  border-left-color: var(--status-error) !important;
   background: rgba(var(--status-error-rgb, 235, 87, 87), 0.02);
 }
 
@@ -3190,17 +3244,17 @@ tbody tr:hover .actionCell {
     padding: 0 8px;
   }
 
+  .rendererBody {
+    padding: 16px 8px;
+  }
+
+  .rendererTitle {
+    font-size: 20px;
+  }
+
   .gfTitleInput {
     font-size: 20px;
   }
-}
-
-/* ─── View Mode Toggle ─── */
-
-.viewModeToggle {
-  display: flex;
-  align-items: center;
-  gap: 12px;
 }
 
 /* ─── Document View (기록 문서 보기 · 양식형 개별) ─── */

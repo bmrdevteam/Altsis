@@ -1948,12 +1948,17 @@ const AltFormRenderer = ({
       </div>
 
       <div className={style.rendererBody}>
-      {/* 메타 정보 */}
-      {form.description && (
-        <div className={style.rendererHeader}>
-          <div className={style.rendererDesc}>{form.description}</div>
+      {/* 양식 정보 — 활동 양식 빌더 titleCard와 동일 톤 */}
+      <div className={style.rendererHeader}>
+        <div className={style.rendererHeaderBody}>
+          <span className={style.titleCardEyebrow}>양식 정보</span>
+          <h2 className={style.rendererTitle}>{form.title}</h2>
+          {form.description?.trim() &&
+            form.description.trim() !== form.title?.trim() && (
+              <p className={style.rendererDesc}>{form.description}</p>
+            )}
         </div>
-      )}
+      </div>
 
       {(isClosed ||
         isNotOpen ||
