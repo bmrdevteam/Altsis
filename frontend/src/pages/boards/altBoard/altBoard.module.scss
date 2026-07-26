@@ -707,7 +707,7 @@
 .settingsSection {
   border: 1px solid var(--border-default-color, var(--border-color));
   border-radius: 8px;
-  overflow: hidden;
+  overflow: visible; /* 설명 팝오버가 잘리지 않도록 */
   background: var(--background-color);
   padding: 0;
 }
@@ -720,12 +720,15 @@
   color: var(--accent-2, var(--text-color-2));
   background: var(--component-color, var(--background-color-2));
   border-bottom: 1px solid var(--border-default-color, var(--border-color));
+  border-radius: 8px 8px 0 0;
 }
 
 .settingsSectionBody {
   display: flex;
   flex-direction: column;
   gap: 0;
+  overflow: visible;
+  border-radius: 0 0 8px 8px;
 }
 
 .settingsSectionGrid {
@@ -770,6 +773,64 @@
   text-transform: none;
   letter-spacing: normal;
   line-height: 1.4;
+}
+
+.settingsLabelRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.settingsHintWrap {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.settingsHintBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-color-2);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+
+  svg {
+    fill: currentColor;
+  }
+
+  &:hover {
+    color: var(--accent-1);
+    background: var(--background-color-2);
+  }
+}
+
+.settingsHintPopover {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 6px);
+  top: auto;
+  z-index: 40;
+  width: max-content;
+  max-width: min(280px, 70vw);
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-default-color, var(--border-color));
+  background: var(--background-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-color-2);
+  line-height: 1.45;
+  white-space: normal;
 }
 
 .settingsItem {

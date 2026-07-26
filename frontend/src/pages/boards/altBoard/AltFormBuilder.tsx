@@ -23,6 +23,45 @@ const toLocalDatetimeString = (date: Date) => {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
 
+/** 설정 라벨 옆 설명 — 아이콘 클릭 시 짧은 팝오버 */
+const SettingsHint = ({ text }: { text: string }) => {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+
+  return (
+    <span className={style.settingsHintWrap} ref={rootRef}>
+      <button
+        type="button"
+        className={style.settingsHintBtn}
+        aria-label="설명 보기"
+        aria-expanded={open}
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((v) => !v);
+        }}
+      >
+        <Svg type="info-circle" width="14px" height="14px" />
+      </button>
+      {open && (
+        <span className={style.settingsHintPopover} role="tooltip">
+          {text}
+        </span>
+      )}
+    </span>
+  );
+};
+
 type Props = {
   board: TBoard;
   formId?: string;
@@ -2161,7 +2200,10 @@ const AltFormBuilder = ({
                 <div className={style.settingsSectionBody}>
                   <div className={style.settingsDateGrid}>
                     <div className={style.settingsItem}>
-                      <span className={style.settingsLabel}>시작일</span>
+                      <div className={style.settingsLabelRow}>
+                        <span className={style.settingsLabel}>시작일</span>
+                        <SettingsHint text="이 시각 이전에는 제출할 수 없습니다. 비우면 제한 없이 열려 있습니다." />
+                      </div>
                       <input
                         type="datetime-local"
                         className={style.settingsDateInput}
@@ -2180,7 +2222,10 @@ const AltFormBuilder = ({
                       />
                     </div>
                     <div className={style.settingsItem}>
-                      <span className={style.settingsLabel}>마감일</span>
+                      <div className={style.settingsLabelRow}>
+                        <span className={style.settingsLabel}>마감일</span>
+                        <SettingsHint text="이 시각 이후에는 제출할 수 없습니다. 비우면 제한 없이 열려 있습니다." />
+                      </div>
                       <input
                         type="datetime-local"
                         className={style.settingsDateInput}
@@ -2210,7 +2255,10 @@ const AltFormBuilder = ({
                 <div className={style.settingsSectionBody}>
                   <div className={style.settingsItemRow}>
                     <div className={style.settingsItemText}>
-                      <span className={style.settingsLabel}>재제출 허용</span>
+                      <div className={style.settingsLabelRow}>
+                        <span className={style.settingsLabel}>재제출 허용</span>
+                        <SettingsHint text="허용하면 제출한 응답을 다시 열어 수정할 수 있습니다. 복수 응답이 켜져 있으면 사용할 수 없습니다." />
+                      </div>
                     </div>
                     <div className={style.settingsToggle}>
                       <ToggleSwitch
@@ -2227,7 +2275,10 @@ const AltFormBuilder = ({
                   </div>
                   <div className={style.settingsItemRow}>
                     <div className={style.settingsItemText}>
-                      <span className={style.settingsLabel}>복수 응답 허용</span>
+                      <div className={style.settingsLabelRow}>
+                        <span className={style.settingsLabel}>복수 응답 허용</span>
+                        <SettingsHint text="허용하면 같은 사용자가 여러 번 제출할 수 있고, 기록에 여러 행으로 쌓입니다." />
+                      </div>
                     </div>
                     <div className={style.settingsToggle}>
                       <ToggleSwitch
@@ -2247,7 +2298,10 @@ const AltFormBuilder = ({
                   </div>
                   <div className={style.settingsItemRow}>
                     <div className={style.settingsItemText}>
-                      <span className={style.settingsLabel}>본인 응답 확인</span>
+                      <div className={style.settingsLabelRow}>
+                        <span className={style.settingsLabel}>본인 응답 확인</span>
+                        <SettingsHint text="허용하면 응답자가 제출한 내용을 「내 응답」에서 다시 볼 수 있습니다." />
+                      </div>
                     </div>
                     <div className={style.settingsToggle}>
                       <ToggleSwitch
@@ -2269,12 +2323,10 @@ const AltFormBuilder = ({
                 <div className={style.settingsSectionBody}>
                   <div className={style.settingsItemRow}>
                     <div className={style.settingsItemText}>
-                      <span className={style.settingsLabel}>필수 모드</span>
-                      <span className={style.settingsHint}>
-                        켜면 미제출로 표시되고 활동 뱃지에 포함됩니다. 복수
-                        응답과 함께 쓰면 목표 횟수를 채울 때까지 n/n으로
-                        표시됩니다.
-                      </span>
+                      <div className={style.settingsLabelRow}>
+                        <span className={style.settingsLabel}>필수 모드</span>
+                        <SettingsHint text="켜면 미제출로 표시되고 활동 뱃지에 포함됩니다. 복수 응답과 함께 쓰면 목표 횟수를 채울 때까지 n/n으로 표시됩니다." />
+                      </div>
                     </div>
                     <div className={style.settingsToggle}>
                       <ToggleSwitch
@@ -2293,12 +2345,12 @@ const AltFormBuilder = ({
                       <div className={style.settingsNested}>
                         <div className={style.settingsNestedRow}>
                           <div className={style.settingsNestedText}>
-                            <span className={style.settingsNestedLabel}>
-                              목표 제출 횟수
-                            </span>
-                            <span className={style.settingsHint}>
-                              목표에 도달하면 추가 제출은 할 수 없습니다.
-                            </span>
+                            <div className={style.settingsLabelRow}>
+                              <span className={style.settingsNestedLabel}>
+                                목표 제출 횟수
+                              </span>
+                              <SettingsHint text="목표에 도달하면 추가 제출은 할 수 없습니다." />
+                            </div>
                           </div>
                           <div className={style.settingsNestedControl}>
                             <input
@@ -2322,7 +2374,10 @@ const AltFormBuilder = ({
                     )}
                   <div className={style.settingsItemRow}>
                     <div className={style.settingsItemText}>
-                      <span className={style.settingsLabel}>퀴즈 모드</span>
+                      <div className={style.settingsLabelRow}>
+                        <span className={style.settingsLabel}>퀴즈 모드</span>
+                        <SettingsHint text="켜면 필드에 배점·정답을 넣을 수 있고, 제출 후 점수가 계산됩니다." />
+                      </div>
                     </div>
                     <div className={style.settingsToggle}>
                       <ToggleSwitch
@@ -2339,9 +2394,12 @@ const AltFormBuilder = ({
                   {settings.quizMode && (
                     <div className={style.settingsNested}>
                       <div className={style.settingsNestedRow}>
-                        <span className={style.settingsNestedLabel}>
-                          점수 공개
-                        </span>
+                        <div className={style.settingsLabelRow}>
+                          <span className={style.settingsNestedLabel}>
+                            점수 공개
+                          </span>
+                          <SettingsHint text="응답자에게 점수를 언제 보여줄지 정합니다. 제출 즉시 / 마감 후 / 비공개." />
+                        </div>
                         <div className={style.settingsNestedControl}>
                           <select
                             className={style.settingsNestedSelect}
@@ -2364,9 +2422,12 @@ const AltFormBuilder = ({
                         </div>
                       </div>
                       <div className={style.settingsNestedRow}>
-                        <span className={style.settingsNestedLabel}>
-                          정답 공개
-                        </span>
+                        <div className={style.settingsLabelRow}>
+                          <span className={style.settingsNestedLabel}>
+                            정답 공개
+                          </span>
+                          <SettingsHint text="응답자에게 정답을 언제 보여줄지 정합니다. 제출 즉시 / 마감 후 / 비공개." />
+                        </div>
                         <div className={style.settingsNestedControl}>
                           <select
                             className={style.settingsNestedSelect}
@@ -2392,12 +2453,10 @@ const AltFormBuilder = ({
                   )}
                   <div className={style.settingsItemRow}>
                     <div className={style.settingsItemText}>
-                      <span className={style.settingsLabel}>직접 입력 모드</span>
-                      {settings.directInputMode && (
-                        <span className={style.settingsHint}>
-                          Sheet에서 직접 데이터를 입력합니다.
-                        </span>
-                      )}
+                      <div className={style.settingsLabelRow}>
+                        <span className={style.settingsLabel}>직접 입력 모드</span>
+                        <SettingsHint text="응답 화면 제출 대신, 관리자가 기록(시트)에서 직접 행을 넣는 용도입니다." />
+                      </div>
                     </div>
                     <div className={style.settingsToggle}>
                       <ToggleSwitch
@@ -2419,7 +2478,10 @@ const AltFormBuilder = ({
                 <div className={style.settingsSectionBody}>
                   <div className={style.settingsItemRow}>
                     <div className={style.settingsItemText}>
-                      <span className={style.settingsLabel}>응답 결과 공유</span>
+                      <div className={style.settingsLabelRow}>
+                        <span className={style.settingsLabel}>응답 결과 공유</span>
+                        <SettingsHint text="공개하면 응답자도 권한 범위 안에서 다른 사람 응답 결과를 볼 수 있습니다." />
+                      </div>
                     </div>
                     <div className={style.settingsToggle}>
                       <ToggleSwitch
@@ -2435,9 +2497,12 @@ const AltFormBuilder = ({
                   </div>
                   <div className={style.settingsItemRow}>
                     <div className={style.settingsItemText}>
-                      <span className={style.settingsLabel}>
-                        관리자 필드 공개
-                      </span>
+                      <div className={style.settingsLabelRow}>
+                        <span className={style.settingsLabel}>
+                          관리자 필드 공개
+                        </span>
+                        <SettingsHint text="공개하면 관리자 전용 필드(승인·메모 등)를 응답자도 볼 수 있습니다." />
+                      </div>
                     </div>
                     <div className={style.settingsToggle}>
                       <ToggleSwitch
