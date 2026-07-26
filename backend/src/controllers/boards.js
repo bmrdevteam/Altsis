@@ -230,15 +230,6 @@ export const find = async (req, res) => {
       currentSeasonId
     );
 
-    // 기본 게시판(공지사항)이 없으면 자동 생성
-    const defaultBoard = await Board(req.user.academyId).findOne({
-      school: school._id,
-      isDefault: true,
-    });
-    if (!defaultBoard) {
-      await createDefaultBoard(req.user.academyId, school);
-    }
-
     const listFilter = {
       school: school._id,
       isActive: true,
@@ -781,44 +772,6 @@ export const remove = async (req, res) => {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
-};
-
-/**
- * @memberof APIs.BoardAPI
- * @function createDefaultBoard
- * @description 기본 게시판 (공지사항) 생성 헬퍼 함수
- */
-export const createDefaultBoard = async (academyId, school) => {
-  const existingBoard = await Board(academyId).findOne({
-    school: school._id,
-    isDefault: true,
-  });
-
-  if (existingBoard) {
-    return existingBoard;
-  }
-
-  const board = await Board(academyId).create({
-    school: school._id,
-    schoolId: school.schoolId,
-    schoolName: school.schoolName,
-    scope: "school",
-    name: "공지사항",
-    slug: "announcements",
-    description: "학교 공지사항입니다.",
-    isDefault: true,
-    boardMode: "alt",
-    members: {
-      groups: { manager: true, teacher: true, student: true },
-      users: [],
-    },
-    writers: {
-      groups: { manager: true, teacher: true, student: false },
-      users: [],
-    },
-  });
-
-  return board;
 };
 
 /**
