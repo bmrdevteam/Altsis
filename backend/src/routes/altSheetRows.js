@@ -20,6 +20,7 @@ router.post("/", isLoggedIn, altSheetRows.create);
 router.get("/", isLoggedIn, altSheetRows.find);
 router.get("/:_id", isLoggedIn, altSheetRows.findById);
 router.put("/:_id", isLoggedIn, altSheetRows.update);
+router.put("/:_id/assessment", isLoggedIn, altSheetRows.updateAssessment);
 router.delete("/:_id", isLoggedIn, altSheetRows.remove);
 
 export { router };

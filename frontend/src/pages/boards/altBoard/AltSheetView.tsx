@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import style from "./altBoard.module.scss";
 import { TBoard } from "types/board";
-import { TAltForm, TAltFormField } from "types/altForm";
+import { TAltForm, TAltFormField, TAssessmentData, TFormRubric } from "types/altForm";
 import { TAltSheetRow } from "types/altSheet";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import { useAuth } from "contexts/authContext";
@@ -123,6 +123,22 @@ const AltSheetView = ({
 
   // 퀴즈 모드 여부
   const isQuiz = selectedForm?.settings.quizMode;
+  const isAssessment = !!selectedForm?.settings.assessmentMode;
+
+  // 평가 채점 초안 (문서 보기)
+  const [gradeDraft, setGradeDraft] = useState<{
+    byField: Record<
+      string,
+      {
+        score?: number;
+        levelId?: string;
+        comment?: string;
+        byRubric?: Record<string, { levelId?: string; comment?: string }>;
+      }
+    >;
+    final: { comment?: string };
+  }>({ byField: {}, final: {} });
+  const [isSavingGrade, setIsSavingGrade] = useState(false);
 
   // localStorage에서 숨김 컬럼 복원
   useEffect(() => {
@@ -497,6 +513,86 @@ const AltSheetView = ({
 
   const currentDocRow = filteredRows[docIndex] ?? null;
 
+  // 문서 행 변경 시 채점 초안 동기화
+  useEffect(() => {
+    if (!currentDocRow || !isAssessment) {
+      setGradeDraft({ byField: {}, final: {} });
+      return;
+    }
+    const a = (currentDocRow.data?._assessment || {}) as TAssessmentData;
+    const byField: Record<
+      string,
+      {
+        score?: number;
+        levelId?: string;
+        comment?: string;
+        byRubric?: Record<string, { levelId?: string; comment?: string }>;
+      }
+    > = {};
+    for (const [fid, g] of Object.entries(a.byField || {})) {
+      const byRubric: Record<string, { levelId?: string; comment?: string }> =
+        {};
+      for (const [rid, rg] of Object.entries(g.byRubric || {})) {
+        byRubric[rid] = {
+          levelId: rg.levelId,
+          comment: rg.comment,
+        };
+      }
+      byField[fid] = {
+        score: g.score,
+        levelId: g.levelId,
+        comment: g.comment,
+        byRubric: Object.keys(byRubric).length ? byRubric : undefined,
+      };
+    }
+    setGradeDraft({
+      byField,
+      final: {
+        comment: a.final?.comment,
+      },
+    });
+  }, [currentDocRowId, isAssessment, currentDocRow?.data?._assessment]);
+
+  const saveAssessmentGrade = async (opts?: {
+    finalize?: boolean;
+    unfinalize?: boolean;
+  }) => {
+    if (!currentDocRow || !canManage) return;
+    setIsSavingGrade(true);
+    try {
+      const { row } = await AltSheetRowAPI.UAltSheetRowAssessment({
+        params: { _id: currentDocRow._id },
+        data: {
+          byField: gradeDraft.byField,
+          final: gradeDraft.final,
+          finalize: opts?.finalize,
+          unfinalize: opts?.unfinalize,
+        },
+      });
+      setRows((prev) =>
+        prev.map((r) => (r._id === row._id ? row : r))
+      );
+      if (opts?.finalize) {
+        alert("평가가 확정되었습니다. 학생이 결과를 볼 수 있습니다.");
+      } else if (opts?.unfinalize) {
+        alert("확정이 취소되었습니다. 학생에게는 결과가 숨겨집니다.");
+      } else {
+        alert("채점이 저장되었습니다. (초안 — 학생에게 아직 공개되지 않습니다)");
+      }
+    } catch (err) {
+      ALERT_ERROR(err);
+    } finally {
+      setIsSavingGrade(false);
+    }
+  };
+
+  const assessmentStatusOf = (row: TAltSheetRow) => {
+    const status = row.data?._assessment?.final?.status;
+    if (status === "finalized") return "확정";
+    if (row.data?._assessment) return "채점 대기";
+    return "";
+  };
+
   const handleColumnSort = (fieldId: string) => {
     setSortConfig((prev) => {
       if (prev?.fieldId === fieldId) {
@@ -684,6 +780,7 @@ const AltSheetView = ({
     const headers = ["#", "응답자"];
     for (const field of visibleFields) headers.push(field.label);
     if (isQuiz) { headers.push("점수"); headers.push("총점"); }
+    if (isAssessment) { headers.push("평가상태"); }
     headers.push("제출일");
 
     const escapeCsv = (val: string) => {
@@ -709,6 +806,9 @@ const AltSheetView = ({
       if (isQuiz) {
         cells.push(row.data?._quiz_score != null ? String(row.data._quiz_score) : "");
         cells.push(row.data?._quiz_total != null ? String(row.data._quiz_total) : "");
+      }
+      if (isAssessment) {
+        cells.push(assessmentStatusOf(row));
       }
       cells.push(
         row._submittedAt
@@ -1666,6 +1766,33 @@ const AltSheetView = ({
                 </div>
               )}
 
+              {isAssessment && (
+                <div className={style.quizScoreBanner}>
+                  <div className={style.quizScoreText}>
+                    <strong>
+                      평가:{" "}
+                      {currentDocRow.data?._assessment?.final?.status ===
+                      "finalized"
+                        ? "확정됨"
+                        : "초안"}
+                    </strong>
+                    {currentDocRow.data?._assessment?.final?.max != null && (
+                      <span>
+                        {" "}
+                        {currentDocRow.data._assessment.final.score ?? 0} /{" "}
+                        {currentDocRow.data._assessment.final.max}점
+                      </span>
+                    )}
+                    {currentDocRow.data?._assessment?.final?.comment && (
+                      <span>
+                        {" "}
+                        · {currentDocRow.data._assessment.final.comment}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {visibleFields.map((field) => (
                 <div key={field._id} className={style.questionItem}>
                   <div className={style.questionLabel}>
@@ -1688,6 +1815,296 @@ const AltSheetView = ({
                   </div>
                 </div>
               ))}
+
+              {/* 관리자 채점 패널 */}
+              {isAssessment && canManage && (
+                <div
+                  className={style.questionItem}
+                  style={{
+                    marginTop: 16,
+                    padding: 12,
+                    border: "1px solid var(--border-color)",
+                    borderRadius: 8,
+                    background: "var(--background-color-2)",
+                  }}
+                >
+                  <div className={style.questionLabel}>
+                    <span className={style.questionLabelText}>채점</span>
+                  </div>
+                  {(selectedForm?.fields || [])
+                    .filter(
+                      (f) =>
+                        f.gradingMethod &&
+                        f.gradingMethod !== "none" &&
+                        f.permission === "respondent"
+                    )
+                    .map((field) => {
+                      const method = field.gradingMethod!;
+                      const draft = gradeDraft.byField[field._id] || {};
+                      const fieldRubricIds =
+                        field.rubricIds?.length
+                          ? field.rubricIds
+                          : field.rubricId
+                            ? [field.rubricId]
+                            : [];
+                      const fieldRubrics = fieldRubricIds
+                        .map((id) =>
+                          (selectedForm?.rubrics || []).find(
+                            (r: TFormRubric) => r.id === id
+                          )
+                        )
+                        .filter(Boolean) as TFormRubric[];
+                      return (
+                        <div
+                          key={field._id}
+                          style={{
+                            marginTop: 10,
+                            paddingTop: 8,
+                            borderTop: "1px solid var(--border-color)",
+                          }}
+                        >
+                          <div style={{ fontSize: 13, fontWeight: 600 }}>
+                            {field.label}
+                            <span
+                              style={{
+                                marginLeft: 6,
+                                fontWeight: 400,
+                                color: "var(--text-color-2)",
+                                fontSize: 12,
+                              }}
+                            >
+                              (
+                              {method === "completion"
+                                ? "자기선언"
+                                : method === "manual_score"
+                                  ? "수동 점수"
+                                  : fieldRubrics.length > 1
+                                    ? `루브릭 ${fieldRubrics.length}개`
+                                    : "루브릭"}
+                              )
+                            </span>
+                          </div>
+                          {(method === "manual_score" ||
+                            method === "completion") && (
+                            <div
+                              style={{
+                                display: "flex",
+                                gap: 8,
+                                alignItems: "center",
+                                marginTop: 6,
+                              }}
+                            >
+                              <input
+                                className={style.filterInput}
+                                type="number"
+                                min={0}
+                                max={field.points || 0}
+                                style={{ width: 80 }}
+                                value={draft.score ?? ""}
+                                onChange={(e) => {
+                                  const score =
+                                    e.target.value === ""
+                                      ? undefined
+                                      : Number(e.target.value);
+                                  setGradeDraft((p) => ({
+                                    ...p,
+                                    byField: {
+                                      ...p.byField,
+                                      [field._id]: { ...draft, score },
+                                    },
+                                  }));
+                                }}
+                              />
+                              <span style={{ fontSize: 12 }}>
+                                / {field.points || 0}점
+                              </span>
+                            </div>
+                          )}
+                          {method === "rubric" &&
+                            (fieldRubrics.length === 0 ? (
+                              <div
+                                style={{
+                                  marginTop: 6,
+                                  fontSize: 12,
+                                  color: "var(--text-color-2)",
+                                }}
+                              >
+                                연결된 루브릭이 없습니다. 양식 편집에서
+                                루브릭을 선택하세요.
+                              </div>
+                            ) : (
+                              fieldRubrics.map((rubric) => {
+                                const rDraft =
+                                  draft.byRubric?.[rubric.id] ||
+                                  (fieldRubrics.length === 1
+                                    ? { levelId: draft.levelId }
+                                    : {});
+                                return (
+                                  <div
+                                    key={rubric.id}
+                                    style={{ marginTop: 8 }}
+                                  >
+                                    <div
+                                      style={{
+                                        fontSize: 12,
+                                        color: "var(--text-color-2)",
+                                        marginBottom: 4,
+                                      }}
+                                    >
+                                      {rubric.title}
+                                    </div>
+                                    <select
+                                      className={style.filterInput}
+                                      style={{ maxWidth: 280 }}
+                                      value={rDraft.levelId || ""}
+                                      onChange={(e) => {
+                                        const levelId =
+                                          e.target.value || undefined;
+                                        setGradeDraft((p) => {
+                                          const prev =
+                                            p.byField[field._id] || {};
+                                          return {
+                                            ...p,
+                                            byField: {
+                                              ...p.byField,
+                                              [field._id]: {
+                                                ...prev,
+                                                byRubric: {
+                                                  ...(prev.byRubric || {}),
+                                                  [rubric.id]: {
+                                                    ...(prev.byRubric?.[
+                                                      rubric.id
+                                                    ] || {}),
+                                                    levelId,
+                                                  },
+                                                },
+                                                // 단일일 때 레거시 필드도 동기화
+                                                levelId:
+                                                  fieldRubrics.length === 1
+                                                    ? levelId
+                                                    : prev.levelId,
+                                              },
+                                            },
+                                          };
+                                        });
+                                      }}
+                                    >
+                                      <option value="">수준 선택</option>
+                                      {(rubric.levels || []).map((l) => (
+                                        <option key={l.id} value={l.id}>
+                                          {l.label}
+                                          {l.points != null
+                                            ? ` (${l.points}점)`
+                                            : ""}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                );
+                              })
+                            ))}
+                          <input
+                            className={style.filterInput}
+                            placeholder="코멘트"
+                            style={{ marginTop: 6, width: "100%" }}
+                            value={draft.comment || ""}
+                            onChange={(e) =>
+                              setGradeDraft((p) => ({
+                                ...p,
+                                byField: {
+                                  ...p.byField,
+                                  [field._id]: {
+                                    ...draft,
+                                    comment: e.target.value,
+                                  },
+                                },
+                              }))
+                            }
+                          />
+                        </div>
+                      );
+                    })}
+
+                  <div style={{ marginTop: 12 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600 }}>
+                      최종 코멘트
+                    </div>
+                    <input
+                      className={style.filterInput}
+                      placeholder="학생에게 보여줄 코멘트 (선택)"
+                      style={{ marginTop: 6, width: "100%" }}
+                      value={gradeDraft.final.comment || ""}
+                      onChange={(e) =>
+                        setGradeDraft((p) => ({
+                          ...p,
+                          final: {
+                            ...p.final,
+                            comment: e.target.value,
+                          },
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 8,
+                      marginTop: 12,
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: "var(--text-color-2)",
+                        lineHeight: 1.45,
+                      }}
+                    >
+                      <strong>채점 저장</strong>: 초안으로만 저장합니다. 학생에게는
+                      결과가 보이지 않습니다.
+                      <br />
+                      <strong>평가 확정</strong>: 학생에게 평가 결과를 공개합니다.
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 8,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <Button
+                        type="ghost"
+                        onClick={() => saveAssessmentGrade()}
+                        disabled={isSavingGrade}
+                      >
+                        채점 저장
+                      </Button>
+                      {currentDocRow.data?._assessment?.final?.status ===
+                      "finalized" ? (
+                        <Button
+                          type="ghost"
+                          onClick={() =>
+                            saveAssessmentGrade({ unfinalize: true })
+                          }
+                          disabled={isSavingGrade}
+                        >
+                          확정 취소
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={() =>
+                            saveAssessmentGrade({ finalize: true })
+                          }
+                          disabled={isSavingGrade}
+                        >
+                          평가 확정
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -1711,6 +2128,7 @@ const AltSheetView = ({
                 />
               ))}
               {isQuiz && <col className={style.colQuiz} />}
+              {isAssessment && <col className={style.colQuiz} />}
               <col className={style.colSubmitted} />
               <col className={style.colAction} />
             </colgroup>
@@ -1839,6 +2257,11 @@ const AltSheetView = ({
                           점수 열은 필터를 지원하지 않습니다.
                         </span>
                       </SheetColHeader>
+                    )}
+                    {isAssessment && (
+                      <th>
+                        평가
+                      </th>
                     )}
                     <SheetColHeader
                       fieldId="_submittedAt"
@@ -2046,6 +2469,9 @@ const AltSheetView = ({
                       ? `${row.data._quiz_score} / ${row.data._quiz_total || 0}`
                       : "-"}
                   </td>
+                )}
+                {isAssessment && (
+                  <td>{assessmentStatusOf(row) || "-"}</td>
                 )}
                 <td>
                   {row._submittedAt

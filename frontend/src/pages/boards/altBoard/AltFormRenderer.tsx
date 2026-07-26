@@ -4,6 +4,9 @@ import { TBoard } from "types/board";
 import {
   TAltForm,
   TAltFormField,
+  TAssessmentData,
+  TAssessmentFieldGrade,
+  TAssessmentFieldRubricGrade,
   TDisplayCondition,
 } from "types/altForm";
 import { TAltSheetRow } from "types/altSheet";
@@ -470,6 +473,20 @@ const AltFormRenderer = ({
     return false;
   }, [form, isSubmitted, isClosed, isReviewMode, activeRow]);
 
+  const assessmentFinalized = useMemo(() => {
+    if (!form?.settings.assessmentMode) return false;
+    const hasRow = isReviewMode ? !!activeRow : isSubmitted;
+    if (!hasRow || !activeRow) return false;
+    return activeRow.data?._assessment?.final?.status === "finalized";
+  }, [form, isSubmitted, isReviewMode, activeRow]);
+
+  const assessmentPending = useMemo(() => {
+    if (!form?.settings.assessmentMode) return false;
+    const hasRow = isReviewMode ? !!activeRow : isSubmitted;
+    if (!hasRow || !activeRow) return false;
+    return activeRow.data?._assessment?.final?.status !== "finalized";
+  }, [form, isSubmitted, isReviewMode, activeRow]);
+
   const setValue = (fieldId: string, value: any) => {
     setData((prev) => ({ ...prev, [fieldId]: value }));
     if (errors[fieldId]) {
@@ -593,7 +610,11 @@ const AltFormRenderer = ({
 
       if (form.settings.allowMultipleResponses) {
         // 다중 응답: 제출 후 목록에 추가하고 작성 폼 초기화
-        alert("응답이 제출되었습니다.");
+        alert(
+          form.settings.assessmentMode
+            ? "과제가 제출되었습니다."
+            : "응답이 제출되었습니다."
+        );
         const nextRows = [row, ...myRows];
         setMyRows(nextRows);
         setMyRow(null);
@@ -2038,6 +2059,81 @@ const AltFormRenderer = ({
         </div>
       )}
 
+      {/* 평가 결과 (확정 후만) */}
+      {assessmentFinalized && activeRow?.data?._assessment && (
+        <div className={style.quizScoreBanner}>
+          <div className={style.quizScoreText}>
+            <strong>평가 결과</strong>
+            {(form?.settings.assessmentSettings?.finalEvaluation?.mode ===
+              "score_only" ||
+              form?.settings.assessmentSettings?.finalEvaluation?.mode ===
+                "both") &&
+              activeRow.data._assessment.final?.max != null && (
+                <span>
+                  {" "}
+                  {activeRow.data._assessment.final.score ?? 0} /{" "}
+                  {activeRow.data._assessment.final.max}점
+                </span>
+              )}
+            {activeRow.data._assessment.final?.comment && (
+              <div style={{ marginTop: 4, fontSize: 13 }}>
+                {activeRow.data._assessment.final.comment}
+              </div>
+            )}
+            {Object.entries(
+              (activeRow.data._assessment as TAssessmentData).byField || {}
+            ).map(([fid, g]: [string, TAssessmentFieldGrade]) => {
+                const field = form?.fields.find((f) => f._id === fid);
+                const byRubric = g?.byRubric || {};
+                const entries = Object.entries(byRubric).filter(
+                  ([, rg]: [string, TAssessmentFieldRubricGrade]) =>
+                    !!rg?.levelLabel
+                );
+                if (!entries.length && !g?.levelLabel && !g?.comment) {
+                  return null;
+                }
+                return (
+                  <div
+                    key={fid}
+                    style={{ marginTop: 6, fontSize: 12, opacity: 0.95 }}
+                  >
+                    <div style={{ fontWeight: 600 }}>
+                      {field?.label || "항목"}
+                      {g?.score != null && g?.max != null
+                        ? ` · ${g.score}/${g.max}점`
+                        : ""}
+                    </div>
+                    {entries.map(([rid, rg]) => {
+                      const rubric = form?.rubrics?.find((r) => r.id === rid);
+                      return (
+                        <div key={rid}>
+                          {rubric?.title ? `${rubric.title}: ` : ""}
+                          {rg.levelLabel}
+                          {rg.score != null ? ` (${rg.score}점)` : ""}
+                        </div>
+                      );
+                    })}
+                    {!entries.length && g?.levelLabel && (
+                      <div>{g.levelLabel}</div>
+                    )}
+                    {g?.comment && <div>{g.comment}</div>}
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      )}
+
+      {/* 평가 대기 */}
+      {assessmentPending && (
+        <div className={style.readonlyBanner}>
+          <div className={style.readonlyBannerText}>
+            <strong>과제가 제출되었습니다.</strong>
+            <span>평가가 확정되면 결과를 확인할 수 있습니다.</span>
+          </div>
+        </div>
+      )}
+
       {/* 개별 보기: 읽기 전용 배너 */}
       {isReviewMode && (
         <div className={style.readonlyBanner}>
@@ -2049,11 +2145,20 @@ const AltFormRenderer = ({
       )}
 
       {/* 제출 완료 배너 (작성 모드) */}
-      {!isReviewMode && isSubmitted && !canResubmit && !quizScoreVisible && (
+      {!isReviewMode &&
+        isSubmitted &&
+        !canResubmit &&
+        !quizScoreVisible &&
+        !assessmentPending &&
+        !assessmentFinalized && (
         <div className={style.successBanner}>
           <div className={style.successIcon}>✓</div>
           <div className={style.successText}>
-            <strong>응답이 제출되었습니다.</strong>
+            <strong>
+              {form?.settings.assessmentMode
+                ? "과제가 제출되었습니다."
+                : "응답이 제출되었습니다."}
+            </strong>
             <span>
               {myRow?._submittedAt &&
                 `제출일: ${new Date(myRow._submittedAt).toLocaleString("ko-KR", {
@@ -2065,7 +2170,7 @@ const AltFormRenderer = ({
         </div>
       )}
       {/* 응답자 필드 */}
-      {(!isSubmitted || canResubmit || form?.settings.showOwnResponse !== false || quizScoreVisible || isReviewMode) &&
+      {(!isSubmitted || canResubmit || form?.settings.showOwnResponse !== false || quizScoreVisible || assessmentFinalized || assessmentPending || isReviewMode) &&
         respondentFields.map((field) => {
           if (field.type === "content") {
             return (

@@ -321,6 +321,435 @@ export const gradeQuizRow = (form, data) => {
 };
 
 /**
+ * 퀴즈/평가 모드 동시 ON 불가
+ * @param {Object} settings
+ * @returns {string|null} 오류 메시지 또는 null
+ */
+export const validateExclusiveFormModes = (settings) => {
+  if (settings?.quizMode && settings?.assessmentMode) {
+    return "퀴즈 모드와 평가 모드는 동시에 사용할 수 없습니다.";
+  }
+  return null;
+};
+
+/**
+ * completion(자기선언) 값이 충족인지
+ * @param {*} value
+ * @returns {boolean}
+ */
+export const isCompletionTruthy = (value) => {
+  if (value === true || value === 1) return true;
+  if (value === false || value === 0 || value == null) return false;
+  if (typeof value === "string") {
+    const t = value.trim().toLowerCase();
+    if (!t || t === "false" || t === "0") return false;
+    return true;
+  }
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === "object") return Object.keys(value).length > 0;
+  return Boolean(value);
+};
+
+const fieldIdOf = (field) =>
+  field?._id?.toString ? field._id.toString() : String(field?._id || "");
+
+const rubricMaxPoints = (rubric) => {
+  if (!rubric?.levels?.length) return 0;
+  return Math.max(
+    0,
+    ...rubric.levels.map((l) =>
+      l.points != null && Number.isFinite(Number(l.points))
+        ? Number(l.points)
+        : 0
+    )
+  );
+};
+
+/**
+ * 필드에 연결된 루브릭 id 목록 (rubricIds 우선, 없으면 rubricId)
+ * @param {Object} field
+ * @returns {string[]}
+ */
+export const getFieldRubricIds = (field) => {
+  if (Array.isArray(field?.rubricIds) && field.rubricIds.length > 0) {
+    return field.rubricIds.map(String).filter(Boolean);
+  }
+  if (field?.rubricId) return [String(field.rubricId)];
+  return [];
+};
+
+/**
+ * byRubric / 레거시 levelId 로부터 필드 점수·max 집계
+ * @param {Object} grade
+ * @param {string[]} rubricIds
+ * @param {Array} rubrics
+ * @returns {{ score: number, max: number, byRubric: Object, levelId?: string, levelLabel?: string }}
+ */
+const aggregateFieldRubricGrade = (grade, rubricIds, rubrics) => {
+  let byRubric = { ...(grade?.byRubric || {}) };
+
+  // 레거시: byRubric 없이 levelId만 있는 경우 첫 루브릭으로 승격
+  if (
+    rubricIds.length > 0 &&
+    grade?.levelId &&
+    !byRubric[rubricIds[0]]?.levelId
+  ) {
+    const rid = rubricIds[0];
+    const rubric = rubrics.find((r) => r.id === rid);
+    const level = rubric?.levels?.find((l) => l.id === grade.levelId);
+    byRubric[rid] = {
+      ...(byRubric[rid] || {}),
+      levelId: grade.levelId,
+      levelLabel: grade.levelLabel || level?.label,
+      score:
+        grade.score != null
+          ? grade.score
+          : level?.points != null
+            ? Number(level.points)
+            : undefined,
+      max: byRubric[rid]?.max ?? rubricMaxPoints(rubric),
+      comment: byRubric[rid]?.comment,
+    };
+  }
+
+  let score = 0;
+  let max = 0;
+  let hasScore = false;
+  for (const rid of rubricIds) {
+    const rubric = rubrics.find((r) => r.id === rid);
+    const entryMax = byRubric[rid]?.max ?? rubricMaxPoints(rubric);
+    max += entryMax;
+    if (typeof byRubric[rid]?.score === "number" && Number.isFinite(byRubric[rid].score)) {
+      score += byRubric[rid].score;
+      hasScore = true;
+    }
+  }
+
+  const result = {
+    byRubric,
+    max,
+    score: hasScore ? score : undefined,
+  };
+  if (rubricIds.length === 1 && byRubric[rubricIds[0]]) {
+    result.levelId = byRubric[rubricIds[0]].levelId;
+    result.levelLabel = byRubric[rubricIds[0]].levelLabel;
+  }
+  return result;
+};
+
+/**
+ * 평가 모드 총점·최종 필드 재계산 (status/확정 메타는 유지)
+ * @param {Object} form
+ * @param {Object} assessment
+ * @returns {Object} assessment
+ */
+export const recomputeAssessmentTotals = (form, assessment) => {
+  const byField = { ...(assessment?.byField || {}) };
+  const prevFinal = assessment?.final || {};
+  const mode =
+    form.settings?.assessmentSettings?.finalEvaluation?.mode || "both";
+
+  let score = 0;
+  let max = 0;
+  const rubrics = form.rubrics || [];
+
+  for (const field of form.fields || []) {
+    const method = field.gradingMethod;
+    if (!method || method === "none") continue;
+    const fid = fieldIdOf(field);
+    const g = byField[fid];
+    if (!g) continue;
+
+    if (method === "rubric") {
+      const rubricIds = getFieldRubricIds(field);
+      const agg = aggregateFieldRubricGrade(g, rubricIds, rubrics);
+      byField[fid] = {
+        ...g,
+        source: "rubric",
+        byRubric: agg.byRubric,
+        max: agg.max,
+        score: agg.score,
+        levelId: agg.levelId,
+        levelLabel: agg.levelLabel,
+      };
+      if (typeof agg.score === "number") score += agg.score;
+      max += agg.max;
+      continue;
+    }
+
+    if (typeof g.score === "number" && Number.isFinite(g.score)) {
+      score += g.score;
+    }
+
+    if (typeof g.max === "number" && Number.isFinite(g.max)) {
+      max += g.max;
+    } else if (method === "completion" || method === "manual_score") {
+      max += Number(field.points) || 0;
+    }
+  }
+
+  const final = {
+    status: prevFinal.status === "finalized" ? "finalized" : "draft",
+  };
+
+  if (prevFinal.finalizedBy) final.finalizedBy = prevFinal.finalizedBy;
+  if (prevFinal.finalizedAt) final.finalizedAt = prevFinal.finalizedAt;
+  if (prevFinal.comment != null) final.comment = prevFinal.comment;
+
+  if (mode === "score_only" || mode === "both") {
+    final.score = score;
+    final.max = max;
+  }
+
+  return { byField, final };
+};
+
+/**
+ * 제출/재제출 시 completion 초안 점수 반영.
+ * manual/rubric 기존 채점은 유지. final은 draft로 강등.
+ * @param {Object} form
+ * @param {Object} rowData - 응답 필드 값
+ * @param {Object|null} previousAssessment
+ * @returns {Object} _assessment
+ */
+export const applyAssessmentOnSubmit = (form, rowData, previousAssessment) => {
+  const prevByField = { ...(previousAssessment?.byField || {}) };
+  const byField = {};
+  const rubrics = form.rubrics || [];
+
+  for (const field of form.fields || []) {
+    const method = field.gradingMethod || "none";
+    if (method === "none") continue;
+    const fid = fieldIdOf(field);
+    const prev = prevByField[fid];
+
+    if (method === "completion") {
+      const points = Number(field.points) || 0;
+      const done = isCompletionTruthy(rowData?.[fid]);
+      byField[fid] = {
+        score: done ? points : 0,
+        max: points,
+        source: "completion",
+      };
+    } else if (method === "manual_score") {
+      const points = Number(field.points) || 0;
+      byField[fid] = {
+        ...(prev?.source === "manual" ? prev : {}),
+        max: points,
+        source: "manual",
+      };
+      if (byField[fid].score == null) {
+        // 슬롯만 확보
+      }
+    } else if (method === "rubric") {
+      const rubricIds = getFieldRubricIds(field);
+      const prevRubric = prev?.source === "rubric" ? prev : {};
+      const byRubric = { ...(prevRubric.byRubric || {}) };
+      for (const rid of rubricIds) {
+        if (!byRubric[rid]) byRubric[rid] = {};
+        const rubric = rubrics.find((r) => r.id === rid);
+        byRubric[rid].max = rubricMaxPoints(rubric);
+      }
+      // 연결 해제된 루브릭 슬롯은 유지하되 max만 연결된 것으로 집계
+      byField[fid] = {
+        ...prevRubric,
+        source: "rubric",
+        byRubric,
+      };
+    }
+  }
+
+  const assessment = {
+    byField,
+    final: {
+      status: "draft",
+      // 재제출 시 이전 최종 코멘트는 초안으로 유지(재확정 필요)
+      comment: previousAssessment?.final?.comment,
+    },
+  };
+
+  return recomputeAssessmentTotals(form, assessment);
+};
+
+/**
+ * 비관리자용 _assessment 마스킹 (확정 전 결과 숨김)
+ * @param {Object|undefined} assessment
+ * @param {boolean} canSeeFull - 관리자/작성자
+ * @returns {Object|undefined}
+ */
+export const filterAssessmentForViewer = (assessment, canSeeFull) => {
+  if (!assessment) return undefined;
+  if (canSeeFull) return assessment;
+  if (assessment.final?.status === "finalized") return assessment;
+  return { final: { status: assessment.final?.status || "draft" } };
+};
+
+/**
+ * 채점 패널에서 byField / final 부분 갱신 후 재계산
+ * @param {Object} form
+ * @param {Object} currentAssessment
+ * @param {Object} patch - { byField?, final? }
+ * @param {{ user, userId, userName }} grader
+ * @returns {Object}
+ */
+export const applyAssessmentGradePatch = (
+  form,
+  currentAssessment,
+  patch,
+  grader
+) => {
+  const byField = { ...(currentAssessment?.byField || {}) };
+  const now = new Date().toISOString();
+  const rubrics = form.rubrics || [];
+
+  if (patch?.byField && typeof patch.byField === "object") {
+    for (const [fid, update] of Object.entries(patch.byField)) {
+      if (!update || typeof update !== "object") continue;
+      const field = (form.fields || []).find((f) => fieldIdOf(f) === fid);
+      if (!field) continue;
+      const method = field.gradingMethod;
+      if (method !== "manual_score" && method !== "rubric" && method !== "completion") {
+        continue;
+      }
+
+      const next = { ...(byField[fid] || {}) };
+      if (update.comment !== undefined) next.comment = update.comment;
+
+      if (method === "manual_score" || method === "completion") {
+        const max = Number(field.points) || 0;
+        next.max = max;
+        next.source = method === "completion" ? "completion" : "manual";
+        if (update.score !== undefined && update.score !== null) {
+          const s = Number(update.score);
+          next.score = Number.isFinite(s)
+            ? Math.max(0, Math.min(max, s))
+            : 0;
+        }
+      }
+
+      if (method === "rubric") {
+        next.source = "rubric";
+        const rubricIds = getFieldRubricIds(field);
+        let byRubric = { ...(next.byRubric || {}) };
+
+        // 레거시: 단일 levelId → 첫 루브릭
+        if (update.levelId && rubricIds.length >= 1 && !update.byRubric) {
+          const rid = rubricIds[0];
+          byRubric[rid] = {
+            ...(byRubric[rid] || {}),
+            levelId: update.levelId || undefined,
+          };
+        }
+
+        if (update.byRubric && typeof update.byRubric === "object") {
+          for (const [rid, u] of Object.entries(update.byRubric)) {
+            if (!rubricIds.includes(rid) || !u || typeof u !== "object") continue;
+            const entry = { ...(byRubric[rid] || {}) };
+            if (u.comment !== undefined) entry.comment = u.comment;
+            if (u.levelId !== undefined) {
+              entry.levelId = u.levelId || undefined;
+              if (!u.levelId) {
+                delete entry.levelLabel;
+                delete entry.score;
+              }
+            }
+            byRubric[rid] = entry;
+          }
+        }
+
+        // 수준 → 점수/라벨 반영
+        for (const rid of rubricIds) {
+          const rubric = rubrics.find((r) => r.id === rid);
+          const entry = { ...(byRubric[rid] || {}) };
+          entry.max = rubricMaxPoints(rubric);
+          if (entry.levelId && rubric) {
+            const level = rubric.levels?.find((l) => l.id === entry.levelId);
+            if (level) {
+              entry.levelLabel = level.label;
+              if (level.points != null && Number.isFinite(Number(level.points))) {
+                entry.score = Number(level.points);
+              }
+            }
+          }
+          byRubric[rid] = entry;
+        }
+
+        const agg = aggregateFieldRubricGrade(
+          { ...next, byRubric },
+          rubricIds,
+          rubrics
+        );
+        next.byRubric = agg.byRubric;
+        next.max = agg.max;
+        next.score = agg.score;
+        next.levelId = agg.levelId;
+        next.levelLabel = agg.levelLabel;
+      }
+
+      if (grader) {
+        next.gradedBy = {
+          user: grader.user,
+          userId: grader.userId,
+          userName: grader.userName,
+        };
+        next.gradedAt = now;
+      }
+      byField[fid] = next;
+    }
+  }
+
+  const final = { ...(currentAssessment?.final || {}), status: "draft" };
+  delete final.finalizedBy;
+  delete final.finalizedAt;
+
+  if (patch?.final && typeof patch.final === "object") {
+    if (patch.final.comment !== undefined) final.comment = patch.final.comment;
+    // 최종 루브릭(levelId)은 사용하지 않음 — 항목별 루브릭만 사용
+  }
+
+  // 패치로 채점하면 확정 해제(재확정 필요) — status draft 유지
+  return recomputeAssessmentTotals(form, { byField, final });
+};
+
+/**
+ * 평가 확정
+ * @param {Object} form
+ * @param {Object} assessment
+ * @param {{ user, userId, userName }} finalizer
+ * @returns {{ ok: boolean, message?: string, assessment?: Object }}
+ */
+export const finalizeAssessment = (form, assessment, finalizer) => {
+  const recomputed = recomputeAssessmentTotals(form, assessment || {});
+  const final = { ...recomputed.final, status: "finalized" };
+
+  if (finalizer) {
+    final.finalizedBy = {
+      user: finalizer.user,
+      userId: finalizer.userId,
+      userName: finalizer.userName,
+    };
+    final.finalizedAt = new Date().toISOString();
+  }
+
+  return { ok: true, assessment: { byField: recomputed.byField, final } };
+};
+
+/**
+ * 평가 확정 취소 → draft
+ * @param {Object} assessment
+ * @returns {Object}
+ */
+export const unfinalizeAssessment = (assessment) => {
+  const final = { ...(assessment?.final || {}), status: "draft" };
+  delete final.finalizedBy;
+  delete final.finalizedAt;
+  return {
+    byField: { ...(assessment?.byField || {}) },
+    final,
+  };
+};
+
+/**
  * 중복 검사 필드 목록 추출
  * @param {Object} form - AltForm 문서
  * @returns {Array} duplicateCheck.enabled인 필드 목록

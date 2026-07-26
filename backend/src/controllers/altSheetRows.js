@@ -13,6 +13,12 @@ import {
   getVisibleFields,
   isFieldVisible,
   gradeQuizRow,
+  applyAssessmentOnSubmit,
+  filterAssessmentForViewer,
+  applyAssessmentGradePatch,
+  finalizeAssessment,
+  unfinalizeAssessment,
+  recomputeAssessmentTotals,
   getDuplicateCheckFields,
   buildDupCounterKeys,
 } from "../services/altForms.js";
@@ -159,6 +165,29 @@ export const create = async (req, res) => {
             existing.data.set(fieldId, req.body.data[fieldId]);
           }
         }
+
+        const rowDataObj =
+          existing.data instanceof Map
+            ? Object.fromEntries(existing.data)
+            : { ...(existing.data || {}) };
+
+        if (form.settings?.quizMode) {
+          const quizResult = gradeQuizRow(form, rowDataObj);
+          existing.data.set("_quiz_score", quizResult.score);
+          existing.data.set("_quiz_total", quizResult.total);
+          existing.data.set("_quiz_fieldResults", quizResult.fieldResults);
+        }
+
+        if (form.settings?.assessmentMode) {
+          const prevAssessment = rowDataObj._assessment || null;
+          const assessment = applyAssessmentOnSubmit(
+            form,
+            rowDataObj,
+            prevAssessment
+          );
+          existing.data.set("_assessment", assessment);
+        }
+
         existing._updatedAt = new Date();
         existing.markModified("data");
         await existing.save();
@@ -441,6 +470,18 @@ export const create = async (req, res) => {
           await emptySlot.save();
         }
 
+        // 평가 모드 (사전 등록 슬롯 클레임)
+        if (form.settings?.assessmentMode) {
+          const slotData =
+            emptySlot.data instanceof Map
+              ? Object.fromEntries(emptySlot.data)
+              : emptySlot.data || {};
+          const assessment = applyAssessmentOnSubmit(form, slotData, null);
+          emptySlot.data.set("_assessment", assessment);
+          emptySlot.markModified("data");
+          await emptySlot.save();
+        }
+
         return res.status(200).send({ row: emptySlot });
       } else {
         // === 자유 모드 (단일 값): atomic 카운터 ===
@@ -481,6 +522,11 @@ export const create = async (req, res) => {
       rowData._quiz_score = quizResult.score;
       rowData._quiz_total = quizResult.total;
       rowData._quiz_fieldResults = quizResult.fieldResults;
+    }
+
+    // 평가 모드: completion 초안 + draft
+    if (form.settings?.assessmentMode) {
+      rowData._assessment = applyAssessmentOnSubmit(form, rowData, null);
     }
 
     let row;
@@ -634,6 +680,7 @@ export const find = async (req, res) => {
 
       // 퀴즈 reveal 설정 처리
       const isQuiz = form.settings?.quizMode;
+      const isAssessment = form.settings?.assessmentMode;
       const isClosed =
         form.settings?.closeAt && new Date(form.settings.closeAt) < new Date();
       const scoreVisible = isQuiz && (
@@ -647,12 +694,19 @@ export const find = async (req, res) => {
 
       for (const row of rows) {
         const filteredData = {};
-        for (const [key, value] of Object.entries(row.data)) {
+        for (const [key, value] of Object.entries(row.data || {})) {
           if (key.startsWith("_quiz_")) {
             if (key === "_quiz_score" || key === "_quiz_total") {
               if (scoreVisible) filteredData[key] = value;
             } else if (key === "_quiz_fieldResults") {
               if (answerVisible) filteredData[key] = value;
+            }
+            continue;
+          }
+          if (key === "_assessment") {
+            if (isAssessment) {
+              const masked = filterAssessmentForViewer(value, false);
+              if (masked) filteredData[key] = masked;
             }
             continue;
           }
@@ -683,6 +737,16 @@ export const findMy = async (req, res) => {
       return res.status(400).send({ message: FIELD_REQUIRED("form") });
     }
 
+    const form = await AltForm(req.user.academyId).findById(req.query.form);
+    if (!form || !form.isActive) {
+      return res.status(404).send({ message: __NOT_FOUND("form") });
+    }
+
+    const board = await Board(req.user.academyId).findById(form.board);
+    const role = board ? getAltBoardRole(board, req.user) : null;
+    const canSeeFullAssessment =
+      role === "admin" || role === "writer" || req.user.auth === "manager";
+
     const rows = await AltSheetRow(req.user.academyId)
       .find({
         form: req.query.form,
@@ -691,6 +755,18 @@ export const findMy = async (req, res) => {
       })
       .sort({ _submittedAt: -1, createdAt: -1 })
       .lean();
+
+    // 평가 모드: 확정 전 결과 마스킹 (본인 조회라도)
+    if (form.settings?.assessmentMode && !canSeeFullAssessment) {
+      for (const row of rows) {
+        if (row.data?._assessment) {
+          row.data._assessment = filterAssessmentForViewer(
+            row.data._assessment,
+            false
+          );
+        }
+      }
+    }
 
     return res.status(200).send({ rows });
   } catch (err) {
@@ -1524,12 +1600,104 @@ export const findById = async (req, res) => {
       }
     }
 
+    // 평가 결과 마스킹 (관리자 외 + 미확정)
+    if (
+      form.settings?.assessmentMode &&
+      !isAdmin &&
+      row.data?._assessment
+    ) {
+      row.data._assessment = filterAssessmentForViewer(
+        row.data._assessment,
+        false
+      );
+    }
+
     return res.status(200).send({
       row,
       boardId: board._id,
       formId: form._id,
       formTitle: form.title,
     });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.AltSheetRowAPI
+ * @function UAltSheetRowAssessment API
+ * @description 평가 모드 채점·확정/확정취소
+ */
+export const updateAssessment = async (req, res) => {
+  try {
+    const row = await AltSheetRow(req.user.academyId).findById(req.params._id);
+    if (!row || !row.isActive) {
+      return res.status(404).send({ message: __NOT_FOUND("row") });
+    }
+
+    const form = await AltForm(req.user.academyId).findById(row.form);
+    if (!form || !form.isActive) {
+      return res.status(404).send({ message: __NOT_FOUND("form") });
+    }
+    if (!form.settings?.assessmentMode) {
+      return res.status(400).send({ message: "평가 모드가 아닌 양식입니다." });
+    }
+
+    const board = await Board(req.user.academyId).findById(row.board);
+    if (!board) {
+      return res.status(404).send({ message: __NOT_FOUND("board") });
+    }
+
+    if (!canManageForm(board, req.user) && req.user.auth !== "manager") {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    const grader = {
+      user: req.user._id?.toString?.() || String(req.user._id),
+      userId: req.user.userId,
+      userName: req.user.userName,
+    };
+
+    let assessment =
+      row.data?.get?.("_assessment") || row.data?._assessment || {
+        byField: {},
+        final: { status: "draft" },
+      };
+
+    if (req.body.unfinalize) {
+      assessment = unfinalizeAssessment(assessment);
+      assessment = recomputeAssessmentTotals(form, assessment);
+    } else if (req.body.finalize) {
+      // 확정 직전 채점 패치 허용
+      if (req.body.byField || req.body.final) {
+        assessment = applyAssessmentGradePatch(
+          form,
+          assessment,
+          { byField: req.body.byField, final: req.body.final },
+          grader
+        );
+      }
+      const result = finalizeAssessment(form, assessment, grader);
+      if (!result.ok) {
+        return res.status(400).send({ message: result.message });
+      }
+      assessment = result.assessment;
+    } else {
+      assessment = applyAssessmentGradePatch(
+        form,
+        assessment,
+        { byField: req.body.byField, final: req.body.final },
+        grader
+      );
+    }
+
+    row.data.set("_assessment", assessment);
+    row._updatedAt = new Date();
+    row.markModified("data");
+    await row.save();
+
+    return res.status(200).send({ row, assessment });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });

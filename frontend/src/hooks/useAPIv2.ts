@@ -4388,6 +4388,7 @@ export default function useAPIv2() {
       title: string;
       description?: string;
       fields?: TAltFormField[];
+      rubrics?: TAltForm["rubrics"];
       settings?: Partial<TAltFormSettings>;
       isDraft?: boolean;
     };
@@ -4419,6 +4420,7 @@ export default function useAPIv2() {
       title?: string;
       description?: string;
       fields?: TAltFormField[];
+      rubrics?: TAltForm["rubrics"];
       settings?: Partial<TAltFormSettings>;
       isDraft?: boolean;
     };
@@ -4515,6 +4517,35 @@ export default function useAPIv2() {
       data: props.data,
     });
     return { row: row as TAltSheetRow };
+  }
+
+  async function UAltSheetRowAssessment(props: {
+    params: { _id: string };
+    data: {
+      byField?: Record<
+        string,
+        {
+          score?: number | null;
+          levelId?: string | null;
+          comment?: string | null;
+          byRubric?: Record<
+            string,
+            { levelId?: string | null; comment?: string | null }
+          >;
+        }
+      >;
+      final?: {
+        comment?: string | null;
+      };
+      finalize?: boolean;
+      unfinalize?: boolean;
+    };
+  }) {
+    const { row, assessment } = await database.U({
+      location: `alt-sheet-rows/${props.params._id}/assessment`,
+      data: props.data,
+    });
+    return { row: row as TAltSheetRow, assessment };
   }
 
   async function DAltSheetRow(props: { params: { _id: string } }) {
@@ -4937,6 +4968,7 @@ export default function useAPIv2() {
       RAltSheetRows,
       RAltSheetRowMy,
       UAltSheetRow,
+      UAltSheetRowAssessment,
       DAltSheetRow,
       CAltSheetRowsBulk,
       RAltSheetRowSubmissionStatus,

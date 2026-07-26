@@ -6,7 +6,7 @@
 import crypto from "crypto";
 import { logger } from "../log/logger.js";
 import { AltForm, AltSheet, AltSheetRow, Board, CalendarEvent } from "../models/index.js";
-import { canManageForm, canModifyForm, getAltBoardRole, hasSubmittedForList } from "../services/altForms.js";
+import { canManageForm, canModifyForm, getAltBoardRole, hasSubmittedForList, validateExclusiveFormModes } from "../services/altForms.js";
 import { isBoardNotificationEnabled } from "../services/notifications.js";
 import { getBoardMembers } from "../services/boards.js";
 import {
@@ -109,6 +109,12 @@ export const create = async (req, res) => {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
+    const createSettings = req.body.settings || { allowResubmit: false };
+    const modeErr = validateExclusiveFormModes(createSettings);
+    if (modeErr) {
+      return res.status(400).send({ message: modeErr });
+    }
+
     const form = await AltForm(req.user.academyId).create({
       board: board._id,
       school: board.school,
@@ -118,7 +124,8 @@ export const create = async (req, res) => {
       title: req.body.title,
       description: req.body.description || "",
       fields: ensureFieldIds(req.body.fields),
-      settings: req.body.settings || { allowResubmit: false },
+      rubrics: Array.isArray(req.body.rubrics) ? req.body.rubrics : [],
+      settings: createSettings,
       // 기본 비공개. 명시적으로 isDraft:false 일 때만 공개 생성
       isDraft: "isDraft" in req.body ? !!req.body.isDraft : true,
     });
@@ -383,6 +390,10 @@ export const update = async (req, res) => {
     if ("title" in req.body) form.title = req.body.title;
     if ("description" in req.body) form.description = req.body.description;
     if ("fields" in req.body) form.fields = ensureFieldIds(req.body.fields);
+    if ("rubrics" in req.body) {
+      form.rubrics = Array.isArray(req.body.rubrics) ? req.body.rubrics : [];
+      form.markModified("rubrics");
+    }
     if ("settings" in req.body) {
       Object.assign(form.settings, req.body.settings);
       // 레거시 필드 정리
@@ -394,6 +405,10 @@ export const update = async (req, res) => {
         const n = Number(form.settings.requiredResponseCount);
         form.settings.requiredResponseCount =
           Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
+      }
+      const modeErr = validateExclusiveFormModes(form.settings);
+      if (modeErr) {
+        return res.status(400).send({ message: modeErr });
       }
       form.markModified("settings");
     }
@@ -528,8 +543,12 @@ export const exportForm = async (req, res) => {
         displayCondition: f.displayCondition,
         correctAnswer: f.correctAnswer,
         points: f.points,
+        gradingMethod: f.gradingMethod,
+        rubricId: f.rubricId,
+        rubricIds: f.rubricIds,
         duplicateCheck: f.duplicateCheck,
       })),
+      rubrics: form.rubrics || [],
       settings: {
         allowResubmit: form.settings?.allowResubmit,
         allowMultipleResponses: form.settings?.allowMultipleResponses,
@@ -537,6 +556,8 @@ export const exportForm = async (req, res) => {
         requiredMode: form.settings?.requiredMode,
         quizMode: form.settings?.quizMode,
         quizSettings: form.settings?.quizSettings,
+        assessmentMode: form.settings?.assessmentMode,
+        assessmentSettings: form.settings?.assessmentSettings,
         directInputMode: form.settings?.directInputMode,
         shareResponses: form.settings?.shareResponses,
         showOwnerFields: form.settings?.showOwnerFields,
@@ -576,6 +597,11 @@ export const importForm = async (req, res) => {
     }
 
     const fd = req.body.formData;
+    const importSettings = fd.settings || { allowResubmit: false };
+    const modeErr = validateExclusiveFormModes(importSettings);
+    if (modeErr) {
+      return res.status(400).send({ message: modeErr });
+    }
     const form = await AltForm(req.user.academyId).create({
       board: board._id,
       school: board.school,
@@ -585,7 +611,8 @@ export const importForm = async (req, res) => {
       title: fd.title || "가져온 양식",
       description: fd.description || "",
       fields: ensureFieldIds(fd.fields),
-      settings: fd.settings || { allowResubmit: false },
+      rubrics: Array.isArray(fd.rubrics) ? fd.rubrics : [],
+      settings: importSettings,
     });
 
     const sheet = await AltSheet(req.user.academyId).create({
@@ -641,7 +668,22 @@ export const duplicate = async (req, res) => {
       displayCondition: f.displayCondition,
       correctAnswer: f.correctAnswer,
       points: f.points,
+      gradingMethod: f.gradingMethod,
+      rubricId: f.rubricId,
+      rubricIds: f.rubricIds ? [...f.rubricIds] : undefined,
       duplicateCheck: f.duplicateCheck,
+      approvalLine: f.approvalLine,
+    }));
+
+    const clonedRubrics = (original.rubrics || []).map((r) => ({
+      id: r.id || crypto.randomUUID(),
+      title: r.title,
+      levels: (r.levels || []).map((l) => ({
+        id: l.id || crypto.randomUUID(),
+        label: l.label,
+        description: l.description || "",
+        points: l.points,
+      })),
     }));
 
     const form = await AltForm(req.user.academyId).create({
@@ -653,6 +695,7 @@ export const duplicate = async (req, res) => {
       title: `${original.title} (복사)`,
       description: original.description,
       fields: clonedFields,
+      rubrics: clonedRubrics,
       settings: {
         allowResubmit: original.settings?.allowResubmit,
         allowMultipleResponses: original.settings?.allowMultipleResponses,
@@ -660,6 +703,8 @@ export const duplicate = async (req, res) => {
         requiredMode: original.settings?.requiredMode === true,
         quizMode: original.settings?.quizMode,
         quizSettings: original.settings?.quizSettings,
+        assessmentMode: original.settings?.assessmentMode,
+        assessmentSettings: original.settings?.assessmentSettings,
         directInputMode: original.settings?.directInputMode,
         shareResponses: original.settings?.shareResponses,
         showOwnerFields: original.settings?.showOwnerFields,

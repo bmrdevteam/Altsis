@@ -97,6 +97,17 @@ const altFormFieldSchema = mongoose.Schema({
   correctAnswer: { type: mongoose.Schema.Types.Mixed },
   points: { type: Number, default: 0 },
 
+  // 평가 모드: 항목별 채점 방식
+  gradingMethod: {
+    type: String,
+    enum: ["none", "completion", "manual_score", "rubric"],
+    default: undefined,
+  },
+  /** @deprecated gradingMethod === rubric 단일 루브릭 (하위 호환) */
+  rubricId: { type: String, default: undefined },
+  /** gradingMethod === rubric 일 때 form.rubrics[].id 목록 */
+  rubricIds: { type: [String], default: undefined },
+
   // Phase 2: 중복 검사
   duplicateCheck: {
     type: {
@@ -178,6 +189,26 @@ const altFormSettingsSchema = mongoose.Schema(
       default: undefined,
     },
 
+    // 평가 모드 (퀴즈와 상호 배타)
+    assessmentMode: { type: Boolean, default: false },
+    assessmentSettings: {
+      type: {
+        revealOn: {
+          type: String,
+          enum: ["finalized"],
+          default: "finalized",
+        },
+        finalEvaluation: {
+          mode: {
+            type: String,
+            enum: ["rubric_only", "score_only", "both"],
+            default: "both",
+          },
+        },
+      },
+      default: undefined,
+    },
+
     // Phase 2: 직접 입력 모드
     directInputMode: { type: Boolean, default: false },
 
@@ -219,6 +250,25 @@ const altFormSchema = mongoose.Schema(
     description: { type: String, default: "" },
 
     fields: { type: [altFormFieldSchema], default: [] },
+
+    /** 양식 스코프 루브릭 (평가 모드) */
+    rubrics: {
+      type: [
+        {
+          id: { type: String, required: true },
+          title: { type: String, required: true },
+          levels: [
+            {
+              id: { type: String, required: true },
+              label: { type: String, required: true },
+              description: { type: String, default: "" },
+              points: { type: Number },
+            },
+          ],
+        },
+      ],
+      default: [],
+    },
 
     settings: {
       type: altFormSettingsSchema,

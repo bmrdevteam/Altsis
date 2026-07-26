@@ -5,9 +5,13 @@ import {
   TAltForm,
   TAltFormField,
   TAltFormFieldType,
+  TAssessmentFinalMode,
+  TAssessmentSettings,
   TDisplayCondition,
   TDisplayConditionOperator,
   TDuplicateCheck,
+  TFormRubric,
+  TGradingMethod,
   TQuizSettings,
 } from "types/altForm";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
@@ -184,11 +188,28 @@ type Settings = {
   closeAt: string;
   quizMode: boolean;
   quizSettings: TQuizSettings;
+  assessmentMode: boolean;
+  assessmentSettings: TAssessmentSettings;
   directInputMode: boolean;
   shareResponses: boolean;
   showOwnerFields: boolean;
   showOwnResponse: boolean;
 };
+
+const defaultAssessmentSettings = (): TAssessmentSettings => ({
+  revealOn: "finalized",
+  finalEvaluation: { mode: "both" },
+});
+
+const newRubric = (): TFormRubric => ({
+  id: crypto.randomUUID(),
+  title: "새 루브릭",
+  levels: [
+    { id: crypto.randomUUID(), label: "우수", points: 3 },
+    { id: crypto.randomUUID(), label: "보통", points: 2 },
+    { id: crypto.randomUUID(), label: "미흡", points: 1 },
+  ],
+});
 
 const AltFormBuilder = ({
   board,
@@ -230,11 +251,14 @@ const AltFormBuilder = ({
       answerReveal: "afterDeadline",
       showWrongMarks: true,
     },
+    assessmentMode: false,
+    assessmentSettings: defaultAssessmentSettings(),
     directInputMode: false,
     shareResponses: false,
     showOwnerFields: false,
     showOwnResponse: true,
   });
+  const [rubrics, setRubrics] = useState<TFormRubric[]>([]);
   const [isLoading, setIsLoading] = useState(!!formId);
   const [isSaving, setIsSaving] = useState(false);
   const [showTracker, setShowTracker] = useState(false);
@@ -259,6 +283,7 @@ const AltFormBuilder = ({
         description: string;
         fields: TAltFormField[];
         settings: Settings;
+        rubrics: TFormRubric[];
       }>
     ) =>
       JSON.stringify({
@@ -266,8 +291,9 @@ const AltFormBuilder = ({
         description: (next?.description ?? description).trim(),
         fields: next?.fields ?? fields,
         settings: next?.settings ?? settings,
+        rubrics: next?.rubrics ?? rubrics,
       }),
-    [title, description, fields, settings]
+    [title, description, fields, settings, rubrics]
   );
 
   // Click outside field card / add toolbar → deactivate
@@ -333,15 +359,20 @@ const AltFormBuilder = ({
             answerReveal: "afterDeadline",
             showWrongMarks: true,
           },
+          assessmentMode: form.settings.assessmentMode || false,
+          assessmentSettings: form.settings.assessmentSettings ||
+            defaultAssessmentSettings(),
           directInputMode: form.settings.directInputMode || false,
           shareResponses: form.settings.shareResponses || false,
           showOwnerFields: form.settings.showOwnerFields || false,
           showOwnResponse: form.settings.showOwnResponse !== false,
         };
+        const nextRubrics = form.rubrics || [];
         setTitle(form.title);
         setDescription(form.description);
         setFields(form.fields);
         setSettings(nextSettings);
+        setRubrics(nextRubrics);
         setIsDraft(!!form.isDraft);
         setCurrentFormId(form._id);
         savedSnapshotRef.current = JSON.stringify({
@@ -349,6 +380,7 @@ const AltFormBuilder = ({
           description: (form.description || "").trim(),
           fields: form.fields,
           settings: nextSettings,
+          rubrics: nextRubrics,
         });
         setIsDirty(false);
         setIsLoading(false);
@@ -382,6 +414,7 @@ const AltFormBuilder = ({
         title: title.trim(),
         description: description.trim(),
         fields: fields.map((f, i) => ({ ...f, order: i })),
+        rubrics: settings.assessmentMode ? rubrics : [],
         settings: {
           allowResubmit: settings.allowResubmit,
           allowMultipleResponses: settings.allowMultipleResponses,
@@ -394,6 +427,15 @@ const AltFormBuilder = ({
           closeAt: settings.closeAt ? new Date(settings.closeAt).toISOString() : undefined,
           quizMode: settings.quizMode,
           quizSettings: settings.quizMode ? settings.quizSettings : undefined,
+          assessmentMode: settings.assessmentMode,
+          assessmentSettings: settings.assessmentMode
+            ? {
+                revealOn: "finalized" as const,
+                finalEvaluation: {
+                  mode: settings.assessmentSettings.finalEvaluation.mode,
+                },
+              }
+            : undefined,
           directInputMode: settings.directInputMode,
           shareResponses: settings.shareResponses,
           showOwnerFields: settings.showOwnerFields,
@@ -418,6 +460,7 @@ const AltFormBuilder = ({
         description: data.description,
         fields: data.fields,
         settings,
+        rubrics: data.rubrics,
       });
       setIsDirty(false);
     } catch (err) {
@@ -909,56 +952,29 @@ const AltFormBuilder = ({
     const gradable = isGradable(field.type);
 
     return (
-      <div
-        style={{
-          marginTop: "8px",
-          padding: "8px",
-          background: "var(--background-color-2)",
-          borderRadius: "6px",
-        }}
-      >
-        <span style={{ fontSize: "12px", fontWeight: 600 }}>퀴즈 설정</span>
-        <div
-          style={{
-            display: "flex",
-            gap: "8px",
-            marginTop: "4px",
-            alignItems: "center",
-          }}
-        >
-          <span style={{ fontSize: "12px", color: "var(--text-color-2)" }}>
-            배점:
-          </span>
-          <input
-            className={style.fieldInput}
-            type="number"
-            min={0}
-            style={{ width: "60px", fontSize: "12px", padding: "3px 6px" }}
-            value={field.points || 0}
-            onChange={(e) =>
-              updateField(fieldIndex, { points: Number(e.target.value) })
-            }
-          />
-          <span style={{ fontSize: "12px", color: "var(--text-color-2)" }}>
-            점
-          </span>
+      <div className={style.fieldSubPanel}>
+        <div className={style.fieldSubPanelTitle}>퀴즈 설정</div>
+        <div className={style.fieldSubPanelRow}>
+          <span className={style.fieldSubPanelRowLabel}>배점</span>
+          <div className={style.fieldSubPanelInline}>
+            <input
+              className={style.fieldSubPanelInput}
+              type="number"
+              min={0}
+              value={field.points || 0}
+              onChange={(e) =>
+                updateField(fieldIndex, { points: Number(e.target.value) })
+              }
+            />
+            <span className={style.fieldSubPanelHint}>점</span>
+          </div>
         </div>
         {gradable ? (
-          <div
-            style={{
-              display: "flex",
-              gap: "8px",
-              marginTop: "4px",
-              alignItems: "center",
-            }}
-          >
-            <span style={{ fontSize: "12px", color: "var(--text-color-2)" }}>
-              정답:
-            </span>
+          <div className={style.fieldSubPanelRow}>
+            <span className={style.fieldSubPanelRowLabel}>정답</span>
             {field.type === "select" || field.type === "radio" ? (
               <select
-                className={style.selectInput}
-                style={{ fontSize: "12px", padding: "3px 6px", flex: 1 }}
+                className={style.fieldSubPanelSelect}
                 value={field.correctAnswer ?? ""}
                 onChange={(e) =>
                   updateField(fieldIndex, { correctAnswer: e.target.value })
@@ -973,13 +989,8 @@ const AltFormBuilder = ({
               </select>
             ) : field.type === "number" ? (
               <input
-                className={style.fieldInput}
+                className={style.fieldSubPanelInput}
                 type="number"
-                style={{
-                  width: "100px",
-                  fontSize: "12px",
-                  padding: "3px 6px",
-                }}
                 value={field.correctAnswer ?? ""}
                 onChange={(e) =>
                   updateField(fieldIndex, {
@@ -990,22 +1001,127 @@ const AltFormBuilder = ({
                 }
               />
             ) : (
-              <span
-                style={{ fontSize: "11px", color: "var(--text-color-2)" }}
-              >
-                (체크박스/다중선택 — 옵션으로 정답 지정)
+              <span className={style.fieldSubPanelHint}>
+                체크박스/다중선택 — 옵션으로 정답 지정
               </span>
             )}
           </div>
         ) : (
-          <div
-            style={{
-              fontSize: "11px",
-              color: "var(--text-color-2)",
-              marginTop: "4px",
+          <div className={style.fieldSubPanelHint}>
+            수동 채점 (자동 채점 불가)
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderAssessmentFieldSettings = (fieldIndex: number) => {
+    if (!settings.assessmentMode) return null;
+    const field = fields[fieldIndex];
+    if (field.type === "content") return null;
+    if (field.permission !== "respondent") return null;
+
+    const method: TGradingMethod = field.gradingMethod || "none";
+    const selectedRubricIds = field.rubricIds?.length
+      ? field.rubricIds
+      : field.rubricId
+        ? [field.rubricId]
+        : [];
+
+    return (
+      <div className={style.fieldSubPanel}>
+        <div className={style.fieldSubPanelTitle}>평가 채점</div>
+        <div className={style.fieldSubPanelRow}>
+          <span className={style.fieldSubPanelRowLabel}>방식</span>
+          <select
+            className={style.fieldSubPanelSelect}
+            value={method}
+            onChange={(e) => {
+              const next = e.target.value as TGradingMethod;
+              updateField(fieldIndex, {
+                gradingMethod: next === "none" ? undefined : next,
+                rubricId: next === "rubric" ? field.rubricId : undefined,
+                rubricIds: next === "rubric" ? field.rubricIds : undefined,
+              });
             }}
           >
-            수동 채점 (자동 채점 불가)
+            <option value="none">채점 안 함</option>
+            <option value="completion">자기선언(완료 시 배점)</option>
+            <option value="manual_score">수동 점수</option>
+            <option value="rubric">루브릭</option>
+          </select>
+        </div>
+        {(method === "completion" || method === "manual_score") && (
+          <div className={style.fieldSubPanelRow}>
+            <span className={style.fieldSubPanelRowLabel}>배점</span>
+            <div className={style.fieldSubPanelInline}>
+              <input
+                className={style.fieldSubPanelInput}
+                type="number"
+                min={0}
+                value={field.points || 0}
+                onChange={(e) =>
+                  updateField(fieldIndex, { points: Number(e.target.value) })
+                }
+              />
+              <span className={style.fieldSubPanelHint}>점</span>
+            </div>
+          </div>
+        )}
+        {method === "rubric" && (
+          <div
+            className={`${style.fieldSubPanelRow} ${style.fieldSubPanelRowTop}`}
+          >
+            <span className={style.fieldSubPanelRowLabel}>루브릭</span>
+            <div>
+              {rubrics.length === 0 ? (
+                <div className={style.fieldSubPanelHint}>
+                  설정 탭에서 양식 루브릭을 먼저 추가하세요.
+                </div>
+              ) : (
+                <>
+                  <div className={style.fieldSubPanelHint}>
+                    여러 개 선택 가능 · 점수는 합산됩니다
+                  </div>
+                  <div className={style.rubricCheckList}>
+                    {rubrics.map((r) => {
+                      const selected = selectedRubricIds.includes(r.id);
+                      return (
+                        <label
+                          key={r.id}
+                          className={`${style.rubricCheckItem}${
+                            selected ? ` ${style.rubricCheckItemSelected}` : ""
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selected}
+                            onChange={(e) => {
+                              const next = e.target.checked
+                                ? [...selectedRubricIds, r.id]
+                                : selectedRubricIds.filter((id) => id !== r.id);
+                              updateField(fieldIndex, {
+                                rubricIds: next,
+                                rubricId: next[0] || undefined,
+                              });
+                            }}
+                          />
+                          <span>{r.title}</span>
+                          <span className={style.rubricCheckMeta}>
+                            {r.levels?.length || 0}수준
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+        {method === "completion" && (
+          <div className={style.fieldSubPanelHint}>
+            체크·입력 등 값이 있으면 배점이 초안으로 반영됩니다.
           </div>
         )}
       </div>
@@ -1657,10 +1773,9 @@ const AltFormBuilder = ({
   const renderAdvancedSettings = (fieldIndex: number) => {
     const field = fields[fieldIndex];
     return (
-      <div style={{ marginTop: "4px" }}>
-        {/* 조건부 표시 */}
-        <div style={{ marginBottom: "8px" }}>
-          <label className={style.fieldCheckbox}>
+      <div className={style.advancedPanel}>
+        <div className={style.advancedOption}>
+          <label className={style.advancedOptionLabel}>
             <input
               type="checkbox"
               checked={field.displayCondition?.enabled || false}
@@ -1676,83 +1791,64 @@ const AltFormBuilder = ({
                 }
               }}
             />
-            <span style={{ fontSize: "12px" }}>조건부 표시</span>
+            조건부 표시
           </label>
           {renderConditionEditor(fieldIndex)}
         </div>
 
-        {/* 중복 검사 */}
         {field.type !== "content" && (
-        <div style={{ marginBottom: "8px" }}>
-          <label className={style.fieldCheckbox}>
-            <input
-              type="checkbox"
-              checked={field.duplicateCheck?.enabled || false}
-              onChange={(e) => {
-                updateDuplicateCheck(fieldIndex, {
-                  enabled: e.target.checked,
-                  mode: field.duplicateCheck?.mode || "free",
-                  allowedCount: field.duplicateCheck?.allowedCount || 1,
-                });
-              }}
-            />
-            <span style={{ fontSize: "12px" }}>중복 검사</span>
-          </label>
-          {field.duplicateCheck?.enabled && (
-            <div
-              style={{
-                marginTop: "4px",
-                padding: "8px",
-                background: "var(--background-color-2)",
-                borderRadius: "6px",
-                display: "flex",
-                gap: "8px",
-                alignItems: "center",
-              }}
-            >
-              <select
-                className={style.selectInput}
-                style={{ fontSize: "12px", padding: "3px 6px" }}
-                value={field.duplicateCheck.mode}
-                onChange={(e) =>
-                  updateDuplicateCheck(fieldIndex, {
-                    ...field.duplicateCheck!,
-                    mode: e.target.value as "free" | "preRegistration",
-                  })
-                }
-              >
-                <option value="free">자유</option>
-                <option value="preRegistration">사전 등록</option>
-              </select>
-              <span
-                style={{ fontSize: "12px", color: "var(--text-color-2)" }}
-              >
-                허용 수량:
-              </span>
+          <div className={style.advancedOption}>
+            <label className={style.advancedOptionLabel}>
               <input
-                className={style.fieldInput}
-                type="number"
-                min={1}
-                style={{
-                  width: "50px",
-                  fontSize: "12px",
-                  padding: "3px 6px",
-                }}
-                value={field.duplicateCheck.allowedCount}
-                onChange={(e) =>
+                type="checkbox"
+                checked={field.duplicateCheck?.enabled || false}
+                onChange={(e) => {
                   updateDuplicateCheck(fieldIndex, {
-                    ...field.duplicateCheck!,
-                    allowedCount: Number(e.target.value),
-                  })
-                }
+                    enabled: e.target.checked,
+                    mode: field.duplicateCheck?.mode || "free",
+                    allowedCount: field.duplicateCheck?.allowedCount || 1,
+                  });
+                }}
               />
-            </div>
-          )}
-        </div>
+              중복 검사
+            </label>
+            {field.duplicateCheck?.enabled && (
+              <div className={style.fieldSubPanel}>
+                <div className={style.fieldSubPanelInline}>
+                  <select
+                    className={style.fieldSubPanelSelect}
+                    value={field.duplicateCheck.mode}
+                    onChange={(e) =>
+                      updateDuplicateCheck(fieldIndex, {
+                        ...field.duplicateCheck!,
+                        mode: e.target.value as "free" | "preRegistration",
+                      })
+                    }
+                  >
+                    <option value="free">자유</option>
+                    <option value="preRegistration">사전 등록</option>
+                  </select>
+                  <span className={style.fieldSubPanelHint}>허용 수량</span>
+                  <input
+                    className={style.fieldSubPanelInput}
+                    type="number"
+                    min={1}
+                    value={field.duplicateCheck.allowedCount}
+                    onChange={(e) =>
+                      updateDuplicateCheck(fieldIndex, {
+                        ...field.duplicateCheck!,
+                        allowedCount: Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
-        {/* 퀴즈 설정 */}
         {renderQuizSettings(fieldIndex)}
+        {renderAssessmentFieldSettings(fieldIndex)}
       </div>
     );
   };
@@ -1880,6 +1976,8 @@ const AltFormBuilder = ({
       {/* Advanced settings toggle */}
       <div className={style.advancedToggle}>
         <button
+          type="button"
+          className={style.advancedToggleBtn}
           onClick={() =>
             setExpandedField(
               expandedField === field._id ? null : field._id
@@ -2376,14 +2474,18 @@ const AltFormBuilder = ({
                     <div className={style.settingsItemText}>
                       <div className={style.settingsLabelRow}>
                         <span className={style.settingsLabel}>퀴즈 모드</span>
-                        <SettingsHint text="켜면 필드에 배점·정답을 넣을 수 있고, 제출 후 점수가 계산됩니다." />
+                        <SettingsHint text="켜면 필드에 배점·정답을 넣을 수 있고, 제출 후 점수가 계산됩니다. 평가 모드와 함께 켤 수 없습니다." />
                       </div>
                     </div>
                     <div className={style.settingsToggle}>
                       <ToggleSwitch
                         checked={settings.quizMode}
                         onChange={(v) =>
-                          setSettings((s) => ({ ...s, quizMode: v }))
+                          setSettings((s) => ({
+                            ...s,
+                            quizMode: v,
+                            assessmentMode: v ? false : s.assessmentMode,
+                          }))
                         }
                       />
                       <span className={style.settingsToggleText}>
@@ -2448,6 +2550,216 @@ const AltFormBuilder = ({
                             <option value="never">비공개</option>
                           </select>
                         </div>
+                      </div>
+                    </div>
+                  )}
+                  <div className={style.settingsItemRow}>
+                    <div className={style.settingsItemText}>
+                      <div className={style.settingsLabelRow}>
+                        <span className={style.settingsLabel}>평가 모드</span>
+                        <SettingsHint text="학생이 제출한 과제를 항목별·루브릭으로 채점하고, 확정 후 결과를 보여 줍니다. 퀴즈 모드와 함께 켤 수 없습니다." />
+                      </div>
+                    </div>
+                    <div className={style.settingsToggle}>
+                      <ToggleSwitch
+                        checked={settings.assessmentMode}
+                        onChange={(v) =>
+                          setSettings((s) => ({
+                            ...s,
+                            assessmentMode: v,
+                            quizMode: v ? false : s.quizMode,
+                            assessmentSettings:
+                              s.assessmentSettings || defaultAssessmentSettings(),
+                          }))
+                        }
+                      />
+                      <span className={style.settingsToggleText}>
+                        {settings.assessmentMode ? "사용" : "미사용"}
+                      </span>
+                    </div>
+                  </div>
+                  {settings.assessmentMode && (
+                    <div className={style.settingsNested}>
+                      <div className={style.settingsNestedRow}>
+                        <div className={style.settingsLabelRow}>
+                          <span className={style.settingsNestedLabel}>
+                            최종 평가
+                          </span>
+                          <SettingsHint text="확정 시 학생에게 보여줄 결과 형식입니다. 항목 점수·루브릭을 점수만 / 루브릭만 / 둘 다로 공개합니다." />
+                        </div>
+                        <div className={style.settingsNestedControl}>
+                          <select
+                            className={style.settingsNestedSelect}
+                            value={
+                              settings.assessmentSettings.finalEvaluation.mode
+                            }
+                            onChange={(e) => {
+                              const mode = e.target
+                                .value as TAssessmentFinalMode;
+                              setSettings((s) => ({
+                                ...s,
+                                assessmentSettings: {
+                                  ...s.assessmentSettings,
+                                  finalEvaluation: { mode },
+                                },
+                              }));
+                            }}
+                          >
+                            <option value="both">점수 + 루브릭</option>
+                            <option value="score_only">점수만</option>
+                            <option value="rubric_only">루브릭만</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className={style.settingsRubricsBlock}>
+                        <div className={style.settingsRubricsHeader}>
+                          <div className={style.settingsRubricsHeaderText}>
+                            <span className={style.settingsRubricsTitle}>
+                              양식 루브릭
+                            </span>
+                            {rubrics.length === 0 && (
+                              <span className={style.settingsRubricsHint}>
+                                항목 채점에 쓸 루브릭을 추가하세요.
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            className={style.settingsRubricsAddBtn}
+                            onClick={() =>
+                              setRubrics((prev) => [...prev, newRubric()])
+                            }
+                          >
+                            + 루브릭 추가
+                          </button>
+                        </div>
+                        {rubrics.map((rubric, ri) => (
+                          <div key={rubric.id} className={style.settingsRubricCard}>
+                            <div className={style.settingsRubricCardHeader}>
+                              <input
+                                className={style.settingsRubricTitleInput}
+                                value={rubric.title}
+                                onChange={(e) => {
+                                  const title = e.target.value;
+                                  setRubrics((prev) =>
+                                    prev.map((r, i) =>
+                                      i === ri ? { ...r, title } : r
+                                    )
+                                  );
+                                }}
+                              />
+                              <button
+                                type="button"
+                                className={style.settingsRubricGhostBtn}
+                                onClick={() => {
+                                  setRubrics((prev) =>
+                                    prev.filter((_, i) => i !== ri)
+                                  );
+                                }}
+                              >
+                                삭제
+                              </button>
+                            </div>
+                            {rubric.levels.map((level, li) => (
+                              <div
+                                key={level.id}
+                                className={style.settingsRubricLevelRow}
+                              >
+                                <input
+                                  className={style.settingsRubricLevelLabel}
+                                  placeholder="수준"
+                                  value={level.label}
+                                  onChange={(e) => {
+                                    const label = e.target.value;
+                                    setRubrics((prev) =>
+                                      prev.map((r, i) =>
+                                        i !== ri
+                                          ? r
+                                          : {
+                                              ...r,
+                                              levels: r.levels.map((l, j) =>
+                                                j === li ? { ...l, label } : l
+                                              ),
+                                            }
+                                      )
+                                    );
+                                  }}
+                                />
+                                <input
+                                  className={style.settingsRubricLevelPoints}
+                                  type="number"
+                                  placeholder="점"
+                                  value={level.points ?? ""}
+                                  onChange={(e) => {
+                                    const raw = e.target.value;
+                                    const points =
+                                      raw === ""
+                                        ? undefined
+                                        : Number(raw);
+                                    setRubrics((prev) =>
+                                      prev.map((r, i) =>
+                                        i !== ri
+                                          ? r
+                                          : {
+                                              ...r,
+                                              levels: r.levels.map((l, j) =>
+                                                j === li ? { ...l, points } : l
+                                              ),
+                                            }
+                                      )
+                                    );
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  className={style.settingsRubricGhostBtn}
+                                  aria-label="수준 삭제"
+                                  onClick={() =>
+                                    setRubrics((prev) =>
+                                      prev.map((r, i) =>
+                                        i !== ri
+                                          ? r
+                                          : {
+                                              ...r,
+                                              levels: r.levels.filter(
+                                                (_, j) => j !== li
+                                              ),
+                                            }
+                                      )
+                                    )
+                                  }
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ))}
+                            <button
+                              type="button"
+                              className={style.settingsRubricAddLevel}
+                              onClick={() =>
+                                setRubrics((prev) =>
+                                  prev.map((r, i) =>
+                                    i !== ri
+                                      ? r
+                                      : {
+                                          ...r,
+                                          levels: [
+                                            ...r.levels,
+                                            {
+                                              id: crypto.randomUUID(),
+                                              label: "새 수준",
+                                              points: 0,
+                                            },
+                                          ],
+                                        }
+                                  )
+                                )
+                              }
+                            >
+                              + 수준
+                            </button>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}

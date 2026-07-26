@@ -66,6 +66,73 @@ export type TApprovalLine = {
   steps: TApprovalLineStepDef[];
 };
 
+/** 평가 모드 항목 채점 방식 (퀴즈 auto_exact는 퀴즈 전용) */
+export type TGradingMethod =
+  | "none"
+  | "completion"
+  | "manual_score"
+  | "rubric";
+
+export type TRubricLevel = {
+  id: string;
+  label: string;
+  description?: string;
+  points?: number;
+};
+
+export type TFormRubric = {
+  id: string;
+  title: string;
+  levels: TRubricLevel[];
+};
+
+export type TAssessmentFinalMode = "rubric_only" | "score_only" | "both";
+
+export type TAssessmentSettings = {
+  revealOn: "finalized";
+  finalEvaluation: {
+    mode: TAssessmentFinalMode;
+  };
+};
+
+export type TAssessmentFieldRubricGrade = {
+  levelId?: string;
+  levelLabel?: string;
+  score?: number;
+  max?: number;
+  comment?: string;
+};
+
+export type TAssessmentFieldGrade = {
+  score?: number;
+  max?: number;
+  /** @deprecated 단일 루브릭 하위 호환 — byRubric 우선 */
+  levelId?: string;
+  levelLabel?: string;
+  comment?: string;
+  source: "completion" | "manual" | "rubric";
+  /** 필드에 연결된 루브릭별 채점 */
+  byRubric?: Record<string, TAssessmentFieldRubricGrade>;
+  gradedBy?: { user: string; userId: string; userName: string };
+  gradedAt?: string;
+};
+
+export type TAssessmentFinal = {
+  status: "draft" | "finalized";
+  score?: number;
+  max?: number;
+  levelId?: string;
+  levelLabel?: string;
+  comment?: string;
+  finalizedBy?: { user: string; userId: string; userName: string };
+  finalizedAt?: string;
+};
+
+export type TAssessmentData = {
+  byField: Record<string, TAssessmentFieldGrade>;
+  final: TAssessmentFinal;
+};
+
 export type TAltFormField = {
   _id: string;
   label: string;
@@ -81,6 +148,11 @@ export type TAltFormField = {
   displayCondition?: TDisplayCondition;
   correctAnswer?: any;
   points?: number;
+  gradingMethod?: TGradingMethod;
+  /** @deprecated 단일 루브릭 — rubricIds 우선 */
+  rubricId?: string;
+  /** gradingMethod === rubric 일 때 사용할 양식 루브릭 id 목록 */
+  rubricIds?: string[];
   duplicateCheck?: TDuplicateCheck;
   /** type === approval: 결재선 (양식에 저장, 복제·JSON과 함께 이동) */
   approvalLine?: TApprovalLine;
@@ -109,6 +181,9 @@ export type TAltFormSettings = {
   requiredMode?: boolean;
   quizMode?: boolean;
   quizSettings?: TQuizSettings;
+  /** 평가 모드 (퀴즈와 상호 배타) */
+  assessmentMode?: boolean;
+  assessmentSettings?: TAssessmentSettings;
   directInputMode?: boolean;
   shareResponses?: boolean;
   showOwnerFields?: boolean;
@@ -125,6 +200,8 @@ export type TAltForm = {
   title: string;
   description: string;
   fields: TAltFormField[];
+  /** 양식 스코프 루브릭 (평가 모드) */
+  rubrics?: TFormRubric[];
   settings: TAltFormSettings;
   sheet: string;
   isActive: boolean;

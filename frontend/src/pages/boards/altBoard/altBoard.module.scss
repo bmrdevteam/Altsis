@@ -906,6 +906,160 @@
   width: 100px;
 }
 
+/* 평가 모드: 양식 루브릭 편집 블록 */
+.settingsRubricsBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 16px 14px 32px;
+  border-bottom: 1px solid var(--border-default-color, var(--border-color));
+  background: var(--background-color);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.settingsRubricsHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settingsRubricsHeaderText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.settingsRubricsTitle {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-color-2);
+  white-space: nowrap;
+}
+
+.settingsRubricsHint {
+  font-size: 12px;
+  color: var(--text-color-3, var(--text-color-2));
+  line-height: 1.4;
+}
+
+.settingsRubricsAddBtn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border: 1px solid var(--border-default-color, var(--border-color));
+  border-radius: 6px;
+  background: var(--background-color);
+  color: var(--text-color-1);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s;
+
+  &:hover {
+    border-color: var(--accent-1);
+    color: var(--accent-1);
+  }
+}
+
+.settingsRubricCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-default-color, var(--border-color));
+  border-radius: 8px;
+  background: var(--background-color-2, var(--background-color));
+}
+
+.settingsRubricCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settingsRubricTitleInput {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-family: inherit;
+  padding: 6px 10px;
+  border: 1px solid var(--border-default-color, var(--border-color));
+  border-radius: 6px;
+  background: var(--background-color);
+  color: var(--text-color-1);
+}
+
+.settingsRubricLevelRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settingsRubricLevelLabel {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-family: inherit;
+  padding: 5px 8px;
+  border: 1px solid var(--border-default-color, var(--border-color));
+  border-radius: 6px;
+  background: var(--background-color);
+  color: var(--text-color-1);
+}
+
+.settingsRubricLevelPoints {
+  width: 56px;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-family: inherit;
+  padding: 5px 6px;
+  border: 1px solid var(--border-default-color, var(--border-color));
+  border-radius: 6px;
+  background: var(--background-color);
+  color: var(--text-color-1);
+}
+
+.settingsRubricGhostBtn {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-color-2);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+
+  &:hover {
+    color: var(--text-color-1);
+    background: var(--background-color);
+  }
+}
+
+.settingsRubricAddLevel {
+  align-self: flex-start;
+  border: none;
+  background: transparent;
+  color: var(--accent-1);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 2px 0;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
 .settingsLabel {
   font-size: 14px;
   font-weight: 500;
@@ -1262,24 +1416,176 @@
   }
 }
 
-/* Advanced toggle */
+/* Advanced toggle + panel */
 .advancedToggle {
-  padding: 0 20px;
-  margin: 4px 0 8px;
+  padding: 0 20px 4px;
+  margin: 0;
+}
 
-  button {
-    font-size: 12px;
-    color: var(--text-color-2);
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 4px 0;
-    font-family: inherit;
+.advancedToggleBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-color-2);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 0;
+  font-family: inherit;
+  transition: color 0.15s;
 
-    &:hover {
-      color: var(--text-color-1);
-    }
+  &:hover {
+    color: var(--accent-1);
   }
+}
+
+.advancedPanel {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-default-color, var(--border-color));
+  border-radius: 8px;
+  background: var(--background-color-2);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.advancedOption {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.advancedOptionLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-color-1);
+  cursor: pointer;
+  user-select: none;
+
+  input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    accent-color: var(--accent-1);
+    cursor: pointer;
+  }
+}
+
+.fieldSubPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-default-color, var(--border-color));
+  background: var(--background-color);
+}
+
+.fieldSubPanelTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-color-1);
+  letter-spacing: -0.01em;
+}
+
+.fieldSubPanelHint {
+  font-size: 11px;
+  color: var(--text-color-2);
+  line-height: 1.4;
+}
+
+.fieldSubPanelRow {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.fieldSubPanelRowTop {
+  align-items: start;
+
+  .fieldSubPanelRowLabel {
+    padding-top: 6px;
+  }
+}
+
+.fieldSubPanelRowLabel {
+  font-size: 12px;
+  color: var(--text-color-2);
+  white-space: nowrap;
+}
+
+.fieldSubPanelSelect,
+.fieldSubPanelInput {
+  font-size: 12px;
+  font-family: inherit;
+  padding: 6px 10px;
+  border: 1px solid var(--border-default-color, var(--border-color));
+  border-radius: 6px;
+  background: var(--background-color);
+  color: var(--text-color-1);
+  min-width: 0;
+  width: 100%;
+  max-width: 280px;
+}
+
+.fieldSubPanelInput {
+  max-width: 88px;
+}
+
+.fieldSubPanelInline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.rubricCheckList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 360px;
+}
+
+.rubricCheckItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  color: var(--text-color-1);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+
+  input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    accent-color: var(--accent-1);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  &:hover {
+    background: var(--background-color-2);
+  }
+}
+
+.rubricCheckItemSelected {
+  border-color: var(--border-default-color, var(--border-color));
+  background: var(--background-color-2);
+}
+
+.rubricCheckMeta {
+  margin-left: auto;
+  color: var(--text-color-2);
+  font-size: 11px;
+  flex-shrink: 0;
 }
 
 /* Field action bar */
