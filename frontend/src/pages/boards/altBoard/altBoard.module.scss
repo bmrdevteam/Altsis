@@ -681,9 +681,13 @@
   }
 }
 
-/* Settings card */
+/* Settings — 관리 > 알림 탭과 동일한 카테고리 카드 톤 */
 .settingsCard {
   overflow: visible;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  margin-bottom: 12px;
 }
 
 .settingsPanel {
@@ -696,30 +700,38 @@
 .settingsSections {
   display: flex;
   flex-direction: column;
-  gap: 0;
-  padding: 4px 0;
+  gap: 16px;
+  padding: 0;
 }
 
 .settingsSection {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border-default-color, var(--border-color));
-
-  &:last-child {
-    border-bottom: none;
-  }
+  border: 1px solid var(--border-default-color, var(--border-color));
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--background-color);
+  padding: 0;
 }
 
 .settingsSectionTitle {
-  margin: 0 0 12px;
+  margin: 0;
+  padding: 12px 16px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-color-1);
+  color: var(--accent-2, var(--text-color-2));
+  background: var(--component-color, var(--background-color-2));
+  border-bottom: 1px solid var(--border-default-color, var(--border-color));
+}
+
+.settingsSectionBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 .settingsSectionGrid {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0;
 }
 
 .settingsDateGrid {
@@ -727,6 +739,7 @@
   flex-wrap: wrap;
   gap: 12px 24px;
   align-items: flex-start;
+  padding: 12px 16px;
 }
 
 .settingsItemRow {
@@ -734,7 +747,13 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  min-height: 32px;
+  min-height: 48px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-default-color, var(--border-color));
+
+  &:last-child {
+    border-bottom: none;
+  }
 }
 
 .settingsItemText {
@@ -750,6 +769,103 @@
   color: var(--text-color-2);
   text-transform: none;
   letter-spacing: normal;
+  line-height: 1.4;
+}
+
+.settingsItem {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* 상위 토글에 종속된 하위 설정 — 본문 행과 동일한 가로 레이아웃 */
+.settingsNested {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border-bottom: 1px solid var(--border-default-color, var(--border-color));
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.settingsNestedRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 48px;
+  padding: 10px 16px 10px 32px;
+  border-bottom: 1px solid var(--border-default-color, var(--border-color));
+  background: var(--background-color);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.settingsNestedText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.settingsNestedLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-color-2);
+}
+
+.settingsNestedControl {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.settingsNestedSelect,
+.settingsNestedInput {
+  font-size: 13px;
+  font-family: inherit;
+  padding: 6px 10px;
+  border: 1px solid var(--border-default-color, var(--border-color));
+  border-radius: 6px;
+  background: var(--background-color);
+  color: var(--text-color-1);
+  min-width: 140px;
+}
+
+.settingsNestedInput {
+  min-width: 100px;
+  width: 100px;
+}
+
+.settingsLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-color-1);
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.settingsToggle {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.settingsToggleText {
+  font-size: 13px;
+  color: var(--text-color-2);
+  min-width: 3.5em;
+  text-align: right;
 }
 
 .builderTabBar {
@@ -795,35 +911,6 @@
     border-radius: 1px 1px 0 0;
     border-bottom: 2px solid var(--primary-text-color, var(--text-color-1));
   }
-}
-
-.settingsItem {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.settingsLabel {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-color-1);
-  text-transform: none;
-  letter-spacing: normal;
-}
-
-.settingsToggle {
-  display: flex;
-  flex-direction: row-reverse;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.settingsToggleText {
-  font-size: 13px;
-  color: var(--text-color-2);
-  min-width: 3.5em;
-  text-align: right;
 }
 
 .settingsDateInput {

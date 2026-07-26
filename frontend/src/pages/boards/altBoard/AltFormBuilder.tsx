@@ -2154,55 +2154,60 @@ const AltFormBuilder = ({
         </div>
 
         {builderTab === "settings" && (
-          <div className={`${style.gfCard} ${style.settingsCard}`}>
+          <div className={style.settingsCard}>
             <div className={style.settingsSections}>
               <section className={style.settingsSection}>
                 <h4 className={style.settingsSectionTitle}>기간</h4>
-                <div className={style.settingsDateGrid}>
-                  <div className={style.settingsItem}>
-                    <span className={style.settingsLabel}>시작일</span>
-                    <input
-                      type="datetime-local"
-                      className={style.settingsDateInput}
-                      value={settings.openAt}
-                      onChange={(e) =>
-                        setSettings((s) => ({ ...s, openAt: e.target.value }))
-                      }
-                      onClick={(e) => {
-                        const el = e.currentTarget;
-                        try {
-                          el.showPicker?.();
-                        } catch {
-                          /* 일부 환경에서 showPicker 미지원/거부 */
+                <div className={style.settingsSectionBody}>
+                  <div className={style.settingsDateGrid}>
+                    <div className={style.settingsItem}>
+                      <span className={style.settingsLabel}>시작일</span>
+                      <input
+                        type="datetime-local"
+                        className={style.settingsDateInput}
+                        value={settings.openAt}
+                        onChange={(e) =>
+                          setSettings((s) => ({ ...s, openAt: e.target.value }))
                         }
-                      }}
-                    />
-                  </div>
-                  <div className={style.settingsItem}>
-                    <span className={style.settingsLabel}>마감일</span>
-                    <input
-                      type="datetime-local"
-                      className={style.settingsDateInput}
-                      value={settings.closeAt}
-                      onChange={(e) =>
-                        setSettings((s) => ({ ...s, closeAt: e.target.value }))
-                      }
-                      onClick={(e) => {
-                        const el = e.currentTarget;
-                        try {
-                          el.showPicker?.();
-                        } catch {
-                          /* 일부 환경에서 showPicker 미지원/거부 */
+                        onClick={(e) => {
+                          const el = e.currentTarget;
+                          try {
+                            el.showPicker?.();
+                          } catch {
+                            /* 일부 환경에서 showPicker 미지원/거부 */
+                          }
+                        }}
+                      />
+                    </div>
+                    <div className={style.settingsItem}>
+                      <span className={style.settingsLabel}>마감일</span>
+                      <input
+                        type="datetime-local"
+                        className={style.settingsDateInput}
+                        value={settings.closeAt}
+                        onChange={(e) =>
+                          setSettings((s) => ({
+                            ...s,
+                            closeAt: e.target.value,
+                          }))
                         }
-                      }}
-                    />
+                        onClick={(e) => {
+                          const el = e.currentTarget;
+                          try {
+                            el.showPicker?.();
+                          } catch {
+                            /* 일부 환경에서 showPicker 미지원/거부 */
+                          }
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
               </section>
 
               <section className={style.settingsSection}>
                 <h4 className={style.settingsSectionTitle}>응답</h4>
-                <div className={style.settingsSectionGrid}>
+                <div className={style.settingsSectionBody}>
                   <div className={style.settingsItemRow}>
                     <div className={style.settingsItemText}>
                       <span className={style.settingsLabel}>재제출 허용</span>
@@ -2261,7 +2266,7 @@ const AltFormBuilder = ({
 
               <section className={style.settingsSection}>
                 <h4 className={style.settingsSectionTitle}>모드</h4>
-                <div className={style.settingsSectionGrid}>
+                <div className={style.settingsSectionBody}>
                   <div className={style.settingsItemRow}>
                     <div className={style.settingsItemText}>
                       <span className={style.settingsLabel}>필수 모드</span>
@@ -2285,34 +2290,34 @@ const AltFormBuilder = ({
                   </div>
                   {settings.requiredMode &&
                     settings.allowMultipleResponses && (
-                      <div className={style.settingsItem}>
-                        <span className={style.settingsLabel}>
-                          목표 제출 횟수
-                        </span>
-                        <span className={style.settingsHint}>
-                          사용자가 이 횟수만큼 제출하면 제출완료가 됩니다.
-                          목표에 도달하면 추가 제출은 할 수 없습니다.
-                        </span>
-                        <input
-                          type="number"
-                          className={style.selectInput}
-                          style={{
-                            fontSize: "13px",
-                            padding: "6px 10px",
-                            width: "100px",
-                          }}
-                          min={1}
-                          step={1}
-                          value={settings.requiredResponseCount}
-                          onChange={(e) => {
-                            const n = parseInt(e.target.value, 10);
-                            setSettings((s) => ({
-                              ...s,
-                              requiredResponseCount:
-                                Number.isFinite(n) && n >= 1 ? n : 1,
-                            }));
-                          }}
-                        />
+                      <div className={style.settingsNested}>
+                        <div className={style.settingsNestedRow}>
+                          <div className={style.settingsNestedText}>
+                            <span className={style.settingsNestedLabel}>
+                              목표 제출 횟수
+                            </span>
+                            <span className={style.settingsHint}>
+                              목표에 도달하면 추가 제출은 할 수 없습니다.
+                            </span>
+                          </div>
+                          <div className={style.settingsNestedControl}>
+                            <input
+                              type="number"
+                              className={style.settingsNestedInput}
+                              min={1}
+                              step={1}
+                              value={settings.requiredResponseCount}
+                              onChange={(e) => {
+                                const n = parseInt(e.target.value, 10);
+                                setSettings((s) => ({
+                                  ...s,
+                                  requiredResponseCount:
+                                    Number.isFinite(n) && n >= 1 ? n : 1,
+                                }));
+                              }}
+                            />
+                          </div>
+                        </div>
                       </div>
                     )}
                   <div className={style.settingsItemRow}>
@@ -2332,52 +2337,58 @@ const AltFormBuilder = ({
                     </div>
                   </div>
                   {settings.quizMode && (
-                    <>
-                      <div className={style.settingsItem}>
-                        <span className={style.settingsLabel}>점수 공개</span>
-                        <select
-                          className={style.selectInput}
-                          style={{ fontSize: "13px", padding: "6px 10px" }}
-                          value={settings.quizSettings.scoreReveal}
-                          onChange={(e) =>
-                            setSettings((s) => ({
-                              ...s,
-                              quizSettings: {
-                                ...s.quizSettings,
-                                scoreReveal: e.target
-                                  .value as TQuizSettings["scoreReveal"],
-                              },
-                            }))
-                          }
-                        >
-                          <option value="immediately">제출 즉시</option>
-                          <option value="afterDeadline">마감 후</option>
-                          <option value="never">비공개</option>
-                        </select>
+                    <div className={style.settingsNested}>
+                      <div className={style.settingsNestedRow}>
+                        <span className={style.settingsNestedLabel}>
+                          점수 공개
+                        </span>
+                        <div className={style.settingsNestedControl}>
+                          <select
+                            className={style.settingsNestedSelect}
+                            value={settings.quizSettings.scoreReveal}
+                            onChange={(e) =>
+                              setSettings((s) => ({
+                                ...s,
+                                quizSettings: {
+                                  ...s.quizSettings,
+                                  scoreReveal: e.target
+                                    .value as TQuizSettings["scoreReveal"],
+                                },
+                              }))
+                            }
+                          >
+                            <option value="immediately">제출 즉시</option>
+                            <option value="afterDeadline">마감 후</option>
+                            <option value="never">비공개</option>
+                          </select>
+                        </div>
                       </div>
-                      <div className={style.settingsItem}>
-                        <span className={style.settingsLabel}>정답 공개</span>
-                        <select
-                          className={style.selectInput}
-                          style={{ fontSize: "13px", padding: "6px 10px" }}
-                          value={settings.quizSettings.answerReveal}
-                          onChange={(e) =>
-                            setSettings((s) => ({
-                              ...s,
-                              quizSettings: {
-                                ...s.quizSettings,
-                                answerReveal: e.target
-                                  .value as TQuizSettings["answerReveal"],
-                              },
-                            }))
-                          }
-                        >
-                          <option value="immediately">제출 즉시</option>
-                          <option value="afterDeadline">마감 후</option>
-                          <option value="never">비공개</option>
-                        </select>
+                      <div className={style.settingsNestedRow}>
+                        <span className={style.settingsNestedLabel}>
+                          정답 공개
+                        </span>
+                        <div className={style.settingsNestedControl}>
+                          <select
+                            className={style.settingsNestedSelect}
+                            value={settings.quizSettings.answerReveal}
+                            onChange={(e) =>
+                              setSettings((s) => ({
+                                ...s,
+                                quizSettings: {
+                                  ...s.quizSettings,
+                                  answerReveal: e.target
+                                    .value as TQuizSettings["answerReveal"],
+                                },
+                              }))
+                            }
+                          >
+                            <option value="immediately">제출 즉시</option>
+                            <option value="afterDeadline">마감 후</option>
+                            <option value="never">비공개</option>
+                          </select>
+                        </div>
                       </div>
-                    </>
+                    </div>
                   )}
                   <div className={style.settingsItemRow}>
                     <div className={style.settingsItemText}>
@@ -2405,7 +2416,7 @@ const AltFormBuilder = ({
 
               <section className={style.settingsSection}>
                 <h4 className={style.settingsSectionTitle}>공개</h4>
-                <div className={style.settingsSectionGrid}>
+                <div className={style.settingsSectionBody}>
                   <div className={style.settingsItemRow}>
                     <div className={style.settingsItemText}>
                       <span className={style.settingsLabel}>응답 결과 공유</span>
@@ -2424,7 +2435,9 @@ const AltFormBuilder = ({
                   </div>
                   <div className={style.settingsItemRow}>
                     <div className={style.settingsItemText}>
-                      <span className={style.settingsLabel}>관리자 필드 공개</span>
+                      <span className={style.settingsLabel}>
+                        관리자 필드 공개
+                      </span>
                     </div>
                     <div className={style.settingsToggle}>
                       <ToggleSwitch
