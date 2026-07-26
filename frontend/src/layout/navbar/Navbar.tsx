@@ -29,27 +29,30 @@ const Navbar = (props: Props) => {
         <span className={style.search_shortcut}>{isMac ? "⌘K" : "Ctrl+K"}</span>
       </div>
 
-      <div className={style.menu_item} style={{ paddingLeft: "24px" }}>
-        <Select
-          appearence="flat"
-          options={
-            currentUser?.registrations
-              ?.filter(
-                (registration) => registration.school === currentSchool._id
-              )
-              .map((value: any, index: number) => {
-                return {
-                  text: `${value.year} ${value.term}`,
-                  value: value._id,
-                };
-              }) ?? []
-          }
-          defaultSelectedValue={currentRegistration?._id}
-          onChange={(value: any) => {
-            changeRegistration(value);
-          }}
-        />
-      </div>
+      {(() => {
+        const seasonOptions =
+          currentUser?.registrations
+            ?.filter(
+              (registration) => registration.school === currentSchool?._id
+            )
+            .map((value: any) => ({
+              text: `${value.year} ${value.term}`,
+              value: value._id,
+            })) ?? [];
+        if (seasonOptions.length === 0) return null;
+        return (
+          <div className={style.menu_item} style={{ paddingLeft: "24px" }}>
+            <Select
+              appearence="flat"
+              options={seasonOptions}
+              defaultSelectedValue={currentRegistration?._id}
+              onChange={(value: any) => {
+                changeRegistration(value);
+              }}
+            />
+          </div>
+        );
+      })()}
       <div className={style.controls}>
         <Notification />
         <Chat />

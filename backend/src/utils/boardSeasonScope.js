@@ -41,3 +41,32 @@ export const isBoardVisibleForSeason = (board, currentSeasonId) => {
   }
   return true;
 };
+
+/**
+ * User.schools에 해당 schoolId가 있는지 (규칙 A)
+ * @param {Object} user
+ * @param {string} schoolId - board.schoolId
+ * @returns {boolean}
+ */
+export const isUserAssignedToSchool = (user, schoolId) => {
+  if (!user?.schools?.length || !schoolId) return false;
+  const sid = String(schoolId);
+  return user.schools.some(
+    (s) => String(s.schoolId) === sid || String(s.school) === sid
+  );
+};
+
+/**
+ * 학교 보드: 시즌 role 없이도 학교 소속 + teacher/student 그룹이면 접근 (규칙 A)
+ * 시즌 보드에는 적용하지 않음.
+ *
+ * @param {Object} board
+ * @param {Object} user
+ * @param {{ teacher?: boolean, student?: boolean }} memberGroups
+ * @returns {boolean}
+ */
+export const grantsSchoolAffiliationAccess = (board, user, memberGroups) => {
+  if (isSeasonScopedBoard(board)) return false;
+  if (!isUserAssignedToSchool(user, board.schoolId)) return false;
+  return !!(memberGroups?.teacher || memberGroups?.student);
+};

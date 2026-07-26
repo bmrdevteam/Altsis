@@ -91,7 +91,7 @@ const NOTIF_LABELS: Record<
 
 const BoardManagePopup = ({ board, setState, onSuccess }: Props) => {
   const { currentRegistration, currentSeason, currentSchool } = useAuth();
-  const { BoardAPI, RegistrationAPI } = useAPIv2();
+  const { BoardAPI, RegistrationAPI, UserAPI } = useAPIv2();
 
   const [name, setName] = useState(board.name);
   const [description, setDescription] = useState(board.description || "");
@@ -139,48 +139,72 @@ const BoardManagePopup = ({ board, setState, onSuccess }: Props) => {
       board.scope === "season" && board.season
         ? board.season
         : currentRegistration?.season || currentSeason?._id;
+
+    const applyCandidateList = (list: any[]) => {
+      setRegistrationList(list);
+
+      // altBoardRole에서 멤버 자동 복원 (기존 보드 마이그레이션)
+      if (board.altBoardRole && initialMembers.users.length === 0) {
+        const altMembers: { user: string; userId: string; userName: string }[] =
+          [];
+        const altWriters: { user: string; userId: string; userName: string }[] =
+          [];
+        for (const [userOid, role] of Object.entries(board.altBoardRole)) {
+          const reg = list.find(
+            (r: any) => r.user === userOid || r._id === userOid
+          );
+          if (reg) {
+            altMembers.push({
+              user: reg.user || reg._id,
+              userId: reg.userId,
+              userName: reg.userName,
+            });
+            if (role === "admin" || role === "writer") {
+              altWriters.push({
+                user: reg.user || reg._id,
+                userId: reg.userId,
+                userName: reg.userName,
+              });
+            }
+          }
+        }
+        if (altMembers.length > 0) {
+          setMembers((prev) => ({
+            ...prev,
+            users: _.uniqBy([...prev.users, ...altMembers], (x) => x.userId),
+          }));
+        }
+        if (altWriters.length > 0) {
+          setWriters((prev) => ({
+            ...prev,
+            users: _.uniqBy([...prev.users, ...altWriters], (x) => x.userId),
+          }));
+        }
+      }
+    };
+
     if (seasonId) {
       RegistrationAPI.RRegistrations({
         query: { season: seasonId },
       })
         .then(({ registrations }) => {
-          const list = _.uniqBy(registrations, "userId");
-          setRegistrationList(list);
-
-          // altBoardRole에서 멤버 자동 복원 (기존 보드 마이그레이션)
-          if (board.altBoardRole && initialMembers.users.length === 0) {
-            const altMembers: { user: string; userId: string; userName: string }[] = [];
-            const altWriters: { user: string; userId: string; userName: string }[] = [];
-            for (const [userOid, role] of Object.entries(board.altBoardRole)) {
-              const reg = list.find((r: any) => r.user === userOid);
-              if (reg) {
-                altMembers.push({
-                  user: reg.user,
-                  userId: reg.userId,
-                  userName: reg.userName,
-                });
-                if (role === "admin" || role === "writer") {
-                  altWriters.push({
-                    user: reg.user,
-                    userId: reg.userId,
-                    userName: reg.userName,
-                  });
-                }
-              }
-            }
-            if (altMembers.length > 0) {
-              setMembers((prev) => ({
-                ...prev,
-                users: _.uniqBy([...prev.users, ...altMembers], (x) => x.userId),
-              }));
-            }
-            if (altWriters.length > 0) {
-              setWriters((prev) => ({
-                ...prev,
-                users: _.uniqBy([...prev.users, ...altWriters], (x) => x.userId),
-              }));
-            }
-          }
+          applyCandidateList(_.uniqBy(registrations, "userId"));
+        })
+        .catch(() => {});
+    } else if (currentSchool?._id) {
+      // 시즌 없음: 학교 소속 사용자를 초대 후보로 (규칙 A)
+      UserAPI.RUsers({ query: { sid: currentSchool._id } })
+        .then(({ users }) => {
+          const list = _.uniqBy(
+            users.map((u: any) => ({
+              user: u._id,
+              userId: u.userId,
+              userName: u.userName,
+              role: u.auth === "manager" ? "manager" : undefined,
+            })),
+            "userId"
+          );
+          applyCandidateList(list);
         })
         .catch(() => {});
     }
@@ -518,6 +542,19 @@ const BoardManagePopup = ({ board, setState, onSuccess }: Props) => {
 
     const teachers = filtered.filter((u) => u.role === "teacher");
     const students = filtered.filter((u) => u.role === "student");
+    const others = filtered.filter(
+      (u) => u.role !== "teacher" && u.role !== "student"
+    );
+
+    // 시즌 없이 학교 소속만 불러온 경우 role이 없을 수 있음 → 전체 목록으로 표시
+    if (teachers.length === 0 && students.length === 0 && others.length > 0) {
+      return (
+        <>
+          {renderGroupHeader("학교 소속", others)}
+          {others.map(renderRow)}
+        </>
+      );
+    }
 
     return (
       <>
@@ -536,6 +573,17 @@ const BoardManagePopup = ({ board, setState, onSuccess }: Props) => {
                   : undefined,
             })}
             {students.map(renderRow)}
+          </>
+        )}
+        {others.length > 0 && (
+          <>
+            {renderGroupHeader("기타", others, {
+              borderTop:
+                teachers.length > 0 || students.length > 0
+                  ? "1px solid var(--border-color)"
+                  : undefined,
+            })}
+            {others.map(renderRow)}
           </>
         )}
       </>

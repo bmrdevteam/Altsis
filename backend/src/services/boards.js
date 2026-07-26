@@ -7,9 +7,14 @@ import { Registration, User } from "../models/index.js";
 import {
   isSeasonScopedBoard,
   canBypassSeasonRegistration,
+  grantsSchoolAffiliationAccess,
 } from "../utils/boardSeasonScope.js";
 
-export { isSeasonScopedBoard, canBypassSeasonRegistration };
+export {
+  isSeasonScopedBoard,
+  canBypassSeasonRegistration,
+  grantsSchoolAffiliationAccess,
+};
 
 /**
  * 보드 관리 권한 확인 (admin/manager 또는 보드 생성자)
@@ -176,6 +181,9 @@ export const isBoardMemberAsUser = (board, user, role) => {
   if (role === "teacher" && members.groups?.teacher) return true;
   if (role === "student" && members.groups?.student) return true;
 
+  // 규칙 A: 시즌 role 없이도 학교 소속이면 학교 보드 접근
+  if (grantsSchoolAffiliationAccess(board, user, members.groups)) return true;
+
   return false;
 };
 
@@ -299,6 +307,43 @@ export const getBoardMembers = async (academyId, board, seasonId) => {
     for (const u of members.users || []) {
       if (!users.some((x) => x.userId === u.userId)) {
         users.push({ user: u.user, userId: u.userId, userName: u.userName });
+      }
+    }
+
+    // 규칙 A: 학교 보드 + teacher/student 그룹 → 학교 소속 사용자 포함
+    if (
+      !isSeasonScopedBoard(board) &&
+      (members.groups?.teacher || members.groups?.student)
+    ) {
+      const schoolUsers = await User(academyId)
+        .find({ "schools.schoolId": board.schoolId })
+        .select("_id userId userName")
+        .lean();
+      for (const u of schoolUsers) {
+        if (!users.some((x) => x.userId === u.userId)) {
+          users.push({
+            user: u._id,
+            userId: u.userId,
+            userName: u.userName,
+          });
+        }
+      }
+    }
+  }
+
+  // 기본 보드도 시즌 없이 학교 소속자를 멤버 목록에 포함
+  if (board.isDefault && !isSeasonScopedBoard(board)) {
+    const schoolUsers = await User(academyId)
+      .find({ "schools.schoolId": board.schoolId })
+      .select("_id userId userName")
+      .lean();
+    for (const u of schoolUsers) {
+      if (!users.some((x) => x.userId === u.userId)) {
+        users.push({
+          user: u._id,
+          userId: u.userId,
+          userName: u.userName,
+        });
       }
     }
   }

@@ -36,61 +36,52 @@ export const SidebarData = (auth: string, role?: string): any => {
 
   const data = [];
 
+  // 일정·보드는 시즌(Registration) 없이도 노출 (보드 중심 학교)
+  data.push({
+    title: "schedule",
+    name: "일정",
+    path: "/",
+    icon: <Svg type="eventCalendar" />,
+  });
+
+  // 수업·기록·문서는 활성화된 시즌 등록이 있을 때만
   if (currentRegistration) {
-    data.push(
-      ...[
+    data.push({
+      title: "courses",
+      name: "수업",
+      path: "/courses",
+      icon: <Svg type="menuBook" />,
+      subLink: [
+        currentRegistration?.permissionSyllabusV2
+          ? {
+              title: "design",
+              name: "수업 개설",
+              path: "/courses/design",
+              icon: <Svg type="postAdd" />,
+            }
+          : undefined,
+        currentRegistration?.permissionEnrollmentV2
+          ? {
+              title: "enroll",
+              name: "수강 신청",
+              path: "/courses/enroll",
+              icon: <Svg type="search" />,
+            }
+          : undefined,
         {
-          title: "schedule",
-          name: "일정",
-          path: "/",
-          icon: <Svg type="eventCalendar" />,
+          title: "list",
+          name: "전체 목록",
+          path: "/courses/list",
+          icon: <Svg type="list" />,
         },
         {
-          title: "courses",
-          name: "수업",
-          path: "/courses",
-          icon: <Svg type="menuBook" />,
-          subLink: [
-            currentRegistration?.permissionSyllabusV2
-              ? {
-                  title: "design",
-                  name: "수업 개설",
-                  path: "/courses/design",
-                  icon: <Svg type="postAdd" />,
-                }
-              : undefined,
-            currentRegistration?.permissionEnrollmentV2
-              ? {
-                  title: "enroll",
-                  name: "수강 신청",
-                  path: "/courses/enroll",
-                  icon: <Svg type="search" />,
-                }
-              : undefined,
-              // currentRegistration?.permissionEnrollmentV2
-              // ? {
-              //   title: "enrollStatus",
-              //   name: "수강 현황",
-              //   path: "/courses/status",
-              //   icon: <Svg type="profileList" />,
-              // }
-              // : undefined,
-            {
-              title: "list",
-              name: "전체 목록",
-              path: "/courses/list",
-              icon: <Svg type="list" />,
-            },
-            {
-              title: "classrooms",
-              name: "강의실 현황",
-              path: "/courses/classrooms",
-              icon: <Svg type="meetingRoom" />,
-            },
-          ].filter((element: any, i: number) => element !== undefined),
+          title: "classrooms",
+          name: "강의실 현황",
+          path: "/courses/classrooms",
+          icon: <Svg type="meetingRoom" />,
         },
-      ]
-    );
+      ].filter((element: any) => element !== undefined),
+    });
     if (currentRegistration.role === "teacher") {
       if (currentSchool?.formArchive) {
         const isManager = auth === "manager";
@@ -165,18 +156,19 @@ export const SidebarData = (auth: string, role?: string): any => {
       path: "/docs",
       icon: <Svg type="article" />,
     });
-    if (
-      currentSchool?.boardEnabled !== false &&
-      currentSchool?.academyFeatures?.boardEnabled !== false
-    ) {
-      data.push({
-        title: "boards",
-        name: "보드",
-        path: "/boards",
-        icon: <Svg type="dashboard" />,
-        matchPaths: ["boards"],
-      });
-    }
+  }
+
+  if (
+    currentSchool?.boardEnabled !== false &&
+    currentSchool?.academyFeatures?.boardEnabled !== false
+  ) {
+    data.push({
+      title: "boards",
+      name: "보드",
+      path: "/boards",
+      icon: <Svg type="dashboard" />,
+      matchPaths: ["boards"],
+    });
   }
 
   if (auth === "manager") {

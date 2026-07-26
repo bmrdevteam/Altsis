@@ -2,6 +2,8 @@ import {
   isSeasonScopedBoard,
   canBypassSeasonRegistration,
   isBoardVisibleForSeason,
+  isUserAssignedToSchool,
+  grantsSchoolAffiliationAccess,
 } from "../../src/utils/boardSeasonScope.js";
 
 describe("boardSeasonScope helpers", () => {
@@ -62,5 +64,58 @@ describe("boardSeasonScope helpers", () => {
     ];
     const visible = boards.filter((b) => isBoardVisibleForSeason(b, null));
     expect(visible.map((b) => b._id)).toEqual(["1"]);
+  });
+
+  test("isUserAssignedToSchool matches schoolId on user.schools", () => {
+    const user = {
+      schools: [{ schoolId: "byul", school: "oid1" }],
+    };
+    expect(isUserAssignedToSchool(user, "byul")).toBe(true);
+    expect(isUserAssignedToSchool(user, "other")).toBe(false);
+    expect(isUserAssignedToSchool({ schools: [] }, "byul")).toBe(false);
+  });
+
+  test("grantsSchoolAffiliationAccess for school board with teacher/student group", () => {
+    const schoolBoard = {
+      scope: "school",
+      schoolId: "byul",
+    };
+    const assigned = {
+      schools: [{ schoolId: "byul" }],
+    };
+    expect(
+      grantsSchoolAffiliationAccess(schoolBoard, assigned, {
+        teacher: true,
+        student: false,
+      })
+    ).toBe(true);
+    expect(
+      grantsSchoolAffiliationAccess(schoolBoard, assigned, {
+        teacher: false,
+        student: false,
+      })
+    ).toBe(false);
+    expect(
+      grantsSchoolAffiliationAccess(
+        schoolBoard,
+        { schools: [{ schoolId: "other" }] },
+        { teacher: true }
+      )
+    ).toBe(false);
+  });
+
+  test("grantsSchoolAffiliationAccess denies season boards even if school assigned", () => {
+    const seasonBoard = {
+      scope: "season",
+      season: "s1",
+      schoolId: "byul",
+    };
+    expect(
+      grantsSchoolAffiliationAccess(
+        seasonBoard,
+        { schools: [{ schoolId: "byul" }] },
+        { teacher: true, student: true }
+      )
+    ).toBe(false);
   });
 });
