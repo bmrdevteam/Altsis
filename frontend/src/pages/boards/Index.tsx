@@ -222,6 +222,15 @@ const Boards = () => {
     [boards, showFavoritesOnly]
   );
 
+  const todoCountByBoard = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const item of todos) {
+      if (!item.boardId) continue;
+      counts[item.boardId] = (counts[item.boardId] || 0) + 1;
+    }
+    return counts;
+  }, [todos]);
+
   const defaultTab = todos.length > 0 ? "할 일" : "보드";
   const tabBadges: Record<string, number> = {};
   if (todos.length > 0) tabBadges["할 일"] = todos.length;
@@ -302,7 +311,9 @@ const Boards = () => {
           {boardListViewMode === "table" ? (
             displayBoards.length > 0 ? (
               <div className={aStyle.formCardList}>
-                {displayBoards.map((board) => (
+                {displayBoards.map((board) => {
+                  const todoCount = todoCountByBoard[board._id] || 0;
+                  return (
                   <div
                     key={board._id}
                     className={`${aStyle.formCard} ${bStyle.boardFormCard}`}
@@ -326,9 +337,18 @@ const Boards = () => {
                       }}
                     />
                     <div className={aStyle.formCardLeft}>
-                      <div className={aStyle.formCardTitle}>
+                      <div className={`${aStyle.formCardTitle} ${bStyle.boardTitleRow}`}>
                         {board.isDefault && "📢 "}
                         {board.name}
+                        {todoCount > 0 && (
+                          <span
+                            className={bStyle.todoBadge}
+                            title={`할 일 ${todoCount}건`}
+                            aria-label={`할 일 ${todoCount}건`}
+                          >
+                            {todoCount > 99 ? "99+" : todoCount}
+                          </span>
+                        )}
                       </div>
                       <div className={aStyle.formCardMeta}>
                         <span
@@ -386,7 +406,8 @@ const Boards = () => {
                       )}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className={aStyle.emptyState}>
@@ -401,6 +422,7 @@ const Boards = () => {
               selectedBoard={null}
               onSelect={handleBoardClick}
               onToggleFavorite={handleToggleFavorite}
+              todoCountByBoard={todoCountByBoard}
             />
           ) : (
             <div className={aStyle.emptyState}>

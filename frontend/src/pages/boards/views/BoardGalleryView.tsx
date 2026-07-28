@@ -7,6 +7,7 @@ type Props = {
   selectedBoard: TBoard | null;
   onSelect: (board: TBoard) => void;
   onToggleFavorite: (board: TBoard) => void;
+  todoCountByBoard?: Record<string, number>;
 };
 
 const BoardGalleryView = ({
@@ -14,6 +15,7 @@ const BoardGalleryView = ({
   selectedBoard,
   onSelect,
   onToggleFavorite,
+  todoCountByBoard,
 }: Props) => {
   if (boards.length === 0) {
     return <div className={style.empty}>보드가 없습니다.</div>;
@@ -21,7 +23,9 @@ const BoardGalleryView = ({
 
   return (
     <div className={style.container}>
-      {boards.map((board) => (
+      {boards.map((board) => {
+        const todoCount = todoCountByBoard?.[board._id] || 0;
+        return (
         <div
           key={board._id}
           className={`${style.card} ${
@@ -61,6 +65,15 @@ const BoardGalleryView = ({
             <div className={style.cardName}>
               {board.isDefault && "📢 "}
               {board.name}
+              {todoCount > 0 && (
+                <span
+                  className={style.todoBadge}
+                  title={`할 일 ${todoCount}건`}
+                  aria-label={`할 일 ${todoCount}건`}
+                >
+                  {todoCount > 99 ? "99+" : todoCount}
+                </span>
+              )}
               <span className={`${style.badge} ${style.badgeUser}`}>
                 {board.scope === "season"
                   ? board.seasonYear && board.seasonTerm
@@ -87,7 +100,8 @@ const BoardGalleryView = ({
             </div>
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 };
