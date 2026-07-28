@@ -5,7 +5,6 @@ import {
   TAltForm,
   TAltFormField,
   TAltFormFieldType,
-  TAssessmentFinalMode,
   TAssessmentSettings,
   TDisplayCondition,
   TDisplayConditionOperator,
@@ -201,15 +200,50 @@ const defaultAssessmentSettings = (): TAssessmentSettings => ({
   finalEvaluation: { mode: "both" },
 });
 
-const newRubric = (): TFormRubric => ({
-  id: crypto.randomUUID(),
-  title: "새 루브릭",
-  levels: [
-    { id: crypto.randomUUID(), label: "우수", points: 3 },
-    { id: crypto.randomUUID(), label: "보통", points: 2 },
-    { id: crypto.randomUUID(), label: "미흡", points: 1 },
-  ],
-});
+type TRubricTemplate = "three" | "pass" | "blank";
+
+const createRubricFromTemplate = (template: TRubricTemplate): TFormRubric => {
+  const id = crypto.randomUUID();
+  if (template === "pass") {
+    return {
+      id,
+      title: "통과/미통과",
+      levels: [
+        { id: crypto.randomUUID(), label: "통과", points: 1 },
+        { id: crypto.randomUUID(), label: "미통과", points: 0 },
+      ],
+    };
+  }
+  if (template === "blank") {
+    return {
+      id,
+      title: "새 루브릭",
+      levels: [{ id: crypto.randomUUID(), label: "", description: "", points: undefined }],
+    };
+  }
+  return {
+    id,
+    title: "3단계 평가",
+    levels: [
+      { id: crypto.randomUUID(), label: "우수", description: "", points: 3 },
+      { id: crypto.randomUUID(), label: "보통", description: "", points: 2 },
+      { id: crypto.randomUUID(), label: "미흡", description: "", points: 1 },
+    ],
+  };
+};
+
+const rubricSummaryText = (rubric: TFormRubric): string => {
+  const n = rubric.levels?.length || 0;
+  const pts = (rubric.levels || [])
+    .map((l) => l.points)
+    .filter((p): p is number => p != null && Number.isFinite(Number(p)))
+    .map(Number);
+  if (n === 0) return "수준 없음";
+  if (pts.length === 0) return `${n}수준`;
+  const min = Math.min(...pts);
+  const max = Math.max(...pts);
+  return min === max ? `${n}수준 · ${max}점` : `${n}수준 · ${min}~${max}점`;
+};
 
 const AltFormBuilder = ({
   board,
@@ -259,6 +293,23 @@ const AltFormBuilder = ({
     showOwnResponse: true,
   });
   const [rubrics, setRubrics] = useState<TFormRubric[]>([]);
+  const [expandedRubricIds, setExpandedRubricIds] = useState<Set<string>>(
+    () => new Set()
+  );
+  const [showRubricTemplates, setShowRubricTemplates] = useState(false);
+  const [rubricDragIndex, setRubricDragIndex] = useState<number | null>(null);
+  const [rubricDragOverIndex, setRubricDragOverIndex] = useState<number | null>(
+    null
+  );
+  const [levelDrag, setLevelDrag] = useState<{
+    rubricId: string;
+    index: number;
+  } | null>(null);
+  const [levelDragOver, setLevelDragOver] = useState<{
+    rubricId: string;
+    index: number;
+  } | null>(null);
+  const rubricTemplateRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(!!formId);
   const [isSaving, setIsSaving] = useState(false);
   const [showTracker, setShowTracker] = useState(false);
@@ -360,8 +411,7 @@ const AltFormBuilder = ({
             showWrongMarks: true,
           },
           assessmentMode: form.settings.assessmentMode || false,
-          assessmentSettings: form.settings.assessmentSettings ||
-            defaultAssessmentSettings(),
+          assessmentSettings: defaultAssessmentSettings(),
           directInputMode: form.settings.directInputMode || false,
           shareResponses: form.settings.shareResponses || false,
           showOwnerFields: form.settings.showOwnerFields || false,
@@ -373,6 +423,11 @@ const AltFormBuilder = ({
         setFields(form.fields);
         setSettings(nextSettings);
         setRubrics(nextRubrics);
+        setExpandedRubricIds(
+          nextRubrics.length === 1
+            ? new Set([nextRubrics[0].id])
+            : new Set()
+        );
         setIsDraft(!!form.isDraft);
         setCurrentFormId(form._id);
         savedSnapshotRef.current = JSON.stringify({
@@ -431,9 +486,7 @@ const AltFormBuilder = ({
           assessmentSettings: settings.assessmentMode
             ? {
                 revealOn: "finalized" as const,
-                finalEvaluation: {
-                  mode: settings.assessmentSettings.finalEvaluation.mode,
-                },
+                finalEvaluation: { mode: "both" as const },
               }
             : undefined,
           directInputMode: settings.directInputMode,
@@ -621,6 +674,90 @@ const AltFormBuilder = ({
     dragFromIndexRef.current = null;
     setDragFromIndex(null);
     setDragOverIndex(null);
+  };
+
+  useEffect(() => {
+    if (!showRubricTemplates) return;
+    const onDoc = (e: MouseEvent) => {
+      if (
+        rubricTemplateRef.current &&
+        !rubricTemplateRef.current.contains(e.target as Node)
+      ) {
+        setShowRubricTemplates(false);
+      }
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [showRubricTemplates]);
+
+  const toggleRubricExpanded = (id: string) => {
+    setExpandedRubricIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const addRubricFromTemplate = (template: TRubricTemplate) => {
+    const created = createRubricFromTemplate(template);
+    setRubrics((prev) => [...prev, created]);
+    setExpandedRubricIds((prev) => {
+      const next = new Set(prev);
+      // 2개 이상이면 새 것만 펼침
+      if (rubrics.length + 1 >= 2) {
+        return new Set([created.id]);
+      }
+      next.add(created.id);
+      return next;
+    });
+    setShowRubricTemplates(false);
+  };
+
+  const duplicateRubric = (ri: number) => {
+    const src = rubrics[ri];
+    if (!src) return;
+    const copied: TFormRubric = {
+      id: crypto.randomUUID(),
+      title: `${src.title || "루브릭"} (복사)`,
+      levels: (src.levels || []).map((l) => ({
+        id: crypto.randomUUID(),
+        label: l.label,
+        description: l.description || "",
+        points: l.points,
+      })),
+    };
+    setRubrics((prev) => {
+      const next = [...prev];
+      next.splice(ri + 1, 0, copied);
+      return next;
+    });
+    setExpandedRubricIds(new Set([copied.id]));
+  };
+
+  const moveRubric = (from: number, to: number) => {
+    if (from === to || from < 0 || to < 0) return;
+    setRubrics((prev) => {
+      if (from >= prev.length || to >= prev.length) return prev;
+      const next = [...prev];
+      const [item] = next.splice(from, 1);
+      next.splice(to, 0, item);
+      return next;
+    });
+  };
+
+  const moveLevel = (rubricId: string, from: number, to: number) => {
+    if (from === to || from < 0 || to < 0) return;
+    setRubrics((prev) =>
+      prev.map((r) => {
+        if (r.id !== rubricId) return r;
+        const levels = [...(r.levels || [])];
+        if (from >= levels.length || to >= levels.length) return r;
+        const [item] = levels.splice(from, 1);
+        levels.splice(to, 0, item);
+        return { ...r, levels };
+      })
+    );
   };
 
   const addOption = (fieldIndex: number) => {
@@ -2580,37 +2717,6 @@ const AltFormBuilder = ({
                   </div>
                   {settings.assessmentMode && (
                     <div className={style.settingsNested}>
-                      <div className={style.settingsNestedRow}>
-                        <div className={style.settingsLabelRow}>
-                          <span className={style.settingsNestedLabel}>
-                            최종 평가
-                          </span>
-                          <SettingsHint text="확정 시 학생에게 보여줄 결과 형식입니다. 항목 점수·루브릭을 점수만 / 루브릭만 / 둘 다로 공개합니다." />
-                        </div>
-                        <div className={style.settingsNestedControl}>
-                          <select
-                            className={style.settingsNestedSelect}
-                            value={
-                              settings.assessmentSettings.finalEvaluation.mode
-                            }
-                            onChange={(e) => {
-                              const mode = e.target
-                                .value as TAssessmentFinalMode;
-                              setSettings((s) => ({
-                                ...s,
-                                assessmentSettings: {
-                                  ...s.assessmentSettings,
-                                  finalEvaluation: { mode },
-                                },
-                              }));
-                            }}
-                          >
-                            <option value="both">점수 + 루브릭</option>
-                            <option value="score_only">점수만</option>
-                            <option value="rubric_only">루브릭만</option>
-                          </select>
-                        </div>
-                      </div>
                       <div className={style.settingsRubricsBlock}>
                         <div className={style.settingsRubricsHeader}>
                           <div className={style.settingsRubricsHeaderText}>
@@ -2619,147 +2725,466 @@ const AltFormBuilder = ({
                             </span>
                             {rubrics.length === 0 && (
                               <span className={style.settingsRubricsHint}>
-                                항목 채점에 쓸 루브릭을 추가하세요.
+                                템플릿으로 빠르게 만들거나, 빈 루브릭부터 작성하세요.
                               </span>
                             )}
                           </div>
-                          <button
-                            type="button"
-                            className={style.settingsRubricsAddBtn}
-                            onClick={() =>
-                              setRubrics((prev) => [...prev, newRubric()])
-                            }
+                          <div
+                            className={style.settingsRubricsHeaderActions}
+                            ref={rubricTemplateRef}
                           >
-                            + 루브릭 추가
-                          </button>
-                        </div>
-                        {rubrics.map((rubric, ri) => (
-                          <div key={rubric.id} className={style.settingsRubricCard}>
-                            <div className={style.settingsRubricCardHeader}>
-                              <input
-                                className={style.settingsRubricTitleInput}
-                                value={rubric.title}
-                                onChange={(e) => {
-                                  const title = e.target.value;
-                                  setRubrics((prev) =>
-                                    prev.map((r, i) =>
-                                      i === ri ? { ...r, title } : r
-                                    )
-                                  );
-                                }}
-                              />
-                              <button
-                                type="button"
-                                className={style.settingsRubricGhostBtn}
-                                onClick={() => {
-                                  setRubrics((prev) =>
-                                    prev.filter((_, i) => i !== ri)
-                                  );
-                                }}
-                              >
-                                삭제
-                              </button>
-                            </div>
-                            {rubric.levels.map((level, li) => (
-                              <div
-                                key={level.id}
-                                className={style.settingsRubricLevelRow}
-                              >
-                                <input
-                                  className={style.settingsRubricLevelLabel}
-                                  placeholder="수준"
-                                  value={level.label}
-                                  onChange={(e) => {
-                                    const label = e.target.value;
-                                    setRubrics((prev) =>
-                                      prev.map((r, i) =>
-                                        i !== ri
-                                          ? r
-                                          : {
-                                              ...r,
-                                              levels: r.levels.map((l, j) =>
-                                                j === li ? { ...l, label } : l
-                                              ),
-                                            }
-                                      )
-                                    );
-                                  }}
-                                />
-                                <input
-                                  className={style.settingsRubricLevelPoints}
-                                  type="number"
-                                  placeholder="점"
-                                  value={level.points ?? ""}
-                                  onChange={(e) => {
-                                    const raw = e.target.value;
-                                    const points =
-                                      raw === ""
-                                        ? undefined
-                                        : Number(raw);
-                                    setRubrics((prev) =>
-                                      prev.map((r, i) =>
-                                        i !== ri
-                                          ? r
-                                          : {
-                                              ...r,
-                                              levels: r.levels.map((l, j) =>
-                                                j === li ? { ...l, points } : l
-                                              ),
-                                            }
-                                      )
-                                    );
-                                  }}
-                                />
-                                <button
-                                  type="button"
-                                  className={style.settingsRubricGhostBtn}
-                                  aria-label="수준 삭제"
-                                  onClick={() =>
-                                    setRubrics((prev) =>
-                                      prev.map((r, i) =>
-                                        i !== ri
-                                          ? r
-                                          : {
-                                              ...r,
-                                              levels: r.levels.filter(
-                                                (_, j) => j !== li
-                                              ),
-                                            }
-                                      )
-                                    )
-                                  }
-                                >
-                                  ×
-                                </button>
-                              </div>
-                            ))}
                             <button
                               type="button"
-                              className={style.settingsRubricAddLevel}
+                              className={style.settingsRubricsAddBtn}
                               onClick={() =>
-                                setRubrics((prev) =>
-                                  prev.map((r, i) =>
-                                    i !== ri
-                                      ? r
-                                      : {
-                                          ...r,
-                                          levels: [
-                                            ...r.levels,
-                                            {
-                                              id: crypto.randomUUID(),
-                                              label: "새 수준",
-                                              points: 0,
-                                            },
-                                          ],
-                                        }
-                                  )
-                                )
+                                setShowRubricTemplates((v) => !v)
                               }
                             >
-                              + 수준
+                              + 루브릭 추가
                             </button>
+                            {showRubricTemplates && (
+                              <div className={style.settingsRubricTemplateMenu}>
+                                <button
+                                  type="button"
+                                  className={style.settingsRubricTemplateItem}
+                                  onClick={() => addRubricFromTemplate("three")}
+                                >
+                                  <strong>3단계 평가</strong>
+                                  <span>우수 / 보통 / 미흡 · 3·2·1점</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  className={style.settingsRubricTemplateItem}
+                                  onClick={() => addRubricFromTemplate("pass")}
+                                >
+                                  <strong>통과 / 미통과</strong>
+                                  <span>2단계 · 1·0점</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  className={style.settingsRubricTemplateItem}
+                                  onClick={() => addRubricFromTemplate("blank")}
+                                >
+                                  <strong>빈 루브릭</strong>
+                                  <span>수준을 직접 구성</span>
+                                </button>
+                              </div>
+                            )}
                           </div>
-                        ))}
+                        </div>
+                        {rubrics.map((rubric, ri) => {
+                          const expanded =
+                            rubrics.length === 1 ||
+                            expandedRubricIds.has(rubric.id);
+                          const isDragging = rubricDragIndex === ri;
+                          const isDragOver = rubricDragOverIndex === ri;
+                          return (
+                            <div
+                              key={rubric.id}
+                              className={`${style.settingsRubricCard}${
+                                isDragging
+                                  ? ` ${style.settingsRubricCardDragging}`
+                                  : ""
+                              }${
+                                isDragOver
+                                  ? ` ${style.settingsRubricCardDragOver}`
+                                  : ""
+                              }`}
+                              onDragOver={(e) => {
+                                e.preventDefault();
+                                if (rubricDragIndex == null) return;
+                                setRubricDragOverIndex(ri);
+                              }}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                if (rubricDragIndex == null) return;
+                                moveRubric(rubricDragIndex, ri);
+                                setRubricDragIndex(null);
+                                setRubricDragOverIndex(null);
+                              }}
+                            >
+                              <div className={style.settingsRubricCardTop}>
+                                <button
+                                  type="button"
+                                  className={style.settingsRubricDragHandle}
+                                  title="드래그하여 순서 변경"
+                                  draggable
+                                  onDragStart={(e) => {
+                                    setRubricDragIndex(ri);
+                                    e.dataTransfer.effectAllowed = "move";
+                                    e.dataTransfer.setData(
+                                      "text/plain",
+                                      String(ri)
+                                    );
+                                  }}
+                                  onDragEnd={() => {
+                                    setRubricDragIndex(null);
+                                    setRubricDragOverIndex(null);
+                                  }}
+                                >
+                                  <MI icon="drag_indicator" size={18} />
+                                </button>
+                                {rubrics.length > 1 && (
+                                  <button
+                                    type="button"
+                                    className={style.settingsRubricCollapseBtn}
+                                    aria-label={
+                                      expanded ? "접기" : "펼치기"
+                                    }
+                                    onClick={() =>
+                                      toggleRubricExpanded(rubric.id)
+                                    }
+                                  >
+                                    {expanded ? "▲" : "▼"}
+                                  </button>
+                                )}
+                                <input
+                                  className={style.settingsRubricTitleInput}
+                                  value={rubric.title}
+                                  onChange={(e) => {
+                                    const title = e.target.value;
+                                    setRubrics((prev) =>
+                                      prev.map((r, i) =>
+                                        i === ri ? { ...r, title } : r
+                                      )
+                                    );
+                                  }}
+                                  onFocus={() => {
+                                    if (rubrics.length > 1) {
+                                      setExpandedRubricIds(
+                                        new Set([rubric.id])
+                                      );
+                                    }
+                                  }}
+                                />
+                                <span className={style.settingsRubricSummaryChip}>
+                                  {rubricSummaryText(rubric)}
+                                </span>
+                                <div className={style.settingsRubricCardActions}>
+                                  <button
+                                    type="button"
+                                    className={style.settingsRubricGhostBtn}
+                                    onClick={() => duplicateRubric(ri)}
+                                  >
+                                    복제
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={style.settingsRubricGhostBtn}
+                                    onClick={() => {
+                                      setRubrics((prev) =>
+                                        prev.filter((_, i) => i !== ri)
+                                      );
+                                      setExpandedRubricIds((prev) => {
+                                        const next = new Set(prev);
+                                        next.delete(rubric.id);
+                                        return next;
+                                      });
+                                    }}
+                                  >
+                                    삭제
+                                  </button>
+                                </div>
+                              </div>
+                              {expanded && (
+                                <div className={style.settingsRubricCardBody}>
+                                  <table className={style.settingsRubricTable}>
+                                    <thead>
+                                      <tr>
+                                        <th className={style.settingsRubricLevelDragCell} />
+                                        <th className={style.settingsRubricThLevel}>
+                                          수준
+                                        </th>
+                                        <th className={style.settingsRubricThDesc}>
+                                          설명
+                                        </th>
+                                        <th className={style.settingsRubricThPoints}>
+                                          점수
+                                        </th>
+                                        <th className={style.settingsRubricThActions} />
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {(rubric.levels || []).map((level, li) => {
+                                        const levelDragging =
+                                          levelDrag?.rubricId === rubric.id &&
+                                          levelDrag.index === li;
+                                        const levelOver =
+                                          levelDragOver?.rubricId ===
+                                            rubric.id &&
+                                          levelDragOver.index === li;
+                                        return (
+                                          <tr
+                                            key={level.id}
+                                            className={`${
+                                              levelDragging
+                                                ? style.settingsRubricLevelDragging
+                                                : ""
+                                            }${
+                                              levelOver
+                                                ? ` ${style.settingsRubricLevelDragOver}`
+                                                : ""
+                                            }`}
+                                            onDragOver={(e) => {
+                                              e.preventDefault();
+                                              if (
+                                                !levelDrag ||
+                                                levelDrag.rubricId !== rubric.id
+                                              )
+                                                return;
+                                              setLevelDragOver({
+                                                rubricId: rubric.id,
+                                                index: li,
+                                              });
+                                            }}
+                                            onDrop={(e) => {
+                                              e.preventDefault();
+                                              if (
+                                                !levelDrag ||
+                                                levelDrag.rubricId !== rubric.id
+                                              )
+                                                return;
+                                              moveLevel(
+                                                rubric.id,
+                                                levelDrag.index,
+                                                li
+                                              );
+                                              setLevelDrag(null);
+                                              setLevelDragOver(null);
+                                            }}
+                                          >
+                                            <td
+                                              className={
+                                                style.settingsRubricLevelDragCell
+                                              }
+                                            >
+                                              <button
+                                                type="button"
+                                                className={
+                                                  style.settingsRubricDragHandle
+                                                }
+                                                title="드래그하여 순서 변경"
+                                                draggable
+                                                onDragStart={(e) => {
+                                                  setLevelDrag({
+                                                    rubricId: rubric.id,
+                                                    index: li,
+                                                  });
+                                                  e.dataTransfer.effectAllowed =
+                                                    "move";
+                                                }}
+                                                onDragEnd={() => {
+                                                  setLevelDrag(null);
+                                                  setLevelDragOver(null);
+                                                }}
+                                              >
+                                                <MI
+                                                  icon="drag_indicator"
+                                                  size={16}
+                                                />
+                                              </button>
+                                            </td>
+                                            <td>
+                                              <input
+                                                className={
+                                                  style.settingsRubricLevelInput
+                                                }
+                                                placeholder="수준"
+                                                value={level.label}
+                                                onChange={(e) => {
+                                                  const label = e.target.value;
+                                                  setRubrics((prev) =>
+                                                    prev.map((r, i) =>
+                                                      i !== ri
+                                                        ? r
+                                                        : {
+                                                            ...r,
+                                                            levels: r.levels.map(
+                                                              (l, j) =>
+                                                                j === li
+                                                                  ? {
+                                                                      ...l,
+                                                                      label,
+                                                                    }
+                                                                  : l
+                                                            ),
+                                                          }
+                                                    )
+                                                  );
+                                                }}
+                                              />
+                                            </td>
+                                            <td>
+                                              <input
+                                                className={
+                                                  style.settingsRubricLevelInput
+                                                }
+                                                placeholder="설명 (선택)"
+                                                value={level.description || ""}
+                                                onChange={(e) => {
+                                                  const description =
+                                                    e.target.value;
+                                                  setRubrics((prev) =>
+                                                    prev.map((r, i) =>
+                                                      i !== ri
+                                                        ? r
+                                                        : {
+                                                            ...r,
+                                                            levels: r.levels.map(
+                                                              (l, j) =>
+                                                                j === li
+                                                                  ? {
+                                                                      ...l,
+                                                                      description,
+                                                                    }
+                                                                  : l
+                                                            ),
+                                                          }
+                                                    )
+                                                  );
+                                                }}
+                                              />
+                                            </td>
+                                            <td>
+                                              <input
+                                                className={
+                                                  style.settingsRubricLevelPoints
+                                                }
+                                                type="number"
+                                                placeholder="점"
+                                                value={level.points ?? ""}
+                                                onChange={(e) => {
+                                                  const raw = e.target.value;
+                                                  const points =
+                                                    raw === ""
+                                                      ? undefined
+                                                      : Number(raw);
+                                                  setRubrics((prev) =>
+                                                    prev.map((r, i) =>
+                                                      i !== ri
+                                                        ? r
+                                                        : {
+                                                            ...r,
+                                                            levels: r.levels.map(
+                                                              (l, j) =>
+                                                                j === li
+                                                                  ? {
+                                                                      ...l,
+                                                                      points,
+                                                                    }
+                                                                  : l
+                                                            ),
+                                                          }
+                                                    )
+                                                  );
+                                                }}
+                                              />
+                                            </td>
+                                            <td>
+                                              <button
+                                                type="button"
+                                                className={
+                                                  style.settingsRubricGhostBtn
+                                                }
+                                                aria-label="수준 삭제"
+                                                onClick={() =>
+                                                  setRubrics((prev) =>
+                                                    prev.map((r, i) =>
+                                                      i !== ri
+                                                        ? r
+                                                        : {
+                                                            ...r,
+                                                            levels:
+                                                              r.levels.filter(
+                                                                (_, j) =>
+                                                                  j !== li
+                                                              ),
+                                                          }
+                                                    )
+                                                  )
+                                                }
+                                              >
+                                                ×
+                                              </button>
+                                            </td>
+                                          </tr>
+                                        );
+                                      })}
+                                    </tbody>
+                                  </table>
+                                  <button
+                                    type="button"
+                                    className={style.settingsRubricAddLevel}
+                                    onClick={() =>
+                                      setRubrics((prev) =>
+                                        prev.map((r, i) =>
+                                          i !== ri
+                                            ? r
+                                            : {
+                                                ...r,
+                                                levels: [
+                                                  ...r.levels,
+                                                  {
+                                                    id: crypto.randomUUID(),
+                                                    label: "새 수준",
+                                                    description: "",
+                                                    points: 0,
+                                                  },
+                                                ],
+                                              }
+                                        )
+                                      )
+                                    }
+                                  >
+                                    + 수준
+                                  </button>
+                                  <div className={style.settingsRubricPreview}>
+                                    <div
+                                      className={style.settingsRubricPreviewLabel}
+                                    >
+                                      채점 미리보기
+                                    </div>
+                                    <select
+                                      className={style.settingsRubricPreviewSelect}
+                                      defaultValue=""
+                                      aria-label="채점 미리보기"
+                                    >
+                                      <option value="" disabled>
+                                        수준 선택
+                                      </option>
+                                      {(rubric.levels || []).map((l) => (
+                                        <option key={l.id} value={l.id}>
+                                          {l.label || "(이름 없음)"}
+                                          {l.points != null
+                                            ? ` (${l.points}점)`
+                                            : ""}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <div
+                                      className={style.settingsRubricPreviewChips}
+                                    >
+                                      {(rubric.levels || []).map((l) => (
+                                        <span
+                                          key={l.id}
+                                          className={
+                                            style.settingsRubricPreviewChip
+                                          }
+                                          title={l.description || undefined}
+                                        >
+                                          {l.label || "(이름 없음)"}
+                                          {l.points != null
+                                            ? `(${l.points})`
+                                            : ""}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}

@@ -446,8 +446,6 @@ const aggregateFieldRubricGrade = (grade, rubricIds, rubrics) => {
 export const recomputeAssessmentTotals = (form, assessment) => {
   const byField = { ...(assessment?.byField || {}) };
   const prevFinal = assessment?.final || {};
-  const mode =
-    form.settings?.assessmentSettings?.finalEvaluation?.mode || "both";
 
   let score = 0;
   let max = 0;
@@ -490,16 +488,13 @@ export const recomputeAssessmentTotals = (form, assessment) => {
 
   const final = {
     status: prevFinal.status === "finalized" ? "finalized" : "draft",
+    score,
+    max,
   };
 
   if (prevFinal.finalizedBy) final.finalizedBy = prevFinal.finalizedBy;
   if (prevFinal.finalizedAt) final.finalizedAt = prevFinal.finalizedAt;
   if (prevFinal.comment != null) final.comment = prevFinal.comment;
-
-  if (mode === "score_only" || mode === "both") {
-    final.score = score;
-    final.max = max;
-  }
 
   return { byField, final };
 };

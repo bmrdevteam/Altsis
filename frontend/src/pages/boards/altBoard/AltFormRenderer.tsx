@@ -2064,11 +2064,7 @@ const AltFormRenderer = ({
         <div className={style.quizScoreBanner}>
           <div className={style.quizScoreText}>
             <strong>평가 결과</strong>
-            {(form?.settings.assessmentSettings?.finalEvaluation?.mode ===
-              "score_only" ||
-              form?.settings.assessmentSettings?.finalEvaluation?.mode ===
-                "both") &&
-              activeRow.data._assessment.final?.max != null && (
+            {activeRow.data._assessment.final?.max != null && (
                 <span>
                   {" "}
                   {activeRow.data._assessment.final.score ?? 0} /{" "}

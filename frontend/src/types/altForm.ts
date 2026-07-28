@@ -86,12 +86,11 @@ export type TFormRubric = {
   levels: TRubricLevel[];
 };
 
-export type TAssessmentFinalMode = "rubric_only" | "score_only" | "both";
-
 export type TAssessmentSettings = {
   revealOn: "finalized";
+  /** 확정 후 학생에게 점수·항목 루브릭을 모두 공개 (고정) */
   finalEvaluation: {
-    mode: TAssessmentFinalMode;
+    mode: "both";
   };
 };
 
