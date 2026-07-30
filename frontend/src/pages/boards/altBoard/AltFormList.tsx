@@ -9,6 +9,19 @@ import Popup from "components/popup/Popup";
 import Svg from "assets/svg/Svg";
 import CombinationGenerator from "./CombinationGenerator";
 import PendingApprovalsPanel from "./PendingApprovalsPanel";
+import ActivityListFilterBar, {
+  TActivityViewCounts,
+  TActivityViewFilter,
+} from "./ActivityListFilterBar";
+
+const formMatchesKeyword = (form: TAltForm, keyword: string) => {
+  const kw = keyword.trim().toLowerCase();
+  if (!kw) return true;
+  return (
+    (form.title || "").toLowerCase().includes(kw) ||
+    (form.description || "").toLowerCase().includes(kw)
+  );
+};
 
 type Props = {
   board: TBoard;
@@ -43,6 +56,25 @@ const getPeriodKind = (form: TAltForm): PeriodKind => {
     return "scheduled";
   }
   return "open";
+};
+
+const formMatchesStatus = (
+  form: TAltForm,
+  statusFilter: Exclude<TActivityViewFilter, "" | "todo">
+) => {
+  if (statusFilter === "draft") return !!form.isDraft;
+  if (statusFilter === "direct")
+    return !form.isDraft && !!form.settings.directInputMode;
+  if (form.isDraft) return false;
+  if (form.settings.directInputMode) return false;
+  const period = getPeriodKind(form);
+  if (statusFilter === "closed") return period === "closed";
+  if (statusFilter === "scheduled") return period === "scheduled";
+  if (statusFilter === "submitted")
+    return period === "open" && !!form.mySubmitted;
+  if (statusFilter === "open")
+    return period === "open" && !form.mySubmitted;
+  return true;
 };
 
 const formatDateTime = (dateStr: string) =>
@@ -122,6 +154,12 @@ const AltFormList = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [actionMenu, setActionMenu] = useState<string | null>(null);
   const [approvalsSettled, setApprovalsSettled] = useState(false);
+  const [activityKeyword, setActivityKeyword] = useState("");
+  const [viewFilter, setViewFilter] = useState<TActivityViewFilter>("");
+  const [approvalTodoCounts, setApprovalTodoCounts] = useState({
+    approve: 0,
+    outgoing: 0,
+  });
   const importRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -167,6 +205,74 @@ const AltFormList = ({
       return submitSortRank(a) - submitSortRank(b);
     });
   }, [forms, myRole, canManage, submitForms, todoUnsubmittedIds]);
+
+  const keywordTodoUnsubmitted = useMemo(
+    () =>
+      todoUnsubmitted.filter((f) => formMatchesKeyword(f, activityKeyword)),
+    [todoUnsubmitted, activityKeyword]
+  );
+
+  const keywordActivityForms = useMemo(
+    () =>
+      activityForms.filter((f) => formMatchesKeyword(f, activityKeyword)),
+    [activityForms, activityKeyword]
+  );
+
+  const showTodos = viewFilter === "" || viewFilter === "todo";
+  const showActivity = viewFilter === "" || viewFilter !== "todo";
+
+  const filteredTodoUnsubmitted = useMemo(() => {
+    if (!showTodos) return [];
+    return keywordTodoUnsubmitted;
+  }, [showTodos, keywordTodoUnsubmitted]);
+
+  const filteredActivityForms = useMemo(() => {
+    if (!showActivity) return [];
+    if (!viewFilter) return keywordActivityForms;
+    return keywordActivityForms.filter((f) =>
+      formMatchesStatus(f, viewFilter)
+    );
+  }, [showActivity, viewFilter, keywordActivityForms]);
+
+  const viewCounts: TActivityViewCounts = useMemo(() => {
+    const statusKeys = [
+      "open",
+      "submitted",
+      "closed",
+      "scheduled",
+      "draft",
+      "direct",
+    ] as const;
+    const counts = {
+      todo:
+        approvalTodoCounts.approve +
+        approvalTodoCounts.outgoing +
+        keywordTodoUnsubmitted.length,
+      open: 0,
+      submitted: 0,
+      closed: 0,
+      scheduled: 0,
+      draft: 0,
+      direct: 0,
+    };
+    for (const f of keywordActivityForms) {
+      for (const key of statusKeys) {
+        if (formMatchesStatus(f, key)) counts[key] += 1;
+      }
+    }
+    return counts;
+  }, [
+    approvalTodoCounts,
+    keywordTodoUnsubmitted.length,
+    keywordActivityForms,
+  ]);
+
+  const hasActivityFilters = !!activityKeyword.trim() || !!viewFilter;
+
+  const clearActivityFilters = () => {
+    setActivityKeyword("");
+    setViewFilter("");
+  };
 
   const submitStats = useMemo(() => {
     let done = 0;
@@ -320,7 +426,7 @@ const AltFormList = ({
       }
       return (
         <span className={`${style.formCardBadge} ${style.badgePending}`}>
-          {mine}/{target}
+          필수 {mine}/{target}
         </span>
       );
     }
@@ -632,13 +738,24 @@ const AltFormList = ({
 
   return (
     <div className={style.formList}>
+      <ActivityListFilterBar
+        keyword={activityKeyword}
+        onKeywordChange={setActivityKeyword}
+        viewFilter={viewFilter}
+        onViewFilterChange={setViewFilter}
+        counts={viewCounts}
+        onClear={clearActivityFilters}
+      />
       <PendingApprovalsPanel
         boardId={board._id}
         openRowId={openApprovalRowId}
         onSettled={() => setApprovalsSettled(true)}
         onCountChange={onPendingApprovalCountChange}
-        unsubmittedCount={todoUnsubmitted.length}
-        unsubmittedCards={todoUnsubmitted.map(renderActivityCard)}
+        keyword={activityKeyword}
+        hidden={!showTodos}
+        onVisibleTodoCounts={setApprovalTodoCounts}
+        unsubmittedCount={filteredTodoUnsubmitted.length}
+        unsubmittedCards={filteredTodoUnsubmitted.map(renderActivityCard)}
         onOpenHandled={() => {
           // URL에서 approval 파라미터만 제거 (탭·해시 유지)
           if (typeof window === "undefined") return;
@@ -654,13 +771,13 @@ const AltFormList = ({
       />
       {!approvalsSettled ? (
         <div className={style.emptyState}>불러오는 중...</div>
-      ) : (
+      ) : showActivity ? (
       <section className={style.formSectionPanel}>
         <div className={style.formSectionHeaderStatic}>
           <div className={style.formSectionHeaderMain}>
             <h3 className={style.formSectionTitle}>활동</h3>
             <span className={style.formSectionCount}>
-              {activityForms.length}
+              {filteredActivityForms.length}
             </span>
           </div>
           <div className={style.formSectionStats}>
@@ -712,16 +829,20 @@ const AltFormList = ({
           )}
         </div>
         <div className={style.formSectionBody}>
-          {activityForms.length === 0 ? (
-            <div className={style.emptyState}>활동이 없습니다.</div>
+          {filteredActivityForms.length === 0 ? (
+            <div className={style.emptyState}>
+              {hasActivityFilters
+                ? "조건에 맞는 활동이 없습니다."
+                : "활동이 없습니다."}
+            </div>
           ) : (
             <div className={style.formCardList}>
-              {activityForms.map(renderActivityCard)}
+              {filteredActivityForms.map(renderActivityCard)}
             </div>
           )}
         </div>
       </section>
-      )}
+      ) : null}
 
       {comboForm && (
         <CombinationGenerator

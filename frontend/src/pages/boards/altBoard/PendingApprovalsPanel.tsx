@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import style from "./altBoard.module.scss";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import Button from "components/button/Button";
@@ -49,12 +49,35 @@ type Props = {
   /** 알림 딥링크 등으로 특정 행을 바로 열기 */
   openRowId?: string | null;
   onOpenHandled?: () => void;
+  /** 할 일·승인 카드 키워드 필터 (제목·응답자) */
+  keyword?: string;
+  /** 상태 칩 선택 시 할 일 UI만 숨김 (데이터·뱃지 로드는 유지) */
+  hidden?: boolean;
+  /** 키워드 적용 후 결재/승인진행 건수 (할 일 칩용) */
+  onVisibleTodoCounts?: (counts: {
+    approve: number;
+    outgoing: number;
+  }) => void;
   /** 할 일 섹션 하단: 미제출 카드들 */
   unsubmittedCards?: ReactNode;
   unsubmittedCount?: number;
 };
 
 type UploadedFile = { originalName: string; key: string };
+
+const pendingMatchesKeyword = (item: PendingItem, keyword: string) => {
+  const kw = keyword.trim().toLowerCase();
+  if (!kw) return true;
+  return (
+    (item.formTitle || "").toLowerCase().includes(kw) ||
+    (item.respondentName || "").toLowerCase().includes(kw) ||
+    (item.respondentId || "").toLowerCase().includes(kw) ||
+    (item.stepLabel || "").toLowerCase().includes(kw) ||
+    (item.fieldLabel || "").toLowerCase().includes(kw) ||
+    (item.currentApproverName || "").toLowerCase().includes(kw) ||
+    (item.currentApproverId || "").toLowerCase().includes(kw)
+  );
+};
 
 const formatSubmittedAt = (iso?: string) => {
   if (!iso) return null;
@@ -226,6 +249,9 @@ const PendingApprovalsPanel = ({
   onSettled,
   openRowId,
   onOpenHandled,
+  keyword = "",
+  hidden = false,
+  onVisibleTodoCounts,
   unsubmittedCards,
   unsubmittedCount = 0,
 }: Props) => {
@@ -337,6 +363,22 @@ const PendingApprovalsPanel = ({
     }
   };
 
+  const visibleItems = useMemo(
+    () => items.filter((item) => pendingMatchesKeyword(item, keyword)),
+    [items, keyword]
+  );
+  const visibleOutgoing = useMemo(
+    () => outgoing.filter((item) => pendingMatchesKeyword(item, keyword)),
+    [outgoing, keyword]
+  );
+
+  useEffect(() => {
+    onVisibleTodoCounts?.({
+      approve: visibleItems.length,
+      outgoing: visibleOutgoing.length,
+    });
+  }, [visibleItems.length, visibleOutgoing.length, onVisibleTodoCounts]);
+
   if (
     loading &&
     items.length === 0 &&
@@ -346,7 +388,12 @@ const PendingApprovalsPanel = ({
     return null;
   }
 
-  const todoCount = items.length + outgoing.length + unsubmittedCount;
+  if (hidden) {
+    return null;
+  }
+
+  const todoCount =
+    visibleItems.length + visibleOutgoing.length + unsubmittedCount;
   const showTodoSection = todoCount > 0;
   const isReadonly = activeKind === "outgoing";
 
@@ -475,7 +522,7 @@ const PendingApprovalsPanel = ({
           </div>
           <div className={style.formSectionBody}>
             <div className={style.formCardList}>
-              {items.map((item) => (
+              {visibleItems.map((item) => (
                 <div
                   key={`approve_${item.rowId}_${item.fieldId}`}
                   className={style.formCard}
@@ -524,7 +571,7 @@ const PendingApprovalsPanel = ({
                   </div>
                 </div>
               ))}
-              {outgoing.map((item) => {
+              {visibleOutgoing.map((item) => {
                 const stepNum =
                   typeof item.currentStep === "number"
                     ? item.currentStep + 1

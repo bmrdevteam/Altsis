@@ -394,3 +394,121 @@
     border-color: var(--accent-1);
   }
 }
+
+/* Activity: chips under search */
+.activityFilterBlock {
+  margin-bottom: 16px;
+
+  > div:first-child {
+    margin-bottom: 10px;
+  }
+}
+
+.filterChipBar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filterChipRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.filterChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--background-color);
+  color: var(--text-color-2);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease,
+    box-shadow 0.15s ease;
+
+  &:hover {
+    filter: brightness(0.97);
+  }
+}
+
+.filterChipIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0.9;
+
+  svg {
+    display: block;
+    fill: currentColor;
+  }
+}
+
+.filterChipActive {
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+
+.filterChipToneAll {
+  background: color-mix(in srgb, var(--accent-1) 12%, var(--background-color));
+  color: var(--accent-1);
+}
+
+.filterChipToneApproval {
+  background: var(--status-warning-bg);
+  color: var(--status-warning);
+}
+
+.filterChipToneOptional {
+  background: var(--status-info-bg);
+  color: var(--status-info);
+}
+
+.filterChipToneSubmitted {
+  background: var(--status-success-bg);
+  color: var(--status-success);
+}
+
+.filterChipToneClosed {
+  background: color-mix(in srgb, var(--text-color-2) 18%, var(--background-color));
+  color: var(--text-color-1);
+}
+
+.filterChipToneScheduled {
+  background: color-mix(in srgb, var(--text-color-2) 12%, var(--background-color));
+  color: var(--text-color-2);
+}
+
+.filterChipTonePending {
+  background: var(--status-error-bg);
+  color: var(--status-error);
+}
+
+.filterChipToneDirect {
+  background: var(--status-warning-bg);
+  color: var(--status-warning);
+}
+
+.filterChipReset {
+  margin-left: 2px;
+  padding: 5px 8px;
+  border: none;
+  background: transparent;
+  color: var(--accent-1);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
