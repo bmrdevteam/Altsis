@@ -339,3 +339,58 @@
   color: var(--text-color-2);
   font-size: 14px;
 }
+
+/* ─── Board list filter panel options ─── */
+.filterCheckRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-color-1);
+  cursor: pointer;
+  user-select: none;
+
+  input {
+    margin: 0;
+    accent-color: var(--accent-1);
+  }
+}
+
+.filterOptionGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.filterOption {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-color-2);
+  cursor: pointer;
+  user-select: none;
+  background: var(--background-color);
+
+  input {
+    appearance: none;
+    width: 0;
+    height: 0;
+    margin: 0;
+    position: absolute;
+  }
+
+  &:has(input:checked) {
+    color: var(--accent-1);
+    border-color: var(--accent-1);
+    background: color-mix(in srgb, var(--accent-1) 8%, var(--background-color));
+    font-weight: 600;
+  }
+
+  &:hover {
+    border-color: var(--accent-1);
+  }
+}

@@ -27,6 +27,10 @@ import { resolveBoardCoverColor } from "utils/boardCoverColor";
 import BoardCreatePopup from "./popup/BoardCreate";
 import BoardManagePopup from "./popup/BoardManage";
 import BoardGalleryView from "./views/BoardGalleryView";
+import BoardListFilterBar, {
+  TBoardScopeFilter,
+  TBoardTypeFilter,
+} from "./BoardListFilterBar";
 import BoardsActivityTodos, {
   TSchoolTodoItem,
 } from "./BoardsActivityTodos";
@@ -51,6 +55,11 @@ const Boards = () => {
   const [todosReady, setTodosReady] = useState(false);
 
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [boardKeyword, setBoardKeyword] = useState("");
+  const [hasTodosOnly, setHasTodosOnly] = useState(false);
+  const [scopeFilter, setScopeFilter] = useState<TBoardScopeFilter>("");
+  const [boardTypeFilter, setBoardTypeFilter] =
+    useState<TBoardTypeFilter>("");
   const [boardListViewMode, setBoardListViewMode] =
     useState<TBoardListViewMode>(
       () =>
@@ -216,12 +225,6 @@ const Boards = () => {
     }
   }, [location.hash, location.pathname, location.search, navigate]);
 
-  const displayBoards = useMemo(
-    () =>
-      showFavoritesOnly ? boards.filter((b) => b.isFavorited) : boards,
-    [boards, showFavoritesOnly]
-  );
-
   const todoCountByBoard = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const item of todos) {
@@ -230,6 +233,58 @@ const Boards = () => {
     }
     return counts;
   }, [todos]);
+
+  const hasBoardListFilters =
+    !!boardKeyword.trim() ||
+    hasTodosOnly ||
+    !!scopeFilter ||
+    !!boardTypeFilter;
+
+  const displayBoards = useMemo(() => {
+    let result = boards;
+    if (showFavoritesOnly) {
+      result = result.filter((b) => b.isFavorited);
+    }
+    const kw = boardKeyword.trim().toLowerCase();
+    if (kw) {
+      result = result.filter(
+        (b) =>
+          (b.name || "").toLowerCase().includes(kw) ||
+          (b.description || "").toLowerCase().includes(kw)
+      );
+    }
+    if (hasTodosOnly) {
+      result = result.filter((b) => (todoCountByBoard[b._id] || 0) > 0);
+    }
+    if (scopeFilter) {
+      result = result.filter((b) => (b.scope || "school") === scopeFilter);
+    }
+    if (boardTypeFilter) {
+      result = result.filter((b) => b.boardType === boardTypeFilter);
+    }
+    return result;
+  }, [
+    boards,
+    showFavoritesOnly,
+    boardKeyword,
+    hasTodosOnly,
+    scopeFilter,
+    boardTypeFilter,
+    todoCountByBoard,
+  ]);
+
+  const clearBoardListFilters = () => {
+    setBoardKeyword("");
+    setHasTodosOnly(false);
+    setScopeFilter("");
+    setBoardTypeFilter("");
+  };
+
+  const emptyBoardMessage = hasBoardListFilters
+    ? "조건에 맞는 보드가 없습니다."
+    : showFavoritesOnly
+      ? "즐겨찾기한 보드가 없습니다."
+      : "보드가 없습니다.";
 
   const defaultTab = todos.length > 0 ? "할 일" : "보드";
   const tabBadges: Record<string, number> = {};
@@ -308,6 +363,17 @@ const Boards = () => {
         </div>
 
         <div className={aStyle.formSectionBody}>
+          <BoardListFilterBar
+            keyword={boardKeyword}
+            onKeywordChange={setBoardKeyword}
+            hasTodosOnly={hasTodosOnly}
+            onHasTodosOnlyChange={setHasTodosOnly}
+            scopeFilter={scopeFilter}
+            onScopeFilterChange={setScopeFilter}
+            boardTypeFilter={boardTypeFilter}
+            onBoardTypeFilterChange={setBoardTypeFilter}
+            onClear={clearBoardListFilters}
+          />
           {boardListViewMode === "table" ? (
             displayBoards.length > 0 ? (
               <div className={aStyle.formCardList}>
@@ -410,11 +476,7 @@ const Boards = () => {
                 })}
               </div>
             ) : (
-              <div className={aStyle.emptyState}>
-                {showFavoritesOnly
-                  ? "즐겨찾기한 보드가 없습니다."
-                  : "보드가 없습니다."}
-              </div>
+              <div className={aStyle.emptyState}>{emptyBoardMessage}</div>
             )
           ) : displayBoards.length > 0 ? (
             <BoardGalleryView
@@ -425,11 +487,7 @@ const Boards = () => {
               todoCountByBoard={todoCountByBoard}
             />
           ) : (
-            <div className={aStyle.emptyState}>
-              {showFavoritesOnly
-                ? "즐겨찾기한 보드가 없습니다."
-                : "보드가 없습니다."}
-            </div>
+            <div className={aStyle.emptyState}>{emptyBoardMessage}</div>
           )}
         </div>
       </section>
