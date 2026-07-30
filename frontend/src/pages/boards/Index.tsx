@@ -286,9 +286,10 @@ const Boards = () => {
       ? "즐겨찾기한 보드가 없습니다."
       : "보드가 없습니다.";
 
-  const defaultTab = todos.length > 0 ? "할 일" : "보드";
+  const boardTabKey = "보드";
+  const todoTabKey = "할 일";
   const tabBadges: Record<string, number> = {};
-  if (todos.length > 0) tabBadges["할 일"] = todos.length;
+  if (todos.length > 0) tabBadges[todoTabKey] = todos.length;
 
   if (boardEnabled === false) {
     return (
@@ -503,11 +504,12 @@ const Boards = () => {
           </div>
         </div>
 
-        {/* 할 일 로드 후 기본 탭 결정 (해시 있으면 해시 우선) */}
+        {/* 기본 탭: 보드 (해시 있으면 해시 우선) */}
         {todosReady ? (
           <Tab
             items={{
-              "할 일": (
+              [boardTabKey]: boardListContent,
+              [todoTabKey]: (
                 <BoardsActivityTodos
                   items={todos}
                   loading={todosLoading}
@@ -515,10 +517,9 @@ const Boards = () => {
                   onGoToBoards={handleGoToBoardsTab}
                 />
               ),
-              보드: boardListContent,
             }}
             align="flex-start"
-            defaultTab={defaultTab}
+            defaultTab={boardTabKey}
             badges={tabBadges}
           />
         ) : (
