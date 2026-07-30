@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
@@ -7,7 +7,9 @@ import style from "./altBoard.module.scss";
 import Svg from "assets/svg/Svg";
 import Button from "components/button/Button";
 import Popup from "components/popup/Popup";
+import { DateRange } from "components/dateRangeFilter/DateRangeFilterDropdown";
 import PostBlogView from "../views/PostBlogView";
+import DocsListFilterBar from "./DocsListFilterBar";
 import { TBoard, TBoardContentViewMode } from "types/board";
 import { TPost } from "types/post";
 
@@ -15,6 +17,14 @@ type Props = {
   board: TBoard;
   /** 문서 목록/삭제 등 변경 후 안 읽음 뱃지 갱신 */
   onPostsChanged?: () => void;
+};
+
+const toDateStr = (iso: string) => {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate()
+  ).padStart(2, "0")}`;
 };
 
 const formatPermissionRead = (post: TPost): string => {
@@ -55,6 +65,11 @@ const AltDocsView = ({ board, onPostsChanged }: Props) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deletePost, setDeletePost] = useState<TPost | null>(null);
   const mdFileInputRef = useRef<HTMLInputElement>(null);
+
+  const [docKeyword, setDocKeyword] = useState("");
+  const [unreadOnly, setUnreadOnly] = useState(false);
+  const [authorFilter, setAuthorFilter] = useState("");
+  const [dateRange, setDateRange] = useState<DateRange>({ from: "", to: "" });
 
   const contentViewMode: TBoardContentViewMode =
     board.contentViewMode || "table";
@@ -125,6 +140,59 @@ const AltDocsView = ({ board, onPostsChanged }: Props) => {
     loadPosts();
   }, [board._id, contentViewMode]);
 
+  const hasDocFilters =
+    !!docKeyword.trim() ||
+    unreadOnly ||
+    !!authorFilter.trim() ||
+    !!dateRange.from ||
+    !!dateRange.to;
+
+  const displayPosts = useMemo(() => {
+    let result = posts;
+
+    const kw = docKeyword.trim().toLowerCase();
+    if (kw) {
+      result = result.filter(
+        (p) =>
+          (p.title || "").toLowerCase().includes(kw) ||
+          (p.authorName || "").toLowerCase().includes(kw) ||
+          (p.authorId || "").toLowerCase().includes(kw)
+      );
+    }
+
+    if (unreadOnly) {
+      result = result.filter((p) => !!p.isUnread);
+    }
+
+    const authorKw = authorFilter.trim().toLowerCase();
+    if (authorKw) {
+      result = result.filter(
+        (p) =>
+          (p.authorName || "").toLowerCase().includes(authorKw) ||
+          (p.authorId || "").toLowerCase().includes(authorKw)
+      );
+    }
+
+    if (dateRange.from || dateRange.to) {
+      result = result.filter((p) => {
+        const dateStr = toDateStr(p.createdAt);
+        if (!dateStr) return false;
+        if (dateRange.from && dateStr < dateRange.from) return false;
+        if (dateRange.to && dateStr > dateRange.to) return false;
+        return true;
+      });
+    }
+
+    return result;
+  }, [posts, docKeyword, unreadOnly, authorFilter, dateRange]);
+
+  const clearDocFilters = () => {
+    setDocKeyword("");
+    setUnreadOnly(false);
+    setAuthorFilter("");
+    setDateRange({ from: "", to: "" });
+  };
+
   const handleDuplicate = async (postId: string) => {
     try {
       await PostAPI.DuplicatePost({ params: { _id: postId } });
@@ -192,13 +260,20 @@ const AltDocsView = ({ board, onPostsChanged }: Props) => {
 
   if (isLoading) return null;
 
-  const pinnedCount = posts.filter((p) => p.isPinned).length;
+  const pinnedCount = displayPosts.filter((p) => p.isPinned).length;
+
+  const emptyMessage =
+    posts.length === 0
+      ? "아직 작성된 문서가 없습니다."
+      : hasDocFilters
+        ? "조건에 맞는 문서가 없습니다."
+        : "아직 작성된 문서가 없습니다.";
 
   const docsHeader = (
     <div className={style.formSectionHeaderStatic}>
       <div className={style.formSectionHeaderMain}>
         <h3 className={style.formSectionTitle}>문서</h3>
-        <span className={style.formSectionCount}>{posts.length}</span>
+        <span className={style.formSectionCount}>{displayPosts.length}</span>
       </div>
       <div className={style.formSectionStats}>
         {pinnedCount > 0 && (
@@ -235,6 +310,20 @@ const AltDocsView = ({ board, onPostsChanged }: Props) => {
         </div>
       )}
     </div>
+  );
+
+  const docsFilterBar = (
+    <DocsListFilterBar
+      keyword={docKeyword}
+      onKeywordChange={setDocKeyword}
+      unreadOnly={unreadOnly}
+      onUnreadOnlyChange={setUnreadOnly}
+      authorFilter={authorFilter}
+      onAuthorFilterChange={setAuthorFilter}
+      dateRange={dateRange}
+      onDateRangeChange={setDateRange}
+      onClear={clearDocFilters}
+    />
   );
 
   const deletePopup = deletePost ? (
@@ -302,12 +391,13 @@ const AltDocsView = ({ board, onPostsChanged }: Props) => {
         <section className={style.formSectionPanel}>
           {docsHeader}
           <div className={style.formSectionBody}>
-            {posts.length === 0 ? (
-              <div className={style.emptyState}>아직 작성된 문서가 없습니다.</div>
+            {docsFilterBar}
+            {posts.length === 0 || displayPosts.length === 0 ? (
+              <div className={style.emptyState}>{emptyMessage}</div>
             ) : (
               <div style={{ paddingTop: 12 }}>
                 <PostBlogView
-                  posts={posts}
+                  posts={displayPosts}
                   board={board}
                   onClickPost={handleClickPost}
                 />
@@ -325,11 +415,12 @@ const AltDocsView = ({ board, onPostsChanged }: Props) => {
       <section className={style.formSectionPanel}>
         {docsHeader}
         <div className={style.formSectionBody}>
-          {posts.length === 0 ? (
-            <div className={style.emptyState}>아직 작성된 문서가 없습니다.</div>
+          {docsFilterBar}
+          {posts.length === 0 || displayPosts.length === 0 ? (
+            <div className={style.emptyState}>{emptyMessage}</div>
           ) : (
             <div className={style.formCardList}>
-              {posts.map((post) => {
+              {displayPosts.map((post) => {
                 const editable = canEditPost(post);
                 const leadToneClass = post.isUnread || post.isDraft
                   ? style.formCardLeadIconPending
