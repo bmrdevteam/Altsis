@@ -468,6 +468,20 @@ const AltFormList = ({
           <div className={style.formCardLeft}>
             <div className={style.formCardTitle}>{form.title}</div>
             <div className={style.formCardMeta}>
+              {form.settings.quizMode && (
+                <span
+                  className={`${style.formCardBadge} ${style.formCardTypeQuiz}`}
+                >
+                  퀴즈
+                </span>
+              )}
+              {form.settings.assessmentMode && (
+                <span
+                  className={`${style.formCardBadge} ${style.formCardTypeAssessment}`}
+                >
+                  평가
+                </span>
+              )}
               {renderSubmitBadge(form)}
               {canManage && !isDirect && (
                 <span className={style.responseCount}>{countLabel}</span>
@@ -494,17 +508,6 @@ const AltFormList = ({
                 !isDirect && (
                   <span className={style.formCardHint}>추가 제출 가능</span>
                 )}
-              {form.settings.quizMode && (
-                <span
-                  className={style.formCardBadge}
-                  style={{
-                    background: "var(--status-info-bg)",
-                    color: "var(--status-info)",
-                  }}
-                >
-                  퀴즈
-                </span>
-              )}
             </div>
           </div>
         </div>
