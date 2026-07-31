@@ -1119,7 +1119,7 @@ const AltSheetView = ({
                 onChange={(md) =>
                   setDocEditData((p) => ({ ...p, [field._id]: md }))
                 }
-                placeholder="문서 양식을 편집하세요."
+                placeholder="응답 문서를 편집하세요."
                 minHeight="200px"
                 onImageUpload={handleEditorImageUpload}
               />

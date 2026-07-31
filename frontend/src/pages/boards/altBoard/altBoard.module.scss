@@ -809,6 +809,13 @@
   min-width: 0;
 }
 
+.settingsInlineNote {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-color-2);
+}
+
 .settingsHint {
   font-size: 12px;
   font-weight: 400;

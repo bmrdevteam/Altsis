@@ -174,7 +174,7 @@ export type TAltFormSettings = {
    */
   requiredResponseCount?: number | null;
   /**
-   * 필수 모드: 미제출 뱃지·활동 탭 카운트에 포함.
+   * 필수 응답: 미제출 뱃지·활동 탭 카운트에 포함.
    * true일 때만 필수. 미설정·false는 선택(미제출 미표시).
    */
   requiredMode?: boolean;

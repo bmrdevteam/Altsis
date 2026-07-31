@@ -84,17 +84,17 @@ const FIELD_TYPE_LABELS: Record<TAltFormFieldType, string> = {
   time: "시간",
   file: "파일",
   select: "드롭다운",
-  multiSelect: "다중 선택",
+  multiSelect: "복수 선택",
   checkbox: "체크박스",
-  radio: "라디오",
+  radio: "객관식",
   userSelect: "사용자 선택",
   rating: "별점",
   scale: "척도",
   counter: "카운터",
   approval: "승인",
   link: "링크",
-  content: "문서",
-  docResponse: "문서 양식",
+  content: "안내 문서",
+  docResponse: "응답 문서",
 };
 
 /** 접힌 항목 목록용 Material 아이콘 (유형별 구분) */
@@ -124,19 +124,11 @@ const FIELD_TYPE_GROUPS: { label: string; types: TAltFormFieldType[] }[] = [
   { label: "텍스트", types: ["text", "textarea", "number"] },
   { label: "선택", types: ["radio", "checkbox", "select", "multiSelect"] },
   { label: "날짜/시간", types: ["date", "multiDate", "time"] },
+  { label: "문서", types: ["content", "docResponse"] },
+  { label: "평가 입력", types: ["rating", "scale", "counter"] },
   {
-    label: "특수",
-    types: [
-      "content",
-      "docResponse",
-      "rating",
-      "scale",
-      "counter",
-      "file",
-      "userSelect",
-      "approval",
-      "link",
-    ],
+    label: "기타",
+    types: ["file", "userSelect", "approval", "link"],
   },
 ];
 
@@ -2044,9 +2036,9 @@ const AltFormBuilder = ({
           className={style.gfLabelInput}
           placeholder={
             field.type === "content"
-              ? "문서 제목 (선택)"
+              ? "안내 문서 제목 (선택)"
               : field.type === "docResponse"
-                ? "문서 양식 제목"
+                ? "응답 문서 제목"
                 : "질문"
           }
           value={field.label}
@@ -2262,7 +2254,7 @@ const AltFormBuilder = ({
         className={style.toolbarBtn}
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => addFieldOfType("radio")}
-        title="객관식 질문"
+        title="객관식"
       >
         <MI icon="radio_button_checked" size={22} />
       </button>
@@ -2290,7 +2282,7 @@ const AltFormBuilder = ({
         className={style.toolbarBtn}
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => addFieldOfType("content")}
-        title="문서"
+        title="안내 문서"
       >
         <MI icon="article" size={22} />
       </button>
@@ -2299,7 +2291,7 @@ const AltFormBuilder = ({
         className={style.toolbarBtn}
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => addFieldOfType("docResponse")}
-        title="문서 양식"
+        title="응답 문서"
       >
         <MI icon="edit_note" size={22} />
       </button>
@@ -2520,32 +2512,12 @@ const AltFormBuilder = ({
               </section>
 
               <section className={style.settingsSection}>
-                <h4 className={style.settingsSectionTitle}>응답</h4>
+                <h4 className={style.settingsSectionTitle}>제출·응답</h4>
                 <div className={style.settingsSectionBody}>
                   <div className={style.settingsItemRow}>
                     <div className={style.settingsItemText}>
                       <div className={style.settingsLabelRow}>
-                        <span className={style.settingsLabel}>재제출 허용</span>
-                        <SettingsHint text="허용하면 제출한 응답을 다시 열어 수정할 수 있습니다. 복수 응답이 켜져 있으면 사용할 수 없습니다." />
-                      </div>
-                    </div>
-                    <div className={style.settingsToggle}>
-                      <ToggleSwitch
-                        checked={settings.allowResubmit}
-                        disabled={settings.allowMultipleResponses}
-                        onChange={(v) =>
-                          setSettings((s) => ({ ...s, allowResubmit: v }))
-                        }
-                      />
-                      <span className={style.settingsToggleText}>
-                        {settings.allowResubmit ? "허용" : "비허용"}
-                      </span>
-                    </div>
-                  </div>
-                  <div className={style.settingsItemRow}>
-                    <div className={style.settingsItemText}>
-                      <div className={style.settingsLabelRow}>
-                        <span className={style.settingsLabel}>복수 응답 허용</span>
+                        <span className={style.settingsLabel}>복수 응답</span>
                         <SettingsHint text="허용하면 같은 사용자가 여러 번 제출할 수 있고, 기록에 여러 행으로 쌓입니다." />
                       </div>
                     </div>
@@ -2568,32 +2540,32 @@ const AltFormBuilder = ({
                   <div className={style.settingsItemRow}>
                     <div className={style.settingsItemText}>
                       <div className={style.settingsLabelRow}>
-                        <span className={style.settingsLabel}>본인 응답 확인</span>
-                        <SettingsHint text="허용하면 응답자가 제출한 내용을 「내 응답」에서 다시 볼 수 있습니다." />
+                        <span className={style.settingsLabel}>응답 수정</span>
+                        <SettingsHint text="허용하면 제출한 응답을 다시 열어 수정할 수 있습니다. 복수 응답이 켜져 있으면 사용할 수 없습니다." />
                       </div>
+                      {settings.allowMultipleResponses && (
+                        <p className={style.settingsInlineNote}>
+                          복수 응답이 켜져 있어 사용할 수 없습니다.
+                        </p>
+                      )}
                     </div>
                     <div className={style.settingsToggle}>
                       <ToggleSwitch
-                        checked={settings.showOwnResponse}
+                        checked={settings.allowResubmit}
+                        disabled={settings.allowMultipleResponses}
                         onChange={(v) =>
-                          setSettings((s) => ({ ...s, showOwnResponse: v }))
+                          setSettings((s) => ({ ...s, allowResubmit: v }))
                         }
                       />
                       <span className={style.settingsToggleText}>
-                        {settings.showOwnResponse ? "허용" : "비허용"}
+                        {settings.allowResubmit ? "허용" : "비허용"}
                       </span>
                     </div>
                   </div>
-                </div>
-              </section>
-
-              <section className={style.settingsSection}>
-                <h4 className={style.settingsSectionTitle}>모드</h4>
-                <div className={style.settingsSectionBody}>
                   <div className={style.settingsItemRow}>
                     <div className={style.settingsItemText}>
                       <div className={style.settingsLabelRow}>
-                        <span className={style.settingsLabel}>필수 모드</span>
+                        <span className={style.settingsLabel}>필수 응답</span>
                         <SettingsHint text="켜면 미제출로 표시되고 활동 뱃지에 포함됩니다. 복수 응답과 함께 쓰면 목표 횟수를 채울 때까지 n/n으로 표시됩니다." />
                       </div>
                     </div>
@@ -2641,6 +2613,31 @@ const AltFormBuilder = ({
                         </div>
                       </div>
                     )}
+                  <div className={style.settingsItemRow}>
+                    <div className={style.settingsItemText}>
+                      <div className={style.settingsLabelRow}>
+                        <span className={style.settingsLabel}>내 응답</span>
+                        <SettingsHint text="허용하면 응답자가 제출한 내용을 다시 볼 수 있습니다." />
+                      </div>
+                    </div>
+                    <div className={style.settingsToggle}>
+                      <ToggleSwitch
+                        checked={settings.showOwnResponse}
+                        onChange={(v) =>
+                          setSettings((s) => ({ ...s, showOwnResponse: v }))
+                        }
+                      />
+                      <span className={style.settingsToggleText}>
+                        {settings.showOwnResponse ? "허용" : "비허용"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section className={style.settingsSection}>
+                <h4 className={style.settingsSectionTitle}>채점·평가</h4>
+                <div className={style.settingsSectionBody}>
                   <div className={style.settingsItemRow}>
                     <div className={style.settingsItemText}>
                       <div className={style.settingsLabelRow}>
@@ -3222,6 +3219,12 @@ const AltFormBuilder = ({
                       </div>
                     </div>
                   )}
+                </div>
+              </section>
+
+              <section className={style.settingsSection}>
+                <h4 className={style.settingsSectionTitle}>운영</h4>
+                <div className={style.settingsSectionBody}>
                   <div className={style.settingsItemRow}>
                     <div className={style.settingsItemText}>
                       <div className={style.settingsLabelRow}>
@@ -3245,12 +3248,12 @@ const AltFormBuilder = ({
               </section>
 
               <section className={style.settingsSection}>
-                <h4 className={style.settingsSectionTitle}>공개</h4>
+                <h4 className={style.settingsSectionTitle}>공개·열람</h4>
                 <div className={style.settingsSectionBody}>
                   <div className={style.settingsItemRow}>
                     <div className={style.settingsItemText}>
                       <div className={style.settingsLabelRow}>
-                        <span className={style.settingsLabel}>응답 결과 공유</span>
+                        <span className={style.settingsLabel}>결과 공유</span>
                         <SettingsHint text="공개하면 응답자도 권한 범위 안에서 다른 사람 응답 결과를 볼 수 있습니다." />
                       </div>
                     </div>
@@ -3357,9 +3360,9 @@ const AltFormBuilder = ({
                             <span className={style.fieldCollapsedLabel}>
                               {field.label ||
                                 (field.type === "content"
-                                  ? "(문서)"
+                                  ? "(안내 문서)"
                                   : field.type === "docResponse"
-                                    ? "(문서 양식)"
+                                    ? "(응답 문서)"
                                     : "(이름 없음)")}
                               {field.required && (
                                 <span className={style.requiredMark}> *</span>
