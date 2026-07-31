@@ -7,9 +7,11 @@ import style from "./altBoard.module.scss";
 import Svg from "assets/svg/Svg";
 import Button from "components/button/Button";
 import Popup from "components/popup/Popup";
-import { DateRange } from "components/dateRangeFilter/DateRangeFilterDropdown";
 import PostBlogView from "../views/PostBlogView";
-import DocsListFilterBar from "./DocsListFilterBar";
+import DocsListFilterBar, {
+  TDocsViewCounts,
+  TDocsViewFilter,
+} from "./DocsListFilterBar";
 import { TBoard, TBoardContentViewMode } from "types/board";
 import { TPost } from "types/post";
 
@@ -17,14 +19,6 @@ type Props = {
   board: TBoard;
   /** 문서 목록/삭제 등 변경 후 안 읽음 뱃지 갱신 */
   onPostsChanged?: () => void;
-};
-
-const toDateStr = (iso: string) => {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-    d.getDate()
-  ).padStart(2, "0")}`;
 };
 
 const formatPermissionRead = (post: TPost): string => {
@@ -67,9 +61,7 @@ const AltDocsView = ({ board, onPostsChanged }: Props) => {
   const mdFileInputRef = useRef<HTMLInputElement>(null);
 
   const [docKeyword, setDocKeyword] = useState("");
-  const [unreadOnly, setUnreadOnly] = useState(false);
-  const [authorFilter, setAuthorFilter] = useState("");
-  const [dateRange, setDateRange] = useState<DateRange>({ from: "", to: "" });
+  const [docsFilter, setDocsFilter] = useState<TDocsViewFilter>("");
 
   const contentViewMode: TBoardContentViewMode =
     board.contentViewMode || "table";
@@ -140,57 +132,46 @@ const AltDocsView = ({ board, onPostsChanged }: Props) => {
     loadPosts();
   }, [board._id, contentViewMode]);
 
-  const hasDocFilters =
-    !!docKeyword.trim() ||
-    unreadOnly ||
-    !!authorFilter.trim() ||
-    !!dateRange.from ||
-    !!dateRange.to;
+  const hasDocFilters = !!docKeyword.trim() || !!docsFilter;
+
+  const keywordPosts = useMemo(() => {
+    const kw = docKeyword.trim().toLowerCase();
+    if (!kw) return posts;
+    return posts.filter(
+      (p) =>
+        (p.title || "").toLowerCase().includes(kw) ||
+        (p.authorName || "").toLowerCase().includes(kw) ||
+        (p.authorId || "").toLowerCase().includes(kw)
+    );
+  }, [posts, docKeyword]);
+
+  const docsCounts: TDocsViewCounts = useMemo(() => {
+    const counts = { unread: 0, pinned: 0, draft: 0 };
+    for (const p of keywordPosts) {
+      if (p.isUnread) counts.unread += 1;
+      if (p.isPinned) counts.pinned += 1;
+      if (p.isDraft) counts.draft += 1;
+    }
+    return counts;
+  }, [keywordPosts]);
 
   const displayPosts = useMemo(() => {
-    let result = posts;
-
-    const kw = docKeyword.trim().toLowerCase();
-    if (kw) {
-      result = result.filter(
-        (p) =>
-          (p.title || "").toLowerCase().includes(kw) ||
-          (p.authorName || "").toLowerCase().includes(kw) ||
-          (p.authorId || "").toLowerCase().includes(kw)
-      );
+    if (!docsFilter) return keywordPosts;
+    if (docsFilter === "unread") {
+      return keywordPosts.filter((p) => !!p.isUnread);
     }
-
-    if (unreadOnly) {
-      result = result.filter((p) => !!p.isUnread);
+    if (docsFilter === "pinned") {
+      return keywordPosts.filter((p) => !!p.isPinned);
     }
-
-    const authorKw = authorFilter.trim().toLowerCase();
-    if (authorKw) {
-      result = result.filter(
-        (p) =>
-          (p.authorName || "").toLowerCase().includes(authorKw) ||
-          (p.authorId || "").toLowerCase().includes(authorKw)
-      );
+    if (docsFilter === "draft") {
+      return keywordPosts.filter((p) => !!p.isDraft);
     }
-
-    if (dateRange.from || dateRange.to) {
-      result = result.filter((p) => {
-        const dateStr = toDateStr(p.createdAt);
-        if (!dateStr) return false;
-        if (dateRange.from && dateStr < dateRange.from) return false;
-        if (dateRange.to && dateStr > dateRange.to) return false;
-        return true;
-      });
-    }
-
-    return result;
-  }, [posts, docKeyword, unreadOnly, authorFilter, dateRange]);
+    return keywordPosts;
+  }, [keywordPosts, docsFilter]);
 
   const clearDocFilters = () => {
     setDocKeyword("");
-    setUnreadOnly(false);
-    setAuthorFilter("");
-    setDateRange({ from: "", to: "" });
+    setDocsFilter("");
   };
 
   const handleDuplicate = async (postId: string) => {
@@ -316,12 +297,9 @@ const AltDocsView = ({ board, onPostsChanged }: Props) => {
     <DocsListFilterBar
       keyword={docKeyword}
       onKeywordChange={setDocKeyword}
-      unreadOnly={unreadOnly}
-      onUnreadOnlyChange={setUnreadOnly}
-      authorFilter={authorFilter}
-      onAuthorFilterChange={setAuthorFilter}
-      dateRange={dateRange}
-      onDateRangeChange={setDateRange}
+      viewFilter={docsFilter}
+      onViewFilterChange={setDocsFilter}
+      counts={docsCounts}
       onClear={clearDocFilters}
     />
   );
@@ -388,10 +366,10 @@ const AltDocsView = ({ board, onPostsChanged }: Props) => {
   if (contentViewMode === "blog") {
     return (
       <div className={style.formList}>
+        {docsFilterBar}
         <section className={style.formSectionPanel}>
           {docsHeader}
           <div className={style.formSectionBody}>
-            {docsFilterBar}
             {posts.length === 0 || displayPosts.length === 0 ? (
               <div className={style.emptyState}>{emptyMessage}</div>
             ) : (
@@ -412,10 +390,10 @@ const AltDocsView = ({ board, onPostsChanged }: Props) => {
 
   return (
     <div className={style.formList}>
+      {docsFilterBar}
       <section className={style.formSectionPanel}>
         {docsHeader}
         <div className={style.formSectionBody}>
-          {docsFilterBar}
           {posts.length === 0 || displayPosts.length === 0 ? (
             <div className={style.emptyState}>{emptyMessage}</div>
           ) : (

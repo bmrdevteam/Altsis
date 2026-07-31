@@ -15,6 +15,10 @@ import DateRangeFilterDropdown, {
 import MergeStyleFilterBar from "components/mergeFilter/MergeStyleFilterBar";
 import { MarkdownEditor, MarkdownViewer } from "components/markdown";
 import { isCurrentApprover, normalizeApprovalValue } from "utils/approvalLine";
+import RecordsListFilterBar, {
+  TRecordsViewCounts,
+  TRecordsViewFilter,
+} from "./RecordsListFilterBar";
 
 type Props = {
   board: TBoard;
@@ -31,6 +35,28 @@ type SortConfig = {
   fieldId: string;
   direction: "asc" | "desc";
 } | null;
+
+const formMatchesKeyword = (form: TAltForm, keyword: string) => {
+  const kw = keyword.trim().toLowerCase();
+  if (!kw) return true;
+  return (
+    (form.title || "").toLowerCase().includes(kw) ||
+    (form.description || "").toLowerCase().includes(kw)
+  );
+};
+
+const formMatchesRecordsFilter = (
+  form: TAltForm,
+  filter: Exclude<TRecordsViewFilter, "">
+) => {
+  if (filter === "shared") return !!form.settings.shareResponses;
+  if (filter === "quiz") return !!form.settings.quizMode;
+  if (filter === "assessment") return !!form.settings.assessmentMode;
+  if (filter === "approval")
+    return form.fields.some((f) => f.type === "approval");
+  if (filter === "direct") return !!form.settings.directInputMode;
+  return true;
+};
 
 const AltSheetView = ({
   board,
@@ -94,6 +120,9 @@ const AltSheetView = ({
   const [docIndex, setDocIndex] = useState(0);
   /** 문서 보기: 키워드 검색 (머지 UI와 동일) */
   const [docKeyword, setDocKeyword] = useState("");
+  /** 기록 목록: 검색·칩 필터 */
+  const [recordsKeyword, setRecordsKeyword] = useState("");
+  const [recordsFilter, setRecordsFilter] = useState<TRecordsViewFilter>("");
 
   // 응답 삭제 확인
   const [deleteTargetRow, setDeleteTargetRow] = useState<TAltSheetRow | null>(
@@ -1310,19 +1339,59 @@ const AltSheetView = ({
   };
 
   // 응답자: shareResponses(전체 공유) 또는 showOwnResponse(본인 기록) 켜진 양식
-  const availableForms = canManage
-    ? forms
-    : forms.filter(
-        (f) => f.settings.shareResponses || f.settings.showOwnResponse
-      );
+  const availableForms = useMemo(
+    () =>
+      canManage
+        ? forms
+        : forms.filter(
+            (f) => f.settings.shareResponses || f.settings.showOwnResponse
+          ),
+    [canManage, forms]
+  );
 
-  const sharedCount = availableForms.filter(
+  const keywordForms = useMemo(
+    () =>
+      availableForms.filter((f) => formMatchesKeyword(f, recordsKeyword)),
+    [availableForms, recordsKeyword]
+  );
+
+  const filteredForms = useMemo(() => {
+    if (!recordsFilter) return keywordForms;
+    return keywordForms.filter((f) =>
+      formMatchesRecordsFilter(f, recordsFilter)
+    );
+  }, [keywordForms, recordsFilter]);
+
+  const recordsCounts: TRecordsViewCounts = useMemo(() => {
+    const counts = {
+      shared: 0,
+      quiz: 0,
+      assessment: 0,
+      approval: 0,
+      direct: 0,
+    };
+    for (const f of keywordForms) {
+      if (formMatchesRecordsFilter(f, "shared")) counts.shared += 1;
+      if (formMatchesRecordsFilter(f, "quiz")) counts.quiz += 1;
+      if (formMatchesRecordsFilter(f, "assessment")) counts.assessment += 1;
+      if (formMatchesRecordsFilter(f, "approval")) counts.approval += 1;
+      if (formMatchesRecordsFilter(f, "direct")) counts.direct += 1;
+    }
+    return counts;
+  }, [keywordForms]);
+
+  const sharedCount = filteredForms.filter(
     (f) => f.settings.shareResponses
   ).length;
-  const responseSum = availableForms.reduce(
+  const responseSum = filteredForms.reduce(
     (sum, f) => sum + (f.responseCount ?? 0),
     0
   );
+  const hasRecordsFilters = !!recordsKeyword.trim() || !!recordsFilter;
+  const clearRecordsFilters = () => {
+    setRecordsKeyword("");
+    setRecordsFilter("");
+  };
 
   if (availableForms.length === 0) {
     return (
@@ -1350,12 +1419,20 @@ const AltSheetView = ({
   if (!selectedFormId) {
     return (
       <div className={style.formList}>
+        <RecordsListFilterBar
+          keyword={recordsKeyword}
+          onKeywordChange={setRecordsKeyword}
+          viewFilter={recordsFilter}
+          onViewFilterChange={setRecordsFilter}
+          counts={recordsCounts}
+          onClear={clearRecordsFilters}
+        />
         <section className={style.formSectionPanel}>
           <div className={style.formSectionHeaderStatic}>
             <div className={style.formSectionHeaderMain}>
               <h3 className={style.formSectionTitle}>기록</h3>
               <span className={style.formSectionCount}>
-                {availableForms.length}
+                {filteredForms.length}
               </span>
             </div>
             <div className={style.formSectionStats}>
@@ -1370,86 +1447,94 @@ const AltSheetView = ({
             </div>
           </div>
           <div className={style.formSectionBody}>
-            <div className={style.formCardList}>
-              {availableForms.map((form) => (
-                <div
-                  key={form._id}
-                  className={style.formCard}
-                  title="기록 열기"
-                  onClick={() => {
-                    setSelectedFormId(form._id);
-                    onFormSelect?.(form._id);
-                  }}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
+            {filteredForms.length === 0 ? (
+              <div className={style.emptyState}>
+                {hasRecordsFilters
+                  ? "조건에 맞는 기록이 없습니다."
+                  : "기록이 없습니다."}
+              </div>
+            ) : (
+              <div className={style.formCardList}>
+                {filteredForms.map((form) => (
+                  <div
+                    key={form._id}
+                    className={style.formCard}
+                    title="기록 열기"
+                    onClick={() => {
                       setSelectedFormId(form._id);
                       onFormSelect?.(form._id);
-                    }
-                  }}
-                >
-                  <div className={style.formCardMain}>
-                    <div
-                      className={`${style.formCardLeadIcon} ${
-                        form.settings.shareResponses
-                          ? style.formCardLeadIconInfo
-                          : ""
-                      }`}
-                      aria-hidden
-                    >
-                      <Svg type="table" width="20px" height="20px" />
-                    </div>
-                    <div className={style.formCardLeft}>
-                      <div className={style.formCardTitle}>{form.title}</div>
-                      <div className={style.formCardMeta}>
-                        <span>
-                          {
-                            form.fields.filter((f) => f.type !== "content")
-                              .length
-                          }
-                          개 항목
-                        </span>
-                        {(form.responseCount ?? 0) > 0 && (
-                          <span className={style.responseCount}>
-                            {form.settings.allowMultipleResponses
-                              ? `응답 ${form.responseCount}건`
-                              : `제출 ${form.responseCount}명`}
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setSelectedFormId(form._id);
+                        onFormSelect?.(form._id);
+                      }
+                    }}
+                  >
+                    <div className={style.formCardMain}>
+                      <div
+                        className={`${style.formCardLeadIcon} ${
+                          form.settings.shareResponses
+                            ? style.formCardLeadIconInfo
+                            : ""
+                        }`}
+                        aria-hidden
+                      >
+                        <Svg type="table" width="20px" height="20px" />
+                      </div>
+                      <div className={style.formCardLeft}>
+                        <div className={style.formCardTitle}>{form.title}</div>
+                        <div className={style.formCardMeta}>
+                          <span>
+                            {
+                              form.fields.filter((f) => f.type !== "content")
+                                .length
+                            }
+                            개 항목
                           </span>
-                        )}
-                        {form.settings.shareResponses && (
-                          <span
-                            className={style.formCardBadge}
-                            style={{
-                              background: "var(--status-info-bg)",
-                              color: "var(--status-info)",
-                            }}
-                          >
-                            공유
-                          </span>
-                        )}
+                          {(form.responseCount ?? 0) > 0 && (
+                            <span className={style.responseCount}>
+                              {form.settings.allowMultipleResponses
+                                ? `응답 ${form.responseCount}건`
+                                : `제출 ${form.responseCount}명`}
+                            </span>
+                          )}
+                          {form.settings.shareResponses && (
+                            <span
+                              className={style.formCardBadge}
+                              style={{
+                                background: "var(--status-info-bg)",
+                                color: "var(--status-info)",
+                              }}
+                            >
+                              공유
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
+                    <div className={style.formCardRight}>
+                      {onCopySheetLink && (
+                        <button
+                          type="button"
+                          className={style.formCardIconBtn}
+                          title="링크 복사"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onCopySheetLink(form._id);
+                          }}
+                        >
+                          <Svg type="link" width="20px" height="20px" />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <div className={style.formCardRight}>
-                    {onCopySheetLink && (
-                      <button
-                        type="button"
-                        className={style.formCardIconBtn}
-                        title="링크 복사"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onCopySheetLink(form._id);
-                        }}
-                      >
-                        <Svg type="link" width="20px" height="20px" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </section>
       </div>

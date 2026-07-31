@@ -2,39 +2,54 @@ import Svg from "assets/svg/Svg";
 import mergeStyle from "components/mergeFilter/mergeFilter.module.scss";
 import bStyle from "../boards.module.scss";
 
-/** 배타 칩: 전체("") | 안 읽음 | 공지 | 비공개 */
-export type TDocsViewFilter = "" | "unread" | "pinned" | "draft";
+/** 배타 칩: 전체("") | 공유 | 퀴즈 | 평가 | 승인 | 직접입력 */
+export type TRecordsViewFilter =
+  | ""
+  | "shared"
+  | "quiz"
+  | "assessment"
+  | "approval"
+  | "direct";
 
-export type TDocsViewCounts = Record<Exclude<TDocsViewFilter, "">, number>;
+export type TRecordsViewCounts = Record<
+  Exclude<TRecordsViewFilter, "">,
+  number
+>;
 
 const CHIP_TONE_CLASS: Record<string, string> = {
   All: bStyle.filterChipToneAll,
-  Approval: bStyle.filterChipToneApproval,
   Optional: bStyle.filterChipToneOptional,
   Draft: bStyle.filterChipToneDraft,
+  Scheduled: bStyle.filterChipToneScheduled,
+  Approval: bStyle.filterChipToneApproval,
+  Direct: bStyle.filterChipToneDirect,
 };
 
 const CHIP_VISUAL: Record<
-  Exclude<TDocsViewFilter, "">,
+  Exclude<TRecordsViewFilter, "">,
   { label: string; icon: string; tone: string }
 > = {
-  unread: { label: "안 읽음", icon: "time", tone: "Approval" },
-  pinned: { label: "공지", icon: "list", tone: "Optional" },
-  draft: { label: "비공개", icon: "settings", tone: "Draft" },
+  shared: { label: "공유", icon: "link", tone: "Optional" },
+  quiz: { label: "퀴즈", icon: "check", tone: "Draft" },
+  assessment: { label: "평가", icon: "edit", tone: "Scheduled" },
+  approval: { label: "승인", icon: "list_check", tone: "Approval" },
+  direct: { label: "직접입력", icon: "table", tone: "Direct" },
 };
 
-const CHIP_ORDER: Exclude<TDocsViewFilter, "">[] = [
-  "unread",
-  "pinned",
-  "draft",
+const CHIP_ORDER: Exclude<TRecordsViewFilter, "">[] = [
+  "shared",
+  "quiz",
+  "assessment",
+  "approval",
+  "direct",
 ];
 
 type Props = {
   keyword: string;
   onKeywordChange: (value: string) => void;
-  viewFilter: TDocsViewFilter;
-  onViewFilterChange: (value: TDocsViewFilter) => void;
-  counts: TDocsViewCounts;
+  viewFilter: TRecordsViewFilter;
+  onViewFilterChange: (value: TRecordsViewFilter) => void;
+  counts: TRecordsViewCounts;
   onClear: () => void;
 };
 
@@ -44,7 +59,7 @@ const ChipIcon = ({ type }: { type: string }) => (
   </span>
 );
 
-const DocsListFilterBar = ({
+const RecordsListFilterBar = ({
   keyword,
   onKeywordChange,
   viewFilter,
@@ -64,7 +79,7 @@ const DocsListFilterBar = ({
           <input
             className={mergeStyle.mergeSearchInput}
             type="search"
-            placeholder="키워드 검색 (제목, 작성자)"
+            placeholder="키워드 검색 (제목, 설명)"
             value={keyword}
             onChange={(e) => onKeywordChange(e.target.value)}
           />
@@ -74,7 +89,7 @@ const DocsListFilterBar = ({
       <div
         className={bStyle.filterChipRow}
         role="radiogroup"
-        aria-label="문서 보기"
+        aria-label="기록 보기"
       >
         <button
           type="button"
@@ -121,4 +136,4 @@ const DocsListFilterBar = ({
   );
 };
 
-export default DocsListFilterBar;
+export default RecordsListFilterBar;
