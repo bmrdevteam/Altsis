@@ -1,4 +1,3 @@
-import useOutsideClick from "hooks/useOutsideClick";
 import Svg from "assets/svg/Svg";
 import { TBoardScope, TBoardType } from "types/board";
 import mergeStyle from "components/mergeFilter/mergeFilter.module.scss";
@@ -6,6 +5,14 @@ import bStyle from "./boards.module.scss";
 
 export type TBoardScopeFilter = "" | TBoardScope;
 export type TBoardTypeFilter = "" | TBoardType;
+
+export type TBoardListFilterCounts = {
+  todos: number;
+  school: number;
+  season: number;
+  official: number;
+  user: number;
+};
 
 type Props = {
   keyword: string;
@@ -16,20 +23,26 @@ type Props = {
   onScopeFilterChange: (value: TBoardScopeFilter) => void;
   boardTypeFilter: TBoardTypeFilter;
   onBoardTypeFilterChange: (value: TBoardTypeFilter) => void;
+  counts: TBoardListFilterCounts;
   onClear: () => void;
 };
 
-const SCOPE_OPTIONS: { value: TBoardScopeFilter; label: string }[] = [
-  { value: "", label: "전체" },
-  { value: "school", label: "학교" },
-  { value: "season", label: "시즌" },
-];
+const CHIP_TONE_CLASS: Record<string, string> = {
+  All: bStyle.filterChipToneAll,
+  Approval: bStyle.filterChipToneApproval,
+  Optional: bStyle.filterChipToneOptional,
+  Submitted: bStyle.filterChipToneSubmitted,
+  Closed: bStyle.filterChipToneClosed,
+  Scheduled: bStyle.filterChipToneScheduled,
+  Draft: bStyle.filterChipToneDraft,
+  Direct: bStyle.filterChipToneDirect,
+};
 
-const TYPE_OPTIONS: { value: TBoardTypeFilter; label: string }[] = [
-  { value: "", label: "전체" },
-  { value: "official", label: "공식" },
-  { value: "user", label: "사용자" },
-];
+const ChipIcon = ({ type }: { type: string }) => (
+  <span className={bStyle.filterChipIcon} aria-hidden>
+    <Svg type={type} width="12px" height="12px" />
+  </span>
+);
 
 const BoardListFilterBar = ({
   keyword,
@@ -40,102 +53,142 @@ const BoardListFilterBar = ({
   onScopeFilterChange,
   boardTypeFilter,
   onBoardTypeFilterChange,
+  counts,
   onClear,
 }: Props) => {
-  const filterMenu = useOutsideClick();
+  const hasAnyFilter =
+    !!keyword.trim() || hasTodosOnly || !!scopeFilter || !!boardTypeFilter;
 
-  const hasDetailFilters =
-    hasTodosOnly || !!scopeFilter || !!boardTypeFilter;
-  const hasAnyFilter = !!keyword.trim() || hasDetailFilters;
+  const isAllActive = !hasTodosOnly && !scopeFilter && !boardTypeFilter;
 
   return (
-    <div className={mergeStyle.mergeSearchBar} ref={filterMenu.RefObject}>
-      <div className={mergeStyle.mergeSearchInputWrap}>
-        <span className={mergeStyle.mergeSearchIcon}>
-          <Svg type="search" width="18px" height="18px" />
-        </span>
-        <input
-          className={mergeStyle.mergeSearchInput}
-          type="search"
-          placeholder="키워드 검색 (이름, 설명)"
-          value={keyword}
-          onChange={(e) => onKeywordChange(e.target.value)}
-        />
-      </div>
-      <button
-        type="button"
-        className={`${mergeStyle.mergeFilterBtn} ${
-          filterMenu.active || hasDetailFilters
-            ? mergeStyle.mergeFilterBtnActive
-            : ""
-        }`}
-        title="세부 필터"
-        aria-expanded={filterMenu.active}
-        onClick={() => filterMenu.setActive(!filterMenu.active)}
-      >
-        <Svg type="filter" width="18px" height="18px" />
-      </button>
-      {filterMenu.active && (
-        <div className={mergeStyle.mergeFilterPanel}>
-          <div className={mergeStyle.mergeFilterPanelHeader}>
-            <span>세부 필터</span>
-            {hasAnyFilter && (
-              <button
-                type="button"
-                className={mergeStyle.mergeFilterReset}
-                onClick={onClear}
-              >
-                초기화
-              </button>
-            )}
-          </div>
-
-          <div className={mergeStyle.mergeFilterRow}>
-            <label className={bStyle.filterCheckRow}>
-              <input
-                type="checkbox"
-                checked={hasTodosOnly}
-                onChange={(e) => onHasTodosOnlyChange(e.target.checked)}
-              />
-              <span>할 일 있음</span>
-            </label>
-          </div>
-
-          <div className={mergeStyle.mergeFilterRow}>
-            <span className={mergeStyle.mergeFilterLabel}>범위</span>
-            <div className={bStyle.filterOptionGroup} role="radiogroup" aria-label="범위">
-              {SCOPE_OPTIONS.map((opt) => (
-                <label key={opt.value || "all"} className={bStyle.filterOption}>
-                  <input
-                    type="radio"
-                    name="boardScopeFilter"
-                    checked={scopeFilter === opt.value}
-                    onChange={() => onScopeFilterChange(opt.value)}
-                  />
-                  <span>{opt.label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className={mergeStyle.mergeFilterRow}>
-            <span className={mergeStyle.mergeFilterLabel}>유형</span>
-            <div className={bStyle.filterOptionGroup} role="radiogroup" aria-label="유형">
-              {TYPE_OPTIONS.map((opt) => (
-                <label key={opt.value || "all"} className={bStyle.filterOption}>
-                  <input
-                    type="radio"
-                    name="boardTypeFilter"
-                    checked={boardTypeFilter === opt.value}
-                    onChange={() => onBoardTypeFilterChange(opt.value)}
-                  />
-                  <span>{opt.label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
+    <div className={bStyle.activityFilterBlock}>
+      <div className={mergeStyle.mergeSearchBar}>
+        <div className={mergeStyle.mergeSearchInputWrap}>
+          <span className={mergeStyle.mergeSearchIcon}>
+            <Svg type="search" width="18px" height="18px" />
+          </span>
+          <input
+            className={mergeStyle.mergeSearchInput}
+            type="search"
+            placeholder="키워드 검색 (이름, 설명)"
+            value={keyword}
+            onChange={(e) => onKeywordChange(e.target.value)}
+          />
         </div>
-      )}
+      </div>
+
+      <div
+        className={bStyle.filterChipRow}
+        role="group"
+        aria-label="보드 필터"
+      >
+        <button
+          type="button"
+          className={`${bStyle.filterChip} ${CHIP_TONE_CLASS.All} ${
+            isAllActive ? bStyle.filterChipActive : ""
+          }`}
+          aria-pressed={isAllActive}
+          onClick={() => {
+            onHasTodosOnlyChange(false);
+            onScopeFilterChange("");
+            onBoardTypeFilterChange("");
+          }}
+        >
+          <ChipIcon type="list" />
+          전체
+        </button>
+
+        {counts.todos > 0 && (
+          <button
+            type="button"
+            className={`${bStyle.filterChip} ${CHIP_TONE_CLASS.Approval} ${
+              hasTodosOnly ? bStyle.filterChipActive : ""
+            }`}
+            aria-pressed={hasTodosOnly}
+            onClick={() => onHasTodosOnlyChange(!hasTodosOnly)}
+          >
+            <ChipIcon type="list_check" />
+            할 일 {counts.todos}
+          </button>
+        )}
+
+        {counts.school > 0 && (
+          <button
+            type="button"
+            className={`${bStyle.filterChip} ${CHIP_TONE_CLASS.Optional} ${
+              scopeFilter === "school" ? bStyle.filterChipActive : ""
+            }`}
+            aria-pressed={scopeFilter === "school"}
+            onClick={() =>
+              onScopeFilterChange(scopeFilter === "school" ? "" : "school")
+            }
+          >
+            <ChipIcon type="school" />
+            학교 {counts.school}
+          </button>
+        )}
+
+        {counts.season > 0 && (
+          <button
+            type="button"
+            className={`${bStyle.filterChip} ${CHIP_TONE_CLASS.Scheduled} ${
+              scopeFilter === "season" ? bStyle.filterChipActive : ""
+            }`}
+            aria-pressed={scopeFilter === "season"}
+            onClick={() =>
+              onScopeFilterChange(scopeFilter === "season" ? "" : "season")
+            }
+          >
+            <ChipIcon type="calender" />
+            시즌 {counts.season}
+          </button>
+        )}
+
+        {counts.official > 0 && (
+          <button
+            type="button"
+            className={`${bStyle.filterChip} ${CHIP_TONE_CLASS.Submitted} ${
+              boardTypeFilter === "official" ? bStyle.filterChipActive : ""
+            }`}
+            aria-pressed={boardTypeFilter === "official"}
+            onClick={() =>
+              onBoardTypeFilterChange(
+                boardTypeFilter === "official" ? "" : "official"
+              )
+            }
+          >
+            <ChipIcon type="check" />
+            공식 {counts.official}
+          </button>
+        )}
+
+        {counts.user > 0 && (
+          <button
+            type="button"
+            className={`${bStyle.filterChip} ${CHIP_TONE_CLASS.Direct} ${
+              boardTypeFilter === "user" ? bStyle.filterChipActive : ""
+            }`}
+            aria-pressed={boardTypeFilter === "user"}
+            onClick={() =>
+              onBoardTypeFilterChange(boardTypeFilter === "user" ? "" : "user")
+            }
+          >
+            <ChipIcon type="user" />
+            사용자 {counts.user}
+          </button>
+        )}
+
+        {hasAnyFilter && (
+          <button
+            type="button"
+            className={bStyle.filterChipReset}
+            onClick={onClear}
+          >
+            초기화
+          </button>
+        )}
+      </div>
     </div>
   );
 };

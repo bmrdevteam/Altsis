@@ -234,13 +234,8 @@ const Boards = () => {
     return counts;
   }, [todos]);
 
-  const hasBoardListFilters =
-    !!boardKeyword.trim() ||
-    hasTodosOnly ||
-    !!scopeFilter ||
-    !!boardTypeFilter;
-
-  const displayBoards = useMemo(() => {
+  /** 칩 카운트용: 즐겨찾기·키워드만 반영 (칩 필터 전) */
+  const boardsForChipCounts = useMemo(() => {
     let result = boards;
     if (showFavoritesOnly) {
       result = result.filter((b) => b.isFavorited);
@@ -253,6 +248,33 @@ const Boards = () => {
           (b.description || "").toLowerCase().includes(kw)
       );
     }
+    return result;
+  }, [boards, showFavoritesOnly, boardKeyword]);
+
+  const boardFilterCounts = useMemo(() => {
+    let todos = 0;
+    let school = 0;
+    let season = 0;
+    let official = 0;
+    let user = 0;
+    for (const b of boardsForChipCounts) {
+      if ((todoCountByBoard[b._id] || 0) > 0) todos += 1;
+      if ((b.scope || "school") === "school") school += 1;
+      if (b.scope === "season") season += 1;
+      if (b.boardType === "official") official += 1;
+      if (b.boardType === "user") user += 1;
+    }
+    return { todos, school, season, official, user };
+  }, [boardsForChipCounts, todoCountByBoard]);
+
+  const hasBoardListFilters =
+    !!boardKeyword.trim() ||
+    hasTodosOnly ||
+    !!scopeFilter ||
+    !!boardTypeFilter;
+
+  const displayBoards = useMemo(() => {
+    let result = boardsForChipCounts;
     if (hasTodosOnly) {
       result = result.filter((b) => (todoCountByBoard[b._id] || 0) > 0);
     }
@@ -264,9 +286,7 @@ const Boards = () => {
     }
     return result;
   }, [
-    boards,
-    showFavoritesOnly,
-    boardKeyword,
+    boardsForChipCounts,
     hasTodosOnly,
     scopeFilter,
     boardTypeFilter,
@@ -373,6 +393,7 @@ const Boards = () => {
             onScopeFilterChange={setScopeFilter}
             boardTypeFilter={boardTypeFilter}
             onBoardTypeFilterChange={setBoardTypeFilter}
+            counts={boardFilterCounts}
             onClear={clearBoardListFilters}
           />
           {boardListViewMode === "table" ? (
