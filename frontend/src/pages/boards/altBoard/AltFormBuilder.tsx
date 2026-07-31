@@ -94,7 +94,7 @@ const FIELD_TYPE_LABELS: Record<TAltFormFieldType, string> = {
   approval: "승인",
   link: "링크",
   content: "문서",
-  docResponse: "문서 응답",
+  docResponse: "문서 양식",
 };
 
 /** 접힌 항목 목록용 Material 아이콘 (유형별 구분) */
@@ -326,6 +326,8 @@ const AltFormBuilder = ({
   const [expandedField, setExpandedField] = useState<string | null>(null);
   const [builderTab, setBuilderTab] = useState<"form" | "settings">("form");
   const builderBodyRef = useRef<HTMLDivElement>(null);
+  /** 필드 추가/복제 후 새 카드로 스크롤 */
+  const shouldScrollToActiveRef = useRef(false);
 
   const getSnapshot = useCallback(
     (
@@ -565,6 +567,7 @@ const AltFormBuilder = ({
     next.splice(index, 0, newField);
     setFields(next);
     setActiveFieldId(newField._id);
+    shouldScrollToActiveRef.current = true;
   };
 
   const addFieldOfType = (type: TAltFormFieldType = "text") => {
@@ -581,6 +584,7 @@ const AltFormBuilder = ({
     next.splice(index + 1, 0, copy);
     setFields(next);
     setActiveFieldId(copy._id);
+    shouldScrollToActiveRef.current = true;
   };
 
   const updateField = (index: number, partial: Partial<TAltFormField>) => {
@@ -689,6 +693,25 @@ const AltFormBuilder = ({
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
   }, [showRubricTemplates]);
+
+  // 필드 추가·복제 후 새 카드가 보이도록 스크롤 + 라벨 입력 포커스
+  useEffect(() => {
+    if (!shouldScrollToActiveRef.current || !activeFieldId) return;
+    shouldScrollToActiveRef.current = false;
+    const id = activeFieldId;
+    const scrollTimer = window.setTimeout(() => {
+      const row = document.querySelector(
+        `[data-field-id="${CSS.escape(id)}"]`
+      ) as HTMLElement | null;
+      if (!row) return;
+      row.scrollIntoView({ behavior: "smooth", block: "center" });
+      const labelInput = row.querySelector(
+        "input[placeholder]"
+      ) as HTMLInputElement | null;
+      labelInput?.focus({ preventScroll: true });
+    }, 50);
+    return () => window.clearTimeout(scrollTimer);
+  }, [activeFieldId, fields]);
 
   const toggleRubricExpanded = (id: string) => {
     setExpandedRubricIds((prev) => {
@@ -2023,7 +2046,7 @@ const AltFormBuilder = ({
             field.type === "content"
               ? "문서 제목 (선택)"
               : field.type === "docResponse"
-                ? "문서 응답 제목"
+                ? "문서 양식 제목"
                 : "질문"
           }
           value={field.label}
@@ -2206,6 +2229,17 @@ const AltFormBuilder = ({
     <div className={style.fieldAddToolbar} data-field-toolbar>
       <button
         type="button"
+        className={`${style.toolbarBtn} ${style.toolbarBtnPrimary}`}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => addFieldOfType("text")}
+        title="항목 추가 (단답형)"
+        aria-label="항목 추가"
+      >
+        <MI icon="add" size={22} />
+      </button>
+      <div className={style.toolbarDivider} />
+      <button
+        type="button"
         className={style.toolbarBtn}
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => addFieldOfType("text")}
@@ -2265,7 +2299,7 @@ const AltFormBuilder = ({
         className={style.toolbarBtn}
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => addFieldOfType("docResponse")}
-        title="문서 응답"
+        title="문서 양식"
       >
         <MI icon="edit_note" size={22} />
       </button>
@@ -3274,6 +3308,7 @@ const AltFormBuilder = ({
                 return (
                   <div
                     key={field._id}
+                    data-field-id={field._id}
                     className={`${style.fieldCardRow} ${
                       showLineBefore ? style.fieldCardRowDragOverBefore : ""
                     } ${
@@ -3324,7 +3359,7 @@ const AltFormBuilder = ({
                                 (field.type === "content"
                                   ? "(문서)"
                                   : field.type === "docResponse"
-                                    ? "(문서 응답)"
+                                    ? "(문서 양식)"
                                     : "(이름 없음)")}
                               {field.required && (
                                 <span className={style.requiredMark}> *</span>

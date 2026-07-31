@@ -1968,6 +1968,15 @@
   }
 }
 
+.toolbarBtnPrimary {
+  color: var(--text-color-1);
+
+  &:hover {
+    background: var(--background-color-2);
+    color: var(--text-color-1);
+  }
+}
+
 .toolbarDivider {
   height: 1px;
   background: var(--border-color);
