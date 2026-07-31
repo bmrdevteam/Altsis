@@ -64,6 +64,19 @@ export const useSyllabusAltBoard = (syllabusId: string | undefined) => {
     }
   }, [syllabusId, SyllabusAPI]);
 
+  const reloadBoard = useCallback(async () => {
+    if (!syllabusId) return null;
+    try {
+      const { board } = await SyllabusAPI.RSyllabusAltBoard({
+        params: { _id: syllabusId },
+      });
+      setAltBoard(board);
+      return board;
+    } catch {
+      return null;
+    }
+  }, [syllabusId, SyllabusAPI]);
+
   return {
     altBoard,
     isLoading,
@@ -71,6 +84,8 @@ export const useSyllabusAltBoard = (syllabusId: string | undefined) => {
     isSyncing,
     createBoard,
     syncBoard,
+    reloadBoard,
+    setAltBoard,
   };
 };
 

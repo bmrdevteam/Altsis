@@ -50,6 +50,7 @@ import SyllabusBoardCreatePanel from "./SyllabusBoardCreatePanel";
 import useSyllabusAltBoard from "./useSyllabusAltBoard";
 import AltBoardView from "pages/boards/altBoard/AltBoardView";
 import useAltBoardBadges from "pages/boards/altBoard/useAltBoardBadges";
+import BoardManagePopup from "pages/boards/popup/BoardManage";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import Progress from "components/progress/Progress";
 import CourseMetaInfo, { ConfirmedStatus } from "pages/courses/view/CourseMetaInfo";
@@ -107,7 +108,23 @@ const CoursePid = (props: Props) => {
     isSyncing: isAltBoardSyncing,
     createBoard,
     syncBoard,
+    reloadBoard,
   } = useSyllabusAltBoard(boardFeatureEnabled ? pid : undefined);
+
+  const [showBoardManagePopup, setShowBoardManagePopup] = useState(false);
+
+  const canManageAltBoard = (() => {
+    if (!altBoard || !currentUser) return false;
+    if (
+      currentUser.auth === "admin" ||
+      currentUser.auth === "manager"
+    ) {
+      return true;
+    }
+    if (altBoard.creator && altBoard.creator === currentUser._id) return true;
+    if (isMentor) return true;
+    return false;
+  })();
 
   const isChatEnabled =
     !!altBoard &&
@@ -642,6 +659,16 @@ const CoursePid = (props: Props) => {
                           </Button>
                         </>
                       )}
+                      {canManageAltBoard && altBoard && (
+                        <div
+                          className={`btn ${style.print_btn}`}
+                          onClick={() => setShowBoardManagePopup(true)}
+                          title="보드 설정"
+                          aria-label="보드 설정"
+                        >
+                          <Svg type="settings" width="20px" height="20px" />
+                        </div>
+                      )}
                       <div
                         className={`btn ${style.print_btn}`}
                         onClick={() => {
@@ -1020,6 +1047,16 @@ const CoursePid = (props: Props) => {
           setPopupActive={setEnrollBulkPopupActive}
           courseData={syllabus}
           setIsEnrollmentListLoading={setIsEnrollmentsLoading}
+        />
+      )}
+      {showBoardManagePopup && altBoard && (
+        <BoardManagePopup
+          board={altBoard}
+          setState={setShowBoardManagePopup}
+          onSuccess={async () => {
+            await reloadBoard();
+            refreshBoardBadges();
+          }}
         />
       )}
       {statusPopupActive && (
