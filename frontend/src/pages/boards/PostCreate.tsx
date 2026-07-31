@@ -30,16 +30,41 @@ import EmbedDialog from "components/markdown/EmbedDialog";
 import { TBoard, TBoardMembers, TMemberUser } from "types/board";
 import { TAltForm } from "types/altForm";
 import { TPost, TPostAttachment } from "types/post";
+import { getBoardDocsListPath } from "utils/boardCoursePath";
 import Popup from "components/popup/Popup";
 import surveyStyle from "./survey/survey.module.scss";
 
-const PostCreate = () => {
+export type PostCreateProps = {
+  boardId?: string;
+  postId?: string;
+  embedded?: boolean;
+  onBack?: () => void;
+  /** 저장/공개 후 상세로 */
+  onSaved?: (postId: string) => void;
+  /** 신규 초안 생성 후 수정 모드로 */
+  onCreated?: (postId: string) => void;
+  importedMarkdown?: string;
+  importedTitle?: string;
+};
+
+const PostCreate = ({
+  boardId: boardIdProp,
+  postId: postIdProp,
+  embedded = false,
+  onBack,
+  onSaved,
+  onCreated,
+  importedMarkdown,
+  importedTitle,
+}: PostCreateProps = {}) => {
   const navigate = useAppNavigate();
   const location = useLocation();
-  const { boardId, postId } = useParams<{
+  const params = useParams<{
     boardId: string;
     postId?: string;
   }>();
+  const boardId = boardIdProp ?? params.boardId;
+  const postId = postIdProp ?? params.postId;
   const { currentSchool } = useAuth();
   const { BoardAPI, PostAPI, UserAPI, ChatAPI, AltFormAPI } = useAPIv2();
 
@@ -48,14 +73,20 @@ const PostCreate = () => {
   const [showFieldCopy, setShowFieldCopy] = useState(false);
   const [copiedHint, setCopiedHint] = useState<string | null>(null);
 
-  const importRef = useRef(
-    !postId &&
-      (location.state as { importedMarkdown?: string; importedTitle?: string } | null)
-        ?.importedMarkdown
+  const locationImport =
+    !postId && !importedMarkdown
       ? (location.state as {
-          importedMarkdown: string;
+          importedMarkdown?: string;
           importedTitle?: string;
-        })
+        } | null)
+      : null;
+  const importRef = useRef(
+    !postId && (importedMarkdown || locationImport?.importedMarkdown)
+      ? {
+          importedMarkdown: (importedMarkdown ||
+            locationImport?.importedMarkdown) as string,
+          importedTitle: importedTitle || locationImport?.importedTitle || "",
+        }
       : null
   );
   const [title, setTitle] = useState(importRef.current?.importedTitle || "");
@@ -97,8 +128,37 @@ const PostCreate = () => {
 
   const isEditMode = !!postId;
 
+  const goDocsList = () => {
+    if (onBack) {
+      onBack();
+      return;
+    }
+    navigate(
+      board
+        ? getBoardDocsListPath(board)
+        : `/boards/${boardId}#문서`
+    );
+  };
+
+  const goView = (id: string) => {
+    if (onSaved) {
+      onSaved(id);
+      return;
+    }
+    navigate(`/boards/${boardId}/post/${id}`);
+  };
+
+  const goEdit = (id: string) => {
+    if (onCreated) {
+      onCreated(id);
+      return;
+    }
+    navigate(`/boards/${boardId}/edit/${id}`, { replace: true });
+  };
+
   // 문서 탭 마크다운 가져오기: 초안 덮어쓰기 방지 + location state 정리
   useEffect(() => {
+    if (embedded) return;
     if (!importRef.current || !boardId) return;
     localStorage.removeItem(`editor-draft-${boardId}-new`);
     navigate(location.pathname + location.search, {
@@ -576,7 +636,7 @@ const PostCreate = () => {
         setIsDraft(asDraft);
         if (visibility === "public") {
           alert("공개되었습니다.");
-          navigate(`/boards/${boardId}/post/${postId}`);
+          goView(postId);
         } else if (visibility === "private") {
           alert("비공개로 전환되었습니다.");
         } else {
@@ -599,10 +659,10 @@ const PostCreate = () => {
         setIsDraft(asDraft);
         if (asDraft) {
           alert("저장되었습니다.");
-          navigate(`/boards/${boardId}/edit/${post._id}`, { replace: true });
+          goEdit(post._id);
         } else {
           alert("공개되었습니다.");
-          navigate(`/boards/${boardId}/post/${post._id}`);
+          goView(post._id);
         }
       }
     } catch (err) {
@@ -664,7 +724,7 @@ const PostCreate = () => {
               display: "flex",
               alignItems: "center",
             }}
-            onClick={() => navigate(`/boards/${boardId}#문서`)}
+            onClick={goDocsList}
           >
             <Svg type="chevronLeft" width="24px" height="24px" />
           </div>
@@ -1162,10 +1222,7 @@ const PostCreate = () => {
           >
             {isDraft ? "비공개" : "공개"}
           </span>
-          <Button
-            type="ghost"
-            onClick={() => navigate(`/boards/${boardId}#문서`)}
-          >
+          <Button type="ghost" onClick={goDocsList}>
             취소
           </Button>
           <Button

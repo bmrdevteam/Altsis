@@ -29,20 +29,60 @@ import { TBoard } from "types/board";
 import { TComment } from "types/comment";
 import { DateRange } from "components/dateRangeFilter/DateRangeFilterDropdown";
 import MergeStyleFilterBar from "components/mergeFilter/MergeStyleFilterBar";
+import { getBoardDocsListPath } from "utils/boardCoursePath";
 
 import UserListPopup from "./popup/UserListPopup";
 import SurveyViewPopup from "./survey/SurveyViewPopup";
 import surveyStyle from "./survey/survey.module.scss";
-const PostPid = () => {
+
+export type PostPidProps = {
+  /** 라우트 대신 탭 내부에서 쓸 때 */
+  boardId?: string;
+  postId?: string;
+  embedded?: boolean;
+  onBack?: () => void;
+  onEdit?: (postId: string) => void;
+};
+
+const PostPid = ({
+  boardId: boardIdProp,
+  postId: postIdProp,
+  embedded = false,
+  onBack,
+  onEdit,
+}: PostPidProps = {}) => {
   const navigate = useAppNavigate();
-  const { boardId, postId } = useParams<{ boardId: string; postId: string }>();
+  const params = useParams<{ boardId: string; postId: string }>();
+  const boardId = boardIdProp ?? params.boardId;
+  const postId = postIdProp ?? params.postId;
   const { currentUser } = useAuth();
-  const { PostAPI, CommentAPI, SurveyResponseAPI } = useAPIv2();
+  const { PostAPI, CommentAPI, SurveyResponseAPI, BoardAPI } = useAPIv2();
 
   const [post, setPost] = useState<TPost | null>(null);
   const [board, setBoard] = useState<TBoard | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showReadersPopup, setShowReadersPopup] = useState(false);
+
+  const goDocsList = () => {
+    if (onBack) {
+      onBack();
+      return;
+    }
+    navigate(
+      board
+        ? getBoardDocsListPath(board)
+        : `/boards/${boardId}#문서`
+    );
+  };
+
+  const goEdit = () => {
+    if (!postId) return;
+    if (onEdit) {
+      onEdit(postId);
+      return;
+    }
+    navigate(`/boards/${boardId}/edit/${postId}`);
+  };
 
   // 댓글 관련 상태
   const [comments, setComments] = useState<TComment[]>([]);
@@ -157,11 +197,22 @@ const PostPid = () => {
         params: { _id: postId },
         query: buildMergeQuery(mergeKeyword, mergeFilters, mergeDateFilters),
       })
-        .then(({ post, board: loadedBoard }) => {
+        .then(async ({ post, board: loadedBoard }) => {
           setPost(post);
           setBoard(loadedBoard);
           setIsLoading(false);
           setIsCommentsLoading(true);
+          // 라우트 모드: 수업 문서 목록 경로용 syllabusMeta 보강
+          if (!embedded && loadedBoard?.syllabus && boardId) {
+            try {
+              const { board: fullBoard } = await BoardAPI.RBoard({
+                params: { _id: boardId },
+              });
+              setBoard(fullBoard);
+            } catch {
+              /* ignore — fallback to /boards/...#문서 */
+            }
+          }
         })
         .catch((err) => {
           ALERT_ERROR(err);
@@ -267,7 +318,7 @@ const PostPid = () => {
     try {
       await PostAPI.DPost({ params: { _id: postId } });
       alert("삭제되었습니다.");
-      navigate(`/boards/${boardId}#문서`);
+      goDocsList();
     } catch (err) {
       ALERT_ERROR(err);
     }
@@ -400,7 +451,7 @@ const PostPid = () => {
         >
           <div
             style={{ cursor: "pointer", display: "flex", alignItems: "center" }}
-            onClick={() => navigate(`/boards/${boardId}#문서`)}
+            onClick={goDocsList}
           >
             <Svg type="chevronLeft" width="24px" height="24px" />
           </div>
@@ -503,9 +554,7 @@ const PostPid = () => {
                   type="button"
                   className={abStyle.formCardIconBtn}
                   title="문서 수정"
-                  onClick={() =>
-                    navigate(`/boards/${boardId}/edit/${postId}`)
-                  }
+                  onClick={goEdit}
                 >
                   <Svg type="write" width="20px" height="20px" />
                 </button>
@@ -993,10 +1042,7 @@ const PostPid = () => {
         </div>
 
         <div style={{ marginTop: "24px" }}>
-          <Button
-            type="ghost"
-            onClick={() => navigate(`/boards/${boardId}#문서`)}
-          >
+          <Button type="ghost" onClick={goDocsList}>
             목록으로
           </Button>
         </div>

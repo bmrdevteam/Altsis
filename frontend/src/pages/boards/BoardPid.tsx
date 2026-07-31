@@ -11,7 +11,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useLocation, useParams, useSearchParams } from "react-router-dom";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
@@ -23,13 +23,17 @@ import Svg from "assets/svg/Svg";
 
 import { TBoard } from "types/board";
 import { resolveBoardCoverColor } from "utils/boardCoverColor";
+import { getBoardCourseSurfacePath } from "utils/boardCoursePath";
 
 import BoardManagePopup from "./popup/BoardManage";
 import UserListPopup from "./popup/UserListPopup";
 import AltBoardView from "./altBoard/AltBoardView";
 
+const COURSE_SURFACES = new Set(["활동", "기록", "문서", "채팅"]);
+
 const BoardPid = () => {
   const navigate = useAppNavigate();
+  const location = useLocation();
   const { boardId } = useParams<{ boardId: string }>();
   const [searchParams] = useSearchParams();
   const { currentUser, currentRegistration } = useAuth();
@@ -72,6 +76,24 @@ const BoardPid = () => {
       });
   }, [boardId]);
 
+  // 수업 연결 보드의 정식 화면은 수업 상세 — 딥링크(form/sheet/approval)만 보드 URL 유지
+  useEffect(() => {
+    if (!board) return;
+    if (
+      searchParams.has("form") ||
+      searchParams.has("sheet") ||
+      searchParams.has("approval")
+    ) {
+      return;
+    }
+    const hash = decodeURIComponent(location.hash.replace("#", ""));
+    const surface = COURSE_SURFACES.has(hash) ? hash : "활동";
+    const coursePath = getBoardCourseSurfacePath(board, surface);
+    if (coursePath) {
+      navigate(coursePath, { replace: true });
+    }
+  }, [board, searchParams, location.hash, navigate]);
+
   const handleLeaveBoard = async () => {
     if (!board) return;
     if (!window.confirm("이 보드에서 나가시겠습니까?")) return;
@@ -84,7 +106,21 @@ const BoardPid = () => {
     }
   };
 
-  if (isLoading || !board) return null;
+  const hasBoardDeepLink =
+    searchParams.has("form") ||
+    searchParams.has("sheet") ||
+    searchParams.has("approval");
+  const courseRedirectSurface = (() => {
+    const hash = decodeURIComponent(location.hash.replace("#", ""));
+    return COURSE_SURFACES.has(hash) ? hash : "활동";
+  })();
+  const courseRedirectPath =
+    board && !hasBoardDeepLink
+      ? getBoardCourseSurfacePath(board, courseRedirectSurface)
+      : null;
+
+  // 수업으로 보내는 동안 보드 UI 플래시 방지
+  if (isLoading || !board || courseRedirectPath) return null;
 
   return (
     <>
@@ -134,19 +170,6 @@ const BoardPid = () => {
                       「{board.syllabusMeta?.classTitle || board.name}」 수업에
                       연결된 보드입니다.
                     </span>
-                    {board.syllabusMeta?.coursePath && (
-                      <button
-                        type="button"
-                        className={bStyle.textBtn}
-                        onClick={() =>
-                          navigate(
-                            `${board.syllabusMeta!.coursePath}#활동`
-                          )
-                        }
-                      >
-                        수업에서 열기
-                      </button>
-                    )}
                   </div>
                 )}
               </div>

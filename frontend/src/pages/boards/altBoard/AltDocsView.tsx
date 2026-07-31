@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
@@ -8,6 +7,8 @@ import Svg from "assets/svg/Svg";
 import Button from "components/button/Button";
 import Popup from "components/popup/Popup";
 import PostBlogView from "../views/PostBlogView";
+import PostPid from "../PostPid";
+import PostCreate from "../PostCreate";
 import DocsListFilterBar, {
   TDocsViewCounts,
   TDocsViewFilter,
@@ -20,6 +21,16 @@ type Props = {
   /** 문서 목록/삭제 등 변경 후 안 읽음 뱃지 갱신 */
   onPostsChanged?: () => void;
 };
+
+type DocsPanel =
+  | { kind: "list" }
+  | { kind: "view"; postId: string }
+  | {
+      kind: "compose";
+      postId?: string;
+      importedMarkdown?: string;
+      importedTitle?: string;
+    };
 
 const formatPermissionRead = (post: TPost): string => {
   if (post.permissionRead?.users && post.permissionRead.users.length > 0) {
@@ -50,7 +61,6 @@ const formatDate = (dateStr: string) =>
   });
 
 const AltDocsView = ({ board, onPostsChanged }: Props) => {
-  const navigate = useAppNavigate();
   const { currentUser } = useAuth();
   const { PostAPI } = useAPIv2();
 
@@ -58,6 +68,7 @@ const AltDocsView = ({ board, onPostsChanged }: Props) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deletePost, setDeletePost] = useState<TPost | null>(null);
+  const [panel, setPanel] = useState<DocsPanel>({ kind: "list" });
   const mdFileInputRef = useRef<HTMLInputElement>(null);
 
   const [docKeyword, setDocKeyword] = useState("");
@@ -216,8 +227,14 @@ const AltDocsView = ({ board, onPostsChanged }: Props) => {
     }
   };
 
+  const backToList = () => {
+    setPanel({ kind: "list" });
+    loadPosts();
+    onPostsChanged?.();
+  };
+
   const handleClickPost = (post: TPost) => {
-    navigate(`/boards/${board._id}/post/${post._id}`);
+    setPanel({ kind: "view", postId: post._id });
   };
 
   const handleImportMarkdown = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -228,16 +245,44 @@ const AltDocsView = ({ board, onPostsChanged }: Props) => {
       const text = ev.target?.result;
       if (typeof text !== "string") return;
       const baseName = file.name.replace(/\.(md|markdown|txt)$/i, "");
-      navigate(`/boards/${board._id}/create`, {
-        state: {
-          importedMarkdown: text,
-          importedTitle: baseName || "",
-        },
+      setPanel({
+        kind: "compose",
+        importedMarkdown: text,
+        importedTitle: baseName || "",
       });
     };
     reader.readAsText(file);
     e.target.value = "";
   };
+
+  if (panel.kind === "view") {
+    return (
+      <PostPid
+        key={panel.postId}
+        embedded
+        boardId={board._id}
+        postId={panel.postId}
+        onBack={backToList}
+        onEdit={(id) => setPanel({ kind: "compose", postId: id })}
+      />
+    );
+  }
+
+  if (panel.kind === "compose") {
+    return (
+      <PostCreate
+        key={panel.postId || `new-${panel.importedTitle || ""}`}
+        embedded
+        boardId={board._id}
+        postId={panel.postId}
+        importedMarkdown={panel.importedMarkdown}
+        importedTitle={panel.importedTitle}
+        onBack={backToList}
+        onSaved={(id) => setPanel({ kind: "view", postId: id })}
+        onCreated={(id) => setPanel({ kind: "compose", postId: id })}
+      />
+    );
+  }
 
   if (isLoading) return null;
 
@@ -269,7 +314,7 @@ const AltDocsView = ({ board, onPostsChanged }: Props) => {
             type="button"
             className={style.formCardIconBtn}
             title="글쓰기"
-            onClick={() => navigate(`/boards/${board._id}/create`)}
+            onClick={() => setPanel({ kind: "compose" })}
           >
             <Svg type="plus" width="20px" height="20px" />
           </button>
@@ -469,7 +514,7 @@ const AltDocsView = ({ board, onPostsChanged }: Props) => {
                           title="문서 수정"
                           onClick={(e) => {
                             e.stopPropagation();
-                            navigate(`/boards/${board._id}/edit/${post._id}`);
+                            setPanel({ kind: "compose", postId: post._id });
                           }}
                         >
                           <Svg type="write" width="20px" height="20px" />
