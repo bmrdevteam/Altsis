@@ -48,6 +48,7 @@ import EnrollBulkPopup from "./EnrollBulkPopup";
 import EvaluationToolbar from "./EvaluationToolbar";
 import SyllabusBoardCreatePanel from "./SyllabusBoardCreatePanel";
 import useSyllabusAltBoard from "./useSyllabusAltBoard";
+import ImportEvaluationFromBoardPopup from "./ImportEvaluationFromBoardPopup";
 import AltBoardView from "pages/boards/altBoard/AltBoardView";
 import useAltBoardBadges from "pages/boards/altBoard/useAltBoardBadges";
 import BoardManagePopup from "pages/boards/popup/BoardManage";
@@ -114,6 +115,7 @@ const CoursePid = (props: Props) => {
 
   const [showBoardManagePopup, setShowBoardManagePopup] = useState(false);
   const [showBoardDuplicateFlow, setShowBoardDuplicateFlow] = useState(false);
+  const [showImportEvalPopup, setShowImportEvalPopup] = useState(false);
 
   const canManageAltBoard = (() => {
     if (!altBoard || !currentUser) return false;
@@ -891,6 +893,12 @@ const CoursePid = (props: Props) => {
                               onToggle={handleEvalColumnToggle}
                               onShowAll={handleEvalShowAllColumns}
                               onReset={handleEvalFilterReset}
+                              onImportFromBoard={
+                                altBoard &&
+                                currentRegistration?.permissionEvaluationV2
+                                  ? () => setShowImportEvalPopup(true)
+                                  : undefined
+                              }
                             />
                             {!isEnrollmentsLoading &&
                             filteredEnrollments.length === 0 ? (
@@ -1072,6 +1080,14 @@ const CoursePid = (props: Props) => {
           onSuccess={() => {
             /* 복제본은 미연결 일반 보드 — 목록에서 확인 */
           }}
+        />
+      )}
+      {showImportEvalPopup && altBoard && pid && (
+        <ImportEvaluationFromBoardPopup
+          syllabusId={pid}
+          boardId={altBoard._id}
+          setState={setShowImportEvalPopup}
+          onImported={() => setIsEnrollmentsLoading(true)}
         />
       )}
       {statusPopupActive && (

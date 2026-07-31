@@ -15,6 +15,8 @@ type Props = {
   onToggle: (key: string) => void;
   onShowAll: () => void;
   onReset: () => void;
+  /** 수업 보드가 있을 때 활동→평가 가져오기 */
+  onImportFromBoard?: () => void;
 };
 
 const CHIP_TONES = [
@@ -37,6 +39,7 @@ const EvaluationToolbar = ({
   onToggle,
   onShowAll,
   onReset,
+  onImportFromBoard,
 }: Props) => {
   const allVisible =
     columns.length > 0 && columns.every((c) => visibleKeys.has(c.key));
@@ -44,20 +47,39 @@ const EvaluationToolbar = ({
 
   return (
     <div className={bStyle.activityFilterBlock}>
-      <div className={mergeStyle.mergeSearchBar}>
-        <div className={mergeStyle.mergeSearchInputWrap}>
-          <span className={mergeStyle.mergeSearchIcon}>
-            <Svg type="search" width="18px" height="18px" />
-          </span>
-          <input
-            className={mergeStyle.mergeSearchInput}
-            type="search"
-            placeholder="이름, ID, 학년 검색"
-            value={keyword}
-            onChange={(e) => onKeywordChange(e.target.value)}
-            aria-label="평가 학생 검색"
-          />
+      <div
+        style={{
+          display: "flex",
+          gap: 8,
+          alignItems: "center",
+          flexWrap: "wrap",
+        }}
+      >
+        <div className={mergeStyle.mergeSearchBar} style={{ flex: "1 1 200px" }}>
+          <div className={mergeStyle.mergeSearchInputWrap}>
+            <span className={mergeStyle.mergeSearchIcon}>
+              <Svg type="search" width="18px" height="18px" />
+            </span>
+            <input
+              className={mergeStyle.mergeSearchInput}
+              type="search"
+              placeholder="이름, ID, 학년 검색"
+              value={keyword}
+              onChange={(e) => onKeywordChange(e.target.value)}
+              aria-label="평가 학생 검색"
+            />
+          </div>
         </div>
+        {onImportFromBoard && (
+          <button
+            type="button"
+            className={`${bStyle.filterChip} ${bStyle.filterChipToneDirect}`}
+            onClick={onImportFromBoard}
+            style={{ flexShrink: 0 }}
+          >
+            활동에서 가져오기
+          </button>
+        )}
       </div>
 
       {columns.length > 0 && (

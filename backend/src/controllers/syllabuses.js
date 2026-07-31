@@ -21,6 +21,7 @@ import { Board, Enrollment, Registration, Syllabus } from "../models/index.js";
 import { sendAutoNotification } from "../services/notifications.js";
 import { syncBoardChatParticipants } from "../services/boardChat.js";
 import { canManageBoard } from "../services/boards.js";
+import { importEvaluationFromBoardForm } from "../services/evaluationImport.js";
 import _ from "lodash";
 
 const isFullyConfirmed = (syllabus) =>
@@ -1550,6 +1551,81 @@ export const linkAltBoard = async (req, res) => {
 
     return res.status(200).send({ board, syllabus });
   } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.SyllabusAPI
+ * @function ImportEvaluationFromBoard API
+ * @description 수업 보드 활동 양식 응답을 평가 빈 칸에만 반영한다.
+ */
+export const importEvaluationFromBoard = async (req, res) => {
+  try {
+    if (!req.body?.form) {
+      return res.status(400).send({ message: FIELD_REQUIRED("form") });
+    }
+    if (!Array.isArray(req.body?.mappings) || req.body.mappings.length === 0) {
+      return res.status(400).send({ message: FIELD_REQUIRED("mappings") });
+    }
+
+    const syllabus = await Syllabus(req.user.academyId).findById(
+      req.params._id
+    );
+    if (!syllabus) {
+      return res.status(404).send({ message: __NOT_FOUND("syllabus") });
+    }
+    if (!syllabus.altBoard) {
+      return res.status(400).send({
+        message: "수업에 연결된 보드가 없습니다.",
+      });
+    }
+
+    const userOid = req.user._id.toString();
+    const isCreator = syllabus.user?.toString?.() === userOid;
+    const isMentor = (syllabus.teachers || []).some(
+      (t) => t._id?.toString?.() === userOid
+    );
+    const isManager =
+      req.user.auth === "admin" || req.user.auth === "manager";
+    if (!isCreator && !isMentor && !isManager) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    const registration = await Registration(req.user.academyId).findOne({
+      season: syllabus.season,
+      user: req.user._id,
+    });
+    if (!registration) {
+      return res.status(404).send({ message: __NOT_FOUND("registration") });
+    }
+    if (!registration.permissionEvaluationV2) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    const result = await importEvaluationFromBoardForm(req.user.academyId, {
+      syllabus,
+      formId: req.body.form,
+      mappings: req.body.mappings,
+      formEvaluation: registration.formEvaluation,
+    });
+
+    return res.status(200).send(result);
+  } catch (err) {
+    if (err.status === 404) {
+      return res.status(404).send({ message: __NOT_FOUND("form") });
+    }
+    if (err.status === 400) {
+      return res.status(400).send({
+        message:
+          err.message === "FORM_BOARD_MISMATCH"
+            ? "선택한 양식이 이 수업 보드에 속하지 않습니다."
+            : err.message === "BOARD_REQUIRED"
+              ? "수업에 연결된 보드가 없습니다."
+              : err.message,
+      });
+    }
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }

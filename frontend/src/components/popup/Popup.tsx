@@ -40,6 +40,8 @@ type Props = {
   closeBtn?: boolean;
   borderRadius?: string;
   contentScroll?: boolean;
+  /** content 영역 overflow (기본: contentScroll 여부에 따름) */
+  contentOverflow?: "auto" | "scroll" | "hidden" | "visible";
 };
 /**
  * Popup component
@@ -112,13 +114,23 @@ const Popup = (props: Props) => {
         <div
           className={style.content}
           style={{
-            overflowY: props.contentScroll ? "scroll" : "hidden",
-            overflowX: props.contentScroll ? "auto" : "hidden",
+            overflowY:
+              props.contentOverflow ??
+              (props.contentScroll ? "scroll" : "hidden"),
+            overflowX:
+              props.contentOverflow ??
+              (props.contentScroll ? "auto" : "hidden"),
+            position: "relative",
+            zIndex: 2,
           }}
         >
           {props.children}
         </div>
-        {props.footer && <div className={style.footer}>{props.footer}</div>}
+        {props.footer && (
+          <div className={style.footer} style={{ position: "relative", zIndex: 0 }}>
+            {props.footer}
+          </div>
+        )}
       </div>
       <div
         className={style.popup_background}

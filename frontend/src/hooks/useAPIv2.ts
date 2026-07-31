@@ -2232,6 +2232,29 @@ export default function useAPIv2() {
   }
 
   /**
+   * ImportEvaluationFromBoard API
+   * @description 수업 보드 활동 양식 응답을 평가 빈 칸에만 반영
+   */
+  async function ImportEvaluationFromBoard(props: {
+    params: { _id: string };
+    data: {
+      form: string;
+      mappings: { fieldId: string; evaluationLabel: string }[];
+    };
+  }) {
+    return (await database.C({
+      location: `syllabuses/${props.params._id}/evaluation/import-from-board`,
+      data: props.data,
+    })) as {
+      filled: number;
+      skippedExisting: number;
+      skippedNoResponse: number;
+      skippedNoValue: number;
+      skippedNoPermission: number;
+    };
+  }
+
+  /**
    * ##########################################################################
    * Enrollment API
    * ##########################################################################
@@ -4911,6 +4934,7 @@ export default function useAPIv2() {
       RSyllabusAltBoard,
       USyllabusAltBoardSync,
       LinkSyllabusAltBoard,
+      ImportEvaluationFromBoard,
     },
     EnrollmentAPI: {
       CEnrollment,

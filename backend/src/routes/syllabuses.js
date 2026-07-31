@@ -29,5 +29,10 @@ router.post("/:_id/alt-board/link", isLoggedIn, syllabuses.linkAltBoard);
 router.post("/:_id/alt-board", isLoggedIn, syllabuses.createAltBoard);
 router.get("/:_id/alt-board", isLoggedIn, syllabuses.findAltBoard);
 router.put("/:_id/alt-board/sync", isLoggedIn, syllabuses.syncAltBoard);
+router.post(
+  "/:_id/evaluation/import-from-board",
+  isLoggedIn,
+  syllabuses.importEvaluationFromBoard
+);
 
 export { router };
