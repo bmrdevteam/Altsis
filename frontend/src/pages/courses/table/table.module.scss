@@ -254,5 +254,52 @@
         text-align: center;
       }
     }
+
+    .item.input.inputCompact {
+      /* 행 높이(자기평가 펼침 등)에 맞춰 textarea가 늘어나도록 */
+      height: 1px;
+      max-height: none;
+      max-width: 320px;
+      vertical-align: top;
+
+      textarea {
+        box-sizing: border-box;
+        display: block;
+        width: 100%;
+        min-width: 200px;
+        height: 100%;
+        min-height: 72px;
+        max-height: none;
+        overflow-y: auto;
+        resize: vertical;
+        line-height: 1.45;
+      }
+    }
+
+    .clampText {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.45;
+    }
+
+    .clampTextExpanded {
+      display: block;
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.45;
+      max-height: 240px;
+      overflow-y: auto;
+    }
+
+    .clampHint {
+      margin-top: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent-1);
+      line-height: 1.2;
+    }
   }
 }

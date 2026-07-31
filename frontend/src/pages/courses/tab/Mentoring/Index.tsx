@@ -27,7 +27,7 @@
  * @version 1.0
  *
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
@@ -45,6 +45,7 @@ import Svg from "assets/svg/Svg";
 import Tab from "components/tab/Tab";
 
 import EnrollBulkPopup from "./EnrollBulkPopup";
+import EvaluationToolbar from "./EvaluationToolbar";
 import SyllabusBoardCreatePanel from "./SyllabusBoardCreatePanel";
 import useSyllabusAltBoard from "./useSyllabusAltBoard";
 import AltBoardView from "pages/boards/altBoard/AltBoardView";
@@ -53,6 +54,9 @@ import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import Progress from "components/progress/Progress";
 import CourseMetaInfo, { ConfirmedStatus } from "pages/courses/view/CourseMetaInfo";
 import CourseCoverImage from "pages/courses/view/CourseCoverImage";
+
+const evalColumnsStorageKey = (syllabusId: string) =>
+  `courseEval.columns.${syllabusId}`;
 
 type Props = {};
 
@@ -82,6 +86,10 @@ const CoursePid = (props: Props) => {
 
   const [formEvaluationHeader, setFormEvaluationHeader] = useState<any[]>([]);
   const [fieldEvaluationList, setFieldEvaluationList] = useState<any[]>([]);
+  const [evalKeyword, setEvalKeyword] = useState("");
+  const [visibleEvalKeys, setVisibleEvalKeys] = useState<Set<string>>(
+    () => new Set()
+  );
 
   const [isMentor, setIsMentor] = useState<boolean>(false);
 
@@ -131,29 +139,139 @@ const CoursePid = (props: Props) => {
     navigate,
   ]);
 
-  const evaluationAction = (e: any) => {
-      const evaluation: any = {};
-      for (let obj of fieldEvaluationList) {
-        evaluation[obj.text] = e[obj.key];
-      }
-      EnrollmentAPI.UEvaluation({
-        params: {
-          _id: e._id,
-        },
-        data: { evaluation },
-      })
-        .then(() => {
-          // alert(SUCCESS_MESSAGE); 메세지 출력 제거 24.02.04 devgoodway
-          if (enrollmentListRef.current.length !== 0) {
-            enrollmentListRef.current[e.tableRowIndex - 1].isModified =
-              false;
-            setEnrollmentList([...enrollmentListRef.current]);
-          }
-        })
-        .catch((err: any) => {
-          ALERT_ERROR(err);
-        });
+  const persistVisibleEvalKeys = (keys: Set<string>) => {
+    if (!pid) return;
+    try {
+      localStorage.setItem(
+        evalColumnsStorageKey(pid),
+        JSON.stringify(Array.from(keys))
+      );
+    } catch {
+      /* ignore */
     }
+  };
+
+  const allEvalColumnKeys = useMemo(
+    () =>
+      formEvaluationHeader
+        .map((h) => h.key)
+        .filter((k): k is string => typeof k === "string" && !!k),
+    [formEvaluationHeader]
+  );
+
+  // 평가 열 보기 설정 복원
+  useEffect(() => {
+    if (!pid || allEvalColumnKeys.length === 0) return;
+    try {
+      const raw = localStorage.getItem(evalColumnsStorageKey(pid));
+      if (raw) {
+        const saved = JSON.parse(raw) as string[];
+        const next = new Set(
+          saved.filter((k) => allEvalColumnKeys.includes(k))
+        );
+        setVisibleEvalKeys(
+          next.size > 0 ? next : new Set(allEvalColumnKeys)
+        );
+      } else {
+        setVisibleEvalKeys(new Set(allEvalColumnKeys));
+      }
+    } catch {
+      setVisibleEvalKeys(new Set(allEvalColumnKeys));
+    }
+  }, [pid, allEvalColumnKeys]);
+
+  const effectiveVisibleEvalKeys = useMemo(() => {
+    if (allEvalColumnKeys.length === 0) return new Set<string>();
+    if (visibleEvalKeys.size === 0) return new Set(allEvalColumnKeys);
+    const next = new Set(
+      Array.from(visibleEvalKeys).filter((k) =>
+        allEvalColumnKeys.includes(k)
+      )
+    );
+    return next.size > 0 ? next : new Set(allEvalColumnKeys);
+  }, [visibleEvalKeys, allEvalColumnKeys]);
+
+  const filteredEnrollments = useMemo(() => {
+    const kw = evalKeyword.trim().toLowerCase();
+    if (!kw) return enrollmentList;
+    return enrollmentList.filter((row) => {
+      const parts: string[] = [
+        String(row.studentName ?? ""),
+        String(row.studentId ?? ""),
+        String(row.studentGrade ?? ""),
+      ];
+      for (const [key, value] of Object.entries(row)) {
+        if (key.startsWith("evaluation.") && value != null) {
+          parts.push(String(value));
+        }
+      }
+      return parts.join(" ").toLowerCase().includes(kw);
+    });
+  }, [enrollmentList, evalKeyword]);
+
+  /** 필터된 테이블 행을 _id 기준으로 원본 enrollmentList에 병합 */
+  const mergeEnrollmentRowsById = (rows: any[]) => {
+    const byId = new Map(rows.map((r) => [r._id, r]));
+    const next = enrollmentListRef.current.map((orig) => {
+      const updated = byId.get(orig._id);
+      if (!updated) return orig;
+      const { tableRowIndex: _filteredIndex, ...rest } = updated;
+      return { ...orig, ...rest, tableRowIndex: orig.tableRowIndex };
+    });
+    enrollmentListRef.current = next;
+    setEnrollmentList([...next]);
+  };
+
+  const markEnrollmentSaved = (enrollmentId: string) => {
+    const next = enrollmentListRef.current.map((row) =>
+      row._id === enrollmentId ? { ...row, isModified: false } : row
+    );
+    enrollmentListRef.current = next;
+    setEnrollmentList([...next]);
+  };
+
+  const handleEvalColumnToggle = (key: string) => {
+    setVisibleEvalKeys((prev) => {
+      const base =
+        prev.size === 0 ? new Set(allEvalColumnKeys) : new Set(prev);
+      if (base.has(key)) base.delete(key);
+      else base.add(key);
+      const final =
+        base.size === 0 ? new Set(allEvalColumnKeys) : base;
+      persistVisibleEvalKeys(final);
+      return final;
+    });
+  };
+
+  const handleEvalShowAllColumns = () => {
+    const all = new Set(allEvalColumnKeys);
+    setVisibleEvalKeys(all);
+    persistVisibleEvalKeys(all);
+  };
+
+  const handleEvalFilterReset = () => {
+    setEvalKeyword("");
+    handleEvalShowAllColumns();
+  };
+
+  const evaluationAction = (e: any) => {
+    const evaluation: any = {};
+    for (let obj of fieldEvaluationList) {
+      evaluation[obj.text] = e[obj.key];
+    }
+    EnrollmentAPI.UEvaluation({
+      params: {
+        _id: e._id,
+      },
+      data: { evaluation },
+    })
+      .then(() => {
+        markEnrollmentSaved(e._id);
+      })
+      .catch((err: any) => {
+        ALERT_ERROR(err);
+      });
+  };
 
   const metaItems = () => {
     const items = [];
@@ -288,6 +406,7 @@ const CoursePid = (props: Props) => {
                         text,
                         key,
                         type: "input",
+                        inputMinHeight: "72px",
                       });
                     }
                   } else if (val.auth.view.student) {
@@ -296,6 +415,7 @@ const CoursePid = (props: Props) => {
                       key,
                       type: "text",
                       whiteSpace: "pre-wrap",
+                      maxLines: 4,
                     });
                   }
                 });
@@ -306,6 +426,7 @@ const CoursePid = (props: Props) => {
                     key: "evaluation." + val.label,
                     type: "text",
                     whiteSpace: "pre-wrap",
+                    maxLines: 4,
                   });
                 });
               }
@@ -336,13 +457,11 @@ const CoursePid = (props: Props) => {
           });
 
       fetchEnrollments.then(({ enrollments }: any) => {
-        setEnrollmentList(
-          enrollments.map((enrollment: any) => {
-            return { ...enrollment, isModified: false };
-          })
-        );
-        enrollmentListRef.current = [];
-
+        const list = enrollments.map((enrollment: any) => {
+          return { ...enrollment, isModified: false };
+        });
+        setEnrollmentList(list);
+        enrollmentListRef.current = list;
         setIsEnrollmentsLoading(false);
       });
     }
@@ -400,6 +519,7 @@ const CoursePid = (props: Props) => {
         type: "text",
         textAlign: "center",
         whiteSpace: "pre",
+        width: "72px",
       },
       {
         text: "이름",
@@ -407,6 +527,7 @@ const CoursePid = (props: Props) => {
         type: "text",
         textAlign: "center",
         whiteSpace: "pre",
+        width: "88px",
       },
       {
         text: "ID",
@@ -414,9 +535,14 @@ const CoursePid = (props: Props) => {
         type: "text",
         textAlign: "center",
         whiteSpace: "pre",
+        width: "72px",
       },
     ];
-    header.push(...formEvaluationHeader);
+    // 평가 항목 열은 width를 두지 않아 남은 가로 공간을 가져감
+    const visibleFormHeaders = formEvaluationHeader.filter(
+      (h) => h.key && effectiveVisibleEvalKeys.has(h.key)
+    );
+    header.push(...visibleFormHeaders);
     if (currentRegistration?.permissionEvaluationV2) {
       header.push({
         text: "저장",
@@ -436,6 +562,14 @@ const CoursePid = (props: Props) => {
     }
     return header;
   };
+
+  const evalColumnOptions = useMemo(
+    () =>
+      formEvaluationHeader
+        .filter((h) => h.key && h.text)
+        .map((h) => ({ key: h.key as string, text: h.text as string })),
+    [formEvaluationHeader]
+  );
 
   return (
     <>
@@ -714,46 +848,73 @@ const CoursePid = (props: Props) => {
                     ? {
                         평가: (
                           <div style={{ marginTop: "16px" }}>
-                            <div className={style.title} style={{ marginBottom: "12px" }}>평가</div>
-                            <MentoringTable
-                              type="object-array"
-                              data={!isEnrollmentsLoading ? enrollmentList : []}
-                              onBlur={(e: any) => {
-                                for (let item of e) {
-                                  if (item.isModified === true) {
-                                    const evaluation: any = {};
-                                    for (let obj of fieldEvaluationList) {
-                                      evaluation[obj.text] = item[obj.key];
-                                    }
-                                    EnrollmentAPI.UEvaluation({
-                                      params: {
-                                        _id: item._id,
-                                      },
-                                      data: { evaluation },
-                                    })
-                                      .then(() => {
-                                        if (enrollmentListRef.current.length !== 0) {
-                                          enrollmentListRef.current[
-                                            item.tableRowIndex - 1
-                                          ].isModified = false;
-                                          setEnrollmentList([
-                                            ...enrollmentListRef.current,
-                                          ]);
-                                        }
-                                      })
-                                      .catch((err: any) => {
-                                        ALERT_ERROR(err);
-                                      });
-                                  }
-                                }
-                              }}
-                              onChange={(e: any) => {
-                                setTimeout(() => {
-                                  enrollmentListRef.current = e;
-                                }, 50);
-                              }}
-                              header={evaluationHeader()}
+                            <div
+                              className={style.title}
+                              style={{ marginBottom: "12px" }}
+                            >
+                              평가
+                            </div>
+                            <EvaluationToolbar
+                              keyword={evalKeyword}
+                              onKeywordChange={setEvalKeyword}
+                              columns={evalColumnOptions}
+                              visibleKeys={effectiveVisibleEvalKeys}
+                              onToggle={handleEvalColumnToggle}
+                              onShowAll={handleEvalShowAllColumns}
+                              onReset={handleEvalFilterReset}
                             />
+                            {!isEnrollmentsLoading &&
+                            filteredEnrollments.length === 0 ? (
+                              <div
+                                style={{
+                                  padding: "32px 12px",
+                                  textAlign: "center",
+                                  color: "var(--text-color-2)",
+                                  fontSize: "14px",
+                                }}
+                              >
+                                조건에 맞는 학생이 없습니다.
+                              </div>
+                            ) : (
+                              <MentoringTable
+                                type="object-array"
+                                data={
+                                  !isEnrollmentsLoading
+                                    ? filteredEnrollments
+                                    : []
+                                }
+                                defaultPageBy={50}
+                                onBlur={(e: any) => {
+                                  mergeEnrollmentRowsById(e);
+                                  for (const item of e) {
+                                    if (item.isModified === true) {
+                                      const evaluation: any = {};
+                                      for (const obj of fieldEvaluationList) {
+                                        evaluation[obj.text] = item[obj.key];
+                                      }
+                                      EnrollmentAPI.UEvaluation({
+                                        params: {
+                                          _id: item._id,
+                                        },
+                                        data: { evaluation },
+                                      })
+                                        .then(() => {
+                                          markEnrollmentSaved(item._id);
+                                        })
+                                        .catch((err: any) => {
+                                          ALERT_ERROR(err);
+                                        });
+                                    }
+                                  }
+                                }}
+                                onChange={(e: any) => {
+                                  setTimeout(() => {
+                                    mergeEnrollmentRowsById(e);
+                                  }, 50);
+                                }}
+                                header={evaluationHeader()}
+                              />
+                            )}
                           </div>
                         ),
                       }

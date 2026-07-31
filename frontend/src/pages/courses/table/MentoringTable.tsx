@@ -62,6 +62,11 @@ export type TTableHeader = {
   };
   option?: string[];
   onClick?: (value: any) => void;
+  /** text 셀: N줄로 접고 클릭 시 펼침 */
+  maxLines?: number;
+  /** input textarea 최소/최대 높이 (예: "64px") */
+  inputMinHeight?: string;
+  inputMaxHeight?: string;
 };
 type Props = {
   type: "object-array" | "string-array";
@@ -108,6 +113,17 @@ const Table = (props: Props) => {
       }, {})
   );
   const moreOutSideClick = useOutsideClick();
+  const [expandedTextKeys, setExpandedTextKeys] = useState<Set<string>>(
+    () => new Set()
+  );
+  const toggleTextExpand = (cellKey: string) => {
+    setExpandedTextKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(cellKey)) next.delete(cellKey);
+      else next.add(cellKey);
+      return next;
+    });
+  };
   const filteredData = useCallback(() => {
     let result = [];
 
@@ -950,27 +966,24 @@ const Table = (props: Props) => {
                               textAlign: val.textAlign,
                               fontSize: val.fontSize,
                               fontWeight: val.fontWeight,
+                              verticalAlign: "top",
                             }}
-                            className={`${style.item} ${style.input}`}
+                            className={`${style.item} ${style.input} ${style.inputCompact}`}
                             key={index}
                           >
                             <textarea
-                              rows={1}
-                              onFocus={(e) => {
-                                e.currentTarget.style.height =
-                                  e.currentTarget.scrollHeight + "px";
-                                e.currentTarget.style.maxHeight = "250px";
-                                e.currentTarget.style.width = "100%"; // 최소 너비는 100%로 설정
-                                if (e.currentTarget.offsetWidth < 250) {
-                                  e.currentTarget.style.width = "250px"; // 최소 너비가 300px보다 작을 경우 300px로 조정
-                                }
-                              }}
-                              onBlur={(e) => {
+                              rows={3}
+                              onBlur={() => {
                                 callOnBlurFunc();
                               }}
                               style={{
                                 whiteSpace: val.whiteSpace,
                                 wordBreak: val.wordBreak,
+                                minHeight: val.inputMinHeight || "72px",
+                                // maxHeight를 헤더에서 준 경우에만 제한 (기본은 행 높이에 맞춤)
+                                ...(val.inputMaxHeight
+                                  ? { maxHeight: val.inputMaxHeight }
+                                  : {}),
                               }}
                               value={row[`${val.key}`]}
                               onChange={(e) => {
@@ -1215,30 +1228,98 @@ const Table = (props: Props) => {
                           </td>
                         );
 
-                      default:
+                      default: {
+                        const cellText = row[`${val.key}`];
+                        const cellKey = `${row.tableRowIndex}-${val.key ?? index}`;
+                        const isExpanded = expandedTextKeys.has(cellKey);
+                        const useClamp =
+                          !!val.maxLines &&
+                          cellText != null &&
+                          String(cellText).trim() !== "";
                         return (
                           <td
                             style={{
-                              whiteSpace: val.whiteSpace,
-                              wordBreak: val.wordBreak,
+                              whiteSpace: useClamp
+                                ? "normal"
+                                : val.whiteSpace,
+                              wordBreak: val.wordBreak || "break-word",
                               textAlign: val.textAlign,
                               fontSize: val.fontSize,
                               fontWeight: val.fontWeight,
-                              cursor: val.cursor || 'default',
+                              cursor:
+                                val.cursor ||
+                                (useClamp || val.onClick
+                                  ? "pointer"
+                                  : "default"),
+                              verticalAlign: useClamp ? "top" : undefined,
+                              // 고정 width가 있으면 열 너비 잠금(학년/이름/ID).
+                              // 긴 텍스트(clamp) 열은 maxWidth를 두지 않아 남은 공간을 가져감.
+                              ...(val.width
+                                ? {
+                                    width: val.width,
+                                    minWidth: val.width,
+                                    maxWidth: val.width,
+                                  }
+                                : useClamp
+                                  ? {
+                                      minWidth: "200px",
+                                      maxWidth: "none",
+                                    }
+                                  : {}),
                             }}
                             className={style.item}
                             key={index}
-                            onClick={(_e) => { if(typeof(val.onClick) !== 'undefined') val.onClick(row) }}
+                            title={
+                              useClamp && !isExpanded
+                                ? String(cellText)
+                                : undefined
+                            }
+                            onClick={(_e) => {
+                              if (useClamp) {
+                                toggleTextExpand(cellKey);
+                                return;
+                              }
+                              if (typeof val.onClick !== "undefined") {
+                                val.onClick(row);
+                              }
+                            }}
                           >
-                            {row[`${val.key}`]}
+                            {useClamp ? (
+                              <div
+                                className={
+                                  isExpanded
+                                    ? style.clampTextExpanded
+                                    : style.clampText
+                                }
+                                style={
+                                  isExpanded
+                                    ? undefined
+                                    : {
+                                        WebkitLineClamp: val.maxLines,
+                                      }
+                                }
+                              >
+                                {cellText}
+                              </div>
+                            ) : (
+                              cellText
+                            )}
+                            {useClamp && (
+                              <div className={style.clampHint}>
+                                {isExpanded ? "접기" : "더보기"}
+                              </div>
+                            )}
                             {val.byteCalc && (
                               <div className={style.byte_calc}>
-                                {encodeURIComponent(row[`${val.key}`]).length}{" "}
+                                {encodeURIComponent(
+                                  String(cellText ?? "")
+                                ).length}{" "}
                                 bytes
                               </div>
                             )}
                           </td>
                         );
+                      }
                     }
                   })}
                 </tr>
