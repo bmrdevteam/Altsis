@@ -2255,6 +2255,32 @@ export default function useAPIv2() {
   }
 
   /**
+   * ImportEvaluationFromCsv API
+   * @description CSV 행의 평가값을 빈 칸에만 반영
+   */
+  async function ImportEvaluationFromCsv(props: {
+    params: { _id: string };
+    data: {
+      rows: {
+        studentId: string;
+        evaluation: { [label: string]: string | number };
+      }[];
+    };
+  }) {
+    return (await database.C({
+      location: `syllabuses/${props.params._id}/evaluation/import-from-csv`,
+      data: props.data,
+    })) as {
+      filled: number;
+      skippedExisting: number;
+      skippedNoValue: number;
+      skippedNoPermission: number;
+      skippedUnknownStudent: number;
+      skippedUnknownLabel: number;
+    };
+  }
+
+  /**
    * ##########################################################################
    * Enrollment API
    * ##########################################################################
@@ -4935,6 +4961,7 @@ export default function useAPIv2() {
       USyllabusAltBoardSync,
       LinkSyllabusAltBoard,
       ImportEvaluationFromBoard,
+      ImportEvaluationFromCsv,
     },
     EnrollmentAPI: {
       CEnrollment,

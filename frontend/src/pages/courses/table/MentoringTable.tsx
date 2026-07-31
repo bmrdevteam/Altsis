@@ -1,4 +1,10 @@
-import React, {useCallback, useEffect, useState} from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import style from "./table.module.scss";
 import _, { add, isArray, isBoolean, isNumber } from "lodash";
 import Svg from "assets/svg/Svg";
@@ -67,6 +73,66 @@ export type TTableHeader = {
   /** input textarea 최소/최대 높이 (예: "64px") */
   inputMinHeight?: string;
   inputMaxHeight?: string;
+};
+
+/** maxLines clamp: 실제로 잘린 경우에만 더보기 표시 */
+const ClampTextCell = ({
+  text,
+  maxLines,
+  isExpanded,
+  onToggle,
+}: {
+  text: unknown;
+  maxLines: number;
+  isExpanded: boolean;
+  onToggle: () => void;
+}) => {
+  const textRef = useRef<HTMLDivElement>(null);
+  const [overflows, setOverflows] = useState(false);
+
+  useLayoutEffect(() => {
+    const el = textRef.current;
+    if (!el || isExpanded) return;
+
+    const measure = () => {
+      setOverflows(el.scrollHeight > el.clientHeight + 1);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [text, maxLines, isExpanded]);
+
+  const showToggle = overflows || isExpanded;
+
+  return (
+    <td
+      style={{
+        whiteSpace: "normal",
+        wordBreak: "break-word",
+        cursor: showToggle ? "pointer" : "default",
+        verticalAlign: "top",
+        minWidth: "200px",
+        maxWidth: "none",
+      }}
+      className={style.item}
+      title={showToggle && !isExpanded ? String(text) : undefined}
+      onClick={() => {
+        if (showToggle) onToggle();
+      }}
+    >
+      <div
+        ref={textRef}
+        className={isExpanded ? style.clampTextExpanded : style.clampText}
+        style={isExpanded ? undefined : { WebkitLineClamp: maxLines }}
+      >
+        {text as any}
+      </div>
+      {showToggle && (
+        <div className={style.clampHint}>{isExpanded ? "접기" : "더보기"}</div>
+      )}
+    </td>
+  );
 };
 type Props = {
   type: "object-array" | "string-array";
@@ -1236,79 +1302,43 @@ const Table = (props: Props) => {
                           !!val.maxLines &&
                           cellText != null &&
                           String(cellText).trim() !== "";
+                        if (useClamp && val.maxLines) {
+                          return (
+                            <ClampTextCell
+                              key={index}
+                              text={cellText}
+                              maxLines={val.maxLines}
+                              isExpanded={isExpanded}
+                              onToggle={() => toggleTextExpand(cellKey)}
+                            />
+                          );
+                        }
                         return (
                           <td
                             style={{
-                              whiteSpace: useClamp
-                                ? "normal"
-                                : val.whiteSpace,
+                              whiteSpace: val.whiteSpace,
                               wordBreak: val.wordBreak || "break-word",
                               textAlign: val.textAlign,
                               fontSize: val.fontSize,
                               fontWeight: val.fontWeight,
-                              cursor:
-                                val.cursor ||
-                                (useClamp || val.onClick
-                                  ? "pointer"
-                                  : "default"),
-                              verticalAlign: useClamp ? "top" : undefined,
-                              // 고정 width가 있으면 열 너비 잠금(학년/이름/ID).
-                              // 긴 텍스트(clamp) 열은 maxWidth를 두지 않아 남은 공간을 가져감.
+                              cursor: val.cursor || (val.onClick ? "pointer" : "default"),
                               ...(val.width
                                 ? {
                                     width: val.width,
                                     minWidth: val.width,
                                     maxWidth: val.width,
                                   }
-                                : useClamp
-                                  ? {
-                                      minWidth: "200px",
-                                      maxWidth: "none",
-                                    }
-                                  : {}),
+                                : {}),
                             }}
                             className={style.item}
                             key={index}
-                            title={
-                              useClamp && !isExpanded
-                                ? String(cellText)
-                                : undefined
-                            }
                             onClick={(_e) => {
-                              if (useClamp) {
-                                toggleTextExpand(cellKey);
-                                return;
-                              }
                               if (typeof val.onClick !== "undefined") {
                                 val.onClick(row);
                               }
                             }}
                           >
-                            {useClamp ? (
-                              <div
-                                className={
-                                  isExpanded
-                                    ? style.clampTextExpanded
-                                    : style.clampText
-                                }
-                                style={
-                                  isExpanded
-                                    ? undefined
-                                    : {
-                                        WebkitLineClamp: val.maxLines,
-                                      }
-                                }
-                              >
-                                {cellText}
-                              </div>
-                            ) : (
-                              cellText
-                            )}
-                            {useClamp && (
-                              <div className={style.clampHint}>
-                                {isExpanded ? "접기" : "더보기"}
-                              </div>
-                            )}
+                            {cellText}
                             {val.byteCalc && (
                               <div className={style.byte_calc}>
                                 {encodeURIComponent(

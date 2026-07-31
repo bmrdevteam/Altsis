@@ -259,3 +259,174 @@ export const importEvaluationFromBoardForm = async (
 
   return stats;
 };
+
+/**
+ * CSV raw 값을 평가 칸 값으로 변환. 불가하면 null.
+ * @param {*} raw
+ * @param {"input"|"input-number"|"select"} evalType
+ */
+export const coerceCsvValueToEvaluation = (raw, evalType) => {
+  if (raw === null || raw === undefined) return null;
+  if (typeof raw === "object") return null;
+
+  if (evalType === "input-number") {
+    const n = typeof raw === "number" ? raw : Number(String(raw).trim());
+    if (Number.isNaN(n)) return null;
+    return n;
+  }
+
+  if (typeof raw === "number" || typeof raw === "boolean") {
+    return String(raw);
+  }
+
+  const s = String(raw).trim();
+  return s === "" ? null : s;
+};
+
+/**
+ * CSV 행 → 평가 빈 칸만 채우기
+ * rows: { studentId, evaluation: { [label]: raw } }[]
+ * 동일 studentId는 마지막 행 우선
+ *
+ * @returns {Promise<{ filled: number, skippedExisting: number, skippedNoValue: number, skippedNoPermission: number, skippedUnknownStudent: number, skippedUnknownLabel: number }>}
+ */
+export const importEvaluationFromCsv = async (
+  academyId,
+  { syllabus, rows, formEvaluation }
+) => {
+  const stats = {
+    filled: 0,
+    skippedExisting: 0,
+    skippedNoValue: 0,
+    skippedNoPermission: 0,
+    skippedUnknownStudent: 0,
+    skippedUnknownLabel: 0,
+  };
+
+  const evalByLabel = new Map(
+    (formEvaluation || []).map((item) => [item.label, item])
+  );
+
+  /** @type {Map<string, { studentId: string, evaluation: Record<string, *> }>} */
+  const byStudentId = new Map();
+  for (const row of rows || []) {
+    const sid = String(row?.studentId ?? "").trim();
+    if (!sid) continue;
+    byStudentId.set(sid, {
+      studentId: sid,
+      evaluation:
+        row.evaluation && typeof row.evaluation === "object"
+          ? row.evaluation
+          : {},
+    });
+  }
+
+  if (byStudentId.size === 0) {
+    return stats;
+  }
+
+  const enrollments = await Enrollment(academyId)
+    .find({ syllabus: syllabus._id })
+    .select("+evaluation");
+
+  /** @type {Map<string, object>} */
+  const enrollmentByStudentId = new Map();
+  for (const e of enrollments) {
+    const sid = String(e.studentId ?? "").trim();
+    if (sid) enrollmentByStudentId.set(sid, e);
+  }
+
+  for (const [studentId, row] of byStudentId) {
+    const enrollment = enrollmentByStudentId.get(studentId);
+    if (!enrollment) {
+      const labelCount = Object.keys(row.evaluation || {}).length;
+      stats.skippedUnknownStudent += Math.max(labelCount, 1);
+      continue;
+    }
+
+    const labels = Object.keys(row.evaluation || {});
+    if (labels.length === 0) continue;
+
+    const enrollmentsByTerm = await Enrollment(academyId)
+      .find({
+        _id: { $ne: enrollment._id },
+        season: enrollment.season,
+        student: enrollment.student,
+        subject: enrollment.subject,
+      })
+      .select("+evaluation");
+
+    const enrollmentsByYear = await Enrollment(academyId)
+      .find({
+        _id: { $ne: enrollment._id },
+        school: enrollment.school,
+        year: enrollment.year,
+        term: { $ne: enrollment.term },
+        student: enrollment.student,
+        subject: enrollment.subject,
+      })
+      .select("+evaluation");
+
+    let dirty = false;
+    for (const label of labels) {
+      const evalItem = evalByLabel.get(label);
+      if (!evalItem) {
+        stats.skippedUnknownLabel += 1;
+        continue;
+      }
+      if (!evalItem.auth?.edit?.teacher) {
+        stats.skippedNoPermission += 1;
+        continue;
+      }
+
+      const existing = enrollment.evaluation?.[label];
+      if (!isEmptyValue(existing)) {
+        stats.skippedExisting += 1;
+        continue;
+      }
+
+      const coerced = coerceCsvValueToEvaluation(
+        row.evaluation[label],
+        evalItem.type || "input"
+      );
+      if (coerced === null || isEmptyValue(coerced)) {
+        stats.skippedNoValue += 1;
+        continue;
+      }
+
+      let value = coerced;
+      if (
+        evalItem.type === "select" &&
+        Array.isArray(evalItem.options) &&
+        evalItem.options.length > 0 &&
+        !evalItem.options.includes(String(value))
+      ) {
+        value = String(value);
+      }
+
+      fanOutEvaluationLabel({
+        enrollment,
+        enrollmentsByTerm,
+        enrollmentsByYear,
+        label,
+        value,
+        combineBy: evalItem.combineBy || "term",
+      });
+      dirty = true;
+      stats.filled += 1;
+    }
+
+    if (dirty) {
+      const toSave = new Set([
+        enrollment,
+        ...enrollmentsByTerm,
+        ...enrollmentsByYear,
+      ]);
+      for (const e of toSave) {
+        await e.save();
+      }
+    }
+  }
+
+  return stats;
+};

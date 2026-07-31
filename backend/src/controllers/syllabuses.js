@@ -21,7 +21,10 @@ import { Board, Enrollment, Registration, Syllabus } from "../models/index.js";
 import { sendAutoNotification } from "../services/notifications.js";
 import { syncBoardChatParticipants } from "../services/boardChat.js";
 import { canManageBoard } from "../services/boards.js";
-import { importEvaluationFromBoardForm } from "../services/evaluationImport.js";
+import {
+  importEvaluationFromBoardForm,
+  importEvaluationFromCsv,
+} from "../services/evaluationImport.js";
 import _ from "lodash";
 
 const isFullyConfirmed = (syllabus) =>
@@ -1626,6 +1629,59 @@ export const importEvaluationFromBoard = async (req, res) => {
               : err.message,
       });
     }
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.SyllabusAPI
+ * @function ImportEvaluationFromCsv API
+ * @description CSV 행의 평가값을 빈 칸에만 반영한다.
+ */
+export const importEvaluationFromCsvHandler = async (req, res) => {
+  try {
+    if (!Array.isArray(req.body?.rows) || req.body.rows.length === 0) {
+      return res.status(400).send({ message: FIELD_REQUIRED("rows") });
+    }
+
+    const syllabus = await Syllabus(req.user.academyId).findById(
+      req.params._id
+    );
+    if (!syllabus) {
+      return res.status(404).send({ message: __NOT_FOUND("syllabus") });
+    }
+
+    const userOid = req.user._id.toString();
+    const isCreator = syllabus.user?.toString?.() === userOid;
+    const isMentor = (syllabus.teachers || []).some(
+      (t) => t._id?.toString?.() === userOid
+    );
+    const isManager =
+      req.user.auth === "admin" || req.user.auth === "manager";
+    if (!isCreator && !isMentor && !isManager) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    const registration = await Registration(req.user.academyId).findOne({
+      season: syllabus.season,
+      user: req.user._id,
+    });
+    if (!registration) {
+      return res.status(404).send({ message: __NOT_FOUND("registration") });
+    }
+    if (!registration.permissionEvaluationV2) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    const result = await importEvaluationFromCsv(req.user.academyId, {
+      syllabus,
+      rows: req.body.rows,
+      formEvaluation: registration.formEvaluation,
+    });
+
+    return res.status(200).send(result);
+  } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }

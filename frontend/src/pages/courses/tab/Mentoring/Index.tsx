@@ -49,6 +49,7 @@ import EvaluationToolbar from "./EvaluationToolbar";
 import SyllabusBoardCreatePanel from "./SyllabusBoardCreatePanel";
 import useSyllabusAltBoard from "./useSyllabusAltBoard";
 import ImportEvaluationFromBoardPopup from "./ImportEvaluationFromBoardPopup";
+import ImportEvaluationFromCsvPopup from "./ImportEvaluationFromCsvPopup";
 import AltBoardView from "pages/boards/altBoard/AltBoardView";
 import useAltBoardBadges from "pages/boards/altBoard/useAltBoardBadges";
 import BoardManagePopup from "pages/boards/popup/BoardManage";
@@ -57,6 +58,7 @@ import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import Progress from "components/progress/Progress";
 import CourseMetaInfo, { ConfirmedStatus } from "pages/courses/view/CourseMetaInfo";
 import CourseCoverImage from "pages/courses/view/CourseCoverImage";
+import { TFormEvaluation } from "types/seasons";
 
 const evalColumnsStorageKey = (syllabusId: string) =>
   `courseEval.columns.${syllabusId}`;
@@ -116,6 +118,7 @@ const CoursePid = (props: Props) => {
   const [showBoardManagePopup, setShowBoardManagePopup] = useState(false);
   const [showBoardDuplicateFlow, setShowBoardDuplicateFlow] = useState(false);
   const [showImportEvalPopup, setShowImportEvalPopup] = useState(false);
+  const [showImportCsvPopup, setShowImportCsvPopup] = useState(false);
 
   const canManageAltBoard = (() => {
     if (!altBoard || !currentUser) return false;
@@ -273,6 +276,46 @@ const CoursePid = (props: Props) => {
   const handleEvalFilterReset = () => {
     setEvalKeyword("");
     handleEvalShowAllColumns();
+  };
+
+  const downloadEvaluationCsvTemplate = () => {
+    const formEvaluation: TFormEvaluation =
+      (currentRegistration?.formEvaluation as TFormEvaluation) ||
+      currentSeason?.formEvaluation ||
+      [];
+    const editableLabels = formEvaluation
+      .filter((item) => item.auth?.edit?.teacher)
+      .map((item) => item.label);
+
+    const headers = ["학년", "이름", "ID", ...editableLabels];
+    const escapeCsv = (v: unknown) => {
+      const s = v == null ? "" : String(v);
+      if (/[",\r\n]/.test(s)) {
+        return `"${s.replace(/"/g, '""')}"`;
+      }
+      return s;
+    };
+
+    const rows = enrollmentList.map((e) => {
+      const cells = [
+        e.studentGrade ?? "",
+        e.studentName ?? "",
+        e.studentId ?? "",
+        ...editableLabels.map((label) => e.evaluation?.[label] ?? ""),
+      ];
+      return cells.map(escapeCsv).join(",");
+    });
+
+    const csv = ["\uFEFF" + headers.map(escapeCsv).join(","), ...rows].join(
+      "\r\n"
+    );
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${syllabus?.classTitle || "evaluation"}_평가양식.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   const evaluationAction = (e: any) => {
@@ -879,13 +922,13 @@ const CoursePid = (props: Props) => {
                     ? {
                         평가: (
                           <div style={{ marginTop: "16px" }}>
-                            <div
-                              className={style.title}
-                              style={{ marginBottom: "12px" }}
-                            >
-                              평가
-                            </div>
                             <EvaluationToolbar
+                              title="평가"
+                              count={
+                                !isEnrollmentsLoading
+                                  ? filteredEnrollments.length
+                                  : undefined
+                              }
                               keyword={evalKeyword}
                               onKeywordChange={setEvalKeyword}
                               columns={evalColumnOptions}
@@ -893,65 +936,79 @@ const CoursePid = (props: Props) => {
                               onToggle={handleEvalColumnToggle}
                               onShowAll={handleEvalShowAllColumns}
                               onReset={handleEvalFilterReset}
+                              onDownloadCsvTemplate={
+                                currentRegistration?.permissionEvaluationV2
+                                  ? downloadEvaluationCsvTemplate
+                                  : undefined
+                              }
+                              onImportFromCsv={
+                                currentRegistration?.permissionEvaluationV2
+                                  ? () => setShowImportCsvPopup(true)
+                                  : undefined
+                              }
                               onImportFromBoard={
                                 altBoard &&
                                 currentRegistration?.permissionEvaluationV2
                                   ? () => setShowImportEvalPopup(true)
                                   : undefined
                               }
-                            />
-                            {!isEnrollmentsLoading &&
-                            filteredEnrollments.length === 0 ? (
-                              <div
-                                style={{
-                                  padding: "32px 12px",
-                                  textAlign: "center",
-                                  color: "var(--text-color-2)",
-                                  fontSize: "14px",
-                                }}
-                              >
-                                조건에 맞는 학생이 없습니다.
-                              </div>
-                            ) : (
-                              <MentoringTable
-                                type="object-array"
-                                data={
-                                  !isEnrollmentsLoading
-                                    ? filteredEnrollments
-                                    : []
-                                }
-                                defaultPageBy={50}
-                                onBlur={(e: any) => {
-                                  mergeEnrollmentRowsById(e);
-                                  for (const item of e) {
-                                    if (item.isModified === true) {
-                                      const evaluation: any = {};
-                                      for (const obj of fieldEvaluationList) {
-                                        evaluation[obj.text] = item[obj.key];
-                                      }
-                                      EnrollmentAPI.UEvaluation({
-                                        params: {
-                                          _id: item._id,
-                                        },
-                                        data: { evaluation },
-                                      })
-                                        .then(() => {
-                                          markEnrollmentSaved(item._id);
-                                        })
-                                        .catch((err: any) => {
-                                          ALERT_ERROR(err);
-                                        });
+                            >
+                              {!isEnrollmentsLoading &&
+                              filteredEnrollments.length === 0 ? (
+                                <div
+                                  style={{
+                                    padding: "32px 12px",
+                                    textAlign: "center",
+                                    color: "var(--text-color-2)",
+                                    fontSize: "14px",
+                                  }}
+                                >
+                                  조건에 맞는 학생이 없습니다.
+                                </div>
+                              ) : (
+                                <div style={{ paddingTop: 12 }}>
+                                  <MentoringTable
+                                    type="object-array"
+                                    data={
+                                      !isEnrollmentsLoading
+                                        ? filteredEnrollments
+                                        : []
                                     }
-                                  }
-                                }}
-                                onChange={(e: any) => {
-                                  setTimeout(() => {
-                                    mergeEnrollmentRowsById(e);
-                                  }, 50);
-                                }}
-                                header={evaluationHeader()}
-                              />
-                            )}
+                                    defaultPageBy={50}
+                                    onBlur={(e: any) => {
+                                      mergeEnrollmentRowsById(e);
+                                      for (const item of e) {
+                                        if (item.isModified === true) {
+                                          const evaluation: any = {};
+                                          for (const obj of fieldEvaluationList) {
+                                            evaluation[obj.text] =
+                                              item[obj.key];
+                                          }
+                                          EnrollmentAPI.UEvaluation({
+                                            params: {
+                                              _id: item._id,
+                                            },
+                                            data: { evaluation },
+                                          })
+                                            .then(() => {
+                                              markEnrollmentSaved(item._id);
+                                            })
+                                            .catch((err: any) => {
+                                              ALERT_ERROR(err);
+                                            });
+                                        }
+                                      }
+                                    }}
+                                    onChange={(e: any) => {
+                                      setTimeout(() => {
+                                        mergeEnrollmentRowsById(e);
+                                      }, 50);
+                                    }}
+                                    header={evaluationHeader()}
+                                  />
+                                </div>
+                              )}
+                            </EvaluationToolbar>
                           </div>
                         ),
                       }
@@ -1087,6 +1144,14 @@ const CoursePid = (props: Props) => {
           syllabusId={pid}
           boardId={altBoard._id}
           setState={setShowImportEvalPopup}
+          onImported={() => setIsEnrollmentsLoading(true)}
+        />
+      )}
+      {showImportCsvPopup && pid && (
+        <ImportEvaluationFromCsvPopup
+          syllabusId={pid}
+          enrollments={enrollmentList}
+          setState={setShowImportCsvPopup}
           onImported={() => setIsEnrollmentsLoading(true)}
         />
       )}

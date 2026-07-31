@@ -34,5 +34,10 @@ router.post(
   isLoggedIn,
   syllabuses.importEvaluationFromBoard
 );
+router.post(
+  "/:_id/evaluation/import-from-csv",
+  isLoggedIn,
+  syllabuses.importEvaluationFromCsvHandler
+);
 
 export { router };
