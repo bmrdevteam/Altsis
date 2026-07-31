@@ -43,6 +43,7 @@ import {
   LIMIT_FILE_SIZE,
   INVALID_FILE_TYPE,
 } from "../messages/index.js";
+import { cloneAltFormToBoard } from "../services/altFormClone.js";
 import { boardMulter } from "../_s3/boardMulter.js";
 
 /**
@@ -249,6 +250,136 @@ export const create = async (req, res) => {
           hashStringToIndex(req.body.name, boardPresetColors.length)
         ],
     });
+
+    return res.status(200).send({ board });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.BoardAPI
+ * @function DuplicateBoard API
+ * @description 보드 복제 (설정 + 양식 구조 + 빈 시트 + 문서). 응답·채팅·수업 연결 비복사.
+ */
+export const duplicate = async (req, res) => {
+  try {
+    const source = await Board(req.user.academyId).findById(req.params._id);
+    if (!source || !source.isActive) {
+      return res.status(404).send({ message: __NOT_FOUND("board") });
+    }
+    if (!canManageBoard(source, req.user)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    const isAdminOrManager =
+      req.user.auth === "admin" || req.user.auth === "manager";
+    const boardType = isAdminOrManager ? "official" : "user";
+
+    const name =
+      (typeof req.body?.name === "string" && req.body.name.trim()) ||
+      `${source.name} (복사)`;
+
+    let baseSlug = name
+      .toLowerCase()
+      .replace(/[^a-z0-9가-힣]/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "") || `board-${Date.now()}`;
+    let slug = baseSlug;
+    let slugSuffix = 1;
+    while (
+      await Board(req.user.academyId).findOne({
+        school: source.school,
+        slug,
+      })
+    ) {
+      slugSuffix++;
+      slug = `${baseSlug}-${slugSuffix}`;
+    }
+
+    const executorMember = {
+      user: req.user._id,
+      userId: req.user.userId,
+      userName: req.user.userName,
+    };
+
+    const copyGroups = (src) => ({
+      groups: {
+        manager: src?.groups?.manager ?? false,
+        teacher: src?.groups?.teacher ?? false,
+        student: src?.groups?.student ?? false,
+      },
+      users: [executorMember],
+    });
+
+    const altBoardRole = new Map();
+    altBoardRole.set(req.user._id.toString(), "admin");
+
+    const board = await Board(req.user.academyId).create({
+      school: source.school,
+      schoolId: source.schoolId,
+      schoolName: source.schoolName,
+      scope: "school",
+      name,
+      slug,
+      description: source.description || "",
+      creator: req.user._id,
+      creatorId: req.user.userId,
+      creatorName: req.user.userName,
+      boardMode: source.boardMode || "alt",
+      boardType,
+      altBoardRole,
+      contentViewMode: source.contentViewMode || "table",
+      coverColor:
+        source.coverColor ||
+        boardPresetColors[hashStringToIndex(name, boardPresetColors.length)],
+      chatEnabled: source.chatEnabled !== false,
+      notificationEvents: source.notificationEvents,
+      members: copyGroups(source.members),
+      writers: copyGroups(source.writers),
+    });
+
+    const forms = await AltForm(req.user.academyId)
+      .find({ board: source._id, isActive: true })
+      .sort({ createdAt: 1 });
+    for (const form of forms) {
+      await cloneAltFormToBoard(req.user.academyId, form, board, req.user, {
+        keepTitle: true,
+        forceDraft: true,
+      });
+    }
+
+    const posts = await Post(req.user.academyId)
+      .find({ board: source._id, isActive: true })
+      .sort({ isPinned: -1, createdAt: 1 })
+      .lean();
+
+    let postCount = 0;
+    for (const post of posts) {
+      await Post(req.user.academyId).create({
+        board: board._id,
+        author: req.user._id,
+        authorId: req.user.userId,
+        authorName: req.user.userName,
+        authorProfile: req.user.profile,
+        title: post.title || "",
+        content: post.content || "",
+        isActive: true,
+        // 복제본 문서는 양식과 같이 비공개로 시작
+        isDraft: true,
+        isPinned: !!post.isPinned,
+        permissionRead: post.permissionRead || undefined,
+        attachments: Array.isArray(post.attachments)
+          ? post.attachments.map((a) => ({ ...a, _id: undefined }))
+          : [],
+      });
+      postCount += 1;
+    }
+    if (postCount > 0) {
+      board.postCount = postCount;
+      await board.save();
+    }
 
     return res.status(200).send({ board });
   } catch (err) {

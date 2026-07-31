@@ -24,7 +24,8 @@ router.put("/:_id/show", isLoggedIn, syllabuses.showOnCalendar);
 
 router.delete("/:_id", isLoggedIn, syllabuses.remove);
 
-// Alt Board
+// Alt Board (더 구체적인 /link 를 먼저 등록)
+router.post("/:_id/alt-board/link", isLoggedIn, syllabuses.linkAltBoard);
 router.post("/:_id/alt-board", isLoggedIn, syllabuses.createAltBoard);
 router.get("/:_id/alt-board", isLoggedIn, syllabuses.findAltBoard);
 router.put("/:_id/alt-board/sync", isLoggedIn, syllabuses.syncAltBoard);

@@ -6,6 +6,7 @@
 import { logger } from "../log/logger.js";
 import {
   CLASSROOM_IN_USE,
+  CONNECTED_ALREADY,
   FIELD_REQUIRED,
   INVALID_FILE_TYPE,
   LIMIT_FILE_SIZE,
@@ -19,6 +20,7 @@ import { courseMulter } from "../_s3/courseMulter.js";
 import { Board, Enrollment, Registration, Syllabus } from "../models/index.js";
 import { sendAutoNotification } from "../services/notifications.js";
 import { syncBoardChatParticipants } from "../services/boardChat.js";
+import { canManageBoard } from "../services/boards.js";
 import _ from "lodash";
 
 const isFullyConfirmed = (syllabus) =>
@@ -1382,6 +1384,171 @@ export const syncAltBoard = async (req, res) => {
     }
 
     return res.status(200).send({ board, added, removed });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.SyllabusAPI
+ * @function LinkSyllabusAltBoard API
+ * @description 기존(미연결) 보드를 수업 Alt Board로 연결하고 멤버를 맞춘다.
+ */
+export const linkAltBoard = async (req, res) => {
+  try {
+    if (!req.body?.board) {
+      return res.status(400).send({ message: FIELD_REQUIRED("board") });
+    }
+
+    const syllabus = await Syllabus(req.user.academyId).findById(
+      req.params._id
+    );
+    if (!syllabus) {
+      return res.status(404).send({ message: __NOT_FOUND("syllabus") });
+    }
+
+    const userOid = req.user._id.toString();
+    const isCreator = syllabus.user?.toString?.() === userOid;
+    const isMentor = (syllabus.teachers || []).some(
+      (t) => t._id?.toString?.() === userOid
+    );
+    // 개설자·지도교사만 연결 가능 (관리자라도 담당 수업만)
+    if (!isCreator && !isMentor) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    if (syllabus.altBoard) {
+      const existing = await Board(req.user.academyId).findById(
+        syllabus.altBoard
+      );
+      if (existing && existing.isActive) {
+        return res.status(409).send({ message: CONNECTED_ALREADY("board") });
+      }
+    }
+
+    const board = await Board(req.user.academyId).findById(req.body.board);
+    if (!board || !board.isActive) {
+      return res.status(404).send({ message: __NOT_FOUND("board") });
+    }
+    if (!canManageBoard(board, req.user)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+    const boardSchool = board.school?.toString?.() || String(board.school);
+    const syllabusSchool =
+      syllabus.school?.toString?.() || String(syllabus.school);
+    if (boardSchool !== syllabusSchool) {
+      return res.status(400).send({
+        message: "보드와 수업의 학교가 일치하지 않습니다.",
+      });
+    }
+    if (
+      board.syllabus &&
+      board.syllabus.toString() !== syllabus._id.toString()
+    ) {
+      return res.status(409).send({ message: CONNECTED_ALREADY("syllabus") });
+    }
+
+    const altBoardRole = new Map();
+    const memberUsers = [];
+    const writerUsers = [];
+
+    for (const teacher of syllabus.teachers || []) {
+      const tid = teacher._id?.toString?.();
+      if (!tid) continue;
+      altBoardRole.set(tid, "admin");
+      memberUsers.push({
+        user: teacher._id,
+        userId: teacher.userId,
+        userName: teacher.userName,
+      });
+      writerUsers.push({
+        user: teacher._id,
+        userId: teacher.userId,
+        userName: teacher.userName,
+      });
+    }
+    if (!altBoardRole.has(syllabus.user.toString())) {
+      altBoardRole.set(syllabus.user.toString(), "admin");
+      const ownerAlready = memberUsers.some(
+        (u) => u.user?.toString() === syllabus.user.toString()
+      );
+      if (!ownerAlready) {
+        memberUsers.push({
+          user: syllabus.user,
+          userId: syllabus.userId,
+          userName: syllabus.userName,
+        });
+        writerUsers.push({
+          user: syllabus.user,
+          userId: syllabus.userId,
+          userName: syllabus.userName,
+        });
+      }
+    }
+
+    // 연결 실행자도 admin으로 유지 (복제자 ≠ 수업 담당일 때)
+    if (!altBoardRole.has(userOid)) {
+      altBoardRole.set(userOid, "admin");
+      const alreadyMember = memberUsers.some(
+        (u) => u.user?.toString() === userOid
+      );
+      if (!alreadyMember) {
+        memberUsers.push({
+          user: req.user._id,
+          userId: req.user.userId,
+          userName: req.user.userName,
+        });
+        writerUsers.push({
+          user: req.user._id,
+          userId: req.user.userId,
+          userName: req.user.userName,
+        });
+      }
+    }
+
+    const enrollments = await Enrollment(req.user.academyId).find({
+      syllabus: syllabus._id,
+    });
+    for (const enrollment of enrollments) {
+      const sid = enrollment.student?.toString?.();
+      if (!sid || altBoardRole.has(sid)) continue;
+      altBoardRole.set(sid, "respondent");
+      memberUsers.push({
+        user: enrollment.student,
+        userId: enrollment.studentId,
+        userName: enrollment.studentName,
+      });
+    }
+
+    board.syllabus = syllabus._id;
+    board.season = syllabus.season;
+    board.seasonYear = syllabus.year;
+    board.seasonTerm = syllabus.term;
+    board.altBoardRole = altBoardRole;
+    board.members = {
+      groups: { manager: false, teacher: false, student: false },
+      users: memberUsers,
+    };
+    board.writers = {
+      groups: { manager: false, teacher: false, student: false },
+      users: writerUsers,
+    };
+    board.markModified("altBoardRole");
+    board.markModified("members");
+    board.markModified("writers");
+    await board.save();
+
+    syllabus.altBoard = board._id;
+    await syllabus.save();
+
+    try {
+      await syncBoardChatParticipants(req.user.academyId, board);
+    } catch (syncErr) {
+      logger.error(`linkAltBoard chat sync: ${syncErr.message}`);
+    }
+
+    return res.status(200).send({ board, syllabus });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });

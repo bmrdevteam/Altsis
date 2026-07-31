@@ -51,6 +51,7 @@ import useSyllabusAltBoard from "./useSyllabusAltBoard";
 import AltBoardView from "pages/boards/altBoard/AltBoardView";
 import useAltBoardBadges from "pages/boards/altBoard/useAltBoardBadges";
 import BoardManagePopup from "pages/boards/popup/BoardManage";
+import BoardDuplicateFlow from "pages/boards/popup/BoardDuplicateFlow";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import Progress from "components/progress/Progress";
 import CourseMetaInfo, { ConfirmedStatus } from "pages/courses/view/CourseMetaInfo";
@@ -112,6 +113,7 @@ const CoursePid = (props: Props) => {
   } = useSyllabusAltBoard(boardFeatureEnabled ? pid : undefined);
 
   const [showBoardManagePopup, setShowBoardManagePopup] = useState(false);
+  const [showBoardDuplicateFlow, setShowBoardDuplicateFlow] = useState(false);
 
   const canManageAltBoard = (() => {
     if (!altBoard || !currentUser) return false;
@@ -1056,6 +1058,19 @@ const CoursePid = (props: Props) => {
           onSuccess={async () => {
             await reloadBoard();
             refreshBoardBadges();
+          }}
+          onDuplicateRequest={() => {
+            setShowBoardManagePopup(false);
+            setShowBoardDuplicateFlow(true);
+          }}
+        />
+      )}
+      {showBoardDuplicateFlow && altBoard && (
+        <BoardDuplicateFlow
+          sourceBoard={altBoard}
+          setState={setShowBoardDuplicateFlow}
+          onSuccess={() => {
+            /* 복제본은 미연결 일반 보드 — 목록에서 확인 */
           }}
         />
       )}

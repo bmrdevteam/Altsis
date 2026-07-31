@@ -27,6 +27,7 @@ import { getBoardScopeLabel, isSchoolOnlyBoard, isSeasonLinkedBoard } from "util
 
 import BoardCreatePopup from "./popup/BoardCreate";
 import BoardManagePopup from "./popup/BoardManage";
+import BoardDuplicateFlow from "./popup/BoardDuplicateFlow";
 import BoardGalleryView from "./views/BoardGalleryView";
 import BoardListFilterBar, {
   TBoardScopeFilter,
@@ -71,6 +72,7 @@ const Boards = () => {
   const [showBoardCreatePopup, setShowBoardCreatePopup] = useState(false);
   const [showBoardManagePopup, setShowBoardManagePopup] = useState(false);
   const [managingBoard, setManagingBoard] = useState<TBoard | null>(null);
+  const [duplicatingBoard, setDuplicatingBoard] = useState<TBoard | null>(null);
 
   const isManager =
     currentUser?.auth === "admin" || currentUser?.auth === "manager";
@@ -192,6 +194,10 @@ const Boards = () => {
   const handleManageBoard = (board: TBoard) => {
     setManagingBoard(board);
     setShowBoardManagePopup(true);
+  };
+
+  const handleDuplicateBoard = (board: TBoard) => {
+    setDuplicatingBoard(board);
   };
 
   const handleOpenTodo = (item: TSchoolTodoItem) => {
@@ -512,17 +518,30 @@ const Boards = () => {
                         </span>
                       </button>
                       {canManageBoard(board) && (
-                        <button
-                          type="button"
-                          className={aStyle.formCardIconBtn}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleManageBoard(board);
-                          }}
-                          title="보드 관리"
-                        >
-                          <Svg type="settings" width="16px" height="16px" />
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            className={aStyle.formCardIconBtn}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDuplicateBoard(board);
+                            }}
+                            title="보드 복제"
+                          >
+                            <Svg type="copy" width="16px" height="16px" />
+                          </button>
+                          <button
+                            type="button"
+                            className={aStyle.formCardIconBtn}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleManageBoard(board);
+                            }}
+                            title="보드 관리"
+                          >
+                            <Svg type="settings" width="16px" height="16px" />
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -538,6 +557,9 @@ const Boards = () => {
               selectedBoard={null}
               onSelect={handleBoardClick}
               onToggleFavorite={handleToggleFavorite}
+              onDuplicate={handleDuplicateBoard}
+              onManage={handleManageBoard}
+              canManageBoard={canManageBoard}
               todoCountByBoard={todoCountByBoard}
             />
           ) : (
@@ -592,6 +614,19 @@ const Boards = () => {
         <BoardManagePopup
           board={managingBoard}
           setState={setShowBoardManagePopup}
+          onSuccess={() => setIsLoading(true)}
+          onDuplicateRequest={() => {
+            setShowBoardManagePopup(false);
+            setDuplicatingBoard(managingBoard);
+          }}
+        />
+      )}
+      {duplicatingBoard && (
+        <BoardDuplicateFlow
+          sourceBoard={duplicatingBoard}
+          setState={(open) => {
+            if (!open) setDuplicatingBoard(null);
+          }}
           onSuccess={() => setIsLoading(true)}
         />
       )}

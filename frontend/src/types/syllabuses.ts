@@ -26,4 +26,6 @@ export type TSyllabus = {
   info?: any;
   coverImage?: string;
   coverColor?: string;
+  /** 연결된 Alt Board (없으면 미연결) */
+  altBoard?: string;
 };

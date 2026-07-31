@@ -1,3 +1,4 @@
+import Svg from "assets/svg/Svg";
 import { TBoard } from "types/board";
 import { resolveBoardCoverColor } from "utils/boardCoverColor";
 import { getBoardScopeLabel } from "utils/boardLabels";
@@ -8,6 +9,9 @@ type Props = {
   selectedBoard: TBoard | null;
   onSelect: (board: TBoard) => void;
   onToggleFavorite: (board: TBoard) => void;
+  onDuplicate?: (board: TBoard) => void;
+  onManage?: (board: TBoard) => void;
+  canManageBoard?: (board: TBoard) => boolean;
   todoCountByBoard?: Record<string, number>;
 };
 
@@ -16,6 +20,9 @@ const BoardGalleryView = ({
   selectedBoard,
   onSelect,
   onToggleFavorite,
+  onDuplicate,
+  onManage,
+  canManageBoard,
   todoCountByBoard,
 }: Props) => {
   if (boards.length === 0) {
@@ -26,89 +33,128 @@ const BoardGalleryView = ({
     <div className={style.container}>
       {boards.map((board) => {
         const todoCount = todoCountByBoard?.[board._id] || 0;
+        const manageable = canManageBoard?.(board);
         return (
-        <div
-          key={board._id}
-          className={`${style.card} ${
-            selectedBoard?._id === board._id ? style.selected : ""
-          }`}
-          onClick={() => onSelect(board)}
-        >
-          {/* 커버 영역 — 이미지 없으면 플레이스홀더 색상 */}
           <div
-            className={style.cardCover}
-            style={{
-              backgroundImage: board.coverImage
-                ? `url(${board.coverImage})`
-                : undefined,
-              backgroundColor: !board.coverImage
-                ? resolveBoardCoverColor(
-                    board.coverColor,
-                    board._id || board.name
-                  )
-                : undefined,
-            }}
-          />
-
-          <div className={style.cardBody}>
-            <button
-              className={`${style.favoriteBtn} ${
-                board.isFavorited ? style.active : ""
-              }`}
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleFavorite(board);
+            key={board._id}
+            className={`${style.card} ${
+              selectedBoard?._id === board._id ? style.selected : ""
+            }`}
+            onClick={() => onSelect(board)}
+          >
+            <div
+              className={style.cardCover}
+              style={{
+                backgroundImage: board.coverImage
+                  ? `url(${board.coverImage})`
+                  : undefined,
+                backgroundColor: !board.coverImage
+                  ? resolveBoardCoverColor(
+                      board.coverColor,
+                      board._id || board.name
+                    )
+                  : undefined,
               }}
-            >
-              {board.isFavorited ? "★" : "☆"}
-            </button>
+            />
 
-            <div className={style.cardName}>
-              {board.isDefault && "📢 "}
-              {board.name}
-              {todoCount > 0 && (
-                <span
-                  className={style.todoBadge}
-                  title={`할 일 ${todoCount}건`}
-                  aria-label={`할 일 ${todoCount}건`}
-                >
-                  {todoCount > 99 ? "99+" : todoCount}
-                </span>
-              )}
-              {(board.syllabus || board.syllabusMeta) && (
-                <span
-                  className={`${style.badge} ${style.badgeSyllabus}`}
-                  title={
-                    board.syllabusMeta?.classTitle
-                      ? `수업: ${board.syllabusMeta.classTitle}`
-                      : "수업 연결 보드"
-                  }
-                >
-                  수업
-                </span>
-              )}
-              <span className={`${style.badge} ${style.badgeUser}`}>
-                {getBoardScopeLabel(board)}
-              </span>
-              {board.boardType === "user" && (
+            <div className={style.cardBody}>
+              <button
+                className={`${style.favoriteBtn} ${
+                  board.isFavorited ? style.active : ""
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleFavorite(board);
+                }}
+              >
+                {board.isFavorited ? "★" : "☆"}
+              </button>
+
+              <div className={style.cardName}>
+                {board.isDefault && "📢 "}
+                {board.name}
+                {todoCount > 0 && (
+                  <span
+                    className={style.todoBadge}
+                    title={`할 일 ${todoCount}건`}
+                    aria-label={`할 일 ${todoCount}건`}
+                  >
+                    {todoCount > 99 ? "99+" : todoCount}
+                  </span>
+                )}
+                {(board.syllabus || board.syllabusMeta) && (
+                  <span
+                    className={`${style.badge} ${style.badgeSyllabus}`}
+                    title={
+                      board.syllabusMeta?.classTitle
+                        ? `수업: ${board.syllabusMeta.classTitle}`
+                        : "수업 연결 보드"
+                    }
+                  >
+                    수업
+                  </span>
+                )}
                 <span className={`${style.badge} ${style.badgeUser}`}>
-                  사용자
+                  {getBoardScopeLabel(board)}
                 </span>
+                {board.boardType === "user" && (
+                  <span className={`${style.badge} ${style.badgeUser}`}>
+                    사용자
+                  </span>
+                )}
+              </div>
+
+              {board.description && (
+                <div className={style.cardDescription}>{board.description}</div>
               )}
-            </div>
 
-            {board.description && (
-              <div className={style.cardDescription}>{board.description}</div>
-            )}
-
-            <div className={style.cardFooter}>
-              <div className={style.cardMeta}>
-                <span>게시글 {board.postCount ?? 0}개</span>
-                {board.creatorName && <span>by {board.creatorName}</span>}
+              <div className={style.cardFooter}>
+                <div className={style.cardMeta}>
+                  <span>게시글 {board.postCount ?? 0}개</span>
+                  {board.creatorName && <span>by {board.creatorName}</span>}
+                </div>
+                {manageable && (onDuplicate || onManage) && (
+                  <div
+                    style={{ display: "flex", gap: 4 }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {onDuplicate && (
+                      <button
+                        type="button"
+                        title="보드 복제"
+                        onClick={() => onDuplicate(board)}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          padding: 4,
+                          color: "var(--text-color-2)",
+                        }}
+                      >
+                        <Svg type="copy" width="16px" height="16px" />
+                      </button>
+                    )}
+                    {onManage && (
+                      <button
+                        type="button"
+                        title="보드 관리"
+                        onClick={() => onManage(board)}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          padding: 4,
+                          color: "var(--text-color-2)",
+                        }}
+                      >
+                        <Svg type="settings" width="16px" height="16px" />
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
-        </div>
         );
       })}
     </div>

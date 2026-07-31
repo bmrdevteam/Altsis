@@ -32,11 +32,14 @@ import {
 } from "types/board";
 
 import bStyle from "../boards.module.scss";
+import { BoardLinkSyllabusPicker } from "./BoardDuplicateFlow";
+import { useAppNavigate } from "hooks/useAppNavigate";
 
 type Props = {
   board: TBoard;
   setState: (state: boolean) => void;
   onSuccess?: () => void;
+  onDuplicateRequest?: () => void;
 };
 
 /** board.members가 없으면 레거시 permissionRead에서 변환 */
@@ -89,9 +92,16 @@ const NOTIF_LABELS: Record<
   formDeadlineCalendar: { label: "양식 마감 일정 등록", desc: "양식 마감일을 멤버 캘린더에 등록" },
 };
 
-const BoardManagePopup = ({ board, setState, onSuccess }: Props) => {
+const BoardManagePopup = ({
+  board,
+  setState,
+  onSuccess,
+  onDuplicateRequest,
+}: Props) => {
   const { currentRegistration, currentSeason, currentSchool } = useAuth();
   const { BoardAPI, RegistrationAPI, UserAPI } = useAPIv2();
+  const navigate = useAppNavigate();
+  const [showLinkPicker, setShowLinkPicker] = useState(false);
 
   const [name, setName] = useState(board.name);
   const [description, setDescription] = useState(board.description || "");
@@ -633,6 +643,115 @@ const BoardManagePopup = ({ board, setState, onSuccess }: Props) => {
       }
     >
       <div>
+        {/* 보드 복제 */}
+        {onDuplicateRequest && (
+          <div
+            style={{
+              marginBottom: "24px",
+              padding: "14px 16px",
+              borderRadius: 8,
+              border: "1px solid var(--border-color)",
+              background: "var(--bg-color-2)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+            }}
+          >
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>
+                보드 복제
+              </div>
+              <div
+                style={{
+                  fontSize: 12,
+                  color: "var(--text-color-2)",
+                  lineHeight: 1.5,
+                }}
+              >
+                양식·문서만 담은 새 보드를 만듭니다. 다른 쿼터 수업에도 연결할
+                수 있습니다.
+              </div>
+            </div>
+            <Button
+              type="ghost"
+              onClick={onDuplicateRequest}
+              disabled={isSubmitting || isDeleting}
+              style={{ flexShrink: 0 }}
+            >
+              복제하기
+            </Button>
+          </div>
+        )}
+
+        {/* 수업 연결 */}
+        <div style={{ marginBottom: "24px" }}>
+          <h4
+            style={{
+              marginBottom: "8px",
+              fontSize: "14px",
+              fontWeight: 600,
+            }}
+          >
+            수업 연결
+          </h4>
+          {board.syllabus || board.syllabusMeta ? (
+            <p
+              style={{
+                fontSize: 13,
+                color: "var(--text-color-2)",
+                lineHeight: 1.5,
+              }}
+            >
+              「{board.syllabusMeta?.classTitle || board.name}」 수업에 연결되어
+              있습니다.
+              {board.syllabusMeta?.coursePath && (
+                <>
+                  {" "}
+                  <button
+                    type="button"
+                    className={bStyle.textBtn}
+                    onClick={() => {
+                      setState(false);
+                      navigate(`${board.syllabusMeta!.coursePath}#활동`);
+                    }}
+                  >
+                    수업에서 열기
+                  </button>
+                </>
+              )}
+            </p>
+          ) : showLinkPicker ? (
+            <BoardLinkSyllabusPicker
+              boardId={board._id}
+              onCancel={() => setShowLinkPicker(false)}
+              onLinked={(_b, syllabus) => {
+                alert(`「${syllabus.classTitle}」 수업에 연결되었습니다.`);
+                setState(false);
+                onSuccess?.();
+                navigate(`/courses/mentoring/${syllabus._id}#활동`);
+              }}
+            />
+          ) : (
+            <div>
+              <p
+                style={{
+                  fontSize: 13,
+                  color: "var(--text-color-2)",
+                  marginBottom: 8,
+                  lineHeight: 1.5,
+                }}
+              >
+                아직 수업에 연결되지 않았습니다. 보드가 없는 담당 수업에 연결할
+                수 있습니다.
+              </p>
+              <Button type="ghost" onClick={() => setShowLinkPicker(true)}>
+                수업에 연결
+              </Button>
+            </div>
+          )}
+        </div>
+
         {/* 기본 정보 */}
         <div style={{ marginBottom: "24px" }}>
           <h4

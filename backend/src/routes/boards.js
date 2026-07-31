@@ -9,6 +9,7 @@ import * as aiChats from "../controllers/aiChat.js";
 
 // 게시판 CRUD (권한 체크는 컨트롤러에서 canManageBoard로 처리)
 router.post("/", isLoggedIn, isBoardEnabled, boards.create);
+router.post("/:_id/duplicate", isLoggedIn, isBoardEnabled, boards.duplicate);
 router.get("/:_id?", isLoggedIn, isBoardEnabled, boards.find);
 router.put("/:_id", isLoggedIn, isBoardEnabled, boards.update);
 router.delete("/:_id", isLoggedIn, isBoardEnabled, boards.remove);

@@ -2220,6 +2220,17 @@ export default function useAPIv2() {
     return { board: board as TBoard, added: added as number, removed: removed as number };
   }
 
+  async function LinkSyllabusAltBoard(props: {
+    params: { _id: string };
+    data: { board: string };
+  }) {
+    const { board, syllabus } = await database.C({
+      location: `syllabuses/${props.params._id}/alt-board/link`,
+      data: props.data,
+    });
+    return { board: board as TBoard, syllabus };
+  }
+
   /**
    * ##########################################################################
    * Enrollment API
@@ -3034,6 +3045,21 @@ export default function useAPIv2() {
     const { board } = await database.C({
       location: "boards",
       data: props.data,
+    });
+    return { board: board as TBoard };
+  }
+
+  /**
+   * DuplicateBoard API
+   * @description 보드 복제 (양식 구조 + 문서, 응답·채팅 비복사)
+   */
+  async function DuplicateBoard(props: {
+    params: { _id: string };
+    data?: { name?: string };
+  }) {
+    const { board } = await database.C({
+      location: `boards/${props.params._id}/duplicate`,
+      data: props.data || {},
     });
     return { board: board as TBoard };
   }
@@ -4884,6 +4910,7 @@ export default function useAPIv2() {
       CSyllabusAltBoard,
       RSyllabusAltBoard,
       USyllabusAltBoardSync,
+      LinkSyllabusAltBoard,
     },
     EnrollmentAPI: {
       CEnrollment,
@@ -4945,6 +4972,7 @@ export default function useAPIv2() {
     },
     BoardAPI: {
       CBoard,
+      DuplicateBoard,
       RBoards,
       RBoard,
       UBoard,

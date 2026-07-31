@@ -26,6 +26,7 @@ import { resolveBoardCoverColor } from "utils/boardCoverColor";
 import { getBoardCourseSurfacePath } from "utils/boardCoursePath";
 
 import BoardManagePopup from "./popup/BoardManage";
+import BoardDuplicateFlow from "./popup/BoardDuplicateFlow";
 import UserListPopup from "./popup/UserListPopup";
 import AltBoardView from "./altBoard/AltBoardView";
 
@@ -43,6 +44,7 @@ const BoardPid = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showManagePopup, setShowManagePopup] = useState(false);
   const [showMemberListPopup, setShowMemberListPopup] = useState(false);
+  const [showDuplicateFlow, setShowDuplicateFlow] = useState(false);
 
   // 양식 응답/편집·기록 상세 화면에서는 보드 상단바 숨김
   const hideBoardHeader =
@@ -221,6 +223,17 @@ const BoardPid = () => {
               })
               .catch(ALERT_ERROR);
           }}
+          onDuplicateRequest={() => {
+            setShowManagePopup(false);
+            setShowDuplicateFlow(true);
+          }}
+        />
+      )}
+      {showDuplicateFlow && (
+        <BoardDuplicateFlow
+          sourceBoard={board}
+          setState={setShowDuplicateFlow}
+          onSuccess={() => navigate("/boards")}
         />
       )}
 

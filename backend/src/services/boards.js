@@ -28,8 +28,11 @@ export {
  */
 export const canManageBoard = (board, user) => {
   if (user.auth === "admin" || user.auth === "manager") return true;
-  if (board.creator && board.creator.equals(user._id)) return true;
-  return false;
+  if (!board?.creator || !user?._id) return false;
+  const creatorId =
+    board.creator?.toString?.() || String(board.creator);
+  const userId = user._id?.toString?.() || String(user._id);
+  return creatorId === userId;
 };
 
 /**

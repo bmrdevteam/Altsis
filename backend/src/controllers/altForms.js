@@ -7,6 +7,7 @@ import crypto from "crypto";
 import { logger } from "../log/logger.js";
 import { AltForm, AltSheet, AltSheetRow, Board, CalendarEvent } from "../models/index.js";
 import { canManageForm, canModifyForm, getAltBoardRole, hasSubmittedForList, validateExclusiveFormModes } from "../services/altForms.js";
+import { cloneAltFormToBoard } from "../services/altFormClone.js";
 import { isBoardNotificationEnabled } from "../services/notifications.js";
 import { getBoardMembers } from "../services/boards.js";
 import {
@@ -653,76 +654,13 @@ export const duplicate = async (req, res) => {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
-    // 필드 복제 (새 _id 생성)
-    const clonedFields = original.fields.map((f) => ({
-      _id: crypto.randomUUID(),
-      label: f.label,
-      type: f.type,
-      permission: f.permission,
-      visibleToRespondent: f.visibleToRespondent,
-      required: f.required,
-      options: f.options ? [...f.options] : undefined,
-      validation: f.validation,
-      content: f.content,
-      order: f.order,
-      displayCondition: f.displayCondition,
-      correctAnswer: f.correctAnswer,
-      points: f.points,
-      gradingMethod: f.gradingMethod,
-      rubricId: f.rubricId,
-      rubricIds: f.rubricIds ? [...f.rubricIds] : undefined,
-      duplicateCheck: f.duplicateCheck,
-      approvalLine: f.approvalLine,
-    }));
-
-    const clonedRubrics = (original.rubrics || []).map((r) => ({
-      id: r.id || crypto.randomUUID(),
-      title: r.title,
-      levels: (r.levels || []).map((l) => ({
-        id: l.id || crypto.randomUUID(),
-        label: l.label,
-        description: l.description || "",
-        points: l.points,
-      })),
-    }));
-
-    const form = await AltForm(req.user.academyId).create({
-      board: original.board,
-      school: original.school,
-      creator: req.user._id,
-      creatorId: req.user.userId,
-      creatorName: req.user.userName,
-      title: `${original.title} (복사)`,
-      description: original.description,
-      fields: clonedFields,
-      rubrics: clonedRubrics,
-      settings: {
-        allowResubmit: original.settings?.allowResubmit,
-        allowMultipleResponses: original.settings?.allowMultipleResponses,
-        requiredResponseCount: original.settings?.requiredResponseCount,
-        requiredMode: original.settings?.requiredMode === true,
-        quizMode: original.settings?.quizMode,
-        quizSettings: original.settings?.quizSettings,
-        assessmentMode: original.settings?.assessmentMode,
-        assessmentSettings: original.settings?.assessmentSettings,
-        directInputMode: original.settings?.directInputMode,
-        shareResponses: original.settings?.shareResponses,
-        showOwnerFields: original.settings?.showOwnerFields,
-        showOwnResponse: original.settings?.showOwnResponse,
-        openAt: original.settings?.openAt,
-        closeAt: original.settings?.closeAt,
-      },
-    });
-
-    const sheet = await AltSheet(req.user.academyId).create({
-      form: form._id,
-      board: form.board,
-      school: form.school,
-      name: form.title,
-    });
-
-    form.sheet = sheet._id;
-    await form.save();
+    const { form, sheet } = await cloneAltFormToBoard(
+      req.user.academyId,
+      original,
+      board,
+      req.user,
+      { keepTitle: false }
+    );
 
     return res.status(200).send({ form, sheet });
   } catch (err) {
