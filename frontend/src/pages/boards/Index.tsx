@@ -394,48 +394,52 @@ const Boards = () => {
                       }
                     }}
                   >
-                    <div
-                      className={bStyle.boardItemColorBar}
-                      style={{
-                        backgroundColor: resolveBoardCoverColor(
-                          board.coverColor,
-                          board._id || board.name
-                        ),
-                      }}
-                    />
-                    <div className={aStyle.formCardLeft}>
-                      <div className={`${aStyle.formCardTitle} ${bStyle.boardTitleRow}`}>
-                        {board.isDefault && "📢 "}
-                        {board.name}
-                        {todoCount > 0 && (
-                          <span
-                            className={bStyle.todoBadge}
-                            title={`할 일 ${todoCount}건`}
-                            aria-label={`할 일 ${todoCount}건`}
-                          >
-                            {todoCount > 99 ? "99+" : todoCount}
-                          </span>
-                        )}
-                      </div>
-                      <div className={aStyle.formCardMeta}>
-                        <span
-                          className={`${aStyle.formCardBadge} ${aStyle.badgeOptional}`}
+                    <div className={bStyle.boardFormCardMain}>
+                      <div
+                        className={bStyle.boardItemColorBar}
+                        style={{
+                          backgroundColor: resolveBoardCoverColor(
+                            board.coverColor,
+                            board._id || board.name
+                          ),
+                        }}
+                      />
+                      <div className={aStyle.formCardLeft}>
+                        <div
+                          className={`${aStyle.formCardTitle} ${bStyle.boardTitleRow}`}
                         >
-                          {boardScopeLabel(board)}
-                        </span>
-                        {board.boardType === "user" && (
+                          {board.isDefault && "📢 "}
+                          {board.name}
+                          {todoCount > 0 && (
+                            <span
+                              className={bStyle.todoBadge}
+                              title={`할 일 ${todoCount}건`}
+                              aria-label={`할 일 ${todoCount}건`}
+                            >
+                              {todoCount > 99 ? "99+" : todoCount}
+                            </span>
+                          )}
+                        </div>
+                        <div className={aStyle.formCardMeta}>
                           <span
                             className={`${aStyle.formCardBadge} ${aStyle.badgeOptional}`}
                           >
-                            사용자
+                            {boardScopeLabel(board)}
                           </span>
-                        )}
-                        {board.description && (
-                          <span className={bStyle.boardMetaDesc}>
-                            {board.description}
-                          </span>
-                        )}
-                        <span>게시글 {board.postCount ?? 0}개</span>
+                          {board.boardType === "user" && (
+                            <span
+                              className={`${aStyle.formCardBadge} ${aStyle.badgeOptional}`}
+                            >
+                              사용자
+                            </span>
+                          )}
+                          {board.description && (
+                            <span className={bStyle.boardMetaDesc}>
+                              {board.description}
+                            </span>
+                          )}
+                          <span>게시글 {board.postCount ?? 0}개</span>
+                        </div>
                       </div>
                     </div>
                     <div className={aStyle.formCardRight}>

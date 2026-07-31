@@ -112,12 +112,31 @@
   gap: 4px;
 }
 
+/* formCard 모바일 column보다 우선해 색 바·액션을 한 줄로 유지 */
+@media (max-width: 768px) {
+  .boardFormCard.boardFormCard {
+    flex-direction: row;
+    align-items: stretch;
+    padding: 14px 12px;
+  }
+}
+
+/** 색 바 + 제목 — 좁은 화면 column 레이아웃에서도 가로 유지 */
+.boardFormCardMain {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  min-width: 0;
+  flex: 1;
+}
+
 .boardItemColorBar {
   width: 4px;
   align-self: stretch;
   border-radius: 2px;
   flex-shrink: 0;
   margin-right: 8px;
+  min-height: 40px;
 }
 
 .boardTitleRow {
