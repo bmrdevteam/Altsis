@@ -3875,17 +3875,27 @@ tbody tr:hover .actionCell {
 @media (max-width: 900px) {
   .formFieldsWithToolbar {
     flex-direction: column;
+    align-items: stretch;
+  }
+
+  .formFieldsList {
+    width: 100%;
   }
 
   .fieldAddToolbar {
     flex-direction: row;
     flex-wrap: wrap;
-    justify-content: center;
-    position: sticky;
-    top: 0;
+    justify-content: flex-start;
+    /* 좁은 화면에서 sticky면 스크롤 시 활성 필드와 겹침 */
+    position: relative;
+    top: auto;
+    z-index: auto;
     width: 100%;
+    box-sizing: border-box;
     order: -1;
-    margin-bottom: 4px;
+    margin-bottom: 8px;
+    padding: 6px 8px;
+    gap: 2px;
   }
 
   .toolbarDivider {
@@ -3896,6 +3906,11 @@ tbody tr:hover .actionCell {
 
   .fieldCardRow {
     display: block;
+    width: 100%;
+  }
+
+  .fieldCardGf {
+    width: 100%;
   }
 }
 
@@ -3925,7 +3940,14 @@ tbody tr:hover .actionCell {
 
   .builderHeader {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .builderHeaderActions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    width: 100%;
   }
 
   .fieldEditHeader {
