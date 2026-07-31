@@ -27,7 +27,7 @@ router.delete("/:_id/leave", isLoggedIn, isBoardEnabled, boards.leaveBoard);
 router.post("/:_id/writers/users", isLoggedIn, isBoardEnabled, boards.addWriterUser);
 router.delete("/:_id/writers/users", isLoggedIn, isBoardEnabled, boards.removeWriterUser);
 
-// 보드 채팅 (전체 + 팀/주제방)
+// 보드 채팅 (전체 + 비공개 팀방)
 router.get("/:_id/chat/room", isLoggedIn, isBoardEnabled, boardChats.getBoardChatRoom);
 router.get("/:_id/chat/rooms", isLoggedIn, isBoardEnabled, boardChats.getBoardChatRooms);
 router.post("/:_id/chat/rooms", isLoggedIn, isBoardEnabled, boardChats.createBoardChatRoom);

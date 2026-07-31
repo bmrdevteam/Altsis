@@ -10,7 +10,6 @@
 import { logger } from "../log/logger.js";
 import {
   Board,
-  ChatRoom,
   ChatMessage,
   ChatFile,
 } from "../models/index.js";
@@ -24,7 +23,7 @@ import {
   listBoardChatRooms,
   createBoardTeamRoom,
   updateBoardChatRoom,
-  deactivateBoardTopicRoom,
+  deactivateBoardTeamRoom,
   syncBoardChatParticipants,
   canManageBoardChatRooms,
   isRoomParticipant,
@@ -270,7 +269,7 @@ export const deleteBoardChatRoomById = async (req, res) => {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
-    await deactivateBoardTopicRoom(room);
+    await deactivateBoardTeamRoom(room);
     return res.status(200).send({});
   } catch (err) {
     logger.error(err.message);

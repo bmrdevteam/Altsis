@@ -186,44 +186,6 @@
   flex-shrink: 0;
 }
 
-// AI session list (teacher view under Alter)
-.ai_sessions {
-  padding-left: 16px;
-}
-
-.ai_session_item {
-  display: flex;
-  flex-direction: column;
-  padding: 6px 12px;
-  cursor: pointer;
-  border-radius: 4px;
-  margin: 2px 4px;
-  transition: background-color 0.15s;
-
-  &:hover {
-    background-color: var(--highlight-color, rgba(0, 0, 0, 0.04));
-  }
-
-  &.active {
-    background-color: var(--highlight-color, rgba(0, 0, 0, 0.06));
-  }
-}
-
-.ai_session_name {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--primary-text-color);
-}
-
-.ai_session_preview {
-  font-size: 11px;
-  color: var(--accent-3);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  margin-top: 2px;
-}
-
 // Chat content area
 .chat_area {
   flex: 1;

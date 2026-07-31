@@ -32,9 +32,7 @@ const CHIP_TONE_CLASS: Record<string, string> = {
   Approval: bStyle.filterChipToneApproval,
   Optional: bStyle.filterChipToneOptional,
   Submitted: bStyle.filterChipToneSubmitted,
-  Closed: bStyle.filterChipToneClosed,
   Scheduled: bStyle.filterChipToneScheduled,
-  Draft: bStyle.filterChipToneDraft,
   Direct: bStyle.filterChipToneDirect,
 };
 

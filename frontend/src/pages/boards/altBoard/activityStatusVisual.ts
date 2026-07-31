@@ -2,7 +2,7 @@ import { TAltForm } from "types/altForm";
 
 export type TActivityPeriodKind = "open" | "scheduled" | "closed";
 
-export type TActivityStatusKey =
+type TActivityStatusKey =
   | "draft"
   | "direct"
   | "closed"
@@ -69,7 +69,10 @@ export const getActivityPeriodKind = (
 };
 
 /** 필수+복수일 때 목표 제출 횟수. 해당 아니면 null */
-export const getRequiredResponseCount = (form: TAltForm): number | null => {
+export const getRequiredResponseCount = (
+  form: TAltForm | null | undefined
+): number | null => {
+  if (!form) return null;
   if (form.settings?.requiredMode !== true) return null;
   if (!form.settings?.allowMultipleResponses) return null;
   const n = Number(form.settings.requiredResponseCount);
@@ -77,7 +80,7 @@ export const getRequiredResponseCount = (form: TAltForm): number | null => {
   return Math.floor(n);
 };
 
-export const getActivityStatusKey = (form: TAltForm): TActivityStatusKey => {
+const getActivityStatusKey = (form: TAltForm): TActivityStatusKey => {
   if (form.isDraft) return "draft";
   if (form.settings.directInputMode) return "direct";
   const period = getActivityPeriodKind(form);

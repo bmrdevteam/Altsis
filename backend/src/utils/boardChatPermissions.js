@@ -11,7 +11,7 @@ export const isRoomParticipant = (room, userId) => {
 };
 
 /**
- * Alt 보드에서 주제방 관리 가능 여부 (admin/writer/보드 생성자/시스템 admin)
+ * Alt 보드에서 팀방 관리 가능 여부 (admin/writer/보드 생성자/시스템 admin)
  * @param {Object} board
  * @param {Object} user
  * @returns {boolean}

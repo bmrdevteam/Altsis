@@ -24,7 +24,6 @@ type Props = {
   roomId: string;
   roomName: string;
   isGeneral?: boolean;
-  isPrivate?: boolean;
   room?: TChatRoom | null;
   boardMembers?: BoardMember[];
   canManageMembers?: boolean;
@@ -40,7 +39,6 @@ const BoardChatTab = ({
   roomId,
   roomName,
   isGeneral,
-  isPrivate,
   room,
   boardMembers = [],
   canManageMembers,
@@ -493,12 +491,12 @@ const BoardChatTab = ({
     >
       <div className={style.room_header}>
         <span className={style.room_header_title}>
-          {isGeneral ? roomName : roomName}
-          {isPrivate && !isGeneral && (
+          {roomName}
+          {!isGeneral && (
             <span className={style.room_private_badge}>비공개</span>
           )}
         </span>
-        {isPrivate && !isGeneral && (
+        {!isGeneral && (
           <button
             type="button"
             className={style.room_header_btn}
@@ -709,7 +707,7 @@ const BoardChatTab = ({
         />
       )}
 
-      {showMembersModal && (
+      {!isGeneral && showMembersModal && (
         <div
           className={containerStyle.modal_backdrop}
           onClick={() => !isUpdatingMembers && setShowMembersModal(false)}

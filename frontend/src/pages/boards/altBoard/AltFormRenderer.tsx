@@ -20,6 +20,7 @@ import {
   getApprovalLineSteps,
   normalizeApprovalValue,
 } from "utils/approvalLine";
+import { getRequiredResponseCount } from "./activityStatusVisual";
 
 type Props = {
   board: TBoard;
@@ -32,16 +33,6 @@ type Props = {
 };
 
 type TViewMode = "compose" | "review";
-
-/** 필수+복수일 때 목표 제출 횟수. 해당 아니면 null */
-const getRequiredResponseCount = (form: TAltForm | null): number | null => {
-  if (!form) return null;
-  if (form.settings?.requiredMode !== true) return null;
-  if (!form.settings?.allowMultipleResponses) return null;
-  const n = Number(form.settings.requiredResponseCount);
-  if (!Number.isFinite(n) || n < 1) return 1;
-  return Math.floor(n);
-};
 
 /* ── 시스템 변수 ── */
 

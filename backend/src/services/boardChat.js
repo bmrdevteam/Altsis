@@ -162,7 +162,7 @@ export const createBoardTeamRoom = async (
   );
   invitedIds.add(creator._id.toString());
 
-  const selectedMembers = [...invitedIds]
+  const selectedMembers = Array.from(invitedIds)
     .map((id) => memberById.get(id))
     .filter(Boolean);
 
@@ -192,9 +192,6 @@ export const createBoardTeamRoom = async (
     participants: buildParticipantsFromMembers(selectedMembers),
   });
 };
-
-/** @deprecated use createBoardTeamRoom */
-export const createBoardTopicRoom = createBoardTeamRoom;
 
 /**
  * 팀방에 참여자 추가 (보드 멤버만)
@@ -271,7 +268,7 @@ export const updateBoardChatRoom = async (room, payload) => {
 /**
  * 팀방 비활성화
  */
-export const deactivateBoardTopicRoom = async (room) => {
+export const deactivateBoardTeamRoom = async (room) => {
   room.isActive = false;
   await room.save();
   return room;
@@ -331,7 +328,7 @@ export const syncBoardChatParticipants = async (academyId, board) => {
     if (room.isGeneral) {
       updated.push(await syncGeneralRoom(room, currentMembers));
     } else {
-      // 레거시 공개 주제방 → 비공개 취급, 자동 추가 중단
+      // 레거시 비-전체 방 → 비공개 팀방으로 취급, 자동 추가 중단
       if (!room.isPrivate) {
         room.isPrivate = true;
       }

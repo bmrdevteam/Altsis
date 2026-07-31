@@ -288,7 +288,6 @@ const BoardChatContainer = ({ board, onNewMessage }: Props) => {
                 : selectedRoom.name || "팀방"
             }
             isGeneral={!!selectedRoom.isGeneral}
-            isPrivate={!selectedRoom.isGeneral}
             room={selectedRoom}
             boardMembers={members}
             canManageMembers={canManageRooms}
@@ -303,11 +302,13 @@ const BoardChatContainer = ({ board, onNewMessage }: Props) => {
               )
             }
             onLeftRoom={() => {
-              setRooms((prev) =>
-                prev.filter((r) => r._id !== selectedRoomId)
-              );
-              const general = rooms.find((r) => r.isGeneral);
-              setSelectedRoomId(general?._id || null);
+              const leavingId = selectedRoomId;
+              setRooms((prev) => {
+                const next = prev.filter((r) => r._id !== leavingId);
+                const general = next.find((r) => r.isGeneral);
+                setSelectedRoomId(general?._id || null);
+                return next;
+              });
             }}
           />
         ) : (
