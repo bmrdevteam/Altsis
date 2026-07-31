@@ -121,11 +121,38 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
       .catch(() => setPendingApprovalCount(0));
   }, [board._id]);
 
+  // surface 모드: 해당 탭에 필요한 데이터만 1회 로드 (중복 RAltForms 방지)
   useEffect(() => {
+    if (surface) {
+      activeTabRef.current = surface;
+      if (surface === "활동") {
+        loadForms();
+        loadPendingApprovals();
+      } else if (surface === "문서") {
+        loadDocsUnread();
+      } else if (surface === "채팅") {
+        setChatUnreadCount(0);
+        BoardChatAPI.RBoardChatRooms({ params: { boardId: board._id } })
+          .then(({ rooms }) =>
+            Promise.all(
+              rooms.map((room) =>
+                BoardChatAPI.UBoardChatRead({
+                  params: { boardId: board._id, roomId: room._id },
+                }).catch(() => {})
+              )
+            )
+          )
+          .catch(() => {});
+      } else if (surface === "기록") {
+        loadForms();
+      }
+      return;
+    }
     loadForms();
     loadDocsUnread();
     loadPendingApprovals();
-  }, [board._id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once per board/surface
+  }, [board._id, surface]);
 
   // 활동 뱃지: 필수·미제출 + 승인해야 함 + 승인 진행 중
   const activityBadgeCount = (() => {
@@ -140,32 +167,6 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
     }).length;
     return unsubmitted + pendingApprovalCount;
   })();
-
-  // surface 모드: 부모 탭이 표면을 바꿀 때 activeTabRef 동기화
-  useEffect(() => {
-    if (surface) {
-      activeTabRef.current = surface;
-      if (surface === "채팅") {
-        setChatUnreadCount(0);
-        BoardChatAPI.RBoardChatRooms({ params: { boardId: board._id } })
-          .then(({ rooms }) =>
-            Promise.all(
-              rooms.map((room) =>
-                BoardChatAPI.UBoardChatRead({
-                  params: { boardId: board._id, roomId: room._id },
-                }).catch(() => {})
-              )
-            )
-          )
-          .catch(() => {});
-      }
-      if (surface === "문서") loadDocsUnread();
-      if (surface === "활동") {
-        loadForms();
-        loadPendingApprovals();
-      }
-    }
-  }, [surface, board._id, loadDocsUnread, loadPendingApprovals]);
 
   // 채팅 뱃지: 초기 unread count 로드 + 소켓 리스너
   useEffect(() => {

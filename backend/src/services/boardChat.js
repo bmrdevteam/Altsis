@@ -97,10 +97,10 @@ export const getOrCreateBoardChatRoom = async (academyId, board) => {
 
 /**
  * 보드 채팅방 목록: 전체 채팅 + 내가 참여 중인 팀방
+ * 참여자 sync는 멤버 변경·동기화 API에서만 수행 (목록마다 sync하면 수업 보드에서 지연)
  */
 export const listBoardChatRooms = async (academyId, board, userId) => {
   await getOrCreateBoardChatRoom(academyId, board);
-  await syncBoardChatParticipants(academyId, board);
 
   const rooms = await ChatRoom(academyId)
     .find({
