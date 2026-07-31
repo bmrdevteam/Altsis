@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Socket } from "socket.io-client";
 import { TBoard } from "types/board";
-import { TChatRoom, TChatMessage } from "types/chat";
+import { TChatMessage, TChatRoom, TChatParticipant } from "types/chat";
 import { useAuth } from "contexts/authContext";
 import useAPIv2 from "hooks/useAPIv2";
 import ChatMessageContent from "layout/navbar/ChatMessageContent";
@@ -9,22 +9,57 @@ import ImageLightbox from "layout/navbar/ImageLightbox";
 import Svg from "assets/svg/Svg";
 import defaultProfilePic from "assets/img/default_profile.png";
 import style from "./boardChat.module.scss";
+import containerStyle from "./boardChatContainer.module.scss";
+import MemberInvitePicker from "./MemberInvitePicker";
+
+type BoardMember = {
+  user: string;
+  userId: string;
+  userName: string;
+  profile?: string;
+};
 
 type Props = {
   board: TBoard;
+  roomId: string;
+  roomName: string;
+  isGeneral?: boolean;
+  isPrivate?: boolean;
+  room?: TChatRoom | null;
+  boardMembers?: BoardMember[];
+  canManageMembers?: boolean;
   socket: Socket | null;
   onNewMessage?: () => void;
+  onRoomRead?: () => void;
+  onRoomUpdated?: (room: TChatRoom) => void;
+  onLeftRoom?: () => void;
 };
 
-const BoardChatTab = ({ board, socket, onNewMessage }: Props) => {
+const BoardChatTab = ({
+  board,
+  roomId,
+  roomName,
+  isGeneral,
+  isPrivate,
+  room,
+  boardMembers = [],
+  canManageMembers,
+  socket,
+  onNewMessage,
+  onRoomRead,
+  onRoomUpdated,
+  onLeftRoom,
+}: Props) => {
   const { currentUser } = useAuth();
   const { BoardChatAPI } = useAPIv2();
-  const [room, setRoom] = useState<TChatRoom | null>(null);
   const [messages, setMessages] = useState<TChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [showMembersModal, setShowMembersModal] = useState(false);
+  const [addMemberIds, setAddMemberIds] = useState<string[]>([]);
+  const [isUpdatingMembers, setIsUpdatingMembers] = useState(false);
 
   // Typing
   const [typingUsers, setTypingUsers] = useState<
@@ -50,19 +85,21 @@ const BoardChatTab = ({ board, socket, onNewMessage }: Props) => {
     messagesEndRef.current?.scrollIntoView({ behavior });
   }, []);
 
-  // Load room
+  // Load messages for selected room
   useEffect(() => {
-    if (!board._id) return;
+    if (!board._id || !roomId) return;
 
     setIsLoading(true);
-    BoardChatAPI.RBoardChatRoom({ params: { boardId: board._id } })
-      .then(({ room: loadedRoom }) => {
-        setRoom(loadedRoom);
-        return BoardChatAPI.RBoardChatMessages({
-          params: { boardId: board._id },
-          query: { limit: 50 },
-        });
-      })
+    setMessages([]);
+    setNewMessage("");
+    setPendingFile(null);
+    setTypingUsers([]);
+    setHasMore(true);
+
+    BoardChatAPI.RBoardChatMessages({
+      params: { boardId: board._id, roomId },
+      query: { limit: 50 },
+    })
       .then(({ messages: loadedMessages }) => {
         setMessages(loadedMessages);
         setHasMore(loadedMessages.length >= 50);
@@ -72,34 +109,35 @@ const BoardChatTab = ({ board, socket, onNewMessage }: Props) => {
       .catch(() => {
         setIsLoading(false);
       });
-  }, [board._id]);
+  }, [board._id, roomId]);
 
   // Join/leave socket room
   useEffect(() => {
-    if (!socket || !room) return;
+    if (!socket || !roomId) return;
 
-    socket.emit("join_room", { roomId: room._id });
+    socket.emit("join_room", { roomId });
 
     return () => {
-      socket.emit("leave_room", { roomId: room._id });
+      socket.emit("leave_room", { roomId });
     };
-  }, [socket, room?._id]);
+  }, [socket, roomId]);
 
   // Socket event listeners
   useEffect(() => {
-    if (!socket || !room) return;
+    if (!socket || !roomId) return;
 
     const handleNewMessage = (data: {
       room: string;
       message: TChatMessage;
     }) => {
-      if (data.room === room._id) {
+      if (data.room === roomId) {
         setMessages((prev) => [...prev, data.message]);
         onNewMessage?.();
-        // Mark as read
         BoardChatAPI.UBoardChatRead({
-          params: { boardId: board._id },
-        }).catch(() => {});
+          params: { boardId: board._id, roomId },
+        })
+          .then(() => onRoomRead?.())
+          .catch(() => {});
       }
     };
 
@@ -109,7 +147,7 @@ const BoardChatTab = ({ board, socket, onNewMessage }: Props) => {
       userName: string;
       isTyping: boolean;
     }) => {
-      if (data.roomId !== room._id) return;
+      if (data.roomId !== roomId) return;
       if (data.userId === currentUser?.userId) return;
 
       if (data.isTyping) {
@@ -117,7 +155,6 @@ const BoardChatTab = ({ board, socket, onNewMessage }: Props) => {
           if (prev.some((u) => u.userId === data.userId)) return prev;
           return [...prev, { userId: data.userId, userName: data.userName }];
         });
-        // Auto-remove typing after 3s
         if (typingTimeoutRef.current[data.userId]) {
           clearTimeout(typingTimeoutRef.current[data.userId]);
         }
@@ -137,7 +174,7 @@ const BoardChatTab = ({ board, socket, onNewMessage }: Props) => {
       room: string;
       messageId: string;
     }) => {
-      if (data.room === room._id) {
+      if (data.room === roomId) {
         setMessages((prev) =>
           prev.map((m) =>
             m._id === data.messageId ? { ...m, isDeleted: true } : m
@@ -155,7 +192,7 @@ const BoardChatTab = ({ board, socket, onNewMessage }: Props) => {
       socket.off("user_typing", handleTyping);
       socket.off("message_deleted", handleMessageDeleted);
     };
-  }, [socket, room?._id, currentUser?.userId, board._id]);
+  }, [socket, roomId, currentUser?.userId, board._id]);
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -168,14 +205,15 @@ const BoardChatTab = ({ board, socket, onNewMessage }: Props) => {
     }
   }, [messages.length, scrollToBottom]);
 
-  // Mark as read on mount
+  // Mark as read when room opens
   useEffect(() => {
-    if (room) {
-      BoardChatAPI.UBoardChatRead({
-        params: { boardId: board._id },
-      }).catch(() => {});
-    }
-  }, [room?._id]);
+    if (!board._id || !roomId) return;
+    BoardChatAPI.UBoardChatRead({
+      params: { boardId: board._id, roomId },
+    })
+      .then(() => onRoomRead?.())
+      .catch(() => {});
+  }, [board._id, roomId]);
 
   // Load older messages
   const loadMoreMessages = async () => {
@@ -184,14 +222,13 @@ const BoardChatTab = ({ board, socket, onNewMessage }: Props) => {
     const prevScrollHeight = area?.scrollHeight || 0;
 
     const { messages: olderMessages } = await BoardChatAPI.RBoardChatMessages({
-      params: { boardId: board._id },
+      params: { boardId: board._id, roomId },
       query: { limit: 50, before: messages[0].createdAt },
     });
 
     if (olderMessages.length < 50) setHasMore(false);
     setMessages((prev) => [...olderMessages, ...prev]);
 
-    // Preserve scroll position
     requestAnimationFrame(() => {
       if (area) {
         area.scrollTop = area.scrollHeight - prevScrollHeight;
@@ -218,12 +255,12 @@ const BoardChatTab = ({ board, socket, onNewMessage }: Props) => {
         const formData = new FormData();
         formData.append("file", pendingFile);
         const { attachment } = await BoardChatAPI.CBoardChatFileUpload({
-          params: { boardId: board._id },
+          params: { boardId: board._id, roomId },
           data: formData,
         });
         const isImage = pendingFile.type.startsWith("image/");
         const { message } = await BoardChatAPI.CBoardChatMessage({
-          params: { boardId: board._id },
+          params: { boardId: board._id, roomId },
           data: {
             content: isImage ? "[이미지]" : pendingFile.name,
             messageType: isImage ? "image" : "file",
@@ -248,7 +285,7 @@ const BoardChatTab = ({ board, socket, onNewMessage }: Props) => {
 
     try {
       const { message } = await BoardChatAPI.CBoardChatMessage({
-        params: { boardId: board._id },
+        params: { boardId: board._id, roomId },
         data: { content: text },
       });
       setMessages((prev) => [...prev, message]);
@@ -258,10 +295,9 @@ const BoardChatTab = ({ board, socket, onNewMessage }: Props) => {
 
     setIsSending(false);
 
-    // Stop typing indicator
-    if (socket && room) {
+    if (socket && roomId) {
       socket.emit("typing", {
-        roomId: room._id,
+        roomId,
         userId: currentUser?.userId,
         userName: currentUser?.userName,
         isTyping: false,
@@ -274,7 +310,7 @@ const BoardChatTab = ({ board, socket, onNewMessage }: Props) => {
     if (!window.confirm("메시지를 삭제하시겠습니까?")) return;
     try {
       await BoardChatAPI.DBoardChatMessage({
-        params: { boardId: board._id, messageId },
+        params: { boardId: board._id, roomId, messageId },
       });
       setMessages((prev) =>
         prev.map((m) =>
@@ -289,9 +325,9 @@ const BoardChatTab = ({ board, socket, onNewMessage }: Props) => {
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setNewMessage(e.target.value);
 
-    if (socket && room && Date.now() - lastTypingRef.current > 2000) {
+    if (socket && roomId && Date.now() - lastTypingRef.current > 2000) {
       socket.emit("typing", {
-        roomId: room._id,
+        roomId,
         userId: currentUser?.userId,
         userName: currentUser?.userName,
         isTyping: true,
@@ -394,6 +430,51 @@ const BoardChatTab = ({ board, socket, onNewMessage }: Props) => {
     return diff > 2 * 60 * 1000;
   };
 
+  const participants: TChatParticipant[] = room?.participants || [];
+  const participantIds = new Set(participants.map((p) => p.user));
+  const addableMembers = boardMembers.filter(
+    (m) => m.user !== currentUser?._id && !participantIds.has(m.user)
+  );
+
+  const handleAddMembers = async () => {
+    if (!addMemberIds.length || isUpdatingMembers) return;
+    setIsUpdatingMembers(true);
+    try {
+      const { room: updated } = await BoardChatAPI.CBoardChatRoomParticipants({
+        params: { boardId: board._id, roomId },
+        data: { memberIds: addMemberIds },
+      });
+      onRoomUpdated?.(updated);
+      setAddMemberIds([]);
+    } catch {
+      // handled by useAPIv2
+    }
+    setIsUpdatingMembers(false);
+  };
+
+  const handleRemoveParticipant = async (userId: string) => {
+    const isSelf = userId === currentUser?._id;
+    const ok = window.confirm(
+      isSelf ? "팀방에서 나가시겠습니까?" : "이 멤버를 팀방에서 제거할까요?"
+    );
+    if (!ok) return;
+    setIsUpdatingMembers(true);
+    try {
+      const { room: updated } = await BoardChatAPI.DBoardChatRoomParticipant({
+        params: { boardId: board._id, roomId, userId },
+      });
+      if (isSelf) {
+        setShowMembersModal(false);
+        onLeftRoom?.();
+      } else {
+        onRoomUpdated?.(updated);
+      }
+    } catch {
+      // handled by useAPIv2
+    }
+    setIsUpdatingMembers(false);
+  };
+
   if (isLoading) {
     return (
       <div className={style.container} style={{ height: "100%", minHeight: 0, border: "none", borderRadius: 0 }}>
@@ -410,6 +491,27 @@ const BoardChatTab = ({ board, socket, onNewMessage }: Props) => {
       onDrop={handleDrop}
       style={{ position: "relative", height: "100%", minHeight: 0, border: "none", borderRadius: 0 }}
     >
+      <div className={style.room_header}>
+        <span className={style.room_header_title}>
+          {isGeneral ? roomName : roomName}
+          {isPrivate && !isGeneral && (
+            <span className={style.room_private_badge}>비공개</span>
+          )}
+        </span>
+        {isPrivate && !isGeneral && (
+          <button
+            type="button"
+            className={style.room_header_btn}
+            onClick={() => {
+              setAddMemberIds([]);
+              setShowMembersModal(true);
+            }}
+          >
+            멤버 {participants.length}
+          </button>
+        )}
+      </div>
+
       {isDragging && (
         <div className={style.drag_overlay}>
           <span>파일을 여기에 놓으세요</span>
@@ -605,6 +707,83 @@ const BoardChatTab = ({ board, socket, onNewMessage }: Props) => {
           imageUrl={lightboxUrl}
           onClose={() => setLightboxUrl(null)}
         />
+      )}
+
+      {showMembersModal && (
+        <div
+          className={containerStyle.modal_backdrop}
+          onClick={() => !isUpdatingMembers && setShowMembersModal(false)}
+        >
+          <div
+            className={containerStyle.modal}
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-labelledby="team-room-members-title"
+          >
+            <h3
+              id="team-room-members-title"
+              className={containerStyle.modal_title}
+            >
+              팀방 멤버
+            </h3>
+            <div className={containerStyle.member_checklist}>
+              {participants.map((p) => {
+                const isSelf = p.user === currentUser?._id;
+                const canRemove =
+                  isSelf ||
+                  canManageMembers ||
+                  room?.creator === currentUser?._id;
+                return (
+                  <div key={p.user} className={containerStyle.member_row}>
+                    <span>{p.userName}</span>
+                    {canRemove && (
+                      <button
+                        type="button"
+                        className={containerStyle.member_row_action}
+                        disabled={isUpdatingMembers}
+                        onClick={() => handleRemoveParticipant(p.user)}
+                      >
+                        {isSelf ? "나가기" : "제거"}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {canManageMembers && addableMembers.length > 0 && (
+              <div className={containerStyle.modal_label}>
+                멤버 추가
+                <MemberInvitePicker
+                  members={addableMembers}
+                  selectedIds={addMemberIds}
+                  onChange={setAddMemberIds}
+                />
+              </div>
+            )}
+
+            <div className={containerStyle.modal_actions}>
+              <button
+                type="button"
+                className={containerStyle.modal_btn_secondary}
+                disabled={isUpdatingMembers}
+                onClick={() => setShowMembersModal(false)}
+              >
+                닫기
+              </button>
+              {canManageMembers && addableMembers.length > 0 && (
+                <button
+                  type="button"
+                  className={containerStyle.modal_btn_primary}
+                  disabled={!addMemberIds.length || isUpdatingMembers}
+                  onClick={handleAddMembers}
+                >
+                  추가
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

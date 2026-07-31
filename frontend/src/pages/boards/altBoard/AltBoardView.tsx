@@ -141,10 +141,14 @@ const AltBoardView = ({ board, embedded }: Props) => {
   useEffect(() => {
     if (!currentUser || !board._id || !isChatEnabled) return;
 
-    // 초기 unread count
-    BoardChatAPI.RBoardChatRoom({ params: { boardId: board._id } })
-      .then(({ room }) => {
-        if (room?.unreadCount) setChatUnreadCount(room.unreadCount);
+    // 초기 unread count (전체 + 주제방 합산)
+    BoardChatAPI.RBoardChatRooms({ params: { boardId: board._id } })
+      .then(({ rooms }) => {
+        const total = rooms.reduce(
+          (sum, room) => sum + (room.unreadCount || 0),
+          0
+        );
+        if (total) setChatUnreadCount(total);
       })
       .catch(() => {});
 
@@ -176,7 +180,17 @@ const AltBoardView = ({ board, embedded }: Props) => {
     activeTabRef.current = tabKey;
     if (tabKey === "채팅") {
       setChatUnreadCount(0);
-      BoardChatAPI.UBoardChatRead({ params: { boardId: board._id } }).catch(() => {});
+      BoardChatAPI.RBoardChatRooms({ params: { boardId: board._id } })
+        .then(({ rooms }) =>
+          Promise.all(
+            rooms.map((room) =>
+              BoardChatAPI.UBoardChatRead({
+                params: { boardId: board._id, roomId: room._id },
+              }).catch(() => {})
+            )
+          )
+        )
+        .catch(() => {});
     }
     if (tabKey === "문서") {
       loadDocsUnread();

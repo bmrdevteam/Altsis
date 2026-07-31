@@ -27,8 +27,65 @@ router.delete("/:_id/leave", isLoggedIn, isBoardEnabled, boards.leaveBoard);
 router.post("/:_id/writers/users", isLoggedIn, isBoardEnabled, boards.addWriterUser);
 router.delete("/:_id/writers/users", isLoggedIn, isBoardEnabled, boards.removeWriterUser);
 
-// 보드 채팅
+// 보드 채팅 (전체 + 팀/주제방)
 router.get("/:_id/chat/room", isLoggedIn, isBoardEnabled, boardChats.getBoardChatRoom);
+router.get("/:_id/chat/rooms", isLoggedIn, isBoardEnabled, boardChats.getBoardChatRooms);
+router.post("/:_id/chat/rooms", isLoggedIn, isBoardEnabled, boardChats.createBoardChatRoom);
+router.put(
+  "/:_id/chat/rooms/:roomId",
+  isLoggedIn,
+  isBoardEnabled,
+  boardChats.updateBoardChatRoomById
+);
+router.delete(
+  "/:_id/chat/rooms/:roomId",
+  isLoggedIn,
+  isBoardEnabled,
+  boardChats.deleteBoardChatRoomById
+);
+router.post(
+  "/:_id/chat/rooms/:roomId/participants",
+  isLoggedIn,
+  isBoardEnabled,
+  boardChats.addBoardChatRoomParticipants
+);
+router.delete(
+  "/:_id/chat/rooms/:roomId/participants/:userId",
+  isLoggedIn,
+  isBoardEnabled,
+  boardChats.removeBoardChatRoomParticipant
+);
+router.get(
+  "/:_id/chat/rooms/:roomId/messages",
+  isLoggedIn,
+  isBoardEnabled,
+  boardChats.getBoardChatRoomMessages
+);
+router.post(
+  "/:_id/chat/rooms/:roomId/messages",
+  isLoggedIn,
+  isBoardEnabled,
+  boardChats.sendBoardChatRoomMessage
+);
+router.delete(
+  "/:_id/chat/rooms/:roomId/messages/:messageId",
+  isLoggedIn,
+  isBoardEnabled,
+  boardChats.deleteBoardChatRoomMessage
+);
+router.put(
+  "/:_id/chat/rooms/:roomId/read",
+  isLoggedIn,
+  isBoardEnabled,
+  boardChats.markBoardChatRoomRead
+);
+router.post(
+  "/:_id/chat/rooms/:roomId/upload",
+  isLoggedIn,
+  isBoardEnabled,
+  boardChats.uploadBoardChatRoomFile
+);
+// 하위 호환 (기본: 전체 채팅)
 router.get("/:_id/chat/messages", isLoggedIn, isBoardEnabled, boardChats.getBoardChatMessages);
 router.post("/:_id/chat/messages", isLoggedIn, isBoardEnabled, boardChats.sendBoardChatMessage);
 router.delete("/:_id/chat/messages/:messageId", isLoggedIn, isBoardEnabled, boardChats.deleteBoardChatMessage);

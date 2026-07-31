@@ -4069,7 +4069,7 @@ export default function useAPIv2() {
 
   /**
    * RBoardChatRoom API
-   * @description 보드 채팅방 조회 (없으면 생성 + 참여자 동기화)
+   * @description 보드 전체 채팅방 조회 (없으면 생성 + 참여자 동기화)
    */
   async function RBoardChatRoom(props: { params: { boardId: string } }) {
     const { room } = await database.R({
@@ -4079,16 +4079,97 @@ export default function useAPIv2() {
   }
 
   /**
+   * RBoardChatRooms API
+   * @description 보드 채팅방 목록 (전체 + 팀/주제방)
+   */
+  async function RBoardChatRooms(props: { params: { boardId: string } }) {
+    const { rooms } = await database.R({
+      location: `boards/${props.params.boardId}/chat/rooms`,
+    });
+    return { rooms: rooms as TChatRoom[] };
+  }
+
+  /**
+   * CBoardChatRoom API
+   * @description 보드 비공개 팀방 생성
+   */
+  async function CBoardChatRoom(props: {
+    params: { boardId: string };
+    data: { name: string; description?: string; memberIds?: string[] };
+  }) {
+    const { room } = await database.C({
+      location: `boards/${props.params.boardId}/chat/rooms`,
+      data: props.data,
+    });
+    return { room: room as TChatRoom };
+  }
+
+  /**
+   * CBoardChatRoomParticipants API
+   * @description 팀방 참여자 추가
+   */
+  async function CBoardChatRoomParticipants(props: {
+    params: { boardId: string; roomId: string };
+    data: { memberIds: string[] };
+  }) {
+    const { room } = await database.C({
+      location: `boards/${props.params.boardId}/chat/rooms/${props.params.roomId}/participants`,
+      data: props.data,
+    });
+    return { room: room as TChatRoom };
+  }
+
+  /**
+   * DBoardChatRoomParticipant API
+   * @description 팀방 참여자 제거 / 나가기
+   */
+  async function DBoardChatRoomParticipant(props: {
+    params: { boardId: string; roomId: string; userId: string };
+  }) {
+    const { room } = await database.D({
+      location: `boards/${props.params.boardId}/chat/rooms/${props.params.roomId}/participants/${props.params.userId}`,
+    });
+    return { room: room as TChatRoom };
+  }
+
+  /**
+   * UBoardChatRoom API
+   * @description 보드 채팅방 이름/설명 수정
+   */
+  async function UBoardChatRoom(props: {
+    params: { boardId: string; roomId: string };
+    data: { name?: string; description?: string };
+  }) {
+    const { room } = await database.U({
+      location: `boards/${props.params.boardId}/chat/rooms/${props.params.roomId}`,
+      data: props.data,
+    });
+    return { room: room as TChatRoom };
+  }
+
+  /**
+   * DBoardChatRoom API
+   * @description 보드 주제방 비활성
+   */
+  async function DBoardChatRoom(props: {
+    params: { boardId: string; roomId: string };
+  }) {
+    return await database.D({
+      location: `boards/${props.params.boardId}/chat/rooms/${props.params.roomId}`,
+    });
+  }
+
+  /**
    * RBoardChatMessages API
    * @description 보드 채팅 메시지 목록 조회
    */
   async function RBoardChatMessages(props: {
-    params: { boardId: string };
+    params: { boardId: string; roomId: string };
     query?: { limit?: number; before?: string };
   }) {
     const { messages } = await database.R({
       location:
-        `boards/${props.params.boardId}/chat/messages` +
+        `boards/${props.params.boardId}/chat/rooms/${props.params.roomId}/messages` +
         QUERY_BUILDER(props.query),
     });
     return { messages: messages as TChatMessage[] };
@@ -4099,7 +4180,7 @@ export default function useAPIv2() {
    * @description 보드 채팅 메시지 전송
    */
   async function CBoardChatMessage(props: {
-    params: { boardId: string };
+    params: { boardId: string; roomId: string };
     data: {
       content: string;
       messageType?: "text" | "image" | "file";
@@ -4113,7 +4194,7 @@ export default function useAPIv2() {
     };
   }) {
     const { message } = await database.C({
-      location: `boards/${props.params.boardId}/chat/messages`,
+      location: `boards/${props.params.boardId}/chat/rooms/${props.params.roomId}/messages`,
       data: props.data,
     });
     return { message: message as TChatMessage };
@@ -4124,10 +4205,10 @@ export default function useAPIv2() {
    * @description 보드 채팅 메시지 삭제 API
    */
   async function DBoardChatMessage(props: {
-    params: { boardId: string; messageId: string };
+    params: { boardId: string; roomId: string; messageId: string };
   }) {
     return await database.D({
-      location: `boards/${props.params.boardId}/chat/messages/${props.params.messageId}`,
+      location: `boards/${props.params.boardId}/chat/rooms/${props.params.roomId}/messages/${props.params.messageId}`,
     });
   }
 
@@ -4135,9 +4216,11 @@ export default function useAPIv2() {
    * UBoardChatRead API
    * @description 보드 채팅 읽음 처리
    */
-  async function UBoardChatRead(props: { params: { boardId: string } }) {
+  async function UBoardChatRead(props: {
+    params: { boardId: string; roomId: string };
+  }) {
     return await database.U({
-      location: `boards/${props.params.boardId}/chat/read`,
+      location: `boards/${props.params.boardId}/chat/rooms/${props.params.roomId}/read`,
       data: {},
     });
   }
@@ -4147,11 +4230,11 @@ export default function useAPIv2() {
    * @description 보드 채팅 파일 업로드
    */
   async function CBoardChatFileUpload(props: {
-    params: { boardId: string };
+    params: { boardId: string; roomId: string };
     data: FormData;
   }) {
     const { attachment } = await database.C({
-      location: `boards/${props.params.boardId}/chat/upload`,
+      location: `boards/${props.params.boardId}/chat/rooms/${props.params.roomId}/upload`,
       data: props.data,
     });
     return {
@@ -4934,6 +5017,12 @@ export default function useAPIv2() {
     },
     BoardChatAPI: {
       RBoardChatRoom,
+      RBoardChatRooms,
+      CBoardChatRoom,
+      UBoardChatRoom,
+      DBoardChatRoom,
+      CBoardChatRoomParticipants,
+      DBoardChatRoomParticipant,
       RBoardChatMessages,
       CBoardChatMessage,
       DBoardChatMessage,
