@@ -128,6 +128,27 @@ const BoardPid = () => {
                     {board.description}
                   </p>
                 )}
+                {(board.syllabus || board.syllabusMeta) && (
+                  <div className={bStyle.syllabusLinkBanner}>
+                    <span>
+                      「{board.syllabusMeta?.classTitle || board.name}」 수업에
+                      연결된 보드입니다.
+                    </span>
+                    {board.syllabusMeta?.coursePath && (
+                      <button
+                        type="button"
+                        className={bStyle.textBtn}
+                        onClick={() =>
+                          navigate(
+                            `${board.syllabusMeta!.coursePath}#활동`
+                          )
+                        }
+                      >
+                        수업에서 열기
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 

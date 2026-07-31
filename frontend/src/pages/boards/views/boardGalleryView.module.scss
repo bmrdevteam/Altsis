@@ -129,6 +129,11 @@
   color: var(--status-info, var(--text-color-2));
 }
 
+.badgeSyllabus {
+  background: var(--status-warning-bg, var(--background-color-2));
+  color: var(--status-warning, var(--accent-1));
+}
+
 .cardDescription {
   font-size: 12px;
   color: var(--text-color-2);

@@ -74,6 +74,18 @@ const BoardGalleryView = ({
                   {todoCount > 99 ? "99+" : todoCount}
                 </span>
               )}
+              {(board.syllabus || board.syllabusMeta) && (
+                <span
+                  className={`${style.badge} ${style.badgeSyllabus}`}
+                  title={
+                    board.syllabusMeta?.classTitle
+                      ? `수업: ${board.syllabusMeta.classTitle}`
+                      : "수업 연결 보드"
+                  }
+                >
+                  수업
+                </span>
+              )}
               <span className={`${style.badge} ${style.badgeUser}`}>
                 {board.scope === "season"
                   ? board.seasonYear && board.seasonTerm

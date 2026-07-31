@@ -28,7 +28,7 @@
  *
  */
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
 import style from "style/pages/courses/course.module.scss";
@@ -39,14 +39,16 @@ import Divider from "components/divider/Divider";
 import Button from "components/button/Button";
 
 import MentoringTable, { TTableHeader } from "pages/courses/table/MentoringTable";
-import Table from "components/tableV2/Table";
 import Popup from "components/popup/Popup";
 import Loading from "components/loading/Loading";
 import Svg from "assets/svg/Svg";
 import Tab from "components/tab/Tab";
 
 import EnrollBulkPopup from "./EnrollBulkPopup";
-import AltBoardTab from "./AltBoardTab";
+import SyllabusBoardCreatePanel from "./SyllabusBoardCreatePanel";
+import useSyllabusAltBoard from "./useSyllabusAltBoard";
+import AltBoardView from "pages/boards/altBoard/AltBoardView";
+import useAltBoardBadges from "pages/boards/altBoard/useAltBoardBadges";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import Progress from "components/progress/Progress";
 import CourseMetaInfo, { ConfirmedStatus } from "pages/courses/view/CourseMetaInfo";
@@ -59,6 +61,7 @@ const CoursePid = (props: Props) => {
   const { currentSeason, currentUser, currentRegistration, currentSchool } = useAuth();
   const { SeasonAPI, SyllabusAPI, EnrollmentAPI } = useAPIv2();
   const navigate = useAppNavigate();
+  const location = useLocation();
 
   const [isLoadingSyllabus, setIsLoadingSyllabus] = useState<boolean>(false);
   const [syllabus, setSyllabus] = useState<any>();
@@ -84,6 +87,49 @@ const CoursePid = (props: Props) => {
 
   const [statusPopupActive, setStatusPopupActive] = useState<boolean>(false);
   const [ratio, setRatio] = useState<number>(0);
+
+  const boardFeatureEnabled =
+    currentSchool?.boardEnabled !== false &&
+    currentSchool?.academyFeatures?.boardEnabled !== false;
+
+  const {
+    altBoard,
+    isLoading: isAltBoardLoading,
+    isCreating: isAltBoardCreating,
+    isSyncing: isAltBoardSyncing,
+    createBoard,
+    syncBoard,
+  } = useSyllabusAltBoard(boardFeatureEnabled ? pid : undefined);
+
+  const isChatEnabled =
+    !!altBoard &&
+    currentSchool?.chatEnabled !== false &&
+    currentSchool?.academyFeatures?.chatEnabled !== false &&
+    altBoard.chatEnabled !== false;
+
+  const activeCourseTab = decodeURI(location.hash || "").replace("#", "");
+
+  const { badges: boardTabBadges, markChatRead, refresh: refreshBoardBadges } =
+    useAltBoardBadges(altBoard, {
+      chatEnabled: isChatEnabled,
+      activeTab: activeCourseTab,
+    });
+
+  // 구 해시 #보드 → 연결 여부에 따라 활동 또는 보드(생성)
+  useEffect(() => {
+    if (activeCourseTab !== "보드") return;
+    if (isAltBoardLoading) return;
+    if (altBoard) {
+      navigate(`${location.pathname}${location.search}#활동`, { replace: true });
+    }
+  }, [
+    activeCourseTab,
+    altBoard,
+    isAltBoardLoading,
+    location.pathname,
+    location.search,
+    navigate,
+  ]);
 
   const evaluationAction = (e: any) => {
       const evaluation: any = {};
@@ -485,7 +531,15 @@ const CoursePid = (props: Props) => {
               <Divider />
               <div style={{ marginTop: "12px" }}>
               <Tab
-                dontUsePaths
+                align="flex-start"
+                defaultTab="계획서"
+                badges={boardTabBadges}
+                onTabChange={(tabKey) => {
+                  if (tabKey === "채팅") markChatRead();
+                  if (tabKey === "활동" || tabKey === "문서") {
+                    refreshBoardBadges();
+                  }
+                }}
                 items={{
                   계획서: (
                     <>
@@ -498,6 +552,71 @@ const CoursePid = (props: Props) => {
                       />
                     </>
                   ),
+                  ...(boardFeatureEnabled && altBoard
+                    ? {
+                        활동: (
+                          <div style={{ marginTop: "8px" }}>
+                            <AltBoardView
+                              board={altBoard}
+                              embedded
+                              surface="활동"
+                            />
+                          </div>
+                        ),
+                        기록: (
+                          <div style={{ marginTop: "8px" }}>
+                            <AltBoardView
+                              board={altBoard}
+                              embedded
+                              surface="기록"
+                            />
+                          </div>
+                        ),
+                        문서: (
+                          <div style={{ marginTop: "8px" }}>
+                            <AltBoardView
+                              board={altBoard}
+                              embedded
+                              surface="문서"
+                            />
+                          </div>
+                        ),
+                        ...(isChatEnabled
+                          ? {
+                              채팅: (
+                                <div style={{ marginTop: "8px" }}>
+                                  <AltBoardView
+                                    board={altBoard}
+                                    embedded
+                                    surface="채팅"
+                                  />
+                                </div>
+                              ),
+                            }
+                          : {}),
+                      }
+                    : boardFeatureEnabled &&
+                        isMentor &&
+                        !isAltBoardLoading
+                      ? {
+                          보드: (
+                            <div style={{ marginTop: "16px" }}>
+                              <SyllabusBoardCreatePanel
+                                isCreating={isAltBoardCreating}
+                                onCreate={async () => {
+                                  const created = await createBoard();
+                                  if (created) {
+                                    navigate(
+                                      `${location.pathname}${location.search}#활동`,
+                                      { replace: true }
+                                    );
+                                  }
+                                }}
+                              />
+                            </div>
+                          ),
+                        }
+                      : {}),
                   사용자: (
                     <div style={{ marginTop: "16px" }} className={"enrollments"}>
                       <div style={{ display: "flex", alignItems: "center", marginBottom: "12px" }}>
@@ -511,6 +630,24 @@ const CoursePid = (props: Props) => {
                             alignItems: "center",
                           }}
                         >
+                          {altBoard && (
+                            <div
+                              className={style.icon}
+                              onClick={() => {
+                                if (!isAltBoardSyncing) syncBoard();
+                              }}
+                              style={{
+                                display: "flex",
+                                gap: "4px",
+                                alignItems: "center",
+                                opacity: isAltBoardSyncing ? 0.6 : 1,
+                              }}
+                              title="보드 멤버를 현재 수강생과 동기화"
+                            >
+                              <Svg type="refresh" width="20px" height="20px" />
+                              {isAltBoardSyncing ? "동기화 중..." : "수강생 동기화"}
+                            </div>
+                          )}
                           {!isChecked ? (
                             <div
                               className={style.icon}
@@ -573,58 +710,55 @@ const CoursePid = (props: Props) => {
                       />
                     </div>
                   ),
-                  ...(isMentor ? {
-                  평가: (
-                    <div style={{ marginTop: "16px" }}>
-                      <div className={style.title} style={{ marginBottom: "12px" }}>평가</div>
-                      <MentoringTable
-                        type="object-array"
-                        data={!isEnrollmentsLoading ? enrollmentList : []}
-                        onBlur={(e: any) => {
-                          for (let item of e) {
-                            if(item.isModified === true){
-                              const evaluation: any = {};
-                              for (let obj of fieldEvaluationList) {
-                                evaluation[obj.text] = item[obj.key];
-                              }
-                              EnrollmentAPI.UEvaluation({
-                                params: {
-                                  _id: item._id,
-                                },
-                                data: { evaluation },
-                              })
-                                .then(() => {
-                                  if (enrollmentListRef.current.length !== 0) {
-                                    enrollmentListRef.current[item.tableRowIndex - 1].isModified =
-                                      false;
-                                    setEnrollmentList([...enrollmentListRef.current]);
+                  ...(isMentor
+                    ? {
+                        평가: (
+                          <div style={{ marginTop: "16px" }}>
+                            <div className={style.title} style={{ marginBottom: "12px" }}>평가</div>
+                            <MentoringTable
+                              type="object-array"
+                              data={!isEnrollmentsLoading ? enrollmentList : []}
+                              onBlur={(e: any) => {
+                                for (let item of e) {
+                                  if (item.isModified === true) {
+                                    const evaluation: any = {};
+                                    for (let obj of fieldEvaluationList) {
+                                      evaluation[obj.text] = item[obj.key];
+                                    }
+                                    EnrollmentAPI.UEvaluation({
+                                      params: {
+                                        _id: item._id,
+                                      },
+                                      data: { evaluation },
+                                    })
+                                      .then(() => {
+                                        if (enrollmentListRef.current.length !== 0) {
+                                          enrollmentListRef.current[
+                                            item.tableRowIndex - 1
+                                          ].isModified = false;
+                                          setEnrollmentList([
+                                            ...enrollmentListRef.current,
+                                          ]);
+                                        }
+                                      })
+                                      .catch((err: any) => {
+                                        ALERT_ERROR(err);
+                                      });
                                   }
-                                })
-                                .catch((err: any) => {
-                                  ALERT_ERROR(err);
-                                });}
-                              }
-                            }
-                          }
-                        onChange={(e: any) => {
-                          setTimeout(() => {
-                            enrollmentListRef.current = e;
-                          }, 50);
-                        }}
-                        header={evaluationHeader()}
-                      />
-                    </div>
-                  ),
-                  ...(currentSchool?.boardEnabled !== false && currentSchool?.academyFeatures?.boardEnabled !== false ? {
-                  보드: (
-                    <div style={{ marginTop: "16px" }}>
-                      <AltBoardTab syllabusId={syllabus._id} />
-                    </div>
-                  ),
-                  } : {}),
-                  } : {}),
+                                }
+                              }}
+                              onChange={(e: any) => {
+                                setTimeout(() => {
+                                  enrollmentListRef.current = e;
+                                }, 50);
+                              }}
+                              header={evaluationHeader()}
+                            />
+                          </div>
+                        ),
+                      }
+                    : {}),
                 }}
-                align="flex-start"
               />
               </div>
             </div>

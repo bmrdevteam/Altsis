@@ -12,6 +12,7 @@ import {
   Board,
   BoardFavorite,
   CalendarEvent,
+  Enrollment,
   Post,
   School,
   Season,
@@ -43,6 +44,79 @@ import {
   INVALID_FILE_TYPE,
 } from "../messages/index.js";
 import { boardMulter } from "../_s3/boardMulter.js";
+
+/**
+ * 수업 연결 보드에 syllabusMeta(수업명·수업 경로)를 붙인다.
+ * @param {string} academyId
+ * @param {Object|Object[]} boardsOrBoard - lean/plain board 또는 배열
+ * @param {Object} user - req.user
+ * @returns {Promise<Object|Object[]>}
+ */
+const attachSyllabusMeta = async (academyId, boardsOrBoard, user) => {
+  const isArray = Array.isArray(boardsOrBoard);
+  const boards = isArray ? boardsOrBoard : [boardsOrBoard];
+  if (boards.length === 0) return boardsOrBoard;
+
+  const syllabusIds = [
+    ...new Set(
+      boards
+        .map((b) => b?.syllabus?.toString?.() || b?.syllabus)
+        .filter(Boolean)
+        .map(String)
+    ),
+  ];
+  if (syllabusIds.length === 0) return boardsOrBoard;
+
+  const syllabuses = await Syllabus(academyId)
+    .find({ _id: { $in: syllabusIds } })
+    .select("classTitle teachers user")
+    .lean();
+  const sylMap = new Map(syllabuses.map((s) => [s._id.toString(), s]));
+
+  const enrollments = await Enrollment(academyId)
+    .find({
+      student: user._id,
+      syllabus: { $in: syllabusIds },
+    })
+    .select("_id syllabus")
+    .lean();
+  const enrollBySyl = new Map(
+    enrollments.map((e) => [e.syllabus.toString(), e._id.toString()])
+  );
+
+  const isManager = user.auth === "admin" || user.auth === "manager";
+  const userOid = user._id.toString();
+
+  const enriched = boards.map((board) => {
+    const obj =
+      board && typeof board.toObject === "function" ? board.toObject() : { ...board };
+    if (!obj.syllabus) return obj;
+
+    const sylId = obj.syllabus.toString();
+    const syl = sylMap.get(sylId);
+    const classTitle = syl?.classTitle || obj.name || "";
+    const isMentor =
+      !!syl &&
+      (syl.user?.toString() === userOid ||
+        (syl.teachers || []).some((t) => t._id?.toString() === userOid));
+
+    let coursePath = null;
+    if (isMentor || isManager) {
+      coursePath = `/courses/mentoring/${sylId}`;
+    } else if (enrollBySyl.has(sylId)) {
+      coursePath = `/courses/enrolled/${enrollBySyl.get(sylId)}`;
+    }
+
+    obj.syllabusMeta = {
+      _id: sylId,
+      classTitle,
+      coursePath,
+    };
+    return obj;
+  });
+
+  return isArray ? enriched : enriched[0];
+};
 
 /**
  * @memberof APIs.BoardAPI
@@ -212,7 +286,12 @@ export const find = async (req, res) => {
         return res.status(403).send({ message: PERMISSION_DENIED });
       }
 
-      return res.status(200).send({ board });
+      const boardWithMeta = await attachSyllabusMeta(
+        req.user.academyId,
+        board,
+        req.user
+      );
+      return res.status(200).send({ board: boardWithMeta });
     }
 
     /* RBoards */
@@ -296,7 +375,13 @@ export const find = async (req, res) => {
       return boardObj;
     });
 
-    return res.status(200).send({ boards: boardsWithFavorites });
+    const boardsWithMeta = await attachSyllabusMeta(
+      req.user.academyId,
+      boardsWithFavorites,
+      req.user
+    );
+
+    return res.status(200).send({ boards: boardsWithMeta });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });

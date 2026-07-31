@@ -21,7 +21,7 @@ import aStyle from "./altBoard/altBoard.module.scss";
 import Svg from "assets/svg/Svg";
 import Tab from "components/tab/Tab";
 
-import { TBoard, TBoardListViewMode } from "types/board";
+import { TBoard, TBoardLinkFilter, TBoardListViewMode } from "types/board";
 import { resolveBoardCoverColor } from "utils/boardCoverColor";
 
 import BoardCreatePopup from "./popup/BoardCreate";
@@ -60,6 +60,7 @@ const Boards = () => {
   const [scopeFilter, setScopeFilter] = useState<TBoardScopeFilter>("");
   const [boardTypeFilter, setBoardTypeFilter] =
     useState<TBoardTypeFilter>("");
+  const [linkFilter, setLinkFilter] = useState<TBoardLinkFilter>("");
   const [boardListViewMode, setBoardListViewMode] =
     useState<TBoardListViewMode>(
       () =>
@@ -160,6 +161,11 @@ const Boards = () => {
   }, [currentSchool?._id, currentSeasonId]);
 
   const handleBoardClick = (board: TBoard) => {
+    const coursePath = board.syllabusMeta?.coursePath;
+    if (coursePath) {
+      navigate(`${coursePath}#활동`);
+      return;
+    }
     navigate(`/boards/${board._id}`);
   };
 
@@ -257,21 +263,26 @@ const Boards = () => {
     let season = 0;
     let official = 0;
     let user = 0;
+    let syllabus = 0;
+    let general = 0;
     for (const b of boardsForChipCounts) {
       if ((todoCountByBoard[b._id] || 0) > 0) todos += 1;
       if ((b.scope || "school") === "school") school += 1;
       if (b.scope === "season") season += 1;
       if (b.boardType === "official") official += 1;
       if (b.boardType === "user") user += 1;
+      if (b.syllabus || b.syllabusMeta) syllabus += 1;
+      else general += 1;
     }
-    return { todos, school, season, official, user };
+    return { todos, school, season, official, user, syllabus, general };
   }, [boardsForChipCounts, todoCountByBoard]);
 
   const hasBoardListFilters =
     !!boardKeyword.trim() ||
     hasTodosOnly ||
     !!scopeFilter ||
-    !!boardTypeFilter;
+    !!boardTypeFilter ||
+    !!linkFilter;
 
   const displayBoards = useMemo(() => {
     let result = boardsForChipCounts;
@@ -284,12 +295,18 @@ const Boards = () => {
     if (boardTypeFilter) {
       result = result.filter((b) => b.boardType === boardTypeFilter);
     }
+    if (linkFilter === "syllabus") {
+      result = result.filter((b) => !!(b.syllabus || b.syllabusMeta));
+    } else if (linkFilter === "general") {
+      result = result.filter((b) => !(b.syllabus || b.syllabusMeta));
+    }
     return result;
   }, [
     boardsForChipCounts,
     hasTodosOnly,
     scopeFilter,
     boardTypeFilter,
+    linkFilter,
     todoCountByBoard,
   ]);
 
@@ -298,6 +315,7 @@ const Boards = () => {
     setHasTodosOnly(false);
     setScopeFilter("");
     setBoardTypeFilter("");
+    setLinkFilter("");
   };
 
   const emptyBoardMessage = hasBoardListFilters
@@ -393,6 +411,8 @@ const Boards = () => {
             onScopeFilterChange={setScopeFilter}
             boardTypeFilter={boardTypeFilter}
             onBoardTypeFilterChange={setBoardTypeFilter}
+            linkFilter={linkFilter}
+            onLinkFilterChange={setLinkFilter}
             counts={boardFilterCounts}
             onClear={clearBoardListFilters}
           />
@@ -442,6 +462,21 @@ const Boards = () => {
                           )}
                         </div>
                         <div className={aStyle.formCardMeta}>
+                          {(board.syllabus || board.syllabusMeta) && (
+                            <span
+                              className={`${aStyle.formCardBadge} ${aStyle.badgePending}`}
+                              title={
+                                board.syllabusMeta?.classTitle
+                                  ? `수업: ${board.syllabusMeta.classTitle}`
+                                  : "수업 연결 보드"
+                              }
+                            >
+                              수업
+                              {board.syllabusMeta?.classTitle
+                                ? ` · ${board.syllabusMeta.classTitle}`
+                                : ""}
+                            </span>
+                          )}
                           <span
                             className={`${aStyle.formCardBadge} ${aStyle.badgeOptional}`}
                           >

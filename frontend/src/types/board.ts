@@ -80,12 +80,21 @@ export type TBoard = {
   // Alt Board 확장 필드
   boardMode: TBoardMode;
   syllabus?: string;
+  /** 수업 연결 보드일 때 서버가 내려주는 수업 요약·경로 */
+  syllabusMeta?: {
+    _id: string;
+    classTitle: string;
+    /** 현재 사용자 기준 수업 상세 경로 (없으면 null) */
+    coursePath?: string | null;
+  };
   altBoardRole?: Record<string, TAltBoardRole>;
   notificationEvents?: TBoardNotificationEvents;
   chatEnabled?: boolean;
   createdAt: string;
   updatedAt: string;
 };
+
+export type TBoardLinkFilter = "" | "syllabus" | "general";
 
 export type TBoardFavorite = {
   _id: string;

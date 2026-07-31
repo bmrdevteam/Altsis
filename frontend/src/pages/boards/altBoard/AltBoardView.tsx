@@ -19,12 +19,16 @@ import AltDocsView from "./AltDocsView";
 import BoardChatContainer from "./BoardChatContainer";
 import style from "./altBoard.module.scss";
 
+export type TAltBoardSurface = "활동" | "기록" | "문서" | "채팅";
+
 type Props = {
   board: TBoard;
   embedded?: boolean; // true when rendered inside another page (e.g. course tab)
+  /** 수업 탭 평탄화: 지정 시 내부 Tab 없이 해당 표면만 렌더 */
+  surface?: TAltBoardSurface;
 };
 
-const AltBoardView = ({ board, embedded }: Props) => {
+const AltBoardView = ({ board, embedded, surface }: Props) => {
   const { currentUser, currentSchool } = useAuth();
   const { AltFormAPI, BoardChatAPI, PostAPI, AltSheetRowAPI } = useAPIv2();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -137,9 +141,37 @@ const AltBoardView = ({ board, embedded }: Props) => {
     return unsubmitted + pendingApprovalCount;
   })();
 
+  // surface 모드: 부모 탭이 표면을 바꿀 때 activeTabRef 동기화
+  useEffect(() => {
+    if (surface) {
+      activeTabRef.current = surface;
+      if (surface === "채팅") {
+        setChatUnreadCount(0);
+        BoardChatAPI.RBoardChatRooms({ params: { boardId: board._id } })
+          .then(({ rooms }) =>
+            Promise.all(
+              rooms.map((room) =>
+                BoardChatAPI.UBoardChatRead({
+                  params: { boardId: board._id, roomId: room._id },
+                }).catch(() => {})
+              )
+            )
+          )
+          .catch(() => {});
+      }
+      if (surface === "문서") loadDocsUnread();
+      if (surface === "활동") {
+        loadForms();
+        loadPendingApprovals();
+      }
+    }
+  }, [surface, board._id, loadDocsUnread, loadPendingApprovals]);
+
   // 채팅 뱃지: 초기 unread count 로드 + 소켓 리스너
   useEffect(() => {
     if (!currentUser || !board._id || !isChatEnabled) return;
+    // 수업 탭에서 뱃지는 useAltBoardBadges가 담당 → surface 모드에선 소켓 생략
+    if (surface) return;
 
     // 초기 unread count (전체 + 주제방 합산)
     BoardChatAPI.RBoardChatRooms({ params: { boardId: board._id } })
@@ -174,7 +206,13 @@ const AltBoardView = ({ board, embedded }: Props) => {
     return () => {
       socket.disconnect();
     };
-  }, [currentUser?.academyId, currentUser?.userId, board._id, isChatEnabled]);
+  }, [
+    currentUser?.academyId,
+    currentUser?.userId,
+    board._id,
+    isChatEnabled,
+    surface,
+  ]);
 
   const handleTabChange = useCallback((tabKey: string) => {
     activeTabRef.current = tabKey;
@@ -523,6 +561,23 @@ const AltBoardView = ({ board, embedded }: Props) => {
           }
         }} />
       </div>
+    );
+  }
+
+  // 수업 평탄화: 단일 표면만 렌더
+  if (surface) {
+    if (surface === "채팅" && !isChatEnabled) {
+      return (
+        <div className={style.emptyState}>채팅이 비활성화되어 있습니다.</div>
+      );
+    }
+    return (
+      <>
+        {tabItems[surface] ?? (
+          <div className={style.emptyState}>표시할 내용이 없습니다.</div>
+        )}
+        {linkCopiedPopup}
+      </>
     );
   }
 

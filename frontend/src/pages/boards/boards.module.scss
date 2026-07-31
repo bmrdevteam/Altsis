@@ -321,6 +321,20 @@
   font-size: 13px;
 }
 
+.syllabusLinkBanner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--background-color-2, var(--bg-color-2));
+  color: var(--text-color-2);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .detailHeaderRight {
   display: flex;
   align-items: center;

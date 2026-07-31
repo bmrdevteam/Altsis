@@ -30,7 +30,7 @@
  *
  */
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
 // tab pages
@@ -43,7 +43,9 @@ import Table from "components/tableV2/Table";
 import Tab from "components/tab/Tab";
 
 import EditorParser from "editor/EditorParser";
-import AltBoardTab from "pages/courses/tab/Mentoring/AltBoardTab";
+import useSyllabusAltBoard from "pages/courses/tab/Mentoring/useSyllabusAltBoard";
+import AltBoardView from "pages/boards/altBoard/AltBoardView";
+import useAltBoardBadges from "pages/boards/altBoard/useAltBoardBadges";
 
 import _ from "lodash";
 
@@ -59,6 +61,7 @@ const CourseEnrollment = (props: Props) => {
   const { pid } = useParams<"pid">();
   const { currentUser, currentRegistration, currentSeason, currentSchool } = useAuth();
   const navigate = useAppNavigate();
+  const location = useLocation();
   const { EnrollmentAPI, SyllabusAPI } = useAPIv2();
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -78,6 +81,42 @@ const CourseEnrollment = (props: Props) => {
   const [fieldEvaluationList, setFieldEvaluationList] = useState<any[]>([]);
 
   const [enrollments, setEnrollments] = useState<any[]>();
+
+  const boardFeatureEnabled =
+    currentSchool?.boardEnabled !== false &&
+    currentSchool?.academyFeatures?.boardEnabled !== false;
+
+  const { altBoard } = useSyllabusAltBoard(
+    boardFeatureEnabled && enrollmentData?.syllabus
+      ? enrollmentData.syllabus
+      : undefined
+  );
+
+  const isChatEnabled =
+    !!altBoard &&
+    currentSchool?.chatEnabled !== false &&
+    currentSchool?.academyFeatures?.chatEnabled !== false &&
+    altBoard.chatEnabled !== false;
+
+  const activeCourseTab = decodeURI(location.hash || "").replace("#", "");
+  const { badges: boardTabBadges, markChatRead, refresh: refreshBoardBadges } =
+    useAltBoardBadges(altBoard, {
+      chatEnabled: isChatEnabled,
+      activeTab: activeCourseTab,
+    });
+
+  useEffect(() => {
+    if (activeCourseTab !== "보드") return;
+    if (altBoard) {
+      navigate(`${location.pathname}${location.search}#활동`, { replace: true });
+    }
+  }, [
+    activeCourseTab,
+    altBoard,
+    location.pathname,
+    location.search,
+    navigate,
+  ]);
 
   const metaItems = () => {
     const items = [];
@@ -284,7 +323,15 @@ const CourseEnrollment = (props: Props) => {
         <Divider />
         <div style={{ marginTop: "12px" }}>
         <Tab
-          dontUsePaths
+          align="flex-start"
+          defaultTab="계획서"
+          badges={boardTabBadges}
+          onTabChange={(tabKey) => {
+            if (tabKey === "채팅") markChatRead();
+            if (tabKey === "활동" || tabKey === "문서") {
+              refreshBoardBadges();
+            }
+          }}
           items={{
             계획서: (
               <>
@@ -292,6 +339,38 @@ const CourseEnrollment = (props: Props) => {
                 <ClassInfo />
               </>
             ),
+            ...(boardFeatureEnabled && altBoard
+              ? {
+                  활동: (
+                    <div style={{ marginTop: "8px" }}>
+                      <AltBoardView board={altBoard} embedded surface="활동" />
+                    </div>
+                  ),
+                  기록: (
+                    <div style={{ marginTop: "8px" }}>
+                      <AltBoardView board={altBoard} embedded surface="기록" />
+                    </div>
+                  ),
+                  문서: (
+                    <div style={{ marginTop: "8px" }}>
+                      <AltBoardView board={altBoard} embedded surface="문서" />
+                    </div>
+                  ),
+                  ...(isChatEnabled
+                    ? {
+                        채팅: (
+                          <div style={{ marginTop: "8px" }}>
+                            <AltBoardView
+                              board={altBoard}
+                              embedded
+                              surface="채팅"
+                            />
+                          </div>
+                        ),
+                      }
+                    : {}),
+                }
+              : {}),
             사용자: (
               <div style={{ marginTop: "16px" }}>
                 <div className={style.title} style={{ marginBottom: "12px" }}>사용자</div>
@@ -390,15 +469,7 @@ const CourseEnrollment = (props: Props) => {
                 )}
               </>
             ),
-            ...(currentSchool?.boardEnabled !== false && currentSchool?.academyFeatures?.boardEnabled !== false && enrollmentData?.syllabus ? {
-            보드: (
-              <div style={{ marginTop: "16px" }}>
-                <AltBoardTab syllabusId={enrollmentData.syllabus} canCreate={false} />
-              </div>
-            ),
-            } : {}),
           }}
-          align="flex-start"
         />
         </div>
         {confirmStatusPopupActive && (

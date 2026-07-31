@@ -1,5 +1,5 @@
 import Svg from "assets/svg/Svg";
-import { TBoardScope, TBoardType } from "types/board";
+import { TBoardLinkFilter, TBoardScope, TBoardType } from "types/board";
 import mergeStyle from "components/mergeFilter/mergeFilter.module.scss";
 import bStyle from "./boards.module.scss";
 
@@ -12,6 +12,8 @@ export type TBoardListFilterCounts = {
   season: number;
   official: number;
   user: number;
+  syllabus: number;
+  general: number;
 };
 
 type Props = {
@@ -23,6 +25,8 @@ type Props = {
   onScopeFilterChange: (value: TBoardScopeFilter) => void;
   boardTypeFilter: TBoardTypeFilter;
   onBoardTypeFilterChange: (value: TBoardTypeFilter) => void;
+  linkFilter: TBoardLinkFilter;
+  onLinkFilterChange: (value: TBoardLinkFilter) => void;
   counts: TBoardListFilterCounts;
   onClear: () => void;
 };
@@ -34,6 +38,7 @@ const CHIP_TONE_CLASS: Record<string, string> = {
   Submitted: bStyle.filterChipToneSubmitted,
   Scheduled: bStyle.filterChipToneScheduled,
   Direct: bStyle.filterChipToneDirect,
+  Pending: bStyle.filterChipTonePending,
 };
 
 const ChipIcon = ({ type }: { type: string }) => (
@@ -51,13 +56,20 @@ const BoardListFilterBar = ({
   onScopeFilterChange,
   boardTypeFilter,
   onBoardTypeFilterChange,
+  linkFilter,
+  onLinkFilterChange,
   counts,
   onClear,
 }: Props) => {
   const hasAnyFilter =
-    !!keyword.trim() || hasTodosOnly || !!scopeFilter || !!boardTypeFilter;
+    !!keyword.trim() ||
+    hasTodosOnly ||
+    !!scopeFilter ||
+    !!boardTypeFilter ||
+    !!linkFilter;
 
-  const isAllActive = !hasTodosOnly && !scopeFilter && !boardTypeFilter;
+  const isAllActive =
+    !hasTodosOnly && !scopeFilter && !boardTypeFilter && !linkFilter;
 
   return (
     <div className={bStyle.activityFilterBlock}>
@@ -91,6 +103,7 @@ const BoardListFilterBar = ({
             onHasTodosOnlyChange(false);
             onScopeFilterChange("");
             onBoardTypeFilterChange("");
+            onLinkFilterChange("");
           }}
         >
           <ChipIcon type="list" />
@@ -108,6 +121,38 @@ const BoardListFilterBar = ({
           >
             <ChipIcon type="list_check" />
             할 일 {counts.todos}
+          </button>
+        )}
+
+        {counts.syllabus > 0 && (
+          <button
+            type="button"
+            className={`${bStyle.filterChip} ${CHIP_TONE_CLASS.Pending} ${
+              linkFilter === "syllabus" ? bStyle.filterChipActive : ""
+            }`}
+            aria-pressed={linkFilter === "syllabus"}
+            onClick={() =>
+              onLinkFilterChange(linkFilter === "syllabus" ? "" : "syllabus")
+            }
+          >
+            <ChipIcon type="file" />
+            수업 {counts.syllabus}
+          </button>
+        )}
+
+        {counts.general > 0 && counts.syllabus > 0 && (
+          <button
+            type="button"
+            className={`${bStyle.filterChip} ${CHIP_TONE_CLASS.Optional} ${
+              linkFilter === "general" ? bStyle.filterChipActive : ""
+            }`}
+            aria-pressed={linkFilter === "general"}
+            onClick={() =>
+              onLinkFilterChange(linkFilter === "general" ? "" : "general")
+            }
+          >
+            <ChipIcon type="list" />
+            일반 {counts.general}
           </button>
         )}
 
