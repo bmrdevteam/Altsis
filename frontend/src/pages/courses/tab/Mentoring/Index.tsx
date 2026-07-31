@@ -554,7 +554,7 @@ const CoursePid = (props: Props) => {
         type: "text",
         textAlign: "center",
         whiteSpace: "pre",
-        width: "72px",
+        width: "120px",
       },
     ];
     // 평가 항목 열은 width를 두지 않아 남은 가로 공간을 가져감
