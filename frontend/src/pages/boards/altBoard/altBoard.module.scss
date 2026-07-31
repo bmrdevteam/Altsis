@@ -4176,3 +4176,181 @@ tbody tr:hover .actionCell {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.sheetTimetable {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 0 16px;
+  min-width: 0;
+}
+
+.sheetTimetableToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.sheetTimetableOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sheetTimetableOptionGroup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.sheetTimetableOptionLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-color-2);
+  min-width: 28px;
+}
+
+.sheetTimetableChipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.sheetTimetableChip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--background-color);
+  color: var(--text-color-2);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font: inherit;
+
+  &:hover {
+    border-color: var(--text-color-3);
+  }
+}
+
+.sheetTimetableChipActive {
+  background: var(--status-info-bg);
+  color: var(--status-info);
+  border-color: color-mix(in srgb, var(--status-info) 35%, var(--border-color));
+}
+
+.sheetTimetableField {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-color-2);
+
+  span {
+    white-space: nowrap;
+  }
+
+  select {
+    min-width: 120px;
+    max-width: 200px;
+    padding: 4px 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--background-color);
+    color: var(--text-color-1);
+    font-size: 13px;
+  }
+}
+
+.sheetTimetableWrap {
+  overflow: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--background-color);
+}
+
+.sheetTimetableTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  min-width: 640px;
+
+  th,
+  td {
+    border: 1px solid var(--border-color);
+    padding: 6px 8px;
+    vertical-align: top;
+  }
+
+  thead th {
+    background: var(--background-color-2);
+    font-weight: 600;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  tbody th {
+    background: var(--background-color-2);
+    font-weight: 600;
+    text-align: left;
+    white-space: nowrap;
+    min-width: 72px;
+  }
+
+  td {
+    min-width: 88px;
+  }
+}
+
+.sheetTimetableDayDate {
+  font-weight: 400;
+  color: var(--text-color-2);
+}
+
+.sheetTimetableCell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sheetTimetableSlot {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 4px 6px;
+  border: none;
+  border-radius: 4px;
+  background: var(--status-info-bg);
+  color: var(--text-color-1);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+
+  &:hover:not(:disabled) {
+    filter: brightness(0.97);
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.85;
+  }
+}
+
+.sheetTimetableSlotPrimary {
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.sheetTimetableSlotSecondary {
+  font-size: 11px;
+  color: var(--text-color-2);
+  line-height: 1.3;
+  word-break: break-word;
+}
+

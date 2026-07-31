@@ -19,6 +19,9 @@ import RecordsListFilterBar, {
   TRecordsViewCounts,
   TRecordsViewFilter,
 } from "./RecordsListFilterBar";
+import SheetTimetableView, {
+  getTimetableAxisFields,
+} from "./SheetTimetableView";
 
 type Props = {
   board: TBoard;
@@ -110,8 +113,10 @@ const AltSheetView = ({
     Record<string, string>
   >({});
 
-  // 뷰 모드: 테이블 or 문서
-  const [viewMode, setViewMode] = useState<"table" | "doc">("doc");
+  // 뷰 모드: 테이블 / 문서 / 시간표
+  const [viewMode, setViewMode] = useState<"table" | "doc" | "timetable">(
+    "doc"
+  );
 
   // 문서 뷰 편집 상태
   const [editingRowId, setEditingRowId] = useState<string | null>(null);
@@ -153,6 +158,18 @@ const AltSheetView = ({
   // 퀴즈 모드 여부
   const isQuiz = selectedForm?.settings.quizMode;
   const isAssessment = !!selectedForm?.settings.assessmentMode;
+
+  const supportsTimetable = useMemo(() => {
+    const fields = selectedForm?.fields || [];
+    const { dateFields, periodFields } = getTimetableAxisFields(fields);
+    return dateFields.length > 0 && periodFields.length > 0;
+  }, [selectedForm?.fields]);
+
+  useEffect(() => {
+    if (!supportsTimetable && viewMode === "timetable") {
+      setViewMode("doc");
+    }
+  }, [supportsTimetable, viewMode]);
 
   // 평가 채점 초안 (문서 보기)
   const [gradeDraft, setGradeDraft] = useState<{
@@ -1610,6 +1627,20 @@ const AltSheetView = ({
               height="20px"
             />
           </button>
+          {supportsTimetable && (
+            <button
+              type="button"
+              className={`${style.formCardIconBtn} ${
+                viewMode === "timetable" ? style.formCardIconBtnActive : ""
+              }`}
+              onClick={() => setViewMode("timetable")}
+              title="시간표 보기"
+              aria-label="시간표 보기"
+              aria-pressed={viewMode === "timetable"}
+            >
+              <Svg type="calender" width="20px" height="20px" />
+            </button>
+          )}
           {onCopySheetLink && (
             <button
               type="button"
@@ -1620,7 +1651,7 @@ const AltSheetView = ({
               <Svg type="link" width="20px" height="20px" />
             </button>
           )}
-          {canManage && (
+          {canManage && viewMode !== "timetable" && (
             <button
               type="button"
               className={style.formCardIconBtn}
@@ -1630,43 +1661,45 @@ const AltSheetView = ({
               <Svg type="plus" width="20px" height="20px" />
             </button>
           )}
-          <div style={{ position: "relative" }}>
-            <button
-              type="button"
-              className={`${style.formCardIconBtn} ${
-                showColumnSettings ? style.formCardIconBtnActive : ""
-              }`}
-              title="컬럼 설정"
-              onClick={() => setShowColumnSettings(!showColumnSettings)}
-            >
-              <Svg type="list_check" width="20px" height="20px" />
-            </button>
-            {showColumnSettings && (
-              <div className={style.columnSettingsDropdown}>
-                {allVisibleFields.map((f) => (
-                  <label key={f._id} className={style.columnSettingsItem}>
-                    <input
-                      type="checkbox"
-                      checked={!hiddenColumns.has(f._id)}
-                      onChange={(e) => {
-                        setHiddenColumns((prev) => {
-                          const next = new Set(prev);
-                          if (e.target.checked) {
-                            next.delete(f._id);
-                          } else {
-                            next.add(f._id);
-                          }
-                          return next;
-                        });
-                      }}
-                    />
-                    {f.label}
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
-          {canManage && (
+          {viewMode === "table" && (
+            <div style={{ position: "relative" }}>
+              <button
+                type="button"
+                className={`${style.formCardIconBtn} ${
+                  showColumnSettings ? style.formCardIconBtnActive : ""
+                }`}
+                title="컬럼 설정"
+                onClick={() => setShowColumnSettings(!showColumnSettings)}
+              >
+                <Svg type="list_check" width="20px" height="20px" />
+              </button>
+              {showColumnSettings && (
+                <div className={style.columnSettingsDropdown}>
+                  {allVisibleFields.map((f) => (
+                    <label key={f._id} className={style.columnSettingsItem}>
+                      <input
+                        type="checkbox"
+                        checked={!hiddenColumns.has(f._id)}
+                        onChange={(e) => {
+                          setHiddenColumns((prev) => {
+                            const next = new Set(prev);
+                            if (e.target.checked) {
+                              next.delete(f._id);
+                            } else {
+                              next.add(f._id);
+                            }
+                            return next;
+                          });
+                        }}
+                      />
+                      {f.label}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          {canManage && viewMode !== "timetable" && (
             <>
               <button
                 type="button"
@@ -1699,6 +1732,18 @@ const AltSheetView = ({
       {/* 콘텐츠 */}
       {!isLoading && rows.length === 0 ? (
         <div className={style.sheetEmpty}>아직 응답이 없습니다.</div>
+      ) : !isLoading && viewMode === "timetable" && selectedForm ? (
+        <SheetTimetableView
+          rows={filteredRows}
+          fields={selectedForm.fields}
+          onOpenRow={(rowId) => {
+            const idx = filteredRows.findIndex((r) => r._id === rowId);
+            if (idx >= 0) {
+              setDocIndex(idx);
+              setViewMode("doc");
+            }
+          }}
+        />
       ) : !isLoading && viewMode === "doc" ? (
         /* ── 문서 뷰 (양식형 개별 보기) ── */
         <div className={style.docViewSingle}>
