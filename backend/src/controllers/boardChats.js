@@ -67,6 +67,7 @@ const getBoardAndVerifyMember = async (req) => {
 
 /**
  * room에 대한 unreadCount 계산
+ * - 참여자가 아니면 0 (전체방 목록에는 보이지만 lastReadAt을 갱신할 수 없음)
  */
 const attachUnreadCount = async (academyId, room, userId) => {
   const roomObj = room.toObject ? room.toObject() : { ...room };
@@ -74,12 +75,16 @@ const attachUnreadCount = async (academyId, room, userId) => {
   const participant = participants.find(
     (p) => p.user.toString() === userId.toString()
   );
+  if (!participant) {
+    roomObj.unreadCount = 0;
+    return roomObj;
+  }
   const query = {
     room: roomObj._id,
     sender: { $ne: userId },
     isDeleted: false,
   };
-  if (participant?.lastReadAt) {
+  if (participant.lastReadAt) {
     query.createdAt = { $gt: participant.lastReadAt };
   }
   roomObj.unreadCount = await ChatMessage(academyId).countDocuments(query);
@@ -627,9 +632,21 @@ export const markBoardChatRoomRead = async (req, res) => {
       return res.status(roomError.status).send({ message: roomError.message });
     }
 
-    const participantIndex = room.participants.findIndex(
+    let participantIndex = room.participants.findIndex(
       (p) => p.user.toString() === req.user._id.toString()
     );
+    // 전체 채팅: 보드 멤버인데 participants에 없으면 읽음 처리용으로 추가
+    if (participantIndex === -1 && room.isGeneral) {
+      room.participants.push({
+        user: req.user._id,
+        userId: req.user.userId,
+        userName: req.user.userName,
+        joinedAt: new Date(),
+        lastReadAt: new Date(),
+      });
+      await room.save();
+      return res.status(200).send({});
+    }
     if (participantIndex === -1) {
       return res.status(200).send({});
     }

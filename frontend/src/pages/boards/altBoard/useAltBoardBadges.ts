@@ -22,6 +22,8 @@ export const useAltBoardBadges = (
   const [pendingApprovalCount, setPendingApprovalCount] = useState(0);
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
   const activeTabRef = useRef(options?.activeTab || "");
+  /** 채팅 탭에서 읽음 처리한 뒤, 늦은 rooms 응답이 뱃지를 다시 올리지 못하게 */
+  const chatReadEpochRef = useRef(0);
   const boardId = board?._id;
 
   useEffect(() => {
@@ -57,6 +59,36 @@ export const useAltBoardBadges = (
     refresh();
   }, [boardId, refresh]);
 
+  const markChatRead = useCallback(() => {
+    if (!boardId) return;
+    const epoch = ++chatReadEpochRef.current;
+    setChatUnreadCount(0);
+    BoardChatAPI.RBoardChatRooms({ params: { boardId } })
+      .then(({ rooms }) =>
+        Promise.all(
+          rooms.map((room) =>
+            BoardChatAPI.UBoardChatRead({
+              params: { boardId, roomId: room._id },
+            }).catch(() => {})
+          )
+        )
+      )
+      .then(() => {
+        if (chatReadEpochRef.current !== epoch) return;
+        setChatUnreadCount(0);
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- useAPIv2 refs are unstable
+  }, [boardId]);
+
+  // 해시로 #채팅 진입 시에도 읽음 처리 (클릭 onTabChange만으론 부족)
+  useEffect(() => {
+    if (!boardId || !chatEnabled) return;
+    if (options?.activeTab === "채팅") {
+      markChatRead();
+    }
+  }, [options?.activeTab, boardId, chatEnabled, markChatRead]);
+
   // 채팅 unread: 보드당 1회 + 소켓 (목록 sync는 서버에서 제거)
   useEffect(() => {
     if (!currentUser || !boardId || !chatEnabled) {
@@ -65,9 +97,17 @@ export const useAltBoardBadges = (
     }
 
     let cancelled = false;
+    const epochAtStart = chatReadEpochRef.current;
+
     BoardChatAPI.RBoardChatRooms({ params: { boardId } })
       .then(({ rooms }) => {
         if (cancelled) return;
+        // 읽음 처리가 시작된 뒤의 응답은 무시 (레이스)
+        if (chatReadEpochRef.current !== epochAtStart) return;
+        if (activeTabRef.current === "채팅") {
+          setChatUnreadCount(0);
+          return;
+        }
         const total = rooms.reduce(
           (sum, room) => sum + (room.unreadCount || 0),
           0
@@ -107,23 +147,6 @@ export const useAltBoardBadges = (
     boardId,
     chatEnabled,
   ]);
-
-  const markChatRead = useCallback(() => {
-    if (!boardId) return;
-    setChatUnreadCount(0);
-    BoardChatAPI.RBoardChatRooms({ params: { boardId } })
-      .then(({ rooms }) =>
-        Promise.all(
-          rooms.map((room) =>
-            BoardChatAPI.UBoardChatRead({
-              params: { boardId, roomId: room._id },
-            }).catch(() => {})
-          )
-        )
-      )
-      .catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- useAPIv2 refs are unstable
-  }, [boardId]);
 
   const activityBadgeCount = (() => {
     const now = new Date();
