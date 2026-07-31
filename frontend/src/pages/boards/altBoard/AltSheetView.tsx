@@ -1390,44 +1390,46 @@ const AltSheetView = ({
                     }
                   }}
                 >
-                  <div
-                    className={`${style.formCardLeadIcon} ${
-                      form.settings.shareResponses
-                        ? style.formCardLeadIconInfo
-                        : ""
-                    }`}
-                    aria-hidden
-                  >
-                    <Svg type="table" width="20px" height="20px" />
-                  </div>
-                  <div className={style.formCardLeft}>
-                    <div className={style.formCardTitle}>{form.title}</div>
-                    <div className={style.formCardMeta}>
-                      <span>
-                        {
-                          form.fields.filter((f) => f.type !== "content")
-                            .length
-                        }
-                        개 항목
-                      </span>
-                      {(form.responseCount ?? 0) > 0 && (
-                        <span className={style.responseCount}>
-                          {form.settings.allowMultipleResponses
-                            ? `응답 ${form.responseCount}건`
-                            : `제출 ${form.responseCount}명`}
+                  <div className={style.formCardMain}>
+                    <div
+                      className={`${style.formCardLeadIcon} ${
+                        form.settings.shareResponses
+                          ? style.formCardLeadIconInfo
+                          : ""
+                      }`}
+                      aria-hidden
+                    >
+                      <Svg type="table" width="20px" height="20px" />
+                    </div>
+                    <div className={style.formCardLeft}>
+                      <div className={style.formCardTitle}>{form.title}</div>
+                      <div className={style.formCardMeta}>
+                        <span>
+                          {
+                            form.fields.filter((f) => f.type !== "content")
+                              .length
+                          }
+                          개 항목
                         </span>
-                      )}
-                      {form.settings.shareResponses && (
-                        <span
-                          className={style.formCardBadge}
-                          style={{
-                            background: "var(--status-info-bg)",
-                            color: "var(--status-info)",
-                          }}
-                        >
-                          공유
-                        </span>
-                      )}
+                        {(form.responseCount ?? 0) > 0 && (
+                          <span className={style.responseCount}>
+                            {form.settings.allowMultipleResponses
+                              ? `응답 ${form.responseCount}건`
+                              : `제출 ${form.responseCount}명`}
+                          </span>
+                        )}
+                        {form.settings.shareResponses && (
+                          <span
+                            className={style.formCardBadge}
+                            style={{
+                              background: "var(--status-info-bg)",
+                              color: "var(--status-info)",
+                            }}
+                          >
+                            공유
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className={style.formCardRight}>

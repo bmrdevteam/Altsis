@@ -13,6 +13,14 @@ import ActivityListFilterBar, {
   TActivityViewCounts,
   TActivityViewFilter,
 } from "./ActivityListFilterBar";
+import {
+  getActivityBadgeLabel,
+  getActivityPeriodKind,
+  getActivityStatusVisual,
+  getRequiredResponseCount,
+  TActivityBadgeKind,
+  TActivityLeadTone,
+} from "./activityStatusVisual";
 
 const formMatchesKeyword = (form: TAltForm, keyword: string) => {
   const kw = keyword.trim().toLowerCase();
@@ -45,19 +53,6 @@ type Props = {
   onPendingApprovalCountChange?: (count: number) => void;
 };
 
-type PeriodKind = "open" | "scheduled" | "closed";
-
-const getPeriodKind = (form: TAltForm): PeriodKind => {
-  const now = new Date();
-  if (form.settings.closeAt && new Date(form.settings.closeAt) < now) {
-    return "closed";
-  }
-  if (form.settings.openAt && new Date(form.settings.openAt) > now) {
-    return "scheduled";
-  }
-  return "open";
-};
-
 const formMatchesStatus = (
   form: TAltForm,
   statusFilter: Exclude<TActivityViewFilter, "" | "todo">
@@ -67,7 +62,7 @@ const formMatchesStatus = (
     return !form.isDraft && !!form.settings.directInputMode;
   if (form.isDraft) return false;
   if (form.settings.directInputMode) return false;
-  const period = getPeriodKind(form);
+  const period = getActivityPeriodKind(form);
   if (statusFilter === "closed") return period === "closed";
   if (statusFilter === "scheduled") return period === "scheduled";
   if (statusFilter === "submitted")
@@ -112,7 +107,7 @@ const getDeadlineHint = (form: TAltForm): string | null => {
 };
 
 const submitSortRank = (form: TAltForm): number => {
-  const period = getPeriodKind(form);
+  const period = getActivityPeriodKind(form);
   const submitted = !!form.mySubmitted;
   const required = form.settings?.requiredMode === true;
   if (!submitted && period === "open" && required) return 0;
@@ -121,13 +116,24 @@ const submitSortRank = (form: TAltForm): number => {
   return 3; // closed / optional unsubmitted
 };
 
-/** 필수+복수일 때 목표 제출 횟수. 해당 아니면 null */
-const getRequiredResponseCount = (form: TAltForm): number | null => {
-  if (form.settings?.requiredMode !== true) return null;
-  if (!form.settings?.allowMultipleResponses) return null;
-  const n = Number(form.settings.requiredResponseCount);
-  if (!Number.isFinite(n) || n < 1) return 1;
-  return Math.floor(n);
+const LEAD_TONE_CLASS: Record<TActivityLeadTone, string> = {
+  draft: style.formCardLeadIconDraft,
+  pending: style.formCardLeadIconPending,
+  submitted: style.formCardLeadIconSubmitted,
+  closed: style.formCardLeadIconClosed,
+  scheduled: style.formCardLeadIconScheduled,
+  info: style.formCardLeadIconInfo,
+  warning: style.formCardLeadIconWarning,
+};
+
+const BADGE_KIND_CLASS: Record<TActivityBadgeKind, string> = {
+  draft: style.badgeDraft,
+  direct: style.badgeDirect,
+  closed: style.badgeClosed,
+  scheduled: style.badgeScheduled,
+  submitted: style.badgeSubmitted,
+  pending: style.badgePending,
+  optional: style.badgeOptional,
 };
 
 const AltFormList = ({
@@ -195,7 +201,7 @@ const AltFormList = ({
     if (!myRole) return [];
     const list = (canManage ? forms : submitForms).filter((f) => {
       if (todoUnsubmittedIds.has(f._id)) return false;
-      if (!canManage && getPeriodKind(f) === "closed") return false;
+      if (!canManage && getActivityPeriodKind(f) === "closed") return false;
       return true;
     });
     return list.sort((a, b) => {
@@ -280,7 +286,7 @@ const AltFormList = ({
     let closed = 0;
     for (const f of submitForms) {
       if (f.isDraft) continue;
-      const period = getPeriodKind(f);
+      const period = getActivityPeriodKind(f);
       if (period === "closed") {
         if (canManage) closed += 1;
       } else if (period === "scheduled") scheduled += 1;
@@ -379,74 +385,10 @@ const AltFormList = ({
     ).length >= 1;
 
   const renderSubmitBadge = (form: TAltForm) => {
-    if (form.isDraft) {
-      return (
-        <span className={`${style.formCardBadge} ${style.badgePending}`}>
-          비공개
-        </span>
-      );
-    }
-    if (form.settings.directInputMode) {
-      return (
-        <span
-          className={style.formCardBadge}
-          style={{
-            background: "var(--status-warning-bg)",
-            color: "var(--status-warning)",
-          }}
-        >
-          직접입력
-        </span>
-      );
-    }
-    const period = getPeriodKind(form);
-    if (period === "closed") {
-      return (
-        <span className={`${style.formCardBadge} ${style.badgeClosed}`}>
-          마감
-        </span>
-      );
-    }
-    if (period === "scheduled") {
-      return (
-        <span className={`${style.formCardBadge} ${style.badgeClosed}`}>
-          예정
-        </span>
-      );
-    }
-    const target = getRequiredResponseCount(form);
-    const mine = form.myResponseCount ?? 0;
-    if (target != null) {
-      if (form.mySubmitted) {
-        return (
-          <span className={`${style.formCardBadge} ${style.badgeSubmitted}`}>
-            제출완료
-          </span>
-        );
-      }
-      return (
-        <span className={`${style.formCardBadge} ${style.badgePending}`}>
-          필수 {mine}/{target}
-        </span>
-      );
-    }
-    if (form.mySubmitted) {
-      return (
-        <span className={`${style.formCardBadge} ${style.badgeSubmitted}`}>
-          제출완료
-        </span>
-      );
-    }
-    if (form.settings?.requiredMode !== true) {
-      return (
-        <span className={`${style.formCardBadge} ${style.badgeOptional}`}>
-          선택
-        </span>
-      );
-    }
+    const { badgeKind } = getActivityStatusVisual(form);
     return (
-      <span className={`${style.formCardBadge} ${style.badgePending}`}>
-        미제출
+      <span className={`${style.formCardBadge} ${BADGE_KIND_CLASS[badgeKind]}`}>
+        {getActivityBadgeLabel(form)}
       </span>
     );
   };
@@ -466,7 +408,7 @@ const AltFormList = ({
 
   const renderActivityCard = (form: TAltForm) => {
     const deadlineHint = getDeadlineHint(form);
-    const period = getPeriodKind(form);
+    const period = getActivityPeriodKind(form);
     const isDirect = !!form.settings.directInputMode;
     const canEditForm = canModifyForm(form);
     const showMyResponses =
@@ -482,30 +424,20 @@ const AltFormList = ({
       ? `응답 ${count}건`
       : `제출 ${count}명`;
 
-    const primaryAction = (() => {
+    const cardTitle = (() => {
       if (form.isDraft) {
-        if (!canEditForm) return null;
-        return { icon: "settings" as const, title: "양식 수정" };
+        if (!canEditForm) return undefined;
+        return "양식 수정";
       }
       if (isDirect) {
-        if (onOpenSheet) return { icon: "table" as const, title: "기록 보기" };
-        if (canEditForm) return { icon: "settings" as const, title: "양식 수정" };
-        return null;
+        if (onOpenSheet) return "기록 보기";
+        if (canEditForm) return "양식 수정";
+        return undefined;
       }
-      return { icon: "write" as const, title: "응답 작성" };
+      return "응답 작성";
     })();
 
-    const leadToneClass = (() => {
-      if (form.isDraft || isDirect) return style.formCardLeadIconPending;
-      if (period === "closed" || period === "scheduled") {
-        return style.formCardLeadIconClosed;
-      }
-      if (form.mySubmitted) return style.formCardLeadIconSubmitted;
-      if (form.settings?.requiredMode !== true) {
-        return style.formCardLeadIconInfo; // 선택
-      }
-      return style.formCardLeadIconPending; // 미제출
-    })();
+    const statusVisual = getActivityStatusVisual(form);
 
     return (
       <div
@@ -513,7 +445,7 @@ const AltFormList = ({
         className={`${style.formCard} ${
           actionMenu === form._id ? style.formCardMenuOpen : ""
         }`}
-        title={primaryAction?.title}
+        title={cardTitle}
         onClick={() => handleCardActivate(form)}
         role="button"
         tabIndex={0}
@@ -524,52 +456,56 @@ const AltFormList = ({
           }
         }}
       >
-        {primaryAction && (
+        <div className={style.formCardMain}>
           <div
-            className={`${style.formCardLeadIcon} ${leadToneClass}`}
+            className={`${style.formCardLeadIcon} ${
+              LEAD_TONE_CLASS[statusVisual.leadTone]
+            }`}
             aria-hidden
           >
-            <Svg type={primaryAction.icon} width="20px" height="20px" />
+            <Svg type={statusVisual.icon} width="20px" height="20px" />
           </div>
-        )}
-        <div className={style.formCardLeft}>
-          <div className={style.formCardTitle}>{form.title}</div>
-          <div className={style.formCardMeta}>
-            {renderSubmitBadge(form)}
-            {canManage && !isDirect && (
-              <span className={style.responseCount}>{countLabel}</span>
-            )}
-            {form.settings.openAt && period === "scheduled" && (
-              <span>시작: {formatDateTime(form.settings.openAt)}</span>
-            )}
-            {form.settings.closeAt && (
-              <span
-                className={
-                  deadlineHint === "오늘 마감" ? style.deadlineUrgent : undefined
-                }
-              >
-                마감: {formatDateTime(form.settings.closeAt)}
-                {deadlineHint ? ` · ${deadlineHint}` : ""}
-              </span>
-            )}
-            {form.mySubmitted &&
-              form.settings.allowMultipleResponses &&
-              getRequiredResponseCount(form) == null &&
-              period === "open" &&
-              !isDirect && (
-                <span className={style.formCardHint}>추가 제출 가능</span>
+          <div className={style.formCardLeft}>
+            <div className={style.formCardTitle}>{form.title}</div>
+            <div className={style.formCardMeta}>
+              {renderSubmitBadge(form)}
+              {canManage && !isDirect && (
+                <span className={style.responseCount}>{countLabel}</span>
               )}
-            {form.settings.quizMode && (
-              <span
-                className={style.formCardBadge}
-                style={{
-                  background: "var(--status-info-bg)",
-                  color: "var(--status-info)",
-                }}
-              >
-                퀴즈
-              </span>
-            )}
+              {form.settings.openAt && period === "scheduled" && (
+                <span>시작: {formatDateTime(form.settings.openAt)}</span>
+              )}
+              {form.settings.closeAt && (
+                <span
+                  className={
+                    deadlineHint === "오늘 마감"
+                      ? style.deadlineUrgent
+                      : undefined
+                  }
+                >
+                  마감: {formatDateTime(form.settings.closeAt)}
+                  {deadlineHint ? ` · ${deadlineHint}` : ""}
+                </span>
+              )}
+              {form.mySubmitted &&
+                form.settings.allowMultipleResponses &&
+                getRequiredResponseCount(form) == null &&
+                period === "open" &&
+                !isDirect && (
+                  <span className={style.formCardHint}>추가 제출 가능</span>
+                )}
+              {form.settings.quizMode && (
+                <span
+                  className={style.formCardBadge}
+                  style={{
+                    background: "var(--status-info-bg)",
+                    color: "var(--status-info)",
+                  }}
+                >
+                  퀴즈
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <div className={style.formCardRight} style={{ position: "relative" }}>

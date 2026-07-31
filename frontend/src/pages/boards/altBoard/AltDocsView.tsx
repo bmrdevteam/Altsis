@@ -442,43 +442,45 @@ const AltDocsView = ({ board, onPostsChanged }: Props) => {
                       }
                     }}
                   >
-                    <div
-                      className={`${style.formCardLeadIcon} ${leadToneClass}`}
-                      aria-hidden
-                    >
-                      <Svg type="menuBook" width="20px" height="20px" />
-                    </div>
-                    <div className={style.formCardLeft}>
-                      <div className={style.formCardTitle}>{post.title}</div>
-                      <div className={style.formCardMeta}>
-                        {post.isUnread && (
-                          <span
-                            className={`${style.formCardBadge} ${style.badgePending}`}
-                          >
-                            안 읽음
-                          </span>
-                        )}
-                        {post.isPinned && (
-                          <span
-                            className={style.formCardBadge}
-                            style={{
-                              background: "var(--status-info-bg)",
-                              color: "var(--status-info)",
-                            }}
-                          >
-                            공지
-                          </span>
-                        )}
-                        {post.isDraft && (
-                          <span
-                            className={`${style.formCardBadge} ${style.badgePending}`}
-                          >
-                            비공개
-                          </span>
-                        )}
-                        {post.authorName && <span>{post.authorName}</span>}
-                        <span>{formatDate(post.createdAt)}</span>
-                        <span>읽기: {formatPermissionRead(post)}</span>
+                    <div className={style.formCardMain}>
+                      <div
+                        className={`${style.formCardLeadIcon} ${leadToneClass}`}
+                        aria-hidden
+                      >
+                        <Svg type="menuBook" width="20px" height="20px" />
+                      </div>
+                      <div className={style.formCardLeft}>
+                        <div className={style.formCardTitle}>{post.title}</div>
+                        <div className={style.formCardMeta}>
+                          {post.isUnread && (
+                            <span
+                              className={`${style.formCardBadge} ${style.badgePending}`}
+                            >
+                              안 읽음
+                            </span>
+                          )}
+                          {post.isPinned && (
+                            <span
+                              className={style.formCardBadge}
+                              style={{
+                                background: "var(--status-info-bg)",
+                                color: "var(--status-info)",
+                              }}
+                            >
+                              공지
+                            </span>
+                          )}
+                          {post.isDraft && (
+                            <span
+                              className={`${style.formCardBadge} ${style.badgePending}`}
+                            >
+                              비공개
+                            </span>
+                          )}
+                          {post.authorName && <span>{post.authorName}</span>}
+                          <span>{formatDate(post.createdAt)}</span>
+                          <span>읽기: {formatPermissionRead(post)}</span>
+                        </div>
                       </div>
                     </div>
                     {editable ? (

@@ -537,36 +537,38 @@ const PendingApprovalsPanel = ({
                     }
                   }}
                 >
-                  <div
-                    className={`${style.formCardLeadIcon} ${style.formCardLeadIconWarning}`}
-                    aria-hidden
-                  >
-                    <Svg type="list_check" width="20px" height="20px" />
-                  </div>
-                  <div className={style.formCardLeft}>
-                    <div className={style.formCardTitle}>{item.formTitle}</div>
-                    <div className={style.formCardMeta}>
-                      <span
-                        className={`${style.formCardBadge} ${style.badgeApproval}`}
-                      >
-                        {item.stepLabel || item.fieldLabel}
-                      </span>
-                      {item.respondentName && (
-                        <span>
-                          {item.respondentName}
-                          {item.respondentId ? `(${item.respondentId})` : ""}
+                  <div className={style.formCardMain}>
+                    <div
+                      className={`${style.formCardLeadIcon} ${style.formCardLeadIconWarning}`}
+                      aria-hidden
+                    >
+                      <Svg type="list_check" width="20px" height="20px" />
+                    </div>
+                    <div className={style.formCardLeft}>
+                      <div className={style.formCardTitle}>{item.formTitle}</div>
+                      <div className={style.formCardMeta}>
+                        <span
+                          className={`${style.formCardBadge} ${style.badgeApproval}`}
+                        >
+                          {item.stepLabel || item.fieldLabel}
                         </span>
-                      )}
-                      {item.submittedAt && (
-                        <span>
-                          {new Date(item.submittedAt).toLocaleString("ko-KR", {
-                            month: "2-digit",
-                            day: "2-digit",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
-                      )}
+                        {item.respondentName && (
+                          <span>
+                            {item.respondentName}
+                            {item.respondentId ? `(${item.respondentId})` : ""}
+                          </span>
+                        )}
+                        {item.submittedAt && (
+                          <span>
+                            {new Date(item.submittedAt).toLocaleString("ko-KR", {
+                              month: "2-digit",
+                              day: "2-digit",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -592,6 +594,7 @@ const PendingApprovalsPanel = ({
                       }
                     }}
                   >
+                  <div className={style.formCardMain}>
                     <div
                       className={`${style.formCardLeadIcon} ${style.formCardLeadIconInfo}`}
                       aria-hidden
@@ -639,6 +642,7 @@ const PendingApprovalsPanel = ({
                         )}
                       </div>
                     </div>
+                  </div>
                   </div>
                 );
               })}

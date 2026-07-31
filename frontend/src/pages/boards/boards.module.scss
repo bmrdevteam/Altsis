@@ -479,18 +479,23 @@
 }
 
 .filterChipToneClosed {
-  background: color-mix(in srgb, var(--text-color-2) 18%, var(--background-color));
-  color: var(--text-color-1);
+  background: color-mix(in srgb, #5b6b8c 20%, var(--background-color));
+  color: #3f4f6c;
 }
 
 .filterChipToneScheduled {
-  background: color-mix(in srgb, var(--text-color-2) 12%, var(--background-color));
-  color: var(--text-color-2);
+  background: color-mix(in srgb, #0d9488 16%, var(--background-color));
+  color: #0f766e;
 }
 
 .filterChipTonePending {
   background: var(--status-error-bg);
   color: var(--status-error);
+}
+
+.filterChipToneDraft {
+  background: color-mix(in srgb, #7c6a9a 18%, var(--background-color));
+  color: #5b4d75;
 }
 
 .filterChipToneDirect {

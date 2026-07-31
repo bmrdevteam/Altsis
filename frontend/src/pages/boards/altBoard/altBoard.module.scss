@@ -227,13 +227,23 @@
   padding: 0;
 }
 
+/** 리드 아이콘 + 제목/메타 — 좁은 화면에서도 가로 유지 */
+.formCardMain {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-width: 0;
+  flex: 1;
+}
+
 .formCardLeadIcon {
   position: relative;
   z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  align-self: center;
   flex-shrink: 0;
   width: 36px;
   height: 36px;
@@ -256,6 +266,15 @@
   }
 }
 
+.formCardLeadIconDraft {
+  background: color-mix(in srgb, #7c6a9a 18%, var(--background-color));
+  color: #5b4d75;
+
+  svg {
+    fill: #5b4d75;
+  }
+}
+
 .formCardLeadIconSubmitted {
   background: var(--status-success-bg);
   color: var(--status-success);
@@ -266,11 +285,20 @@
 }
 
 .formCardLeadIconClosed {
-  background: var(--background-color-2);
-  color: var(--text-color-2, var(--accent-3));
+  background: color-mix(in srgb, #5b6b8c 20%, var(--background-color));
+  color: #3f4f6c;
 
   svg {
-    fill: var(--text-color-2, var(--accent-3));
+    fill: #3f4f6c;
+  }
+}
+
+.formCardLeadIconScheduled {
+  background: color-mix(in srgb, #0d9488 16%, var(--background-color));
+  color: #0f766e;
+
+  svg {
+    fill: #0f766e;
   }
 }
 
@@ -322,8 +350,23 @@
 }
 
 .badgeClosed {
-  background: var(--background-color-2);
-  color: var(--text-color-2, var(--accent-3));
+  background: color-mix(in srgb, #5b6b8c 20%, var(--background-color));
+  color: #3f4f6c;
+}
+
+.badgeScheduled {
+  background: color-mix(in srgb, #0d9488 16%, var(--background-color));
+  color: #0f766e;
+}
+
+.badgeDraft {
+  background: color-mix(in srgb, #7c6a9a 18%, var(--background-color));
+  color: #5b4d75;
+}
+
+.badgeDirect {
+  background: var(--status-warning-bg);
+  color: var(--status-warning);
 }
 
 .badgePending {
@@ -3870,13 +3913,14 @@ tbody tr:hover .actionCell {
   .formCard {
     flex-direction: column;
     align-items: stretch;
-    gap: 0;
+    gap: 4px;
     padding: 14px 12px 12px 16px;
   }
 
   .formCardRight {
     padding: 0;
     margin-left: 0;
+    justify-content: flex-end;
   }
 
   .builderHeader {

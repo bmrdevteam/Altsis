@@ -1,6 +1,10 @@
 import Svg from "assets/svg/Svg";
 import mergeStyle from "components/mergeFilter/mergeFilter.module.scss";
 import bStyle from "../boards.module.scss";
+import {
+  ACTIVITY_CHIP_VISUAL,
+  TActivityChipKey,
+} from "./activityStatusVisual";
 
 /** 배타 칩: 전체("") | 할 일 | 활동 상태 */
 export type TActivityViewFilter =
@@ -18,56 +22,25 @@ export type TActivityViewCounts = Record<
   number
 >;
 
-type ChipDef = {
-  value: Exclude<TActivityViewFilter, "">;
-  label: string;
-  toneClass: string;
-  icon: string;
+const CHIP_TONE_CLASS: Record<string, string> = {
+  All: bStyle.filterChipToneAll,
+  Approval: bStyle.filterChipToneApproval,
+  Optional: bStyle.filterChipToneOptional,
+  Submitted: bStyle.filterChipToneSubmitted,
+  Closed: bStyle.filterChipToneClosed,
+  Scheduled: bStyle.filterChipToneScheduled,
+  Draft: bStyle.filterChipToneDraft,
+  Direct: bStyle.filterChipToneDirect,
 };
 
-const CHIP_DEFS: ChipDef[] = [
-  {
-    value: "todo",
-    label: "할 일",
-    toneClass: bStyle.filterChipToneApproval,
-    icon: "list_check",
-  },
-  {
-    value: "open",
-    label: "진행중",
-    toneClass: bStyle.filterChipToneOptional,
-    icon: "time",
-  },
-  {
-    value: "submitted",
-    label: "제출완료",
-    toneClass: bStyle.filterChipToneSubmitted,
-    icon: "checkboxChecked",
-  },
-  {
-    value: "closed",
-    label: "마감",
-    toneClass: bStyle.filterChipToneClosed,
-    icon: "archive",
-  },
-  {
-    value: "scheduled",
-    label: "예정",
-    toneClass: bStyle.filterChipToneScheduled,
-    icon: "calender",
-  },
-  {
-    value: "draft",
-    label: "비공개",
-    toneClass: bStyle.filterChipTonePending,
-    icon: "error",
-  },
-  {
-    value: "direct",
-    label: "직접입력",
-    toneClass: bStyle.filterChipToneDirect,
-    icon: "write",
-  },
+const CHIP_ORDER: Exclude<TActivityChipKey, "all">[] = [
+  "todo",
+  "open",
+  "submitted",
+  "closed",
+  "scheduled",
+  "draft",
+  "direct",
 ];
 
 type Props = {
@@ -94,6 +67,7 @@ const ActivityListFilterBar = ({
   onClear,
 }: Props) => {
   const hasAnyFilter = !!keyword.trim() || !!viewFilter;
+  const allChip = ACTIVITY_CHIP_VISUAL.all;
 
   return (
     <div className={bStyle.activityFilterBlock}>
@@ -119,28 +93,29 @@ const ActivityListFilterBar = ({
       >
         <button
           type="button"
-          className={`${bStyle.filterChip} ${bStyle.filterChipToneAll} ${
+          className={`${bStyle.filterChip} ${CHIP_TONE_CLASS[allChip.tone]} ${
             viewFilter === "" ? bStyle.filterChipActive : ""
           }`}
           aria-pressed={viewFilter === ""}
           onClick={() => onViewFilterChange("")}
         >
-          <ChipIcon type="list" />
-          전체
+          <ChipIcon type={allChip.icon} />
+          {allChip.label}
         </button>
-        {CHIP_DEFS.map((chip) => {
-          const count = counts[chip.value] || 0;
+        {CHIP_ORDER.map((value) => {
+          const chip = ACTIVITY_CHIP_VISUAL[value];
+          const count = counts[value] || 0;
           if (count <= 0) return null;
-          const active = viewFilter === chip.value;
+          const active = viewFilter === value;
           return (
             <button
-              key={chip.value}
+              key={value}
               type="button"
-              className={`${bStyle.filterChip} ${chip.toneClass} ${
+              className={`${bStyle.filterChip} ${CHIP_TONE_CLASS[chip.tone]} ${
                 active ? bStyle.filterChipActive : ""
               }`}
               aria-pressed={active}
-              onClick={() => onViewFilterChange(chip.value)}
+              onClick={() => onViewFilterChange(value)}
             >
               <ChipIcon type={chip.icon} />
               {chip.label} {count}
