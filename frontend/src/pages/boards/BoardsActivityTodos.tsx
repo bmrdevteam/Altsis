@@ -22,6 +22,10 @@ export type TSchoolTodoItem = {
   myResponseCount?: number;
   requiredResponseCount?: number | null;
   submittedAt?: string;
+  /** unsubmitted 전용 — 보드 내부 활동 카드와 맞춤 */
+  quizMode?: boolean;
+  assessmentMode?: boolean;
+  closeAt?: string | null;
 };
 
 type Props = {
@@ -39,6 +43,52 @@ const formatSubmittedAt = (iso?: string) => {
     hour: "2-digit",
     minute: "2-digit",
   });
+};
+
+const formatDateTime = (iso: string) =>
+  new Date(iso).toLocaleString("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+/** AltFormList getDeadlineHint 와 동일 */
+const getDeadlineHint = (closeAt?: string | null): string | null => {
+  if (!closeAt) return null;
+  const close = new Date(closeAt);
+  const now = new Date();
+  if (close < now) return null;
+
+  const startOfToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate()
+  );
+  const startOfClose = new Date(
+    close.getFullYear(),
+    close.getMonth(),
+    close.getDate()
+  );
+  const diffDays = Math.round(
+    (startOfClose.getTime() - startOfToday.getTime()) / (24 * 60 * 60 * 1000)
+  );
+  if (diffDays === 0) return "오늘 마감";
+  if (diffDays > 0 && diffDays <= 7) return `D-${diffDays}`;
+  return null;
+};
+
+const unsubmittedBadgeLabel = (item: TSchoolTodoItem) => {
+  if (
+    item.requiredResponseCount != null &&
+    item.requiredResponseCount >= 1
+  ) {
+    const mine = item.myResponseCount ?? 0;
+    return `필수 ${mine}/${item.requiredResponseCount}`;
+  }
+  if (item.progress) return `필수 ${item.progress}`;
+  return "미제출";
 };
 
 const BoardsActivityTodos = ({
@@ -116,7 +166,9 @@ const BoardsActivityTodos = ({
                         <Svg type="list_check" width="20px" height="20px" />
                       </div>
                       <div className={style.formCardLeft}>
-                        <div className={style.formCardTitle}>{item.formTitle}</div>
+                        <div className={style.formCardTitle}>
+                          {item.formTitle}
+                        </div>
                         <div className={style.formCardMeta}>
                           <span
                             className={`${style.formCardBadge} ${style.badgeApproval}`}
@@ -127,7 +179,9 @@ const BoardsActivityTodos = ({
                           {item.respondentName && (
                             <span>
                               {item.respondentName}
-                              {item.respondentId ? `(${item.respondentId})` : ""}
+                              {item.respondentId
+                                ? `(${item.respondentId})`
+                                : ""}
                             </span>
                           )}
                           {submittedAt && <span>{submittedAt}</span>}
@@ -162,7 +216,9 @@ const BoardsActivityTodos = ({
                         <Svg type="list_check" width="20px" height="20px" />
                       </div>
                       <div className={style.formCardLeft}>
-                        <div className={style.formCardTitle}>{item.formTitle}</div>
+                        <div className={style.formCardTitle}>
+                          {item.formTitle}
+                        </div>
                         <div className={style.formCardMeta}>
                           <span
                             className={`${style.formCardBadge} ${style.badgeOptional}`}
@@ -194,7 +250,8 @@ const BoardsActivityTodos = ({
                 );
               }
 
-              // unsubmitted
+              // unsubmitted — 보드 내부 할 일(활동 카드) 메타와 맞춤
+              const deadlineHint = getDeadlineHint(item.closeAt);
               return (
                 <div
                   key={key}
@@ -215,17 +272,45 @@ const BoardsActivityTodos = ({
                       className={`${style.formCardLeadIcon} ${style.formCardLeadIconPending}`}
                       aria-hidden
                     >
-                      <Svg type="write" width="20px" height="20px" />
+                      <Svg type="time" width="20px" height="20px" />
                     </div>
                     <div className={style.formCardLeft}>
-                      <div className={style.formCardTitle}>{item.formTitle}</div>
+                      <div className={style.formCardTitle}>
+                        {item.formTitle}
+                      </div>
                       <div className={style.formCardMeta}>
+                        {item.quizMode && (
+                          <span
+                            className={`${style.formCardBadge} ${style.formCardTypeQuiz}`}
+                          >
+                            퀴즈
+                          </span>
+                        )}
+                        {item.assessmentMode && (
+                          <span
+                            className={`${style.formCardBadge} ${style.formCardTypeAssessment}`}
+                          >
+                            평가
+                          </span>
+                        )}
                         <span
                           className={`${style.formCardBadge} ${style.badgePending}`}
                         >
-                          {item.progress || "미제출"}
+                          {unsubmittedBadgeLabel(item)}
                         </span>
                         <span>{item.boardTitle}</span>
+                        {item.closeAt && (
+                          <span
+                            className={
+                              deadlineHint === "오늘 마감"
+                                ? style.deadlineUrgent
+                                : undefined
+                            }
+                          >
+                            마감: {formatDateTime(item.closeAt)}
+                            {deadlineHint ? ` · ${deadlineHint}` : ""}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>

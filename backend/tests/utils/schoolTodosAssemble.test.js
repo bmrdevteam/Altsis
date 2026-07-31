@@ -140,6 +140,12 @@ describe("assembleSchoolTodos", () => {
     expect(items.find((i) => i.kind === "unsubmitted")?.formTitle).toBe(
       "필수 양식"
     );
+    const unsub = items.find((i) => i.kind === "unsubmitted");
+    expect(unsub).toMatchObject({
+      quizMode: false,
+      assessmentMode: false,
+    });
+    expect(unsub).toHaveProperty("closeAt");
   });
 
   test("skips unsubmitted when user has no alt board role", () => {

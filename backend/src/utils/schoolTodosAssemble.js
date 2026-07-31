@@ -175,6 +175,9 @@ export const assembleSchoolTodos = ({
         requiredResponseCount: target,
         progress:
           target != null ? `${formMyRows.length}/${target}` : undefined,
+        quizMode: !!form.settings?.quizMode,
+        assessmentMode: !!form.settings?.assessmentMode,
+        closeAt: form.settings?.closeAt || null,
       });
     }
   }
