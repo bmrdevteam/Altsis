@@ -69,7 +69,7 @@ const attachSyllabusMeta = async (academyId, boardsOrBoard, user) => {
 
   const syllabuses = await Syllabus(academyId)
     .find({ _id: { $in: syllabusIds } })
-    .select("classTitle teachers user")
+    .select("classTitle teachers user season year term")
     .lean();
   const sylMap = new Map(syllabuses.map((s) => [s._id.toString(), s]));
 
@@ -111,6 +111,9 @@ const attachSyllabusMeta = async (academyId, boardsOrBoard, user) => {
       _id: sylId,
       classTitle,
       coursePath,
+      season: syl?.season?.toString?.() || null,
+      year: syl?.year || null,
+      term: syl?.term || null,
     };
     return obj;
   });
@@ -375,11 +378,25 @@ export const find = async (req, res) => {
       return boardObj;
     });
 
-    const boardsWithMeta = await attachSyllabusMeta(
+    let boardsWithMeta = await attachSyllabusMeta(
       req.user.academyId,
       boardsWithFavorites,
       req.user
     );
+
+    // 수업 연결 보드는 school scope라도 학습계획서 시즌 기준으로 한정
+    // (시즌 보드의 scope=season 필터와 별개로, 과거 쿼터 수업 보드가 섞여 보이지 않게)
+    if (currentSeasonId && !isManageMode) {
+      const seasonKey = String(currentSeasonId);
+      boardsWithMeta = boardsWithMeta.filter((b) => {
+        if (!b.syllabus) return true;
+        const syllabusSeason =
+          b.syllabusMeta?.season?.toString?.() ||
+          b.season?.toString?.() ||
+          null;
+        return syllabusSeason === seasonKey;
+      });
+    }
 
     return res.status(200).send({ boards: boardsWithMeta });
   } catch (err) {

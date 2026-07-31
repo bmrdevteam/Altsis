@@ -23,6 +23,7 @@ import Tab from "components/tab/Tab";
 
 import { TBoard, TBoardLinkFilter, TBoardListViewMode } from "types/board";
 import { resolveBoardCoverColor } from "utils/boardCoverColor";
+import { getBoardScopeLabel, isSchoolOnlyBoard, isSeasonLinkedBoard } from "utils/boardLabels";
 
 import BoardCreatePopup from "./popup/BoardCreate";
 import BoardManagePopup from "./popup/BoardManage";
@@ -76,16 +77,6 @@ const Boards = () => {
 
   const currentSeasonId =
     currentRegistration?.season || currentSeason?._id || undefined;
-
-  const boardScopeLabel = (board: TBoard) => {
-    if (board.scope === "season") {
-      if (board.seasonYear && board.seasonTerm) {
-        return `${board.seasonYear} ${board.seasonTerm}`;
-      }
-      return "시즌";
-    }
-    return "학교";
-  };
 
   const canCreateBoard = useMemo(() => {
     if (isManager) return true;
@@ -267,8 +258,8 @@ const Boards = () => {
     let general = 0;
     for (const b of boardsForChipCounts) {
       if ((todoCountByBoard[b._id] || 0) > 0) todos += 1;
-      if ((b.scope || "school") === "school") school += 1;
-      if (b.scope === "season") season += 1;
+      if (isSchoolOnlyBoard(b)) school += 1;
+      if (isSeasonLinkedBoard(b)) season += 1;
       if (b.boardType === "official") official += 1;
       if (b.boardType === "user") user += 1;
       if (b.syllabus || b.syllabusMeta) syllabus += 1;
@@ -289,8 +280,10 @@ const Boards = () => {
     if (hasTodosOnly) {
       result = result.filter((b) => (todoCountByBoard[b._id] || 0) > 0);
     }
-    if (scopeFilter) {
-      result = result.filter((b) => (b.scope || "school") === scopeFilter);
+    if (scopeFilter === "season") {
+      result = result.filter((b) => isSeasonLinkedBoard(b));
+    } else if (scopeFilter === "school") {
+      result = result.filter((b) => isSchoolOnlyBoard(b));
     }
     if (boardTypeFilter) {
       result = result.filter((b) => b.boardType === boardTypeFilter);
@@ -480,7 +473,7 @@ const Boards = () => {
                           <span
                             className={`${aStyle.formCardBadge} ${aStyle.badgeOptional}`}
                           >
-                            {boardScopeLabel(board)}
+                            {getBoardScopeLabel(board)}
                           </span>
                           {board.boardType === "user" && (
                             <span

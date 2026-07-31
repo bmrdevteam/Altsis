@@ -86,6 +86,10 @@ export type TBoard = {
     classTitle: string;
     /** 현재 사용자 기준 수업 상세 경로 (없으면 null) */
     coursePath?: string | null;
+    /** 학습계획서 시즌 (목록 시즌 필터용) */
+    season?: string | null;
+    year?: string | null;
+    term?: string | null;
   };
   altBoardRole?: Record<string, TAltBoardRole>;
   notificationEvents?: TBoardNotificationEvents;

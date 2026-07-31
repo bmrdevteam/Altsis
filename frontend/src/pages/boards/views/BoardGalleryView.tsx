@@ -1,5 +1,6 @@
 import { TBoard } from "types/board";
 import { resolveBoardCoverColor } from "utils/boardCoverColor";
+import { getBoardScopeLabel } from "utils/boardLabels";
 import style from "./boardGalleryView.module.scss";
 
 type Props = {
@@ -87,11 +88,7 @@ const BoardGalleryView = ({
                 </span>
               )}
               <span className={`${style.badge} ${style.badgeUser}`}>
-                {board.scope === "season"
-                  ? board.seasonYear && board.seasonTerm
-                    ? `${board.seasonYear} ${board.seasonTerm}`
-                    : "시즌"
-                  : "학교"}
+                {getBoardScopeLabel(board)}
               </span>
               {board.boardType === "user" && (
                 <span className={`${style.badge} ${style.badgeUser}`}>

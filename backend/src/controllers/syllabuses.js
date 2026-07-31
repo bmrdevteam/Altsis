@@ -1232,6 +1232,10 @@ export const createAltBoard = async (req, res) => {
       boardMode: "alt",
       boardType: "official",
       syllabus: syllabus._id,
+      // 목록에서 시즌별 필터용 (scope는 school 유지 — 「시즌」칩과 구분)
+      season: syllabus.season,
+      seasonYear: syllabus.year,
+      seasonTerm: syllabus.term,
       altBoardRole,
       members: {
         groups: { manager: false, teacher: false, student: false },
