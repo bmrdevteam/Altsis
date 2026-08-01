@@ -64,6 +64,7 @@ import Navbar from "layout/navbar/Navbar";
 import { useAuth } from "../contexts/authContext";
 
 import Settings from "../pages/settings/Index";
+import GoalsDashboard from "pages/goals/Index";
 import Forms from "../pages/admin/forms/Index";
 import Form from "../pages/admin/forms/Pid";
 import Myaccount from "pages/myaccount/Index";
@@ -630,6 +631,14 @@ function RouterPage() {
                 ></Route>
               </Route>
 
+              <Route
+                path="goals"
+                element={
+                  <RequireAuth>
+                    <GoalsDashboard />
+                  </RequireAuth>
+                }
+              ></Route>
               <Route
                 path="settings"
                 element={

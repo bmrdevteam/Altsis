@@ -69,6 +69,11 @@
         outline: none;
       }
 
+      .search_spacer {
+        flex: 1 1 0;
+        min-width: 0;
+      }
+
       .pager {
         display: flex;
         align-items: center;
@@ -112,12 +117,13 @@
       .more {
         display: flex;
         cursor: pointer;
+        position: relative;
 
         .menu_container {
-          z-index: 3;
+          z-index: 10;
           position: absolute;
-          top: 48px;
-          right: 12px;
+          top: calc(100% + 4px);
+          right: 0;
           padding: 4px;
           border-radius: 4px;
           background-color: var(--background-color);
@@ -127,6 +133,7 @@
           gap: 4px;
           font-weight: 500;
           font-size: 12px;
+          white-space: nowrap;
 
           .menu_item {
             display: flex;

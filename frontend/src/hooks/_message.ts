@@ -43,6 +43,7 @@ export const MESSAGE = new Map<string, string>([
   ["SYLLABUS_NOT_FOUND", "강의계획서를 찾을 수 없습니다."],
   ["ENROLLMENT_IN_USE", "이미 신청한 수업입니다."],
   ["STUDENTS_FULL", "수강정원이 다 찼습니다."],
+  ["CREDIT_LIMIT_EXCEEDED", "최대 신청 학점을 초과했습니다."],
   ["TIME_DUPLICATED", "시간표가 중복되었습니다."],
   ["SYLLABUS_NOT_CONFIRMED", "승인되지 않은 수업입니다."],
   ["PERMISSION_DENIED", "권한이 없습니다."],

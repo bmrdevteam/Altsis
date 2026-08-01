@@ -11,6 +11,7 @@ import { router as comments } from "./comments.js";
 import { router as chats } from "./chats.js";
 import { router as enrollments } from "./enrollments.js";
 import { router as forms } from "./forms.js";
+import { router as goals } from "./goals.js";
 import { router as notifications } from "./notifications.js";
 import { router as posts } from "./posts.js";
 import { router as reminders } from "./reminders.js";
@@ -43,6 +44,7 @@ export const routers = [
   { label: "comments", routes: comments },
   { label: "enrollments", routes: enrollments },
   { label: "forms", routes: forms },
+  { label: "goals", routes: goals },
   { label: "notifications", routes: notifications },
   { label: "posts", routes: posts },
   { label: "reminders", routes: reminders },

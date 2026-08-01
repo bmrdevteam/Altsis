@@ -19,6 +19,7 @@ import {
   getSchoolTodosCached,
   schoolTodosCacheKey,
 } from "pages/boards/schoolTodosCache";
+import GoalsSidebarWidget from "./GoalsSidebarWidget";
 
 type Props = {};
 
@@ -151,6 +152,14 @@ const Sidebar = (props: Props) => {
           )}
         </div>
       </div>
+      <GoalsSidebarWidget
+        open={sidebarOpen}
+        onNavigate={() => {
+          if (window.innerWidth < 800) {
+            setSidebarOpen(false);
+          }
+        }}
+      />
       <NavProfile
         onNavigate={() => {
           if (window.innerWidth < 800) {

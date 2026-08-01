@@ -19,6 +19,7 @@ import {
   TDeletedSchoolFormArchive,
   TAcademyFeatures,
 } from "types/schools";
+import { TGoalDisplay, TGoalsMe } from "types/goals";
 import { TDashboard } from "types/dashboard";
 import {
   TFormEvaluation,
@@ -1052,6 +1053,35 @@ export default function useAPIv2() {
     };
   }
 
+  /**
+   * USchoolGoalDisplay API
+   * @description 학교 목표 표시 블록 on/off 수정
+   * @auth admin|manager
+   */
+  async function USchoolGoalDisplay(props: {
+    params: { _id: string };
+    data: { goalDisplay: TGoalDisplay };
+  }) {
+    const { goalDisplay } = await database.U({
+      location: `schools/${props.params._id}/goalDisplay`,
+      data: props.data,
+    });
+    return { goalDisplay: goalDisplay as TGoalDisplay };
+  }
+
+  /**
+   * RGoalMe API
+   * @description 본인 목표 표시 설정 + 기록 건수
+   */
+  async function RGoalMe(props: {
+    query: { school: string; season?: string };
+  }) {
+    const data = await database.R({
+      location: "goals/me" + QUERY_BUILDER(props.query),
+    });
+    return data as TGoalsMe;
+  }
+
   async function USchoolBoardCreationPermission(props: {
     params: { _id: string };
     data: {
@@ -1097,6 +1127,7 @@ export default function useAPIv2() {
       chatEnabled?: boolean;
       boardEnabled?: boolean;
       aiEnabled?: boolean;
+      goalsEnabled?: boolean;
     };
   }) {
     const { features } = await database.U({
@@ -1108,6 +1139,7 @@ export default function useAPIv2() {
         chatEnabled: boolean;
         boardEnabled: boolean;
         aiEnabled: boolean;
+        goalsEnabled: boolean;
       },
     };
   }
@@ -1567,6 +1599,28 @@ export default function useAPIv2() {
   }) {
     const { season } = await database.U({
       location: `seasons/${props.params._id}/period`,
+      data: props.data,
+    });
+    return { season: season as TSeason };
+  }
+
+  /**
+   * USeasonCredits API
+   * @description 학기 최소/최대 신청 학점 수정 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function USeasonCredits(props: {
+    params: {
+      _id: string;
+    };
+    data: {
+      minCredit?: number;
+      maxCredit?: number;
+    };
+  }) {
+    const { season } = await database.U({
+      location: `seasons/${props.params._id}/credits`,
       data: props.data,
     });
     return { season: season as TSeason };
@@ -4892,12 +4946,16 @@ export default function useAPIv2() {
       RSchoolDashboard,
       USchoolFormArchive,
       USchoolLinks,
+      USchoolGoalDisplay,
       USchoolFeatureFlags,
       USchoolBoardCreationPermission,
       USchoolBoardNotificationEvents,
       RestoreFormArchive,
       RemoveFormArchive,
       DSchool,
+    },
+    GoalAPI: {
+      RGoalMe,
     },
     CalendarEventAPI: {
       CCalendarEvent,
@@ -4921,6 +4979,7 @@ export default function useAPIv2() {
       UInactivateSeason,
       USeasonBasic,
       USeasonPeriod,
+      USeasonCredits,
       USeasonClassrooms,
       USeasonSubjects,
       USeasonFormTimetable,

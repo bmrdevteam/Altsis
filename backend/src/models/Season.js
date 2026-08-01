@@ -258,6 +258,8 @@ const aiSettingsDefault = {
  * @prop {string} year - 학년도
  * @prop {string} term - 학기
  * @prop {TPeriod} period - 기간
+ * @prop {number} minCredit=0 - 최소 신청 학점 (0 = 제한 없음)
+ * @prop {number} maxCredit=0 - 최대 신청 학점 (0 = 제한 없음)
  * @prop {TPermission} permissionSyllabusV2 - 수업 개설 권한
  * @prop {TPermission} permissionEnrollmentV2 - 수강신청 권한
  * @prop {TPermission} permissionEvaluationV2 - 평가 권한
@@ -299,6 +301,14 @@ const seasonSchema = mongoose.Schema(
         start: "",
         end: "",
       },
+    },
+    minCredit: {
+      type: Number,
+      default: 0,
+    },
+    maxCredit: {
+      type: Number,
+      default: 0,
     },
     permissionSyllabusV2: {
       type: permissionSchema,

@@ -54,6 +54,8 @@ function Basic(props: Props) {
     start: "",
     end: "",
   });
+  const [minCredit, setMinCredit] = useState<string>("");
+  const [maxCredit, setMaxCredit] = useState<string>("");
 
   const setSeasonData = (seasonData: any) => {
     setIsActivated(seasonData.isActivated);
@@ -61,6 +63,12 @@ function Basic(props: Props) {
     setYear(seasonData.year ?? "");
     setTerm(seasonData.term ?? "");
     setPeriod(seasonData.period || { start: "", end: "" });
+    setMinCredit(
+      seasonData.minCredit ? String(seasonData.minCredit) : ""
+    );
+    setMaxCredit(
+      seasonData.maxCredit ? String(seasonData.maxCredit) : ""
+    );
   };
 
   useEffect(() => {
@@ -177,6 +185,81 @@ function Basic(props: Props) {
                   data: {
                     start: period.start !== "" ? period.start : undefined,
                     end: period.end !== "" ? period.end : undefined,
+                  },
+                })
+                  .then(({ season }) => {
+                    alert(SUCCESS_MESSAGE);
+                    setSeasonData(season);
+                    props.setIsLoading(true);
+                  })
+                  .catch((err) => {
+                    ALERT_ERROR(err);
+                  });
+              }}
+            >
+              수정
+            </Button>
+          </div>
+          <div className={style.row} style={{ marginTop: "24px" }}>
+            <Input
+              key={`minCredit-${minCredit}`}
+              style={{ maxHeight: "30px" }}
+              type="number"
+              label="최소 신청 학점"
+              appearence="flat"
+              placeholder="제한 없음"
+              defaultValue={minCredit}
+              onChange={(e: any) => {
+                setMinCredit(e.target.value);
+              }}
+            />
+            <Input
+              key={`maxCredit-${maxCredit}`}
+              style={{ maxHeight: "30px" }}
+              type="number"
+              label="최대 신청 학점"
+              appearence="flat"
+              placeholder="제한 없음"
+              defaultValue={maxCredit}
+              onChange={(e: any) => {
+                setMaxCredit(e.target.value);
+              }}
+            />
+
+            <Button
+              type={"ghost"}
+              style={{
+                borderRadius: "4px",
+                height: "32px",
+                marginTop: "24px",
+              }}
+              onClick={() => {
+                const parsedMin =
+                  minCredit === "" ? 0 : Number(minCredit);
+                const parsedMax =
+                  maxCredit === "" ? 0 : Number(maxCredit);
+                if (
+                  !Number.isInteger(parsedMin) ||
+                  parsedMin < 0 ||
+                  !Number.isInteger(parsedMax) ||
+                  parsedMax < 0
+                ) {
+                  alert("학점은 0 이상의 정수로 입력해주세요.");
+                  return;
+                }
+                if (
+                  parsedMax !== 0 &&
+                  parsedMin !== 0 &&
+                  parsedMin > parsedMax
+                ) {
+                  alert("최소 학점은 최대 학점보다 클 수 없습니다.");
+                  return;
+                }
+                SeasonAPI.USeasonCredits({
+                  params: { _id: props._id },
+                  data: {
+                    minCredit: parsedMin,
+                    maxCredit: parsedMax,
                   },
                 })
                   .then(({ season }) => {

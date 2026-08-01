@@ -17,6 +17,7 @@ router.put("/:_id/features", isAdManager, schools.updateFeatureFlags);
 router.put("/:_id/boardCreationPermission", isAdManager, schools.updateBoardCreationPermission);
 router.put("/:_id/boardNotificationEvents", isAdManager, schools.updateBoardNotificationEvents);
 router.put("/:_id/links", isAdManager, schools.updateLinks);
+router.put("/:_id/goalDisplay", isAdManager, schools.updateGoalDisplay);
 
 // 삭제된 기록 양식 (휴지통) 관리
 router.put(

@@ -33,6 +33,7 @@ import style from "style/pages/enrollment.module.scss";
 import CourseTable from "pages/courses/table/CourseTable";
 import { useAuth } from "contexts/authContext";
 import Divider from "components/divider/Divider";
+import { computeCreatedSummary } from "utils/computeCourseSummaries";
 
 type Props = {
   courseList: any[];
@@ -42,32 +43,7 @@ const CoursesMyList = (props: Props) => {
   const { currentSeason } = useAuth();
   const navigate = useAppNavigate();
 
-  const totalCourses = props.courseList.length;
-  const totalPoint = props.courseList.reduce(
-    (acc, cur) => acc + (cur.point || 0),
-    0
-  );
-  const totalStudents = props.courseList.reduce(
-    (acc, cur) => acc + (cur.count || 0),
-    0
-  );
-  const totalLimit = props.courseList.reduce(
-    (acc, cur) => acc + (cur.limit || 0),
-    0
-  );
-  const confirmedCount = props.courseList.filter(
-    (course) =>
-      course.teachers?.length > 0 &&
-      course.teachers.every((t: any) => t.confirmed)
-  ).length;
-
-  const summaryItems: { label: string; value: string }[] = [
-    { label: "개설 수업", value: `${totalCourses}개` },
-    { label: "총 학점", value: `${totalPoint}학점` },
-    { label: "총 수강생", value: `${totalStudents}명` },
-    { label: "총 정원", value: `${totalLimit}명` },
-    { label: "승인 완료", value: `${confirmedCount}/${totalCourses}` },
-  ];
+  const summaryItems = computeCreatedSummary(props.courseList);
 
   return (
     <>

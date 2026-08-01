@@ -36,6 +36,7 @@ import {
   __NOT_FOUND,
 } from "../messages/index.js";
 import { validate } from "../utils/validate.js";
+import { sanitizeGoalDisplay } from "../constants/defaultGoalDisplay.js";
 
 /**
  * @memberof APIs.SchoolAPI
@@ -326,11 +327,16 @@ export const updateFeatureFlags = async (req, res) => {
     if (typeof req.body.aiEnabled === "boolean") {
       updateData.aiEnabled = req.body.aiEnabled;
     }
+    if (typeof req.body.goalsEnabled === "boolean") {
+      updateData.goalsEnabled = req.body.goalsEnabled;
+    }
 
     if (Object.keys(updateData).length === 0) {
-      return res
-        .status(400)
-        .send({ message: FIELD_REQUIRED("chatEnabled|boardEnabled|aiEnabled") });
+      return res.status(400).send({
+        message: FIELD_REQUIRED(
+          "chatEnabled|boardEnabled|aiEnabled|goalsEnabled"
+        ),
+      });
     }
 
     const school = await School(req.user.academyId).findByIdAndUpdate(
@@ -347,6 +353,7 @@ export const updateFeatureFlags = async (req, res) => {
         chatEnabled: school.chatEnabled,
         boardEnabled: school.boardEnabled,
         aiEnabled: school.aiEnabled,
+        goalsEnabled: school.goalsEnabled !== false,
       },
     });
   } catch (err) {
@@ -436,6 +443,36 @@ export const updateLinks = async (req, res) => {
     }
 
     return res.status(200).send({ links: school.links });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(err.status || 500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * PUT /schools/:_id/goalDisplay
+ * body: { goalDisplay: { student: {...}, teacher: {...} } }
+ */
+export const updateGoalDisplay = async (req, res) => {
+  try {
+    if (!("goalDisplay" in req.body)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("goalDisplay") });
+    }
+    const goalDisplay = sanitizeGoalDisplay(req.body.goalDisplay);
+    if (!goalDisplay) {
+      return res.status(400).send({ message: FIELD_INVALID("goalDisplay") });
+    }
+
+    const school = await School(req.user.academyId).findByIdAndUpdate(
+      req.params._id,
+      { goalDisplay },
+      { new: true }
+    );
+    if (!school) {
+      return res.status(404).send({ message: __NOT_FOUND("school") });
+    }
+
+    return res.status(200).send({ goalDisplay: school.goalDisplay });
   } catch (err) {
     logger.error(err.message);
     return res.status(err.status || 500).send({ message: "서버 오류가 발생했습니다." });

@@ -1,0 +1,378 @@
+.wrap {
+  width: 100%;
+  max-width: none;
+}
+
+.description {
+  margin: 0 0 20px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--accent-3);
+}
+
+.rolesGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px 24px;
+  align-items: start;
+  width: 100%;
+}
+
+.roleBlock {
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.roleTitle {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: var(--accent-1);
+}
+
+.section {
+  margin-bottom: 12px;
+  border: var(--border-default);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--background-color);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px 10px 10px;
+  background: var(--component-color);
+  border-bottom: var(--border-default);
+}
+
+.headerCollapsed {
+  border-bottom: none;
+}
+
+.sectionToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1 1 auto;
+  border: none;
+  background: transparent;
+  padding: 2px 4px;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+
+  &:hover {
+    .sectionTitle {
+      color: var(--accent-1);
+    }
+
+    .sectionChevron {
+      color: var(--accent-2);
+    }
+  }
+}
+
+.sectionChevron {
+  width: 14px;
+  flex-shrink: 0;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--accent-3);
+}
+
+.sectionTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-1);
+}
+
+.sectionCount {
+  flex-shrink: 0;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: var(--border-default);
+  background: var(--background-color);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.sectionSwitch {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.headerLeft {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.itemList {
+  display: flex;
+  flex-direction: column;
+}
+
+.itemRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px 10px 20px;
+  border-bottom: var(--border-default);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.itemMain {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.itemLabelWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.itemLabel {
+  font-size: 13px;
+  color: var(--accent-1);
+}
+
+.targetField {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.targetLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-3);
+  white-space: nowrap;
+}
+
+.targetInput {
+  width: 72px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: var(--border-default);
+  background: var(--background-color);
+  color: var(--accent-1);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--primary-color);
+  }
+
+  /* hide spinners for cleaner look */
+  appearance: textfield;
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button {
+    appearance: none;
+    margin: 0;
+  }
+}
+
+.collapseToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 16px 10px 20px;
+  border: none;
+  border-bottom: var(--border-default);
+  background: var(--component-color);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-2);
+  text-align: left;
+
+  &:hover {
+    color: var(--accent-1);
+  }
+}
+
+.collapseCount {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: var(--border-default);
+  background: var(--background-color);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.collapseChevron {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--accent-3);
+  flex-shrink: 0;
+}
+
+.emptyHint {
+  padding: 12px 16px;
+  font-size: 12px;
+  color: var(--accent-3);
+}
+
+.orderBlock {
+  margin-top: 4px;
+  margin-bottom: 12px;
+  border: var(--border-default);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--background-color);
+}
+
+.orderHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px 10px 10px;
+  border: none;
+  background: var(--component-color);
+  border-bottom: var(--border-default);
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+
+  &:hover {
+    .orderTitle {
+      color: var(--accent-1);
+    }
+  }
+}
+
+.orderTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-1);
+}
+
+.orderHint {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--accent-3);
+  flex-shrink: 0;
+}
+
+.orderList {
+  display: flex;
+  flex-direction: column;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.orderRowWrap {
+  position: relative;
+}
+
+.orderRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px 9px 12px;
+  border-bottom: var(--border-default);
+  background: var(--background-color);
+  cursor: grab;
+  user-select: none;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background: var(--background-hover-color);
+  }
+}
+
+.orderRowDragging {
+  opacity: 0.45;
+}
+
+.orderHandle {
+  font-size: 12px;
+  line-height: 1;
+  letter-spacing: -2px;
+  color: var(--accent-4);
+  flex-shrink: 0;
+}
+
+.orderIndex {
+  min-width: 18px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-3);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.orderLabel {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--accent-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.orderSection {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--accent-3);
+}
+
+.dropLine {
+  height: 2px;
+  margin: 0 12px;
+  border-radius: 2px;
+  background: var(--status-info);
+}
+
+.actions {
+  margin-top: 8px;
+  width: 100%;
+
+  button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 960px) {
+  .rolesGrid {
+    grid-template-columns: 1fr;
+  }
+}

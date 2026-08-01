@@ -74,6 +74,8 @@ export type TSeason = {
     start?: string;
     end?: string;
   };
+  minCredit?: number;
+  maxCredit?: number;
   permissionSyllabusV2: TPermission;
   permissionEnrollmentV2: TPermission;
   permissionEvaluationV2: TPermission;

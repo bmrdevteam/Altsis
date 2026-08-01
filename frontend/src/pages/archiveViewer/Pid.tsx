@@ -24,42 +24,55 @@ const ArchiveField = (props: Props) => {
 
   useEffect(() => {
     if (isLoading) {
+      // 본인 기록(/myArchive)은 authStudent 권한만 보면 된다.
+      // 교사·매니저도 본인 기록을 채울 수 있으므로 role===student 제한을 두지 않는다.
+      const auth = formArchive().authStudent;
       if (
         !currentRegistration ||
-        currentRegistration?.role !== "student" ||
-        !formArchive().authStudent ||
-        formArchive().authStudent === "undefined"
+        !auth ||
+        auth === "undefined"
       ) {
         alert("접근 권한이 없습니다.");
         navigate("/");
         return;
       }
-      if (
-        formArchive().authStudent === "view" ||
-        formArchive().authStudent === "viewAndEdit"
-      ) {
+      if (auth === "view" || auth === "viewAndEdit") {
         setIsLoading(false);
       }
     }
   }, [isLoading]);
 
   function formArchive() {
+    let label = pid || "";
+    try {
+      label = decodeURIComponent(label);
+    } catch {
+      /* keep raw */
+    }
     return (
       currentSchool.formArchive?.filter((val: any) => {
-        return val.label === pid;
+        return val.label === label;
       })[0] ?? { authStudent: "undefined", fields: [] }
     );
+  }
+
+  const archive = formArchive();
+  let title = pid || "";
+  try {
+    title = decodeURIComponent(title);
+  } catch {
+    /* keep raw */
   }
 
   return !isLoading ? (
     <>
       <div className={style.section}>
-        <div className={style.title}>{pid}</div>
+        <div className={style.title}>{title}</div>
 
-        {formArchive().dataType === "object" ? (
-          <ObjectView editable={formArchive().authStudent === "viewAndEdit"} />
+        {archive.dataType === "object" ? (
+          <ObjectView editable={archive.authStudent === "viewAndEdit"} />
         ) : (
-          <ArrayView editable={formArchive().authStudent === "viewAndEdit"} />
+          <ArrayView editable={archive.authStudent === "viewAndEdit"} />
         )}
       </div>
     </>

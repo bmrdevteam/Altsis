@@ -1,3 +1,5 @@
+import type { TGoalDisplay } from "./goals";
+
 export type TSchoolFormArchiveField = {
   label: string;
   type: "input" | "input-number" | "select" | "file" | "file-image";
@@ -60,12 +62,14 @@ export type TSchool = {
   chatEnabled?: boolean;
   boardEnabled?: boolean;
   aiEnabled?: boolean;
+  goalsEnabled?: boolean;
   boardCreationPermission?: {
     teacher: boolean;
     student: boolean;
   };
   boardNotificationEvents?: TBoardNotificationEventsSchool;
   academyFeatures?: TAcademyFeatures;
+  goalDisplay?: TGoalDisplay;
 };
 
 export const authTeacherTextMap: Map<TAuthTeacher, string> = new Map([

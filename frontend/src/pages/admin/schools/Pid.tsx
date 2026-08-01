@@ -42,6 +42,7 @@ import Season from "./tab/seasons/Season";
 import Archive from "./tab/archive/Index";
 import User from "./tab/users/User";
 import Links from "./tab/Links";
+import GoalForm from "./tab/GoalForm";
 import Remove from "./tab/Remove";
 import Notifications from "./tab/Notifications";
 import BoardManagement from "./tab/BoardManagement";
@@ -185,6 +186,13 @@ const School = (props: Props) => {
                         setSchoolData={setSchoolData}
                       />
                     ),
+                    목표: (
+                      <GoalForm
+                        schoolData={schoolData}
+                        setSchoolData={setSchoolData}
+                        seasonList={seasonList}
+                      />
+                    ),
                     대시보드: (
                       <Dashboard schoolId={schoolData._id} />
                     ),
@@ -241,6 +249,13 @@ const School = (props: Props) => {
                       <Links
                         schoolData={schoolData}
                         setSchoolData={setSchoolData}
+                      />
+                    ),
+                    목표: (
+                      <GoalForm
+                        schoolData={schoolData}
+                        setSchoolData={setSchoolData}
+                        seasonList={seasonList}
                       />
                     ),
                     대시보드: (

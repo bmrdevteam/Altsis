@@ -103,6 +103,16 @@
   border: var(--border-default);
   border-radius: 6px;
   min-width: 60px;
+
+  &.warning {
+    border-color: var(--status-error-border);
+    background-color: var(--status-error-bg);
+
+    .summary_label,
+    .summary_value {
+      color: var(--status-error);
+    }
+  }
 }
 
 .summary_label {
@@ -117,4 +127,101 @@
   font-weight: 600;
   color: var(--accent-1);
   white-space: nowrap;
+}
+
+.summary_warning {
+  margin-top: 8px;
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--status-error);
+}
+
+.enroll_filter_block {
+  margin-bottom: 16px;
+
+  > div:first-child {
+    margin-bottom: 10px;
+  }
+}
+
+.enroll_filter_chip_row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.enroll_filter_chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--background-color);
+  color: var(--text-color-2);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease,
+    box-shadow 0.15s ease, opacity 0.15s ease;
+
+  &:hover:not(:disabled) {
+    filter: brightness(0.97);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.enroll_filter_chip_active {
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+
+.enroll_filter_chip_all {
+  background: color-mix(in srgb, var(--accent-1) 12%, var(--background-color));
+  color: var(--accent-1);
+}
+
+.enroll_filter_chip_enroll {
+  background: var(--status-success-bg);
+  color: var(--status-success);
+}
+
+.enroll_filter_chip_enrolled {
+  background: var(--status-error-bg);
+  color: var(--status-error);
+}
+
+.enroll_filter_chip_full,
+.enroll_filter_chip_creditFull {
+  background: var(--status-info-bg);
+  color: var(--status-info);
+}
+
+.enroll_filter_chip_duplication {
+  background: color-mix(in srgb, #7c6a9a 18%, var(--background-color));
+  color: #5b4d75;
+}
+
+.enroll_filter_chip_reset {
+  margin-left: 2px;
+  padding: 5px 8px;
+  border: none;
+  background: transparent;
+  color: var(--accent-1);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
 }

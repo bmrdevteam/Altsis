@@ -1,8 +1,14 @@
-import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
+import { useAuth } from "contexts/authContext";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import { invalidateGoalsCache } from "pages/goals/goalsCache";
 import { TSchool } from "types/schools";
 
-type FeatureKey = "chatEnabled" | "boardEnabled" | "aiEnabled";
+type FeatureKey =
+  | "chatEnabled"
+  | "boardEnabled"
+  | "aiEnabled"
+  | "goalsEnabled";
 
 type Props = {
   featureKey: FeatureKey;
@@ -22,6 +28,7 @@ const SchoolFeatureToggle = ({
   children,
 }: Props) => {
   const { SchoolAPI } = useAPIv2();
+  const { currentSchool, patchCurrentSchool } = useAuth();
   const schoolEnabled = schoolData[featureKey] !== false;
 
   const handleToggle = async (value: boolean) => {
@@ -30,12 +37,22 @@ const SchoolFeatureToggle = ({
         params: { _id: schoolData._id },
         data: { [featureKey]: value },
       });
-      setSchoolData?.({
-        ...schoolData,
+      const nextFlags = {
         chatEnabled: features.chatEnabled,
         boardEnabled: features.boardEnabled,
         aiEnabled: features.aiEnabled,
+        goalsEnabled: features.goalsEnabled,
+      };
+      setSchoolData?.({
+        ...schoolData,
+        ...nextFlags,
       });
+      if (currentSchool?._id === schoolData._id) {
+        patchCurrentSchool(nextFlags);
+      }
+      if (featureKey === "goalsEnabled") {
+        invalidateGoalsCache();
+      }
     } catch (err) {
       ALERT_ERROR(err);
     }

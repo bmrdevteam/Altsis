@@ -20,6 +20,10 @@ type Props = {
   postHeaderList?: TTableHeader[];
   showStatus?: boolean;
   onClickDetail?: (e: any) => void;
+  /** Hide Table built-in search while keeping pagination controls */
+  hideSearch?: boolean;
+  /** When set, only these data column keys are shown (preHeader always kept) */
+  visibleKeys?: Set<string>;
 };
 
 const CourseTable = (props: Props) => {
@@ -177,34 +181,41 @@ const CourseTable = (props: Props) => {
       },
     });*/
 
-    setHeaderList([
-      ...(props.preHeaderList ?? []),
+    const classTitleHeader: TTableHeader = {
+      text: "수업명",
+      key: "classTitle",
+      type: "text",
+      textAlign: "center",
+      wordBreak: "keep-all",
+      width: "320px",
+      cursor: "pointer",
+      onClick: props.onClickDetail
+        ? props.onClickDetail
+        : (e: any) => {
+            navigate(`/courses/mentoring/${e._id}`);
+          },
+    };
+
+    const dataHeaders = [
       ...subjectLabelHeaderList,
-      {
-        text: "수업명",
-        key: "classTitle",
-        type: "text",
-        textAlign: "center",
-        wordBreak: "keep-all",
-        width: "320px",
-        cursor: "pointer",
-        onClick: props.onClickDetail
-          ? props.onClickDetail
-          : (e: any) => {
-              navigate(`/courses/mentoring/${e._id}`);
-            },
-      },
+      classTitleHeader,
       ...defaultHeaderList,
       ...postHeaderList,
-    ]);
+    ].filter((h) => {
+      if (!props.visibleKeys || !h.key) return true;
+      return props.visibleKeys.has(h.key);
+    });
+
+    setHeaderList([...(props.preHeaderList ?? []), ...dataHeaders]);
 
     return () => {};
-  }, [props.data]);
+  }, [props.data, props.subjectLabels, props.visibleKeys, props.preHeaderList]);
 
   return (
     <>
       <Table
         control
+        hideSearch={props.hideSearch}
         defaultPageBy={props.defaultPageBy}
         type="object-array"
         data={courseList}

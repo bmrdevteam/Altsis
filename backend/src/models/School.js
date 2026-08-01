@@ -148,8 +148,44 @@ const deletedFormArchiveItemSchema = mongoose.Schema(
  * @prop {boolean} chatEnabled=true - 채팅 기능 활성화 상태 (학교 수준)
  * @prop {boolean} boardEnabled=true - 보드 기능 활성화 상태 (학교 수준)
  * @prop {boolean} aiEnabled=true - AI 기능 활성화 상태 (학교 수준)
+ * @prop {boolean} goalsEnabled=true - 목표 기능 활성화 상태 (학교 수준)
+ * @prop {Object} [goalDisplay] - 목표 표시 블록 on/off (역할별)
  *
  */
+const goalDisplayRoleStudentSchema = mongoose.Schema(
+  {
+    enrolled: { type: Boolean, default: true },
+    archive: { type: Boolean, default: true },
+    board: { type: Boolean, default: true },
+    items: { type: mongoose.Schema.Types.Mixed, default: {} },
+    /** 사이드바·목표 표시 순서 (itemId[]) */
+    itemOrder: { type: [String], default: [] },
+  },
+  { _id: false }
+);
+
+const goalDisplayRoleTeacherSchema = mongoose.Schema(
+  {
+    enrolled: { type: Boolean, default: true },
+    created: { type: Boolean, default: true },
+    mentoring: { type: Boolean, default: true },
+    archive: { type: Boolean, default: true },
+    board: { type: Boolean, default: true },
+    items: { type: mongoose.Schema.Types.Mixed, default: {} },
+    /** 사이드바·목표 표시 순서 (itemId[]) */
+    itemOrder: { type: [String], default: [] },
+  },
+  { _id: false }
+);
+
+const goalDisplaySchema = mongoose.Schema(
+  {
+    student: { type: goalDisplayRoleStudentSchema, default: () => ({}) },
+    teacher: { type: goalDisplayRoleTeacherSchema, default: () => ({}) },
+  },
+  { _id: false }
+);
+
 const schoolSchema = mongoose.Schema(
   {
     schoolId: {
@@ -167,6 +203,7 @@ const schoolSchema = mongoose.Schema(
     chatEnabled: { type: Boolean, default: true },
     boardEnabled: { type: Boolean, default: true },
     aiEnabled: { type: Boolean, default: true },
+    goalsEnabled: { type: Boolean, default: true },
     boardCreationPermission: {
       type: {
         teacher: { type: Boolean, default: false },
@@ -192,6 +229,10 @@ const schoolSchema = mongoose.Schema(
         altFormApprovalResult: false,
         formDeadlineCalendar: false,
       },
+    },
+    goalDisplay: {
+      type: goalDisplaySchema,
+      default: () => ({ student: {}, teacher: {} }),
     },
   },
   { timestamps: true }

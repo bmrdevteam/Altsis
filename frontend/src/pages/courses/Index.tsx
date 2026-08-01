@@ -107,7 +107,12 @@ const Course = (props: Props) => {
     if (currentRegistration.role === "teacher")
       return {
         시간표: <TimeTable courseList={enrolledCourseList} />,
-        "수강 현황": <EnrolledCourseList courseList={enrolledCourseList} />,
+        "수강 현황": (
+          <EnrolledCourseList
+            courseList={enrolledCourseList}
+            updateCourses={updateCourses}
+          />
+        ),
         "개설 수업": <CreatedCourseList courseList={createdCourseList} />,
         "담당 수업": (
           <MentoringCourseList
@@ -118,7 +123,12 @@ const Course = (props: Props) => {
       };
     return {
       시간표: <TimeTable courseList={enrolledCourseList} />,
-      "수강 현황": <EnrolledCourseList courseList={enrolledCourseList} />,
+      "수강 현황": (
+        <EnrolledCourseList
+          courseList={enrolledCourseList}
+          updateCourses={updateCourses}
+        />
+      ),
       "개설 수업": <CreatedCourseList courseList={createdCourseList} />,
     };
   };

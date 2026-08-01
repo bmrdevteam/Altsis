@@ -16,6 +16,7 @@ router.put("/:_id/inactivate", isAdManager, seasons.inactivate);
 
 router.put("/:_id/basic", isAdManager, seasons.updateBasic);
 router.put("/:_id/period", isAdManager, seasons.updatePeriod);
+router.put("/:_id/credits", isAdManager, seasons.updateCredits);
 router.put("/:_id/classrooms", isAdManager, seasons.updateClassrooms);
 router.put("/:_id/subjects", isAdManager, seasons.updateSubjects);
 

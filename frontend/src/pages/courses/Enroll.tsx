@@ -27,18 +27,17 @@
  * @version 1.0
  *
  */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
 
 import style from "style/pages/enrollment.module.scss";
 
-// components
-import Divider from "components/divider/Divider";
-
 import _ from "lodash";
 
 import CourseTable from "./table/CourseTable";
+import { defaultHeaderList } from "./table/defaultHeaderList";
+import EnrollFilterBar, { TEnrollColumnOption } from "./EnrollFilterBar";
 import Loading from "components/loading/Loading";
 import Popup from "components/popup/Popup";
 import Progress from "components/progress/Progress";
@@ -46,6 +45,48 @@ import { Socket, io } from "socket.io-client";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {};
+
+const ENROLL_VISIBLE_COLUMNS_KEY = "enroll.visibleColumns";
+const ENROLL_ONLY_AVAILABLE_KEY = "enroll.onlyAvailable";
+
+const loadOnlyAvailable = (): boolean => {
+  try {
+    return localStorage.getItem(ENROLL_ONLY_AVAILABLE_KEY) === "1";
+  } catch {
+    return false;
+  }
+};
+
+const persistOnlyAvailable = (value: boolean) => {
+  try {
+    localStorage.setItem(ENROLL_ONLY_AVAILABLE_KEY, value ? "1" : "0");
+  } catch {
+    // ignore
+  }
+};
+
+const loadVisibleColumns = (allKeys: string[]): Set<string> => {
+  try {
+    const raw = localStorage.getItem(ENROLL_VISIBLE_COLUMNS_KEY);
+    if (!raw) return new Set(allKeys);
+    const saved = JSON.parse(raw) as string[];
+    const next = new Set(saved.filter((k) => allKeys.includes(k)));
+    return next.size > 0 ? next : new Set(allKeys);
+  } catch {
+    return new Set(allKeys);
+  }
+};
+
+const persistVisibleColumns = (keys: Set<string>) => {
+  try {
+    localStorage.setItem(
+      ENROLL_VISIBLE_COLUMNS_KEY,
+      JSON.stringify(Array.from(keys))
+    );
+  } catch {
+    // ignore
+  }
+};
 
 const CourseEnroll = (props: Props) => {
   const navigate = useAppNavigate();
@@ -70,6 +111,13 @@ const CourseEnroll = (props: Props) => {
     useState<boolean>(false);
   const [isActiveSendingPopup, activateSendingPopup] = useState<boolean>(false);
   const [isActiveWaitingPopup, activateWaitingPopup] = useState<boolean>(false);
+  const [keyword, setKeyword] = useState("");
+  const [onlyAvailable, setOnlyAvailable] = useState<boolean>(
+    () => loadOnlyAvailable()
+  );
+  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
+    () => new Set()
+  );
 
   async function getCourseList() {
     try {
@@ -112,6 +160,13 @@ const CourseEnroll = (props: Props) => {
     return syllabuses;
   }
 
+  const maxCredit = currentSeason?.maxCredit ?? 0;
+  const minCredit = currentSeason?.minCredit ?? 0;
+  const enrolledTotalPoint = enrolledCourseList.reduce(
+    (acc, cur) => acc + (Number(cur.point) || 0),
+    0
+  );
+
   const getUpdatedCourseList = () => {
     // 시간표 중복 확인
     const timeLabelsEnrolledCourseList = enrolledCourseList.flatMap(item =>
@@ -138,23 +193,31 @@ const CourseEnroll = (props: Props) => {
   
       // 정원이 다 찼는지 확인
       const isFull = item.limit > 0 ? item.count >= item.limit : false;
+
+      // 최대 신청 학점 초과 여부
+      const isCreditFull =
+        maxCredit > 0 &&
+        enrolledTotalPoint + (Number(item.point) || 0) > maxCredit;
   
       // 일치하는 enrollment 값 추가
       const enrollmentMatch = enrollmentIdEnrolledCourseList.find(
         enrolled => enrolled.classId === item._id
       );
   
-      let returnItem = isFull
-        ? { ...item, enrollType: "full" }
-        : { ...item, enrollType: "enroll" };
-  
-      returnItem = hasConflict
-        ? { ...item, enrollType: "duplication" }
-        : { ...item, enrollType: returnItem.enrollType };
-  
-      returnItem = isEnrolled
-        ? { ...item, enrollType: "enrolled" }
-        : { ...item, enrollType: returnItem.enrollType };
+      let returnItem = { ...item, enrollType: "enroll" };
+
+      if (isCreditFull) {
+        returnItem = { ...item, enrollType: "creditFull" };
+      }
+      if (isFull) {
+        returnItem = { ...item, enrollType: "full" };
+      }
+      if (hasConflict) {
+        returnItem = { ...item, enrollType: "duplication" };
+      }
+      if (isEnrolled) {
+        returnItem = { ...item, enrollType: "enrolled" };
+      }
   
       if (enrollmentMatch) {
         returnItem = { ...returnItem, enrollment: enrollmentMatch.enrollment };
@@ -266,14 +329,166 @@ const CourseEnroll = (props: Props) => {
     return () => {};
   }, [isLoadingWaitingOrder, socket, taskIdx]);
 
+  const isOverMaxCredit = maxCredit > 0 && enrolledTotalPoint > maxCredit;
+  const creditSummaryItems: { label: string; value: string; warning?: boolean }[] =
+    [];
+  if (maxCredit > 0 || minCredit > 0) {
+    creditSummaryItems.push({
+      label: "신청 학점",
+      value: `${enrolledTotalPoint}`,
+      warning: isOverMaxCredit,
+    });
+    if (maxCredit > 0) {
+      creditSummaryItems.push({
+        label: "최대",
+        value: `${maxCredit}`,
+        warning: isOverMaxCredit,
+      });
+    }
+    if (minCredit > 0) {
+      creditSummaryItems.push({
+        label: "최소",
+        value: `${minCredit}`,
+      });
+    }
+  }
+
+  const subjectLabels = currentSeason?.subjects?.label ?? [];
+  const columnOptions: TEnrollColumnOption[] = useMemo(
+    () => [
+      ...subjectLabels.map((label: string) => ({ key: label, text: label })),
+      { key: "classTitle", text: "수업명" },
+      ...defaultHeaderList
+        .filter((h) => !!h.key)
+        .map((h) => ({ key: h.key as string, text: h.text })),
+    ],
+    [subjectLabels]
+  );
+  const allColumnKeys = useMemo(
+    () => columnOptions.map((c) => c.key),
+    [columnOptions]
+  );
+
+  useEffect(() => {
+    if (allColumnKeys.length === 0) return;
+    setVisibleColumns(loadVisibleColumns(allColumnKeys));
+  }, [allColumnKeys.join("|")]);
+
+  const effectiveVisibleColumns = useMemo(() => {
+    if (allColumnKeys.length === 0) return new Set<string>();
+    if (visibleColumns.size === 0) return new Set(allColumnKeys);
+    const next = new Set(
+      Array.from(visibleColumns).filter((k) => allColumnKeys.includes(k))
+    );
+    return next.size > 0 ? next : new Set(allColumnKeys);
+  }, [visibleColumns, allColumnKeys]);
+
+  const handleColumnToggle = (key: string) => {
+    setVisibleColumns((prev) => {
+      const base =
+        prev.size === 0 ? new Set(allColumnKeys) : new Set(prev);
+      if (base.has(key)) base.delete(key);
+      else base.add(key);
+      const final = base.size === 0 ? new Set(allColumnKeys) : base;
+      persistVisibleColumns(final);
+      return final;
+    });
+  };
+
+  const handleShowAll = () => {
+    const all = new Set(allColumnKeys);
+    setVisibleColumns(all);
+    persistVisibleColumns(all);
+    setOnlyAvailable(false);
+    persistOnlyAvailable(false);
+  };
+
+  const handleOnlyAvailableChange = (value: boolean) => {
+    setOnlyAvailable(value);
+    persistOnlyAvailable(value);
+  };
+
+  const handleFilterReset = () => {
+    setKeyword("");
+    handleShowAll();
+  };
+
+  const matchesKeyword = (course: any, q: string) => {
+    if (!q) return true;
+    const haystack = [
+      course.classTitle,
+      course.classroom,
+      course.userName,
+      ...(Array.isArray(course.subject) ? course.subject : []),
+      ...(Array.isArray(course.teachers)
+        ? course.teachers.map((t: any) => t.userName)
+        : []),
+      ...(Array.isArray(course.time)
+        ? course.time.map((t: any) => t.label)
+        : []),
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return haystack.includes(q);
+  };
+
+  const availableCount = updatedCourseList.filter(
+    (c) => c.enrollType === "enroll"
+  ).length;
+
+  const normalizedKeyword = keyword.trim().toLowerCase();
+  const displayedCourseList = updatedCourseList.filter((course) => {
+    if (onlyAvailable && course.enrollType !== "enroll") return false;
+    return matchesKeyword(course, normalizedKeyword);
+  });
+
   return (
     <>
       <div className={style.section}>
         <div className={style.title}>수강 신청</div>
+        {creditSummaryItems.length > 0 && (
+          <div style={{ marginBottom: "16px" }}>
+            <div className={style.summary_grid}>
+              {creditSummaryItems.map((item) => (
+                <div
+                  className={`${style.summary_item}${
+                    item.warning ? ` ${style.warning}` : ""
+                  }`}
+                  key={item.label}
+                >
+                  <span className={style.summary_label}>{item.label}</span>
+                  <span className={style.summary_value}>{item.value}</span>
+                </div>
+              ))}
+            </div>
+            {isOverMaxCredit && (
+              <div className={style.summary_warning}>
+                최대 신청 학점({maxCredit})을 초과했습니다. 일부 수업을
+                취소해주세요.
+              </div>
+            )}
+          </div>
+        )}
+        <EnrollFilterBar
+          keyword={keyword}
+          onKeywordChange={setKeyword}
+          columns={columnOptions}
+          visibleKeys={effectiveVisibleColumns}
+          onToggleColumn={handleColumnToggle}
+          onShowAll={handleShowAll}
+          onReset={handleFilterReset}
+          onlyAvailable={onlyAvailable}
+          onOnlyAvailableChange={handleOnlyAvailableChange}
+          availableCount={availableCount}
+          totalCount={updatedCourseList.length}
+        />
         {!isLoadingCourseList ? (
           <CourseTable
-            data={updatedCourseList}
-            subjectLabels={currentSeason?.subjects?.label ?? []}
+            data={displayedCourseList}
+            hideSearch
+            visibleKeys={effectiveVisibleColumns}
+            subjectLabels={subjectLabels}
             preHeaderList={[
               {
                 text: "신청",
@@ -334,6 +549,13 @@ const CourseEnroll = (props: Props) => {
                     color: "blue",
                     onClick: (e: any) => {
                       alert("정원이 다 찼습니다.");
+                    },
+                  },
+                  creditFull: {
+                    text: "학점초과",
+                    color: "blue",
+                    onClick: () => {
+                      alert("최대 신청 학점을 초과했습니다.");
                     },
                   },
                 },

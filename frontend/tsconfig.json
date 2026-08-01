@@ -23,5 +23,6 @@
     }
   },
 
-  "include": ["src", "src/types", "src/global.d.ts", "src/global2.d.ts"]
+  "include": ["src", "src/types", "src/global.d.ts", "src/global2.d.ts"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]
 }

@@ -13,19 +13,22 @@ import {
   assembleSchoolTodos,
   sortSchoolTodos,
 } from "../utils/schoolTodosAssemble.js";
+import { countRequiredFormProgress } from "../utils/requiredFormProgress.js";
 
 export { assembleSchoolTodos, sortSchoolTodos };
 
 const APPROVER_ROWS_LIMIT = 200;
 
 /**
+ * Accessible alt boards + forms + myRows for a user (shared by todos / goals).
+ *
  * @param {string} academyId
- * @param {Object} school - school document
- * @param {Object} user - req.user
+ * @param {Object} school
+ * @param {Object} user
  * @param {string|null} currentSeasonId
- * @returns {Promise<{ items: Object[], count: number }>}
+ * @returns {Promise<{ boards: Object[], forms: Object[], myRows: Object[] }|null>}
  */
-export const getSchoolTodosForUser = async (
+export const loadAccessibleAltBoardFormsContext = async (
   academyId,
   school,
   user,
@@ -45,7 +48,6 @@ export const getSchoolTodosForUser = async (
     ],
   });
 
-  // 사용자 Registration 1회 (시즌 role / 시즌 보드 접근)
   const registrations = await Registration(academyId)
     .find({
       user: user._id,
@@ -87,7 +89,7 @@ export const getSchoolTodosForUser = async (
   }
 
   if (accessibleBoards.length === 0) {
-    return { items: [], count: 0 };
+    return null;
   }
 
   const accessibleBoardIds = accessibleBoards.map((b) => b._id);
@@ -101,7 +103,7 @@ export const getSchoolTodosForUser = async (
     .lean();
 
   if (forms.length === 0) {
-    return { items: [], count: 0 };
+    return null;
   }
 
   const formIds = forms.map((f) => f._id);
@@ -116,6 +118,35 @@ export const getSchoolTodosForUser = async (
       "form createdAt data _submittedAt _respondentName _respondentId"
     )
     .lean();
+
+  return { boards: accessibleBoards, forms, myRows };
+};
+
+/**
+ * @param {string} academyId
+ * @param {Object} school - school document
+ * @param {Object} user - req.user
+ * @param {string|null} currentSeasonId
+ * @returns {Promise<{ items: Object[], count: number }>}
+ */
+export const getSchoolTodosForUser = async (
+  academyId,
+  school,
+  user,
+  currentSeasonId = null
+) => {
+  const ctx = await loadAccessibleAltBoardFormsContext(
+    academyId,
+    school,
+    user,
+    currentSeasonId
+  );
+
+  if (!ctx) {
+    return { items: [], count: 0 };
+  }
+
+  const { boards: accessibleBoards, forms, myRows } = ctx;
 
   const orConds = [];
   for (const form of forms) {
@@ -159,4 +190,42 @@ export const getSchoolTodosForUser = async (
   });
 
   return { items, count: items.length };
+};
+
+/**
+ * Required-form progress for goals (submitted / total).
+ *
+ * @param {string} academyId
+ * @param {Object} school
+ * @param {Object} user
+ * @param {string|null} currentSeasonId
+ * @returns {Promise<{ submitted: number, total: number }>}
+ */
+export const getRequiredFormProgressForUser = async (
+  academyId,
+  school,
+  user,
+  currentSeasonId = null
+) => {
+  if (school.boardEnabled === false) {
+    return { submitted: 0, total: 0 };
+  }
+
+  const ctx = await loadAccessibleAltBoardFormsContext(
+    academyId,
+    school,
+    user,
+    currentSeasonId
+  );
+
+  if (!ctx) {
+    return { submitted: 0, total: 0 };
+  }
+
+  return countRequiredFormProgress({
+    boards: ctx.boards,
+    forms: ctx.forms,
+    myRows: ctx.myRows,
+    user,
+  });
 };

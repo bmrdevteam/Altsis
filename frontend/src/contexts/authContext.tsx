@@ -23,6 +23,8 @@ export function useAuth(): {
   setCurrentUser: React.Dispatch<TCurrentUser>;
   currentSchool: TSchool;
   changeSchool: (to: string) => Promise<void>;
+  /** 현재 학교 필드만 부분 갱신 (기능 토글 등) */
+  patchCurrentSchool: (partial: Partial<TSchool>) => void;
   currentRegistration: TCurrentRegistration;
   changeRegistration: (rid: string) => void;
   reloadRegistration: () => void;
@@ -147,6 +149,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }
 
+  function patchCurrentSchool(partial: Partial<TSchool>) {
+    setCurrentSchool((prev) => (prev ? { ...prev, ...partial } : prev));
+  }
+
   async function changeRegistration(rid: string) {
     const registration = _.find(
       currentUser?.registrations,
@@ -179,6 +185,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setCurrentUser,
     currentSchool,
     changeSchool,
+    patchCurrentSchool,
     currentRegistration,
     changeRegistration,
     reloadRegistration,

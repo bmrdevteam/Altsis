@@ -36,6 +36,11 @@ import { useAuth } from "contexts/authContext";
 import CourseTable from "pages/courses/table/CourseTable";
 import Divider from "components/divider/Divider";
 import useAPIv2 from "hooks/useAPIv2";
+import {
+  aggregateMentoringEvaluationCounts,
+  appendEvaluationSummary,
+  computeMentoringBaseSummary,
+} from "utils/computeCourseSummaries";
 
 type Props = {
   courseList: any[];
@@ -74,66 +79,19 @@ const CoursesMentoring = (props: Props) => {
         })
       )
     ).then((results) => {
-      let totalStudents = 0;
-      const counts: Record<string, number> = {};
-
-      for (const field of formEvaluation) {
-        counts[field.label] = 0;
-      }
-
-      for (const { enrollments } of results) {
-        totalStudents += enrollments.length;
-        for (const enrollment of enrollments) {
-          for (const field of formEvaluation) {
-            if (
-              enrollment.evaluation?.[field.label]?.toString().trim()
-            ) {
-              counts[field.label]++;
-            }
-          }
-        }
-      }
-
       setEvaluationCounts(
-        formEvaluation.map((field: any) => ({
-          label: field.label,
-          filled: counts[field.label],
-          total: totalStudents,
-        }))
+        aggregateMentoringEvaluationCounts({
+          formEvaluation,
+          enrollmentResults: results,
+        })
       );
     });
   }, [props.courseList, currentSeason]);
 
-  const totalCourses = props.courseList.length;
-  const totalPoint = props.courseList.reduce(
-    (acc, cur) => acc + (cur.point || 0),
-    0
+  const summaryItems = appendEvaluationSummary(
+    computeMentoringBaseSummary(props.courseList),
+    evaluationCounts
   );
-  const totalStudents = props.courseList.reduce(
-    (acc, cur) => acc + (cur.count || 0),
-    0
-  );
-  const totalLimit = props.courseList.reduce(
-    (acc, cur) => acc + (cur.limit || 0),
-    0
-  );
-  const confirmedCount = props.courseList.filter(
-    (course) =>
-      course.teachers?.length > 0 &&
-      course.teachers.every((t: any) => t.confirmed)
-  ).length;
-
-  const summaryItems: { label: string; value: string }[] = [
-    { label: "담당 수업", value: `${totalCourses}개` },
-    { label: "총 학점", value: `${totalPoint}학점` },
-    { label: "총 수강생", value: `${totalStudents}명` },
-    { label: "총 정원", value: `${totalLimit}명` },
-    { label: "승인 완료", value: `${confirmedCount}/${totalCourses}` },
-    ...evaluationCounts.map((ec) => ({
-      label: ec.label,
-      value: `${ec.filled}/${ec.total}`,
-    })),
-  ];
 
   return (
     <>

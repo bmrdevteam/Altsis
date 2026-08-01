@@ -67,6 +67,8 @@ export type TTableHeader = {
     border?: boolean;
   };
   option?: string[];
+  /** Per-row select options; overrides `option` when provided */
+  optionFromRow?: (row: any) => string[];
   onClick?: (value: any) => void;
   onBlur?: (value: any) => void;
   render?: (value: any, row: any) => React.ReactNode;
@@ -76,6 +78,8 @@ type Props = {
   data: any[] | string[];
   header: TTableHeader[];
   control?: boolean;
+  /** When true with control, hides the built-in search input but keeps pager/page-size UI */
+  hideSearch?: boolean;
   defaultPageBy?: 0 | 10 | 50 | 100 | 200;
   onChange?: (value: any[]) => void;
   menus?: { onClick: () => void; label: string }[];
@@ -334,22 +338,26 @@ const Table = (props: Props) => {
               <tr>
                 <td colSpan={props.header.length}>
                   <div className={style.control}>
-                    <input
-                      className={style.search}
-                      type="text"
-                      placeholder={`${tableData.searchParamName} 검색`}
-                      value={tableData.searchParam}
-                      onChange={(e) => {
-                        setTableData((prev) => ({
-                          ...prev,
-                          searchParam: e.target.value,
-                        }));
-                        setTableSettings((prev) => ({
-                          ...prev,
-                          pageIndex: 1,
-                        }));
-                      }}
-                    />
+                    {!props.hideSearch ? (
+                      <input
+                        className={style.search}
+                        type="text"
+                        placeholder={`${tableData.searchParamName} 검색`}
+                        value={tableData.searchParam}
+                        onChange={(e) => {
+                          setTableData((prev) => ({
+                            ...prev,
+                            searchParam: e.target.value,
+                          }));
+                          setTableSettings((prev) => ({
+                            ...prev,
+                            pageIndex: 1,
+                          }));
+                        }}
+                      />
+                    ) : (
+                      <div className={style.search_spacer} />
+                    )}
                     <div className={style.pager}>
                       <span
                         className={style.arrow}
@@ -788,7 +796,10 @@ const Table = (props: Props) => {
                           }}
                         >
                           <option key={`nothing`} value={""}></option>
-                          {val.option?.map((opt, index) => {
+                          {(val.optionFromRow
+                            ? val.optionFromRow(addRowData)
+                            : val.option
+                          )?.map((opt, index) => {
                             return (
                               <option key={`${opt}-${index}`} value={opt}>
                                 {opt}
@@ -1184,7 +1195,10 @@ const Table = (props: Props) => {
                               }}
                             >
                               <option key={`nothing`} value={""}></option>
-                              {val.option?.map((opt, index) => {
+                              {(val.optionFromRow
+                                ? val.optionFromRow(row)
+                                : val.option
+                              )?.map((opt, index) => {
                                 return (
                                   <option key={`${opt}-${index}`} value={opt}>
                                     {opt}

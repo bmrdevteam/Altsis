@@ -248,6 +248,8 @@ export const create = async (req, res) => {
         year: req.body.year,
         term: req.body.term,
         period: req.body.period,
+        minCredit: sourceData.minCredit ?? 0,
+        maxCredit: sourceData.maxCredit ?? 0,
         classrooms: sourceData.classrooms ?? [],
         subjects: sourceData.subjects ?? { label: [], data: [] },
         permissionSyllabusV2: cleanPermission(sourceData.permissionSyllabusV2),
@@ -691,6 +693,75 @@ export const updatePeriod = async (req, res) => {
   } catch (err) {
     logger.error(err.message);
     return res.status(err.status || 500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.SeasonAPI
+ * @function USeasonCredits API
+ * @description 학기 최소/최대 신청 학점 수정 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/seasons/:_id/credits"} req.url
+ *
+ * @param {Object} req.body
+ * @param {number?} req.body.minCredit - 0 = 제한 없음
+ * @param {number?} req.body.maxCredit - 0 = 제한 없음
+ *
+ * @param {Object} req.user - "admin"|"manager"
+ *
+ * @param {Object} res
+ * @param {Object} res.season - updated season
+ *
+ */
+export const updateCredits = async (req, res) => {
+  try {
+    if (!("minCredit" in req.body) && !("maxCredit" in req.body)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("minCredit_maxCredit") });
+    }
+
+    const season = await Season(req.user.academyId).findById(req.params._id);
+    if (!season) {
+      return res.status(404).send({ message: __NOT_FOUND("season") });
+    }
+
+    const parseCredit = (value, field) => {
+      if (value === undefined || value === null || value === "") return 0;
+      const n = Number(value);
+      if (!Number.isFinite(n) || n < 0 || !Number.isInteger(n)) {
+        const err = new Error(FIELD_INVALID(field));
+        err.status = 400;
+        throw err;
+      }
+      return n;
+    };
+
+    const minCredit =
+      "minCredit" in req.body
+        ? parseCredit(req.body.minCredit, "minCredit")
+        : season.minCredit ?? 0;
+    const maxCredit =
+      "maxCredit" in req.body
+        ? parseCredit(req.body.maxCredit, "maxCredit")
+        : season.maxCredit ?? 0;
+
+    if (maxCredit !== 0 && minCredit !== 0 && minCredit > maxCredit) {
+      return res.status(400).send({ message: FIELD_INVALID("minCredit") });
+    }
+
+    season.minCredit = minCredit;
+    season.maxCredit = maxCredit;
+    await season.save();
+
+    return res.status(200).send({ season });
+  } catch (err) {
+    logger.error(err.message);
+    return res
+      .status(err.status || 500)
+      .send({ message: err.status ? err.message : "서버 오류가 발생했습니다." });
   }
 };
 

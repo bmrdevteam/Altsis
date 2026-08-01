@@ -4,7 +4,7 @@
  * @see TEnrollment in {@link Models.Enrollment}
  */
 
-import { Enrollment, Syllabus, Registration, CalendarEvent, Board } from "../models/index.js";
+import { Enrollment, Syllabus, Registration, CalendarEvent, Board, Season } from "../models/index.js";
 import { getIoEnrollment } from "../utils/webSocket.js";
 import { logger } from "../log/logger.js";
 import { sendAutoNotification } from "../services/notifications.js";
@@ -12,6 +12,7 @@ import { syncBoardChatParticipants } from "../services/boardChat.js";
 import PQueue from "p-queue";
 import _ from "lodash";
 import {
+  CREDIT_LIMIT_EXCEEDED,
   FIELD_INVALID,
   FIELD_IN_USE,
   FIELD_REQUIRED,
@@ -110,6 +111,19 @@ const exec = async (req) => {
       const err = new Error(STUDENTS_FULL);
       err.status = 409;
       throw err;
+    }
+
+    // 4-1. 최대 신청 학점 확인
+    const season = await Season(req.user.academyId)
+      .findById(syllabus.season)
+      .select("maxCredit");
+    if (season?.maxCredit > 0) {
+      const currentPoints = _.sumBy(exEnrollments, (e) => e.point || 0);
+      if (currentPoints + (syllabus.point || 0) > season.maxCredit) {
+        const err = new Error(CREDIT_LIMIT_EXCEEDED);
+        err.status = 409;
+        throw err;
+      }
     }
 
     // 5. 수강신청 가능한 시간인가?

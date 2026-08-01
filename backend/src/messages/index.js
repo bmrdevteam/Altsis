@@ -291,6 +291,16 @@ export const STUDENTS_FULL = "STUDENTS_FULL";
 /**
  * @tag 409 Conflict
  *
+ * @alias CREDIT_LIMIT_EXCEEDED
+ * @description 최대 신청 학점을 초과함
+ *
+ * @memberof APIs._MESSAGE
+ */
+export const CREDIT_LIMIT_EXCEEDED = "CREDIT_LIMIT_EXCEEDED";
+
+/**
+ * @tag 409 Conflict
+ *
  * @alias TIME_DUPLICATED
  * @description 시간표가 중복됨
  *
