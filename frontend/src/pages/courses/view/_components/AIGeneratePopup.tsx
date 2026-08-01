@@ -175,11 +175,26 @@ const Index = (props: Props) => {
       case "generating":
         setStreamingText((prev) => prev + data.text);
         break;
-      case "done":
+      case "done": {
         setSteps((prev) => prev.map((s) => ({ ...s, completed: true })));
-        setGeneratedContent(data.content);
         setStreamingText("");
+        const content = data.content;
+        const isEmptyRaw =
+          content &&
+          typeof content === "object" &&
+          Object.keys(content).length === 1 &&
+          "raw" in content &&
+          !String(content.raw || "").trim();
+        if (!content || isEmptyRaw) {
+          setError(
+            "AI가 내용을 생성하지 못했습니다. 모델 설정을 확인하거나 다시 시도해주세요."
+          );
+          setGeneratedContent(null);
+        } else {
+          setGeneratedContent(content);
+        }
         break;
+      }
       case "error": {
         const message = data.message;
         if (message === "AI_NOT_ENABLED") {

@@ -388,6 +388,12 @@ const geminiBuildBody = ({ systemInstruction, messages }) => ({
     role: m.role === "assistant" ? "model" : "user",
     parts: [{ text: m.content }],
   })),
+  // 강의계획서 등 구조화 생성에서는 thinking 토큰을 최소화
+  generationConfig: {
+    thinkingConfig: {
+      thinkingBudget: 0,
+    },
+  },
 });
 
 const geminiUsage = (usageMetadata) => {
@@ -402,7 +408,9 @@ const geminiUsage = (usageMetadata) => {
 
 const geminiExtractText = (data) =>
   (data.candidates?.[0]?.content?.parts || [])
-    .map((part) => part.text || "")
+    // Gemini thinking 모델은 thought 파트와 본문 파트를 함께 보냄
+    .filter((part) => !part.thought && typeof part.text === "string")
+    .map((part) => part.text)
     .join("");
 
 const geminiNormalizeModel = (model) =>
@@ -415,7 +423,8 @@ const geminiGenerate = async ({
   messages,
 }) => {
   const modelId = geminiNormalizeModel(model);
-  const response = await fetch(
+  let body = geminiBuildBody({ systemInstruction, messages });
+  let response = await fetch(
     `${GEMINI_BASE}/models/${encodeURIComponent(modelId)}:generateContent`,
     {
       method: "POST",
@@ -423,9 +432,25 @@ const geminiGenerate = async ({
         "Content-Type": "application/json",
         "x-goog-api-key": apiKey,
       },
-      body: JSON.stringify(geminiBuildBody({ systemInstruction, messages })),
+      body: JSON.stringify(body),
     }
   );
+  // thinkingBudget를 지원하지 않는 모델이면 해당 설정 없이 재시도
+  if (response.status === 400) {
+    const { generationConfig, ...withoutThinking } = body;
+    body = withoutThinking;
+    response = await fetch(
+      `${GEMINI_BASE}/models/${encodeURIComponent(modelId)}:generateContent`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
+        },
+        body: JSON.stringify(body),
+      }
+    );
+  }
   if (!response.ok) await throwHttpError(response, "gemini");
 
   const data = await response.json();
@@ -440,7 +465,8 @@ const geminiGenerateStream = async (
   onText
 ) => {
   const modelId = geminiNormalizeModel(model);
-  const response = await fetch(
+  let body = geminiBuildBody({ systemInstruction, messages });
+  let response = await fetch(
     `${GEMINI_BASE}/models/${encodeURIComponent(
       modelId
     )}:streamGenerateContent?alt=sse`,
@@ -450,9 +476,26 @@ const geminiGenerateStream = async (
         "Content-Type": "application/json",
         "x-goog-api-key": apiKey,
       },
-      body: JSON.stringify(geminiBuildBody({ systemInstruction, messages })),
+      body: JSON.stringify(body),
     }
   );
+  if (response.status === 400) {
+    const { generationConfig, ...withoutThinking } = body;
+    body = withoutThinking;
+    response = await fetch(
+      `${GEMINI_BASE}/models/${encodeURIComponent(
+        modelId
+      )}:streamGenerateContent?alt=sse`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
+        },
+        body: JSON.stringify(body),
+      }
+    );
+  }
   if (!response.ok) await throwHttpError(response, "gemini");
 
   let fullText = "";
@@ -471,6 +514,21 @@ const geminiGenerateStream = async (
     }
     if (parsed.usageMetadata) tokenUsage = geminiUsage(parsed.usageMetadata);
   }
+
+  // 스트림이 비어 있으면(thinking만 온 경우 등) non-stream으로 한 번 더 시도
+  if (!fullText.trim()) {
+    const fallback = await geminiGenerate({
+      apiKey,
+      model,
+      systemInstruction,
+      messages,
+    });
+    if (fallback.text) {
+      onText(fallback.text);
+    }
+    return fallback;
+  }
+
   return { text: fullText, tokenUsage };
 };
 

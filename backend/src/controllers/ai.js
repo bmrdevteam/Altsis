@@ -56,19 +56,34 @@ const extractFieldNames = (formSyllabus) => {
  * @param {Object[]} enrollments - User's enrollment history
  * @returns {string} Prompt for AI
  */
+const HISTORY_LIMIT = 3;
+const REFERENCE_LIMIT = 2;
+const REFERENCE_MAX_CHARS = 800;
+
+const truncateText = (text, maxChars) => {
+  const value = String(text || "");
+  if (value.length <= maxChars) return value;
+  return `${value.slice(0, maxChars)}…`;
+};
+
 const buildPrompt = (context, aiSettings, enrollments, syllabi) => {
   let prompt = `당신은 학교 강의계획서 작성을 도와주는 AI 어시스턴트입니다.
+토큰을 절약하기 위해 각 항목은 2~4문장으로 간결하게 작성하세요. 불필요한 서론·반복은 넣지 마세요.
 
 ## 지침
-${aiSettings?.guidelines || "강의계획서의 각 항목을 체계적이고 구체적으로 작성해주세요."}
+${truncateText(
+  aiSettings?.guidelines ||
+    "강의계획서의 각 항목을 체계적이고 구체적으로 작성해주세요.",
+  600
+)}
 
 `;
 
-  // Add reference materials if any
+  // 참고자료는 용량이 커질 수 있어 개수·길이를 제한
   if (aiSettings?.references && aiSettings.references.length > 0) {
     prompt += `## 참고 자료\n`;
-    for (const ref of aiSettings.references) {
-      prompt += `### ${ref.title}\n${ref.content}\n\n`;
+    for (const ref of aiSettings.references.slice(0, REFERENCE_LIMIT)) {
+      prompt += `### ${ref.title}\n${truncateText(ref.content, REFERENCE_MAX_CHARS)}\n\n`;
     }
   }
 
@@ -87,20 +102,17 @@ ${aiSettings?.guidelines || "강의계획서의 각 항목을 체계적이고 �
     prompt += `- 수강정원: ${context.limit}\n`;
   }
 
-  // Add user's teaching history (higher weight)
+  // 최근 이력은 제목만 짧게 (스타일 참고용)
   if (syllabi && syllabi.length > 0) {
-    prompt += `\n## 사용자 수업 개설 이력 (높은 가중치 - 직접 개설한 수업)\n`;
-    prompt += `아래는 사용자가 직접 개설한 수업입니다. 수강 이력보다 우선적으로 참고하여 작성 스타일과 내용 수준을 맞춰주세요.\n`;
-    for (const syllabus of syllabi.slice(0, 5)) {
-      const subjectStr = syllabus.subject?.length > 0 ? ` (${syllabus.subject.join(" > ")})` : "";
-      prompt += `- ${syllabus.classTitle}${subjectStr}\n`;
+    prompt += `\n## 최근 개설 수업 (제목만 참고)\n`;
+    for (const syllabus of syllabi.slice(0, HISTORY_LIMIT)) {
+      prompt += `- ${syllabus.classTitle}\n`;
     }
   }
 
-  // Add user's enrollment history for context
   if (enrollments && enrollments.length > 0) {
-    prompt += `\n## 사용자 수강 이력 (참고용)\n`;
-    for (const enrollment of enrollments.slice(0, 5)) {
+    prompt += `\n## 최근 수강 수업 (제목만 참고)\n`;
+    for (const enrollment of enrollments.slice(0, HISTORY_LIMIT)) {
       prompt += `- ${enrollment.classTitle || enrollment.syllabusTitle}\n`;
     }
   }
@@ -111,8 +123,7 @@ ${aiSettings?.guidelines || "강의계획서의 각 항목을 체계적이고 �
   if (fieldNames.length > 0) {
     prompt += `
 ## 요청
-위 정보를 바탕으로 강의계획서의 다음 항목들을 작성해주세요.
-각 항목에 대해 적절하고 구체적인 내용을 생성해주세요.
+위 정보를 바탕으로 아래 항목만 JSON으로 작성하세요. 각 값은 문자열이며 2~4문장으로 간결하게 쓰세요.
 
 항목 목록:
 `;
@@ -121,7 +132,7 @@ ${aiSettings?.guidelines || "강의계획서의 각 항목을 체계적이고 �
     }
 
     prompt += `
-반드시 아래 JSON 형식으로 응답해주세요. 키는 위 항목명을 그대로 사용하세요:
+반드시 아래 JSON 형식으로만 응답하세요. 마크다운 코드블록이나 설명 문구는 넣지 마세요:
 {
 `;
     const jsonFields = fieldNames.map(
@@ -130,19 +141,11 @@ ${aiSettings?.guidelines || "강의계획서의 각 항목을 체계적이고 �
     prompt += jsonFields.join(",\n");
     prompt += `
 }
-
-중요: JSON 키는 반드시 위 항목명과 정확히 일치해야 합니다. 각 값은 문자열이어야 합니다.
 `;
   } else {
     prompt += `
 ## 요청
-위 정보를 바탕으로 강의계획서의 다음 항목들을 작성해주세요:
-1. 수업교재: 추천 교재 및 참고자료
-2. 개설배경: 이 수업이 필요한 이유와 배경
-3. 학습목표: 이 수업을 통해 달성할 구체적인 학습 목표 (3-5개)
-4. 학습계획: 주차별 학습 내용 계획
-
-JSON 형식으로 응답해주세요:
+아래 JSON 형식으로만 응답하세요. 각 값은 2~4문장으로 간결하게 작성하세요:
 {
   "수업교재": "수업교재 내용",
   "개설배경": "개설배경 내용",
@@ -255,44 +258,25 @@ export const generateSyllabusContent = async (req, res) => {
       return res.end();
     }
 
-    // 4. Get user's teaching and enrollment history for context
-    sendEvent("step", { message: "수업 개설 및 수강 이력 분석 중..." });
+    // 4. 최근 이력은 제목만 소량 조회 (프롬프트 토큰 절약)
+    sendEvent("step", { message: "입력 정보 확인 중..." });
 
-    const syllabi = await Syllabus(req.user.academyId)
-      .find({ user: req.user._id })
-      .sort({ createdAt: -1 })
-      .limit(10)
-      .select("classTitle subject")
-      .lean();
+    const [syllabi, enrollments] = await Promise.all([
+      Syllabus(req.user.academyId)
+        .find({ user: req.user._id })
+        .sort({ createdAt: -1 })
+        .limit(HISTORY_LIMIT)
+        .select("classTitle")
+        .lean(),
+      Enrollment(req.user.academyId)
+        .find({ user: req.user._id })
+        .sort({ createdAt: -1 })
+        .limit(HISTORY_LIMIT)
+        .select("classTitle syllabusTitle")
+        .lean(),
+    ]);
 
-    if (syllabi.length > 0) {
-      sendEvent("step", {
-        message: `수업 개설 이력 ${syllabi.length}건 확인 완료`,
-      });
-    }
-
-    const enrollments = await Enrollment(req.user.academyId)
-      .find({ user: req.user._id })
-      .sort({ createdAt: -1 })
-      .limit(10)
-      .lean();
-
-    if (enrollments.length > 0) {
-      sendEvent("step", {
-        message: `수강 이력 ${enrollments.length}건 확인 완료`,
-      });
-    }
-
-    // 5. Check reference materials
-    const references = season.aiSettings?.references || [];
-    if (references.length > 0) {
-      sendEvent("step", {
-        message: `참고 자료 ${references.length}건 확인 완료`,
-        detail: references.map((r) => r.title).join(", "),
-      });
-    }
-
-    // 6. Call AI API with streaming
+    // 5. Call AI API with streaming
     sendEvent("step", { message: "AI가 강의계획서를 작성하고 있습니다..." });
 
     const provider = resolveProvider(academy.aiProvider);
@@ -309,7 +293,15 @@ export const generateSyllabusContent = async (req, res) => {
       (chunkText) => sendEvent("generating", { text: chunkText })
     );
 
-    // 7. Log AI token usage
+    if (!fullText?.trim()) {
+      sendEvent("error", {
+        message:
+          "AI가 빈 응답을 반환했습니다. 모델 설정을 확인하거나 다시 시도해주세요.",
+      });
+      return res.end();
+    }
+
+    // 6. Log AI token usage
     if (tokenUsage) {
       AIUsageLog(req.user.academyId)
         .create({
@@ -322,7 +314,7 @@ export const generateSyllabusContent = async (req, res) => {
         .catch(() => {});
     }
 
-    // 8. Parse JSON response
+    // 7. Parse JSON response
     let content;
     try {
       const jsonMatch =
@@ -347,7 +339,12 @@ export const generateSyllabusContent = async (req, res) => {
         message: "AI API 키가 유효하지 않습니다. 설정을 확인해주세요.",
       });
     } else {
-      sendEvent("error", { message: "AI 생성 중 오류가 발생했습니다." });
+      sendEvent("error", {
+        message:
+          err.apiMessage ||
+          err.message ||
+          "AI 생성 중 오류가 발생했습니다.",
+      });
     }
     return res.end();
   }
