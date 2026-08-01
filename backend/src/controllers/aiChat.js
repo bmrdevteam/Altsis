@@ -22,6 +22,12 @@ import {
   getBoardTeacherUserIds,
   checkAIEnabled,
 } from "../services/aiChat.js";
+import {
+  SKILL_IDS,
+  resolveSkillId,
+  detectSkillFromMessage,
+  runAlterSkill,
+} from "../services/aiSkills.js";
 import { getIoChat } from "../utils/webSocket.js";
 import {
   FIELD_REQUIRED,
@@ -177,10 +183,23 @@ export const sendAIChatMessage = async (req, res) => {
     const { board, error } = await getBoardAndVerifyMember(req);
     if (error) return res.status(error.status).send({ message: error.message });
 
-    const { content, sessionId: bodySessionId } = req.body;
+    const {
+      content,
+      sessionId: bodySessionId,
+      skill: rawSkill,
+      season: seasonId,
+      context: skillContext,
+      autoDetectSkill = true,
+    } = req.body;
     if (!content) {
       return res.status(400).send({ message: FIELD_REQUIRED("content") });
     }
+
+    let skill = rawSkill
+      ? resolveSkillId(rawSkill)
+      : autoDetectSkill
+        ? detectSkillFromMessage(content)
+        : SKILL_IDS.CHAT;
 
     const altRole = getAltBoardRole(board, req.user);
     const isTeacher = altRole === "admin" || altRole === "writer";
@@ -265,6 +284,7 @@ export const sendAIChatMessage = async (req, res) => {
       senderName: req.user.userName,
       senderProfile: req.user.profile,
       content,
+      skill,
     });
 
     // 소켓: 다른 교사들에게 유저 메시지 전달
@@ -286,25 +306,83 @@ export const sendAIChatMessage = async (req, res) => {
       }
     }
 
-    // AI 응답 생성
+    // AI 응답 생성 (Skill 라우팅)
     let aiMsg = null;
     try {
-      // 최근 메시지 조회 (프롬프트 구성용)
-      const recentMessages = await AIChatMessage(req.user.academyId)
-        .find({ session: session._id, isDeleted: false })
-        .sort({ createdAt: -1 })
-        .limit(20)
-        .lean();
-      recentMessages.reverse();
+      let aiText = "";
+      let tokenUsage = null;
+      let usedSkill = skill;
 
-      const { systemInstruction, messages: chatMessages } =
-        buildAIChatContents(board, recentMessages);
-      const { text: aiText, tokenUsage } = await callAI(
-        req.user.academyId,
-        systemInstruction,
-        chatMessages,
-        req.user
-      );
+      const canUseSeasonSkill =
+        !!seasonId &&
+        (skill === SKILL_IDS.SYLLABUS_REVIEW ||
+          skill === SKILL_IDS.CHAT);
+
+      if (canUseSeasonSkill && skill === SKILL_IDS.SYLLABUS_REVIEW) {
+        const result = await runAlterSkill({
+          academyId: req.user.academyId,
+          user: req.user,
+          skill: SKILL_IDS.SYLLABUS_REVIEW,
+          seasonId,
+          context: skillContext || {},
+          message: content,
+          boardTitle: board.title || board.name,
+        });
+        aiText = result.text;
+        tokenUsage = result.tokenUsage;
+        usedSkill = result.skill;
+      } else if (canUseSeasonSkill && skill === SKILL_IDS.CHAT && skillContext) {
+        const recentMessages = await AIChatMessage(req.user.academyId)
+          .find({ session: session._id, isDeleted: false })
+          .sort({ createdAt: -1 })
+          .limit(16)
+          .lean();
+        recentMessages.reverse();
+        const history = recentMessages
+          .filter((m) => m._id?.toString() !== userMsg._id.toString())
+          .map((m) => ({
+            role: m.senderType === "ai" ? "assistant" : "user",
+            content: m.content,
+          }));
+        const result = await runAlterSkill({
+          academyId: req.user.academyId,
+          user: req.user,
+          skill: SKILL_IDS.CHAT,
+          seasonId,
+          context: skillContext || {},
+          message: content,
+          history,
+          boardTitle: board.title || board.name,
+        });
+        aiText = result.text;
+        tokenUsage = result.tokenUsage;
+        usedSkill = result.skill;
+      } else {
+        if (skill === SKILL_IDS.SYLLABUS_REVIEW && !seasonId) {
+          aiText =
+            "강의계획서 점검은 수업 작성 화면의 Alter에서 시작하거나, 학기·초안 문맥과 함께 요청해 주세요.";
+          usedSkill = SKILL_IDS.CHAT;
+        } else {
+          const recentMessages = await AIChatMessage(req.user.academyId)
+            .find({ session: session._id, isDeleted: false })
+            .sort({ createdAt: -1 })
+            .limit(20)
+            .lean();
+          recentMessages.reverse();
+
+          const { systemInstruction, messages: chatMessages } =
+            buildAIChatContents(board, recentMessages);
+          const aiResult = await callAI(
+            req.user.academyId,
+            systemInstruction,
+            chatMessages,
+            req.user
+          );
+          aiText = aiResult.text;
+          tokenUsage = aiResult.tokenUsage;
+          usedSkill = SKILL_IDS.CHAT;
+        }
+      }
 
       aiMsg = await AIChatMessage(req.user.academyId).create({
         session: session._id,
@@ -314,6 +392,7 @@ export const sendAIChatMessage = async (req, res) => {
         senderId: null,
         senderName: "Alter",
         content: aiText,
+        skill: usedSkill,
         tokenUsage,
       });
 

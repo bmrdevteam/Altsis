@@ -37,6 +37,7 @@ import { fileS3, fileBucket, signUrl } from "../_s3/fileBucket.js";
 import {
   normalizeGuidelines,
   normalizeReferences,
+  normalizeExamples,
   truncateText,
   PROMPT_LIMITS,
 } from "../services/aiPromptPolicy.js";
@@ -244,6 +245,8 @@ export const create = async (req, res) => {
           permission: settings.permission ?? { teacher: false, student: false },
           guidelines: settings.guidelines ?? "",
           references: [], // 파일 참조는 복사하지 않음
+          examples: {},
+          exampleSyllabusIds: [], // 다른 학기 계획서 ID는 복사하지 않음
         };
       };
 
@@ -1478,6 +1481,8 @@ export const updateAiSettings = async (req, res) => {
         permission: { teacher: false, student: false },
         guidelines: "",
         references: [],
+        examples: {},
+        exampleSyllabusIds: [],
       };
     }
 
@@ -1498,6 +1503,28 @@ export const updateAiSettings = async (req, res) => {
     }
     if ("references" in req.body) {
       season.aiSettings.references = normalizeReferences(req.body.references);
+    }
+    if ("examples" in req.body) {
+      season.aiSettings.examples = normalizeExamples(req.body.examples);
+    }
+    if ("exampleSyllabusIds" in req.body) {
+      const ids = Array.isArray(req.body.exampleSyllabusIds)
+        ? req.body.exampleSyllabusIds
+            .map((id) => String(id || "").trim())
+            .filter(Boolean)
+        : [];
+      // 같은 학기 계획서만 허용, 최대 2개
+      const valid = [];
+      for (const id of ids.slice(0, 2)) {
+        const syl = await Syllabus(req.user.academyId)
+          .findById(id)
+          .select("season")
+          .lean();
+        if (syl && String(syl.season) === String(season._id)) {
+          valid.push(id);
+        }
+      }
+      season.aiSettings.exampleSyllabusIds = valid;
     }
 
     season.markModified("aiSettings");
@@ -1532,6 +1559,8 @@ export const uploadAiReference = async (req, res) => {
         permission: { teacher: false, student: false },
         guidelines: "",
         references: [],
+        examples: {},
+        exampleSyllabusIds: [],
       };
     }
 

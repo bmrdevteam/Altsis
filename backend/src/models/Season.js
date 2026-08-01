@@ -227,6 +227,8 @@ const aiPermissionSchema = mongoose.Schema(
  * @prop {TAiPermission} permission - AI 사용 권한
  * @prop {string} guidelines - AI 생성 시 기본 지침
  * @prop {TAiReference[]} references - AI 생성 시 참고 자료
+ * @prop {Object.<string, string>} examples - 양식 필드별 모범 답안(하위 호환)
+ * @prop {string[]} exampleSyllabusIds - 모범으로 쓸 기존 강의계획서 ID
  */
 const aiSettingsSchema = mongoose.Schema(
   {
@@ -234,6 +236,8 @@ const aiSettingsSchema = mongoose.Schema(
     permission: { type: aiPermissionSchema, default: { teacher: false, student: false } },
     guidelines: { type: String, default: "" },
     references: { type: [aiReferenceSchema], default: [] },
+    examples: { type: mongoose.Schema.Types.Mixed, default: {} },
+    exampleSyllabusIds: { type: [String], default: [] },
   },
   { _id: false }
 );
@@ -243,6 +247,8 @@ const aiSettingsDefault = {
   permission: { teacher: false, student: false },
   guidelines: "",
   references: [],
+  examples: {},
+  exampleSyllabusIds: [],
 };
 
 /**

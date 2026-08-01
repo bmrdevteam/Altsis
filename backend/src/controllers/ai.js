@@ -1,25 +1,14 @@
 /**
  * AIAPI namespace
  * @namespace APIs.AIAPI
- * @description AI 기반 강의계획서 내용 생성 API
+ * @description Alter AI — Skill 라우팅, 강의계획서 점검, 관리자 유틸
  */
 import { logger } from "../log/logger.js";
-import {
-  FIELD_REQUIRED,
-  PERMISSION_DENIED,
-  __NOT_FOUND,
-} from "../messages/index.js";
+import { FIELD_REQUIRED, __NOT_FOUND } from "../messages/index.js";
 import { Academy } from "../models/Academy.js";
-import {
-  Season,
-  School,
-  Registration,
-  Enrollment,
-  Syllabus,
-} from "../models/index.js";
+import { Season, School } from "../models/index.js";
 import {
   generateText,
-  generateTextStream,
   listProviderModels,
   resolveProvider,
   resolveModel,
@@ -28,137 +17,25 @@ import {
 } from "../services/aiProvider.js";
 import {
   AI_ERRORS,
-  PROMPT_LIMITS,
   FEATURE_PROFILES,
-  normalizeReferences,
   normalizeGuidelines,
-  parseSyllabusJson,
-  buildJsonRetryPrompt,
+  extractSyllabusInputFields,
+  buildGuidelinesTemplatePrompt,
+  buildGuidelinesTemplateRetryPrompt,
+  parseGuidelinesTemplate,
+  FALLBACK_GUIDELINES_TEMPLATE,
 } from "../services/aiPromptPolicy.js";
-import { maskSensitiveObject, maskSensitiveText } from "../services/aiSafety.js";
+import { maskSensitiveText } from "../services/aiSafety.js";
 import { logAIUsage } from "../services/aiUsage.js";
-
-/**
- * Extract input field names from formSyllabus editor data
- * @param {Object} formSyllabus - The formSyllabus structure
- * @returns {string[]} Array of field names
- */
-const extractFieldNames = (formSyllabus) => {
-  const fieldNames = [];
-  if (!formSyllabus?.data) return fieldNames;
-
-  for (const block of formSyllabus.data) {
-    if (block.type === "table" && block.data?.table) {
-      for (const row of block.data.table) {
-        for (const cell of row) {
-          // select/checkbox는 옵션 선택이므로 긴 문장 생성 대상에서 제외
-          if (cell.type === "input") {
-            const name = cell.name || cell.id;
-            if (name && !fieldNames.includes(name)) fieldNames.push(name);
-          }
-        }
-      }
-    }
-  }
-  return fieldNames;
-};
-
-/**
- * Build prompt for AI
- */
-const buildPrompt = (context, aiSettings, enrollments, syllabi) => {
-  let prompt = `당신은 학교 강의계획서 작성을 도와주는 AI 어시스턴트입니다.
-토큰을 절약하기 위해 각 항목은 2~4문장으로 간결하게 작성하세요. 불필요한 서론·반복은 넣지 마세요.
-
-## 지침
-${normalizeGuidelines(
-  aiSettings?.guidelines ||
-    "강의계획서의 각 항목을 체계적이고 구체적으로 작성해주세요."
-)}
-
-`;
-
-  const references = normalizeReferences(aiSettings?.references || []);
-  if (references.length > 0) {
-    prompt += `## 참고 자료\n`;
-    for (const ref of references) {
-      prompt += `### ${ref.title}\n${ref.content}\n\n`;
-    }
-  }
-
-  prompt += `## 현재 입력된 정보\n`;
-  if (context.subject && context.subject.length > 0) {
-    prompt += `- 교과목: ${context.subject.join(" > ")}\n`;
-  }
-  if (context.classTitle) {
-    prompt += `- 수업명: ${context.classTitle}\n`;
-  }
-  if (context.point) {
-    prompt += `- 학점: ${context.point}\n`;
-  }
-  if (context.limit) {
-    prompt += `- 수강정원: ${context.limit}\n`;
-  }
-
-  if (syllabi && syllabi.length > 0) {
-    prompt += `\n## 최근 개설 수업 (제목만 참고)\n`;
-    for (const syllabus of syllabi.slice(0, PROMPT_LIMITS.HISTORY)) {
-      prompt += `- ${syllabus.classTitle}\n`;
-    }
-  }
-
-  if (enrollments && enrollments.length > 0) {
-    prompt += `\n## 최근 수강 수업 (제목만 참고)\n`;
-    for (const enrollment of enrollments.slice(0, PROMPT_LIMITS.HISTORY)) {
-      prompt += `- ${enrollment.classTitle || enrollment.syllabusTitle}\n`;
-    }
-  }
-
-  const fieldNames = extractFieldNames(context.formSyllabus);
-
-  if (fieldNames.length > 0) {
-    const brevity =
-      fieldNames.length > 15
-        ? "각 값은 1~2문장으로 매우 짧게 쓰세요. 주차별·평가 항목은 한 문장만 작성하세요."
-        : "각 값은 문자열이며 2~4문장으로 간결하게 쓰세요.";
-    prompt += `
-## 요청
-위 정보를 바탕으로 아래 항목만 JSON으로 작성하세요. ${brevity}
-값 안에 실제 줄바꿈을 넣지 말고, 필요하면 \\n을 사용하세요. 키 이름은 아래 목록과 정확히 동일해야 합니다.
-
-항목 목록:
-`;
-    for (const name of fieldNames) {
-      // JSON 키로 안전하게 넣기 위해 stringify
-      prompt += `- ${JSON.stringify(name)}\n`;
-    }
-
-    prompt += `
-반드시 아래 JSON 형식으로만 응답하세요. 마크다운 코드블록이나 설명 문구는 넣지 마세요:
-{
-`;
-    const jsonFields = fieldNames.map(
-      (name) => `  ${JSON.stringify(name)}: "해당 항목 내용"`
-    );
-    prompt += jsonFields.join(",\n");
-    prompt += `
-}
-`;
-  } else {
-    prompt += `
-## 요청
-아래 JSON 형식으로만 응답하세요. 각 값은 2~4문장으로 간결하게 작성하세요:
-{
-  "수업교재": "수업교재 내용",
-  "개설배경": "개설배경 내용",
-  "학습목표": "학습목표 내용",
-  "학습계획": "주차별 학습 내용"
-}
-`;
-  }
-
-  return { prompt, fieldNames };
-};
+import {
+  SKILL_IDS,
+  listSkills,
+  assertSeasonAiAccess,
+  executeSyllabusReviewSkill,
+  runAlterSkill,
+  detectSkillFromMessage,
+  mergeTokenUsage,
+} from "../services/aiSkills.js";
 
 const mapProviderError = (err) => {
   if (err.status === 404) return AI_ERRORS.MODEL_NOT_FOUND;
@@ -166,11 +43,127 @@ const mapProviderError = (err) => {
   return AI_ERRORS.GENERATION_FAILED;
 };
 
+const AI_ERROR_MESSAGES = {
+  [AI_ERRORS.EMPTY_RESPONSE]:
+    "AI가 빈 응답을 반환했습니다. 모델 설정을 확인하거나 다시 시도해주세요.",
+  [AI_ERRORS.INVALID_JSON]:
+    "AI 응답 형식이 올바르지 않습니다. 다시 점검해주세요.",
+  [AI_ERRORS.MODEL_NOT_FOUND]:
+    "AI 모델을 찾을 수 없습니다. 모델 설정을 확인해주세요.",
+  [AI_ERRORS.INVALID_API_KEY]:
+    "AI API 키가 유효하지 않습니다. 설정을 확인해주세요.",
+};
+
 /**
  * @memberof APIs.AIAPI
- * @function GenerateSyllabusContent API
+ * @function ListAiSkills API
+ * @route GET /ai/skills
  */
-export const generateSyllabusContent = async (req, res) => {
+export const listAiSkills = async (_req, res) => {
+  try {
+    return res.status(200).send({ skills: listSkills() });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * Alter 범용 턴 (Skill 라우팅)
+ * @memberof APIs.AIAPI
+ * @route POST /ai/alter
+ * skill=syllabus-review 이면 SSE, chat 이면 JSON
+ */
+export const runAlter = async (req, res) => {
+  const {
+    season: seasonId,
+    skill: rawSkill,
+    message = "",
+    context = {},
+    history = [],
+    autoDetectSkill = true,
+  } = req.body || {};
+
+  let skill = rawSkill;
+  if (!skill && autoDetectSkill) {
+    skill = detectSkillFromMessage(message);
+  }
+  skill = skill || SKILL_IDS.CHAT;
+
+  const wantsSse = skill === SKILL_IDS.SYLLABUS_REVIEW;
+
+  if (wantsSse) {
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
+  }
+
+  const sendEvent = (event, data) => {
+    if (!wantsSse) return;
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  };
+
+  try {
+    if (!seasonId) {
+      if (wantsSse) {
+        sendEvent("error", { message: FIELD_REQUIRED("season") });
+        return res.end();
+      }
+      return res.status(400).send({ message: FIELD_REQUIRED("season") });
+    }
+
+    if (wantsSse) sendEvent("step", { message: "설정 확인 중..." });
+
+    const result = await runAlterSkill({
+      academyId: req.user.academyId,
+      user: req.user,
+      skill,
+      seasonId,
+      context,
+      message,
+      history,
+      onEvent: sendEvent,
+    });
+
+    if (wantsSse) {
+      sendEvent("done", {
+        skill: result.skill,
+        review: result.review,
+        message: result.text,
+      });
+      return res.end();
+    }
+
+    return res.status(200).send({
+      skill: result.skill,
+      message: result.text,
+      review: result.review,
+    });
+  } catch (err) {
+    logger.error(err.message);
+    const code =
+      err.code ||
+      (err.message && Object.values(AI_ERRORS).includes(err.message)
+        ? err.message
+        : mapProviderError(err));
+    const message =
+      AI_ERROR_MESSAGES[code] || err.message || AI_ERRORS.GENERATION_FAILED;
+
+    if (wantsSse) {
+      sendEvent("error", { message });
+      return res.end();
+    }
+    return res.status(err.status || 500).send({ message });
+  }
+};
+
+/**
+ * @memberof APIs.AIAPI
+ * @function ReviewSyllabusContent API
+ * @description syllabus-review Skill (SSE) — 하위 호환 엔드포인트
+ */
+export const reviewSyllabusContent = async (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
@@ -179,10 +172,6 @@ export const generateSyllabusContent = async (req, res) => {
   const sendEvent = (event, data) => {
     res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
   };
-
-  let provider = "unknown";
-  let modelName = "unknown";
-  const profile = FEATURE_PROFILES.syllabus;
 
   try {
     const { season: seasonId, context } = req.body;
@@ -194,164 +183,148 @@ export const generateSyllabusContent = async (req, res) => {
 
     sendEvent("step", { message: "설정 확인 중..." });
 
+    const { academy, season } = await assertSeasonAiAccess(
+      req.user.academyId,
+      req.user,
+      seasonId
+    );
+
+    const { review } = await executeSyllabusReviewSkill({
+      academyId: req.user.academyId,
+      user: req.user,
+      academy,
+      season,
+      context,
+      onEvent: sendEvent,
+    });
+
+    sendEvent("done", { review, skill: SKILL_IDS.SYLLABUS_REVIEW });
+    return res.end();
+  } catch (err) {
+    logger.error(err.message);
+    const code =
+      err.code ||
+      (err.message && Object.values(AI_ERRORS).includes(err.message)
+        ? err.message
+        : mapProviderError(err));
+
+    sendEvent("error", {
+      message: AI_ERROR_MESSAGES[code] || code || AI_ERRORS.GENERATION_FAILED,
+    });
+    return res.end();
+  }
+};
+
+
+/**
+ * 학기 AI 기본 지침 추천 템플릿 생성 (관리자)
+ * @memberof APIs.AIAPI
+ * @function GenerateGuidelinesTemplate API
+ */
+export const generateGuidelinesTemplate = async (req, res) => {
+  const profile = FEATURE_PROFILES.guidelinesTemplate;
+  let provider = "unknown";
+  let modelName = "unknown";
+
+  try {
+    const { season: seasonId } = req.body;
+    if (!seasonId) {
+      return res.status(400).send({ message: FIELD_REQUIRED("season") });
+    }
+
     const academy = await Academy.findOne(
       { academyId: req.user.academyId },
       "+aiApiKey"
     );
     if (!academy) {
-      sendEvent("error", { message: __NOT_FOUND("academy") });
-      return res.end();
+      return res.status(404).send({ message: __NOT_FOUND("academy") });
     }
     if (!academy.aiEnabled) {
-      sendEvent("error", { message: AI_ERRORS.NOT_ENABLED });
-      return res.end();
+      return res.status(403).send({ message: AI_ERRORS.NOT_ENABLED });
     }
     if (!academy.aiApiKey) {
-      sendEvent("error", { message: AI_ERRORS.API_KEY_NOT_SET });
-      return res.end();
+      return res.status(400).send({ message: AI_ERRORS.API_KEY_NOT_SET });
     }
 
     const season = await Season(req.user.academyId).findById(seasonId);
     if (!season) {
-      sendEvent("error", { message: __NOT_FOUND("season") });
-      return res.end();
-    }
-    if (!season.aiSettings?.enabled) {
-      sendEvent("error", { message: AI_ERRORS.NOT_ENABLED_FOR_SEASON });
-      return res.end();
+      return res.status(404).send({ message: __NOT_FOUND("season") });
     }
 
+    let schoolName = "";
     if (season.school) {
       const school = await School(req.user.academyId).findById(season.school);
       if (school && school.aiEnabled === false) {
-        sendEvent("error", { message: AI_ERRORS.NOT_ENABLED });
-        return res.end();
+        return res.status(403).send({ message: AI_ERRORS.NOT_ENABLED });
       }
+      schoolName = school?.schoolName || "";
     }
 
-    const registration = await Registration(req.user.academyId).findOne({
-      season: seasonId,
-      user: req.user._id,
-    });
-    if (!registration) {
-      sendEvent("error", { message: __NOT_FOUND("registration") });
-      return res.end();
-    }
-
-    const hasPermission =
-      registration.role === "teacher"
-        ? season.aiSettings.permission?.teacher
-        : season.aiSettings.permission?.student;
-
-    if (!hasPermission) {
-      sendEvent("error", { message: PERMISSION_DENIED });
-      return res.end();
-    }
-
-    sendEvent("step", { message: "입력 정보 확인 중..." });
-
-    const [syllabi, enrollments] = await Promise.all([
-      Syllabus(req.user.academyId)
-        .find({ user: req.user._id })
-        .sort({ createdAt: -1 })
-        .limit(PROMPT_LIMITS.HISTORY)
-        .select("classTitle")
-        .lean(),
-      Enrollment(req.user.academyId)
-        .find({ user: req.user._id })
-        .sort({ createdAt: -1 })
-        .limit(PROMPT_LIMITS.HISTORY)
-        .select("classTitle syllabusTitle")
-        .lean(),
-    ]);
-
-    sendEvent("step", { message: "AI가 강의계획서를 작성하고 있습니다..." });
+    const fields = extractSyllabusInputFields(season.formSyllabus);
+    const fieldNames = fields.map((f) => f.name).slice(0, 24);
+    const seasonLabel = [season.year, season.term].filter(Boolean).join(" ");
 
     provider = resolveProvider(academy.aiProvider);
     modelName = resolveModel(provider, academy.aiModel);
 
-    const { prompt, fieldNames } = buildPrompt(
-      context,
-      season.aiSettings,
-      enrollments,
-      syllabi
-    );
+    const prompt = buildGuidelinesTemplatePrompt({
+      schoolName,
+      seasonLabel,
+      fieldNames,
+    });
     const safePrompt = maskSensitiveText(prompt).text;
 
-    let fullText = "";
-    let tokenUsage = null;
+    const result = await generateText({
+      provider,
+      apiKey: academy.aiApiKey,
+      model: modelName,
+      messages: [{ role: "user", content: safePrompt }],
+      temperature: profile.temperature,
+      maxTokens: profile.maxTokens,
+    });
 
-    const streamResult = await generateTextStream(
-      {
-        provider,
-        apiKey: academy.aiApiKey,
-        model: modelName,
-        messages: [{ role: "user", content: safePrompt }],
-        temperature: profile.temperature,
-        maxTokens: profile.maxTokens,
-      },
-      (chunkText) => sendEvent("generating", { text: chunkText })
-    );
-    fullText = streamResult.text || "";
-    tokenUsage = streamResult.tokenUsage;
+    let tokenUsage = result.tokenUsage;
+    let guidelines = parseGuidelinesTemplate(result.text);
 
-    let content;
-    try {
-      if (!fullText.trim()) {
-        const err = new Error(AI_ERRORS.EMPTY_RESPONSE);
-        err.code = AI_ERRORS.EMPTY_RESPONSE;
-        throw err;
-      }
-      content = parseSyllabusJson(fullText, fieldNames);
-    } catch (parseErr) {
-      // JSON 실패/빈 응답 → 비스트리밍으로 1회 재시도
-      sendEvent("step", { message: "응답 형식을 보정하는 중..." });
-      const retryPrompt = `${safePrompt}
-
-${buildJsonRetryPrompt(fieldNames)}`;
+    if (!guidelines) {
+      const retryPrompt = buildGuidelinesTemplateRetryPrompt();
       const retryResult = await generateText({
         provider,
         apiKey: academy.aiApiKey,
         model: modelName,
         messages: [
-          { role: "user", content: retryPrompt },
-          ...(fullText.trim()
+          { role: "user", content: safePrompt },
+          ...(String(result.text || "").trim()
             ? [
-                { role: "assistant", content: fullText },
-                {
-                  role: "user",
-                  content: buildJsonRetryPrompt(fieldNames),
-                },
+                { role: "assistant", content: String(result.text) },
+                { role: "user", content: retryPrompt },
               ]
-            : []),
+            : [{ role: "user", content: retryPrompt }]),
         ],
-        temperature: 0.2,
+        temperature: 0.1,
         maxTokens: profile.maxTokens,
       });
-      fullText = retryResult.text || "";
-      if (retryResult.tokenUsage) {
-        tokenUsage = {
-          promptTokens:
-            (tokenUsage?.promptTokens || 0) +
-            (retryResult.tokenUsage.promptTokens || 0),
-          candidatesTokens:
-            (tokenUsage?.candidatesTokens || 0) +
-            (retryResult.tokenUsage.candidatesTokens || 0),
-          thoughtsTokens:
-            (tokenUsage?.thoughtsTokens || 0) +
-            (retryResult.tokenUsage.thoughtsTokens || 0),
-          totalTokens:
-            (tokenUsage?.totalTokens || 0) +
-            (retryResult.tokenUsage.totalTokens || 0),
-        };
-      }
-      if (fullText.trim()) {
-        sendEvent("generating", { text: fullText, replace: true });
-      }
-      content = parseSyllabusJson(fullText, fieldNames);
+      tokenUsage = mergeTokenUsage(tokenUsage, retryResult.tokenUsage);
+      guidelines = parseGuidelinesTemplate(retryResult.text);
     }
 
-    content = maskSensitiveObject(content);
+    // 형식이 계속 깨지면 검증된 한국어 기본 템플릿 제공
+    if (!guidelines) {
+      guidelines = normalizeGuidelines(FALLBACK_GUIDELINES_TEMPLATE);
+      logAIUsage(req.user.academyId, {
+        user: req.user,
+        provider,
+        model: modelName,
+        feature: profile.feature,
+        success: true,
+        tokenUsage,
+        errorCode: "GUIDELINES_FALLBACK",
+      });
+      return res.status(200).send({
+        guidelines,
+        usedFallback: true,
+      });
+    }
 
     logAIUsage(req.user.academyId, {
       user: req.user,
@@ -362,8 +335,7 @@ ${buildJsonRetryPrompt(fieldNames)}`;
       tokenUsage,
     });
 
-    sendEvent("done", { content });
-    return res.end();
+    return res.status(200).send({ guidelines });
   } catch (err) {
     logger.error(err.message);
     const code =
@@ -381,21 +353,12 @@ ${buildJsonRetryPrompt(fieldNames)}`;
       errorCode: code,
     });
 
-    const messageMap = {
-      [AI_ERRORS.EMPTY_RESPONSE]:
-        "AI가 빈 응답을 반환했습니다. 모델 설정을 확인하거나 다시 시도해주세요.",
-      [AI_ERRORS.INVALID_JSON]:
-        "AI 응답 형식이 올바르지 않습니다. 다시 생성해주세요.",
-      [AI_ERRORS.MODEL_NOT_FOUND]:
-        "AI 모델을 찾을 수 없습니다. 모델 설정을 확인해주세요.",
-      [AI_ERRORS.INVALID_API_KEY]:
-        "AI API 키가 유효하지 않습니다. 설정을 확인해주세요.",
-    };
-
-    sendEvent("error", {
-      message: messageMap[code] || code || AI_ERRORS.GENERATION_FAILED,
+    // API 오류여도 관리자가 바로 쓸 수 있는 기본 템플릿 반환
+    return res.status(200).send({
+      guidelines: normalizeGuidelines(FALLBACK_GUIDELINES_TEMPLATE),
+      usedFallback: true,
+      message: code || AI_ERRORS.GENERATION_FAILED,
     });
-    return res.end();
   }
 };
 
