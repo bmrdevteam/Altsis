@@ -1,17 +1,11 @@
 /** 강의계획서 AI 점검용 formSyllabus 필드 헬퍼 */
 
 export type TSyllabusInputField = {
-  /** 저장 키 (cell.id) */
   id: string;
-  /** 표시/AI 라벨 (cell.name) */
   name: string;
   required: boolean;
 };
 
-/**
- * formSyllabus 테이블에서 input 셀만 추출
- * 저장은 id, 표시는 name (EditorParser writeByCellId와 동일)
- */
 export const extractSyllabusInputFields = (
   formSyllabus: any
 ): TSyllabusInputField[] => {
@@ -35,7 +29,6 @@ export const extractSyllabusInputFields = (
   return fields;
 };
 
-/** info에서 필드 값 읽기 (id 우선, name 하위 호환) */
 export const readSyllabusInfoValue = (
   info: any,
   field: TSyllabusInputField | string

@@ -59,6 +59,7 @@ import UserSearchResult from "pages/userSearchResult/Index";
 //components
 import Sidebar from "../layout/sidebar/Sidebar";
 import Navbar from "layout/navbar/Navbar";
+import { AlterProvider } from "contexts/alterContext";
 
 //hooks
 import { useAuth } from "../contexts/authContext";
@@ -202,6 +203,7 @@ function RouterPage() {
           className="content"
           id="content"
         >
+          <AlterProvider>
           {currentUser && <Navbar />}
           <Routes>
             {/* ----------------------------------------------------- */}
@@ -700,6 +702,7 @@ function RouterPage() {
 
             {/* ----------------------------------------------------- */}
           </Routes>
+          </AlterProvider>
         </div>
       </BrowserRouter>
     </div>

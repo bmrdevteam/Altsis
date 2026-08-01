@@ -8,6 +8,7 @@ import style from "./navbar.module.scss";
 
 import Notification from "./Notification";
 import Chat from "./Chat";
+import Alter from "./Alter";
 
 type Props = { title?: string };
 
@@ -41,7 +42,7 @@ const Navbar = (props: Props) => {
             })) ?? [];
         if (seasonOptions.length === 0) return null;
         return (
-          <div className={style.menu_item} style={{ paddingLeft: "24px" }}>
+          <div className={style.menu_item}>
             <Select
               appearence="flat"
               options={seasonOptions}
@@ -56,6 +57,7 @@ const Navbar = (props: Props) => {
       <div className={style.controls}>
         <Notification />
         <Chat />
+        <Alter />
       </div>
 
       {isOpen && <CommandPalette onClose={close} />}

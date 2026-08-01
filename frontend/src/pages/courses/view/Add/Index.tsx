@@ -47,22 +47,19 @@ import PastePopup from "pages/courses/view/_components/PastePopup";
 import MentoringTeacherPopup from "pages/courses/view/_components/MentoringTeacherPopup";
 import ClassroomTimePopup from "pages/courses/view/_components/ClassroomTimePopup";
 import SubjectSelect from "pages/courses/view/_components/SubjectSelect";
-import AIGeneratePopup from "pages/courses/view/_components/AIGeneratePopup";
-import AlterAIIcon from "pages/courses/view/_components/AlterAIIcon";
-import AlterReviewBadge, {
-  TAlterReviewResult,
-} from "pages/courses/view/_components/AlterReviewBadge";
 import CourseCoverImagePopup from "pages/courses/view/CourseCoverImagePopup";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import useRegisterAlterSyllabus from "hooks/useRegisterAlterSyllabus";
 
 type Props = {};
 
 const CourseAdd = (props: Props) => {
-  const { currentUser, currentSeason, currentRegistration, currentSchool } = useAuth();
+  const { currentUser, currentSeason, currentRegistration } = useAuth();
   const navigate = useAppNavigate();
   const { SyllabusAPI } = useAPIv2();
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [infoRevision, setInfoRevision] = useState(0);
 
   const [courseSubject, setCourseSubject] = useState<string[]>([]);
   const [courseTitle, setCourseTitle] = useState<string>("");
@@ -90,24 +87,18 @@ const CourseAdd = (props: Props) => {
     useState<boolean>(false);
 
   const [pastePopupActive, setPastePopupActive] = useState<boolean>(false);
-  const [aiPopupActive, setAIPopupActive] = useState<boolean>(false);
-  const [aiOpenToResults, setAiOpenToResults] = useState(false);
-  const [aiAutoStart, setAiAutoStart] = useState(false);
-  const [alterReview, setAlterReview] = useState<TAlterReviewResult | null>(
-    null
-  );
-  const [alterReviewedInfo, setAlterReviewedInfo] = useState<
-    Record<string, any>
-  >({});
-  const [infoRevision, setInfoRevision] = useState(0);
 
-  // AI enabled check (academy + school + season level)
-  const aiEnabled = currentSchool?.aiEnabled !== false &&
-    currentSchool?.academyFeatures?.aiEnabled !== false &&
-    currentSeason?.aiSettings?.enabled &&
-    (currentRegistration?.role === "teacher"
-      ? currentSeason?.aiSettings?.permission?.teacher
-      : currentSeason?.aiSettings?.permission?.student);
+  useRegisterAlterSyllabus({
+    label: courseTitle ? `수업 개설 · ${courseTitle}` : "수업 개설",
+    subject: courseSubject,
+    classTitle: courseTitle,
+    getCurrentInfo: () => courseMoreInfo.current || {},
+    onApplyInfo: (next) => {
+      courseMoreInfo.current = next;
+      setInfoRevision((n) => n + 1);
+    },
+    formSyllabus: currentSeason?.formSyllabus,
+  });
 
   const pasteSyllabus = (syllabus: string) => {
     SyllabusAPI.RSyllabus({ params: { _id: syllabus } })
@@ -227,42 +218,6 @@ const CourseAdd = (props: Props) => {
             >
               <Svg type="paste" width="20px" height="20px" />
             </div>
-            {aiEnabled && (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                }}
-              >
-                <div
-                  onClick={() => {
-                    setAiOpenToResults(false);
-                    setAiAutoStart(true);
-                    setAIPopupActive(true);
-                  }}
-                  title={"Alter 작성 도우미"}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    cursor: "pointer",
-                  }}
-                >
-                  <AlterAIIcon size={22} />
-                </div>
-                {alterReview && (
-                  <AlterReviewBadge
-                    size="sm"
-                    overallLevel={alterReview.overallLevel}
-                    onClick={() => {
-                      setAiOpenToResults(true);
-                      setAiAutoStart(false);
-                      setAIPopupActive(true);
-                    }}
-                  />
-                )}
-              </div>
-            )}
           </div>
           <div key="subject-select-wrapper">
             <SubjectSelect
@@ -469,22 +424,6 @@ const CourseAdd = (props: Props) => {
         <PastePopup
           setPopupActive={setPastePopupActive}
           pasteFunc={pasteSyllabus}
-        />
-      )}
-      {aiPopupActive && (
-        <AIGeneratePopup
-          setPopupActive={setAIPopupActive}
-          courseSubject={courseSubject}
-          courseTitle={courseTitle}
-          courseMoreInfo={courseMoreInfo}
-          onInfoUpdate={() => setInfoRevision((n) => n + 1)}
-          initialReview={aiAutoStart ? null : alterReview}
-          initialReviewedInfo={aiAutoStart ? {} : alterReviewedInfo}
-          openToResults={aiOpenToResults}
-          onReviewComplete={({ review, reviewedInfo }) => {
-            setAlterReview(review);
-            setAlterReviewedInfo(reviewedInfo);
-          }}
         />
       )}
     </>

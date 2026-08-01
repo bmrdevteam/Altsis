@@ -44,12 +44,8 @@ import UpdatedEvaluationPopup from "pages/courses/view/_components/UpdatedEvalua
 import ClassroomTimePopup from "pages/courses/view/_components/ClassroomTimePopup";
 import SubjectSelect from "pages/courses/view/_components/SubjectSelect";
 import CourseCoverImagePopup from "pages/courses/view/CourseCoverImagePopup";
-import AIGeneratePopup from "pages/courses/view/_components/AIGeneratePopup";
-import AlterAIIcon from "pages/courses/view/_components/AlterAIIcon";
-import AlterReviewBadge, {
-  TAlterReviewResult,
-} from "pages/courses/view/_components/AlterReviewBadge";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import useRegisterAlterSyllabus from "hooks/useRegisterAlterSyllabus";
 
 type Props = {};
 
@@ -62,28 +58,13 @@ const CoursePid = (props: Props) => {
   const { SyllabusAPI } = useAPIv2();
 
   const navigate = useAppNavigate();
-  const { currentUser, currentSeason, currentRegistration } = useAuth();
+  const { currentUser, currentSeason } = useAuth();
 
   const [courseData, setCourseData] = useState<any>();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [aiPopupActive, setAIPopupActive] = useState(false);
-  const [aiOpenToResults, setAiOpenToResults] = useState(false);
-  const [aiAutoStart, setAiAutoStart] = useState(false);
-  const [alterReview, setAlterReview] = useState<TAlterReviewResult | null>(
-    null
-  );
-  const [alterReviewedInfo, setAlterReviewedInfo] = useState<
-    Record<string, any>
-  >({});
-  const [infoRevision, setInfoRevision] = useState(0);
   const courseMoreInfoRef = useRef<any>({});
-
-  const aiEnabled =
-    currentSeason?.aiSettings?.enabled &&
-    (currentRegistration?.role === "teacher"
-      ? currentSeason?.aiSettings?.permission?.teacher
-      : currentSeason?.aiSettings?.permission?.student);
+  const [infoRevision, setInfoRevision] = useState(0);
 
   const [courseSubject, setCourseSubject] = useState<string[]>([]);
   const [courseTitle, setCourseTitle] = useState<string>("");
@@ -99,6 +80,18 @@ const CoursePid = (props: Props) => {
   const [courseMoreInfo, setCourseMoreInfo] = useState<any>({});
   courseMoreInfoRef.current = courseMoreInfo;
   const [courseLimit, setCourseLimit] = useState<string>("");
+
+  useRegisterAlterSyllabus({
+    label: courseTitle ? `수업 수정 · ${courseTitle}` : "수업 수정",
+    subject: courseSubject,
+    classTitle: courseTitle,
+    getCurrentInfo: () => courseMoreInfoRef.current || {},
+    onApplyInfo: (next) => {
+      setCourseMoreInfo(next);
+      setInfoRevision((n) => n + 1);
+    },
+    formSyllabus: currentSeason?.formSyllabus,
+  });
 
   const [timeSelectPopupActive, setTimeSelectPopupActive] =
     useState<boolean>(false);
@@ -361,61 +354,6 @@ const CoursePid = (props: Props) => {
             />
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              marginTop: "24px",
-              justifyContent: "flex-end",
-              gap: "8px",
-            }}
-          >
-            {aiEnabled && (
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "8px",
-                }}
-              >
-                <span
-                  onClick={() => {
-                    setAiOpenToResults(false);
-                    setAiAutoStart(true);
-                    setAIPopupActive(true);
-                  }}
-                  title="Alter 작성 도우미"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    cursor: "pointer",
-                  }}
-                >
-                  <AlterAIIcon size={20} />
-                </span>
-                {alterReview && (
-                  <AlterReviewBadge
-                    size="sm"
-                    overallLevel={alterReview.overallLevel}
-                    onClick={() => {
-                      setAiOpenToResults(true);
-                      setAiAutoStart(false);
-                      setAIPopupActive(true);
-                    }}
-                  />
-                )}
-                <Button
-                  type="ghost"
-                  onClick={() => {
-                    setAiOpenToResults(false);
-                    setAiAutoStart(true);
-                    setAIPopupActive(true);
-                  }}
-                >
-                  Alter 작성 도우미
-                </Button>
-              </div>
-            )}
-          </div>
           <EditorParser
             key={`syllabus-info-${infoRevision}`}
             type="syllabus"
@@ -516,25 +454,6 @@ const CoursePid = (props: Props) => {
           setPopupActive={setMentorSelectPopupActive}
           selectedTeachers={courseMentorList}
           setCourseMentorList={setCourseMentorList}
-        />
-      )}
-      {aiPopupActive && (
-        <AIGeneratePopup
-          setPopupActive={setAIPopupActive}
-          courseSubject={courseSubject}
-          courseTitle={courseTitle}
-          courseMoreInfo={courseMoreInfoRef}
-          onInfoUpdate={(info) => {
-            setCourseMoreInfo(info);
-            setInfoRevision((n) => n + 1);
-          }}
-          initialReview={aiAutoStart ? null : alterReview}
-          initialReviewedInfo={aiAutoStart ? {} : alterReviewedInfo}
-          openToResults={aiOpenToResults}
-          onReviewComplete={({ review, reviewedInfo }) => {
-            setAlterReview(review);
-            setAlterReviewedInfo(reviewedInfo);
-          }}
         />
       )}
       {changesPoupActive && pid && (
