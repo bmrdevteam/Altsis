@@ -481,11 +481,19 @@ export default function useAPIv2() {
       aiProvider?: string;
     };
   }) {
-    const { success } = await database.U({
-      location: `academies/${props.params.academyId}/ai/apikey`,
-      data: props.data,
-    });
-    return { success: success as boolean };
+    const { success, apiKeyHint, aiModel, aiProvider, models, modelAdjusted } =
+      await database.U({
+        location: `academies/${props.params.academyId}/ai/apikey`,
+        data: props.data,
+      });
+    return {
+      success: success as boolean,
+      apiKeyHint: apiKeyHint as string | undefined,
+      aiModel: aiModel as string | undefined,
+      aiProvider: aiProvider as string | undefined,
+      models: (models || []) as { name: string; displayName: string }[],
+      modelAdjusted: !!modelAdjusted,
+    };
   }
 
   /**
@@ -499,13 +507,23 @@ export default function useAPIv2() {
       academyId: string;
     };
   }) {
-    const { hasApiKey, aiModel, aiProvider } = await database.R({
+    const {
+      hasApiKey,
+      apiKeyHint,
+      aiModel,
+      aiProvider,
+      models,
+      modelAdjusted,
+    } = await database.R({
       location: `academies/${props.params.academyId}/ai/apikey`,
     });
     return {
       hasApiKey: hasApiKey as boolean,
+      apiKeyHint: apiKeyHint as string | null,
       aiModel: aiModel as string,
       aiProvider: aiProvider as string,
+      models: (models || []) as { name: string; displayName: string }[],
+      modelAdjusted: !!modelAdjusted,
     };
   }
 
@@ -4495,11 +4513,16 @@ export default function useAPIv2() {
       provider?: string;
     };
   }) {
-    const { valid, error } = await database.C({
+    const { valid, error, suggestedModel, models } = await database.C({
       location: `ai/test`,
       data: props.data,
     });
-    return { valid: valid as boolean, error: error as string | undefined };
+    return {
+      valid: valid as boolean,
+      error: error as string | undefined,
+      suggestedModel: suggestedModel as string | undefined,
+      models: (models || []) as { name: string; displayName: string }[],
+    };
   }
 
   /**

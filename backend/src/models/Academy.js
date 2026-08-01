@@ -75,7 +75,7 @@ const academySchema = mongoose.Schema(
       enum: ["openai", "anthropic", "gemini"],
       default: "gemini",
     },
-    aiModel: { type: String, default: "gemini-2.5-flash" },
+    aiModel: { type: String, default: "gemini-3.6-flash" },
   },
   { timestamps: true }
 );

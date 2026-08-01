@@ -103,7 +103,7 @@ const users = await User(req.user.academyId).find({});
 | `chatEnabled` | Boolean | 채팅 기능 활성화 (기본값: `false`) |
 | `aiEnabled` | Boolean | AI 기능 활성화 (기본값: `false`) |
 | `aiApiKey` | String | AI API 키 (비공개) |
-| `aiModel` | String | AI 모델 (기본값: `gemini-2.5-flash`) |
+| `aiModel` | String | AI 모델 (기본값: `gemini-3.6-flash`) |
 
 > [!NOTE]
 > `dbName`과 `aiApiKey` 필드는 `select: false`로 설정되어 일반 API 조회 시 반환되지 않습니다.

@@ -40,6 +40,8 @@ import {
   isValidProvider,
   resolveProvider,
   resolveModel,
+  listProviderModels,
+  pickPreferredModel,
 } from "../services/aiProvider.js";
 
 /**
@@ -546,6 +548,53 @@ export const updateAiEnabled = async (req, res) => {
  * @param {Object} res
  * @param {boolean} res.success
  */
+/**
+ * API 키를 앞·뒤 일부만 남기고 마스킹 (전체 키는 반환하지 않음)
+ * @param {string} apiKey
+ * @returns {string|null}
+ */
+const maskApiKey = (apiKey) => {
+  if (!apiKey || typeof apiKey !== "string") return null;
+  const key = apiKey.trim();
+  if (key.length < 8) return "••••••••";
+  const head = key.slice(0, 4);
+  const tail = key.slice(-4);
+  return `${head}${"•".repeat(Math.min(12, key.length - 8))}${tail}`;
+};
+
+/**
+ * API 키로 모델 목록을 조회하고, 저장된 모델이 없으면/불가하면 사용 가능 모델로 맞춘다.
+ * @returns {{ models: Array, aiModel: string, modelAdjusted: boolean }}
+ */
+const syncModelsForAcademy = async (academy, apiKey) => {
+  const provider = resolveProvider(academy.aiProvider);
+  let models = [];
+  let aiModel = academy.aiModel || resolveModel(provider);
+  let modelAdjusted = false;
+
+  try {
+    models = await listProviderModels({ provider, apiKey });
+    const preferred = pickPreferredModel(models, aiModel);
+    if (preferred && preferred !== academy.aiModel) {
+      academy.aiModel = preferred;
+      await academy.save();
+      aiModel = preferred;
+      modelAdjusted = true;
+    } else if (!academy.aiModel && preferred) {
+      academy.aiModel = preferred;
+      await academy.save();
+      aiModel = preferred;
+      modelAdjusted = true;
+    } else {
+      aiModel = academy.aiModel || preferred || resolveModel(provider);
+    }
+  } catch (err) {
+    logger.error(err.message);
+  }
+
+  return { models, aiModel, modelAdjusted };
+};
+
 export const updateAiApiKey = async (req, res) => {
   try {
     /* find document */
@@ -565,7 +614,19 @@ export const updateAiApiKey = async (req, res) => {
     }
     await academy.save();
 
-    return res.status(200).send({ success: true });
+    const { models, aiModel, modelAdjusted } = await syncModelsForAcademy(
+      academy,
+      req.body.apiKey
+    );
+
+    return res.status(200).send({
+      success: true,
+      apiKeyHint: maskApiKey(req.body.apiKey),
+      aiProvider: resolveProvider(academy.aiProvider),
+      aiModel,
+      models,
+      modelAdjusted,
+    });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });
@@ -590,6 +651,7 @@ export const updateAiApiKey = async (req, res) => {
  *
  * @param {Object} res
  * @param {boolean} res.hasApiKey - API 키 존재 여부
+ * @param {string|null} res.apiKeyHint - 마스킹된 API 키 (예: AIza••••Kzuw)
  */
 /**
  * @memberof APIs.AcademyAPI
@@ -630,10 +692,31 @@ export const checkAiApiKey = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("academy") });
 
     const aiProvider = resolveProvider(academy.aiProvider);
+    const hasApiKey = !!academy.aiApiKey;
+
+    if (!hasApiKey) {
+      return res.status(200).send({
+        hasApiKey: false,
+        apiKeyHint: null,
+        aiProvider,
+        aiModel: academy.aiModel || resolveModel(aiProvider),
+        models: [],
+        modelAdjusted: false,
+      });
+    }
+
+    const { models, aiModel, modelAdjusted } = await syncModelsForAcademy(
+      academy,
+      academy.aiApiKey
+    );
+
     return res.status(200).send({
-      hasApiKey: !!academy.aiApiKey,
+      hasApiKey: true,
+      apiKeyHint: maskApiKey(academy.aiApiKey),
       aiProvider,
-      aiModel: academy.aiModel || resolveModel(aiProvider),
+      aiModel,
+      models,
+      modelAdjusted,
     });
   } catch (err) {
     logger.error(err.message);

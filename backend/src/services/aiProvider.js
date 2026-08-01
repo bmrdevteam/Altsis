@@ -21,7 +21,8 @@ export const AI_PROVIDERS = {
   },
   gemini: {
     label: "Google Gemini (테스트용)",
-    defaultModel: "gemini-2.5-flash",
+    // 신규 키에는 gemini-2.5-flash가 제공되지 않음 (Google 2026 정책)
+    defaultModel: "gemini-3.6-flash",
   },
 };
 
@@ -38,18 +39,59 @@ export const resolveModel = (provider, model) =>
   model || AI_PROVIDERS[resolveProvider(provider)].defaultModel;
 
 /**
+ * 제공자 ListModels 결과에서 실제 사용 가능한 모델을 고른다.
+ * preferred가 목록에 있으면 그대로 쓰고, 없으면 저렴·빠른 계열을 우선한다.
+ * @param {Array<{name: string, displayName?: string}>} models
+ * @param {string} [preferred]
+ * @returns {string|null}
+ */
+export const pickPreferredModel = (models, preferred) => {
+  if (!models?.length) return null;
+  if (preferred && models.some((m) => m.name === preferred)) {
+    return preferred;
+  }
+
+  const usable = models.filter(
+    (m) => !/image|tts|embed|whisper|moderation|realtime|audio/i.test(m.name)
+  );
+  const pool = usable.length ? usable : models;
+
+  const patterns = [
+    /^gpt-4o-mini$/i,
+    /^gpt-4o-mini/i,
+    /^gpt-4\.1-mini/i,
+    /^gpt-4o(?!.*mini)/i,
+    /claude-sonnet/i,
+    /claude-.*sonnet/i,
+    /gemini-.*flash(?!.*image)/i,
+    /flash(?!.*image)/i,
+    /mini/i,
+  ];
+  for (const re of patterns) {
+    const hit = pool.find((m) => re.test(m.name));
+    if (hit) return hit.name;
+  }
+  return pool[0].name;
+};
+
+/**
  * HTTP 에러를 status 정보와 함께 throw
  */
 const throwHttpError = async (response, provider) => {
   let detail = "";
+  let apiMessage = "";
   try {
     const body = await response.text();
     detail = body.slice(0, 500);
+    try {
+      apiMessage = JSON.parse(body)?.error?.message || "";
+    } catch (_) {}
   } catch (_) {}
   const err = new Error(
     `${provider} API error (${response.status}): ${detail}`
   );
   err.status = response.status;
+  err.apiMessage = apiMessage;
   throw err;
 };
 
@@ -363,14 +405,18 @@ const geminiExtractText = (data) =>
     .map((part) => part.text || "")
     .join("");
 
+const geminiNormalizeModel = (model) =>
+  String(model || "").replace(/^models\//, "");
+
 const geminiGenerate = async ({
   apiKey,
   model,
   systemInstruction,
   messages,
 }) => {
+  const modelId = geminiNormalizeModel(model);
   const response = await fetch(
-    `${GEMINI_BASE}/models/${encodeURIComponent(model)}:generateContent`,
+    `${GEMINI_BASE}/models/${encodeURIComponent(modelId)}:generateContent`,
     {
       method: "POST",
       headers: {
@@ -393,9 +439,10 @@ const geminiGenerateStream = async (
   { apiKey, model, systemInstruction, messages },
   onText
 ) => {
+  const modelId = geminiNormalizeModel(model);
   const response = await fetch(
     `${GEMINI_BASE}/models/${encodeURIComponent(
-      model
+      modelId
     )}:streamGenerateContent?alt=sse`,
     {
       method: "POST",

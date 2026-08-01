@@ -81,7 +81,7 @@ POST /api/academies
     "isActivated": true,
     "chatEnabled": false,
     "aiEnabled": false,
-    "aiModel": "gemini-2.5-flash",
+    "aiModel": "gemini-3.6-flash",
     "createdAt": "2024-01-15T09:00:00.000Z",
     "updatedAt": "2024-01-15T09:00:00.000Z"
   },
@@ -130,7 +130,7 @@ GET /api/academies
     "isActivated": true,
     "chatEnabled": false,
     "aiEnabled": false,
-    "aiModel": "gemini-2.5-flash"
+    "aiModel": "gemini-3.6-flash"
   }
 }
 ```
@@ -349,10 +349,13 @@ GET /api/academies/:academyId/ai/apikey
 ```json
 {
   "hasApiKey": true,
+  "apiKeyHint": "AIza••••••••Kzuw",
   "aiProvider": "gemini",
-  "aiModel": "gemini-2.5-flash"
+  "aiModel": "gemini-3.6-flash"
 }
 ```
+
+> **참고**: 전체 API 키는 반환하지 않습니다. `apiKeyHint`는 앞·뒤 일부만 남긴 마스킹 문자열입니다.
 
 ### AI 모델 설정
 
@@ -366,7 +369,7 @@ PUT /api/academies/:academyId/ai/model
 
 | 필드 | 타입 | 필수 | 설명 |
 |------|------|------|------|
-| `aiModel` | `string` | O | 사용할 AI 모델명 (예: `gemini-2.5-flash`) |
+| `aiModel` | `string` | O | 사용할 AI 모델명 (예: `gemini-3.6-flash`) |
 
 ---
 

@@ -73,7 +73,7 @@ Altsis 학교 정보 시스템의 MongoDB 스키마(Mongoose) 전체 명세입�
 | `aiEnabled` | `Boolean` | X | `false` | AI 기능 활성화 상태 |
 | `aiProvider` | `String` | X | `"gemini"` | AI 제공자 (`openai` / `anthropic` / `gemini`) |
 | `aiApiKey` | `String` | X | - | 선택한 제공자의 API 키. **API 응답에서 제외** (`select: false`) |
-| `aiModel` | `String` | X | `"gemini-2.5-flash"` | 사용 AI 모델명 |
+| `aiModel` | `String` | X | `"gemini-3.6-flash"` | 사용 AI 모델명 |
 | `createdAt` | `Date` | 자동 | - | 생성 시각 (timestamps) |
 | `updatedAt` | `Date` | 자동 | - | 수정 시각 (timestamps) |
 

@@ -18,6 +18,7 @@ import {
   resolveProvider,
   resolveModel,
   isValidProvider,
+  pickPreferredModel,
 } from "../services/aiProvider.js";
 
 /**
@@ -380,31 +381,88 @@ export const testApiKey = async (req, res) => {
       return res.status(400).send({ message: FIELD_REQUIRED("apiKey") });
     }
 
-    // Simple test prompt
-    await generateText({
-      provider,
-      apiKey,
-      model: aiModel,
-      messages: [{ role: "user", content: "Say hello" }],
-    });
+    const testMessages = [{ role: "user", content: "Say hello" }];
+    const resolvedProvider = resolveProvider(provider);
 
-    return res.status(200).send({ valid: true });
-  } catch (err) {
-    logger.error(err.message);
-    if (err.status === 429) {
+    try {
+      await generateText({
+        provider: resolvedProvider,
+        apiKey,
+        model: aiModel,
+        messages: testMessages,
+      });
+
+      // 키가 유효하면 사용 가능 모델 목록도 함께 반환
+      let models = [];
+      try {
+        models = await listProviderModels({
+          provider: resolvedProvider,
+          apiKey,
+        });
+      } catch (_) {}
+
+      const suggestedModel = pickPreferredModel(models, aiModel);
       return res.status(200).send({
         valid: true,
-        error:
-          "API 키는 유효하지만 요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.",
+        models,
+        suggestedModel:
+          suggestedModel && suggestedModel !== aiModel
+            ? suggestedModel
+            : undefined,
       });
-    }
-    if (err.status === 404) {
+    } catch (err) {
+      // 모델 미지원(신규 키에서 deprecated 모델 등)이면 사용 가능 모델로 재시도
+      if (err.status === 404) {
+        try {
+          const models = await listProviderModels({
+            provider: resolvedProvider,
+            apiKey,
+          });
+          const fallback = pickPreferredModel(
+            models,
+            resolveModel(resolvedProvider)
+          );
+          if (fallback && fallback !== aiModel) {
+            await generateText({
+              provider: resolvedProvider,
+              apiKey,
+              model: fallback,
+              messages: testMessages,
+            });
+            return res.status(200).send({
+              valid: true,
+              models,
+              suggestedModel: fallback,
+              error: `선택한 모델은 이 API 키에서 사용할 수 없어 ${fallback}로 테스트했습니다. 저장 시 이 모델이 적용됩니다.`,
+            });
+          }
+        } catch (retryErr) {
+          logger.error(retryErr.message);
+        }
+
+        return res.status(200).send({
+          valid: false,
+          error:
+            err.apiMessage ||
+            "AI 모델을 찾을 수 없습니다. '모델 탐색'으로 사용 가능한 모델을 선택한 뒤 다시 테스트해주세요.",
+        });
+      }
+
+      logger.error(err.message);
+      if (err.status === 429) {
+        return res.status(200).send({
+          valid: true,
+          error:
+            "API 키는 유효하지만 요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.",
+        });
+      }
       return res.status(200).send({
         valid: false,
-        error:
-          "AI 모델을 찾을 수 없습니다. 모델명을 확인해주세요.",
+        error: err.apiMessage || "API 키가 유효하지 않습니다.",
       });
     }
+  } catch (err) {
+    logger.error(err.message);
     return res.status(200).send({ valid: false, error: "API 키가 유효하지 않습니다." });
   }
 };
