@@ -164,6 +164,10 @@ export const svgData = {
   verticalDots: (
     <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"></path>
   ),
+  /** 행/항목 순서 드래그 핸들 (Material drag_indicator) */
+  dragIndicator: (
+    <path d="M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"></path>
+  ),
   horizontalBoxs: <path d="M10 10h4v4h-4zm6 0h4v4h-4zM4 10h4v4H4z"></path>,
   verticalBoxs: <path d="M10 10h4v4h-4zm0-6h4v4h-4zm0 12h4v4h-4z"></path>,
   checkbox: (

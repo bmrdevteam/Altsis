@@ -1,4 +1,10 @@
-import React, {useCallback, useEffect, useState} from "react";
+import React, {
+  DragEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import style from "./table.module.scss";
 import _, { add, isArray, isBoolean, isNumber } from "lodash";
 import Svg from "assets/svg/Svg";
@@ -11,7 +17,6 @@ import {
 } from "functions/functions";
 import useOutsideClick from "hooks/useOutsideClick";
 import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
-import Button from "components/button/Button";
 
 type TTableItems =
   | "text"
@@ -110,6 +115,12 @@ const Table = (props: Props) => {
       }, {})
   );
   const moreOutSideClick = useOutsideClick();
+
+  const hasRowOrder = props.header.some((h) => h.type === "rowOrder");
+  const [dragFromIndex, setDragFromIndex] = useState<number | null>(null);
+  const [dragOverInsertAt, setDragOverInsertAt] = useState<number | null>(null);
+  const dragFromIndexRef = useRef<number | null>(null);
+
   const filteredData = useCallback(() => {
     let result = [];
 
@@ -201,6 +212,93 @@ const Table = (props: Props) => {
       }
     }
   }
+
+  const dndEnabled =
+    hasRowOrder &&
+    !tableData.searchParam &&
+    !tableData.orderBy;
+
+  const getInsertIndex = (e: DragEvent, index: number) => {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const mid = rect.top + rect.height / 2;
+    return e.clientY < mid ? index : index + 1;
+  };
+
+  const reorderVisibleRows = (fromVisible: number, insertAt: number) => {
+    const visible = slicedTableData();
+    if (fromVisible < 0 || fromVisible >= visible.length) return;
+    let insert = Math.max(0, Math.min(insertAt, visible.length));
+    if (fromVisible === insert || fromVisible === insert - 1) return;
+
+    const nextVisible = [...visible];
+    const [item] = nextVisible.splice(fromVisible, 1);
+    if (fromVisible < insert) insert -= 1;
+    nextVisible.splice(insert, 0, item);
+
+    let newData: any[];
+    if (tableSettings.pageBy === 0) {
+      newData = nextVisible;
+    } else {
+      const pageStart =
+        tableSettings.pageBy * (tableSettings.pageIndex - 1);
+      const before = tableData.data.slice(0, pageStart);
+      const after = tableData.data.slice(pageStart + visible.length);
+      newData = [...before, ...nextVisible, ...after];
+    }
+
+    newData = newData.map((row, i) => ({
+      ...row,
+      tableRowIndex: i + 1,
+    }));
+
+    setTableData((prev) => ({ ...prev, data: newData }));
+    callOnChangeFunc(newData);
+  };
+
+  const handleRowDragStart = (e: DragEvent, index: number) => {
+    if (!dndEnabled) {
+      e.preventDefault();
+      return;
+    }
+    dragFromIndexRef.current = index;
+    setDragFromIndex(index);
+    setDragOverInsertAt(index);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", String(index));
+    const tr = (e.currentTarget as HTMLElement).closest("tr");
+    if (tr) {
+      e.dataTransfer.setDragImage(tr, 24, 16);
+    }
+  };
+
+  const handleRowDragOver = (e: DragEvent, index: number) => {
+    if (!dndEnabled || dragFromIndexRef.current === null) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    const insertAt = getInsertIndex(e, index);
+    if (dragOverInsertAt !== insertAt) setDragOverInsertAt(insertAt);
+  };
+
+  const handleRowDrop = (e: DragEvent, index: number) => {
+    if (!dndEnabled) return;
+    e.preventDefault();
+    const raw = e.dataTransfer.getData("text/plain");
+    const from =
+      dragFromIndexRef.current ??
+      dragFromIndex ??
+      parseInt(raw, 10);
+    const insertAt = getInsertIndex(e, index);
+    if (!Number.isNaN(from)) reorderVisibleRows(from, insertAt);
+    dragFromIndexRef.current = null;
+    setDragFromIndex(null);
+    setDragOverInsertAt(null);
+  };
+
+  const handleRowDragEnd = () => {
+    dragFromIndexRef.current = null;
+    setDragFromIndex(null);
+    setDragOverInsertAt(null);
+  };
 
   function handleHeaderOnClick(val: TTableHeader) {
     if (val.key !== undefined && val.key !== " ") {
@@ -803,7 +901,26 @@ const Table = (props: Props) => {
             isArray(props.data) &&
             slicedTableData().map((row, rowIndex) => {
               return (
-                <tr key={rowIndex}>
+                <tr
+                  key={row.tableRowIndex ?? rowIndex}
+                  className={[
+                    dragFromIndex === rowIndex ? style.rowDragging : "",
+                    dragOverInsertAt === rowIndex ? style.dropLineBefore : "",
+                    dragOverInsertAt === rowIndex + 1
+                      ? style.dropLineAfter
+                      : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  onDragOver={
+                    dndEnabled
+                      ? (e) => handleRowDragOver(e, rowIndex)
+                      : undefined
+                  }
+                  onDrop={
+                    dndEnabled ? (e) => handleRowDrop(e, rowIndex) : undefined
+                  }
+                >
                   {props.header.map((val, index) => {
                     switch (val.type) {
                       case "checkbox":
@@ -1141,74 +1258,39 @@ const Table = (props: Props) => {
                         return (
                           <td
                             style={{
-                              textAlign: val.textAlign,
+                              textAlign: "center",
                               fontSize: val.fontSize,
                               fontWeight: val.fontWeight,
-                              cursor: "pointer",
+                              width: val.width || "52px",
+                              minWidth: val.width || "52px",
+                              maxWidth: val.width || "52px",
                             }}
                             className={style.item}
                             key={index}
                           >
-                            <span
-                              style={{
-                                color: "gray",
-                                border: "1px solid",
-                                borderRadius: "4px",
-                                padding: "4px",
-                                display: "flex",
-                              }}
+                            <button
+                              type="button"
+                              className={`${style.dragHandle} ${
+                                !dndEnabled ? style.dragHandleDisabled : ""
+                              }`}
+                              draggable={dndEnabled}
+                              title={
+                                dndEnabled
+                                  ? "드래그하여 순서 변경"
+                                  : "검색·정렬 중에는 순서를 바꿀 수 없습니다"
+                              }
+                              aria-label="드래그하여 순서 변경"
+                              onDragStart={(e) =>
+                                handleRowDragStart(e, rowIndex)
+                              }
+                              onDragEnd={handleRowDragEnd}
                             >
-                              <Button
-                                type="ghost"
-                                style={{ maxHeight: "16px" }}
-                                onClick={() => {
-                                  if (row.tableRowIndex === 1) {
-                                    return;
-                                  }
-                                  /* swap */
-                                  setTableData((prev) => {
-                                    const newData = [...prev.data];
-                                    const temp = newData[row.tableRowIndex - 1];
-                                    newData[row.tableRowIndex - 1] =
-                                      newData[row.tableRowIndex - 2];
-                                    newData[row.tableRowIndex - 2] = temp;
-                                    callOnChangeFunc(newData);
-                                    return {
-                                      ...prev,
-                                      data: newData,
-                                    };
-                                  });
-                                }}
-                              >
-                                ↑
-                              </Button>
-                              <Button
-                                style={{ maxHeight: "16px" }}
-                                type="ghost"
-                                onClick={() => {
-                                  if (
-                                    row.tableRowIndex === tableData.data.length
-                                  ) {
-                                    return;
-                                  }
-                                  /* swap */
-                                  setTableData((prev) => {
-                                    const newData = [...prev.data];
-                                    const temp = newData[row.tableRowIndex];
-                                    newData[row.tableRowIndex] =
-                                      newData[row.tableRowIndex - 1];
-                                    newData[row.tableRowIndex - 1] = temp;
-                                    callOnChangeFunc(newData);
-                                    return {
-                                      ...prev,
-                                      data: newData,
-                                    };
-                                  });
-                                }}
-                              >
-                                ↓
-                              </Button>
-                            </span>
+                              <Svg
+                                type="dragIndicator"
+                                width="20px"
+                                height="20px"
+                              />
+                            </button>
                           </td>
                         );
 

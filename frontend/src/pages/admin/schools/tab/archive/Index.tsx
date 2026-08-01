@@ -215,7 +215,7 @@ function Archive(props: Props) {
               fontSize: "12px",
               fontWeight: "600",
               type: "rowOrder",
-              width: "80px",
+              width: "52px",
               textAlign: "center",
             },
             {
