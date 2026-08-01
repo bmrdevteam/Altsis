@@ -45,6 +45,14 @@ const defaultAiSettings: TAiSettings = {
   references: [],
 };
 
+/** 학기 AI 기본 지침 추천 템플릿 (짧게 유지) */
+const GUIDELINES_TEMPLATE = `- 학교 교육철학에 맞게, 학생 주도·협력·성찰을 강조한다.
+- 학습목표는 관찰 가능한 행동 동사로 3~5개 작성한다.
+- 주차별 계획은 활동 중심이며 평가와 연결한다.
+- 문체는 교사에게 바로 붙여넣을 수 있는 공손한 문어체로 한다.
+- 추측성 법령·외부 기관 정보는 넣지 않는다.
+- 각 항목은 2~4문장으로 간결하게 쓴다.`;
+
 const AISettings = (props: Props) => {
   const { SeasonAPI } = useAPIv2();
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -101,6 +109,18 @@ const AISettings = (props: Props) => {
   const handleSaveGuidelines = async () => {
     const guidelines = guidelinesRef.current?.value || "";
     await updateAiSettings({ guidelines });
+  };
+
+  const handleLoadGuidelinesTemplate = () => {
+    if (
+      guidelinesRef.current?.value?.trim() &&
+      !window.confirm("현재 작성 중인 지침을 추천 템플릿으로 바꿀까요?")
+    ) {
+      return;
+    }
+    if (guidelinesRef.current) {
+      guidelinesRef.current.value = GUIDELINES_TEMPLATE;
+    }
   };
 
   const handleAddReference = async () => {
@@ -265,7 +285,8 @@ const AISettings = (props: Props) => {
       <div style={{ marginBottom: "24px" }}>
         <h4 style={{ marginBottom: "12px" }}>기본 지침</h4>
         <p style={{ color: "var(--accent-3)", marginBottom: "12px" }}>
-          AI가 강의계획서를 생성할 때 참고할 지침을 입력합니다.
+          AI가 강의계획서를 생성할 때 참고할 지침을 입력합니다. 3~8개
+          bullet으로 짧게 쓰는 것을 권장합니다. (최대 약 600자)
         </p>
         <textarea
           ref={guidelinesRef}
@@ -282,7 +303,17 @@ const AISettings = (props: Props) => {
             fontSize: "14px",
           }}
         />
-        <div style={{ marginTop: "12px", textAlign: "right" }}>
+        <div
+          style={{
+            marginTop: "12px",
+            display: "flex",
+            gap: "8px",
+            justifyContent: "flex-end",
+          }}
+        >
+          <Button type="ghost" onClick={handleLoadGuidelinesTemplate}>
+            추천 템플릿
+          </Button>
           <Button type="ghost" onClick={handleSaveGuidelines}>
             저장
           </Button>

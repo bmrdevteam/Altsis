@@ -158,9 +158,12 @@ backend/src/
 │   ├── User.js               # 사용자
 │   └── UserCalendar.js       # 사용자 캘린더
 │
-├── services/                 # 비즈니스 로직 (12개)
+├── services/                 # 비즈니스 로직
 │   ├── aiChat.js             # AI 채팅 서비스
 │   ├── aiProvider.js         # AI 제공자 추상화 (OpenAI/Anthropic/Gemini)
+│   ├── aiPromptPolicy.js     # 프롬프트 한도·작업 프로필·JSON 파싱
+│   ├── aiSafety.js           # AI 입출력 개인정보 마스킹
+│   ├── aiUsage.js            # AIUsageLog 기록 헬퍼
 │   ├── altForms.js           # Alt Form 서비스
 │   ├── boardChat.js          # 보드 채팅 서비스
 │   ├── boards.js             # 게시판 서비스

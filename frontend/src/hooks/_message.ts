@@ -54,4 +54,24 @@ export const MESSAGE = new Map<string, string>([
   ["TITLE_IN_USE", "제목이 중복됩니다."],
   ["CHAT_NOT_ENABLED", "이 아카데미에서 채팅 기능이 비활성화되어 있습니다."],
   ["ROOM_NOT_FOUND", "채팅방을 찾을 수 없습니다."],
+  ["AI_NOT_ENABLED", "AI 기능이 활성화되지 않았습니다."],
+  ["AI_NOT_ENABLED_FOR_SEASON", "이 학기에서 AI 기능이 활성화되지 않았습니다."],
+  ["AI_API_KEY_NOT_SET", "AI API 키가 설정되지 않았습니다."],
+  ["AI_NOT_AVAILABLE", "AI 기능을 사용할 수 없습니다."],
+  [
+    "AI_EMPTY_RESPONSE",
+    "AI가 빈 응답을 반환했습니다. 모델 설정을 확인하거나 다시 시도해주세요.",
+  ],
+  [
+    "AI_INVALID_JSON",
+    "AI 응답 형식이 올바르지 않습니다. 다시 생성해주세요.",
+  ],
+  ["AI_MODEL_NOT_FOUND", "AI 모델을 찾을 수 없습니다. 모델 설정을 확인해주세요."],
+  [
+    "AI_INVALID_API_KEY",
+    "AI API 키가 유효하지 않습니다. 설정을 확인해주세요.",
+  ],
+  ["AI_GENERATION_FAILED", "AI 생성 중 오류가 발생했습니다."],
+  ["AI_CONTENT_BLOCKED", "안전 정책에 의해 응답이 차단되었습니다."],
+  ["AI_PERMISSION_DENIED", "AI 사용 권한이 없습니다."],
 ]);

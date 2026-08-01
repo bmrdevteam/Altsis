@@ -1268,7 +1268,11 @@ AI 기능 사용량을 추적하는 로그입니다. 요청별 토큰 사용량�
 | `user` | `ObjectId` | O | - | 사용자 `_id` |
 | `userId` | `String` | O | - | 사용자 ID |
 | `userName` | `String` | O | - | 사용자 이름 |
+| `provider` | `String` | X | `"unknown"` | AI 제공자 (`openai` / `anthropic` / `gemini`) |
 | `model` | `String` | O | - | AI 모델명 |
+| `feature` | `String` | X | `"unknown"` | 기능 (`syllabus` / `chat` 등) |
+| `success` | `Boolean` | X | `true` | 호출 성공 여부 |
+| `errorCode` | `String` | X | - | 실패 시 에러 코드 |
 | `promptTokens` | `Number` | X | `0` | 프롬프트 토큰 수 |
 | `candidatesTokens` | `Number` | X | `0` | 응답 토큰 수 |
 | `thoughtsTokens` | `Number` | X | `0` | 사고 토큰 수 |

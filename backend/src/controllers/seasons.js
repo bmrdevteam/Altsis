@@ -35,6 +35,12 @@ import { aiRefMulter } from "../_s3/aiRefMulter.js";
 import { extractText } from "../utils/textExtractor.js";
 import { fileS3, fileBucket, signUrl } from "../_s3/fileBucket.js";
 import {
+  normalizeGuidelines,
+  normalizeReferences,
+  truncateText,
+  PROMPT_LIMITS,
+} from "../services/aiPromptPolicy.js";
+import {
   getSeasonFormUsage,
   hasEvaluationData,
   hasSyllabusInfoData,
@@ -1488,10 +1494,10 @@ export const updateAiSettings = async (req, res) => {
       }
     }
     if ("guidelines" in req.body) {
-      season.aiSettings.guidelines = req.body.guidelines;
+      season.aiSettings.guidelines = normalizeGuidelines(req.body.guidelines);
     }
     if ("references" in req.body) {
-      season.aiSettings.references = req.body.references;
+      season.aiSettings.references = normalizeReferences(req.body.references);
     }
 
     season.markModified("aiSettings");
@@ -1558,8 +1564,11 @@ export const uploadAiReference = async (req, res) => {
         const content = await extractText(s3Object.Body, req.file.mimetype);
 
         const newRef = {
-          title: req.body.title || req.file.originalname,
-          content,
+          title: truncateText(
+            req.body.title || req.file.originalname,
+            PROMPT_LIMITS.REFERENCE_TITLE_CHARS
+          ),
+          content: truncateText(content, PROMPT_LIMITS.REFERENCE_CHARS),
           fileName: req.file.originalname,
           fileKey: req.tmp.key,
           fileSize: req.file.size,

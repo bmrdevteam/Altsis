@@ -38,6 +38,7 @@ import Button from "components/button/Button";
 
 import _ from "lodash";
 import { ALERT_ERROR } from "hooks/useAPIv2";
+import { MESSAGE } from "hooks/_message";
 
 type StepInfo = {
   message: string;
@@ -141,15 +142,9 @@ const Index = (props: Props) => {
       if (err.name === "AbortError") return;
       ALERT_ERROR(err);
       const message = err.response?.data?.message || err.message;
-      if (message === "AI_NOT_ENABLED") {
-        setError("AI 기능이 활성화되지 않았습니다.");
-      } else if (message === "AI_NOT_ENABLED_FOR_SEASON") {
-        setError("이 학기에서 AI 기능이 활성화되지 않았습니다.");
-      } else if (message === "AI_PERMISSION_DENIED") {
-        setError("AI 사용 권한이 없습니다.");
-      } else {
-        setError("AI 내용 생성에 실패했습니다.");
-      }
+      setError(
+        MESSAGE.get(message) || "AI 내용 생성에 실패했습니다."
+      );
     } finally {
       setIsGenerating(false);
       abortControllerRef.current = null;
@@ -173,7 +168,9 @@ const Index = (props: Props) => {
         });
         break;
       case "generating":
-        setStreamingText((prev) => prev + data.text);
+        setStreamingText((prev) =>
+          data.replace ? String(data.text || "") : prev + data.text
+        );
         break;
       case "done": {
         setSteps((prev) => prev.map((s) => ({ ...s, completed: true })));
@@ -197,13 +194,12 @@ const Index = (props: Props) => {
       }
       case "error": {
         const message = data.message;
-        if (message === "AI_NOT_ENABLED") {
-          setError("AI 기능이 활성화되지 않았습니다.");
-        } else if (message === "AI_NOT_ENABLED_FOR_SEASON") {
-          setError("이 학기에서 AI 기능이 활성화되지 않았습니다.");
-        } else {
-          setError(message || "AI 내용 생성에 실패했습니다.");
-        }
+        setError(
+          MESSAGE.get(message) ||
+            message ||
+            "AI 내용 생성에 실패했습니다."
+        );
+        setGeneratedContent(null);
         break;
       }
     }
@@ -216,13 +212,20 @@ const Index = (props: Props) => {
     props.setPopupActive(false);
   };
 
+  const canApply =
+    !!generatedContent &&
+    !isGenerating &&
+    !(
+      Object.keys(generatedContent).length === 1 &&
+      "raw" in generatedContent
+    );
+
   const applyContent = () => {
-    if (generatedContent) {
-      props.setIsLoading(true);
-      props.courseMoreInfo.current = generatedContent;
-      props.setPopupActive(false);
-      setTimeout(() => props.setIsLoading(false), 300);
-    }
+    if (!canApply) return;
+    props.setIsLoading(true);
+    props.courseMoreInfo.current = generatedContent;
+    props.setPopupActive(false);
+    setTimeout(() => props.setIsLoading(false), 300);
   };
 
   return (
@@ -395,9 +398,11 @@ const Index = (props: Props) => {
               <Button type="ghost" onClick={generateContent}>
                 다시 생성
               </Button>
-              <Button type="ghost" onClick={applyContent}>
-                적용
-              </Button>
+              {canApply && (
+                <Button type="ghost" onClick={applyContent}>
+                  적용
+                </Button>
+              )}
             </>
           )}
           <Button type="ghost" onClick={handleCancel}>

@@ -121,7 +121,13 @@ async function* iterateSSE(response) {
  * OpenAI (Chat Completions API)
  * ========================================================================== */
 
-const openaiBuildBody = ({ model, systemInstruction, messages }) => {
+const openaiBuildBody = ({
+  model,
+  systemInstruction,
+  messages,
+  temperature,
+  maxTokens,
+}) => {
   const body = {
     model,
     messages: [
@@ -131,6 +137,8 @@ const openaiBuildBody = ({ model, systemInstruction, messages }) => {
       ...messages.map((m) => ({ role: m.role, content: m.content })),
     ],
   };
+  if (typeof temperature === "number") body.temperature = temperature;
+  if (typeof maxTokens === "number") body.max_tokens = maxTokens;
   return body;
 };
 
@@ -144,14 +152,29 @@ const openaiUsage = (usage) => {
   };
 };
 
-const openaiGenerate = async ({ apiKey, model, systemInstruction, messages }) => {
+const openaiGenerate = async ({
+  apiKey,
+  model,
+  systemInstruction,
+  messages,
+  temperature,
+  maxTokens,
+}) => {
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
     },
-    body: JSON.stringify(openaiBuildBody({ model, systemInstruction, messages })),
+    body: JSON.stringify(
+      openaiBuildBody({
+        model,
+        systemInstruction,
+        messages,
+        temperature,
+        maxTokens,
+      })
+    ),
   });
   if (!response.ok) await throwHttpError(response, "openai");
 
@@ -163,10 +186,16 @@ const openaiGenerate = async ({ apiKey, model, systemInstruction, messages }) =>
 };
 
 const openaiGenerateStream = async (
-  { apiKey, model, systemInstruction, messages },
+  { apiKey, model, systemInstruction, messages, temperature, maxTokens },
   onText
 ) => {
-  const body = openaiBuildBody({ model, systemInstruction, messages });
+  const body = openaiBuildBody({
+    model,
+    systemInstruction,
+    messages,
+    temperature,
+    maxTokens,
+  });
   body.stream = true;
   body.stream_options = { include_usage: true };
 
@@ -264,9 +293,16 @@ const anthropicMergeMessages = (messages) => {
   return merged;
 };
 
-const anthropicBuildBody = ({ model, systemInstruction, messages }) => ({
+const anthropicBuildBody = ({
   model,
-  max_tokens: DEFAULT_MAX_TOKENS,
+  systemInstruction,
+  messages,
+  temperature,
+  maxTokens,
+}) => ({
+  model,
+  max_tokens: typeof maxTokens === "number" ? maxTokens : DEFAULT_MAX_TOKENS,
+  ...(typeof temperature === "number" ? { temperature } : {}),
   ...(systemInstruction ? { system: systemInstruction } : {}),
   messages: anthropicMergeMessages(messages),
 });
@@ -288,12 +324,20 @@ const anthropicGenerate = async ({
   model,
   systemInstruction,
   messages,
+  temperature,
+  maxTokens,
 }) => {
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: anthropicHeaders(apiKey),
     body: JSON.stringify(
-      anthropicBuildBody({ model, systemInstruction, messages })
+      anthropicBuildBody({
+        model,
+        systemInstruction,
+        messages,
+        temperature,
+        maxTokens,
+      })
     ),
   });
   if (!response.ok) await throwHttpError(response, "anthropic");
@@ -307,10 +351,16 @@ const anthropicGenerate = async ({
 };
 
 const anthropicGenerateStream = async (
-  { apiKey, model, systemInstruction, messages },
+  { apiKey, model, systemInstruction, messages, temperature, maxTokens },
   onText
 ) => {
-  const body = anthropicBuildBody({ model, systemInstruction, messages });
+  const body = anthropicBuildBody({
+    model,
+    systemInstruction,
+    messages,
+    temperature,
+    maxTokens,
+  });
   body.stream = true;
 
   const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -380,7 +430,12 @@ const anthropicListModels = async ({ apiKey }) => {
 
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
-const geminiBuildBody = ({ systemInstruction, messages }) => ({
+const geminiBuildBody = ({
+  systemInstruction,
+  messages,
+  temperature,
+  maxTokens,
+}) => ({
   ...(systemInstruction
     ? { systemInstruction: { parts: [{ text: systemInstruction }] } }
     : {}),
@@ -393,6 +448,8 @@ const geminiBuildBody = ({ systemInstruction, messages }) => ({
     thinkingConfig: {
       thinkingBudget: 0,
     },
+    ...(typeof temperature === "number" ? { temperature } : {}),
+    ...(typeof maxTokens === "number" ? { maxOutputTokens: maxTokens } : {}),
   },
 });
 
@@ -421,9 +478,16 @@ const geminiGenerate = async ({
   model,
   systemInstruction,
   messages,
+  temperature,
+  maxTokens,
 }) => {
   const modelId = geminiNormalizeModel(model);
-  let body = geminiBuildBody({ systemInstruction, messages });
+  let body = geminiBuildBody({
+    systemInstruction,
+    messages,
+    temperature,
+    maxTokens,
+  });
   let response = await fetch(
     `${GEMINI_BASE}/models/${encodeURIComponent(modelId)}:generateContent`,
     {
@@ -435,10 +499,15 @@ const geminiGenerate = async ({
       body: JSON.stringify(body),
     }
   );
-  // thinkingBudget를 지원하지 않는 모델이면 해당 설정 없이 재시도
+  // thinkingBudget를 지원하지 않는 모델이면 thinking 설정만 제거하고 재시도
   if (response.status === 400) {
-    const { generationConfig, ...withoutThinking } = body;
-    body = withoutThinking;
+    const nextConfig = { ...(body.generationConfig || {}) };
+    delete nextConfig.thinkingConfig;
+    body = {
+      ...body,
+      generationConfig:
+        Object.keys(nextConfig).length > 0 ? nextConfig : undefined,
+    };
     response = await fetch(
       `${GEMINI_BASE}/models/${encodeURIComponent(modelId)}:generateContent`,
       {
@@ -461,11 +530,16 @@ const geminiGenerate = async ({
 };
 
 const geminiGenerateStream = async (
-  { apiKey, model, systemInstruction, messages },
+  { apiKey, model, systemInstruction, messages, temperature, maxTokens },
   onText
 ) => {
   const modelId = geminiNormalizeModel(model);
-  let body = geminiBuildBody({ systemInstruction, messages });
+  let body = geminiBuildBody({
+    systemInstruction,
+    messages,
+    temperature,
+    maxTokens,
+  });
   let response = await fetch(
     `${GEMINI_BASE}/models/${encodeURIComponent(
       modelId
@@ -480,8 +554,13 @@ const geminiGenerateStream = async (
     }
   );
   if (response.status === 400) {
-    const { generationConfig, ...withoutThinking } = body;
-    body = withoutThinking;
+    const nextConfig = { ...(body.generationConfig || {}) };
+    delete nextConfig.thinkingConfig;
+    body = {
+      ...body,
+      generationConfig:
+        Object.keys(nextConfig).length > 0 ? nextConfig : undefined,
+    };
     response = await fetch(
       `${GEMINI_BASE}/models/${encodeURIComponent(
         modelId
@@ -522,6 +601,8 @@ const geminiGenerateStream = async (
       model,
       systemInstruction,
       messages,
+      temperature,
+      maxTokens,
     });
     if (fallback.text) {
       onText(fallback.text);
@@ -587,6 +668,8 @@ export const generateText = async ({
   model,
   systemInstruction,
   messages,
+  temperature,
+  maxTokens,
 }) => {
   const resolvedProvider = resolveProvider(provider);
   return getAdapter(resolvedProvider).generate({
@@ -594,6 +677,8 @@ export const generateText = async ({
     model: resolveModel(resolvedProvider, model),
     systemInstruction,
     messages,
+    temperature,
+    maxTokens,
   });
 };
 
@@ -604,7 +689,7 @@ export const generateText = async ({
  * @returns {Promise<{text: string, tokenUsage: Object|null}>}
  */
 export const generateTextStream = async (
-  { provider, apiKey, model, systemInstruction, messages },
+  { provider, apiKey, model, systemInstruction, messages, temperature, maxTokens },
   onText
 ) => {
   const resolvedProvider = resolveProvider(provider);
@@ -614,6 +699,8 @@ export const generateTextStream = async (
       model: resolveModel(resolvedProvider, model),
       systemInstruction,
       messages,
+      temperature,
+      maxTokens,
     },
     onText
   );
