@@ -64,7 +64,7 @@ backend/src/
 ├── controllers/              # 요청 처리기 (30개)
 │   ├── index.js              # 컨트롤러 통합 내보내기
 │   ├── academies.js          # 아카데미 CRUD
-│   ├── ai.js                 # AI 기능 (OpenAI/Anthropic/Gemini 연동)
+│   ├── ai.js                 # Alter AI API (Skill 라우팅, 점검, 관리자 유틸)
 │   ├── aiChat.js             # AI 채팅 세션
 │   ├── altForms.js           # Alt Form CRUD
 │   ├── altSheetRows.js       # Alt Sheet Row CRUD
@@ -160,6 +160,7 @@ backend/src/
 │
 ├── services/                 # 비즈니스 로직
 │   ├── aiChat.js             # AI 채팅 서비스
+│   ├── aiSkills.js           # Alter Skill 라우터 (chat, syllabus-review)
 │   ├── aiProvider.js         # AI 제공자 추상화 (OpenAI/Anthropic/Gemini)
 │   ├── aiPromptPolicy.js     # 프롬프트 한도·작업 프로필·JSON 파싱
 │   ├── aiSafety.js           # AI 입출력 개인정보 마스킹

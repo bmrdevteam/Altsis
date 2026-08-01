@@ -21,6 +21,8 @@ export type TAIChatMessage = {
   senderName: string;
   senderProfile?: string;
   content: string;
+  /** Alter Skill id (chat | syllabus-review …) */
+  skill?: string;
   tokenUsage?: {
     promptTokens: number;
     candidatesTokens: number;

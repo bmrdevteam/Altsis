@@ -40,7 +40,8 @@ Altsis 백엔드는 **Express.js** 기반의 REST API 서버입니다. 이 문�
 AI 기능(OpenAI / Anthropic / Google Gemini)은 별도 SDK 없이 Node.js 내장 `fetch`로 각 제공자의 REST API를 직접 호출합니다 (`src/services/aiProvider.js`).
 
 관련 모듈:
-- `src/services/aiPromptPolicy.js` — 프롬프트 한도, 작업별 프로필(`syllabus`/`chat`), JSON 파싱
+- `src/services/aiPromptPolicy.js` — 프롬프트 한도, 작업별 프로필(`syllabusReview`/`chat`), JSON 파싱
+- `src/services/aiSkills.js` — Alter Skill 라우터 (`chat`, `syllabus-review`)
 - `src/services/aiSafety.js` — 개인정보 패턴 마스킹
 - `src/services/aiUsage.js` — `AIUsageLog` 기록 헬퍼 (`provider`, `feature`, `success`, `errorCode`)
 - 강의계획서 생성은 JSON 검증 실패 시 1회 재시도하며, 빈 응답/`raw` 성공 처리는 하지 않습니다.

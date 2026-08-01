@@ -1,0 +1,86 @@
+.root {
+  display: block;
+  overflow: visible;
+  fill: none;
+}
+
+.ringA,
+.ringB,
+.ringC {
+  transform-origin: 12px 12px;
+}
+
+/* 속도·시작 각도를 다르게 해 선이 어긋나며 도는 느낌 */
+.ringA {
+  animation: alterAiSpinA 3.6s linear infinite;
+}
+
+.ringB {
+  animation: alterAiSpinB 4.8s linear infinite;
+}
+
+.ringC {
+  animation: alterAiSpinC 5.8s linear infinite reverse;
+}
+
+.star {
+  transform-origin: 12px 12px;
+  animation: alterAiStarPulse 2.2s ease-in-out infinite;
+}
+
+@keyframes alterAiSpinA {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes alterAiSpinB {
+  from {
+    transform: rotate(105deg);
+  }
+  to {
+    transform: rotate(465deg);
+  }
+}
+
+@keyframes alterAiSpinC {
+  from {
+    transform: rotate(210deg);
+  }
+  to {
+    transform: rotate(570deg);
+  }
+}
+
+@keyframes alterAiStarPulse {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.12) rotate(12deg);
+    opacity: 0.9;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ringA {
+    animation: none;
+    transform: rotate(0deg);
+  }
+  .ringB {
+    animation: none;
+    transform: rotate(105deg);
+  }
+  .ringC {
+    animation: none;
+    transform: rotate(210deg);
+  }
+  .star {
+    animation: none;
+  }
+}

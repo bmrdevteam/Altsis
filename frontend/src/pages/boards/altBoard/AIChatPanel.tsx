@@ -249,7 +249,7 @@ const AIChatPanel = ({ board, socket, sessionId, myRole }: Props) => {
           <div className={style.empty_state}>
             {isViewingStudentSession
               ? "아직 대화가 없습니다"
-              : "Alter에게 질문해보세요!"}
+              : "Alter에게 질문해보세요! 「점검해줘」처럼 요청하면 특화 Skill로 연결됩니다."}
           </div>
         ) : (
           messages.map((msg, idx) => {

@@ -48,6 +48,10 @@ import MentoringTeacherPopup from "pages/courses/view/_components/MentoringTeach
 import ClassroomTimePopup from "pages/courses/view/_components/ClassroomTimePopup";
 import SubjectSelect from "pages/courses/view/_components/SubjectSelect";
 import AIGeneratePopup from "pages/courses/view/_components/AIGeneratePopup";
+import AlterAIIcon from "pages/courses/view/_components/AlterAIIcon";
+import AlterReviewBadge, {
+  TAlterReviewResult,
+} from "pages/courses/view/_components/AlterReviewBadge";
 import CourseCoverImagePopup from "pages/courses/view/CourseCoverImagePopup";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
@@ -87,6 +91,15 @@ const CourseAdd = (props: Props) => {
 
   const [pastePopupActive, setPastePopupActive] = useState<boolean>(false);
   const [aiPopupActive, setAIPopupActive] = useState<boolean>(false);
+  const [aiOpenToResults, setAiOpenToResults] = useState(false);
+  const [aiAutoStart, setAiAutoStart] = useState(false);
+  const [alterReview, setAlterReview] = useState<TAlterReviewResult | null>(
+    null
+  );
+  const [alterReviewedInfo, setAlterReviewedInfo] = useState<
+    Record<string, any>
+  >({});
+  const [infoRevision, setInfoRevision] = useState(0);
 
   // AI enabled check (academy + school + season level)
   const aiEnabled = currentSchool?.aiEnabled !== false &&
@@ -216,14 +229,38 @@ const CourseAdd = (props: Props) => {
             </div>
             {aiEnabled && (
               <div
-                className={style.icon}
-                onClick={() => {
-                  setAIPopupActive(true);
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
                 }}
-                title={"AI로 내용 생성"}
-                style={{ display: "flex", gap: "4px", cursor: "pointer" }}
               >
-                <Svg type="ai" width="20px" height="20px" />
+                <div
+                  onClick={() => {
+                    setAiOpenToResults(false);
+                    setAiAutoStart(true);
+                    setAIPopupActive(true);
+                  }}
+                  title={"Alter 작성 도우미"}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    cursor: "pointer",
+                  }}
+                >
+                  <AlterAIIcon size={22} />
+                </div>
+                {alterReview && (
+                  <AlterReviewBadge
+                    size="sm"
+                    overallLevel={alterReview.overallLevel}
+                    onClick={() => {
+                      setAiOpenToResults(true);
+                      setAiAutoStart(false);
+                      setAIPopupActive(true);
+                    }}
+                  />
+                )}
               </div>
             )}
           </div>
@@ -353,6 +390,7 @@ const CourseAdd = (props: Props) => {
           </div>
           <div style={{ display: "flex", marginTop: "24px" }}></div>
           <EditorParser
+            key={`syllabus-info-${infoRevision}`}
             type={"syllabus"}
             auth="edit"
             onChange={(data) => {
@@ -439,7 +477,14 @@ const CourseAdd = (props: Props) => {
           courseSubject={courseSubject}
           courseTitle={courseTitle}
           courseMoreInfo={courseMoreInfo}
-          setIsLoading={setIsLoading}
+          onInfoUpdate={() => setInfoRevision((n) => n + 1)}
+          initialReview={aiAutoStart ? null : alterReview}
+          initialReviewedInfo={aiAutoStart ? {} : alterReviewedInfo}
+          openToResults={aiOpenToResults}
+          onReviewComplete={({ review, reviewedInfo }) => {
+            setAlterReview(review);
+            setAlterReviewedInfo(reviewedInfo);
+          }}
         />
       )}
     </>

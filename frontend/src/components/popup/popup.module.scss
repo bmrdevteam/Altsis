@@ -21,6 +21,10 @@
       margin: 0;
       flex: 1 1 0;
       color: var(--accent-1);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
     }
 
     .x {
