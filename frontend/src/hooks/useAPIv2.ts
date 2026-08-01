@@ -1818,6 +1818,8 @@ export default function useAPIv2() {
       };
       guidelines?: string;
       references?: { title: string; content: string }[];
+      examples?: Record<string, string>;
+      exampleSyllabusIds?: string[];
     };
   }) {
     const { season } = await database.U({
@@ -4454,7 +4456,14 @@ export default function useAPIv2() {
    */
   async function CAIChatMessage(props: {
     params: { _id: string };
-    data: { content: string; sessionId?: string };
+    data: {
+      content: string;
+      sessionId?: string;
+      skill?: string;
+      season?: string;
+      context?: Record<string, any>;
+      autoDetectSkill?: boolean;
+    };
   }) {
     const result = await database.C({
       location: `boards/${props.params._id}/ai-chat/messages`,
@@ -4470,34 +4479,18 @@ export default function useAPIv2() {
    */
 
   /**
-   * GenerateSyllabusContent API
-   * @description AI를 사용하여 강의계획서 내용 생성
-   * @version 1.0.0
-   * @auth user
+   * GenerateGuidelinesTemplate API
+   * @description 학기 AI 기본 지침 추천 템플릿을 AI로 생성
+   * @auth admin|manager
    */
-  async function GenerateSyllabusContent(props: {
-    data: {
-      season: string;
-      context: {
-        subject?: string[];
-        classTitle?: string;
-        point?: number;
-        limit?: number;
-        currentInfo?: any;
-        formSyllabus?: any;
-      };
-      enrollments?: {
-        role: "teacher" | "student" | undefined;
-        userId: string;
-        userName: string;
-      }[];
-    };
+  async function GenerateGuidelinesTemplate(props: {
+    data: { season: string };
   }) {
-    const { content } = await database.C({
-      location: `ai/syllabus/generate`,
+    const { guidelines } = await database.C({
+      location: `ai/syllabus/guidelines-template`,
       data: props.data,
     });
-    return { content: content as any };
+    return { guidelines: guidelines as string };
   }
 
   /**
@@ -5204,7 +5197,7 @@ export default function useAPIv2() {
       CAIChatMessage,
     },
     AIAPI: {
-      GenerateSyllabusContent,
+      GenerateGuidelinesTemplate,
       TestAiApiKey,
       ListAiModels,
     },

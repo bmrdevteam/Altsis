@@ -412,6 +412,7 @@ PUT /api/seasons/:_id/ai
 | `aiSettings.permission.teacher` | `boolean` | X | 교사 AI 사용 허용 |
 | `aiSettings.permission.student` | `boolean` | X | 학생 AI 사용 허용 |
 | `aiSettings.guidelines` | `string` | X | AI 생성 시 기본 지침 |
+| `aiSettings.examples` | `object` | X | 양식 필드별 모범 답안 (`필드명 → 문장`) |
 
 ### AI 참고자료 업로드
 

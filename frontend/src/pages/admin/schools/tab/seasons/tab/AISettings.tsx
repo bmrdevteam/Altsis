@@ -1,38 +1,18 @@
 /**
  * @file School Page Tab Item - Season AI Settings
  *
- * @author
- *
- * -------------------------------------------------------
- *
- * IN PRODUCTION
- *
- * -------------------------------------------------------
- *
- * IN MAINTENANCE
- *
- * -------------------------------------------------------
- *
- * IN DEVELOPMENT
- *
- * -------------------------------------------------------
- *
- * DEPRECATED
- *
- * -------------------------------------------------------
- *
- * NOTES
- *
- * @version 1.0
- *
+ * @version 1.1
  */
 import { useEffect, useState, useRef } from "react";
 import Button from "components/button/Button";
 import Table from "components/tableV2/Table";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import { TAiSettings, TAiReference } from "types/seasons";
+import { TSyllabus } from "types/syllabuses";
+import style from "./AISettings.module.scss";
 
 const SUCCESS_MESSAGE = "저장되었습니다.";
+const MAX_EXAMPLE_SYLLABI = 2;
 
 type Props = {
   _id: string;
@@ -43,21 +23,20 @@ const defaultAiSettings: TAiSettings = {
   permission: { teacher: false, student: false },
   guidelines: "",
   references: [],
+  examples: {},
+  exampleSyllabusIds: [],
 };
 
-/** 학기 AI 기본 지침 추천 템플릿 (짧게 유지) */
-const GUIDELINES_TEMPLATE = `- 학교 교육철학에 맞게, 학생 주도·협력·성찰을 강조한다.
-- 학습목표는 관찰 가능한 행동 동사로 3~5개 작성한다.
-- 주차별 계획은 활동 중심이며 평가와 연결한다.
-- 문체는 교사에게 바로 붙여넣을 수 있는 공손한 문어체로 한다.
-- 추측성 법령·외부 기관 정보는 넣지 않는다.
-- 각 항목은 2~4문장으로 간결하게 쓴다.`;
-
 const AISettings = (props: Props) => {
-  const { SeasonAPI } = useAPIv2();
+  const { SeasonAPI, AIAPI, SyllabusAPI } = useAPIv2();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [aiSettings, setAiSettings] = useState<TAiSettings>(defaultAiSettings);
+  const [isGeneratingTemplate, setIsGeneratingTemplate] = useState(false);
   const guidelinesRef = useRef<HTMLTextAreaElement>(null);
+
+  const [seasonSyllabi, setSeasonSyllabi] = useState<TSyllabus[]>([]);
+  const [selectedExampleIds, setSelectedExampleIds] = useState<string[]>([]);
+  const [syllabiLoading, setSyllabiLoading] = useState(false);
 
   const [newRefTitle, setNewRefTitle] = useState<string>("");
   const [newRefContent, setNewRefContent] = useState<string>("");
@@ -65,18 +44,57 @@ const AISettings = (props: Props) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (isLoading) {
-      SeasonAPI.RSeason({ params: { _id: props._id } })
-        .then(({ season }) => {
-          if (season?.aiSettings) {
-            setAiSettings(season.aiSettings);
-          }
-        })
-        .then(() => {
-          setIsLoading(false);
+    if (!isLoading) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const { season } = await SeasonAPI.RSeason({
+          params: { _id: props._id },
         });
-    }
-  }, [isLoading]);
+        if (cancelled) return;
+        if (season?.aiSettings) {
+          const next = {
+            ...defaultAiSettings,
+            ...season.aiSettings,
+            examples: season.aiSettings.examples || {},
+            exampleSyllabusIds: season.aiSettings.exampleSyllabusIds || [],
+          };
+          setAiSettings(next);
+          setSelectedExampleIds(next.exampleSyllabusIds || []);
+        }
+      } catch (err) {
+        if (!cancelled) ALERT_ERROR(err);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, props._id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setSyllabiLoading(true);
+    SyllabusAPI.RSyllabuses({ query: { season: props._id } })
+      .then(({ syllabuses }) => {
+        if (cancelled) return;
+        setSeasonSyllabi(syllabuses || []);
+      })
+      .catch((err) => {
+        if (!cancelled) ALERT_ERROR(err);
+      })
+      .finally(() => {
+        if (!cancelled) setSyllabiLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props._id]);
 
   const updateAiSettings = async (data: Partial<TAiSettings>) => {
     try {
@@ -85,7 +103,14 @@ const AISettings = (props: Props) => {
         data,
       });
       if (season?.aiSettings) {
-        setAiSettings(season.aiSettings);
+        setAiSettings({
+          ...defaultAiSettings,
+          ...season.aiSettings,
+          exampleSyllabusIds: season.aiSettings.exampleSyllabusIds || [],
+        });
+        if ("exampleSyllabusIds" in data) {
+          setSelectedExampleIds(season.aiSettings.exampleSyllabusIds || []);
+        }
       }
       alert(SUCCESS_MESSAGE);
     } catch (err) {
@@ -111,17 +136,46 @@ const AISettings = (props: Props) => {
     await updateAiSettings({ guidelines });
   };
 
-  const handleLoadGuidelinesTemplate = () => {
+  const handleLoadGuidelinesTemplate = async () => {
     if (
       guidelinesRef.current?.value?.trim() &&
-      !window.confirm("현재 작성 중인 지침을 추천 템플릿으로 바꿀까요?")
+      !window.confirm("현재 작성 중인 지침을 AI 추천 템플릿으로 바꿀까요?")
     ) {
       return;
     }
-    if (guidelinesRef.current) {
-      guidelinesRef.current.value = GUIDELINES_TEMPLATE;
+    setIsGeneratingTemplate(true);
+    try {
+      const { guidelines } = await AIAPI.GenerateGuidelinesTemplate({
+        data: { season: props._id },
+      });
+      if (guidelinesRef.current) {
+        guidelinesRef.current.value = guidelines || "";
+      }
+    } catch (err) {
+      ALERT_ERROR(err);
+    } finally {
+      setIsGeneratingTemplate(false);
     }
   };
+
+  const toggleExampleSyllabus = (id: string) => {
+    setSelectedExampleIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= MAX_EXAMPLE_SYLLABI) {
+        alert(`모범 계획서는 최대 ${MAX_EXAMPLE_SYLLABI}개까지 선택할 수 있습니다.`);
+        return prev;
+      }
+      return [...prev, id];
+    });
+  };
+
+  const handleSaveExampleSyllabi = async () => {
+    await updateAiSettings({ exampleSyllabusIds: selectedExampleIds });
+  };
+
+  const selectedSyllabusMeta = selectedExampleIds
+    .map((id) => seasonSyllabi.find((s) => s._id === id))
+    .filter(Boolean) as TSyllabus[];
 
   const handleAddReference = async () => {
     if (!newRefTitle.trim() || !newRefContent.trim()) {
@@ -143,14 +197,17 @@ const AISettings = (props: Props) => {
   };
 
   const handleRemoveReference = async (index: number) => {
-    if (!window.confirm("정말 삭제하시겠습니까?")) return;
-
+    if (!window.confirm("이 참고 자료를 삭제하시겠습니까?")) return;
     try {
       const { season } = await SeasonAPI.DSeasonAiReference({
         params: { _id: props._id, index },
       });
       if (season?.aiSettings) {
-        setAiSettings(season.aiSettings);
+        setAiSettings({
+          ...defaultAiSettings,
+          ...season.aiSettings,
+          exampleSyllabusIds: season.aiSettings.exampleSyllabusIds || [],
+        });
       }
       alert(SUCCESS_MESSAGE);
     } catch (err) {
@@ -166,16 +223,17 @@ const AISettings = (props: Props) => {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      if (newRefTitle.trim()) {
-        formData.append("title", newRefTitle.trim());
-      }
-
+      formData.append("title", newRefTitle.trim() || file.name);
       const { season } = await SeasonAPI.CSeasonAiReferenceUpload({
         params: { _id: props._id },
         data: formData,
       });
       if (season?.aiSettings) {
-        setAiSettings(season.aiSettings);
+        setAiSettings({
+          ...defaultAiSettings,
+          ...season.aiSettings,
+          exampleSyllabusIds: season.aiSettings.exampleSyllabusIds || [],
+        });
       }
       setNewRefTitle("");
       alert(SUCCESS_MESSAGE);
@@ -183,9 +241,7 @@ const AISettings = (props: Props) => {
       ALERT_ERROR(err);
     } finally {
       setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -200,56 +256,53 @@ const AISettings = (props: Props) => {
     }
   };
 
+  if (isLoading) {
+    return <div className={style.loading}>불러오는 중...</div>;
+  }
+
   return (
-    <div style={{ marginTop: "24px" }}>
-      <div style={{ marginBottom: "24px" }}>
-        <h4 style={{ marginBottom: "12px" }}>AI 기능 활성화</h4>
-        <p style={{ color: "var(--accent-3)", marginBottom: "12px" }}>
+    <div className={style.root}>
+      <section className={style.section}>
+        <h4 className={style.sectionTitle}>AI 기능 활성화</h4>
+        <p className={style.sectionHint}>
           이 학기에서 AI 기능을 사용할 수 있도록 활성화합니다.
         </p>
-        <div
-          style={{
-            padding: "16px",
-            border: "1px solid var(--border-color)",
-            borderRadius: "8px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <div>
-            <div style={{ fontWeight: 500 }}>현재 상태</div>
-            <div
-              style={{
-                marginTop: "4px",
-                color: aiSettings.enabled
-                  ? "var(--color-g4)"
-                  : "var(--accent-3)",
-              }}
+        <div className={style.statusCard}>
+          <div className={style.statusMeta}>
+            <span className={style.statusLabel}>현재 상태</span>
+            <span
+              className={`${style.statusValue} ${
+                aiSettings.enabled ? style.statusOn : style.statusOff
+              }`}
             >
+              <span className={style.statusDot} />
               {aiSettings.enabled ? "활성화됨" : "비활성화됨"}
-            </div>
+            </span>
           </div>
-          <Button
-            type="ghost"
-            style={{ borderRadius: "4px", height: "32px" }}
-            onClick={handleToggleEnabled}
-          >
+          <Button type="ghost" onClick={handleToggleEnabled}>
             {aiSettings.enabled ? "비활성화" : "활성화"}
           </Button>
         </div>
-      </div>
+      </section>
 
-      <div style={{ marginBottom: "24px" }}>
-        <h4 style={{ marginBottom: "12px" }}>권한 설정</h4>
-        <p style={{ color: "var(--accent-3)", marginBottom: "12px" }}>
+      <section className={style.section}>
+        <h4 className={style.sectionTitle}>권한 설정</h4>
+        <p className={style.sectionHint}>
           AI 기능을 사용할 수 있는 역할을 설정합니다.
         </p>
         <Table
           type="object-array"
           data={[
-            { role: "teacher", label: "선생님", enabled: aiSettings.permission.teacher },
-            { role: "student", label: "학생", enabled: aiSettings.permission.student },
+            {
+              role: "teacher",
+              label: "선생님",
+              enabled: aiSettings.permission.teacher,
+            },
+            {
+              role: "student",
+              label: "학생",
+              enabled: aiSettings.permission.student,
+            },
           ]}
           header={[
             {
@@ -280,54 +333,117 @@ const AISettings = (props: Props) => {
             },
           ]}
         />
-      </div>
+      </section>
 
-      <div style={{ marginBottom: "24px" }}>
-        <h4 style={{ marginBottom: "12px" }}>기본 지침</h4>
-        <p style={{ color: "var(--accent-3)", marginBottom: "12px" }}>
-          AI가 강의계획서를 생성할 때 참고할 지침을 입력합니다. 3~8개
-          bullet으로 짧게 쓰는 것을 권장합니다. (최대 약 600자)
+      <section className={style.section}>
+        <h4 className={style.sectionTitle}>기본 지침</h4>
+        <p className={style.sectionHint}>
+          AI가 강의계획서를 작성·점검할 때 참고할 지침입니다. 「추천 템플릿」은
+          학교·학기·양식 항목을 바탕으로 AI가 초안을 만듭니다. 3~8개 bullet,
+          약 600자 이내를 권장합니다.
         </p>
         <textarea
           ref={guidelinesRef}
+          className={style.textarea}
           defaultValue={aiSettings.guidelines}
-          placeholder="예: 강의계획서는 학교의 교육 철학에 맞게 작성해주세요. 학생들의 창의성과 협력을 강조해주세요."
-          style={{
-            width: "100%",
-            minHeight: "120px",
-            padding: "12px",
-            border: "1px solid var(--border-color)",
-            borderRadius: "8px",
-            resize: "vertical",
-            fontFamily: "inherit",
-            fontSize: "14px",
-          }}
+          placeholder="예: 강의계획서는 학교의 교육 철학에 맞게 작성해주세요."
+          disabled={isGeneratingTemplate}
         />
-        <div
-          style={{
-            marginTop: "12px",
-            display: "flex",
-            gap: "8px",
-            justifyContent: "flex-end",
-          }}
-        >
-          <Button type="ghost" onClick={handleLoadGuidelinesTemplate}>
-            추천 템플릿
+        <div className={style.actions}>
+          <Button
+            type="ghost"
+            onClick={handleLoadGuidelinesTemplate}
+            disabled={isGeneratingTemplate}
+            loading={isGeneratingTemplate}
+          >
+            {isGeneratingTemplate ? "AI 생성 중..." : "추천 템플릿"}
           </Button>
-          <Button type="ghost" onClick={handleSaveGuidelines}>
+          <Button
+            type="ghost"
+            onClick={handleSaveGuidelines}
+            disabled={isGeneratingTemplate}
+          >
             저장
           </Button>
         </div>
-      </div>
+      </section>
 
-      <div>
-        <h4 style={{ marginBottom: "12px" }}>참고 자료</h4>
-        <p style={{ color: "var(--accent-3)", marginBottom: "12px" }}>
-          AI가 강의계획서를 생성할 때 참고할 자료를 추가합니다.
+      <section className={style.section}>
+        <h4 className={style.sectionTitle}>모범 답안</h4>
+        <p className={style.sectionHint}>
+          이 학기 강의계획서를 모범으로 선택합니다. AI는 주제·활동명을 베끼지
+          않고 분량·문체·구체성만 참고합니다. (최대 {MAX_EXAMPLE_SYLLABI}개)
+        </p>
+
+        {syllabiLoading ? (
+          <p className={style.emptyNote}>강의계획서를 불러오는 중...</p>
+        ) : seasonSyllabi.length === 0 ? (
+          <p className={style.emptyNote}>
+            이 학기에 등록된 강의계획서가 없습니다. 계획서가 개설된 뒤 다시
+            선택해주세요.
+          </p>
+        ) : (
+          <>
+            <div className={style.listPanel}>
+              {seasonSyllabi.map((s) => {
+                const checked = selectedExampleIds.includes(s._id);
+                return (
+                  <label
+                    key={s._id}
+                    className={`${style.listRow} ${
+                      checked ? style.listRowChecked : ""
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      className={style.listCheck}
+                      checked={checked}
+                      onChange={() => toggleExampleSyllabus(s._id)}
+                    />
+                    <span>
+                      <span className={style.listTitle}>
+                        {s.classTitle || "(제목 없음)"}
+                      </span>
+                      <span className={style.listMeta}>
+                        {" "}
+                        · {s.userName || "작성자 미상"}
+                        {s.subject?.length
+                          ? ` · ${s.subject.filter(Boolean).join(" / ")}`
+                          : ""}
+                      </span>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+
+            {selectedSyllabusMeta.length > 0 && (
+              <div className={style.chipRow}>
+                {selectedSyllabusMeta.map((s) => (
+                  <span key={s._id} className={style.chip}>
+                    {s.classTitle || "(제목 없음)"}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div className={style.actions}>
+              <Button type="ghost" onClick={handleSaveExampleSyllabi}>
+                모범 계획서 저장
+              </Button>
+            </div>
+          </>
+        )}
+      </section>
+
+      <section className={style.section}>
+        <h4 className={style.sectionTitle}>참고 자료</h4>
+        <p className={style.sectionHint}>
+          AI가 강의계획서를 다룰 때 참고할 자료를 추가합니다.
         </p>
 
         {aiSettings.references.length > 0 && (
-          <div style={{ marginBottom: "16px" }}>
+          <div className={style.tableWrap}>
             <Table
               type="object-array"
               data={aiSettings.references.map((ref, index) => ({
@@ -384,50 +500,27 @@ const AISettings = (props: Props) => {
           </div>
         )}
 
-        <div
-          style={{
-            padding: "16px",
-            border: "1px solid var(--border-color)",
-            borderRadius: "8px",
-          }}
-        >
-          <div style={{ marginBottom: "12px" }}>
-            <label style={{ display: "block", marginBottom: "4px", fontWeight: 500 }}>
-              제목
-            </label>
+        <div className={style.refForm}>
+          <div className={style.fieldBlock}>
+            <label className={style.fieldLabel}>제목</label>
             <input
+              className={style.input}
               type="text"
               value={newRefTitle}
               onChange={(e) => setNewRefTitle(e.target.value)}
               placeholder="참고 자료 제목"
-              style={{
-                width: "100%",
-                padding: "8px 12px",
-                border: "1px solid var(--border-color)",
-                borderRadius: "4px",
-              }}
             />
           </div>
-          <div style={{ marginBottom: "12px" }}>
-            <label style={{ display: "block", marginBottom: "4px", fontWeight: 500 }}>
-              내용
-            </label>
+          <div className={style.fieldBlock}>
+            <label className={style.fieldLabel}>내용</label>
             <textarea
+              className={style.fieldTextarea}
               value={newRefContent}
               onChange={(e) => setNewRefContent(e.target.value)}
               placeholder="참고 자료 내용"
-              style={{
-                width: "100%",
-                minHeight: "80px",
-                padding: "8px 12px",
-                border: "1px solid var(--border-color)",
-                borderRadius: "4px",
-                resize: "vertical",
-                fontFamily: "inherit",
-              }}
             />
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div className={style.actionsSpread}>
             <div>
               <input
                 ref={fileInputRef}
@@ -444,16 +537,16 @@ const AISettings = (props: Props) => {
               >
                 {isUploading ? "업로드 중..." : "파일 업로드"}
               </Button>
-              <span style={{ fontSize: "12px", color: "var(--accent-3)" }}>
+              <span className={style.hintInline}>
                 PDF, DOCX, TXT, HWP (최대 10MB)
               </span>
             </div>
             <Button type="ghost" onClick={handleAddReference}>
-              추가
+              직접 추가
             </Button>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 };

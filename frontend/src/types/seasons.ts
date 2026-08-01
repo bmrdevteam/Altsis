@@ -58,6 +58,10 @@ export type TAiSettings = {
   permission: TAiPermission;
   guidelines: string;
   references: TAiReference[];
+  /** 양식 필드명 → 모범 문장 (하위 호환) */
+  examples?: Record<string, string>;
+  /** 모범으로 쓸 기존 강의계획서 ID (최대 2개) */
+  exampleSyllabusIds?: string[];
 };
 
 export type TSeason = {

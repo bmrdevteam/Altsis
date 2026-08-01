@@ -264,7 +264,7 @@ FormArchiveItem과 동일한 구조에 `deletedAt` 필드가 추가됩니다.
 
 ### 서브 도큐먼트: AiSettings
 
-기본값: `{ enabled: false, permission: {teacher: false, student: false}, guidelines: "", references: [] }`
+기본값: `{ enabled: false, permission: {teacher: false, student: false}, guidelines: "", references: [], examples: {} }`
 
 | 필드 | 타입 | 기본값 | 설명 |
 |------|------|--------|------|
@@ -272,6 +272,7 @@ FormArchiveItem과 동일한 구조에 `deletedAt` 필드가 추가됩니다.
 | `permission.teacher` | `Boolean` | `false` | 교사 AI 사용 권한 |
 | `permission.student` | `Boolean` | `false` | 학생 AI 사용 권한 |
 | `guidelines` | `String` | `""` | AI 기본 지침 |
+| `examples` | `Object` | `{}` | 양식 필드명 → 모범 문장 |
 | `references` | `Array` | `[]` | 참고자료 배열 |
 | `references[].title` | `String` | - | 자료 제목 |
 | `references[].content` | `String` | - | 자료 내용 |

@@ -217,9 +217,9 @@ const Season = (props: Props) => {
           title={`${seasonToEdit.year} ${seasonToEdit.term}`}
           setState={setEditPopupActive}
           style={{
-            // minHeight: "620px",
-            maxWidth: "800px",
+            maxWidth: "880px",
             width: "100%",
+            borderRadius: "12px",
           }}
           contentScroll
         >
