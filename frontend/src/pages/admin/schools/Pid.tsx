@@ -121,30 +121,6 @@ const School = (props: Props) => {
   return !isLoading ? (
     <>
       <div className={style.section}>
-        <div
-          style={{
-            fontSize: "12px",
-            fontWeight: 500,
-            marginBottom: "18px",
-            display: "flex",
-            color: "var(--accent-1)",
-          }}
-        >
-          <div style={{ wordBreak: "keep-all" }} title="목록으로 이동">
-            <span>&nbsp;/&nbsp;</span>
-            <span
-              style={{ cursor: "pointer" }}
-              onClick={() => {
-                if (currentUser?.auth === "admin") {
-                  navigate("/admin/schools/list", { replace: true });
-                }
-              }}
-            >
-              {`학교 관리 / ${pid}`}
-            </span>
-          </div>
-        </div>
-
         <div className={style.title}>
           {schoolData !== undefined ? (
             `${schoolData.schoolName} (${schoolData.schoolId})`

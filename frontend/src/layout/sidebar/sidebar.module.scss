@@ -569,12 +569,9 @@
             display: none;
         }
 
-        .logout {
-            display: none;
-        }
-
+        .logout,
         .settings {
-            margin: 0;
+            display: none;
         }
     }
 }
