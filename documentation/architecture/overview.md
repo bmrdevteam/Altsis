@@ -165,11 +165,11 @@ Alt Board는 수업 활동의 중심 허브로, 문서(Docs)·양식(Form)·시�
 
 ### 6. AI 통합
 
-Google Generative AI(Gemini)를 활용한 AI 기능을 제공합니다.
+OpenAI, Anthropic, Google Gemini(테스트용) API를 활용한 AI 기능을 제공합니다. 제공자별 REST API를 직접 호출하는 추상화 계층(`services/aiProvider.js`)을 통해 통합됩니다.
 
 - AI 강의계획서 생성 (SSE 스트리밍)
 - AI 채팅 (Alter) — 보드 단위 학습 보조 AI
-- 아카데미/학기별 AI 모델 선택 및 API 키 관리
+- 아카데미별 AI 제공자·모델 선택 및 API 키 관리 (BYOK)
 - 참고자료 업로드를 통한 컨텍스트 제공
 
 ### 7. 기능 활성화 시스템

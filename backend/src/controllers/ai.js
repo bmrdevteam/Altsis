@@ -11,6 +11,14 @@ import {
 } from "../messages/index.js";
 import { Academy } from "../models/Academy.js";
 import { Season, School, Registration, Enrollment, Syllabus, AIUsageLog } from "../models/index.js";
+import {
+  generateText,
+  generateTextStream,
+  listProviderModels,
+  resolveProvider,
+  resolveModel,
+  isValidProvider,
+} from "../services/aiProvider.js";
 
 /**
  * Extract input field names from formSyllabus editor data
@@ -41,7 +49,7 @@ const extractFieldNames = (formSyllabus) => {
 };
 
 /**
- * Build prompt for Gemini AI
+ * Build prompt for AI
  * @param {Object} context - Current form context
  * @param {Object} aiSettings - Season AI settings
  * @param {Object[]} enrollments - User's enrollment history
@@ -283,43 +291,35 @@ export const generateSyllabusContent = async (req, res) => {
       });
     }
 
-    // 6. Call Gemini API with streaming
+    // 6. Call AI API with streaming
     sendEvent("step", { message: "AI가 강의계획서를 작성하고 있습니다..." });
 
-    const { GoogleGenerativeAI } = await import("@google/generative-ai");
-    const genAI = new GoogleGenerativeAI(academy.aiApiKey);
-    const modelName = academy.aiModel || "gemini-2.5-flash";
-    const model = genAI.getGenerativeModel({ model: modelName });
+    const provider = resolveProvider(academy.aiProvider);
+    const modelName = resolveModel(provider, academy.aiModel);
 
     const prompt = buildPrompt(context, season.aiSettings, enrollments, syllabi);
-    const result = await model.generateContentStream(prompt);
-
-    let fullText = "";
-    for await (const chunk of result.stream) {
-      const chunkText = chunk.text();
-      fullText += chunkText;
-      sendEvent("generating", { text: chunkText });
-    }
+    const { text: fullText, tokenUsage } = await generateTextStream(
+      {
+        provider,
+        apiKey: academy.aiApiKey,
+        model: modelName,
+        messages: [{ role: "user", content: prompt }],
+      },
+      (chunkText) => sendEvent("generating", { text: chunkText })
+    );
 
     // 7. Log AI token usage
-    try {
-      const response = await result.response;
-      const usage = response.usageMetadata;
-      if (usage) {
-        AIUsageLog(req.user.academyId)
-          .create({
-            user: req.user._id,
-            userId: req.user.userId,
-            userName: req.user.userName,
-            model: modelName,
-            promptTokens: usage.promptTokenCount || 0,
-            candidatesTokens: usage.candidatesTokenCount || 0,
-            thoughtsTokens: usage.thoughtsTokenCount || 0,
-            totalTokens: usage.totalTokenCount || 0,
-          })
-          .catch(() => {});
-      }
-    } catch (_) {}
+    if (tokenUsage) {
+      AIUsageLog(req.user.academyId)
+        .create({
+          user: req.user._id,
+          userId: req.user.userId,
+          userName: req.user.userName,
+          model: modelName,
+          ...tokenUsage,
+        })
+        .catch(() => {});
+    }
 
     // 8. Parse JSON response
     let content;
@@ -337,10 +337,13 @@ export const generateSyllabusContent = async (req, res) => {
     return res.end();
   } catch (err) {
     logger.error(err.message);
-    if (err.message.includes("404") && err.message.includes("models/")) {
+    if (err.status === 404) {
       sendEvent("error", {
-        message:
-          "AI 모델을 찾을 수 없습니다. @google/generative-ai SDK를 최신 버전으로 업데이트해주세요.",
+        message: "AI 모델을 찾을 수 없습니다. 모델 설정을 확인해주세요.",
+      });
+    } else if (err.status === 401 || err.status === 403) {
+      sendEvent("error", {
+        message: "AI API 키가 유효하지 않습니다. 설정을 확인해주세요.",
       });
     } else {
       sendEvent("error", { message: "AI 생성 중 오류가 발생했습니다." });
@@ -361,7 +364,9 @@ export const generateSyllabusContent = async (req, res) => {
  * @param {"/ai/test"} req.url
  *
  * @param {Object} req.body
- * @param {string} req.body.apiKey - Gemini API key to test
+ * @param {string} req.body.apiKey - API key to test
+ * @param {string} [req.body.provider] - AI 제공자 (openai | anthropic | gemini)
+ * @param {string} [req.body.aiModel] - 테스트에 사용할 모델
  *
  * @param {Object} res
  * @param {boolean} res.valid - API key validity
@@ -369,31 +374,31 @@ export const generateSyllabusContent = async (req, res) => {
  */
 export const testApiKey = async (req, res) => {
   try {
-    const { apiKey, aiModel } = req.body;
+    const { apiKey, aiModel, provider } = req.body;
 
     if (!apiKey) {
       return res.status(400).send({ message: FIELD_REQUIRED("apiKey") });
     }
 
-    const { GoogleGenerativeAI } = await import("@google/generative-ai");
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const modelName = aiModel || "gemini-2.5-flash";
-    const model = genAI.getGenerativeModel({ model: modelName });
-
     // Simple test prompt
-    await model.generateContent("Say hello");
+    await generateText({
+      provider,
+      apiKey,
+      model: aiModel,
+      messages: [{ role: "user", content: "Say hello" }],
+    });
 
     return res.status(200).send({ valid: true });
   } catch (err) {
     logger.error(err.message);
-    if (err.message.includes("429")) {
+    if (err.status === 429) {
       return res.status(200).send({
         valid: true,
         error:
           "API 키는 유효하지만 요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.",
       });
     }
-    if (err.message.includes("404") && err.message.includes("models/")) {
+    if (err.status === 404) {
       return res.status(200).send({
         valid: false,
         error:
@@ -412,14 +417,17 @@ export const testApiKey = async (req, res) => {
  */
 export const listModels = async (req, res) => {
   try {
-    let { apiKey } = req.body;
+    let { apiKey, provider } = req.body;
     const { academyId } = req.body;
 
-    // Use saved API key if not provided
+    // Use saved API key (and provider) if not provided
     if (!apiKey && academyId) {
       const academy = await Academy.findOne({ academyId }, "+aiApiKey");
       if (academy?.aiApiKey) {
         apiKey = academy.aiApiKey;
+        if (!isValidProvider(provider)) {
+          provider = academy.aiProvider;
+        }
       }
     }
 
@@ -427,25 +435,15 @@ export const listModels = async (req, res) => {
       return res.status(400).send({ message: "API 키를 입력하거나 먼저 저장해주세요." });
     }
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`
-    );
-
-    if (!response.ok) {
-      return res.status(200).send({ models: [], error: "API 키가 유효하지 않습니다." });
-    }
-
-    const data = await response.json();
-    const models = (data.models || [])
-      .filter((m) => m.supportedGenerationMethods?.includes("generateContent"))
-      .map((m) => ({
-        name: m.name.replace("models/", ""),
-        displayName: m.displayName,
-      }));
-
+    const models = await listProviderModels({ provider, apiKey });
     return res.status(200).send({ models });
   } catch (err) {
     logger.error(err.message);
+    if (err.status === 401 || err.status === 403) {
+      return res
+        .status(200)
+        .send({ models: [], error: "API 키가 유효하지 않습니다." });
+    }
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };

@@ -36,7 +36,8 @@ Altsis 백엔드는 **Express.js** 기반의 REST API 서버입니다. 이 문�
 | bcrypt | 5.x | 비밀번호 해싱 |
 | node-cron | 4.x | 스케줄러 (cron) |
 | mongoose-encryption | 2.x | 필드 암호화 |
-| @google/generative-ai | 0.24.x | Gemini AI 연동 |
+
+AI 기능(OpenAI / Anthropic / Google Gemini)은 별도 SDK 없이 Node.js 내장 `fetch`로 각 제공자의 REST API를 직접 호출합니다 (`src/services/aiProvider.js`).
 
 > **참고**: 백엔드는 ES Module (`"type": "module"`)을 사용합니다. `import`/`export` 문법을 사용하십시오.
 

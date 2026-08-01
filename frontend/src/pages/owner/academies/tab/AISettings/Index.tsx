@@ -41,10 +41,46 @@ type TModelInfo = {
   displayName: string;
 };
 
+type TProvider = "openai" | "anthropic" | "gemini";
+
+const PROVIDER_INFO: Record<
+  TProvider,
+  {
+    label: string;
+    keyUrl: string;
+    keyUrlLabel: string;
+    defaultModel: string;
+    note?: string;
+  }
+> = {
+  openai: {
+    label: "OpenAI",
+    keyUrl: "https://platform.openai.com/api-keys",
+    keyUrlLabel: "OpenAI Platform에서 API 키 발급받기",
+    defaultModel: "gpt-4o-mini",
+  },
+  anthropic: {
+    label: "Anthropic (Claude)",
+    keyUrl: "https://console.anthropic.com/settings/keys",
+    keyUrlLabel: "Anthropic Console에서 API 키 발급받기",
+    defaultModel: "claude-sonnet-4-5",
+  },
+  gemini: {
+    label: "Google Gemini (테스트용)",
+    keyUrl: "https://aistudio.google.com/app/apikey",
+    keyUrlLabel: "Google AI Studio에서 API 키 발급받기",
+    defaultModel: "gemini-2.5-flash",
+    note: "Google 약관상 미성년자가 접근하는 서비스에는 Gemini API를 사용할 수 없습니다. 테스트 용도로만 사용해주세요.",
+  },
+};
+
 const AISettings = (props: Props) => {
   const { AcademyAPI, AIAPI } = useAPIv2();
+  const [aiProvider, setAiProvider] = useState<TProvider>("openai");
   const [apiKey, setApiKey] = useState<string>("");
-  const [aiModel, setAiModel] = useState<string>("gemini-2.5-flash");
+  const [aiModel, setAiModel] = useState<string>(
+    PROVIDER_INFO.openai.defaultModel
+  );
   const [hasApiKey, setHasApiKey] = useState<boolean>(false);
   const [isTesting, setIsTesting] = useState<boolean>(false);
   const [availableModels, setAvailableModels] = useState<TModelInfo[]>([]);
@@ -56,14 +92,23 @@ const AISettings = (props: Props) => {
     AcademyAPI.RAcademyAiApiKey({
       params: { academyId: props.academyData.academyId },
     })
-      .then(({ hasApiKey, aiModel: model }) => {
+      .then(({ hasApiKey, aiModel: model, aiProvider: provider }) => {
         setHasApiKey(hasApiKey);
+        if (provider && provider in PROVIDER_INFO) {
+          setAiProvider(provider as TProvider);
+        }
         if (model) setAiModel(model);
       })
       .catch((err) => {
         console.error(err);
       });
   }, [props.academyData.academyId]);
+
+  const onChangeProviderHandler = (provider: TProvider) => {
+    setAiProvider(provider);
+    setAiModel(PROVIDER_INFO[provider].defaultModel);
+    setAvailableModels([]);
+  };
 
   const onClickToggleAiHandler = async () => {
     const action = props.academyData.aiEnabled ? "비활성화" : "활성화";
@@ -99,6 +144,7 @@ const AISettings = (props: Props) => {
         data: {
           apiKey: apiKey.trim(),
           aiModel,
+          aiProvider,
         },
       });
       alert(SUCCESS_MESSAGE);
@@ -118,7 +164,7 @@ const AISettings = (props: Props) => {
     setIsTesting(true);
     try {
       const { valid, error } = await AIAPI.TestAiApiKey({
-        data: { apiKey: apiKey.trim(), aiModel },
+        data: { apiKey: apiKey.trim(), aiModel, provider: aiProvider },
       });
       if (valid) {
         alert("API 키가 유효합니다.");
@@ -165,6 +211,7 @@ const AISettings = (props: Props) => {
         data: {
           apiKey: apiKey.trim() || undefined,
           academyId: props.academyData.academyId,
+          provider: aiProvider,
         },
       });
       if (error) {
@@ -198,8 +245,8 @@ const AISettings = (props: Props) => {
         <div>
           <h3 style={{ marginBottom: "12px" }}>AI 기능</h3>
           <p style={{ color: "var(--accent-3)", marginBottom: "24px" }}>
-            AI 기능을 활성화하면 수업 개설 시 Gemini AI를 사용하여 강의계획서
-            내용을 자동으로 생성할 수 있습니다.
+            AI 기능을 활성화하면 수업 개설 시 AI를 사용하여 강의계획서 내용을
+            자동으로 생성할 수 있습니다.
           </p>
 
           <div
@@ -240,17 +287,72 @@ const AISettings = (props: Props) => {
         </div>
 
         <div>
-          <h3 style={{ marginBottom: "12px" }}>Gemini API 키</h3>
+          <h3 style={{ marginBottom: "12px" }}>AI 제공자</h3>
           <p style={{ color: "var(--accent-3)", marginBottom: "24px" }}>
-            Google AI Studio에서 발급받은 Gemini API 키를 입력해주세요.
+            사용할 AI 제공자를 선택하세요. 학생이 사용하는 서비스이므로 운영
+            환경에서는 OpenAI 또는 Anthropic을 사용해야 하며, Google Gemini는
+            테스트 용도로만 제공됩니다.
+          </p>
+
+          <div
+            style={{
+              padding: "16px",
+              border: "1px solid var(--border-color)",
+              borderRadius: "8px",
+            }}
+          >
+            <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
+              {(Object.keys(PROVIDER_INFO) as TProvider[]).map((provider) => (
+                <label
+                  key={provider}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="aiProvider"
+                    checked={aiProvider === provider}
+                    onChange={() => onChangeProviderHandler(provider)}
+                  />
+                  {PROVIDER_INFO[provider].label}
+                </label>
+              ))}
+            </div>
+
+            {PROVIDER_INFO[aiProvider].note && (
+              <p
+                style={{
+                  marginTop: "12px",
+                  color: "var(--color-r4, #d9534f)",
+                  fontSize: "13px",
+                }}
+              >
+                {PROVIDER_INFO[aiProvider].note}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div>
+          <h3 style={{ marginBottom: "12px" }}>
+            {PROVIDER_INFO[aiProvider].label} API 키
+          </h3>
+          <p style={{ color: "var(--accent-3)", marginBottom: "24px" }}>
+            {PROVIDER_INFO[aiProvider].label}에서 발급받은 API 키를
+            입력해주세요.
             <br />
             <a
-              href="https://aistudio.google.com/app/apikey"
+              href={PROVIDER_INFO[aiProvider].keyUrl}
               target="_blank"
               rel="noopener noreferrer"
               style={{ color: "var(--accent-1)" }}
             >
-              API 키 발급받기
+              {PROVIDER_INFO[aiProvider].keyUrlLabel}
             </a>
           </p>
 
@@ -360,7 +462,7 @@ const AISettings = (props: Props) => {
               <Input
                 appearence="flat"
                 label="모델명"
-                placeholder="예: gemini-2.5-flash"
+                placeholder={`예: ${PROVIDER_INFO[aiProvider].defaultModel}`}
                 value={aiModel}
                 onChange={(e: any) => setAiModel(e.target.value)}
               />
@@ -396,6 +498,74 @@ const AISettings = (props: Props) => {
                 모델 저장
               </Button>
             </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 style={{ marginBottom: "12px" }}>
+            미성년 학생 보호를 위한 아카데미 이행사항
+          </h3>
+          <p style={{ color: "var(--accent-3)", marginBottom: "24px" }}>
+            AI 제공자와의 계약 당사자는 API 키를 발급받은 아카데미입니다.
+            미성년 학생이 AI 기능을 사용하는 경우 아래 사항을 아카데미가 직접
+            이행해야 합니다.
+          </p>
+
+          <div
+            style={{
+              padding: "16px",
+              border: "1px solid var(--border-color)",
+              borderRadius: "8px",
+              fontSize: "14px",
+              lineHeight: "1.7",
+            }}
+          >
+            <ul style={{ margin: 0, paddingLeft: "20px" }}>
+              <li>
+                만 14세 미만 학생이 AI 기능을 사용하는 경우, 개인정보보호법에
+                따라 법정대리인 동의를 받아야 합니다.
+              </li>
+              <li>
+                OpenAI를 사용하고 만 14세 미만 학생이 있는 경우, OpenAI
+                계정에서 Zero Data Retention(ZDR)을 신청해야 합니다.
+              </li>
+              <li>
+                아카데미의 개인정보 처리방침에 사용하는 AI 제공자를 처리
+                위탁·국외 이전 항목으로 기재해야 합니다.
+              </li>
+              <li>
+                제공자의 미성년자 관련 가이드라인을 확인하세요.{" "}
+                <a
+                  href="https://developers.openai.com/api/docs/guides/safety-checks/under-18-api-guidance"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: "var(--accent-1)" }}
+                >
+                  OpenAI Under 18 API Guidance
+                </a>
+                {" · "}
+                <a
+                  href="https://support.claude.com/en/articles/9307344-responsible-use-of-anthropic-s-models-guidelines-for-organizations-serving-minors"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: "var(--accent-1)" }}
+                >
+                  Anthropic 미성년자 대상 조직 가이드라인
+                </a>
+              </li>
+            </ul>
+            <p
+              style={{
+                marginTop: "12px",
+                marginBottom: 0,
+                color: "var(--accent-3)",
+                fontSize: "13px",
+              }}
+            >
+              Altsis는 AI 사용 고지, 안전 시스템 프롬프트, 교사의 학생 AI 대화
+              모니터링 기능을 기본 제공하여 위 가이드라인의 안전조치 요건
+              이행을 지원합니다.
+            </p>
           </div>
         </div>
       </div>

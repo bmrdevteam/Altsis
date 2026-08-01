@@ -36,6 +36,11 @@ import {
 import { generatePassword } from "../utils/password.js";
 import { fileS3, fileBucket } from "../_s3/fileBucket.js";
 import { format } from "date-fns";
+import {
+  isValidProvider,
+  resolveProvider,
+  resolveModel,
+} from "../services/aiProvider.js";
 
 /**
  * @memberof APIs.AcademyAPI
@@ -535,6 +540,8 @@ export const updateAiEnabled = async (req, res) => {
  *
  * @param {Object} req.body
  * @param {string} req.body.apiKey
+ * @param {string} [req.body.aiModel]
+ * @param {string} [req.body.aiProvider] - openai | anthropic | gemini(테스트용)
  *
  * @param {Object} res
  * @param {boolean} res.success
@@ -548,10 +555,13 @@ export const updateAiApiKey = async (req, res) => {
     if (!academy)
       return res.status(404).send({ message: __NOT_FOUND("academy") });
 
-    /* set apiKey and model */
+    /* set apiKey, model and provider */
     academy.aiApiKey = req.body.apiKey;
     if (req.body.aiModel) {
       academy.aiModel = req.body.aiModel;
+    }
+    if (isValidProvider(req.body.aiProvider)) {
+      academy.aiProvider = req.body.aiProvider;
     }
     await academy.save();
 
@@ -619,9 +629,11 @@ export const checkAiApiKey = async (req, res) => {
     if (!academy)
       return res.status(404).send({ message: __NOT_FOUND("academy") });
 
+    const aiProvider = resolveProvider(academy.aiProvider);
     return res.status(200).send({
       hasApiKey: !!academy.aiApiKey,
-      aiModel: academy.aiModel || "gemini-2.5-flash",
+      aiProvider,
+      aiModel: academy.aiModel || resolveModel(aiProvider),
     });
   } catch (err) {
     logger.error(err.message);

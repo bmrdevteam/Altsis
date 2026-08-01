@@ -257,8 +257,11 @@ AI 기능이 활성화된 경우, 추가 설정이 필요합니다.
 
 | 설정 | 설명 |
 |------|------|
-| AI API 키 | Google Generative AI API 키 |
-| AI 모델 | 사용할 AI 모델 선택 (기본값: Gemini 2.5 Flash) |
+| AI 제공자 | OpenAI / Anthropic / Google Gemini(테스트용) 중 선택 |
+| AI API 키 | 선택한 제공자에서 발급받은 API 키 |
+| AI 모델 | 사용할 AI 모델 선택 (제공자별 기본 모델 제공) |
+
+자세한 설정 방법과 미성년 학생 보호 관련 이행사항은 [아카데미 관리](../admin-guide/academy-management.md#ai-설정) 문서를 참고하세요.
 
 > [!NOTE]
 > 기능 활성화 설정은 아카데미 관리 페이지에서 변경할 수 있습니다. 기능이 비활성화되면 해당 기능의 메뉴가 사용자에게 표시되지 않습니다.

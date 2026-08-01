@@ -224,6 +224,25 @@ const AIChatPanel = ({ board, socket, sessionId, myRole }: Props) => {
 
   return (
     <div className={style.container} style={{ ...containerStyle, position: "relative" }}>
+      {/* AI disclosure notice */}
+      {!isViewingStudentSession && (
+        <div
+          style={{
+            padding: "8px 16px",
+            fontSize: "12px",
+            lineHeight: "1.5",
+            color: "var(--accent-3)",
+            backgroundColor: "var(--background-secondary)",
+            borderBottom: "1px solid var(--border-color)",
+            flexShrink: 0,
+          }}
+        >
+          Alter는 AI 챗봇입니다. 답변이 부정확할 수 있으며, 대화 내용은 담당
+          선생님이 확인할 수 있습니다. 연락처·주소 등 개인정보는 입력하지
+          마세요.
+        </div>
+      )}
+
       {/* Messages */}
       <div className={style.messages_area} ref={messagesAreaRef}>
         {messages.length === 0 ? (

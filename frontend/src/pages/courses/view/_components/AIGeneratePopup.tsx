@@ -331,6 +331,16 @@ const Index = (props: Props) => {
             </div>
             <div
               style={{
+                fontSize: "13px",
+                color: "var(--text-secondary)",
+                marginBottom: "8px",
+              }}
+            >
+              AI가 생성한 초안입니다. 부정확한 내용이 있을 수 있으니 반드시
+              검토하고 수정한 뒤 사용하세요.
+            </div>
+            <div
+              style={{
                 padding: "12px",
                 backgroundColor: "var(--background-secondary)",
                 borderRadius: "8px",

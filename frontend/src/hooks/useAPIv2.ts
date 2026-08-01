@@ -478,6 +478,7 @@ export default function useAPIv2() {
     data: {
       apiKey: string;
       aiModel?: string;
+      aiProvider?: string;
     };
   }) {
     const { success } = await database.U({
@@ -498,10 +499,14 @@ export default function useAPIv2() {
       academyId: string;
     };
   }) {
-    const { hasApiKey, aiModel } = await database.R({
+    const { hasApiKey, aiModel, aiProvider } = await database.R({
       location: `academies/${props.params.academyId}/ai/apikey`,
     });
-    return { hasApiKey: hasApiKey as boolean, aiModel: aiModel as string };
+    return {
+      hasApiKey: hasApiKey as boolean,
+      aiModel: aiModel as string,
+      aiProvider: aiProvider as string,
+    };
   }
 
   /**
@@ -4487,6 +4492,7 @@ export default function useAPIv2() {
     data: {
       apiKey: string;
       aiModel?: string;
+      provider?: string;
     };
   }) {
     const { valid, error } = await database.C({
@@ -4506,6 +4512,7 @@ export default function useAPIv2() {
     data: {
       apiKey?: string;
       academyId?: string;
+      provider?: string;
     };
   }) {
     const { models, error } = await database.C({

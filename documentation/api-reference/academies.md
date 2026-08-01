@@ -324,6 +324,7 @@ PUT /api/academies/:academyId/ai/apikey
 |------|------|------|------|
 | `apiKey` | `string` | O | AI 서비스 API 키 |
 | `aiModel` | `string` | X | AI 모델명 |
+| `aiProvider` | `string` | X | AI 제공자 (`openai` / `anthropic` / `gemini`) |
 
 #### 응답 (200)
 
@@ -348,6 +349,7 @@ GET /api/academies/:academyId/ai/apikey
 ```json
 {
   "hasApiKey": true,
+  "aiProvider": "gemini",
   "aiModel": "gemini-2.5-flash"
 }
 ```

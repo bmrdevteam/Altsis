@@ -10,4 +10,5 @@ export type TAcademy = {
   chatEnabled?: boolean;
   boardEnabled?: boolean;
   aiEnabled?: boolean;
+  aiProvider?: "openai" | "anthropic" | "gemini";
 };

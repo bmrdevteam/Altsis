@@ -18,7 +18,7 @@ import {
 import {
   getOrCreateSession,
   buildAIChatContents,
-  callGemini,
+  callAI,
   getBoardTeacherUserIds,
   checkAIEnabled,
 } from "../services/aiChat.js";
@@ -297,14 +297,12 @@ export const sendAIChatMessage = async (req, res) => {
         .lean();
       recentMessages.reverse();
 
-      const { systemInstruction, contents } = buildAIChatContents(
-        board,
-        recentMessages
-      );
-      const { text: aiText, tokenUsage } = await callGemini(
+      const { systemInstruction, messages: chatMessages } =
+        buildAIChatContents(board, recentMessages);
+      const { text: aiText, tokenUsage } = await callAI(
         req.user.academyId,
         systemInstruction,
-        contents,
+        chatMessages,
         req.user
       );
 

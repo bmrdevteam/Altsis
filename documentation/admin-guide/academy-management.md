@@ -88,35 +88,61 @@
 
 > **필요 권한**: 🔴 Admin (아카데미 수준), 🔵 Manager (학기 수준)
 
-Altsis는 Google Generative AI를 활용한 AI 기능을 지원합니다. AI 기능은 아카데미 수준과 학기 수준 두 단계로 설정합니다.
+Altsis는 OpenAI, Anthropic, Google Gemini(테스트용) API를 활용한 AI 기능을 지원합니다. AI 기능은 아카데미 수준과 학기 수준 두 단계로 설정합니다.
+
+### AI 제공자 선택
+
+| 제공자 | 용도 | 비고 |
+|--------|------|------|
+| OpenAI | 운영 | 미성년자 대상 사용 허용 (아래 이행사항 준수 필요) |
+| Anthropic | 운영 | 미성년자 대상 사용 허용 (아래 이행사항 준수 필요) |
+| Google Gemini | 테스트 전용 | Google 약관상 18세 미만이 접근하는 서비스에 사용 금지 |
+
+> [!WARNING]
+> Google Gemini API는 [약관](https://ai.google.dev/gemini-api/terms)상 "18세 미만이 접근할 가능성이 높은 서비스"의 일부로 사용할 수 없습니다. 학생이 사용하는 운영 환경에서는 반드시 OpenAI 또는 Anthropic을 사용하고, Gemini는 개발·테스트 용도로만 사용하세요.
 
 ### 아카데미 수준 AI 설정 (Admin)
 
-아카데미 수준에서는 AI 기능의 전체 활성화 및 API 키를 관리합니다.
+아카데미 수준에서는 AI 제공자, API 키, 모델을 관리합니다.
 
 | 항목 | 설명 | 기본값 |
 |------|------|--------|
 | `aiEnabled` | AI 기능 전체 활성화 | `false` |
-| `aiApiKey` | Google Generative AI API 키 | 없음 |
-| `aiModel` | 사용할 AI 모델 | `gemini-2.5-flash` |
+| `aiProvider` | AI 제공자 (`openai` / `anthropic` / `gemini`) | `gemini` |
+| `aiApiKey` | 선택한 제공자의 API 키 | 없음 |
+| `aiModel` | 사용할 AI 모델 | 제공자별 기본 모델 |
 
 #### API 키 설정 절차
 
-1. [Google AI Studio](https://aistudio.google.com/)에서 API 키를 발급합니다.
+1. 사용할 제공자의 콘솔에서 API 키를 발급합니다.
+   - OpenAI: [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+   - Anthropic: [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys)
+   - Google AI Studio (테스트용): [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
 2. Admin 계정으로 로그인한 후, 아카데미 설정 페이지로 이동합니다.
-3. **AI 설정** 섹션에서 API 키를 입력합니다.
-4. 사용할 모델을 선택합니다.
-5. AI 기능을 **활성화**합니다.
+3. **AI 설정** 섹션에서 제공자를 선택하고 API 키를 입력합니다.
+4. **테스트** 버튼으로 키 유효성을 확인하고, **모델 탐색**으로 사용 가능한 모델을 조회해 선택합니다.
+5. API 키를 저장한 뒤 AI 기능을 **활성화**합니다.
 
 > [!IMPORTANT]
-> API 키는 보안을 위해 조회 API를 통해 반환되지 않습니다 (`select: false`). 키를 분실한 경우 Google AI Studio에서 새 키를 발급받아야 합니다.
+> API 키는 보안을 위해 조회 API를 통해 반환되지 않습니다 (`select: false`). 키를 분실한 경우 해당 제공자 콘솔에서 새 키를 발급받아야 합니다.
 
-#### 사용 가능한 AI 모델
+### 아카데미 이행사항 (컴플라이언스)
 
-| 모델명 | 설명 |
-|--------|------|
-| `gemini-2.5-flash` | 빠르고 효율적인 기본 모델 (기본값) |
-| 기타 Gemini 모델 | Google AI에서 지원하는 다른 모델 선택 가능 |
+BYOK(Bring Your Own Key) 구조상 AI 제공자와의 계약 당사자는 API 키를 발급받은 아카데미입니다. 미성년 학생이 AI 기능을 사용하는 경우, 제공자 약관과 개인정보보호법에 따라 아래 사항을 아카데미가 직접 이행해야 합니다.
+
+| 항목 | 대상 | 설명 |
+|------|------|------|
+| 법정대리인 동의 수집 | 만 14세 미만 학생 | 개인정보보호법에 따라 AI 기능 사용 전 법정대리인 동의가 필요합니다 |
+| OpenAI Zero Data Retention 신청 | OpenAI 사용 + 만 14세 미만 학생 | OpenAI 정책상 만 14세 미만(디지털 동의 연령 미만)의 개인정보 처리 전 ZDR 적용이 필요하며, OpenAI 계정에서 직접 신청합니다 |
+| 개인정보 처리방침 갱신 | 전체 | 사용하는 AI 제공자를 개인정보 처리 위탁·국외 이전 항목에 기재합니다 |
+| 제공자 가이드라인 숙지 | 전체 | OpenAI [Under 18 API Guidance](https://developers.openai.com/api/docs/guides/safety-checks/under-18-api-guidance), Anthropic [미성년자 대상 조직 가이드라인](https://support.claude.com/en/articles/9307344-responsible-use-of-anthropic-s-models-guidelines-for-organizations-serving-minors)을 확인하세요 |
+
+Altsis는 제공자 가이드라인이 요구하는 안전조치 중 다음을 기본 제공하여 아카데미의 이행을 지원합니다.
+
+- AI 챗봇(Alter) 사용 시 AI임을 알리는 상시 고지
+- 연령 적합 콘텐츠·위기 대응·개인정보 보호를 포함한 안전 시스템 프롬프트
+- 교사의 학생 AI 대화 전체 열람(모니터링) 기능
+- AI 생성물에 대한 검토 필요 고지
 
 ### 학기 수준 AI 설정 (Manager)
 
