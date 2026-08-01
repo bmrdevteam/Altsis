@@ -237,11 +237,35 @@ const NavProfile = ({ onNavigate }: { onNavigate?: () => void }) => {
   const { UserAPI } = useAPIv2();
   const [, , removeCookie] = useCookies();
 
+  const goToMyInfo = () => {
+    if (currentUser?._id) {
+      navigate(`/search/${currentUser._id}`);
+    } else {
+      navigate("/login");
+    }
+    onNavigate?.();
+  };
+
+  const goToSettings = () => {
+    if (currentUser?._id) {
+      navigate("/settings");
+    } else {
+      navigate("/login");
+    }
+    onNavigate?.();
+  };
+
   return (
     <>
       <div className={style.nav_profile_container}>
         <div className={style.nav_profile}>
-          <div className={style.profile_img}>
+          <button
+            type="button"
+            className={style.profile_img}
+            onClick={goToMyInfo}
+            title="내 정보"
+            aria-label="내 정보"
+          >
             <img
               src={currentUser?.profile || defaultProfilePic}
               onError={(e) => {
@@ -249,34 +273,42 @@ const NavProfile = ({ onNavigate }: { onNavigate?: () => void }) => {
                 e.currentTarget.src =
                   currentUser?.profile?.replace("/thumb/", "/original/") ?? "";
               }}
-              alt="profile"
-              onClick={() => {
-                currentUser?.userId
-                  ? navigate("/settings", { replace: true })
-                  : navigate("/login", { replace: true });
-                onNavigate?.();
-              }}
+              alt=""
             />
-          </div>
+          </button>
           <div className={style.profile_info}>
             <div
               className={style.username}
-              onClick={() => {
-                currentUser?.userId
-                  ? navigate("/settings", { replace: true })
-                  : navigate("/login", { replace: true });
-                onNavigate?.();
+              onClick={goToMyInfo}
+              title="내 정보"
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  goToMyInfo();
+                }
               }}
             >
               {currentUser?.userName ?? "로그인"}
             </div>
             <div className={style.role}> {currentUser?.auth ?? ""}</div>
           </div>
+          <button
+            type="button"
+            className={style.settings}
+            onClick={goToSettings}
+            title="설정"
+            aria-label="설정"
+          >
+            <Svg type="gear" width="18px" height="18px" />
+          </button>
           <div
             className={style.logout}
             onClick={() => {
               setLogoutPopupActive(true);
             }}
+            title="로그아웃"
           >
             <Svg type="logout" width="18px" height="18px" />
           </div>

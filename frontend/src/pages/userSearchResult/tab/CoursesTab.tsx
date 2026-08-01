@@ -1,99 +1,35 @@
-import Select from "components/select/Select";
 import { useAuth } from "contexts/authContext";
 import EditorParser from "editor/EditorParser";
 
-import _ from "lodash";
-import { useEffect, useState } from "react";
-import useAPIv2 from "hooks/useAPIv2";
 import CourseTable from "pages/courses/table/CourseTable";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import style from "style/pages/enrollment.module.scss";
 
+export type TCoursesView =
+  | "timeTable"
+  | "enrollments"
+  | "myDesgins"
+  | "mentoring";
+
 type Props = {
   user: any;
+  view: TCoursesView;
+  enrolledCourseList: any[];
+  createdCourseList: any[];
+  mentoringCourseList: any[];
 };
 
 const CoursesTab = (props: Props) => {
-  const { user } = props;
-
-  const { SyllabusAPI } = useAPIv2();
-  const { currentRegistration } = useAuth();
-
-  const [selectedTab, setSelectedTab] = useState<any>("timeTable");
-
-  const [enrolledCourseList, setEnrolledCourseList] = useState<any[]>([]);
-  const [createdCourseList, setCreatedCourseList] = useState<any[]>([]);
-  const [mentoringCourseList, setMentoringCourseList] = useState<any[]>([]);
-
-  const updateCourses = async () => {
-    const [
-      { enrollments: enrolled, syllabuses: syllabusesEnrolled },
-      { syllabuses: created },
-      { syllabuses: mentoring },
-    ] = await Promise.all([
-      SyllabusAPI.RSyllabuses({
-        query: {
-          season: currentRegistration.season,
-          student: props.user._id,
-        },
-      }),
-      SyllabusAPI.RSyllabuses({
-        query: {
-          season: currentRegistration.season,
-          user: props.user._id,
-        },
-      }),
-      SyllabusAPI.RSyllabuses({
-        query: {
-          season: currentRegistration.season,
-          teacher: props.user._id,
-        },
-      }),
-    ]);
-    for (let syllabus of syllabusesEnrolled) {
-      const idx = _.findIndex(enrolled, { syllabus: syllabus._id });
-      if (idx !== -1) {
-        enrolled[idx].count = syllabus.count;
-        enrolled[idx]._id = syllabus._id;
-      }
-    }
-
-    setEnrolledCourseList(enrolled);
-    setCreatedCourseList(created);
-    setMentoringCourseList(mentoring);
-  };
-
-  // Get user enrollments in current season
-  useEffect(() => {
-    if (currentRegistration && user) {
-      updateCourses();
-    }
-  }, [currentRegistration, user]);
+  const { user, view, enrolledCourseList, createdCourseList, mentoringCourseList } =
+    props;
 
   return (
     <>
-      <Select
-        options={[
-          { text: "시간표", value: "timeTable" },
-          { text: "수강 현황", value: "enrollments" },
-          { text: "개설 수업", value: "myDesgins" },
-          { text: "담당 수업", value: "mentoring" },
-        ]}
-        onChange={setSelectedTab}
-        appearence={"flat"}
-        style={{ marginBottom: "12px" }}
-      />
-      <TimeTable
-        selected={selectedTab}
-        enrolledCourseList={enrolledCourseList}
-      />
-      <Enrollments
-        selected={selectedTab}
-        enrolledCourseList={enrolledCourseList}
-      />
-      <MyDesgins selected={selectedTab} createdCourseList={createdCourseList} />
+      <TimeTable selected={view} enrolledCourseList={enrolledCourseList} />
+      <Enrollments selected={view} enrolledCourseList={enrolledCourseList} />
+      <MyDesgins selected={view} createdCourseList={createdCourseList} />
       <Mentoring
-        selected={selectedTab}
+        selected={view}
         mentoringCourseList={mentoringCourseList}
         user={user}
       />
@@ -106,7 +42,6 @@ const TimeTable = (props: {
   enrolledCourseList: Array<any>;
 }) => {
   const { currentSeason } = useAuth();
-
   const navigate = useAppNavigate();
 
   function syllabusToTime(s: any) {
@@ -122,7 +57,6 @@ const TimeTable = (props: {
         }
       }
     }
-
     return result;
   }
 
@@ -138,7 +72,6 @@ const TimeTable = (props: {
         }
       }
     }
-
     return result;
   }
 
@@ -207,7 +140,10 @@ const Enrollments = (props: {
 
   return (
     <>
-      <div className={style.summary_grid} style={{ marginBottom: "12px" }}>
+      <div
+        className={`${style.summary_grid} ${style.summary_grid_fill}`}
+        style={{ marginBottom: "12px" }}
+      >
         {summaryItems.map((item, i) => (
           <div className={style.summary_item} key={i}>
             <span className={style.summary_label}>{item.label}</span>

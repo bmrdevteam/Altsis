@@ -16,6 +16,32 @@
 
     border-bottom: var(--border-default);
 
+    &.tab_menu_container_with_start {
+        display: flex;
+        align-items: flex-end;
+        gap: 8px 16px;
+        overflow-x: auto;
+        padding-top: 4px;
+
+        .tab_header_start {
+            flex-shrink: 0;
+            min-width: 0;
+            padding-bottom: 8px;
+        }
+
+        .tab_menu {
+            flex: 1 1 auto;
+            width: auto;
+            min-width: 0;
+            justify-content: flex-end;
+
+            .tab_menu_item {
+                height: 40px;
+                padding: 0 12px;
+            }
+        }
+    }
+
     /* Firefox */
     // .indicator_container {
     //     position: absolute;

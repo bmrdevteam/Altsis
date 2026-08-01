@@ -386,6 +386,16 @@
             align-items: center;
 
             .profile_img {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 0;
+                border: none;
+                background: transparent;
+                cursor: pointer;
+                border-radius: 24px;
+                flex-shrink: 0;
+
                 img {
                     border-radius: 24px;
                     max-width: 40px;
@@ -393,9 +403,8 @@
                     max-height: 40px;
                     height: 40px;
                     object-fit: cover;
-                    cursor: pointer;
+                    pointer-events: none;
                 }
-
             }
 
             .profile_info {
@@ -414,14 +423,25 @@
                 }
             }
 
+            .settings,
             .logout {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+                padding: 4px;
+                border: none;
+                background: transparent;
                 cursor: pointer;
+                border-radius: 6px;
 
                 svg {
-
                     fill: var(--accent-3);
                 }
 
+                &:hover svg {
+                    fill: var(--accent-1);
+                }
             }
         }
     }
@@ -541,12 +561,20 @@
 
 
     .nav_profile {
+        flex-direction: column;
+        gap: 8px;
+        margin: 8px 0;
+
         .profile_info {
             display: none;
         }
 
         .logout {
             display: none;
+        }
+
+        .settings {
+            margin: 0;
         }
     }
 }

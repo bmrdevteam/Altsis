@@ -86,6 +86,15 @@
   gap: 6px;
 }
 
+.summary_grid_fill {
+  width: 100%;
+
+  .summary_item {
+    flex: 1 1 0;
+    min-width: 72px;
+  }
+}
+
 .summary_item {
   display: flex;
   flex-direction: column;

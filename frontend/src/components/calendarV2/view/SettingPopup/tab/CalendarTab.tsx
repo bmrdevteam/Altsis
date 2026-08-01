@@ -567,7 +567,7 @@ const CalendarTab = (props: Props) => {
                   ? "var(--accent-1)"
                   : "transparent",
                 color: visibleDays.includes(idx)
-                  ? "var(--background)"
+                  ? "var(--accent-6)"
                   : "var(--text-color)",
                 fontSize: "13px",
                 fontWeight: visibleDays.includes(idx) ? 600 : 400,

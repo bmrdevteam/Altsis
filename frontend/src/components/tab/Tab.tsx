@@ -25,7 +25,7 @@
  * NOTES
  *
  */
-import { useState } from "react";
+import { ReactNode, useState } from "react";
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useAppNavigate } from "hooks/useAppNavigate";
@@ -75,6 +75,8 @@ const Tab = (props: {
   defaultTab?: string;
   badges?: Record<string, number>;
   onTabChange?: (tabKey: string) => void;
+  /** 탭 헤더 왼쪽에 붙는 콘텐츠 (예: 프로필) */
+  headerStart?: ReactNode;
 }) => {
   /**
    * import hooks
@@ -110,9 +112,23 @@ const Tab = (props: {
    * @returns Header element for the tab component
    */
   const Header = () => {
+    const hasHeaderStart = props.headerStart != null;
     return (
-      <div className={style.tab_menu_container}>
-        <div className={style.tab_menu} style={{ justifyContent: props.align }}>
+      <div
+        className={`${style.tab_menu_container} ${
+          hasHeaderStart ? style.tab_menu_container_with_start : ""
+        }`}
+      >
+        {hasHeaderStart && (
+          <div className={style.tab_header_start}>{props.headerStart}</div>
+        )}
+        <div
+          className={style.tab_menu}
+          style={{
+            justifyContent:
+              props.align ?? (hasHeaderStart ? "flex-end" : "center"),
+          }}
+        >
           {
             /**
              * run through the keys in the items prop
