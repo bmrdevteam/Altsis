@@ -410,8 +410,9 @@ const GoalsSidebarWidget = ({ open, onNavigate }: Props) => {
           className={style.goals_widget_all}
           onClick={goGoals}
           title="목표 전체 보기"
+          aria-label="목표 전체 보기"
         >
-          전체
+          <Svg type="openInNew" />
         </button>
       </div>
       {!collapsed && (

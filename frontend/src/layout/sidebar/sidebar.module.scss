@@ -499,19 +499,28 @@
     }
 
     .goals_widget_all {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         border: none;
         border-left: var(--border-default);
         background: transparent;
         padding: 0 10px;
-        font-size: 11px;
-        font-weight: 600;
-        color: var(--accent-3);
         cursor: pointer;
-        white-space: nowrap;
+        flex-shrink: 0;
+
+        svg {
+            width: 16px;
+            height: 16px;
+            fill: var(--accent-3);
+        }
 
         &:hover {
-            color: var(--accent-1);
             background: var(--component-hover-color);
+
+            svg {
+                fill: var(--accent-1);
+            }
         }
     }
 
@@ -688,24 +697,6 @@
     .goals_collapsed {
         display: none;
     }
-
-    .goals_collapsed_badge {
-        position: absolute;
-        top: -4px;
-        right: -4px;
-        min-width: 14px;
-        height: 14px;
-        padding: 0 3px;
-        border-radius: 999px;
-        background: #fff1f0;
-        color: #cf1322;
-        font-size: 9px;
-        font-weight: 700;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        line-height: 1;
-    }
 }
 
 .nav_container.open {
@@ -852,15 +843,37 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: var(--border-default-color);
+            background: var(--background-color);
+            border: var(--border-default);
             position: relative;
+            box-sizing: border-box;
 
             svg {
                 position: relative;
-                width: 14px;
-                height: 14px;
-                fill: var(--accent-2);
+                width: 16px;
+                height: 16px;
+                fill: var(--accent-1);
             }
+        }
+
+        .goals_collapsed_badge {
+            position: absolute;
+            top: -5px;
+            right: -6px;
+            min-width: 16px;
+            height: 16px;
+            padding: 0 4px;
+            border-radius: 999px;
+            background: #fff1f0;
+            color: #cf1322;
+            border: 1px solid #ffccc7;
+            font-size: 9px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
         }
     }
 }
