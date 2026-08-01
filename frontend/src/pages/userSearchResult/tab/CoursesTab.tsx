@@ -2,6 +2,8 @@ import { useAuth } from "contexts/authContext";
 import EditorParser from "editor/EditorParser";
 
 import CourseTable from "pages/courses/table/CourseTable";
+import EnrollFilterBar from "pages/courses/EnrollFilterBar";
+import { useCourseListFilter } from "pages/courses/useCourseListFilter";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import style from "style/pages/enrollment.module.scss";
 
@@ -93,6 +95,52 @@ const TimeTable = (props: {
   );
 };
 
+const CourseListWithFilter = (props: {
+  courseList: any[];
+  storageKey: string;
+  ariaLabel: string;
+}) => {
+  const { currentSeason } = useAuth();
+  const subjectLabels = currentSeason?.subjects?.label ?? [];
+  const {
+    keyword,
+    setKeyword,
+    columnOptions,
+    effectiveVisibleColumns,
+    handleColumnToggle,
+    handleShowAll,
+    handleFilterReset,
+    filterCourses,
+  } = useCourseListFilter({
+    storageKey: props.storageKey,
+    subjectLabels,
+  });
+
+  const displayed = filterCourses(props.courseList);
+
+  return (
+    <>
+      <EnrollFilterBar
+        keyword={keyword}
+        columns={columnOptions}
+        visibleKeys={effectiveVisibleColumns}
+        onToggleColumn={handleColumnToggle}
+        onShowAll={handleShowAll}
+        onReset={handleFilterReset}
+        totalCount={props.courseList.length}
+        ariaLabel={props.ariaLabel}
+      />
+      <CourseTable
+        data={displayed}
+        searchValue={keyword}
+        onSearchChange={setKeyword}
+        visibleKeys={effectiveVisibleColumns}
+        subjectLabels={subjectLabels}
+      />
+    </>
+  );
+};
+
 const Enrollments = (props: {
   selected: string;
   enrolledCourseList: any[];
@@ -151,25 +199,25 @@ const Enrollments = (props: {
           </div>
         ))}
       </div>
-      <CourseTable
-        data={props.enrolledCourseList}
-        subjectLabels={currentSeason?.subjects?.label ?? []}
+      <CourseListWithFilter
+        courseList={props.enrolledCourseList}
+        storageKey="userSearch.enrolled"
+        ariaLabel="수강 현황 보기 설정"
       />
     </>
   );
 };
 
 const MyDesgins = (props: { selected: string; createdCourseList: any[] }) => {
-  const { currentSeason } = useAuth();
-
   if (props.selected !== "myDesgins") {
     return null;
   }
 
   return (
-    <CourseTable
-      data={props.createdCourseList}
-      subjectLabels={currentSeason?.subjects?.label ?? []}
+    <CourseListWithFilter
+      courseList={props.createdCourseList}
+      storageKey="userSearch.created"
+      ariaLabel="개설 수업 보기 설정"
     />
   );
 };
@@ -179,16 +227,15 @@ const Mentoring = (props: {
   mentoringCourseList: any[];
   user: any;
 }) => {
-  const { currentSeason } = useAuth();
-
   if (props.selected !== "mentoring") {
     return null;
   }
 
   return (
-    <CourseTable
-      data={props.mentoringCourseList}
-      subjectLabels={currentSeason?.subjects?.label ?? []}
+    <CourseListWithFilter
+      courseList={props.mentoringCourseList}
+      storageKey="userSearch.mentoring"
+      ariaLabel="담당 수업 보기 설정"
     />
   );
 };

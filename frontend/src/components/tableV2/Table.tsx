@@ -80,6 +80,13 @@ type Props = {
   control?: boolean;
   /** When true with control, hides the built-in search input but keeps pager/page-size UI */
   hideSearch?: boolean;
+  /**
+   * 외부(부모)에서 검색을 제어할 때 사용.
+   * 지정되면 테이블 내부 필터 대신 헤더에 이 검색창만 표시한다.
+   */
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
+  searchPlaceholder?: string;
   defaultPageBy?: 0 | 10 | 50 | 100 | 200;
   onChange?: (value: any[]) => void;
   menus?: { onClick: () => void; label: string }[];
@@ -337,8 +344,37 @@ const Table = (props: Props) => {
             <>
               <tr>
                 <td colSpan={props.header.length}>
-                  <div className={style.control}>
-                    {!props.hideSearch ? (
+                  <div
+                    className={`${style.control}${
+                      props.hideSearch && !props.onSearchChange
+                        ? ` ${style.control_pager_only}`
+                        : ""
+                    }`}
+                  >
+                    {props.onSearchChange ? (
+                      <div className={style.search_wrap}>
+                        <span className={style.search_icon} aria-hidden>
+                          <Svg type="search" width="16px" height="16px" />
+                        </span>
+                        <input
+                          className={style.search_external}
+                          type="search"
+                          placeholder={
+                            props.searchPlaceholder ||
+                            "수업명, 과목, 교사, 강의실, 시간 검색"
+                          }
+                          value={props.searchValue ?? ""}
+                          onChange={(e) => {
+                            props.onSearchChange?.(e.target.value);
+                            setTableSettings((prev) => ({
+                              ...prev,
+                              pageIndex: 1,
+                            }));
+                          }}
+                          aria-label="검색"
+                        />
+                      </div>
+                    ) : !props.hideSearch ? (
                       <input
                         className={style.search}
                         type="text"
@@ -355,9 +391,7 @@ const Table = (props: Props) => {
                           }));
                         }}
                       />
-                    ) : (
-                      <div className={style.search_spacer} />
-                    )}
+                    ) : null}
                     <div className={style.pager}>
                       <span
                         className={style.arrow}

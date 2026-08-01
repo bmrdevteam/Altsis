@@ -1,36 +1,14 @@
 /**
  * @file Created Course List Page
  * @page 수업 - 개설 수업(탭)
- *
- * @author jessie129j <jessie129j@gmail.com>
- *
- * -------------------------------------------------------
- *
- * IN PRODUCTION
- *
- * -------------------------------------------------------
- *
- * IN MAINTENANCE
- *
- * -------------------------------------------------------
- *
- * IN DEVELOPMENT
- *
- * -------------------------------------------------------
- *
- * DEPRECATED
- *
- * -------------------------------------------------------
- *
- * NOTES
- *
- * @version 1.0
- *
  */
+
 import { useAppNavigate } from "hooks/useAppNavigate";
 import style from "style/pages/enrollment.module.scss";
 
 import CourseTable from "pages/courses/table/CourseTable";
+import EnrollFilterBar from "pages/courses/EnrollFilterBar";
+import { useCourseListFilter } from "pages/courses/useCourseListFilter";
 import { useAuth } from "contexts/authContext";
 import Divider from "components/divider/Divider";
 import { computeCreatedSummary } from "utils/computeCourseSummaries";
@@ -43,7 +21,23 @@ const CoursesMyList = (props: Props) => {
   const { currentSeason } = useAuth();
   const navigate = useAppNavigate();
 
+  const subjectLabels = currentSeason?.subjects?.label ?? [];
+  const {
+    keyword,
+    setKeyword,
+    columnOptions,
+    effectiveVisibleColumns,
+    handleColumnToggle,
+    handleShowAll,
+    handleFilterReset,
+    filterCourses,
+  } = useCourseListFilter({
+    storageKey: "courses.created",
+    subjectLabels,
+  });
+
   const summaryItems = computeCreatedSummary(props.courseList);
+  const displayedCourseList = filterCourses(props.courseList);
 
   return (
     <>
@@ -57,9 +51,22 @@ const CoursesMyList = (props: Props) => {
           ))}
         </div>
         <Divider />
+        <EnrollFilterBar
+          keyword={keyword}
+          columns={columnOptions}
+          visibleKeys={effectiveVisibleColumns}
+          onToggleColumn={handleColumnToggle}
+          onShowAll={handleShowAll}
+          onReset={handleFilterReset}
+          totalCount={props.courseList.length}
+          ariaLabel="개설 수업 보기 설정"
+        />
         <CourseTable
-          data={props.courseList}
-          subjectLabels={currentSeason?.subjects?.label ?? []}
+          data={displayedCourseList}
+          searchValue={keyword}
+          onSearchChange={setKeyword}
+          visibleKeys={effectiveVisibleColumns}
+          subjectLabels={subjectLabels}
           preHeaderList={[
             {
               text: "No",

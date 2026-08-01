@@ -1,32 +1,8 @@
 /**
  * @file Mentoring Course List Page
  * @page 수업 - 담당 수업(탭)
- *
- * @author jessie129j <jessie129j@gmail.com>
- *
- * -------------------------------------------------------
- *
- * IN PRODUCTION
- *
- * -------------------------------------------------------
- *
- * IN MAINTENANCE
- *
- * -------------------------------------------------------
- *
- * IN DEVELOPMENT
- *
- * -------------------------------------------------------
- *
- * DEPRECATED
- *
- * -------------------------------------------------------
- *
- * NOTES
- *
- * @version 1.0
- *
  */
+
 import { useEffect, useState } from "react";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import style from "style/pages/enrollment.module.scss";
@@ -34,6 +10,8 @@ import style from "style/pages/enrollment.module.scss";
 import { useAuth } from "contexts/authContext";
 
 import CourseTable from "pages/courses/table/CourseTable";
+import EnrollFilterBar from "pages/courses/EnrollFilterBar";
+import { useCourseListFilter } from "pages/courses/useCourseListFilter";
 import Divider from "components/divider/Divider";
 import useAPIv2 from "hooks/useAPIv2";
 import {
@@ -56,6 +34,21 @@ const CoursesMentoring = (props: Props) => {
   const [evaluationCounts, setEvaluationCounts] = useState<
     { label: string; filled: number; total: number }[]
   >([]);
+
+  const subjectLabels = currentSeason?.subjects?.label ?? [];
+  const {
+    keyword,
+    setKeyword,
+    columnOptions,
+    effectiveVisibleColumns,
+    handleColumnToggle,
+    handleShowAll,
+    handleFilterReset,
+    filterCourses,
+  } = useCourseListFilter({
+    storageKey: "courses.mentoring",
+    subjectLabels,
+  });
 
   useEffect(() => {
     if (isLoading) {
@@ -92,6 +85,7 @@ const CoursesMentoring = (props: Props) => {
     computeMentoringBaseSummary(props.courseList),
     evaluationCounts
   );
+  const displayedCourseList = filterCourses(props.courseList);
 
   return (
     <>
@@ -105,9 +99,22 @@ const CoursesMentoring = (props: Props) => {
           ))}
         </div>
         <Divider />
+        <EnrollFilterBar
+          keyword={keyword}
+          columns={columnOptions}
+          visibleKeys={effectiveVisibleColumns}
+          onToggleColumn={handleColumnToggle}
+          onShowAll={handleShowAll}
+          onReset={handleFilterReset}
+          totalCount={props.courseList.length}
+          ariaLabel="담당 수업 보기 설정"
+        />
         <CourseTable
-          data={props.courseList}
-          subjectLabels={currentSeason?.subjects?.label ?? []}
+          data={displayedCourseList}
+          searchValue={keyword}
+          onSearchChange={setKeyword}
+          visibleKeys={effectiveVisibleColumns}
+          subjectLabels={subjectLabels}
           preHeaderList={[
             {
               text: "No",

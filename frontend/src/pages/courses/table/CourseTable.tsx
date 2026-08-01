@@ -22,6 +22,10 @@ type Props = {
   onClickDetail?: (e: any) => void;
   /** Hide Table built-in search while keeping pagination controls */
   hideSearch?: boolean;
+  /** 외부 검색(부모 필터) — 테이블 헤더에 표시 */
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
+  searchPlaceholder?: string;
   /** When set, only these data column keys are shown (preHeader always kept) */
   visibleKeys?: Set<string>;
 };
@@ -215,7 +219,10 @@ const CourseTable = (props: Props) => {
     <>
       <Table
         control
-        hideSearch={props.hideSearch}
+        hideSearch={props.hideSearch && !props.onSearchChange}
+        searchValue={props.searchValue}
+        onSearchChange={props.onSearchChange}
+        searchPlaceholder={props.searchPlaceholder}
         defaultPageBy={props.defaultPageBy}
         type="object-array"
         data={courseList}

@@ -1,5 +1,3 @@
-import Svg from "assets/svg/Svg";
-import mergeStyle from "components/mergeFilter/mergeFilter.module.scss";
 import style from "style/pages/enrollment.module.scss";
 
 export type TEnrollColumnOption = {
@@ -8,17 +6,20 @@ export type TEnrollColumnOption = {
 };
 
 type Props = {
-  keyword: string;
-  onKeywordChange: (value: string) => void;
   columns: TEnrollColumnOption[];
   visibleKeys: Set<string>;
   onToggleColumn: (key: string) => void;
   onShowAll: () => void;
   onReset: () => void;
-  onlyAvailable: boolean;
-  onOnlyAvailableChange: (value: boolean) => void;
-  availableCount: number;
   totalCount: number;
+  /** 검색은 테이블 헤더로 옮긴 경우 — 칩만 표시 */
+  keyword?: string;
+  /** 수강신청 전용: 신청 가능 필터 */
+  showOnlyAvailable?: boolean;
+  onlyAvailable?: boolean;
+  onOnlyAvailableChange?: (value: boolean) => void;
+  availableCount?: number;
+  ariaLabel?: string;
 };
 
 const CHIP_TONES = [
@@ -30,46 +31,34 @@ const CHIP_TONES = [
 ];
 
 const EnrollFilterBar = ({
-  keyword,
-  onKeywordChange,
   columns,
   visibleKeys,
   onToggleColumn,
   onShowAll,
   onReset,
-  onlyAvailable,
-  onOnlyAvailableChange,
-  availableCount,
   totalCount,
+  keyword = "",
+  showOnlyAvailable = false,
+  onlyAvailable = false,
+  onOnlyAvailableChange,
+  availableCount = 0,
+  ariaLabel = "수업 목록 보기 설정",
 }: Props) => {
   const allColumnsVisible =
     columns.length > 0 && columns.every((c) => visibleKeys.has(c.key));
-  const allActive = allColumnsVisible && !onlyAvailable;
+  const allActive =
+    allColumnsVisible && (!showOnlyAvailable || !onlyAvailable);
   const hasAnyFilter =
-    !!keyword.trim() || onlyAvailable || (!allColumnsVisible && columns.length > 0);
+    !!keyword.trim() ||
+    (showOnlyAvailable && onlyAvailable) ||
+    (!allColumnsVisible && columns.length > 0);
 
   return (
     <div className={style.enroll_filter_block}>
-      <div className={mergeStyle.mergeSearchBar}>
-        <div className={mergeStyle.mergeSearchInputWrap}>
-          <span className={mergeStyle.mergeSearchIcon}>
-            <Svg type="search" width="18px" height="18px" />
-          </span>
-          <input
-            className={mergeStyle.mergeSearchInput}
-            type="search"
-            placeholder="수업명, 과목, 교사, 강의실, 시간 검색"
-            value={keyword}
-            onChange={(e) => onKeywordChange(e.target.value)}
-            aria-label="수강신청 검색"
-          />
-        </div>
-      </div>
-
       <div
         className={style.enroll_filter_chip_row}
         role="group"
-        aria-label="수강신청 보기 설정"
+        aria-label={ariaLabel}
       >
         <button
           type="button"
@@ -82,16 +71,18 @@ const EnrollFilterBar = ({
           전체 {totalCount}
         </button>
 
-        <button
-          type="button"
-          className={`${style.enroll_filter_chip} ${style.enroll_filter_chip_enroll} ${
-            onlyAvailable ? style.enroll_filter_chip_active : ""
-          }`}
-          aria-pressed={onlyAvailable}
-          onClick={() => onOnlyAvailableChange(!onlyAvailable)}
-        >
-          신청 가능 {availableCount}
-        </button>
+        {showOnlyAvailable && onOnlyAvailableChange && (
+          <button
+            type="button"
+            className={`${style.enroll_filter_chip} ${style.enroll_filter_chip_enroll} ${
+              onlyAvailable ? style.enroll_filter_chip_active : ""
+            }`}
+            aria-pressed={onlyAvailable}
+            onClick={() => onOnlyAvailableChange(!onlyAvailable)}
+          >
+            신청 가능 {availableCount}
+          </button>
+        )}
 
         {columns.map((col, i) => {
           const active = visibleKeys.has(col.key);
