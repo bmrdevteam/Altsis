@@ -47,11 +47,13 @@ const AI_ERROR_MESSAGES = {
   [AI_ERRORS.EMPTY_RESPONSE]:
     "AI가 빈 응답을 반환했습니다. 모델 설정을 확인하거나 다시 시도해주세요.",
   [AI_ERRORS.INVALID_JSON]:
-    "AI 응답 형식이 올바르지 않습니다. 다시 점검해주세요.",
+    "AI 응답 형식이 올바르지 않습니다. 다시 시도해 주세요.",
   [AI_ERRORS.MODEL_NOT_FOUND]:
     "AI 모델을 찾을 수 없습니다. 모델 설정을 확인해주세요.",
   [AI_ERRORS.INVALID_API_KEY]:
     "AI API 키가 유효하지 않습니다. 설정을 확인해주세요.",
+  [AI_ERRORS.GENERATION_FAILED]:
+    "AI 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.",
 };
 
 /**
@@ -72,7 +74,7 @@ export const listAiSkills = async (_req, res) => {
  * Alter 범용 턴 (Skill 라우팅)
  * @memberof APIs.AIAPI
  * @route POST /ai/alter
- * skill=syllabus-review 이면 SSE, chat 이면 JSON
+ * skill=syllabus-review|evaluation-draft 이면 SSE, chat 이면 JSON
  */
 export const runAlter = async (req, res) => {
   const {
@@ -90,7 +92,9 @@ export const runAlter = async (req, res) => {
   }
   skill = skill || SKILL_IDS.CHAT;
 
-  const wantsSse = skill === SKILL_IDS.SYLLABUS_REVIEW;
+  const wantsSse =
+    skill === SKILL_IDS.SYLLABUS_REVIEW ||
+    skill === SKILL_IDS.EVALUATION_DRAFT;
 
   if (wantsSse) {
     res.setHeader("Content-Type", "text/event-stream");
@@ -129,7 +133,8 @@ export const runAlter = async (req, res) => {
     if (wantsSse) {
       sendEvent("done", {
         skill: result.skill,
-        review: result.review,
+        review: result.review || null,
+        draft: result.draft || null,
         message: result.text,
       });
       return res.end();
@@ -139,6 +144,7 @@ export const runAlter = async (req, res) => {
       skill: result.skill,
       message: result.text,
       review: result.review,
+      draft: result.draft || null,
     });
   } catch (err) {
     logger.error(err.message);
@@ -148,7 +154,14 @@ export const runAlter = async (req, res) => {
         ? err.message
         : mapProviderError(err));
     const message =
-      AI_ERROR_MESSAGES[code] || err.message || AI_ERRORS.GENERATION_FAILED;
+      (err.code === "AI_TIMEOUT" && err.message) ||
+      (err.message &&
+      /응답 시간이 초과|timeout/i.test(err.message)
+        ? err.message
+        : null) ||
+      AI_ERROR_MESSAGES[code] ||
+      err.message ||
+      AI_ERRORS.GENERATION_FAILED;
 
     if (wantsSse) {
       sendEvent("error", { message });

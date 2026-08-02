@@ -74,6 +74,43 @@ export const pickPreferredModel = (models, preferred) => {
   return pool[0].name;
 };
 
+/** 생성 요청 기본 타임아웃 (ms) — 무응답 hang 방지 */
+const DEFAULT_GENERATE_TIMEOUT_MS = 90_000;
+
+/**
+ * timeout이 있는 fetch. AbortError는 status=504로 정규화한다.
+ */
+const fetchWithTimeout = async (
+  url,
+  options = {},
+  timeoutMs = DEFAULT_GENERATE_TIMEOUT_MS
+) => {
+  const controller = new AbortController();
+  const external = options.signal;
+  const onExternalAbort = () => controller.abort();
+  if (external) {
+    if (external.aborted) controller.abort();
+    else external.addEventListener("abort", onExternalAbort, { once: true });
+  }
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (err) {
+    if (err?.name === "AbortError") {
+      const timeoutErr = new Error(
+        `AI 응답 시간이 초과되었습니다. (${Math.round(timeoutMs / 1000)}초)`
+      );
+      timeoutErr.status = 504;
+      timeoutErr.code = "AI_TIMEOUT";
+      throw timeoutErr;
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+    if (external) external.removeEventListener("abort", onExternalAbort);
+  }
+};
+
 /**
  * HTTP 에러를 status 정보와 함께 throw
  */
@@ -160,22 +197,25 @@ const openaiGenerate = async ({
   temperature,
   maxTokens,
 }) => {
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(
-      openaiBuildBody({
-        model,
-        systemInstruction,
-        messages,
-        temperature,
-        maxTokens,
-      })
-    ),
-  });
+  const response = await fetchWithTimeout(
+    "https://api.openai.com/v1/chat/completions",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(
+        openaiBuildBody({
+          model,
+          systemInstruction,
+          messages,
+          temperature,
+          maxTokens,
+        })
+      ),
+    }
+  );
   if (!response.ok) await throwHttpError(response, "openai");
 
   const data = await response.json();
@@ -199,14 +239,18 @@ const openaiGenerateStream = async (
   body.stream = true;
   body.stream_options = { include_usage: true };
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
+  const response = await fetchWithTimeout(
+    "https://api.openai.com/v1/chat/completions",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(body),
     },
-    body: JSON.stringify(body),
-  });
+    120_000
+  );
   if (!response.ok) await throwHttpError(response, "openai");
 
   let fullText = "";
@@ -327,19 +371,22 @@ const anthropicGenerate = async ({
   temperature,
   maxTokens,
 }) => {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: anthropicHeaders(apiKey),
-    body: JSON.stringify(
-      anthropicBuildBody({
-        model,
-        systemInstruction,
-        messages,
-        temperature,
-        maxTokens,
-      })
-    ),
-  });
+  const response = await fetchWithTimeout(
+    "https://api.anthropic.com/v1/messages",
+    {
+      method: "POST",
+      headers: anthropicHeaders(apiKey),
+      body: JSON.stringify(
+        anthropicBuildBody({
+          model,
+          systemInstruction,
+          messages,
+          temperature,
+          maxTokens,
+        })
+      ),
+    }
+  );
   if (!response.ok) await throwHttpError(response, "anthropic");
 
   const data = await response.json();
@@ -363,11 +410,15 @@ const anthropicGenerateStream = async (
   });
   body.stream = true;
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: anthropicHeaders(apiKey),
-    body: JSON.stringify(body),
-  });
+  const response = await fetchWithTimeout(
+    "https://api.anthropic.com/v1/messages",
+    {
+      method: "POST",
+      headers: anthropicHeaders(apiKey),
+      body: JSON.stringify(body),
+    },
+    120_000
+  );
   if (!response.ok) await throwHttpError(response, "anthropic");
 
   let fullText = "";
@@ -488,14 +539,15 @@ const geminiGenerate = async ({
     temperature,
     maxTokens,
   });
-  let response = await fetch(
+  const geminiHeaders = {
+    "Content-Type": "application/json",
+    "x-goog-api-key": apiKey,
+  };
+  let response = await fetchWithTimeout(
     `${GEMINI_BASE}/models/${encodeURIComponent(modelId)}:generateContent`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey,
-      },
+      headers: geminiHeaders,
       body: JSON.stringify(body),
     }
   );
@@ -508,14 +560,11 @@ const geminiGenerate = async ({
       generationConfig:
         Object.keys(nextConfig).length > 0 ? nextConfig : undefined,
     };
-    response = await fetch(
+    response = await fetchWithTimeout(
       `${GEMINI_BASE}/models/${encodeURIComponent(modelId)}:generateContent`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": apiKey,
-        },
+        headers: geminiHeaders,
         body: JSON.stringify(body),
       }
     );
@@ -540,18 +589,20 @@ const geminiGenerateStream = async (
     temperature,
     maxTokens,
   });
-  let response = await fetch(
+  const geminiStreamHeaders = {
+    "Content-Type": "application/json",
+    "x-goog-api-key": apiKey,
+  };
+  let response = await fetchWithTimeout(
     `${GEMINI_BASE}/models/${encodeURIComponent(
       modelId
     )}:streamGenerateContent?alt=sse`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey,
-      },
+      headers: geminiStreamHeaders,
       body: JSON.stringify(body),
-    }
+    },
+    120_000
   );
   if (response.status === 400) {
     const nextConfig = { ...(body.generationConfig || {}) };
@@ -561,18 +612,16 @@ const geminiGenerateStream = async (
       generationConfig:
         Object.keys(nextConfig).length > 0 ? nextConfig : undefined,
     };
-    response = await fetch(
+    response = await fetchWithTimeout(
       `${GEMINI_BASE}/models/${encodeURIComponent(
         modelId
       )}:streamGenerateContent?alt=sse`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": apiKey,
-        },
+        headers: geminiStreamHeaders,
         body: JSON.stringify(body),
-      }
+      },
+      120_000
     );
   }
   if (!response.ok) await throwHttpError(response, "gemini");

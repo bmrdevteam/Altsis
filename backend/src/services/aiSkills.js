@@ -7,6 +7,7 @@ import { Academy } from "../models/Academy.js";
 import { Season, School, Registration, Syllabus } from "../models/index.js";
 import {
   generateText,
+  generateTextStream,
   resolveProvider,
   resolveModel,
 } from "./aiProvider.js";
@@ -24,9 +25,15 @@ import {
   formatCurrentInfoForPrompt,
   parseSyllabusReviewJson,
   buildReviewRetryPrompt,
+  truncateText,
 } from "./aiPromptPolicy.js";
 import { maskSensitiveText } from "./aiSafety.js";
 import { logAIUsage } from "./aiUsage.js";
+import {
+  parseEvaluationCsv,
+  buildEvaluationCsv,
+  isEmptyEval,
+} from "../utils/evaluationCsv.js";
 import {
   FIELD_REQUIRED,
   PERMISSION_DENIED,
@@ -36,6 +43,7 @@ import {
 export const SKILL_IDS = {
   CHAT: "chat",
   SYLLABUS_REVIEW: "syllabus-review",
+  EVALUATION_DRAFT: "evaluation-draft",
 };
 
 /** @type {Record<string, { id: string, name: string, description: string, profile: string }>} */
@@ -51,6 +59,12 @@ export const SKILL_CATALOG = {
     name: "강의계획서 점검",
     description: "작성 중인 강의계획서 초안을 전체 항목 기준으로 점검합니다",
     profile: "syllabusReview",
+  },
+  [SKILL_IDS.EVALUATION_DRAFT]: {
+    id: SKILL_IDS.EVALUATION_DRAFT,
+    name: "평가 초안",
+    description: "수업 평가 CSV를 바탕으로 선택한 항목의 초안을 작성합니다",
+    profile: "evaluationDraft",
   },
 };
 
@@ -73,9 +87,60 @@ export const mergeTokenUsage = (a, b) => {
 };
 
 const mapProviderError = (err) => {
+  if (err?.code === "AI_TIMEOUT" || err?.status === 504) {
+    return AI_ERRORS.GENERATION_FAILED;
+  }
   if (err?.status === 404) return AI_ERRORS.MODEL_NOT_FOUND;
   if (err?.status === 401 || err?.status === 403) return AI_ERRORS.INVALID_API_KEY;
   return AI_ERRORS.GENERATION_FAILED;
+};
+
+const runEvaluationGeneration = async ({
+  provider,
+  apiKey,
+  modelName,
+  profile,
+  systemInstruction,
+  messages,
+  onEvent,
+  progressLabel,
+}) => {
+  const emit = typeof onEvent === "function" ? onEvent : () => {};
+  let lastEmit = Date.now();
+  let chars = 0;
+  const heartbeat = setInterval(() => {
+    emit("step", {
+      message: `${progressLabel} (대기 중… ${Math.round(
+        (Date.now() - lastEmit) / 1000
+      )}초)`,
+    });
+  }, 8000);
+  try {
+    const result = await generateTextStream(
+      {
+        provider,
+        apiKey,
+        model: modelName,
+        systemInstruction,
+        messages,
+        temperature: profile.temperature,
+        maxTokens: profile.maxTokens,
+      },
+      (delta) => {
+        chars += String(delta || "").length;
+        const now = Date.now();
+        if (now - lastEmit >= 4000) {
+          emit("step", {
+            message: `${progressLabel} (${chars}자 수신)`,
+          });
+          lastEmit = now;
+        }
+      }
+    );
+    return result;
+  } finally {
+    clearInterval(heartbeat);
+  }
 };
 
 /**
@@ -640,6 +705,491 @@ ${
 };
 
 /**
+ * 줄 단위(탭 구분) 초안 응답 파싱
+ * 형식: 학생ID<TAB>항목라벨<TAB>초안내용 (한 줄 = 한 칸), 마지막 줄은 END
+ * JSON과 달리 응답이 중간에 잘려도 완성된 줄은 그대로 살린다.
+ */
+export const parseEvaluationDraftLines = (text, { validIds, validLabels }) => {
+  const raw = String(text || "")
+    .replace(/```[a-z]*\r?\n?/gi, "")
+    .replace(/```/g, "");
+  const lines = raw
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+  const hasEndMark = lines[lines.length - 1] === "END";
+  const dataLines = hasEndMark ? lines.slice(0, -1) : lines;
+
+  const entries = [];
+  for (const line of dataLines) {
+    if (line === "END") continue;
+    let parts = line.split("\t");
+    if (parts.length < 3) {
+      // 탭 대신 " | "로 구분한 응답도 허용
+      parts = line.split(/\s*\|\s*/);
+    }
+    if (parts.length < 3) continue;
+    const studentId = String(parts[0] || "").trim();
+    const label = String(parts[1] || "").trim();
+    const value = parts.slice(2).join(" ").trim();
+    if (!studentId || !label || !value) continue;
+    if (!validIds.has(studentId) || !validLabels.has(label)) continue;
+    entries.push({ studentId, label, value });
+  }
+
+  // END 표식이 없으면 마지막 줄이 잘렸을 수 있으므로 제외
+  if (!hasEndMark && entries.length > 1) entries.pop();
+
+  const byStudent = new Map();
+  for (const { studentId, label, value } of entries) {
+    if (!byStudent.has(studentId)) byStudent.set(studentId, {});
+    const values = byStudent.get(studentId);
+    if (values[label] == null) values[label] = value;
+  }
+  return [...byStudent.entries()].map(([studentId, values]) => ({
+    studentId,
+    values,
+  }));
+};
+
+const resolveEvaluationFieldMeta = (formEvaluation, label) =>
+  (formEvaluation || []).find((f) => f && f.label === label) || null;
+
+/**
+ * evaluation-draft Skill 실행
+ */
+export const executeEvaluationDraftSkill = async ({
+  academyId,
+  user,
+  academy,
+  season,
+  registration,
+  context = {},
+  message = "",
+  onEvent,
+}) => {
+  const profile = FEATURE_PROFILES.evaluationDraft;
+  const emit = typeof onEvent === "function" ? onEvent : () => {};
+  const maxStudents = PROMPT_LIMITS.EVAL_DRAFT_MAX_STUDENTS || 30;
+
+  emit("step", { message: "평가 권한 확인 중..." });
+
+  const syllabusId = String(context.syllabusId || "").trim();
+  if (!syllabusId) {
+    const err = new Error(FIELD_REQUIRED("syllabusId"));
+    err.status = 400;
+    err.code = FIELD_REQUIRED("syllabusId");
+    throw err;
+  }
+
+  if (!registration?.permissionEvaluationV2) {
+    const err = new Error(PERMISSION_DENIED);
+    err.status = 403;
+    err.code = PERMISSION_DENIED;
+    throw err;
+  }
+
+  const syllabus = await Syllabus(academyId).findById(syllabusId).lean();
+  if (!syllabus) {
+    const err = new Error(__NOT_FOUND("syllabus"));
+    err.status = 404;
+    err.code = __NOT_FOUND("syllabus");
+    throw err;
+  }
+  if (String(syllabus.season) !== String(season._id)) {
+    const err = new Error(PERMISSION_DENIED);
+    err.status = 403;
+    err.code = PERMISSION_DENIED;
+    throw err;
+  }
+
+  const isMentor = (syllabus.teachers || []).some(
+    (t) => String(t._id) === String(user._id)
+  );
+  const isManager = user.auth === "manager" || user.auth === "admin";
+  if (!isMentor && !isManager) {
+    const err = new Error(PERMISSION_DENIED);
+    err.status = 403;
+    err.code = PERMISSION_DENIED;
+    throw err;
+  }
+
+  const formEvaluation =
+    (Array.isArray(context.formEvaluation) && context.formEvaluation.length > 0
+      ? context.formEvaluation
+      : null) ||
+    registration.formEvaluation ||
+    season.formEvaluation ||
+    [];
+
+  const teacherEditable = formEvaluation.filter(
+    (f) => f?.label && f?.auth?.edit?.teacher
+  );
+  const teacherEditableByLabel = new Map(
+    teacherEditable.map((f) => [f.label, f])
+  );
+
+  let targetLabels = Array.isArray(context.targetLabels)
+    ? context.targetLabels.map((l) => String(l || "").trim()).filter(Boolean)
+    : [];
+  if (targetLabels.length === 0) {
+    targetLabels = teacherEditable
+      .filter((f) => f.type === "input")
+      .map((f) => f.label);
+  }
+
+  targetLabels = targetLabels.filter((label) => {
+    const meta = teacherEditableByLabel.get(label);
+    return !!meta;
+  });
+
+  if (targetLabels.length === 0) {
+    const err = new Error("초안을 작성할 평가 항목이 없습니다.");
+    err.status = 400;
+    err.code = AI_ERRORS.GENERATION_FAILED;
+    throw err;
+  }
+
+  // 작성 대상 필드도 기존 값이 있으면 참고로 사용 가능
+  const contextLabels = (
+    Array.isArray(context.contextLabels) ? context.contextLabels : []
+  )
+    .map((l) => String(l || "").trim())
+    .filter((label) => {
+      if (!label) return false;
+      return (
+        teacherEditableByLabel.has(label) ||
+        formEvaluation.some((f) => f?.label === label)
+      );
+    });
+
+  const fillEmptyOnly = context.fillEmptyOnly !== false;
+  const allowedLabels = new Set([
+    ...teacherEditable.map((f) => f.label),
+    ...formEvaluation.map((f) => f.label).filter(Boolean),
+  ]);
+
+  emit("step", { message: "평가 데이터 확인 중..." });
+
+  const { rows: parsedRows } = parseEvaluationCsv(
+    context.csv || "",
+    allowedLabels
+  );
+  if (parsedRows.length === 0) {
+    const err = new Error("평가 CSV에서 학생 행을 찾지 못했습니다.");
+    err.status = 400;
+    err.code = AI_ERRORS.GENERATION_FAILED;
+    throw err;
+  }
+
+  const studentIdFilter = Array.isArray(context.studentIds)
+    ? new Set(
+        context.studentIds.map((id) => String(id || "").trim()).filter(Boolean)
+      )
+    : null;
+
+  let workRows = parsedRows;
+  if (studentIdFilter && studentIdFilter.size > 0) {
+    workRows = workRows.filter((r) => studentIdFilter.has(r.studentId));
+  }
+
+  if (fillEmptyOnly) {
+    workRows = workRows.filter((r) =>
+      targetLabels.some((label) => isEmptyEval(r.evaluation?.[label]))
+    );
+  }
+
+  workRows = workRows.slice(0, maxStudents);
+  if (workRows.length === 0) {
+    const err = new Error(
+      fillEmptyOnly
+        ? "채울 빈 칸이 있는 학생이 없습니다."
+        : "초안을 작성할 학생이 없습니다."
+    );
+    err.status = 400;
+    err.code = AI_ERRORS.GENERATION_FAILED;
+    throw err;
+  }
+
+  const classTitle =
+    context.classTitle || syllabus.classTitle || "수업";
+  const guidelines = normalizeGuidelines(
+    season.aiSettings?.guidelines ||
+      "학생을 존중하는 공손한 문어체로, 관찰 가능한 사실과 성장 포인트를 2~4문장으로 작성하세요."
+  );
+
+  const schemaLines = targetLabels.map((label) => {
+    const meta = resolveEvaluationFieldMeta(formEvaluation, label);
+    const type = meta?.type || "input";
+    if (type === "select") {
+      const opts = (meta.options || []).join(" | ");
+      return `- ${label} (select, 옵션: ${opts || "없음"})`;
+    }
+    if (type === "input-number") {
+      return `- ${label} (number)`;
+    }
+    return `- ${label} (text)`;
+  });
+
+  const userHint = truncateText(
+    String(message || "").trim(),
+    PROMPT_LIMITS.EVAL_DRAFT_USER_HINT_CHARS ||
+      PROMPT_LIMITS.USER_GOAL_CHARS ||
+      1800
+  );
+
+  const buildStudentBlocks = (rows) =>
+    rows.map((row, idx) => {
+      const contextParts = contextLabels
+        .map((label) => {
+          const val = truncateText(
+            row.evaluation?.[label] || "",
+            PROMPT_LIMITS.EVAL_DRAFT_CONTEXT_CHARS
+          );
+          return val ? `  - ${label}: ${val}` : null;
+        })
+        .filter(Boolean);
+      const emptyTargets = targetLabels.filter((label) =>
+        fillEmptyOnly ? isEmptyEval(row.evaluation?.[label]) : true
+      );
+      return [
+        `### 학생 ${idx + 1}`,
+        `- ID: ${row.studentId}`,
+        `- 이름: ${row.studentName || ""}`,
+        `- 학년: ${row.studentGrade || ""}`,
+        contextParts.length
+          ? `참고 평가(이미 작성된 내용, 문체·사실 참고용):\n${contextParts.join(
+              "\n"
+            )}`
+          : "참고 평가: (없음)",
+        `작성할 항목(비어 있거나 새로 쓸 칸): ${
+          emptyTargets.join(", ") || "(없음)"
+        }`,
+      ].join("\n");
+    });
+
+  const provider = resolveProvider(academy.aiProvider);
+  const modelName = resolveModel(provider, academy.aiModel);
+  const systemInstruction =
+    "You are Alter, an evaluation drafting assistant. Output tab-separated lines only (studentId TAB label TAB draft). No JSON, no markdown, no explanations.";
+
+  // 한 묶음의 칸 수(학생 × 작성 항목)를 제한해 응답 잘림을 방지
+  const cellBudget = Math.max(1, PROMPT_LIMITS.EVAL_DRAFT_CHUNK_CELLS || 12);
+  const chunkSize = Math.min(
+    Math.max(1, PROMPT_LIMITS.EVAL_DRAFT_CHUNK_SIZE || 10),
+    Math.max(3, Math.floor(cellBudget / Math.max(1, targetLabels.length)))
+  );
+  const chunks = [];
+  for (let i = 0; i < workRows.length; i += chunkSize) {
+    chunks.push(workRows.slice(i, i + chunkSize));
+  }
+
+  // 공통 컨텍스트는 앞부분에 고정 배치 (provider 프롬프트 캐시 활용)
+  const sharedPrompt = `당신은 학교 수업 평가 작성 보조입니다. 교사가 검토·수정할 초안만 작성합니다.
+이미 값이 있는 칸을 임의로 바꾸지 마세요. 지정된 학생·항목만 채우세요.
+
+## 수업
+${classTitle}
+
+## 작성 지침
+${guidelines}
+
+## 작성할 항목 스키마
+${schemaLines.join("\n")}
+
+## 교사 요청
+${userHint || "선택한 항목에 대해 간결한 초안을 작성해 주세요."}
+
+## 출력 형식 (필수)
+- 한 줄에 한 칸씩: 학생ID<TAB>항목라벨<TAB>초안내용
+- 각 값은 탭 문자 1개로만 구분하고, 내용 안에 탭·줄바꿈을 넣지 마세요.
+- 각 내용은 2~4문장으로 간결하게, 반드시 한 줄로 작성하세요.
+- 설명·마크다운·머리글 없이 데이터 줄만 출력하세요.
+- 모든 학생을 출력한 뒤 마지막 줄에 END 만 출력하세요.`;
+
+  const validLabels = new Set(targetLabels);
+  let tokenUsage = null;
+  const aiParsedRows = [];
+  const chunkErrors = [];
+  let doneStudents = 0;
+
+  emit("step", {
+    message: `AI가 평가 초안을 작성하고 있습니다... (학생 ${workRows.length}명, ${chunks.length}묶음 동시 처리)`,
+  });
+
+  const runChunk = async (idx) => {
+    const chunkRows = chunks[idx];
+    const validIds = new Set(chunkRows.map((r) => r.studentId));
+    const prompt = `${sharedPrompt}
+
+## 학생 목록 (${chunkRows.length}명)
+${buildStudentBlocks(chunkRows).join("\n\n")}
+
+이번에 출력할 학생 ID: ${chunkRows.map((r) => r.studentId).join(", ")}
+작성할 항목 라벨: ${targetLabels.join(", ")}`;
+
+    const generated = await runEvaluationGeneration({
+      provider,
+      apiKey: academy.aiApiKey,
+      modelName,
+      profile,
+      systemInstruction,
+      messages: [{ role: "user", content: prompt }],
+      onEvent: emit,
+      progressLabel: `평가 초안 작성 중 (${idx + 1}/${chunks.length}묶음)`,
+    });
+    tokenUsage = mergeTokenUsage(tokenUsage, generated.tokenUsage);
+    return parseEvaluationDraftLines(generated.text || "", {
+      validIds,
+      validLabels,
+    });
+  };
+
+  let nextChunk = 0;
+  const worker = async () => {
+    while (nextChunk < chunks.length) {
+      const idx = nextChunk;
+      nextChunk += 1;
+      try {
+        const rows = await runChunk(idx);
+        if (rows.length > 0) {
+          aiParsedRows.push(...rows);
+          doneStudents += rows.length;
+          emit("step", {
+            message: `초안 생성 진행: ${doneStudents}/${workRows.length}명 완료`,
+          });
+        } else {
+          emit("step", {
+            message: `${idx + 1}묶음 응답을 해석하지 못해 건너뜁니다.`,
+          });
+        }
+      } catch (err) {
+        if (err?.code === "AI_TIMEOUT") {
+          err.message =
+            err.message ||
+            "AI 응답 시간이 초과되었습니다. 잠시 후 다시 시도해 주세요.";
+        }
+        if (!err.code) err.code = mapProviderError(err);
+        chunkErrors.push(err);
+        emit("step", {
+          message: `${idx + 1}묶음 생성에 실패해 건너뜁니다.`,
+        });
+      }
+    }
+  };
+
+  const concurrency = Math.max(1, PROMPT_LIMITS.EVAL_DRAFT_CONCURRENCY || 3);
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, chunks.length) }, worker)
+  );
+
+  if (!aiParsedRows.length) {
+    const err = chunkErrors[0] || new Error(AI_ERRORS.INVALID_JSON);
+    if (!err.code) err.code = AI_ERRORS.INVALID_JSON;
+    if (!err.status) err.status = 502;
+    logAIUsage(academyId, {
+      user,
+      provider,
+      model: modelName,
+      feature: profile.feature,
+      success: false,
+      errorCode: err.code,
+      tokenUsage,
+    });
+    throw err;
+  }
+
+  const workById = new Map(workRows.map((r) => [r.studentId, r]));
+  const draftRows = [];
+
+  for (const row of aiParsedRows) {
+    const studentId = String(row?.studentId || "").trim();
+    if (!studentId || !workById.has(studentId)) continue;
+    const src = workById.get(studentId);
+    const rawValues =
+      row.values && typeof row.values === "object" ? row.values : {};
+    const values = {};
+
+    for (const label of targetLabels) {
+      if (fillEmptyOnly && !isEmptyEval(src.evaluation?.[label])) continue;
+      let val = rawValues[label];
+      if (val == null) continue;
+      val = maskSensitiveText(String(val)).text;
+      val = truncateText(val, PROMPT_LIMITS.EVAL_DRAFT_CELL_CHARS).trim();
+      if (!val) continue;
+
+      const meta = teacherEditableByLabel.get(label);
+      if (meta?.type === "select") {
+        const options = (meta.options || []).map(String);
+        if (!options.includes(val)) continue;
+      } else if (meta?.type === "input-number") {
+        if (!/^-?\d+(\.\d+)?$/.test(val)) continue;
+      }
+
+      values[label] = val;
+    }
+
+    if (Object.keys(values).length === 0) continue;
+    draftRows.push({
+      studentId,
+      studentName: src.studentName || "",
+      studentGrade: src.studentGrade || "",
+      values,
+    });
+  }
+
+  if (draftRows.length === 0) {
+    const err = new Error("생성 가능한 초안이 없습니다. 다시 시도해 주세요.");
+    err.status = 502;
+    err.code = AI_ERRORS.EMPTY_RESPONSE;
+    logAIUsage(academyId, {
+      user,
+      provider,
+      model: modelName,
+      feature: profile.feature,
+      success: false,
+      errorCode: err.code,
+      tokenUsage,
+    });
+    throw err;
+  }
+
+  const csv = buildEvaluationCsv(draftRows, targetLabels);
+  const summary = `${draftRows.length}명 · ${targetLabels.join(
+    ", "
+  )} 초안을 만들었습니다.`;
+
+  logAIUsage(academyId, {
+    user,
+    provider,
+    model: modelName,
+    feature: profile.feature,
+    success: true,
+    tokenUsage,
+  });
+
+  return {
+    skill: SKILL_IDS.EVALUATION_DRAFT,
+    provider,
+    modelName,
+    tokenUsage,
+    text: summary,
+    draft: {
+      targetLabels,
+      fillEmptyOnly,
+      csv,
+      rows: draftRows.map((r) => ({
+        studentId: r.studentId,
+        studentName: r.studentName || "",
+        studentGrade: r.studentGrade || "",
+        values: r.values,
+      })),
+    },
+  };
+};
+
+/**
  * Alter 한 턴 실행 (Skill 라우팅)
  */
 export const runAlterSkill = async ({
@@ -654,7 +1204,7 @@ export const runAlterSkill = async ({
   onEvent,
 }) => {
   const skill = resolveSkillId(rawSkill);
-  const { academy, season } = await assertSeasonAiAccess(
+  const { academy, season, registration } = await assertSeasonAiAccess(
     academyId,
     user,
     seasonId
@@ -673,6 +1223,27 @@ export const runAlterSkill = async ({
       skill,
       text: formatReviewAsChatText(result.review),
       review: result.review,
+      draft: null,
+      tokenUsage: result.tokenUsage,
+    };
+  }
+
+  if (skill === SKILL_IDS.EVALUATION_DRAFT) {
+    const result = await executeEvaluationDraftSkill({
+      academyId,
+      user,
+      academy,
+      season,
+      registration,
+      context,
+      message,
+      onEvent,
+    });
+    return {
+      skill,
+      text: result.text,
+      review: null,
+      draft: result.draft,
       tokenUsage: result.tokenUsage,
     };
   }
@@ -732,7 +1303,7 @@ export const runAlterSkill = async ({
       err.code = AI_ERRORS.EMPTY_RESPONSE;
       throw err;
     }
-    return { skill, text: safeText, review: null, tokenUsage };
+    return { skill, text: safeText, review: null, draft: null, tokenUsage };
   } catch (err) {
     if (!err.code) err.code = mapProviderError(err);
     logAIUsage(academyId, {
@@ -750,6 +1321,13 @@ export const runAlterSkill = async ({
 export const detectSkillFromMessage = (message = "") => {
   const text = String(message || "").trim();
   if (!text) return SKILL_IDS.CHAT;
+  if (
+    /평가.*(초안|작성)/.test(text) ||
+    /(초안|작성).*평가/.test(text) ||
+    /\/(평가|evaluation[-_]?draft)/i.test(text)
+  ) {
+    return SKILL_IDS.EVALUATION_DRAFT;
+  }
   if (
     /^(점검|리뷰|피드백)/.test(text) ||
     /계획서.*(점검|리뷰|피드백)/.test(text) ||

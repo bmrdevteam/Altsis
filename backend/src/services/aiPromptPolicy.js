@@ -31,6 +31,20 @@ export const PROMPT_LIMITS = {
   REVIEW_CHUNK_FIELDS: 10,
   REVIEW_COMMENT_CHARS: 120,
   REVIEW_SUGGESTION_CHARS: 160,
+  /** 평가 초안: 한 요청 최대 학생 수 */
+  EVAL_DRAFT_MAX_STUDENTS: 30,
+  /** 평가 초안: 한 묶음 최대 학생 수 (줄 단위 출력이라 크게 잡아도 안전) */
+  EVAL_DRAFT_CHUNK_SIZE: 10,
+  /** 평가 초안: 한 묶음 최대 칸 수 (학생 수 × 작성 항목 수) */
+  EVAL_DRAFT_CHUNK_CELLS: 12,
+  /** 평가 초안: 동시에 실행할 묶음 수 */
+  EVAL_DRAFT_CONCURRENCY: 3,
+  /** 평가 초안: 셀당 최대 글자 */
+  EVAL_DRAFT_CELL_CHARS: 600,
+  /** 평가 초안: 참고 셀 최대 글자 */
+  EVAL_DRAFT_CONTEXT_CHARS: 280,
+  /** 평가 초안: 교사 요청 문구 최대 글자 */
+  EVAL_DRAFT_USER_HINT_CHARS: 1800,
 };
 
 const KEY_FIELD_RE =
@@ -52,6 +66,11 @@ export const FEATURE_PROFILES = {
     feature: "chat",
     temperature: 0.7,
     maxTokens: 2048,
+  },
+  evaluationDraft: {
+    feature: "evaluation_draft",
+    temperature: 0.3,
+    maxTokens: 4096,
   },
 };
 
@@ -724,8 +743,13 @@ const removeTrailingCommas = (jsonStr) =>
 /**
  * LLM JSON을 여러 단계로 복구하며 파싱
  */
-export const repairAndParseJson = (text) => {
-  const candidate = extractJsonCandidate(text);
+export const repairAndParseJson = (text, { allowArray = false } = {}) => {
+  let candidate = extractJsonCandidate(text);
+  if (!candidate) {
+    const raw = String(text || "").trim();
+    const arrStart = raw.indexOf("[");
+    if (arrStart >= 0) candidate = raw.slice(arrStart);
+  }
   if (!candidate) return null;
 
   const attempts = [
@@ -739,7 +763,11 @@ export const repairAndParseJson = (text) => {
   for (const attempt of attempts) {
     try {
       const parsed = JSON.parse(attempt);
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      if (Array.isArray(parsed)) {
+        if (allowArray) return parsed;
+        continue;
+      }
+      if (parsed && typeof parsed === "object") {
         return parsed;
       }
     } catch (_) {

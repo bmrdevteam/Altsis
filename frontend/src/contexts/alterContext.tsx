@@ -6,17 +6,33 @@ import {
   useState,
   ReactNode,
 } from "react";
+import { TFormEvaluation } from "types/seasons";
 
-export type TAlterSkillId = "chat" | "syllabus-review";
+export type TAlterSkillId = "chat" | "syllabus-review" | "evaluation-draft";
+
+export type TAlterEvaluationRow = {
+  studentId: string;
+  studentName?: string;
+  studentGrade?: string;
+  evaluation: Record<string, unknown>;
+};
 
 export type TAlterPageContext = {
-  pageType: "syllabus-edit" | "general";
+  pageType: "syllabus-edit" | "evaluation" | "general";
   label?: string;
   subject?: string[];
   classTitle?: string;
   getCurrentInfo?: () => Record<string, any>;
   formSyllabus?: any;
   applyFieldSuggestion?: (fieldLabel: string, suggestion: string) => void;
+  syllabusId?: string;
+  formEvaluation?: TFormEvaluation;
+  getEvaluationCsv?: () => string;
+  getEvaluationRows?: () => TAlterEvaluationRow[];
+  applyEvaluationCsv?: (
+    csv: string,
+    opts: { fillEmptyOnly: boolean }
+  ) => { applied: number; skipped: number; unknownIds: string[] };
   suggestedSkills: TAlterSkillId[];
 };
 

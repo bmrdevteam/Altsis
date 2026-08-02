@@ -4,14 +4,11 @@ import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import Popup from "components/popup/Popup";
 import Button from "components/button/Button";
 import { TFormEvaluation } from "types/seasons";
-
-const STUDENT_ID_HEADERS = new Set(["ID", "studentId", "아이디"]);
-const META_HEADERS = new Set(["학년", "이름", "저장", "grade", "name", "studentName", "studentGrade"]);
-
-type ParsedRow = {
-  studentId: string;
-  evaluation: Record<string, string>;
-};
+import {
+  isEmptyEval,
+  parseEvaluationCsv,
+  TEvaluationCsvRow,
+} from "utils/evaluationCsv";
 
 type PreviewStats = {
   matchedRows: number;
@@ -32,106 +29,8 @@ type Props = {
   onImported: () => void;
 };
 
-const isEmptyEval = (v: unknown) => {
-  if (v === null || v === undefined) return true;
-  if (typeof v === "string") return v.trim() === "";
-  return false;
-};
-
-/** CSV 라인 파싱 (쌍따옴표 처리) */
-export const parseCsvLine = (line: string): string[] => {
-  const result: string[] = [];
-  let current = "";
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (inQuotes) {
-      if (ch === '"') {
-        if (i + 1 < line.length && line[i + 1] === '"') {
-          current += '"';
-          i++;
-        } else {
-          inQuotes = false;
-        }
-      } else {
-        current += ch;
-      }
-    } else {
-      if (ch === '"') {
-        inQuotes = true;
-      } else if (ch === ",") {
-        result.push(current);
-        current = "";
-      } else {
-        current += ch;
-      }
-    }
-  }
-  result.push(current);
-  return result;
-};
-
-export const parseEvaluationCsv = (
-  text: string,
-  editableLabels: Set<string>
-): {
-  rows: ParsedRow[];
-  ignoredHeaders: string[];
-  evalHeaders: string[];
-} => {
-  const lines = text.split(/\r?\n/).filter((l) => l.trim());
-  if (lines.length < 2) {
-    return { rows: [], ignoredHeaders: [], evalHeaders: [] };
-  }
-
-  const headers = parseCsvLine(lines[0]).map((h) => h.trim());
-  let studentIdCol = -1;
-  const evalHeaders: string[] = [];
-  const ignoredHeaders: string[] = [];
-
-  headers.forEach((h, i) => {
-    if (!h) return;
-    if (STUDENT_ID_HEADERS.has(h)) {
-      studentIdCol = i;
-      return;
-    }
-    if (META_HEADERS.has(h)) {
-      ignoredHeaders.push(h);
-      return;
-    }
-    if (editableLabels.has(h)) {
-      evalHeaders.push(h);
-      return;
-    }
-    ignoredHeaders.push(h);
-  });
-
-  if (studentIdCol < 0) {
-    return { rows: [], ignoredHeaders, evalHeaders };
-  }
-
-  /** 동일 studentId는 마지막 행 우선 */
-  const byId = new Map<string, ParsedRow>();
-  for (let i = 1; i < lines.length; i++) {
-    const values = parseCsvLine(lines[i]);
-    const studentId = (values[studentIdCol] ?? "").trim();
-    if (!studentId) continue;
-
-    const evaluation: Record<string, string> = {};
-    headers.forEach((h, j) => {
-      if (editableLabels.has(h)) {
-        evaluation[h] = (values[j] ?? "").trim();
-      }
-    });
-    byId.set(studentId, { studentId, evaluation });
-  }
-
-  return {
-    rows: Array.from(byId.values()),
-    ignoredHeaders,
-    evalHeaders,
-  };
-};
+// 하위 호환 re-export
+export { parseCsvLine, parseEvaluationCsv } from "utils/evaluationCsv";
 
 const ImportEvaluationFromCsvPopup = ({
   syllabusId,
@@ -171,12 +70,12 @@ const ImportEvaluationFromCsvPopup = ({
   }, [enrollments]);
 
   const [fileName, setFileName] = useState("");
-  const [parsedRows, setParsedRows] = useState<ParsedRow[]>([]);
+  const [parsedRows, setParsedRows] = useState<TEvaluationCsvRow[]>([]);
   const [preview, setPreview] = useState<PreviewStats | null>(null);
   const [parseError, setParseError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const buildPreview = (rows: ParsedRow[], ignoredHeaders: string[]) => {
+  const buildPreview = (rows: TEvaluationCsvRow[], ignoredHeaders: string[]) => {
     let matchedRows = 0;
     let willFill = 0;
     let keepExisting = 0;

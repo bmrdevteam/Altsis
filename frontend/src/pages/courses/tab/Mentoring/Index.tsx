@@ -59,6 +59,8 @@ import Progress from "components/progress/Progress";
 import CourseMetaInfo, { ConfirmedStatus } from "pages/courses/view/CourseMetaInfo";
 import CourseCoverImage from "pages/courses/view/CourseCoverImage";
 import { TFormEvaluation } from "types/seasons";
+import { buildEvaluationCsv } from "utils/evaluationCsv";
+import useRegisterAlterEvaluation from "hooks/useRegisterAlterEvaluation";
 
 const evalColumnsStorageKey = (syllabusId: string) =>
   `courseEval.columns.${syllabusId}`;
@@ -278,37 +280,44 @@ const CoursePid = (props: Props) => {
     handleEvalShowAllColumns();
   };
 
+  const formEvaluationForAlter: TFormEvaluation =
+    (currentRegistration?.formEvaluation as TFormEvaluation) ||
+    currentSeason?.formEvaluation ||
+    [];
+
+  useRegisterAlterEvaluation({
+    enabled:
+      !!isMentor &&
+      !!currentRegistration?.permissionEvaluationV2 &&
+      !!syllabus?._id &&
+      !isLoadingSyllabus,
+    label: syllabus?.classTitle
+      ? `${syllabus.classTitle} · 평가`
+      : "평가",
+    classTitle: syllabus?.classTitle || "",
+    syllabusId: syllabus?._id || pid || "",
+    formEvaluation: formEvaluationForAlter,
+    getEnrollments: () => enrollmentListRef.current,
+    setEnrollments: (next) => {
+      enrollmentListRef.current = next;
+      setEnrollmentList([...next]);
+    },
+  });
+
   const downloadEvaluationCsvTemplate = () => {
     const formEvaluation: TFormEvaluation =
       (currentRegistration?.formEvaluation as TFormEvaluation) ||
       currentSeason?.formEvaluation ||
       [];
-    const editableLabels = formEvaluation
-      .filter((item) => item.auth?.edit?.teacher)
+    // 화면과 동일: 읽기 전용(자기평가 등) 포함. 가져오기는 edit.teacher만 반영
+    const downloadLabels = formEvaluation
+      .filter(
+        (item) => item.auth?.edit?.teacher || item.auth?.view?.student
+      )
       .map((item) => item.label);
 
-    const headers = ["학년", "이름", "ID", ...editableLabels];
-    const escapeCsv = (v: unknown) => {
-      const s = v == null ? "" : String(v);
-      if (/[",\r\n]/.test(s)) {
-        return `"${s.replace(/"/g, '""')}"`;
-      }
-      return s;
-    };
-
-    const rows = enrollmentList.map((e) => {
-      const cells = [
-        e.studentGrade ?? "",
-        e.studentName ?? "",
-        e.studentId ?? "",
-        ...editableLabels.map((label) => e.evaluation?.[label] ?? ""),
-      ];
-      return cells.map(escapeCsv).join(",");
-    });
-
-    const csv = ["\uFEFF" + headers.map(escapeCsv).join(","), ...rows].join(
-      "\r\n"
-    );
+    const body = buildEvaluationCsv(enrollmentList, downloadLabels);
+    const csv = "\uFEFF" + body;
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");

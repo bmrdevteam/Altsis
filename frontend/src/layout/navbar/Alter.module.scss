@@ -370,6 +370,69 @@
   }
 }
 
+.draftPreviewList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0 10px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.draftStudentCard {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-default-color);
+  background: var(--component-color);
+}
+
+.draftStudentMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-1);
+}
+
+.draftStudentId {
+  font-weight: 500;
+  color: var(--accent-3);
+  font-size: 11px;
+}
+
+.draftFieldBlock {
+  & + & {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--border-default-color);
+  }
+}
+
+.draftFieldLabel {
+  margin: 0 0 2px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-2);
+}
+
+.draftFieldValue {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--accent-1);
+  white-space: pre-wrap;
+  word-break: keep-all;
+}
+
+.draftActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
 .footer {
   border-top: var(--border-default);
   padding: 10px 14px;
