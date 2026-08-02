@@ -549,7 +549,8 @@ const geminiGenerate = async ({
       method: "POST",
       headers: geminiHeaders,
       body: JSON.stringify(body),
-    }
+    },
+    120_000
   );
   // thinkingBudget를 지원하지 않는 모델이면 thinking 설정만 제거하고 재시도
   if (response.status === 400) {
@@ -566,7 +567,8 @@ const geminiGenerate = async ({
         method: "POST",
         headers: geminiHeaders,
         body: JSON.stringify(body),
-      }
+      },
+      120_000
     );
   }
   if (!response.ok) await throwHttpError(response, "gemini");

@@ -57,6 +57,8 @@ const SKILL_LABEL: Record<TAlterSkillId, string> = {
 };
 
 const EVAL_DRAFT_MAX = 30;
+/** Prep에서 기본으로 선택하는 학생 수 (나눠 진행 권장) */
+const EVAL_DRAFT_DEFAULT_BATCH = 8;
 
 type Props = {
   onClose: () => void;
@@ -100,8 +102,12 @@ const AlterPanel = ({ onClose }: Props) => {
 
   const [evalTargetLabels, setEvalTargetLabels] = useState<string[]>([]);
   const [evalContextLabels, setEvalContextLabels] = useState<string[]>([]);
-  const [evalFillEmptyOnly, setEvalFillEmptyOnly] = useState(true);
-  const [evalScope, setEvalScope] = useState<"empty" | "all">("empty");
+  // 기본: 자기평가·기존 멘토평가를 종합해 멘토평가를 덮어쓰는 흐름
+  const [evalFillEmptyOnly, setEvalFillEmptyOnly] = useState(false);
+  const [evalScope, setEvalScope] = useState<"empty" | "all">("all");
+  const [evalSelectedStudentIds, setEvalSelectedStudentIds] = useState<
+    string[]
+  >([]);
 
   const abortRef = useRef<AbortController | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
@@ -140,10 +146,11 @@ const AlterPanel = ({ onClose }: Props) => {
     setAppliedFields(new Set());
     setAppliedDraftIds(new Set());
     setEvalTargetLabels(defaultTargetLabels);
-    // 작성 대상 포함 전체 항목을 참고 후보로 (기존 작성 내용 활용)
+    // 자기평가·기존 멘토평가 등 전체 항목을 참고해 종합 재작성
     setEvalContextLabels(allEvalLabels);
-    setEvalFillEmptyOnly(true);
-    setEvalScope("empty");
+    setEvalFillEmptyOnly(false);
+    setEvalScope("all");
+    setEvalSelectedStudentIds([]);
   }, [pageContext?.pageType, pageContext?.label]);
 
   useEffect(() => {
@@ -171,32 +178,55 @@ const AlterPanel = ({ onClose }: Props) => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length, steps.length, isWorking]);
 
-  const evalStudentPreview = useMemo(() => {
-    if (pageContext?.pageType !== "evaluation") {
-      return { total: 0, selectedIds: [] as string[], capped: false };
-    }
+  const evalCandidateStudents = useMemo(() => {
+    if (pageContext?.pageType !== "evaluation") return [];
     const rows = pageContext.getEvaluationRows?.() || [];
     const targets =
       evalTargetLabels.length > 0 ? evalTargetLabels : defaultTargetLabels;
     let filtered = rows.filter((r) => r.studentId);
-    if (evalScope === "empty" || evalFillEmptyOnly) {
+    if (evalScope === "empty") {
       filtered = filtered.filter((r) =>
         targets.some((label) => isEmptyEval(r.evaluation?.[label]))
       );
     }
-    const capped = filtered.length > EVAL_DRAFT_MAX;
-    return {
-      total: filtered.length,
-      selectedIds: filtered.slice(0, EVAL_DRAFT_MAX).map((r) => r.studentId),
-      capped,
-    };
+    return filtered.map((r) => ({
+      studentId: r.studentId,
+      studentName: r.studentName || "",
+      studentGrade: r.studentGrade || "",
+    }));
   }, [
     pageContext,
     evalTargetLabels,
     defaultTargetLabels,
     evalScope,
-    evalFillEmptyOnly,
   ]);
+
+  const evalCandidateKey = evalCandidateStudents
+    .map((s) => s.studentId)
+    .join("\0");
+
+  // 범위·작성 항목이 바뀌면 후보가 달라지므로 기본 묶음으로 다시 고른다
+  useEffect(() => {
+    if (pageContext?.pageType !== "evaluation") {
+      setEvalSelectedStudentIds([]);
+      return;
+    }
+    const ids = evalCandidateKey ? evalCandidateKey.split("\0") : [];
+    setEvalSelectedStudentIds((prev) => {
+      const valid = prev.filter((id) => ids.includes(id));
+      if (valid.length > 0) {
+        return valid.slice(0, EVAL_DRAFT_MAX);
+      }
+      return ids.slice(0, Math.min(EVAL_DRAFT_DEFAULT_BATCH, EVAL_DRAFT_MAX));
+    });
+  }, [pageContext?.pageType, evalCandidateKey]);
+
+  const evalSelectedIds = useMemo(() => {
+    const allowed = new Set(evalCandidateStudents.map((s) => s.studentId));
+    return evalSelectedStudentIds
+      .filter((id) => allowed.has(id))
+      .slice(0, EVAL_DRAFT_MAX);
+  }, [evalSelectedStudentIds, evalCandidateStudents]);
 
   const buildContext = (skill: TAlterSkillId) => {
     if (skill === "evaluation-draft") {
@@ -210,7 +240,7 @@ const AlterPanel = ({ onClose }: Props) => {
         // 작성 대상 필드도 기존 내용이 있으면 참고로 보낼 수 있음
         contextLabels: evalContextLabels,
         fillEmptyOnly: evalFillEmptyOnly,
-        studentIds: evalStudentPreview.selectedIds,
+        studentIds: evalSelectedIds,
         csv: pageContext?.getEvaluationCsv?.() || "",
       };
     }
@@ -324,12 +354,16 @@ const AlterPanel = ({ onClose }: Props) => {
         setError("작성할 평가 항목을 선택해 주세요.");
         return;
       }
-      if (evalStudentPreview.selectedIds.length === 0) {
+      if (evalCandidateStudents.length === 0) {
         setError(
-          evalFillEmptyOnly
+          evalScope === "empty"
             ? "채울 빈 칸이 있는 학생이 없습니다."
             : "초안을 작성할 학생이 없습니다."
         );
+        return;
+      }
+      if (evalSelectedIds.length === 0) {
+        setError("초안을 작성할 학생을 선택해 주세요.");
         return;
       }
     }
@@ -464,7 +498,8 @@ const AlterPanel = ({ onClose }: Props) => {
     if (selectedSkill === "evaluation-draft" || (showPrep && pageContext?.pageType === "evaluation")) {
       void runSkill(
         "evaluation-draft",
-        draft.trim() || "선택한 평가 항목에 대해 초안을 작성해 주세요."
+        draft.trim() ||
+          "자기평가와 기존 멘토평가를 종합해 교사 시점의 멘토평가를 새로 작성해 주세요. 문장을 그대로 복사하지 마세요."
       );
       return;
     }
@@ -532,6 +567,30 @@ const AlterPanel = ({ onClose }: Props) => {
     } else {
       setList([...list, label]);
     }
+  };
+
+  const toggleStudentId = (studentId: string) => {
+    setEvalSelectedStudentIds((prev) => {
+      if (prev.includes(studentId)) {
+        return prev.filter((id) => id !== studentId);
+      }
+      if (prev.length >= EVAL_DRAFT_MAX) return prev;
+      return [...prev, studentId];
+    });
+  };
+
+  const selectDefaultStudentBatch = () => {
+    setEvalSelectedStudentIds(
+      evalCandidateStudents
+        .slice(0, Math.min(EVAL_DRAFT_DEFAULT_BATCH, EVAL_DRAFT_MAX))
+        .map((s) => s.studentId)
+    );
+  };
+
+  const selectAllCandidateStudents = () => {
+    setEvalSelectedStudentIds(
+      evalCandidateStudents.slice(0, EVAL_DRAFT_MAX).map((s) => s.studentId)
+    );
   };
 
   const levelClass = (level: string) => {
@@ -754,7 +813,8 @@ const AlterPanel = ({ onClose }: Props) => {
                     })}
                   </div>
                   <p className={style.prepText}>
-                    작성할 항목이라도 이미 입력된 내용은 참고로 쓸 수 있습니다.
+                    자기평가와 기존 멘토평가를 함께 참고하면, 둘을 종합한 새
+                    멘토평가 초안을 만듭니다. 원문은 복사되지 않도록 재작성합니다.
                   </p>
                 </>
               )}
@@ -778,7 +838,7 @@ const AlterPanel = ({ onClose }: Props) => {
                     checked={evalScope === "all"}
                     onChange={() => setEvalScope("all")}
                   />
-                  <span>전체 학생</span>
+                  <span>전체 학생 목록</span>
                 </label>
                 <label className={style.refRow}>
                   <input
@@ -786,17 +846,94 @@ const AlterPanel = ({ onClose }: Props) => {
                     checked={evalFillEmptyOnly}
                     onChange={(e) => setEvalFillEmptyOnly(e.target.checked)}
                   />
-                  <span>빈 칸만 채우기</span>
+                  <span>빈 칸만 채우기 (끄면 기존 멘토평가를 종합해 덮어씀)</span>
                 </label>
               </div>
-              <p className={style.prepText}>
-                대상 {evalStudentPreview.selectedIds.length}명
-                {evalStudentPreview.capped
-                  ? ` (최대 ${EVAL_DRAFT_MAX}명/회, 전체 ${evalStudentPreview.total}명)`
-                  : evalStudentPreview.total > 0
-                    ? ``
-                    : " · 대상 없음"}
-              </p>
+              {!evalFillEmptyOnly && (
+                <p className={style.prepText}>
+                  종합 재작성 모드: 참고 항목을 합쳐 작성 항목을 새로 씁니다.
+                </p>
+              )}
+            </div>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>학생 선택</p>
+              {evalCandidateStudents.length === 0 ? (
+                <p className={style.prepText}>
+                  {evalScope === "empty"
+                    ? "채울 빈 칸이 있는 학생이 없습니다."
+                    : "선택 가능한 학생이 없습니다."}
+                </p>
+              ) : (
+                <>
+                  <div className={style.prepActions}>
+                    <button
+                      type="button"
+                      className={style.prepActionBtn}
+                      onClick={selectDefaultStudentBatch}
+                    >
+                      기본 {EVAL_DRAFT_DEFAULT_BATCH}명
+                    </button>
+                    <button
+                      type="button"
+                      className={style.prepActionBtn}
+                      onClick={selectAllCandidateStudents}
+                    >
+                      전체
+                      {evalCandidateStudents.length > EVAL_DRAFT_MAX
+                        ? ` (최대 ${EVAL_DRAFT_MAX})`
+                        : ""}
+                    </button>
+                    <button
+                      type="button"
+                      className={style.prepActionBtn}
+                      onClick={() => setEvalSelectedStudentIds([])}
+                    >
+                      선택 해제
+                    </button>
+                  </div>
+                  <div className={`${style.refList} ${style.refListScroll}`}>
+                    {evalCandidateStudents.map((student) => {
+                      const checked = evalSelectedIds.includes(
+                        student.studentId
+                      );
+                      const atLimit =
+                        !checked && evalSelectedIds.length >= EVAL_DRAFT_MAX;
+                      return (
+                        <label
+                          key={student.studentId}
+                          className={style.refRow}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            disabled={atLimit}
+                            onChange={() => toggleStudentId(student.studentId)}
+                          />
+                          <span>
+                            {student.studentGrade
+                              ? `${student.studentGrade} · `
+                              : ""}
+                            {student.studentName || "(이름 없음)"}
+                            <span className={style.prepMuted}>
+                              {" "}
+                              ({student.studentId})
+                            </span>
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <p className={style.prepText}>
+                    선택 {evalSelectedIds.length}명
+                    {evalCandidateStudents.length >
+                    evalSelectedIds.length
+                      ? ` · 후보 ${evalCandidateStudents.length}명`
+                      : ""}
+                    {` · 한 번에 최대 ${EVAL_DRAFT_MAX}명`}
+                    . 나눠서 여러 번 실행할 수 있습니다.
+                  </p>
+                </>
+              )}
             </div>
             {guidelines && (
               <div className={style.prepCard}>
@@ -805,8 +942,9 @@ const AlterPanel = ({ onClose }: Props) => {
               </div>
             )}
             <p className={style.emptyHint}>
-              요청 문구를 적거나 「초안 작성」을 누르면 CSV 기준으로 초안을
-              만듭니다. 반영 후에도 행별 저장이 필요합니다.
+              참고(자기평가·기존 멘토평가) → 작성(멘토평가)로 종합 초안을
+              만듭니다. 학생을 고른 뒤 「초안 작성」을 누르세요. 반영 후에도
+              행별 저장이 필요합니다.
             </p>
           </>
         )}

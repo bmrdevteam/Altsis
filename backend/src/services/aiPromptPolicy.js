@@ -42,7 +42,7 @@ export const PROMPT_LIMITS = {
   /** 평가 초안: 셀당 최대 글자 */
   EVAL_DRAFT_CELL_CHARS: 600,
   /** 평가 초안: 참고 셀 최대 글자 */
-  EVAL_DRAFT_CONTEXT_CHARS: 280,
+  EVAL_DRAFT_CONTEXT_CHARS: 400,
   /** 평가 초안: 교사 요청 문구 최대 글자 */
   EVAL_DRAFT_USER_HINT_CHARS: 1800,
 };

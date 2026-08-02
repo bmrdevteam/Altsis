@@ -63,7 +63,8 @@ export const SKILL_CATALOG = {
   [SKILL_IDS.EVALUATION_DRAFT]: {
     id: SKILL_IDS.EVALUATION_DRAFT,
     name: "평가 초안",
-    description: "수업 평가 CSV를 바탕으로 선택한 항목의 초안을 작성합니다",
+    description:
+      "자기평가·기존 멘토평가 등을 종합해 선택한 항목의 초안을 새로 작성합니다",
     profile: "evaluationDraft",
   },
 };
@@ -704,10 +705,71 @@ ${
 양식 전체를 한 번에 다시 쓰지 말고, 사용자가 묻는 범위만 다루세요.`;
 };
 
+/** 평가 초안 레코드 구분자 (탭보다 모델이 안정적으로 출력) */
+const EVAL_DRAFT_SEP = "|||";
+
+/** 참고/초안 텍스트를 한 줄로 정리 (탭·줄바꿈 제거) */
+const flattenEvalText = (text) =>
+  String(text || "")
+    .replace(/[\t\r\n]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const normalizeDraftValue = (text) => {
+  let value = String(text || "")
+    .replace(/\\n/gi, " ")
+    .replace(/\\t/gi, " ")
+    .replace(/[\t\r\n]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  // 전체를 감싼 따옴표만 제거 (내용 중간의 '알고있음' 등은 유지)
+  if (
+    (value.startsWith('"') && value.endsWith('"') && value.length >= 2) ||
+    (value.startsWith("'") && value.endsWith("'") && value.length >= 2)
+  ) {
+    value = value.slice(1, -1).trim();
+  }
+  return value;
+};
+
 /**
- * 줄 단위(탭 구분) 초안 응답 파싱
- * 형식: 학생ID<TAB>항목라벨<TAB>초안내용 (한 줄 = 한 칸), 마지막 줄은 END
- * JSON과 달리 응답이 중간에 잘려도 완성된 줄은 그대로 살린다.
+ * 레코드 시작 줄인지 판별 (validIds/validLabels와 일치할 때만)
+ * 우선순위: ||| → 탭 → " | "
+ */
+const matchDraftRecordStart = (line, validIds, validLabels) => {
+  const attempts = [
+    {
+      parts: line.split(EVAL_DRAFT_SEP),
+      joinRest: (rest) => rest.join(EVAL_DRAFT_SEP),
+    },
+    {
+      parts: line.split("\t"),
+      joinRest: (rest) => rest.join(" "),
+    },
+    {
+      parts: line.split(/\s*\|\s*/),
+      joinRest: (rest) => rest.join(" "),
+    },
+  ];
+  for (const attempt of attempts) {
+    if (attempt.parts.length < 3) continue;
+    const studentId = String(attempt.parts[0] || "").trim();
+    const label = String(attempt.parts[1] || "").trim();
+    if (!validIds.has(studentId) || !validLabels.has(label)) continue;
+    return {
+      studentId,
+      label,
+      value: normalizeDraftValue(attempt.joinRest(attempt.parts.slice(2))),
+    };
+  }
+  return null;
+};
+
+/**
+ * 줄 단위 초안 응답 파싱
+ * 형식: 학생ID|||항목라벨|||초안내용 (탭/" | "도 허용), 마지막 줄 END
+ * - 내용에 줄바꿈이 섞여도 이어붙임
+ * - END 없이 잘리면 마지막 미완성 레코드만 버림
  */
 export const parseEvaluationDraftLines = (text, { validIds, validLabels }) => {
   const raw = String(text || "")
@@ -722,27 +784,36 @@ export const parseEvaluationDraftLines = (text, { validIds, validLabels }) => {
   const dataLines = hasEndMark ? lines.slice(0, -1) : lines;
 
   const entries = [];
+  let current = null;
+
   for (const line of dataLines) {
     if (line === "END") continue;
-    let parts = line.split("\t");
-    if (parts.length < 3) {
-      // 탭 대신 " | "로 구분한 응답도 허용
-      parts = line.split(/\s*\|\s*/);
+    const start = matchDraftRecordStart(line, validIds, validLabels);
+    if (start) {
+      if (current?.value) entries.push(current);
+      current = start;
+      continue;
     }
-    if (parts.length < 3) continue;
-    const studentId = String(parts[0] || "").trim();
-    const label = String(parts[1] || "").trim();
-    const value = parts.slice(2).join(" ").trim();
-    if (!studentId || !label || !value) continue;
-    if (!validIds.has(studentId) || !validLabels.has(label)) continue;
-    entries.push({ studentId, label, value });
+    // 레코드 시작이 아니면 직전 초안의 이어지는 문장으로 취급
+    if (current) {
+      current.value = normalizeDraftValue(`${current.value} ${line}`);
+    }
   }
+  if (current?.value) entries.push(current);
 
-  // END 표식이 없으면 마지막 줄이 잘렸을 수 있으므로 제외
+  // END 없이 끊긴 응답이면 마지막 레코드는 불완전할 수 있어 제외
   if (!hasEndMark && entries.length > 1) entries.pop();
+  else if (!hasEndMark && entries.length === 1) {
+    const only = entries[0].value || "";
+    if (only.length < 12 || /[,….\s]$/.test(only)) {
+      // 너무 짧거나 문장 중간에 끊긴 형태로 보이면 버림
+      if (only.length < 40) entries.pop();
+    }
+  }
 
   const byStudent = new Map();
   for (const { studentId, label, value } of entries) {
+    if (!value) continue;
     if (!byStudent.has(studentId)) byStudent.set(studentId, {});
     const values = byStudent.get(studentId);
     if (values[label] == null) values[label] = value;
@@ -943,8 +1014,9 @@ export const executeEvaluationDraftSkill = async ({
     rows.map((row, idx) => {
       const contextParts = contextLabels
         .map((label) => {
+          // 줄바꿈·탭을 미리 제거해 모델이 구조를 흉내 내지 않게 함
           const val = truncateText(
-            row.evaluation?.[label] || "",
+            flattenEvalText(row.evaluation?.[label] || ""),
             PROMPT_LIMITS.EVAL_DRAFT_CONTEXT_CHARS
           );
           return val ? `  - ${label}: ${val}` : null;
@@ -959,20 +1031,23 @@ export const executeEvaluationDraftSkill = async ({
         `- 이름: ${row.studentName || ""}`,
         `- 학년: ${row.studentGrade || ""}`,
         contextParts.length
-          ? `참고 평가(이미 작성된 내용, 문체·사실 참고용):\n${contextParts.join(
+          ? `참고 평가(사실·성장 포인트 종합용. 문장을 그대로 복사하지 말 것):\n${contextParts.join(
               "\n"
             )}`
           : "참고 평가: (없음)",
-        `작성할 항목(비어 있거나 새로 쓸 칸): ${
-          emptyTargets.join(", ") || "(없음)"
-        }`,
+        fillEmptyOnly
+          ? `작성할 항목(비어 있는 칸만): ${
+              emptyTargets.join(", ") || "(없음)"
+            }`
+          : `작성할 항목(참고를 종합해 교사 시점으로 새로 쓸 칸): ${
+              emptyTargets.join(", ") || "(없음)"
+            }`,
       ].join("\n");
     });
 
   const provider = resolveProvider(academy.aiProvider);
   const modelName = resolveModel(provider, academy.aiModel);
-  const systemInstruction =
-    "You are Alter, an evaluation drafting assistant. Output tab-separated lines only (studentId TAB label TAB draft). No JSON, no markdown, no explanations.";
+  const systemInstruction = `You are Alter, an evaluation drafting assistant. Synthesize reference evaluations into a NEW teacher-voice draft. Never copy reference sentences verbatim. Output only data lines: studentId${EVAL_DRAFT_SEP}label${EVAL_DRAFT_SEP}draft, then END.`;
 
   // 한 묶음의 칸 수(학생 × 작성 항목)를 제한해 응답 잘림을 방지
   const cellBudget = Math.max(1, PROMPT_LIMITS.EVAL_DRAFT_CHUNK_CELLS || 12);
@@ -985,9 +1060,24 @@ export const executeEvaluationDraftSkill = async ({
     chunks.push(workRows.slice(i, i + chunkSize));
   }
 
+  const rewriteMode = !fillEmptyOnly;
+  const taskRules = rewriteMode
+    ? `역할: 참고 평가(자기평가·기존 멘토평가 등)를 종합해 작성 항목을 교사 시점으로 새로 작성합니다.
+- 참고 문장을 그대로 복사·붙여넣기·약간만 바꿔 쓰지 마세요. 반드시 새 문장으로 재작성하세요.
+- 자기평가의 1인칭("나는~")을 교사 평가 문체("학생이~", "~함")로 바꾸세요.
+- 기존 멘토평가가 참고에 있어도 그것을 유지하지 말고, 자기평가와 합쳐 통합된 새 멘토평가를 쓰세요.
+- 사실·성장 포인트·관찰 가능한 행동만 남기고 중복은 줄이세요.
+- 지정된 학생·작성 항목만 출력하세요.`
+    : `역할: 참고 평가를 바탕으로 비어 있는 작성 항목만 교사 시점으로 초안을 씁니다.
+- 참고 문장을 그대로 복사하지 말고 새 문장으로 작성하세요.
+- 자기평가의 1인칭을 교사 평가 문체로 바꾸세요.
+- 이미 값이 있는 작성 칸은 출력하지 마세요.
+- 지정된 학생·작성 항목만 출력하세요.`;
+
   // 공통 컨텍스트는 앞부분에 고정 배치 (provider 프롬프트 캐시 활용)
   const sharedPrompt = `당신은 학교 수업 평가 작성 보조입니다. 교사가 검토·수정할 초안만 작성합니다.
-이미 값이 있는 칸을 임의로 바꾸지 마세요. 지정된 학생·항목만 채우세요.
+
+${taskRules}
 
 ## 수업
 ${classTitle}
@@ -999,14 +1089,21 @@ ${guidelines}
 ${schemaLines.join("\n")}
 
 ## 교사 요청
-${userHint || "선택한 항목에 대해 간결한 초안을 작성해 주세요."}
+${
+  userHint ||
+  (rewriteMode
+    ? "자기평가와 기존 멘토평가를 종합해 교사 시점의 멘토평가를 새로 작성해 주세요. 원문 복사 금지."
+    : "참고 평가를 바탕으로 빈 칸에 간결한 초안을 작성해 주세요. 원문 복사 금지.")
+}
 
 ## 출력 형식 (필수)
-- 한 줄에 한 칸씩: 학생ID<TAB>항목라벨<TAB>초안내용
-- 각 값은 탭 문자 1개로만 구분하고, 내용 안에 탭·줄바꿈을 넣지 마세요.
-- 각 내용은 2~4문장으로 간결하게, 반드시 한 줄로 작성하세요.
-- 설명·마크다운·머리글 없이 데이터 줄만 출력하세요.
-- 모든 학생을 출력한 뒤 마지막 줄에 END 만 출력하세요.`;
+- 한 줄에 한 칸씩: 학생ID${EVAL_DRAFT_SEP}항목라벨${EVAL_DRAFT_SEP}초안내용
+- 예시: 1253${EVAL_DRAFT_SEP}멘토평가${EVAL_DRAFT_SEP}수업에서 주도성과 메타인지를 연결해 성찰하는 모습이 관찰되었습니다.
+- 구분자 ${EVAL_DRAFT_SEP} 는 정확히 세 개의 세로줄(|)입니다. 내용 안에는 ${EVAL_DRAFT_SEP}·탭·줄바꿈을 넣지 마세요.
+- 따옴표(' ")는 써도 되지만 초안 전체를 따옴표로 감싸지 마세요.
+- 각 내용은 2~4문장으로 간결하게, 반드시 한 줄로 작성하세요. 주차별·목록형으로 줄을 나누지 마세요.
+- 설명·마크다운·머리글·JSON 없이 데이터 줄만 출력하세요.
+- 모든 칸을 출력한 뒤 마지막 줄에 END 만 출력하세요.`;
 
   const validLabels = new Set(targetLabels);
   let tokenUsage = null;
@@ -1102,6 +1199,43 @@ ${buildStudentBlocks(chunkRows).join("\n\n")}
 
   const workById = new Map(workRows.map((r) => [r.studentId, r]));
   const draftRows = [];
+  const compactEvalText = (text) =>
+    flattenEvalText(text).replace(/\s+/g, "").toLowerCase();
+  /** 참고/기존 칸을 그대로 복사한 응답은 초안에서 제외 */
+  const isNearCopyOfReferences = (draftText, srcRow, targetLabel) => {
+    const draftCompact = compactEvalText(draftText);
+    if (draftCompact.length < 20) return false;
+    const sources = [];
+    if (!isEmptyEval(srcRow.evaluation?.[targetLabel])) {
+      sources.push(srcRow.evaluation[targetLabel]);
+    }
+    for (const label of contextLabels) {
+      if (!isEmptyEval(srcRow.evaluation?.[label])) {
+        sources.push(srcRow.evaluation[label]);
+      }
+    }
+    for (const srcText of sources) {
+      const srcCompact = compactEvalText(srcText);
+      if (!srcCompact) continue;
+      if (draftCompact === srcCompact) return true;
+      // 긴 원문의 연속 구간을 거의 그대로 쓴 경우
+      if (
+        draftCompact.length >= 40 &&
+        srcCompact.includes(draftCompact) &&
+        draftCompact.length / srcCompact.length >= 0.5
+      ) {
+        return true;
+      }
+      if (
+        srcCompact.length >= 40 &&
+        draftCompact.includes(srcCompact) &&
+        srcCompact.length / draftCompact.length >= 0.7
+      ) {
+        return true;
+      }
+    }
+    return false;
+  };
 
   for (const row of aiParsedRows) {
     const studentId = String(row?.studentId || "").trim();
@@ -1118,6 +1252,7 @@ ${buildStudentBlocks(chunkRows).join("\n\n")}
       val = maskSensitiveText(String(val)).text;
       val = truncateText(val, PROMPT_LIMITS.EVAL_DRAFT_CELL_CHARS).trim();
       if (!val) continue;
+      if (isNearCopyOfReferences(val, src, label)) continue;
 
       const meta = teacherEditableByLabel.get(label);
       if (meta?.type === "select") {
