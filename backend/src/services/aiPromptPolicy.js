@@ -77,6 +77,20 @@ export const PROMPT_LIMITS = {
   DOCUMENT_DRAFT_USER_HINT_CHARS: 2000,
   /** 문서 초안: 제목 최대 글자 */
   DOCUMENT_DRAFT_TITLE_CHARS: 120,
+  /** 활동 초안: 필드 최대 개수 */
+  ACTIVITY_DRAFT_MAX_FIELDS: 40,
+  /** 활동 초안: 필드 content 최대 글자 */
+  ACTIVITY_DRAFT_FIELD_CONTENT_CHARS: 12000,
+  /** 활동 초안: 현재 양식 JSON 참고 최대 글자 */
+  ACTIVITY_DRAFT_CURRENT_CHARS: 14000,
+  /** 활동 초안: 첨부/자료 최대 글자 */
+  ACTIVITY_DRAFT_SOURCE_CHARS: 12000,
+  /** 활동 초안: 교사 요청 문구 최대 글자 */
+  ACTIVITY_DRAFT_USER_HINT_CHARS: 2000,
+  /** 활동 초안: 제목 최대 글자 */
+  ACTIVITY_DRAFT_TITLE_CHARS: 120,
+  /** 활동 초안: 설명 최대 글자 */
+  ACTIVITY_DRAFT_DESCRIPTION_CHARS: 2000,
 };
 
 const KEY_FIELD_RE =
@@ -117,6 +131,11 @@ export const FEATURE_PROFILES = {
   documentDraft: {
     feature: "document_draft",
     temperature: 0.45,
+    maxTokens: 8192,
+  },
+  activityDraft: {
+    feature: "activity_draft",
+    temperature: 0.4,
     maxTokens: 8192,
   },
 };

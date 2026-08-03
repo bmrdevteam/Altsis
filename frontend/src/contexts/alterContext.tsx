@@ -6,6 +6,11 @@ import {
   useState,
   ReactNode,
 } from "react";
+import {
+  TAltFormField,
+  TAltFormSettings,
+  TFormRubric,
+} from "types/altForm";
 import { TFormEvaluation } from "types/seasons";
 import { TSchoolFormArchiveField } from "types/schools";
 
@@ -14,7 +19,25 @@ export type TAlterSkillId =
   | "syllabus-draft"
   | "evaluation-draft"
   | "archive-draft"
-  | "document-draft";
+  | "document-draft"
+  | "activity-draft";
+
+export type TAlterActivitySnapshot = {
+  title: string;
+  description: string;
+  fields: TAltFormField[];
+  settings: TAltFormSettings & Record<string, unknown>;
+  rubrics?: TFormRubric[];
+  boardName?: string;
+};
+
+export type TAlterActivityDraft = {
+  title?: string;
+  description?: string;
+  fields: TAltFormField[];
+  settings?: Partial<TAltFormSettings> & Record<string, unknown>;
+  rubrics?: TFormRubric[];
+};
 
 export type TAlterEvaluationRow = {
   studentId: string;
@@ -44,6 +67,7 @@ export type TAlterPageContext = {
     | "evaluation"
     | "archive"
     | "document"
+    | "activity"
     | "general";
   label?: string;
   subject?: string[];
@@ -83,6 +107,10 @@ export type TAlterPageContext = {
     title?: string;
     content: string;
   }) => { applied: boolean };
+  getActivity?: () => TAlterActivitySnapshot;
+  applyActivityDraft?: (
+    draft: TAlterActivityDraft
+  ) => { applied: boolean };
   suggestedSkills: TAlterSkillId[];
 };
 

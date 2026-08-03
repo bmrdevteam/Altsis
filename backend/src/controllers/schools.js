@@ -52,6 +52,7 @@ const VALID_SKILL_IDS = [
   "evaluation-draft",
   "archive-draft",
   "document-draft",
+  "activity-draft",
 ];
 const LEGACY_SKILL_IDS = { "syllabus-review": "syllabus-draft" };
 const VALID_LIBRARY_KINDS = ["instruction", "learning"];

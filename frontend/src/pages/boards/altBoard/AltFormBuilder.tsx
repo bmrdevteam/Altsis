@@ -14,6 +14,7 @@ import {
   TQuizSettings,
 } from "types/altForm";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import useRegisterAlterActivity from "hooks/useRegisterAlterActivity";
 import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 import Svg from "assets/svg/Svg";
 import { MarkdownEditor } from "components/markdown";
@@ -320,6 +321,25 @@ const AltFormBuilder = ({
   const builderBodyRef = useRef<HTMLDivElement>(null);
   /** 필드 추가/복제 후 새 카드로 스크롤 */
   const shouldScrollToActiveRef = useRef(false);
+
+  useRegisterAlterActivity({
+    enabled: !isLoading,
+    label: board?.name ? `${board.name} · 활동` : "활동 작성",
+    boardId: board?._id,
+    boardName: board?.name,
+    getActivity: () => ({
+      title,
+      description,
+      fields,
+      settings,
+      rubrics,
+    }),
+    setTitle,
+    setDescription,
+    setFields,
+    setSettings,
+    setRubrics,
+  });
 
   const getSnapshot = useCallback(
     (

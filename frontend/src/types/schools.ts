@@ -53,7 +53,8 @@ export type TAlterSkillId =
   | "syllabus-draft"
   | "evaluation-draft"
   | "archive-draft"
-  | "document-draft";
+  | "document-draft"
+  | "activity-draft";
 
 export type TAiLibraryKind = "instruction" | "learning";
 

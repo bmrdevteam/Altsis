@@ -76,6 +76,32 @@ type TAlterDocumentDraftResult = {
   content: string;
 };
 
+type TAlterActivityDraftResult = {
+  kind: "activity";
+  writeMode?: "create" | "refine";
+  formType?: string;
+  title: string;
+  description?: string;
+  fields: Array<{
+    label?: string;
+    type?: string;
+    required?: boolean;
+    permission?: string;
+    options?: string[];
+    content?: string;
+    gradingMethod?: string;
+    rubricIds?: string[];
+    rubricKeys?: string[];
+  }>;
+  settings?: Record<string, unknown>;
+  rubrics?: Array<{
+    id?: string;
+    key?: string;
+    title?: string;
+    levels?: Array<{ label?: string; points?: number }>;
+  }>;
+};
+
 type TAlterSyllabusDraftResult = {
   kind: "syllabus";
   summary?: string;
@@ -86,6 +112,7 @@ type TAlterDraftResult =
   | TAlterEvalDraftResult
   | TAlterArchiveDraftResult
   | TAlterDocumentDraftResult
+  | TAlterActivityDraftResult
   | TAlterSyllabusDraftResult;
 
 type ChatMessage = {
@@ -123,10 +150,23 @@ const isDocumentDraft = (
   return (draft as { kind?: string }).kind === "document";
 };
 
+const isActivityDraft = (
+  draft?: TAlterDraftResult | null
+): draft is TAlterActivityDraftResult => {
+  if (!draft) return false;
+  return (draft as { kind?: string }).kind === "activity";
+};
+
 const isEvalDraft = (
   draft?: TAlterDraftResult | null
 ): draft is TAlterEvalDraftResult => {
-  if (!draft || isArchiveDraft(draft) || isDocumentDraft(draft)) return false;
+  if (
+    !draft ||
+    isArchiveDraft(draft) ||
+    isDocumentDraft(draft) ||
+    isActivityDraft(draft)
+  )
+    return false;
   const anyDraft = draft as unknown as { rows?: unknown; kind?: string };
   return Array.isArray(anyDraft.rows) && anyDraft.kind !== "archive";
 };
@@ -137,13 +177,15 @@ const SKILL_LABEL: Record<TAlterSkillId, string> = {
   "evaluation-draft": "평가",
   "archive-draft": "기록",
   "document-draft": "문서",
+  "activity-draft": "활동",
 };
 
 const isDraftPrepSkill = (skill: TAlterSkillId) =>
   skill === "syllabus-draft" ||
   skill === "evaluation-draft" ||
   skill === "archive-draft" ||
-  skill === "document-draft";
+  skill === "document-draft" ||
+  skill === "activity-draft";
 
 const DOCUMENT_DOC_TYPES: Array<{ id: string; label: string }> = [
   { id: "manual", label: "매뉴얼·안내" },
@@ -153,6 +195,16 @@ const DOCUMENT_DOC_TYPES: Array<{ id: string; label: string }> = [
   { id: "table", label: "표 중심 안내" },
   { id: "lesson", label: "학습 자료" },
   { id: "general", label: "일반 문서" },
+];
+
+const ACTIVITY_FORM_TYPES: Array<{ id: string; label: string }> = [
+  { id: "survey", label: "설문·조사" },
+  { id: "quiz", label: "퀴즈" },
+  { id: "application", label: "신청·접수" },
+  { id: "checklist", label: "체크리스트" },
+  { id: "interactive", label: "인터랙티브(학습 도구)" },
+  { id: "assessment", label: "평가 활동" },
+  { id: "general", label: "일반 활동" },
 ];
 
 const formatBubbleTime = (dateString?: string) => {
@@ -240,6 +292,12 @@ const wantsDocumentDraftText = (text: string) =>
   /매뉴얼|회의록|공지문/.test(text) ||
   /\/(문서|document[-_]?draft)/i.test(text);
 
+const wantsActivityDraftText = (text: string) =>
+  /활동.*(초안|작성|다듬|양식)/.test(text) ||
+  /(초안|작성|다듬).*활동/.test(text) ||
+  /양식.*(초안|작성)/.test(text) ||
+  /\/(활동|양식|activity[-_]?draft)/i.test(text);
+
 const AlterPanel = ({ onClose }: Props) => {
   const { currentSeason, currentRegistration, currentSchool } = useAuth();
   const {
@@ -315,6 +373,16 @@ const AlterPanel = ({ onClose }: Props) => {
   const [docSelectedGuidelineIds, setDocSelectedGuidelineIds] = useState<
     string[]
   >([]);
+
+  const [activityWriteMode, setActivityWriteMode] = useState<
+    "create" | "refine"
+  >("create");
+  const [activityFormType, setActivityFormType] = useState("general");
+  const [activityGuidelineItems, setActivityGuidelineItems] = useState<
+    Array<{ _id: string; title: string; content: string }>
+  >([]);
+  const [activitySelectedGuidelineIds, setActivitySelectedGuidelineIds] =
+    useState<string[]>([]);
 
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [conversationTitle, setConversationTitle] = useState("새 대화");
@@ -510,7 +578,8 @@ const AlterPanel = ({ onClose }: Props) => {
         setSkillGuidelines((data.guidelines || "").trim());
         if (
           selectedSkill === "archive-draft" ||
-          selectedSkill === "document-draft"
+          selectedSkill === "document-draft" ||
+          selectedSkill === "activity-draft"
         ) {
           const items = Array.isArray(data.instructionItems)
             ? data.instructionItems.map(
@@ -539,9 +608,12 @@ const AlterPanel = ({ onClose }: Props) => {
           if (selectedSkill === "archive-draft") {
             setArchiveGuidelineItems(filtered);
             setArchiveSelectedGuidelineIds((prev) => pickIds(prev, filtered));
-          } else {
+          } else if (selectedSkill === "document-draft") {
             setDocGuidelineItems(filtered);
             setDocSelectedGuidelineIds((prev) => pickIds(prev, filtered));
+          } else {
+            setActivityGuidelineItems(filtered);
+            setActivitySelectedGuidelineIds((prev) => pickIds(prev, filtered));
           }
         }
       } catch {
@@ -552,6 +624,9 @@ const AlterPanel = ({ onClose }: Props) => {
         }
         if (selectedSkill === "document-draft") {
           setDocGuidelineItems([]);
+        }
+        if (selectedSkill === "activity-draft") {
+          setActivityGuidelineItems([]);
         }
       } finally {
         if (!cancelled) setSkillSettingsLoading(false);
@@ -731,6 +806,30 @@ const AlterPanel = ({ onClose }: Props) => {
         guidelineItemIds: docSelectedGuidelineIds,
         currentTitle: current.title || "",
         currentContent: current.content || "",
+        sourceText: attachmentText,
+      };
+    }
+    if (skill === "activity-draft") {
+      const current = pageContext?.getActivity?.() || {
+        title: "",
+        description: "",
+        fields: [],
+        settings: {},
+        rubrics: [],
+      };
+      return {
+        pageType: "activity",
+        label: pageContext?.label || "",
+        boardId: pageContext?.boardId || "",
+        boardName: pageContext?.boardName || "",
+        writeMode: activityWriteMode,
+        formType: activityFormType,
+        guidelineItemIds: activitySelectedGuidelineIds,
+        currentTitle: current.title || "",
+        currentDescription: current.description || "",
+        currentFields: current.fields || [],
+        currentSettings: current.settings || {},
+        currentRubrics: current.rubrics || [],
         sourceText: attachmentText,
       };
     }
@@ -979,6 +1078,42 @@ const AlterPanel = ({ onClose }: Props) => {
       }
     }
 
+    if (skill === "activity-draft") {
+      if (pageContext?.pageType !== "activity") {
+        setError("활동 양식 작성/수정 화면에서 초안을 작성할 수 있습니다.");
+        return;
+      }
+      const current = pageContext?.getActivity?.() || {
+        title: "",
+        description: "",
+        fields: [],
+        settings: {},
+        rubrics: [],
+      };
+      if (
+        activityWriteMode === "create" &&
+        !userText.trim() &&
+        sourceAttachments.length === 0
+      ) {
+        setError(
+          "초안에 쓸 정보를 입력하거나 텍스트 파일을 첨부해 주세요."
+        );
+        return;
+      }
+      if (
+        activityWriteMode === "refine" &&
+        !(current.title || "").trim() &&
+        !(current.fields || []).length &&
+        !userText.trim() &&
+        sourceAttachments.length === 0
+      ) {
+        setError(
+          "다듬을 양식이 없습니다. 에디터에 내용을 쓰거나 요청을 입력해 주세요."
+        );
+        return;
+      }
+    }
+
     if (skill === "evaluation-draft") {
       if (pageContext?.pageType !== "evaluation") {
         setError("수업 평가 화면에서 초안을 작성할 수 있습니다.");
@@ -1114,7 +1249,11 @@ const AlterPanel = ({ onClose }: Props) => {
             createdAt: new Date().toISOString(),
           },
         ]);
-        if (skill === "syllabus-draft" || skill === "document-draft") {
+        if (
+          skill === "syllabus-draft" ||
+          skill === "document-draft" ||
+          skill === "activity-draft"
+        ) {
           setSourceAttachments([]);
         }
         if (!isOpenRef.current) setHasBackgroundResult(true);
@@ -1215,6 +1354,21 @@ const AlterPanel = ({ onClose }: Props) => {
       setDraft("");
       return;
     }
+    if (
+      selectedSkill === "activity-draft" ||
+      (showPrep && pageContext?.pageType === "activity")
+    ) {
+      const text = combinedSourceText();
+      void runSkill(
+        "activity-draft",
+        text ||
+          (activityWriteMode === "refine"
+            ? "현재 활동 양식을 목적에 맞게 다듬어 주세요."
+            : "활동 양식 초안을 작성해 주세요.")
+      );
+      setDraft("");
+      return;
+    }
     if (selectedSkill === "syllabus-draft" || showPrep) {
       const text = combinedSourceText();
       void runSkill(
@@ -1248,6 +1402,11 @@ const AlterPanel = ({ onClose }: Props) => {
     ) {
       skill = "document-draft";
     } else if (
+      wantsActivityDraftText(text) &&
+      pageContext?.pageType === "activity"
+    ) {
+      skill = "activity-draft";
+    } else if (
       (wantsSyllabusDraftText(text) || sourceAttachments.length > 0) &&
       pageContext?.pageType === "syllabus-edit"
     ) {
@@ -1262,9 +1421,16 @@ const AlterPanel = ({ onClose }: Props) => {
       pageContext?.pageType === "document"
     ) {
       skill = "document-draft";
+    } else if (
+      selectedSkill === "activity-draft" &&
+      pageContext?.pageType === "activity"
+    ) {
+      skill = "activity-draft";
     }
     const payload =
-      skill === "syllabus-draft"
+      skill === "syllabus-draft" ||
+      skill === "document-draft" ||
+      skill === "activity-draft"
         ? [text, ...sourceAttachments.map((a) => `[첨부: ${a.name}]\n${a.text}`)]
             .filter(Boolean)
             .join("\n\n")
@@ -1384,6 +1550,35 @@ const AlterPanel = ({ onClose }: Props) => {
       return;
     }
 
+    if (isActivityDraft(draftResult)) {
+      if (!pageContext?.applyActivityDraft) return;
+      const result = pageContext.applyActivityDraft({
+        title: draftResult.title,
+        description: draftResult.description,
+        fields: (draftResult.fields || []) as any,
+        settings: draftResult.settings,
+        rubrics: draftResult.rubrics as any,
+      });
+      setAppliedDraftIds((prev) => new Set(prev).add(msgId));
+      if (!result.applied) {
+        setError("반영할 활동 초안이 없었습니다.");
+      } else {
+        setError("");
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `a-applied-${Date.now()}`,
+            role: "assistant",
+            content:
+              "활동 양식 초안을 에디터에 반영했습니다. 양식·설정을 확인·수정한 뒤 저장해 주세요.",
+            skill: "activity-draft",
+            createdAt: new Date().toISOString(),
+          },
+        ]);
+      }
+      return;
+    }
+
     if (!isEvalDraft(draftResult) || !pageContext?.applyEvaluationCsv) return;
     if (!draftResult.csv) return;
     const result = pageContext.applyEvaluationCsv(draftResult.csv, {
@@ -1477,14 +1672,21 @@ const AlterPanel = ({ onClose }: Props) => {
           ? "기록"
           : pageContext?.pageType === "document"
             ? "문서"
-            : "일반");
+            : pageContext?.pageType === "activity"
+              ? "활동"
+              : "일반");
 
   const inSyllabusPrep = showPrep && selectedSkill === "syllabus-draft";
   const inEvalPrep = showPrep && selectedSkill === "evaluation-draft";
   const inArchivePrep = showPrep && selectedSkill === "archive-draft";
   const inDocPrep = showPrep && selectedSkill === "document-draft";
+  const inActivityPrep = showPrep && selectedSkill === "activity-draft";
   const inPrep =
-    inSyllabusPrep || inEvalPrep || inArchivePrep || inDocPrep;
+    inSyllabusPrep ||
+    inEvalPrep ||
+    inArchivePrep ||
+    inDocPrep ||
+    inActivityPrep;
 
 
   const expandToggleBtn = (
@@ -1508,15 +1710,17 @@ const AlterPanel = ({ onClose }: Props) => {
   );
 
   const prepPrimaryLabel =
-    inEvalPrep || inArchivePrep || inDocPrep
+    inEvalPrep || inArchivePrep || inDocPrep || inActivityPrep
       ? messages.some(
           (m) =>
             m.draft &&
-            (inDocPrep
-              ? isDocumentDraft(m.draft)
-              : inArchivePrep
-                ? isArchiveDraft(m.draft)
-                : isEvalDraft(m.draft))
+            (inActivityPrep
+              ? isActivityDraft(m.draft)
+              : inDocPrep
+                ? isDocumentDraft(m.draft)
+                : inArchivePrep
+                  ? isArchiveDraft(m.draft)
+                  : isEvalDraft(m.draft))
         )
         ? "다시 작성"
         : "초안 작성"
@@ -1623,6 +1827,21 @@ const AlterPanel = ({ onClose }: Props) => {
               }}
             >
               문서
+            </button>
+          )}
+          {!inPrep && pageContext?.pageType === "activity" && (
+            <button
+              type="button"
+              className={chatUiStyle.actionMenuItem}
+              role="menuitem"
+              disabled={isWorking}
+              onClick={() => {
+                setActionMenuOpen(false);
+                setSelectedSkill("activity-draft");
+                setShowPrep(true);
+              }}
+            >
+              활동
             </button>
           )}
         </div>
@@ -1939,6 +2158,151 @@ const AlterPanel = ({ onClose }: Props) => {
             </div>
             <div className={style.prepHintRow}>
               <PrepHint text="초안은 에디터 전체를 덮어씁니다. 미리보기 확인 후 「전체에 반영」하고 저장하세요." />
+              <span className={style.prepHintRowLabel}>이용 안내</span>
+            </div>
+          </>
+        )}
+
+        {inActivityPrep && (
+          <>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>작성 모드</p>
+              <div className={style.refList}>
+                <label className={style.refRow}>
+                  <input
+                    type="radio"
+                    name="activityWriteMode"
+                    checked={activityWriteMode === "create"}
+                    onChange={() => setActivityWriteMode("create")}
+                  />
+                  <span>새로 작성</span>
+                </label>
+                <label className={style.refRow}>
+                  <input
+                    type="radio"
+                    name="activityWriteMode"
+                    checked={activityWriteMode === "refine"}
+                    onChange={() => setActivityWriteMode("refine")}
+                  />
+                  <span>기존 양식 다듬기</span>
+                </label>
+              </div>
+            </div>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>
+                활동 형태
+                <PrepHint text="형태에 맞게 일반 응답 필드·설정을 중심으로 초안을 만듭니다. html-app은 제출이 필요 없는 체험용일 때만 씁니다." />
+              </p>
+              <div className={style.refList}>
+                {ACTIVITY_FORM_TYPES.map((t) => (
+                  <label key={t.id} className={style.refRow}>
+                    <input
+                      type="radio"
+                      name="activityFormType"
+                      checked={activityFormType === t.id}
+                      onChange={() => setActivityFormType(t.id)}
+                    />
+                    <span>{t.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>
+                작성 지침
+                <PrepHint text="학교 AI 라이브러리의 지침 중 이번 활동에 쓸 항목을 고릅니다." />
+              </p>
+              {skillSettingsLoading ? (
+                <p className={style.prepText}>지침을 불러오는 중...</p>
+              ) : activityGuidelineItems.length === 0 ? (
+                <p className={style.prepText}>
+                  선택 가능한 지침이 없습니다. 관리 → 학교 AI → 라이브러리에서
+                  「활동」 지침을 추가해 주세요. 기본 기준으로 작성합니다.
+                </p>
+              ) : (
+                <div className={style.refList}>
+                  {activityGuidelineItems.map((item) => (
+                    <label key={item._id} className={style.refRow}>
+                      <input
+                        type="checkbox"
+                        checked={activitySelectedGuidelineIds.includes(
+                          item._id
+                        )}
+                        onChange={() =>
+                          toggleLabel(
+                            item._id,
+                            activitySelectedGuidelineIds,
+                            setActivitySelectedGuidelineIds
+                          )
+                        }
+                      />
+                      <span>
+                        {item.title}
+                        {item.content ? (
+                          <span className={style.prepMuted}>
+                            {" "}
+                            — {item.content.slice(0, 60)}
+                            {item.content.length > 60 ? "…" : ""}
+                          </span>
+                        ) : null}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>첨부 자료 (텍스트 · 최대 3개)</p>
+              {sourceAttachments.length === 0 ? (
+                <p className={style.prepText}>
+                  활동 개요·문항·규칙을 입력하거나 .txt/.md 파일을 첨부할 수
+                  있습니다.
+                </p>
+              ) : (
+                <div className={style.refList}>
+                  {sourceAttachments.map((a, index) => (
+                    <div key={`${a.name}-${index}`} className={style.refRow}>
+                      <span>
+                        {a.name}{" "}
+                        <span className={style.prepMuted}>
+                          ({a.text.length.toLocaleString()}자)
+                        </span>
+                      </span>
+                      <button
+                        type="button"
+                        className={style.applyBtn}
+                        onClick={() =>
+                          setSourceAttachments((prev) =>
+                            prev.filter((_, i) => i !== index)
+                          )
+                        }
+                      >
+                        제거
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className={style.prepActions}>
+                <input
+                  ref={attachInputRef}
+                  type="file"
+                  accept=".txt,.md,.csv,text/plain"
+                  multiple
+                  hidden
+                  onChange={(e) => handleAttachFiles(e.target.files)}
+                />
+                <button
+                  type="button"
+                  className={style.prepActionBtn}
+                  onClick={() => attachInputRef.current?.click()}
+                >
+                  파일 첨부
+                </button>
+              </div>
+            </div>
+            <div className={style.prepHintRow}>
+              <PrepHint text="초안은 양식 필드·설정을 덮어씁니다. 미리보기 확인 후 「전체에 반영」하고 저장하세요." />
               <span className={style.prepHintRowLabel}>이용 안내</span>
             </div>
           </>
@@ -2788,6 +3152,77 @@ const AlterPanel = ({ onClose }: Props) => {
               </div>
               );
             })()}
+            {msg.draft && isActivityDraft(msg.draft) && (() => {
+              const actDraft = msg.draft as TAlterActivityDraftResult;
+              const formTypeLabel =
+                ACTIVITY_FORM_TYPES.find((t) => t.id === actDraft.formType)
+                  ?.label || actDraft.formType;
+              const fieldPreview = (actDraft.fields || [])
+                .slice(0, 12)
+                .map((f) => {
+                  const t = String(f.type || "");
+                  const label = String(f.label || "(제목 없음)");
+                  return `${label} · ${t}`;
+                });
+              const settings = actDraft.settings || {};
+              const modeBits = [
+                settings.quizMode ? "퀴즈" : null,
+                settings.assessmentMode ? "평가" : null,
+                settings.requiredMode ? "필수 응답" : null,
+                settings.allowMultipleResponses ? "복수 응답" : null,
+              ].filter(Boolean);
+              return (
+              <div className={style.reviewList}>
+                <div className={style.reviewItem}>
+                  <div className={style.reviewHeader}>
+                    <span>활동 초안 미리보기</span>
+                    <span className={`${style.levelChip} ${style.levelFair}`}>
+                      {actDraft.writeMode === "refine" ? "다듬기" : "새 작성"}
+                    </span>
+                  </div>
+                  <p className={style.reviewComment}>
+                    제목: {actDraft.title || "-"}
+                    {formTypeLabel ? ` · ${formTypeLabel}` : ""}
+                    {" · 필드 "}
+                    {(actDraft.fields || []).length}개
+                    {(actDraft.rubrics || []).length > 0
+                      ? ` · 루브릭 ${(actDraft.rubrics || []).length}개`
+                      : ""}
+                    {modeBits.length > 0 ? ` · ${modeBits.join(", ")}` : ""}
+                    {" · 전체에 덮어쓰기"}
+                  </p>
+                  {actDraft.description ? (
+                    <p className={style.prepText}>{actDraft.description}</p>
+                  ) : null}
+                  <div className={style.draftPreviewList}>
+                    <div className={style.draftFieldBlock}>
+                      <p className={style.draftFieldLabel}>필드</p>
+                      <p
+                        className={style.draftFieldValue}
+                        style={{ whiteSpace: "pre-wrap" }}
+                      >
+                        {fieldPreview.join("\n") || "(없음)"}
+                        {(actDraft.fields || []).length > 12 ? "\n…" : ""}
+                      </p>
+                    </div>
+                  </div>
+                  <div className={style.draftActions}>
+                    {pageContext?.applyActivityDraft && (
+                      <button
+                        type="button"
+                        className={style.applyBtn}
+                        onClick={() => applyDraft(msg.id, actDraft)}
+                      >
+                        {appliedDraftIds.has(msg.id)
+                          ? "다시 반영"
+                          : "전체에 반영"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+              );
+            })()}
           </ChatMessageBubble>
         ))}
 
@@ -2813,14 +3248,18 @@ const AlterPanel = ({ onClose }: Props) => {
         }}
         disabled={isWorking}
         sendDisabled={
-          inSyllabusPrep || (inDocPrep && docWriteMode === "create")
+          inSyllabusPrep ||
+          (inDocPrep && docWriteMode === "create") ||
+          (inActivityPrep && activityWriteMode === "create")
             ? isWorking || (!draft.trim() && sourceAttachments.length === 0)
             : inPrep
               ? isWorking
               : isWorking || (!draft.trim() && sourceAttachments.length === 0)
         }
         sendActive={
-          inSyllabusPrep || (inDocPrep && docWriteMode === "create")
+          inSyllabusPrep ||
+          (inDocPrep && docWriteMode === "create") ||
+          (inActivityPrep && activityWriteMode === "create")
             ? !isWorking && (!!draft.trim() || sourceAttachments.length > 0)
             : inPrep
               ? !isWorking
@@ -2833,23 +3272,28 @@ const AlterPanel = ({ onClose }: Props) => {
           inEvalPrep ||
           inSyllabusPrep ||
           inArchivePrep ||
-          inDocPrep
+          inDocPrep ||
+          inActivityPrep
         }
         centerHint="옵션을 고른 뒤 시작하세요"
         placeholder={
-          inDocPrep
-            ? docWriteMode === "refine"
-              ? "예: 문장을 더 간결하게, 체크리스트를 추가해 주세요"
-              : "예: 저녁활동 이용 안내 매뉴얼, 공간·수칙·신청 방법 포함"
-            : inArchivePrep
-              ? archiveWriteMode === "sameText"
-                ? "예: 공동체 의식과 배려를 중심으로 2~3문장"
-                : "예: 관찰된 성장과 관계 특성을 학생별로 2~4문장"
-              : inEvalPrep
-                ? "예: 멘토 의견은 2~3문장, 성장 포인트를 중심으로"
-                : inSyllabusPrep
-                  ? "예: 주제, 목표, 주차별 활동, 평가 방식을 적어 주세요"
-                  : "메시지를 입력하세요"
+          inActivityPrep
+            ? activityWriteMode === "refine"
+              ? "예: 객관식 3문항 추가, 서술형 필드 하나 더"
+              : "예: 수학 복습 퀴즈 5문항, 객관식+단답, 필수 응답"
+            : inDocPrep
+              ? docWriteMode === "refine"
+                ? "예: 문장을 더 간결하게, 체크리스트를 추가해 주세요"
+                : "예: 저녁활동 이용 안내 매뉴얼, 공간·수칙·신청 방법 포함"
+              : inArchivePrep
+                ? archiveWriteMode === "sameText"
+                  ? "예: 공동체 의식과 배려를 중심으로 2~3문장"
+                  : "예: 관찰된 성장과 관계 특성을 학생별로 2~4문장"
+                : inEvalPrep
+                  ? "예: 멘토 의견은 2~3문장, 성장 포인트를 중심으로"
+                  : inSyllabusPrep
+                    ? "예: 주제, 목표, 주차별 활동, 평가 방식을 적어 주세요"
+                    : "메시지를 입력하세요"
         }
         onKeyDown={
           inPrep

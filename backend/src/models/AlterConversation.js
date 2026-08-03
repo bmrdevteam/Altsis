@@ -20,6 +20,7 @@ const alterConversationSchema = mongoose.Schema(
         "evaluation",
         "archive",
         "document",
+        "activity",
         "general",
         "",
       ],

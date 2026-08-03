@@ -55,6 +55,7 @@ export const SKILL_IDS = {
   EVALUATION_DRAFT: "evaluation-draft",
   ARCHIVE_DRAFT: "archive-draft",
   DOCUMENT_DRAFT: "document-draft",
+  ACTIVITY_DRAFT: "activity-draft",
 };
 
 /** @type {Record<string, { id: string, name: string, description: string, profile: string }>} */
@@ -93,6 +94,13 @@ export const SKILL_CATALOG = {
       "보드 문서(매뉴얼·공지·회의록 등) 마크다운 초안을 작성·다듬습니다",
     profile: "documentDraft",
   },
+  [SKILL_IDS.ACTIVITY_DRAFT]: {
+    id: SKILL_IDS.ACTIVITY_DRAFT,
+    name: "활동",
+    description:
+      "보드 활동(양식) 제목·필드·설정·안내/응답 문서 초안을 작성·다듬습니다",
+    profile: "activityDraft",
+  },
 };
 
 export const listSkills = () => Object.values(SKILL_CATALOG);
@@ -123,6 +131,9 @@ const defaultSkillGuide = (skill) => {
   }
   if (skill === SKILL_IDS.DOCUMENT_DRAFT) {
     return "학교 문서에 맞는 명확한 마크다운으로 작성하세요. 제목·목록·표·체크리스트를 문서 목적에 맞게 활용하고, 퀴즈·인터랙티브 자료는 ```html-app``` 블록을 사용하세요. 추측·민감정보는 넣지 마세요.";
+  }
+  if (skill === SKILL_IDS.ACTIVITY_DRAFT) {
+    return "활동 목적에 맞는 양식 구조를 만드세요. 제출·채점이 필요한 답은 text/textarea/radio/select 등 일반 필드로 만드세요. html-app은 제출이 필요 없는 데모·게임·시각 안내일 때만 쓰고, 퀴즈와 평가 모드는 동시에 켜지 마세요.";
   }
   return "구체성, 학습목표와 활동 연결, 평가 정합성을 중심으로 도와주세요.";
 };
@@ -250,7 +261,9 @@ export const resolveSkillPrepSettings = async (
   const useSchool = hasSchoolSkillConfig(school);
 
   const skipRefs =
-    skill === SKILL_IDS.SYLLABUS_DRAFT || skill === SKILL_IDS.DOCUMENT_DRAFT;
+    skill === SKILL_IDS.SYLLABUS_DRAFT ||
+    skill === SKILL_IDS.DOCUMENT_DRAFT ||
+    skill === SKILL_IDS.ACTIVITY_DRAFT;
 
   const loadInstructionChoices = async () => {
     if (!school?._id) {
@@ -309,7 +322,8 @@ export const resolveSkillPrepSettings = async (
     };
     if (
       skill === SKILL_IDS.ARCHIVE_DRAFT ||
-      skill === SKILL_IDS.DOCUMENT_DRAFT
+      skill === SKILL_IDS.DOCUMENT_DRAFT ||
+      skill === SKILL_IDS.ACTIVITY_DRAFT
     ) {
       const choices = await loadInstructionChoices();
       return { ...base, ...choices };
@@ -326,7 +340,8 @@ export const resolveSkillPrepSettings = async (
   };
   if (
     skill === SKILL_IDS.ARCHIVE_DRAFT ||
-    skill === SKILL_IDS.DOCUMENT_DRAFT
+    skill === SKILL_IDS.DOCUMENT_DRAFT ||
+    skill === SKILL_IDS.ACTIVITY_DRAFT
   ) {
     const choices = await loadInstructionChoices();
     return { ...seasonBase, ...choices };
@@ -414,6 +429,20 @@ const resolveDocumentGuidelines = async (
     school,
     season,
     SKILL_IDS.DOCUMENT_DRAFT,
+    context
+  );
+
+const resolveActivityGuidelines = async (
+  academyId,
+  school,
+  season,
+  context = {}
+) =>
+  resolveLibraryGuidelines(
+    academyId,
+    school,
+    season,
+    SKILL_IDS.ACTIVITY_DRAFT,
     context
   );
 
@@ -2530,6 +2559,619 @@ ${currentContent || "(없음)"}
   }
 };
 
+const ACTIVITY_FIELD_TYPES = new Set([
+  "text",
+  "textarea",
+  "number",
+  "date",
+  "multiDate",
+  "time",
+  "file",
+  "select",
+  "multiSelect",
+  "checkbox",
+  "radio",
+  "userSelect",
+  "rating",
+  "scale",
+  "counter",
+  "approval",
+  "link",
+  "content",
+  "docResponse",
+]);
+
+const ACTIVITY_FORM_TYPES = {
+  survey: "설문·조사",
+  quiz: "퀴즈",
+  application: "신청·접수",
+  checklist: "체크리스트",
+  interactive: "인터랙티브(학습 도구)",
+  assessment: "평가 활동",
+  general: "일반 활동",
+};
+
+const OPTION_FIELD_TYPES = new Set(["select", "multiSelect", "radio"]);
+
+const newFieldId = () =>
+  typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `f_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+
+/**
+ * AI 활동 초안 JSON 파싱·검증
+ * 형식: <<<JSON>>> ... <<<END>>>
+ */
+export const parseActivityDraftResponse = (text) => {
+  let raw = unwrapOuterMarkdownFence(text);
+  if (!raw) return null;
+
+  const marker = raw.match(/<<<JSON>>>\s*([\s\S]*?)\s*(?:<<<END>>>|$)/i);
+  if (marker) raw = marker[1].trim();
+  else {
+    const fence = raw.match(/```(?:json)?\s*\r?\n([\s\S]*?)\r?\n```/i);
+    if (fence) raw = fence[1].trim();
+  }
+
+  const start = raw.indexOf("{");
+  const end = raw.lastIndexOf("}");
+  if (start < 0 || end <= start) return null;
+  try {
+    return JSON.parse(raw.slice(start, end + 1));
+  } catch {
+    return null;
+  }
+};
+
+const DEFAULT_ACTIVITY_RUBRIC = {
+  key: "default",
+  title: "평가 루브릭",
+  levels: [
+    { label: "우수", description: "기대 수준을 충족하거나 뛰어남", points: 3 },
+    { label: "보통", description: "기본 기대를 충족함", points: 2 },
+    { label: "노력 필요", description: "추가 연습·지도가 필요함", points: 1 },
+  ],
+};
+
+const RUBRIC_TARGET_TYPES = new Set([
+  "textarea",
+  "docResponse",
+  "text",
+  "file",
+  "content",
+]);
+
+/** 필드가 가리키는 루브릭 참조를 새 id 목록으로 해석 */
+const resolveRubricIdRefs = (f, rubricIdByRef) => {
+  const refs = [];
+  if (Array.isArray(f?.rubricIds)) refs.push(...f.rubricIds);
+  if (f?.rubricId != null) refs.push(f.rubricId);
+  if (Array.isArray(f?.rubricKeys)) refs.push(...f.rubricKeys);
+  if (f?.rubricKey != null) refs.push(f.rubricKey);
+  if (Array.isArray(f?.rubricTitles)) refs.push(...f.rubricTitles);
+  if (f?.rubricTitle != null) refs.push(f.rubricTitle);
+  if (Array.isArray(f?.rubricIndexes)) refs.push(...f.rubricIndexes);
+  if (typeof f?.rubricIndex === "number") refs.push(f.rubricIndex);
+
+  const ids = [];
+  for (const ref of refs) {
+    if (ref == null || ref === "") continue;
+    const raw = String(ref).trim();
+    const resolved =
+      rubricIdByRef.get(raw) ||
+      rubricIdByRef.get(raw.toLowerCase()) ||
+      rubricIdByRef.get(`index:${raw}`);
+    if (resolved && !ids.includes(resolved)) ids.push(resolved);
+  }
+  return ids;
+};
+
+/**
+ * 필드·설정·루브릭을 에디터/저장 가능한 형태로 정규화.
+ * assessment 모드에서는 rubrics를 만들고 필드 rubricIds에 연결한다.
+ * @param {object} parsed
+ * @param {{ formType?: string }} [opts]
+ */
+export const normalizeActivityDraft = (parsed = {}, opts = {}) => {
+  const maxFields = PROMPT_LIMITS.ACTIVITY_DRAFT_MAX_FIELDS || 40;
+  const maxContent = PROMPT_LIMITS.ACTIVITY_DRAFT_FIELD_CONTENT_CHARS || 12000;
+  const formType = String(opts.formType || "general").trim();
+
+  const title = truncateText(
+    maskSensitiveText(String(parsed.title || "")).text,
+    PROMPT_LIMITS.ACTIVITY_DRAFT_TITLE_CHARS || 120
+  ).trim();
+  const description = truncateText(
+    maskSensitiveText(String(parsed.description || "")).text,
+    PROMPT_LIMITS.ACTIVITY_DRAFT_DESCRIPTION_CHARS || 2000
+  ).trim();
+
+  const s = parsed.settings && typeof parsed.settings === "object"
+    ? parsed.settings
+    : {};
+  let quizMode = !!s.quizMode;
+  const rawRubrics = Array.isArray(parsed.rubrics) ? parsed.rubrics : [];
+  let assessmentMode =
+    !!s.assessmentMode ||
+    formType === "assessment" ||
+    rawRubrics.length > 0;
+  if (quizMode && assessmentMode) {
+    // 상호 배타 — 퀴즈 우선
+    assessmentMode = false;
+  }
+
+  /** @type {Map<string, string>} */
+  const rubricIdByRef = new Map();
+  let rubrics = [];
+  if (assessmentMode) {
+    const source =
+      rawRubrics.length > 0 ? rawRubrics : [DEFAULT_ACTIVITY_RUBRIC];
+    rubrics = source.slice(0, 10).map((r, ri) => {
+      const newId = newFieldId();
+      const rTitle = truncateText(
+        String(r?.title || `루브릭 ${ri + 1}`),
+        120
+      ).trim();
+      const key = String(r?.key || r?.id || "").trim();
+      if (key) {
+        rubricIdByRef.set(key, newId);
+        rubricIdByRef.set(key.toLowerCase(), newId);
+      }
+      rubricIdByRef.set(String(ri), newId);
+      rubricIdByRef.set(`index:${ri}`, newId);
+      if (rTitle) rubricIdByRef.set(rTitle.toLowerCase(), newId);
+      const levels = Array.isArray(r?.levels) && r.levels.length > 0
+        ? r.levels.slice(0, 8).map((lv, li) => ({
+            id: newFieldId(),
+            label: truncateText(String(lv?.label || `수준 ${li + 1}`), 80),
+            description: truncateText(String(lv?.description || ""), 400),
+            points:
+              typeof lv?.points === "number" && Number.isFinite(lv.points)
+                ? lv.points
+                : undefined,
+          }))
+        : DEFAULT_ACTIVITY_RUBRIC.levels.map((lv) => ({
+            id: newFieldId(),
+            ...lv,
+          }));
+      return { id: newId, title: rTitle || `루브릭 ${ri + 1}`, levels };
+    });
+  }
+
+  const defaultRubricIds = rubrics.length > 0 ? [rubrics[0].id] : [];
+  const rawFields = Array.isArray(parsed.fields) ? parsed.fields : [];
+  const fields = [];
+  for (const f of rawFields.slice(0, maxFields)) {
+    const type = String(f?.type || "").trim();
+    if (!ACTIVITY_FIELD_TYPES.has(type)) continue;
+    const label = truncateText(
+      maskSensitiveText(String(f?.label || "")).text,
+      200
+    ).trim();
+    if (!label && type !== "content" && type !== "docResponse") continue;
+
+    const permission =
+      f?.permission === "owner" ? "owner" : "respondent";
+    let options = Array.isArray(f?.options)
+      ? f.options.map((o) => String(o ?? "").trim()).filter(Boolean).slice(0, 30)
+      : [];
+    if (OPTION_FIELD_TYPES.has(type) && options.length === 0) {
+      options = ["옵션 1", "옵션 2"];
+    }
+    if (!OPTION_FIELD_TYPES.has(type)) options = [];
+
+    let content;
+    if (type === "content" || type === "docResponse") {
+      content = normalizeDocumentDraftContent(
+        truncateText(
+          maskSensitiveText(String(f?.content || "")).text,
+          maxContent
+        )
+      );
+    }
+
+    const field = {
+      _id: newFieldId(),
+      label:
+        label ||
+        (type === "content"
+          ? "안내"
+          : type === "docResponse"
+            ? "응답 문서"
+            : "항목"),
+      type,
+      permission,
+      visibleToRespondent:
+        permission === "owner" ? !!f?.visibleToRespondent : false,
+      required: !!f?.required,
+      options,
+      order: fields.length,
+    };
+    if (content !== undefined) field.content = content;
+    if (type === "approval") {
+      field.approvalLine = {
+        steps: [{ order: 0, label: "1차 승인", mode: "pick" }],
+      };
+    }
+    if (typeof f?.points === "number" && Number.isFinite(f.points)) {
+      field.points = Math.max(0, Math.min(100, f.points));
+    }
+    if (f?.correctAnswer !== undefined && f?.correctAnswer !== null) {
+      field.correctAnswer = f.correctAnswer;
+    }
+    const gm = String(f?.gradingMethod || "");
+    if (["none", "completion", "manual_score", "rubric"].includes(gm)) {
+      field.gradingMethod = gm;
+    }
+
+    if (assessmentMode && rubrics.length > 0) {
+      const linked = resolveRubricIdRefs(f, rubricIdByRef);
+      if (field.gradingMethod === "rubric" || linked.length > 0) {
+        field.gradingMethod = "rubric";
+        field.rubricIds = linked.length > 0 ? linked : [...defaultRubricIds];
+      }
+    }
+
+    fields.push(field);
+  }
+
+  // 평가 모드인데 아무 필드도 루브릭에 안 묶였으면 적합한 필드에 기본 루브릭 지정
+  if (assessmentMode && rubrics.length > 0) {
+    const hasLinked = fields.some(
+      (f) => f.gradingMethod === "rubric" && f.rubricIds?.length
+    );
+    if (!hasLinked) {
+      let assigned = 0;
+      for (const field of fields) {
+        if (!RUBRIC_TARGET_TYPES.has(field.type)) continue;
+        if (field.type === "content") continue;
+        field.gradingMethod = "rubric";
+        field.rubricIds = [...defaultRubricIds];
+        assigned += 1;
+        if (assigned >= 5) break;
+      }
+      // 그래도 없으면 첫 응답 필드에라도 연결
+      if (assigned === 0 && fields.length > 0) {
+        const target =
+          fields.find((f) => f.type !== "content") || fields[0];
+        target.gradingMethod = "rubric";
+        target.rubricIds = [...defaultRubricIds];
+      }
+    }
+  }
+
+  if (!assessmentMode) {
+    for (const field of fields) {
+      if (field.gradingMethod === "rubric") delete field.gradingMethod;
+      delete field.rubricIds;
+    }
+  }
+
+  const settings = {
+    allowResubmit: !!s.allowResubmit,
+    allowMultipleResponses: !!s.allowMultipleResponses,
+    requiredMode: !!s.requiredMode,
+    requiredResponseCount:
+      typeof s.requiredResponseCount === "number" &&
+      Number.isFinite(s.requiredResponseCount)
+        ? Math.max(1, Math.min(50, Math.floor(s.requiredResponseCount)))
+        : 2,
+    openAt: s.openAt ? String(s.openAt) : "",
+    closeAt: s.closeAt ? String(s.closeAt) : "",
+    quizMode,
+    quizSettings: {
+      scoreReveal: ["immediately", "afterDeadline", "never"].includes(
+        s.quizSettings?.scoreReveal
+      )
+        ? s.quizSettings.scoreReveal
+        : "immediately",
+      answerReveal: ["immediately", "afterDeadline", "never"].includes(
+        s.quizSettings?.answerReveal
+      )
+        ? s.quizSettings.answerReveal
+        : "afterDeadline",
+      showWrongMarks: s.quizSettings?.showWrongMarks !== false,
+    },
+    assessmentMode,
+    assessmentSettings: {
+      revealOn: "finalized",
+      finalEvaluation: { mode: "both" },
+    },
+    directInputMode: !!s.directInputMode,
+    shareResponses: !!s.shareResponses,
+    showOwnerFields: !!s.showOwnerFields,
+    showOwnResponse: s.showOwnResponse !== false,
+  };
+
+  return { title, description, fields, settings, rubrics };
+};
+
+/**
+ * activity-draft Skill 실행 (보드 활동/양식 초안)
+ */
+export const executeActivityDraftSkill = async ({
+  academyId,
+  user,
+  academy,
+  season,
+  school,
+  context = {},
+  message = "",
+  onEvent,
+}) => {
+  const profile = FEATURE_PROFILES.activityDraft;
+  const emit = typeof onEvent === "function" ? onEvent : () => {};
+
+  emit("step", { message: "활동 양식 작성 준비 중..." });
+
+  const writeMode = context.writeMode === "refine" ? "refine" : "create";
+  const formTypeRaw = String(context.formType || "general").trim();
+  const formType = ACTIVITY_FORM_TYPES[formTypeRaw] ? formTypeRaw : "general";
+  const formTypeLabel = ACTIVITY_FORM_TYPES[formType];
+  const boardName = String(context.boardName || context.label || "").trim();
+
+  const currentSnapshot = truncateText(
+    JSON.stringify({
+      title: context.currentTitle || "",
+      description: context.currentDescription || "",
+      fields: context.currentFields || [],
+      settings: context.currentSettings || {},
+      rubrics: context.currentRubrics || [],
+    }),
+    PROMPT_LIMITS.ACTIVITY_DRAFT_CURRENT_CHARS || 14000
+  );
+  const sourceText = truncateText(
+    String(context.sourceText || ""),
+    PROMPT_LIMITS.ACTIVITY_DRAFT_SOURCE_CHARS || 12000
+  );
+  const userHint = truncateText(
+    String(message || "").trim(),
+    PROMPT_LIMITS.ACTIVITY_DRAFT_USER_HINT_CHARS || 2000
+  );
+
+  if (writeMode === "create" && !userHint && !sourceText) {
+    const err = new Error(
+      "초안에 쓸 정보를 입력하거나 텍스트 파일을 첨부해 주세요."
+    );
+    err.status = 400;
+    err.code = AI_ERRORS.GENERATION_FAILED;
+    throw err;
+  }
+  if (
+    writeMode === "refine" &&
+    !String(context.currentTitle || "").trim() &&
+    !(Array.isArray(context.currentFields) && context.currentFields.length) &&
+    !userHint
+  ) {
+    const err = new Error(
+      "다듬을 양식이 없습니다. 에디터에 내용을 쓰거나 요청을 입력해 주세요."
+    );
+    err.status = 400;
+    err.code = AI_ERRORS.GENERATION_FAILED;
+    throw err;
+  }
+
+  const guidelines = await resolveActivityGuidelines(
+    academyId,
+    school,
+    season,
+    context
+  );
+
+  const provider = resolveProvider(academy.aiProvider);
+  const modelName = resolveModel(provider, academy.aiModel);
+
+  const fieldCatalog = `허용 필드 type (정확히 이 값만):
+text, textarea, number, date, multiDate, time, file, select, multiSelect, checkbox, radio, userSelect, rating, scale, counter, approval, link, content, docResponse
+- select/multiSelect/radio 는 options: string[] 필수
+- content: 읽기 전용 안내 마크다운(제목·목록·표 등). 기본은 일반 마크다운.
+- docResponse: 학생이 마크다운 에디터에서 편집하는 응답 템플릿. 기본은 일반 마크다운 초안(빈칸·소제목·안내 문구).
+- html-app(\`\`\`html-app ... \`\`\`)은 제출이 필요 없는 데모·게임·시각 효과일 때만 content에 사용. docResponse에는 교사가 명시적으로 요청한 경우에만.
+- 중요: html-app 안의 입력값·퀴즈 점수는 양식 제출 데이터에 저장되지 않습니다. 수집·채점이 필요하면 반드시 text/textarea/radio/select/number 등 일반 필드를 만드세요.
+- approval 은 approvalLine을 넣지 마세요(서버가 기본값 부여)
+- quizMode 와 assessmentMode 는 동시에 true 금지
+- 평가 활동(assessmentMode true 또는 활동 형태가 평가):
+  · rubrics 배열에 루브릭을 정의하세요. 각 항목: { "key": "r1", "title": "...", "levels": [{ "label", "description", "points" }] }
+  · 채점할 필드에 "gradingMethod": "rubric" 과 "rubricKeys": ["r1"] (또는 rubricIndexes: [0]) 를 넣으세요.
+  · 루브릭이 비어 있으면 서버가 기본 루브릭을 만들고 서술형/응답 문서 필드에 연결합니다.
+- 설정 키: allowResubmit, allowMultipleResponses, requiredMode, requiredResponseCount, openAt, closeAt, quizMode, quizSettings{scoreReveal,answerReveal,showWrongMarks}, assessmentMode, directInputMode, shareResponses, showOwnerFields, showOwnResponse`;
+
+  const preferFieldsRule = `필드 우선순위:
+1) 답·선택·점수·참석 여부 등 제출이 필요한 항목 → text/textarea/radio/select/multiSelect/checkbox/number/rating/scale 등 일반 필드
+2) 읽기 안내 → content (일반 마크다운)
+3) 긴 서술·보고서형 응답 → docResponse (편집용 마크다운 템플릿)
+4) html-app → 제출 불필요한 체험/데모일 때만 (기본 사용 금지). 교사 요청에 "게임/테트리스/인터랙티브 HTML" 등이 있을 때만.`;
+
+  const taskRules =
+    writeMode === "refine"
+      ? `역할: 기존 활동 양식을 목적에 맞게 다듬어 완성본 JSON을 만듭니다.
+- 기존 의도를 유지하되 필드·설정을 개선하세요.
+- ${preferFieldsRule}
+- 불필요하게 content/docResponse를 html-app으로 바꾸지 마세요.
+- 원문을 그대로 복사하지 말고 편집된 결과만 출력하세요.`
+      : `역할: 요청·자료를 바탕으로 새 활동 양식 JSON 초안을 만듭니다.
+- 활동 형태(${formTypeLabel})에 맞는 필드·설정을 구성하세요.
+- ${preferFieldsRule}
+- 퀴즈/설문/신청은 객관식·단답 등 일반 필드 중심으로 구성하세요.
+- 근거 없는 사실·개인정보·민감정보는 넣지 마세요.`;
+
+  const prompt = `당신은 학교 보드 활동(양식) 작성 보조입니다. 교사가 에디터에서 바로 검토·반영할 JSON 초안만 작성합니다.
+
+${taskRules}
+
+## 작성 지침
+${guidelines || defaultSkillGuide(SKILL_IDS.ACTIVITY_DRAFT)}
+
+## 활동 형태
+${formTypeLabel}
+${
+  formType === "interactive"
+    ? "- 이 형태는 체험용 도구를 포함할 수 있지만, 기록·제출이 필요하면 일반 필드를 함께 두세요. html-app만으로 답을 받지 마세요."
+    : formType === "assessment"
+      ? "- 평가 활동입니다. assessmentMode를 true로 두고, rubrics를 정의한 뒤 채점 대상 필드에 gradingMethod=rubric 과 rubricKeys로 연결하세요."
+      : "- 이 형태에서는 html-app을 기본으로 쓰지 마세요. 교사가 명시할 때만 예외적으로 추가하세요."
+}
+
+## 보드
+${boardName || "(미지정)"}
+
+## 필드·설정 스키마
+${fieldCatalog}
+
+## 교사 요청
+${userHint || "(없음)"}
+
+## 첨부·참고 자료
+${sourceText || "(없음)"}
+
+## 현재 양식 (참고)
+${currentSnapshot}
+
+## 출력 형식 (필수)
+<<<JSON>>>
+{
+  "title": "활동 제목",
+  "description": "짧은 설명",
+  "fields": [
+    {
+      "label": "항목 라벨",
+      "type": "textarea",
+      "required": true,
+      "permission": "respondent",
+      "options": [],
+      "content": "",
+      "gradingMethod": "rubric",
+      "rubricKeys": ["r1"]
+    }
+  ],
+  "settings": {
+    "allowResubmit": false,
+    "allowMultipleResponses": false,
+    "requiredMode": false,
+    "requiredResponseCount": 2,
+    "openAt": "",
+    "closeAt": "",
+    "quizMode": false,
+    "quizSettings": {
+      "scoreReveal": "immediately",
+      "answerReveal": "afterDeadline",
+      "showWrongMarks": true
+    },
+    "assessmentMode": ${formType === "assessment" ? "true" : "false"},
+    "directInputMode": false,
+    "shareResponses": false,
+    "showOwnerFields": false,
+    "showOwnResponse": true
+  },
+  "rubrics": [
+    {
+      "key": "r1",
+      "title": "평가 루브릭",
+      "levels": [
+        { "label": "우수", "description": "", "points": 3 },
+        { "label": "보통", "description": "", "points": 2 },
+        { "label": "노력 필요", "description": "", "points": 1 }
+      ]
+    }
+  ]
+}
+<<<END>>>
+- 설명·머리말 없이 위 형식만 출력하세요.
+- fields는 1개 이상이어야 합니다.
+- 평가가 아니면 assessmentMode=false, rubrics=[], gradingMethod/rubricKeys를 생략하세요.
+- 기본은 일반 응답 필드입니다. html-app은 예외적으로만 쓰고, 쓸 경우 HTML/JS는 \`\`\`html-app 펜스 안에만 넣으세요.`;
+
+  emit("step", {
+    message:
+      writeMode === "refine"
+        ? "AI가 활동 양식을 다듬고 있습니다..."
+        : "AI가 활동 양식 초안을 작성하고 있습니다...",
+  });
+
+  let tokenUsage = null;
+  try {
+    const generated = await runEvaluationGeneration({
+      provider,
+      apiKey: academy.aiApiKey,
+      modelName,
+      profile,
+      systemInstruction: `You are Alter, a school activity/form drafting assistant. Output only <<<JSON>>> / <<<END>>> with valid JSON for AltForm (fields, settings, rubrics). Prefer ordinary response fields for submitted answers. For assessment forms, define rubrics with keys and link fields via gradingMethod="rubric" and rubricKeys. Use \`\`\`html-app only for optional demos/games that do not need to be saved.`,
+      messages: [{ role: "user", content: prompt }],
+      onEvent: emit,
+      progressLabel:
+        writeMode === "refine" ? "활동 양식 다듬는 중" : "활동 양식 초안 작성 중",
+    });
+    tokenUsage = mergeTokenUsage(tokenUsage, generated.tokenUsage);
+
+    const parsed = parseActivityDraftResponse(generated.text || "");
+    if (!parsed) {
+      const err = new Error(
+        "활동 초안 형식을 해석하지 못했습니다. 다시 시도해 주세요."
+      );
+      err.status = 502;
+      err.code = AI_ERRORS.EMPTY_RESPONSE;
+      throw err;
+    }
+    const draft = normalizeActivityDraft(parsed, { formType });
+    if (!draft.fields.length) {
+      const err = new Error("생성 가능한 활동 필드가 없습니다. 다시 시도해 주세요.");
+      err.status = 502;
+      err.code = AI_ERRORS.EMPTY_RESPONSE;
+      throw err;
+    }
+    if (!draft.title) {
+      draft.title =
+        String(context.currentTitle || "").trim() ||
+        formTypeLabel ||
+        "새 활동";
+    }
+
+    const summary =
+      writeMode === "refine"
+        ? `「${draft.title}」 활동 양식을 다듬었습니다.`
+        : `「${draft.title}」 ${formTypeLabel} 초안을 만들었습니다.`;
+
+    logAIUsage(academyId, {
+      user,
+      provider,
+      model: modelName,
+      feature: profile.feature,
+      success: true,
+      tokenUsage,
+    });
+
+    return {
+      skill: SKILL_IDS.ACTIVITY_DRAFT,
+      provider,
+      modelName,
+      tokenUsage,
+      text: summary,
+      draft: {
+        kind: "activity",
+        writeMode,
+        formType,
+        title: draft.title,
+        description: draft.description,
+        fields: draft.fields,
+        settings: draft.settings,
+        rubrics: draft.rubrics,
+      },
+    };
+  } catch (err) {
+    if (!err.code) err.code = mapProviderError(err);
+    logAIUsage(academyId, {
+      user,
+      provider,
+      model: modelName,
+      feature: profile.feature,
+      success: false,
+      errorCode: err.code,
+      tokenUsage,
+    });
+    throw err;
+  }
+};
+
 /**
  * Alter 한 턴 실행 (Skill 라우팅)
  */
@@ -2615,6 +3257,26 @@ export const runAlterSkill = async ({
 
   if (skill === SKILL_IDS.DOCUMENT_DRAFT) {
     const result = await executeDocumentDraftSkill({
+      academyId,
+      user,
+      academy,
+      season,
+      school,
+      context,
+      message,
+      onEvent,
+    });
+    return {
+      skill,
+      text: result.text,
+      review: null,
+      draft: result.draft,
+      tokenUsage: result.tokenUsage,
+    };
+  }
+
+  if (skill === SKILL_IDS.ACTIVITY_DRAFT) {
+    const result = await executeActivityDraftSkill({
       academyId,
       user,
       academy,
@@ -2739,6 +3401,14 @@ export const detectSkillFromMessage = (message = "") => {
     /\/(문서|document[-_]?draft)/i.test(text)
   ) {
     return SKILL_IDS.DOCUMENT_DRAFT;
+  }
+  if (
+    /활동.*(초안|작성|다듬|양식)/.test(text) ||
+    /(초안|작성|다듬).*활동/.test(text) ||
+    /양식.*(초안|작성)/.test(text) ||
+    /\/(활동|양식|activity[-_]?draft)/i.test(text)
+  ) {
+    return SKILL_IDS.ACTIVITY_DRAFT;
   }
   if (
     /계획서.*(초안|작성)/.test(text) ||
