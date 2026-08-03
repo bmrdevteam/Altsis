@@ -171,14 +171,19 @@
 }
 
 .prepCard {
+  position: relative;
   padding: 10px 12px;
   border-radius: 8px;
   border: 1px solid var(--border-default-color);
   background: var(--component-color);
   margin-bottom: 8px;
+  overflow: visible;
 }
 
 .prepLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   margin: 0 0 6px;
   font-size: 11px;
   font-weight: 700;
@@ -192,6 +197,72 @@
   color: var(--accent-1);
   white-space: pre-wrap;
   word-break: keep-all;
+}
+
+.prepHintWrap {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.prepHintBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--accent-3);
+  cursor: pointer;
+  line-height: 0;
+  transition: color 0.15s, background 0.15s;
+
+  svg {
+    fill: currentColor;
+  }
+
+  &:hover {
+    color: var(--accent-1);
+    background: var(--background-secondary, #f1f3f4);
+  }
+}
+
+.prepHintPopover {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 40;
+  width: max-content;
+  max-width: min(280px, 70vw);
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-default-color);
+  background: var(--background-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--accent-2);
+  line-height: 1.45;
+  white-space: normal;
+  word-break: keep-all;
+}
+
+.prepHintRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 4px 0 8px;
+  overflow: visible;
+}
+
+.prepHintRowLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-3);
 }
 
 .refList {
@@ -418,6 +489,82 @@
   color: var(--accent-3);
   line-height: 1.5;
   text-align: center;
+}
+
+/* Alter 채팅 버블용 컴팩트 마크다운 (부모 bubble의 pre-wrap 무력화) */
+.mdContent {
+  white-space: normal;
+  font-size: 14px;
+  line-height: 1.5;
+
+  :global(h1),
+  :global(h2),
+  :global(h3),
+  :global(h4),
+  :global(h5),
+  :global(h6) {
+    margin-top: 0.75em;
+    margin-bottom: 0.4em;
+    border-bottom: none;
+    padding-bottom: 0;
+    font-weight: 700;
+  }
+
+  :global(h1) {
+    font-size: 1.2em;
+  }
+
+  :global(h2) {
+    font-size: 1.1em;
+  }
+
+  :global(h3),
+  :global(h4),
+  :global(h5),
+  :global(h6) {
+    font-size: 1em;
+  }
+
+  :global(p),
+  :global(ul),
+  :global(ol) {
+    margin-top: 0;
+    margin-bottom: 0.55em;
+  }
+
+  :global(ul),
+  :global(ol) {
+    padding-left: 1.35em;
+  }
+
+  :global(li) {
+    margin-bottom: 0.35em;
+  }
+
+  :global(li) > :global(p) {
+    margin: 0;
+  }
+
+  :global(strong) {
+    font-weight: 700;
+  }
+
+  :global(p:last-child),
+  :global(ul:last-child),
+  :global(ol:last-child) {
+    margin-bottom: 0;
+  }
+
+  :global(pre) {
+    margin: 0.5em 0;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  :global(blockquote) {
+    margin: 0.5em 0;
+    padding-left: 10px;
+  }
 }
 
 .actionBtn {

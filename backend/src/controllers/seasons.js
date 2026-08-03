@@ -1474,7 +1474,7 @@ export const updateAiSettings = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("season") });
     }
 
-    // Initialize aiSettings if not exists
+    // 시즌 AI는 on/off만 관리. 지침·라이브러리·권한은 학교 AI 탭에서 설정.
     if (!season.aiSettings) {
       season.aiSettings = {
         enabled: false,
@@ -1486,47 +1486,11 @@ export const updateAiSettings = async (req, res) => {
       };
     }
 
-    // Update fields if provided
-    if ("enabled" in req.body) {
-      season.aiSettings.enabled = req.body.enabled;
-    }
-    if ("permission" in req.body) {
-      if ("teacher" in req.body.permission) {
-        season.aiSettings.permission.teacher = req.body.permission.teacher;
-      }
-      if ("student" in req.body.permission) {
-        season.aiSettings.permission.student = req.body.permission.student;
-      }
-    }
-    if ("guidelines" in req.body) {
-      season.aiSettings.guidelines = normalizeGuidelines(req.body.guidelines);
-    }
-    if ("references" in req.body) {
-      season.aiSettings.references = normalizeReferences(req.body.references);
-    }
-    if ("examples" in req.body) {
-      season.aiSettings.examples = normalizeExamples(req.body.examples);
-    }
-    if ("exampleSyllabusIds" in req.body) {
-      const ids = Array.isArray(req.body.exampleSyllabusIds)
-        ? req.body.exampleSyllabusIds
-            .map((id) => String(id || "").trim())
-            .filter(Boolean)
-        : [];
-      // 같은 학기 계획서만 허용, 최대 2개
-      const valid = [];
-      for (const id of ids.slice(0, 2)) {
-        const syl = await Syllabus(req.user.academyId)
-          .findById(id)
-          .select("season")
-          .lean();
-        if (syl && String(syl.season) === String(season._id)) {
-          valid.push(id);
-        }
-      }
-      season.aiSettings.exampleSyllabusIds = valid;
+    if (!("enabled" in req.body)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("enabled") });
     }
 
+    season.aiSettings.enabled = !!req.body.enabled;
     season.markModified("aiSettings");
     await season.save();
 

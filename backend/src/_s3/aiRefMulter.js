@@ -27,11 +27,7 @@ const fileWhitelist = [
   "application/octet-stream",
 ];
 
-/**
- * @description Upload AI reference file as "{bucket}/{academyId}/ai-ref/{seasonId}/{timestamp}_{randomString}.{ext}"
- * @param {string} seasonId - Season ID to include in file path
- */
-export const aiRefMulter = (seasonId) =>
+const makeAiRefMulter = (keyPrefix) =>
   multer({
     limits: {
       files: 1,
@@ -58,7 +54,7 @@ export const aiRefMulter = (seasonId) =>
       );
 
       req.tmp = {
-        key: `${req.user.academyId}/ai-ref/${seasonId}/${
+        key: `${req.user.academyId}/${keyPrefix}/${
           getDateString() + "_" + getRandomString()
         }.${file.originalname.split(".").pop()}`,
       };
@@ -66,3 +62,17 @@ export const aiRefMulter = (seasonId) =>
       cb(null, true);
     },
   });
+
+/**
+ * @description Upload AI reference file as "{bucket}/{academyId}/ai-ref/{seasonId}/{timestamp}_{randomString}.{ext}"
+ * @param {string} seasonId - Season ID to include in file path
+ */
+export const aiRefMulter = (seasonId) =>
+  makeAiRefMulter(`ai-ref/${seasonId}`);
+
+/**
+ * @description Upload school AI library file as "{bucket}/{academyId}/ai-library/{schoolId}/..."
+ * @param {string} schoolId
+ */
+export const schoolAiLibraryMulter = (schoolId) =>
+  makeAiRefMulter(`ai-library/${schoolId}`);

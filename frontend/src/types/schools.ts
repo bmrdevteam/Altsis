@@ -48,6 +48,42 @@ export type TAcademyFeatures = {
   aiEnabled: boolean;
 };
 
+export type TAlterSkillId =
+  | "chat"
+  | "syllabus-review"
+  | "evaluation-draft";
+
+export type TAiLibraryKind = "instruction" | "learning";
+
+export type TAiLibraryItem = {
+  _id: string;
+  school: string;
+  kind: TAiLibraryKind;
+  title: string;
+  content: string;
+  fileName?: string;
+  fileKey?: string;
+  fileSize?: number;
+  mimeType?: string;
+  skillTags?: TAlterSkillId[];
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type TSchoolAiSkillConfig = {
+  instructions?: string;
+  libraryItemIds?: string[];
+  exampleSyllabusIds?: string[];
+};
+
+export type TSchoolAiConfig = {
+  permission: {
+    teacher: boolean;
+    student: boolean;
+  };
+  skills: Partial<Record<TAlterSkillId, TSchoolAiSkillConfig>>;
+};
+
 export type TSchool = {
   _id: string;
   school: string;
@@ -70,6 +106,7 @@ export type TSchool = {
   boardNotificationEvents?: TBoardNotificationEventsSchool;
   academyFeatures?: TAcademyFeatures;
   goalDisplay?: TGoalDisplay;
+  aiConfig?: TSchoolAiConfig;
 };
 
 export const authTeacherTextMap: Map<TAuthTeacher, string> = new Map([

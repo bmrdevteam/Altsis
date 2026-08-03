@@ -47,6 +47,7 @@ import Remove from "./tab/Remove";
 import Notifications from "./tab/Notifications";
 import BoardManagement from "./tab/BoardManagement";
 import SchoolFeatureToggle from "./tab/FeatureSettings";
+import SchoolAISettings from "./tab/AISettings/Index";
 
 import { useAuth } from "contexts/authContext";
 import useAPIv2 from "hooks/useAPIv2";
@@ -170,12 +171,10 @@ const School = (props: Props) => {
                     ...(schoolData.academyFeatures?.aiEnabled !== false
                       ? {
                           AI: (
-                            <SchoolFeatureToggle
-                              featureKey="aiEnabled"
-                              label="AI 기능 활성화"
-                              description="이 학교에서 AI 기능을 활성화합니다."
+                            <SchoolAISettings
                               schoolData={schoolData}
                               setSchoolData={setSchoolData}
+                              seasonList={seasonList}
                             />
                           ),
                         }
@@ -235,12 +234,10 @@ const School = (props: Props) => {
                     ...(schoolData.academyFeatures?.aiEnabled !== false
                       ? {
                           AI: (
-                            <SchoolFeatureToggle
-                              featureKey="aiEnabled"
-                              label="AI 기능 활성화"
-                              description="이 학교에서 AI 기능을 활성화합니다."
+                            <SchoolAISettings
                               schoolData={schoolData}
                               setSchoolData={setSchoolData}
+                              seasonList={seasonList}
                             />
                           ),
                         }

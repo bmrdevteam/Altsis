@@ -19,6 +19,31 @@ router.put("/:_id/boardNotificationEvents", isAdManager, schools.updateBoardNoti
 router.put("/:_id/links", isAdManager, schools.updateLinks);
 router.put("/:_id/goalDisplay", isAdManager, schools.updateGoalDisplay);
 
+router.get("/:_id/ai-config", isAdManager, schools.findAiConfig);
+router.put("/:_id/ai-config", isAdManager, schools.updateAiConfig);
+router.get("/:_id/ai-library", isAdManager, schools.listAiLibrary);
+router.post("/:_id/ai-library", isAdManager, schools.createAiLibraryItem);
+router.post(
+  "/:_id/ai-library/upload",
+  isAdManager,
+  schools.uploadAiLibraryItem
+);
+router.put(
+  "/:_id/ai-library/:itemId",
+  isAdManager,
+  schools.updateAiLibraryItem
+);
+router.get(
+  "/:_id/ai-library/:itemId/download",
+  isAdManager,
+  schools.downloadAiLibraryItem
+);
+router.delete(
+  "/:_id/ai-library/:itemId",
+  isAdManager,
+  schools.deleteAiLibraryItem
+);
+
 // 삭제된 기록 양식 (휴지통) 관리
 router.put(
   "/:_id/deletedFormArchive/:label/restore",

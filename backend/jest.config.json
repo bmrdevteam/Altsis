@@ -2,7 +2,8 @@
   "rootDir": ".",
   "testMatch": [
     "**/tests/APIs/userAPI/**",
-    "**/tests/utils/**/*.test.js"
+    "**/tests/utils/**/*.test.js",
+    "**/tests/services/**/*.test.js"
   ],
   "testEnvironment": "node",
   "resetMocks": true,

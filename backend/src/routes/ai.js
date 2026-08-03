@@ -10,6 +10,9 @@ import * as ai from "../controllers/ai.js";
 // Skill catalog
 router.get("/skills", isLoggedIn, ai.listAiSkills);
 
+// Alter prep settings (school library / season fallback)
+router.get("/alter/skill-settings", isLoggedIn, ai.getAlterSkillSettings);
+
 // Alter conversation persistence
 router.get("/alter/conversations", isLoggedIn, ai.listAlterConversations);
 router.post("/alter/conversations", isLoggedIn, ai.createAlterConversation);

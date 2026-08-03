@@ -18,6 +18,10 @@ import {
   TSchoolFormArchive,
   TDeletedSchoolFormArchive,
   TAcademyFeatures,
+  TSchoolAiConfig,
+  TSchoolAiSkillConfig,
+  TAiLibraryItem,
+  TAlterSkillId,
 } from "types/schools";
 import { TGoalDisplay, TGoalsMe } from "types/goals";
 import { TDashboard } from "types/dashboard";
@@ -1168,6 +1172,134 @@ export default function useAPIv2() {
   }
 
   /**
+   * RSchoolAiConfig API
+   * @description 학교 AI 설정 조회
+   */
+  async function RSchoolAiConfig(props: { params: { _id: string } }) {
+    const { aiConfig } = await database.R({
+      location: `schools/${props.params._id}/ai-config`,
+    });
+    return { aiConfig: aiConfig as TSchoolAiConfig };
+  }
+
+  /**
+   * USchoolAiConfig API
+   * @description 학교 AI 권한·스킬 설정 업데이트
+   */
+  async function USchoolAiConfig(props: {
+    params: { _id: string };
+    data: {
+      permission?: { teacher?: boolean; student?: boolean };
+      skills?: Partial<Record<TAlterSkillId, TSchoolAiSkillConfig>>;
+    };
+  }) {
+    const { aiConfig } = await database.U({
+      location: `schools/${props.params._id}/ai-config`,
+      data: props.data,
+    });
+    return { aiConfig: aiConfig as TSchoolAiConfig };
+  }
+
+  /**
+   * RSchoolAiLibrary API
+   */
+  async function RSchoolAiLibrary(props: {
+    params: { _id: string };
+    query?: { kind?: "instruction" | "learning" };
+  }) {
+    const kindQ = props.query?.kind ? `?kind=${props.query.kind}` : "";
+    const { items } = await database.R({
+      location: `schools/${props.params._id}/ai-library${kindQ}`,
+    });
+    return { items: items as TAiLibraryItem[] };
+  }
+
+  /**
+   * CSchoolAiLibraryItem API
+   */
+  async function CSchoolAiLibraryItem(props: {
+    params: { _id: string };
+    data: {
+      kind?: "instruction" | "learning";
+      title?: string;
+      content?: string;
+      skillTags?: string[];
+    };
+  }) {
+    const { item, aiConfig } = await database.C({
+      location: `schools/${props.params._id}/ai-library`,
+      data: props.data,
+    });
+    return {
+      item: item as TAiLibraryItem,
+      aiConfig: aiConfig as TSchoolAiConfig | undefined,
+    };
+  }
+
+  /**
+   * USchoolAiLibraryItem API
+   */
+  async function USchoolAiLibraryItem(props: {
+    params: { _id: string; itemId: string };
+    data: {
+      kind?: "instruction" | "learning";
+      title?: string;
+      content?: string;
+      skillTags?: string[];
+    };
+  }) {
+    const { item, aiConfig } = await database.U({
+      location: `schools/${props.params._id}/ai-library/${props.params.itemId}`,
+      data: props.data,
+    });
+    return {
+      item: item as TAiLibraryItem,
+      aiConfig: aiConfig as TSchoolAiConfig | undefined,
+    };
+  }
+
+  /**
+   * DSchoolAiLibraryItem API
+   */
+  async function DSchoolAiLibraryItem(props: {
+    params: { _id: string; itemId: string };
+  }) {
+    await database.D({
+      location: `schools/${props.params._id}/ai-library/${props.params.itemId}`,
+    });
+    return { success: true as const };
+  }
+
+  /**
+   * CSchoolAiLibraryUpload API
+   */
+  async function CSchoolAiLibraryUpload(props: {
+    params: { _id: string };
+    data: FormData;
+  }) {
+    const { item, aiConfig } = await database.C({
+      location: `schools/${props.params._id}/ai-library/upload`,
+      data: props.data,
+    });
+    return {
+      item: item as TAiLibraryItem,
+      aiConfig: aiConfig as TSchoolAiConfig | undefined,
+    };
+  }
+
+  /**
+   * RSchoolAiLibraryDownload API
+   */
+  async function RSchoolAiLibraryDownload(props: {
+    params: { _id: string; itemId: string };
+  }) {
+    const { url } = await database.R({
+      location: `schools/${props.params._id}/ai-library/${props.params.itemId}/download`,
+    });
+    return { url: url as string };
+  }
+
+  /**
    * RestoreFormArchive API
    * @description 삭제된 기록 양식 복원 API
    * @version 2.0.0
@@ -1811,15 +1943,7 @@ export default function useAPIv2() {
       _id: string;
     };
     data: {
-      enabled?: boolean;
-      permission?: {
-        teacher?: boolean;
-        student?: boolean;
-      };
-      guidelines?: string;
-      references?: { title: string; content: string }[];
-      examples?: Record<string, string>;
-      exampleSyllabusIds?: string[];
+      enabled: boolean;
     };
   }) {
     const { season } = await database.U({
@@ -4973,6 +5097,14 @@ export default function useAPIv2() {
       USchoolFeatureFlags,
       USchoolBoardCreationPermission,
       USchoolBoardNotificationEvents,
+      RSchoolAiConfig,
+      USchoolAiConfig,
+      RSchoolAiLibrary,
+      CSchoolAiLibraryItem,
+      USchoolAiLibraryItem,
+      DSchoolAiLibraryItem,
+      CSchoolAiLibraryUpload,
+      RSchoolAiLibraryDownload,
       RestoreFormArchive,
       RemoveFormArchive,
       DSchool,

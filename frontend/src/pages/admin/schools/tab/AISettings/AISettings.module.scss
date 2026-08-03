@@ -1,0 +1,352 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 8px;
+  color: var(--accent-1);
+}
+
+.loading {
+  padding: 32px 8px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--accent-3);
+}
+
+.section {
+  padding: 16px 18px;
+  border: 1px solid var(--border-default-color);
+  border-radius: 12px;
+  background: var(--background-color);
+}
+
+.sectionTitle {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent-1);
+}
+
+.sectionHint {
+  margin: 0 0 14px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--accent-3);
+}
+
+.statusCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: var(--component-color);
+  border: 1px solid var(--border-default-color);
+}
+
+.statusMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.statusLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-3);
+}
+
+.statusValue {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-3);
+}
+
+.statusOn {
+  color: var(--status-success);
+
+  .statusDot {
+    background: var(--status-success);
+  }
+}
+
+.statusOff {
+  color: var(--accent-3);
+}
+
+.textarea {
+  width: 100%;
+  min-height: 140px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-default-color);
+  border-radius: 10px;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--accent-1);
+  background: var(--component-color);
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent-2);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: wait;
+  }
+}
+
+.input,
+.fieldTextarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-default-color);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--accent-1);
+  background: var(--component-color);
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent-2);
+  }
+}
+
+.fieldTextarea {
+  min-height: 88px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.fieldLabel {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent-2);
+}
+
+.fieldBlock {
+  margin-bottom: 12px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.actionsSpread {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.hintInline {
+  font-size: 12px;
+  color: var(--accent-3);
+}
+
+.listPanel {
+  max-height: 260px;
+  overflow: auto;
+  margin-bottom: 12px;
+  border: 1px solid var(--border-default-color);
+  border-radius: 10px;
+  background: var(--component-color);
+}
+
+.listRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--border-default-color);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1.45;
+  transition: background-color 0.12s ease;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background: var(--background-color);
+  }
+}
+
+.listRowChecked {
+  background: var(--status-success-bg, var(--background-color));
+}
+
+.listCheck {
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+
+.listTitle {
+  font-weight: 700;
+  color: var(--accent-1);
+}
+
+.listMeta {
+  color: var(--accent-3);
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-1);
+  background: var(--component-color);
+  border: 1px solid var(--border-default-color);
+}
+
+.emptyNote {
+  margin: 0;
+  padding: 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--accent-3);
+  background: var(--component-color);
+  border: 1px dashed var(--border-default-color);
+}
+
+.refForm {
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: var(--component-color);
+  border: 1px solid var(--border-default-color);
+}
+
+.tableWrap {
+  margin-bottom: 14px;
+}
+
+.skillTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.skillTab {
+  border: 1px solid var(--border-default-color);
+  background: var(--component-color);
+  color: var(--accent-2);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+
+  &:hover {
+    background: var(--component-hover-color, #ebebeb);
+  }
+}
+
+.skillTabActive {
+  background: var(--accent-1);
+  color: var(--background-color);
+  border-color: var(--accent-1);
+}
+
+.filterRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.tagChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--background-secondary, #f1f3f4);
+  color: var(--accent-2);
+}
+
+.checkboxGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 8px 0 12px;
+  font-size: 12.5px;
+  color: var(--accent-1);
+}
+
+.checkboxGrid label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.editPanel {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: var(--status-success-bg, var(--component-color));
+  border: 1px solid var(--border-default-color);
+}
+
+.editPanelTitle {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-1);
+}
+
+.previewBox {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--background-color);
+  border: 1px dashed var(--border-default-color);
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: keep-all;
+  color: var(--accent-1);
+  max-height: 280px;
+  overflow: auto;
+}

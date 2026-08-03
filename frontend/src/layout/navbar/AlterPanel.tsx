@@ -10,6 +10,8 @@ import {
 import { isEmptyEval } from "utils/evaluationCsv";
 import { TAlterConversation } from "types/alterChat";
 import Button from "components/button/Button";
+import { MarkdownViewer } from "components/markdown";
+import normalizeAlterMarkdown from "utils/normalizeAlterMarkdown";
 import Svg from "assets/svg/Svg";
 import {
   ChatPanelShell,
@@ -109,6 +111,43 @@ const EVAL_DRAFT_MAX = 30;
 /** Prep에서 기본으로 선택하는 학생 수 (나눠 진행 권장) */
 const EVAL_DRAFT_DEFAULT_BATCH = 8;
 
+/** 설명 아이콘 — 클릭 시에만 안내 문구 표시 */
+const PrepHint = ({ text }: { text: string }) => {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+
+  return (
+    <span className={style.prepHintWrap} ref={rootRef}>
+      <button
+        type="button"
+        className={style.prepHintBtn}
+        aria-label="설명 보기"
+        aria-expanded={open}
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((v) => !v);
+        }}
+      >
+        <Svg type="info-circle" width="13px" height="13px" />
+      </button>
+      {open && (
+        <span className={style.prepHintPopover} role="tooltip">
+          {text}
+        </span>
+      )}
+    </span>
+  );
+};
+
 type Props = {
   onClose: () => void;
 };
@@ -147,6 +186,11 @@ const AlterPanel = ({ onClose }: Props) => {
   const [isWorking, setIsWorking] = useState(false);
   const [steps, setSteps] = useState<string[]>([]);
   const [selectedRefIndexes, setSelectedRefIndexes] = useState<number[]>([]);
+  const [skillGuidelines, setSkillGuidelines] = useState("");
+  const [skillReferences, setSkillReferences] = useState<
+    Array<{ title?: string; content?: string }>
+  >([]);
+  const [skillSettingsLoading, setSkillSettingsLoading] = useState(false);
   const [appliedFields, setAppliedFields] = useState<Set<string>>(new Set());
   const [appliedDraftIds, setAppliedDraftIds] = useState<Set<string>>(
     new Set()
@@ -194,8 +238,8 @@ const AlterPanel = ({ onClose }: Props) => {
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, [actionMenuOpen]);
 
-  const references = currentSeason?.aiSettings?.references || [];
-  const guidelines = (currentSeason?.aiSettings?.guidelines || "").trim();
+  const references = skillReferences;
+  const guidelines = skillGuidelines.trim();
 
   const formEvaluation = pageContext?.formEvaluation || [];
   const teacherEditableFields = useMemo(
@@ -276,12 +320,54 @@ const AlterPanel = ({ onClose }: Props) => {
   ]);
 
   useEffect(() => {
+    if (!isOpen || !currentSeason?._id) return;
+    if (
+      selectedSkill !== "syllabus-review" &&
+      selectedSkill !== "evaluation-draft"
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        setSkillSettingsLoading(true);
+        const res = await fetch(
+          `${alterApiBase()}/alter/skill-settings?season=${encodeURIComponent(
+            currentSeason._id
+          )}&skill=${encodeURIComponent(selectedSkill)}`,
+          { credentials: "include" }
+        );
+        if (!res.ok) {
+          throw new Error("스킬 설정을 불러오지 못했습니다.");
+        }
+        const data = await res.json();
+        if (cancelled) return;
+        setSkillGuidelines((data.guidelines || "").trim());
+        setSkillReferences(
+          Array.isArray(data.references) ? data.references : []
+        );
+      } catch {
+        if (cancelled) return;
+        setSkillGuidelines("");
+        setSkillReferences([]);
+      } finally {
+        if (!cancelled) setSkillSettingsLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, currentSeason?._id, selectedSkill]);
+
+  useEffect(() => {
     if (references.length === 0) {
       setSelectedRefIndexes([]);
       return;
     }
     setSelectedRefIndexes(references.slice(0, 2).map((_, i) => i));
-  }, [references.length]);
+  }, [references]);
 
   useEffect(() => {
     const behavior = skipSmoothScrollRef.current ? "auto" : "smooth";
@@ -751,8 +837,7 @@ const AlterPanel = ({ onClose }: Props) => {
     if (selectedSkill === "evaluation-draft" || (showPrep && pageContext?.pageType === "evaluation")) {
       void runSkill(
         "evaluation-draft",
-        draft.trim() ||
-          "자기평가와 기존 멘토평가를 종합해 교사 시점의 멘토평가를 새로 작성해 주세요. 문장을 그대로 복사하지 마세요."
+        draft.trim() || "평가 초안을 작성해 주세요."
       );
       return;
     }
@@ -1139,16 +1224,22 @@ const AlterPanel = ({ onClose }: Props) => {
         {inSyllabusPrep && (
           <>
             <div className={style.prepCard}>
-              <p className={style.prepLabel}>저장된 작성 지침</p>
+              <p className={style.prepLabel}>학교 작성 지침</p>
               <p className={style.prepText}>
-                {guidelines ||
-                  "학기에 저장된 작성 지침이 없습니다. 기본 기준으로 점검합니다."}
+                {skillSettingsLoading
+                  ? "지침을 불러오는 중..."
+                  : guidelines ||
+                    "학교에 선택된 작성 지침이 없습니다. 기본 기준으로 점검합니다. (관리 → 학교 AI → 라이브러리)"}
               </p>
             </div>
             <div className={style.prepCard}>
               <p className={style.prepLabel}>참고 자료 (최대 2개)</p>
-              {references.length === 0 ? (
-                <p className={style.prepText}>등록된 참고 자료가 없습니다.</p>
+              {skillSettingsLoading ? (
+                <p className={style.prepText}>참고 자료를 불러오는 중...</p>
+              ) : references.length === 0 ? (
+                <p className={style.prepText}>
+                  등록된 참고 자료가 없습니다. (관리 → 학교 AI → 라이브러리)
+                </p>
               ) : (
                 <div className={style.refList}>
                   {references.map((ref, index) => (
@@ -1177,10 +1268,10 @@ const AlterPanel = ({ onClose }: Props) => {
                 </div>
               )}
             </div>
-            <p className={style.emptyHint}>
-              「점검 시작」을 누르면 현재 초안의 모든 항목을 평가합니다. 점검
-              후에는 이어서 대화할 수 있습니다.
-            </p>
+            <div className={style.prepHintRow}>
+              <PrepHint text="「점검 시작」을 누르면 현재 초안의 모든 항목을 평가합니다. 점검 후에는 이어서 대화할 수 있습니다." />
+              <span className={style.prepHintRowLabel}>이용 안내</span>
+            </div>
           </>
         )}
 
@@ -1217,45 +1308,46 @@ const AlterPanel = ({ onClose }: Props) => {
               )}
             </div>
             <div className={style.prepCard}>
-              <p className={style.prepLabel}>참고할 항목</p>
+              <p className={style.prepLabel}>
+                참고할 항목
+                <PrepHint text="자기평가와 기존 멘토평가를 함께 참고하면, 둘을 종합한 새 멘토평가 초안을 만듭니다. 원문은 복사되지 않도록 재작성합니다." />
+              </p>
               {allEvalLabels.length === 0 ? (
                 <p className={style.prepText}>참고할 항목이 없습니다.</p>
               ) : (
-                <>
-                  <div className={style.refList}>
-                    {allEvalLabels.map((label) => {
-                      const isTarget = evalTargetLabels.includes(label);
-                      return (
-                        <label key={label} className={style.refRow}>
-                          <input
-                            type="checkbox"
-                            checked={evalContextLabels.includes(label)}
-                            onChange={() =>
-                              toggleLabel(
-                                label,
-                                evalContextLabels,
-                                setEvalContextLabels
-                              )
-                            }
-                          />
-                          <span>
-                            {label}
-                            {isTarget ? " (작성 대상·기존 내용)" : ""}
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                  <p className={style.prepText}>
-                    자기평가와 기존 멘토평가를 함께 참고하면, 둘을 종합한 새
-                    멘토평가 초안을 만듭니다. 원문은 복사되지 않도록
-                    재작성합니다.
-                  </p>
-                </>
+                <div className={style.refList}>
+                  {allEvalLabels.map((label) => {
+                    const isTarget = evalTargetLabels.includes(label);
+                    return (
+                      <label key={label} className={style.refRow}>
+                        <input
+                          type="checkbox"
+                          checked={evalContextLabels.includes(label)}
+                          onChange={() =>
+                            toggleLabel(
+                              label,
+                              evalContextLabels,
+                              setEvalContextLabels
+                            )
+                          }
+                        />
+                        <span>
+                          {label}
+                          {isTarget ? " (작성 대상·기존 내용)" : ""}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
               )}
             </div>
             <div className={style.prepCard}>
-              <p className={style.prepLabel}>범위</p>
+              <p className={style.prepLabel}>
+                범위
+                {!evalFillEmptyOnly ? (
+                  <PrepHint text="종합 재작성 모드: 참고 항목을 합쳐 작성 항목을 새로 씁니다. 「빈 칸만 채우기」를 끄면 기존 내용을 덮어씁니다." />
+                ) : null}
+              </p>
               <div className={style.refList}>
                 <label className={style.refRow}>
                   <input
@@ -1281,19 +1373,17 @@ const AlterPanel = ({ onClose }: Props) => {
                     checked={evalFillEmptyOnly}
                     onChange={(e) => setEvalFillEmptyOnly(e.target.checked)}
                   />
-                  <span>
-                    빈 칸만 채우기 (끄면 기존 멘토평가를 종합해 덮어씀)
-                  </span>
+                  <span>빈 칸만 채우기</span>
                 </label>
               </div>
-              {!evalFillEmptyOnly && (
-                <p className={style.prepText}>
-                  종합 재작성 모드: 참고 항목을 합쳐 작성 항목을 새로 씁니다.
-                </p>
-              )}
             </div>
             <div className={style.prepCard}>
-              <p className={style.prepLabel}>학생 선택</p>
+              <p className={style.prepLabel}>
+                학생 선택
+                <PrepHint
+                  text={`한 번에 최대 ${EVAL_DRAFT_MAX}명까지 선택해 초안을 만들 수 있습니다. 나눠서 여러 번 실행할 수 있습니다.`}
+                />
+              </p>
               {evalCandidateStudents.length === 0 ? (
                 <p className={style.prepText}>
                   {evalScope === "empty"
@@ -1365,23 +1455,24 @@ const AlterPanel = ({ onClose }: Props) => {
                     {evalCandidateStudents.length > evalSelectedIds.length
                       ? ` · 후보 ${evalCandidateStudents.length}명`
                       : ""}
-                    {` · 한 번에 최대 ${EVAL_DRAFT_MAX}명`}. 나눠서 여러 번
-                    실행할 수 있습니다.
                   </p>
                 </>
               )}
             </div>
-            {guidelines && (
+            {(skillSettingsLoading || guidelines) && (
               <div className={style.prepCard}>
-                <p className={style.prepLabel}>학기 작성 지침</p>
-                <p className={style.prepText}>{guidelines}</p>
+                <p className={style.prepLabel}>학교 작성 지침</p>
+                <p className={style.prepText}>
+                  {skillSettingsLoading
+                    ? "지침을 불러오는 중..."
+                    : guidelines}
+                </p>
               </div>
             )}
-            <p className={style.emptyHint}>
-              참고(자기평가·기존 멘토평가) → 작성(멘토평가)로 종합 초안을
-              만듭니다. 학생을 고른 뒤 「초안 작성」을 누르세요. 반영 후에도
-              행별 저장이 필요합니다.
-            </p>
+            <div className={style.prepHintRow}>
+              <PrepHint text="참고(자기평가·기존 멘토평가) → 작성(멘토평가)로 종합 초안을 만듭니다. 학생을 고른 뒤 「초안 작성」을 누르세요. 반영 후에도 행별 저장이 필요합니다." />
+              <span className={style.prepHintRowLabel}>이용 안내</span>
+            </div>
           </>
         )}
 
@@ -1415,7 +1506,16 @@ const AlterPanel = ({ onClose }: Props) => {
               </>
             }
           >
-            {msg.content}
+            {msg.content ? (
+              msg.role === "assistant" ? (
+                <MarkdownViewer
+                  content={normalizeAlterMarkdown(msg.content)}
+                  className={style.mdContent}
+                />
+              ) : (
+                msg.content
+              )
+            ) : null}
             {msg.draft && (
               <div className={style.reviewList}>
                 <div className={style.reviewItem}>

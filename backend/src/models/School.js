@@ -150,8 +150,31 @@ const deletedFormArchiveItemSchema = mongoose.Schema(
  * @prop {boolean} aiEnabled=true - AI 기능 활성화 상태 (학교 수준)
  * @prop {boolean} goalsEnabled=true - 목표 기능 활성화 상태 (학교 수준)
  * @prop {Object} [goalDisplay] - 목표 표시 블록 on/off (역할별)
+ * @prop {Object} [aiConfig] - 학교 AI 스킬·권한 설정
  *
  */
+const aiPermissionSchema = mongoose.Schema(
+  {
+    teacher: { type: Boolean, default: false },
+    student: { type: Boolean, default: false },
+  },
+  { _id: false }
+);
+
+const aiConfigSchema = mongoose.Schema(
+  {
+    permission: {
+      type: aiPermissionSchema,
+      default: () => ({ teacher: false, student: false }),
+    },
+    skills: {
+      type: mongoose.Schema.Types.Mixed,
+      default: () => ({}),
+    },
+  },
+  { _id: false }
+);
+
 const goalDisplayRoleStudentSchema = mongoose.Schema(
   {
     enrolled: { type: Boolean, default: true },
@@ -233,6 +256,13 @@ const schoolSchema = mongoose.Schema(
     goalDisplay: {
       type: goalDisplaySchema,
       default: () => ({ student: {}, teacher: {} }),
+    },
+    aiConfig: {
+      type: aiConfigSchema,
+      default: () => ({
+        permission: { teacher: false, student: false },
+        skills: {},
+      }),
     },
   },
   { timestamps: true }

@@ -35,6 +35,8 @@ import {
   runAlterSkill,
   detectSkillFromMessage,
   mergeTokenUsage,
+  resolveSkillPrepSettings,
+  resolveSkillId,
 } from "../services/aiSkills.js";
 import {
   listAlterConversations as listAlterConversationsSvc,
@@ -76,6 +78,32 @@ export const listAiSkills = async (_req, res) => {
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * Alter prep — 스킬별 저장된 지침·참고자료
+ * @route GET /ai/alter/skill-settings?season=&skill=
+ */
+export const getAlterSkillSettings = async (req, res) => {
+  try {
+    const seasonId = req.query.season;
+    const skill = resolveSkillId(req.query.skill || SKILL_IDS.CHAT);
+    const { season, school } = await assertSeasonAiAccess(
+      req.user.academyId,
+      req.user,
+      seasonId
+    );
+    const settings = await resolveSkillPrepSettings(
+      req.user.academyId,
+      school,
+      season,
+      skill
+    );
+    return res.status(200).send(settings);
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(err.status || 500).send({ message: err.message });
   }
 };
 
@@ -382,7 +410,7 @@ export const reviewSyllabusContent = async (req, res) => {
 
     sendEvent("step", { message: "설정 확인 중..." });
 
-    const { academy, season } = await assertSeasonAiAccess(
+    const { academy, season, school } = await assertSeasonAiAccess(
       req.user.academyId,
       req.user,
       seasonId
@@ -393,6 +421,7 @@ export const reviewSyllabusContent = async (req, res) => {
       user: req.user,
       academy,
       season,
+      school,
       context,
       onEvent: sendEvent,
     });

@@ -4,7 +4,13 @@
  */
 
 import { Academy } from "../models/Academy.js";
-import { Season, School, Registration, Syllabus } from "../models/index.js";
+import {
+  AiLibraryItem,
+  Season,
+  School,
+  Registration,
+  Syllabus,
+} from "../models/index.js";
 import {
   generateText,
   generateTextStream,
@@ -17,6 +23,7 @@ import {
   FEATURE_PROFILES,
   selectReferencesForPrompt,
   normalizeGuidelines,
+  normalizeReferences,
   normalizeExamples,
   normalizeUserInputs,
   extractSyllabusInputFields,
@@ -74,6 +81,159 @@ export const listSkills = () => Object.values(SKILL_CATALOG);
 export const resolveSkillId = (raw) => {
   const id = String(raw || SKILL_IDS.CHAT).trim();
   return SKILL_CATALOG[id] ? id : SKILL_IDS.CHAT;
+};
+
+/**
+ * 학교 aiConfig + 라이브러리 → 스킬별 지침/참고자료 팩.
+ * school.aiConfig 가 없으면 시즌 aiSettings 로 fallback.
+ */
+const hasSchoolSkillConfig = (school) =>
+  !!(
+    school?.aiConfig?.skills &&
+    typeof school.aiConfig.skills === "object" &&
+    Object.keys(school.aiConfig.skills).length > 0
+  );
+
+const defaultSkillGuide = (skill) =>
+  skill === SKILL_IDS.EVALUATION_DRAFT
+    ? "학생을 존중하는 공손한 문어체로, 관찰 가능한 사실과 성장 포인트를 2~4문장으로 작성하세요."
+    : "구체성, 학습목표와 활동 연결, 평가 정합성을 중심으로 도와주세요.";
+
+/** 스킬에 선택된 라이브러리 → 지침 블록 / 학습정보 */
+const loadSchoolSkillLibraryParts = async (academyId, school, skillConfig) => {
+  let learningRefs = [];
+  const instructionBlocks = [];
+  const ids = Array.isArray(skillConfig?.libraryItemIds)
+    ? skillConfig.libraryItemIds.map(String).filter(Boolean)
+    : [];
+  if (ids.length > 0 && school?._id) {
+    const items = await AiLibraryItem(academyId)
+      .find({
+        _id: { $in: ids },
+        school: school._id,
+      })
+      .lean();
+    const byId = new Map(items.map((it) => [String(it._id), it]));
+    const ordered = ids.map((id) => byId.get(id)).filter(Boolean);
+    for (const it of ordered) {
+      if (!(it.content || it.title)) continue;
+      if (it.kind === "instruction") {
+        instructionBlocks.push(
+          `### ${it.title || "지침"}\n${truncateText(
+            it.content || "",
+            PROMPT_LIMITS.REFERENCE_CHARS
+          )}`
+        );
+      } else {
+        learningRefs.push({
+          title: it.title,
+          content: it.content,
+        });
+      }
+    }
+    learningRefs = normalizeReferences(learningRefs);
+  }
+  return { instructionBlocks, learningRefs };
+};
+
+export const resolveSkillPromptPack = async (
+  academyId,
+  school,
+  season,
+  skillId,
+  referenceIndexes
+) => {
+  const skill = resolveSkillId(skillId);
+  const skillConfig = school?.aiConfig?.skills?.[skill] || null;
+  const useSchool = hasSchoolSkillConfig(school);
+
+  if (useSchool) {
+    const { instructionBlocks, learningRefs } =
+      await loadSchoolSkillLibraryParts(academyId, school, skillConfig);
+
+    // 지침은 라이브러리(instruction) 선택이 우선. 없으면 기본 가이드.
+    // 레거시 skills.instructions 는 라이브러리 지침이 없을 때만 사용.
+    const baseInstructions =
+      instructionBlocks.length > 0
+        ? ""
+        : normalizeGuidelines(
+            skillConfig?.instructions || defaultSkillGuide(skill)
+          );
+
+    const guidelines = truncateText(
+      [baseInstructions, ...instructionBlocks].filter(Boolean).join("\n\n"),
+      PROMPT_LIMITS.GUIDELINES_TOTAL_CHARS ||
+        PROMPT_LIMITS.GUIDELINES_CHARS * 4
+    );
+
+    return {
+      guidelines,
+      references: selectReferencesForPrompt(learningRefs, referenceIndexes),
+      exampleSyllabusIds: Array.isArray(skillConfig?.exampleSyllabusIds)
+        ? skillConfig.exampleSyllabusIds.map(String)
+        : [],
+      examples: {},
+      schoolId: school?._id ? String(school._id) : null,
+      fromSchool: true,
+    };
+  }
+
+  // fallback: 시즌 설정 (마이그레이션 전)
+  return {
+    guidelines: normalizeGuidelines(
+      season?.aiSettings?.guidelines || defaultSkillGuide(skill)
+    ),
+    references: selectReferencesForPrompt(
+      season?.aiSettings?.references || [],
+      referenceIndexes
+    ),
+    exampleSyllabusIds: Array.isArray(season?.aiSettings?.exampleSyllabusIds)
+      ? season.aiSettings.exampleSyllabusIds.map(String)
+      : [],
+    examples: season?.aiSettings?.examples || {},
+    schoolId: school?._id ? String(school._id) : null,
+    fromSchool: false,
+  };
+};
+
+/**
+ * Alter prep UI용 — 저장된 지침/참고자료 (기본 가이드 문구는 넣지 않음).
+ * references 는 선택 전 전체 목록(인덱스는 프롬프트와 동일 순서).
+ */
+export const resolveSkillPrepSettings = async (
+  academyId,
+  school,
+  season,
+  skillId
+) => {
+  const skill = resolveSkillId(skillId);
+  const skillConfig = school?.aiConfig?.skills?.[skill] || null;
+  const useSchool = hasSchoolSkillConfig(school);
+
+  if (useSchool) {
+    const { instructionBlocks, learningRefs } =
+      await loadSchoolSkillLibraryParts(academyId, school, skillConfig);
+    const baseInstructions =
+      instructionBlocks.length > 0
+        ? ""
+        : normalizeGuidelines(skillConfig?.instructions || "");
+    const guidelines = truncateText(
+      [baseInstructions, ...instructionBlocks].filter(Boolean).join("\n\n"),
+      PROMPT_LIMITS.GUIDELINES_TOTAL_CHARS ||
+        PROMPT_LIMITS.GUIDELINES_CHARS * 4
+    );
+    return {
+      guidelines,
+      references: learningRefs,
+      fromSchool: true,
+    };
+  }
+
+  return {
+    guidelines: normalizeGuidelines(season?.aiSettings?.guidelines || ""),
+    references: normalizeReferences(season?.aiSettings?.references || []),
+    fromSchool: false,
+  };
 };
 
 export const mergeTokenUsage = (a, b) => {
@@ -189,8 +349,9 @@ export const assertSeasonAiAccess = async (academyId, user, seasonId) => {
     throw err;
   }
 
+  let school = null;
   if (season.school) {
-    const school = await School(academyId).findById(season.school);
+    school = await School(academyId).findById(season.school);
     if (school && school.aiEnabled === false) {
       const err = new Error(AI_ERRORS.NOT_ENABLED);
       err.status = 403;
@@ -210,10 +371,17 @@ export const assertSeasonAiAccess = async (academyId, user, seasonId) => {
     throw err;
   }
 
+  const useSchoolPerm = hasSchoolSkillConfig(school);
+  const schoolPerm = school?.aiConfig?.permission;
+  const seasonPerm = season.aiSettings?.permission;
   const hasPermission =
     registration.role === "teacher"
-      ? season.aiSettings.permission?.teacher
-      : season.aiSettings.permission?.student;
+      ? useSchoolPerm
+        ? !!schoolPerm?.teacher
+        : !!seasonPerm?.teacher
+      : useSchoolPerm
+        ? !!schoolPerm?.student
+        : !!seasonPerm?.student;
 
   if (!hasPermission) {
     const err = new Error(PERMISSION_DENIED);
@@ -222,7 +390,7 @@ export const assertSeasonAiAccess = async (academyId, user, seasonId) => {
     throw err;
   }
 
-  return { academy, season, registration };
+  return { academy, season, school, registration };
 };
 
 /**
@@ -234,27 +402,32 @@ export const resolveStyleRubric = async (
   seasonId,
   context,
   fields,
-  aiSettings
+  promptPack
 ) => {
   const fieldNames = (fields || []).map((f) =>
     typeof f === "string" ? f : f.name
   );
   let examples = {};
   let sourceLabel = "";
+  const schoolId = promptPack?.schoolId || null;
 
   if (context?.exampleSyllabusId) {
     const exampleSyllabus = await Syllabus(academyId)
       .findById(context.exampleSyllabusId)
-      .select("classTitle user season info")
+      .select("classTitle user season school info")
       .lean();
     const sameSeason =
       exampleSyllabus && String(exampleSyllabus.season) === String(seasonId);
+    const sameSchool =
+      schoolId &&
+      exampleSyllabus &&
+      String(exampleSyllabus.school) === String(schoolId);
     const isOwner =
       exampleSyllabus && String(exampleSyllabus.user) === String(userId);
-    if (exampleSyllabus && (sameSeason || isOwner)) {
+    if (exampleSyllabus && (sameSeason || sameSchool || isOwner)) {
       examples = examplesFromSyllabusInfo(exampleSyllabus.info, fields);
       if (Object.keys(examples).length > 0) {
-        sourceLabel = `${isOwner ? "내 계획서" : "학기 계획서"} 「${
+        sourceLabel = `${isOwner ? "내 계획서" : "모범 계획서"} 「${
           exampleSyllabus.classTitle || "제목 없음"
         }」`;
       }
@@ -262,8 +435,8 @@ export const resolveStyleRubric = async (
   }
 
   if (Object.keys(examples).length === 0) {
-    const configuredIds = Array.isArray(aiSettings?.exampleSyllabusIds)
-      ? aiSettings.exampleSyllabusIds
+    const configuredIds = Array.isArray(promptPack?.exampleSyllabusIds)
+      ? promptPack.exampleSyllabusIds
           .map((id) => String(id || "").trim())
           .filter(Boolean)
       : [];
@@ -272,14 +445,13 @@ export const resolveStyleRubric = async (
     for (const id of configuredIds.slice(0, 2)) {
       const exampleSyllabus = await Syllabus(academyId)
         .findById(id)
-        .select("classTitle season info")
+        .select("classTitle season school info")
         .lean();
-      if (
-        !exampleSyllabus ||
-        String(exampleSyllabus.season) !== String(seasonId)
-      ) {
-        continue;
-      }
+      if (!exampleSyllabus) continue;
+      const ok = schoolId
+        ? String(exampleSyllabus.school) === String(schoolId)
+        : String(exampleSyllabus.season) === String(seasonId);
+      if (!ok) continue;
       const part = examplesFromSyllabusInfo(exampleSyllabus.info, fields);
       Object.assign(merged, part);
       labels.push(exampleSyllabus.classTitle || "제목 없음");
@@ -288,15 +460,15 @@ export const resolveStyleRubric = async (
       examples = merged;
       sourceLabel =
         labels.length === 1
-          ? `학기 모범 계획서 「${labels[0]}」`
-          : `학기 모범 계획서 ${labels.map((t) => `「${t}」`).join(" ")}`;
+          ? `모범 계획서 「${labels[0]}」`
+          : `모범 계획서 ${labels.map((t) => `「${t}」`).join(" ")}`;
     }
   }
 
   if (Object.keys(examples).length === 0) {
-    examples = normalizeExamples(aiSettings?.examples || {}, fieldNames);
+    examples = normalizeExamples(promptPack?.examples || {}, fieldNames);
     if (Object.keys(examples).length > 0) {
-      sourceLabel = "학기 AI 설정 모범 문장";
+      sourceLabel = "AI 설정 모범 문장";
     }
   }
 
@@ -308,7 +480,7 @@ export const resolveStyleRubric = async (
 
 export const buildReviewPrompt = (
   context,
-  aiSettings,
+  promptPack,
   stylePack,
   focusFields
 ) => {
@@ -328,16 +500,13 @@ export const buildReviewPrompt = (
 
 ## 지침
 ${normalizeGuidelines(
-  aiSettings?.guidelines ||
+  promptPack?.guidelines ||
     "구체성, 학습목표와 활동의 연결, 평가와의 정합성을 중심으로 피드백하세요."
 )}
 
 `;
 
-  const references = selectReferencesForPrompt(
-    aiSettings?.references || [],
-    context.referenceIndexes
-  );
+  const references = promptPack?.references || [];
   if (references.length > 0) {
     prompt += `## 참고 자료\n`;
     for (const ref of references) {
@@ -525,6 +694,7 @@ export const executeSyllabusReviewSkill = async ({
   user,
   academy,
   season,
+  school,
   context,
   onEvent,
 }) => {
@@ -548,13 +718,21 @@ export const executeSyllabusReviewSkill = async ({
     fieldChunks.push(fields.slice(i, i + chunkSize));
   }
 
+  const promptPack = await resolveSkillPromptPack(
+    academyId,
+    school,
+    season,
+    SKILL_IDS.SYLLABUS_REVIEW,
+    context?.referenceIndexes
+  );
+
   const stylePack = await resolveStyleRubric(
     academyId,
     user._id,
     season._id,
     context,
     fields,
-    season.aiSettings
+    promptPack
   );
 
   const provider = resolveProvider(academy.aiProvider);
@@ -575,7 +753,7 @@ export const executeSyllabusReviewSkill = async ({
 
     const prompt = buildReviewPrompt(
       { ...(context || {}), reviewChunkIndex: i },
-      season.aiSettings,
+      promptPack,
       stylePack,
       chunkFields
     );
@@ -659,15 +837,12 @@ export const formatReviewAsChatText = (review) => {
   return lines.join("\n");
 };
 
-const buildAlterChatSystem = (season, context, boardTitle) => {
+const buildAlterChatSystem = (promptPack, context, boardTitle) => {
   const guidelines = normalizeGuidelines(
-    season?.aiSettings?.guidelines ||
+    promptPack?.guidelines ||
       "구체성, 학습목표와 활동 연결, 평가 정합성을 중심으로 도와주세요."
   );
-  const refs = selectReferencesForPrompt(
-    season?.aiSettings?.references || [],
-    context?.referenceIndexes
-  );
+  const refs = promptPack?.references || [];
   let refBlock = "";
   if (refs.length > 0) {
     refBlock =
@@ -689,7 +864,7 @@ const buildAlterChatSystem = (season, context, boardTitle) => {
 한국어로 친절하고 구체적으로 답하세요. 강의계획서·수업 설계 맥락이 있으면 이를 우선합니다.
 당신이 AI임을 숨기지 마세요. 유해·개인정보 요청은 거절하세요.
 
-## 학기 작성 지침
+## 학교 작성 지침
 ${guidelines}
 ${refBlock}
 
@@ -835,6 +1010,7 @@ export const executeEvaluationDraftSkill = async ({
   user,
   academy,
   season,
+  school,
   registration,
   context = {},
   message = "",
@@ -985,10 +1161,14 @@ export const executeEvaluationDraftSkill = async ({
 
   const classTitle =
     context.classTitle || syllabus.classTitle || "수업";
-  const guidelines = normalizeGuidelines(
-    season.aiSettings?.guidelines ||
-      "학생을 존중하는 공손한 문어체로, 관찰 가능한 사실과 성장 포인트를 2~4문장으로 작성하세요."
+  const promptPack = await resolveSkillPromptPack(
+    academyId,
+    school,
+    season,
+    SKILL_IDS.EVALUATION_DRAFT,
+    context?.referenceIndexes
   );
+  const guidelines = promptPack.guidelines;
 
   const schemaLines = targetLabels.map((label) => {
     const meta = resolveEvaluationFieldMeta(formEvaluation, label);
@@ -1092,8 +1272,8 @@ ${schemaLines.join("\n")}
 ${
   userHint ||
   (rewriteMode
-    ? "자기평가와 기존 멘토평가를 종합해 교사 시점의 멘토평가를 새로 작성해 주세요. 원문 복사 금지."
-    : "참고 평가를 바탕으로 빈 칸에 간결한 초안을 작성해 주세요. 원문 복사 금지.")
+    ? "참고 평가를 종합해 교사 시점 초안을 새로 작성해 주세요."
+    : "빈 칸에 간결한 초안을 작성해 주세요.")
 }
 
 ## 출력 형식 (필수)
@@ -1339,7 +1519,7 @@ export const runAlterSkill = async ({
   onEvent,
 }) => {
   const skill = resolveSkillId(rawSkill);
-  const { academy, season, registration } = await assertSeasonAiAccess(
+  const { academy, season, school, registration } = await assertSeasonAiAccess(
     academyId,
     user,
     seasonId
@@ -1351,6 +1531,7 @@ export const runAlterSkill = async ({
       user,
       academy,
       season,
+      school,
       context,
       onEvent,
     });
@@ -1369,6 +1550,7 @@ export const runAlterSkill = async ({
       user,
       academy,
       season,
+      school,
       registration,
       context,
       message,
@@ -1387,7 +1569,18 @@ export const runAlterSkill = async ({
   const profile = FEATURE_PROFILES.chat;
   const provider = resolveProvider(academy.aiProvider);
   const modelName = resolveModel(provider, academy.aiModel);
-  const systemInstruction = buildAlterChatSystem(season, context, boardTitle);
+  const chatPromptPack = await resolveSkillPromptPack(
+    academyId,
+    school,
+    season,
+    SKILL_IDS.CHAT,
+    context?.referenceIndexes
+  );
+  const systemInstruction = buildAlterChatSystem(
+    chatPromptPack,
+    context,
+    boardTitle
+  );
 
   const chatMessages = [];
   for (const m of (history || []).slice(-16)) {
