@@ -7,6 +7,8 @@ import { Academy } from "../models/Academy.js";
 import { AIChatMessage } from "../models/AIChatMessage.js";
 import { AIChatSession } from "../models/AIChatSession.js";
 import { AIUsageLog } from "../models/AIUsageLog.js";
+import { AlterConversation } from "../models/AlterConversation.js";
+import { AlterMessage } from "../models/AlterMessage.js";
 import { AltForm } from "../models/AltForm.js";
 import { AltFormDupCounter } from "../models/AltFormDupCounter.js";
 import { AltSheet } from "../models/AltSheet.js";
@@ -42,6 +44,8 @@ export {
   AIChatMessage,
   AIChatSession,
   AIUsageLog,
+  AlterConversation,
+  AlterMessage,
   AltForm,
   AltFormDupCounter,
   AltSheet,

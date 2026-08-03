@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
 import { TChatRoom } from "types/chat";
 import Svg from "assets/svg/Svg";
+import { ChatListRow } from "./chatUi";
 import style from "./chat.module.scss";
 import defaultProfilePic from "assets/img/default_profile.png";
 
@@ -21,7 +21,6 @@ const ChatRoomListItem = ({
   room,
   isActive,
   currentUserId,
-  currentUserObjId,
   isArchived = false,
   onClick,
   onPin,
@@ -29,25 +28,11 @@ const ChatRoomListItem = ({
   onArchive,
   onLeave,
 }: Props) => {
-  const [showMenu, setShowMenu] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!showMenu) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setShowMenu(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showMenu]);
   const displayName = (() => {
     if (room.name) return room.name;
-    // Show participant names instead of "그룹 채팅"
     const others = room.participants.filter((p) => p.userId !== currentUserId);
     if (others.length === 0) return "채팅";
-    return others.map((p) => p.userName).join(", ");
+    return others.map((p) => p.userId).join(", ");
   })();
 
   const formatTime = (dateString?: string) => {
@@ -67,12 +52,11 @@ const ChatRoomListItem = ({
       return "어제";
     } else if (diffDays < 7) {
       return `${diffDays}일 전`;
-    } else {
-      return date.toLocaleDateString("ko-KR", {
-        month: "short",
-        day: "numeric",
-      });
     }
+    return date.toLocaleDateString("ko-KR", {
+      month: "short",
+      day: "numeric",
+    });
   };
 
   const unreadCount = room.unreadCount ?? 0;
@@ -109,7 +93,7 @@ const ChatRoomListItem = ({
           <img
             key={p.userId}
             src={p.profile || defaultProfilePic}
-            alt={p.userName}
+            alt={p.userId}
             className={style.stacked_avatar}
             style={{ zIndex: others.length - i }}
           />
@@ -118,113 +102,88 @@ const ChatRoomListItem = ({
     );
   };
 
-  const renderPreview = () => {
-    if (!room.lastMessage) return null;
-
-    const prefix =
-      room.type === "group" && room.lastMessage.senderName
-        ? `${room.lastMessage.senderName}: `
-        : "";
-
-    return (
-      <div className={style.chat_list_preview}>
-        <span className={style.preview_text}>
-          {prefix}
-          {room.lastMessage.content}
+  const preview = room.lastMessage ? (
+    <div className={style.chat_list_preview}>
+      <span className={style.preview_text}>
+        {room.type === "group" && room.lastMessage.senderName
+          ? `${room.lastMessage.senderName}: `
+          : ""}
+        {room.lastMessage.content}
+      </span>
+      {unreadCount > 0 && (
+        <span className={style.unread_badge}>
+          {unreadCount > 99 ? "99+" : unreadCount}
         </span>
-        {unreadCount > 0 && (
-          <span className={style.unread_badge}>
-            {unreadCount > 99 ? "99+" : unreadCount}
-          </span>
-        )}
-      </div>
-    );
-  };
+      )}
+    </div>
+  ) : undefined;
 
   return (
-    <div
-      className={`${style.chat_list_item} ${isActive ? style.active : ""}`}
+    <ChatListRow
+      title={displayName}
+      count={room.participants.length}
+      time={
+        <>
+          {room.isPinned && (
+            <Svg
+              type="pin"
+              width="12px"
+              height="12px"
+              style={{ fill: "var(--accent-3)", marginRight: 4 }}
+            />
+          )}
+          {formatTime(room.lastMessage?.sentAt)}
+        </>
+      }
+      preview={preview}
+      leading={renderAvatar()}
+      active={isActive}
       onClick={() => onClick(room)}
-    >
-      {renderAvatar()}
-      <div className={style.chat_list_info}>
-        <div className={style.chat_list_header}>
-          <span
-            className={`${style.chat_list_name} ${unreadCount > 0 ? style.unread : ""}`}
-          >
-            {displayName}
-            <span className={style.participant_count}>
-              ({room.participants.length})
-            </span>
-          </span>
-          <span className={style.chat_list_time}>
-            {room.isPinned && (
-              <Svg type="pin" width="12px" height="12px" style={{ fill: "var(--accent-3)" }} />
-            )}
-            {formatTime(room.lastMessage?.sentAt)}
-          </span>
-        </div>
-        {renderPreview()}
-      </div>
-      <div
-        ref={menuRef}
-        className={style.chat_list_menu}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          className={style.chat_list_menu_button}
-          onClick={() => setShowMenu(!showMenu)}
-        >
-          <Svg type="verticalDots" width="16px" height="16px" style={{ fill: "var(--accent-3)" }} />
-        </button>
-        {showMenu && (
-          <div className={style.chat_list_menu_dropdown}>
-            {!isArchived && (
-              <div
-                className={style.menu_item}
-                onClick={() => {
-                  setShowMenu(false);
-                  onPin?.(room);
-                }}
-              >
-                <Svg type={room.isPinned ? "pinOff" : "pin"} width="16px" height="16px" />
-                <span>{room.isPinned ? "고정 해제" : "고정"}</span>
-              </div>
-            )}
-            <div
-              className={style.menu_item}
-              onClick={() => {
-                setShowMenu(false);
-                onShowStorage?.(room);
-              }}
-            >
-              <Svg type="file" width="16px" height="16px" />
-              <span>내 파일</span>
-            </div>
-            <div
-              className={style.menu_item}
-              onClick={() => {
-                setShowMenu(false);
-                onArchive?.(room);
-              }}
-            >
-              <Svg type={isArchived ? "unarchive" : "archive"} width="16px" height="16px" />
-              <span>{isArchived ? "보관 해제" : "보관"}</span>
-            </div>
-            <div
-              className={`${style.menu_item} ${style.danger}`}
-              onClick={() => {
-                setShowMenu(false);
-                onLeave?.(room);
-              }}
-            >
-              <Svg type="logout" width="16px" height="16px" />
-              <span>채팅방 나가기</span>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+      menuItems={[
+        ...(!isArchived
+          ? [
+              {
+                key: "pin",
+                label: room.isPinned ? "고정 해제" : "고정",
+                icon: (
+                  <Svg
+                    type={room.isPinned ? "pinOff" : "pin"}
+                    width="16px"
+                    height="16px"
+                  />
+                ),
+                onClick: () => onPin?.(room),
+              },
+            ]
+          : []),
+        {
+          key: "files",
+          label: "내 파일",
+          icon: <Svg type="file" width="16px" height="16px" />,
+          onClick: () => onShowStorage?.(room),
+        },
+        {
+          key: "archive",
+          label: isArchived ? "보관 해제" : "보관",
+          icon: (
+            <Svg
+              type={isArchived ? "unarchive" : "archive"}
+              width="16px"
+              height="16px"
+              style={{ fill: "var(--accent-2)" }}
+            />
+          ),
+          onClick: () => onArchive?.(room),
+        },
+        {
+          key: "leave",
+          label: "채팅방 나가기",
+          danger: true,
+          icon: <Svg type="logout" width="16px" height="16px" />,
+          onClick: () => onLeave?.(room),
+        },
+      ]}
+    />
   );
 };
 

@@ -39,9 +39,15 @@ export type TAlterPageContext = {
 type AlterContextValue = {
   isOpen: boolean;
   isExpanded: boolean;
+  /** 패널이 닫혀 있어도 진행 중인 작업이 있으면 true */
+  isWorking: boolean;
+  /** 닫힌 동안 결과가 도착했는지 (다시 열면 확인) */
+  hasBackgroundResult: boolean;
   close: () => void;
   toggle: () => void;
   toggleExpanded: () => void;
+  setIsWorking: (v: boolean) => void;
+  setHasBackgroundResult: (v: boolean) => void;
   pageContext: TAlterPageContext | null;
   registerPageContext: (ctx: TAlterPageContext | null) => void;
 };
@@ -51,6 +57,8 @@ const AlterContext = createContext<AlterContextValue | null>(null);
 export const AlterProvider = ({ children }: { children: ReactNode }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isWorking, setIsWorking] = useState(false);
+  const [hasBackgroundResult, setHasBackgroundResult] = useState(false);
   const [pageContext, setPageContext] = useState<TAlterPageContext | null>(
     null
   );
@@ -62,6 +70,7 @@ export const AlterProvider = ({ children }: { children: ReactNode }) => {
   const toggle = useCallback(() => {
     setIsOpen((v) => {
       if (v) setIsExpanded(false);
+      else setHasBackgroundResult(false);
       return !v;
     });
   }, []);
@@ -77,15 +86,21 @@ export const AlterProvider = ({ children }: { children: ReactNode }) => {
     () => ({
       isOpen,
       isExpanded,
+      isWorking,
+      hasBackgroundResult,
       close,
       toggle,
       toggleExpanded,
+      setIsWorking,
+      setHasBackgroundResult,
       pageContext,
       registerPageContext,
     }),
     [
       isOpen,
       isExpanded,
+      isWorking,
+      hasBackgroundResult,
       close,
       toggle,
       toggleExpanded,

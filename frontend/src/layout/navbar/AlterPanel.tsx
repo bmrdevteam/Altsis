@@ -8,8 +8,42 @@ import {
   readSyllabusInfoValue,
 } from "utils/syllabusAiFields";
 import { isEmptyEval } from "utils/evaluationCsv";
+import { TAlterConversation } from "types/alterChat";
+import Button from "components/button/Button";
 import Svg from "assets/svg/Svg";
+import {
+  ChatPanelShell,
+  ChatPanelHeader,
+  ChatEmptyState,
+  ChatListRow,
+  ChatMessageBubble,
+  ChatInputBar,
+  chatUiStyle,
+} from "./chatUi";
 import style from "./Alter.module.scss";
+
+const formatAlterListTime = (dateString?: string) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffDays = Math.floor(
+    (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
+  );
+  if (diffDays === 0) {
+    return date.toLocaleTimeString("ko-KR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+  if (diffDays === 1) return "어제";
+  if (diffDays < 7) return `${diffDays}일 전`;
+  return date.toLocaleDateString("ko-KR", {
+    month: "short",
+    day: "numeric",
+  });
+};
+
+const alterApiBase = () => `${process.env.REACT_APP_SERVER_URL}/api/ai`;
 
 type TAlterDraftResult = {
   targetLabels: string[];
@@ -30,6 +64,7 @@ type ChatMessage = {
   skill?: string;
   review?: TAlterReviewResult | null;
   draft?: TAlterDraftResult | null;
+  createdAt?: string;
 };
 
 type TAlterReviewResult = {
@@ -56,6 +91,20 @@ const SKILL_LABEL: Record<TAlterSkillId, string> = {
   "evaluation-draft": "평가 초안",
 };
 
+const formatBubbleTime = (dateString?: string) => {
+  if (!dateString) return "";
+  return new Date(dateString).toLocaleTimeString("ko-KR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const skillLabel = (skill?: string) => {
+  if (!skill) return "";
+  if (skill in SKILL_LABEL) return SKILL_LABEL[skill as TAlterSkillId];
+  return skill;
+};
+
 const EVAL_DRAFT_MAX = 30;
 /** Prep에서 기본으로 선택하는 학생 수 (나눠 진행 권장) */
 const EVAL_DRAFT_DEFAULT_BATCH = 8;
@@ -76,7 +125,14 @@ const wantsEvalDraftText = (text: string) =>
 
 const AlterPanel = ({ onClose }: Props) => {
   const { currentSeason, currentRegistration } = useAuth();
-  const { pageContext, isExpanded, toggleExpanded } = useAlter();
+  const {
+    pageContext,
+    isExpanded,
+    isOpen,
+    toggleExpanded,
+    setIsWorking: setAlterWorking,
+    setHasBackgroundResult,
+  } = useAlter();
 
   const suggested = pageContext?.suggestedSkills?.length
     ? pageContext.suggestedSkills
@@ -109,8 +165,34 @@ const AlterPanel = ({ onClose }: Props) => {
     string[]
   >([]);
 
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [conversationTitle, setConversationTitle] = useState("새 대화");
+  const [conversations, setConversations] = useState<TAlterConversation[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [actionMenuOpen, setActionMenuOpen] = useState(false);
+
   const abortRef = useRef<AbortController | null>(null);
+  const cancelledByUserRef = useRef(false);
   const endRef = useRef<HTMLDivElement | null>(null);
+  const actionMenuRef = useRef<HTMLDivElement | null>(null);
+  const skipSmoothScrollRef = useRef(false);
+  const isOpenRef = useRef(isOpen);
+  isOpenRef.current = isOpen;
+
+  useEffect(() => {
+    if (!actionMenuOpen) return;
+    const onPointerDown = (e: MouseEvent) => {
+      if (
+        actionMenuRef.current &&
+        !actionMenuRef.current.contains(e.target as Node)
+      ) {
+        setActionMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [actionMenuOpen]);
 
   const references = currentSeason?.aiSettings?.references || [];
   const guidelines = (currentSeason?.aiSettings?.guidelines || "").trim();
@@ -137,21 +219,48 @@ const AlterPanel = ({ onClose }: Props) => {
     [pageContext?.formSyllabus]
   );
 
+  // 화면이 바뀌어도 진행 중/저장된 대화는 유지하고 Prep 기본값만 갱신
   useEffect(() => {
     const next = suggested[0] || "chat";
     setSelectedSkill(next);
-    setShowPrep(next === "syllabus-review" || next === "evaluation-draft");
-    setMessages([]);
-    setError("");
-    setAppliedFields(new Set());
-    setAppliedDraftIds(new Set());
+    if (!isWorking && messages.length === 0) {
+      setShowPrep(next === "syllabus-review" || next === "evaluation-draft");
+    }
     setEvalTargetLabels(defaultTargetLabels);
-    // 자기평가·기존 멘토평가 등 전체 항목을 참고해 종합 재작성
     setEvalContextLabels(allEvalLabels);
     setEvalFillEmptyOnly(false);
     setEvalScope("all");
     setEvalSelectedStudentIds([]);
   }, [pageContext?.pageType, pageContext?.label]);
+
+  useEffect(() => {
+    setAlterWorking(isWorking);
+  }, [isWorking, setAlterWorking]);
+
+  // 새로고침 후에도 최근 대화를 복원
+  const didRestoreRef = useRef(false);
+  useEffect(() => {
+    if (!currentSeason?._id || didRestoreRef.current || isWorking) return;
+    didRestoreRef.current = true;
+    void (async () => {
+      try {
+        const res = await fetch(
+          `${alterApiBase()}/alter/conversations?season=${currentSeason._id}&limit=1`,
+          { credentials: "include" }
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        const latest = (data.conversations || [])[0] as
+          | TAlterConversation
+          | undefined;
+        if (!latest?._id) return;
+        setConversations(data.conversations || []);
+        await openConversation(latest._id, latest);
+      } catch {
+        // ignore restore errors
+      }
+    })();
+  }, [currentSeason?._id]);
 
   useEffect(() => {
     if (pageContext?.pageType !== "evaluation") return;
@@ -175,7 +284,9 @@ const AlterPanel = ({ onClose }: Props) => {
   }, [references.length]);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
+    const behavior = skipSmoothScrollRef.current ? "auto" : "smooth";
+    skipSmoothScrollRef.current = false;
+    endRef.current?.scrollIntoView({ behavior });
   }, [messages.length, steps.length, isWorking]);
 
   const evalCandidateStudents = useMemo(() => {
@@ -233,6 +344,8 @@ const AlterPanel = ({ onClose }: Props) => {
       const targets =
         evalTargetLabels.length > 0 ? evalTargetLabels : defaultTargetLabels;
       return {
+        pageType: pageContext?.pageType || "evaluation",
+        label: pageContext?.label || "",
         syllabusId: pageContext?.syllabusId || "",
         classTitle: pageContext?.classTitle || "",
         formEvaluation: pageContext?.formEvaluation || [],
@@ -245,12 +358,122 @@ const AlterPanel = ({ onClose }: Props) => {
       };
     }
     return {
+      pageType: pageContext?.pageType || "general",
+      label: pageContext?.label || "",
       subject: pageContext?.subject || [],
       classTitle: pageContext?.classTitle || "",
       currentInfo: pageContext?.getCurrentInfo?.() || {},
       formSyllabus: pageContext?.formSyllabus || currentSeason?.formSyllabus,
       referenceIndexes: selectedRefIndexes,
     };
+  };
+
+  const loadConversations = async () => {
+    if (!currentSeason?._id) return;
+    setHistoryLoading(true);
+    try {
+      const res = await fetch(
+        `${alterApiBase()}/alter/conversations?season=${currentSeason._id}`,
+        { credentials: "include" }
+      );
+      if (!res.ok) throw new Error("대화 목록을 불러오지 못했습니다.");
+      const data = await res.json();
+      setConversations(data.conversations || []);
+    } catch (err: any) {
+      setError(err.message || "대화 목록을 불러오지 못했습니다.");
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const startNewConversation = () => {
+    if (isWorking) {
+      setError("작업이 끝난 뒤 새 대화를 시작할 수 있습니다.");
+      return;
+    }
+    setConversationId(null);
+    setConversationTitle("새 대화");
+    setMessages([]);
+    setError("");
+    setSteps([]);
+    setAppliedFields(new Set());
+    setAppliedDraftIds(new Set());
+    setShowHistory(false);
+    const next = suggested[0] || "chat";
+    setSelectedSkill(next);
+    setShowPrep(next === "syllabus-review" || next === "evaluation-draft");
+  };
+
+  const openHistoryList = () => {
+    setShowHistory(true);
+    void loadConversations();
+  };
+
+  const openConversation = async (
+    id: string,
+    preset?: TAlterConversation
+  ) => {
+    if (isWorking) {
+      setError("작업이 끝난 뒤 다른 대화를 열 수 있습니다.");
+      return;
+    }
+    setHistoryLoading(true);
+    setError("");
+    try {
+      const res = await fetch(
+        `${alterApiBase()}/alter/conversations/${id}/messages`,
+        { credentials: "include" }
+      );
+      if (!res.ok) throw new Error("대화를 불러오지 못했습니다.");
+      const data = await res.json();
+      const rows = (data.messages || []) as Array<{
+        _id: string;
+        role: "user" | "assistant";
+        content: string;
+        skill?: string;
+        review?: any;
+        draft?: any;
+        createdAt?: string;
+      }>;
+      setConversationId(id);
+      const meta =
+        preset || conversations.find((c) => c._id === id);
+      setConversationTitle(meta?.title || "대화");
+      skipSmoothScrollRef.current = true;
+      setMessages(
+        rows.map((m) => ({
+          id: m._id,
+          role: m.role,
+          content: m.content || "",
+          skill: m.skill,
+          review: m.review || null,
+          draft: m.draft || null,
+          createdAt: m.createdAt,
+        }))
+      );
+      setShowHistory(false);
+      setShowPrep(false);
+      setSelectedSkill("chat");
+    } catch (err: any) {
+      setError(err.message || "대화를 불러오지 못했습니다.");
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const deleteConversation = async (id: string) => {
+    if (isWorking && conversationId === id) return;
+    try {
+      const res = await fetch(`${alterApiBase()}/alter/conversations/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("대화를 삭제하지 못했습니다.");
+      setConversations((prev) => prev.filter((c) => c._id !== id));
+      if (conversationId === id) startNewConversation();
+    } catch (err: any) {
+      setError(err.message || "대화를 삭제하지 못했습니다.");
+    }
   };
 
   const parseSse = async (
@@ -262,6 +485,7 @@ const AlterPanel = ({ onClose }: Props) => {
     draft?: TAlterDraftResult | null;
     message?: string;
     skill?: string;
+    conversationId?: string | null;
   }> => {
     if (!response.ok || !response.body) {
       throw new Error("AI 요청에 실패했습니다.");
@@ -274,6 +498,7 @@ const AlterPanel = ({ onClose }: Props) => {
       draft?: TAlterDraftResult | null;
       message?: string;
       skill?: string;
+      conversationId?: string | null;
     } = {};
     let errMsg = "";
 
@@ -296,12 +521,16 @@ const AlterPanel = ({ onClose }: Props) => {
                 MESSAGE.get(data.message) ||
                 data.message ||
                 "AI 처리 중 오류가 발생했습니다.";
+              if (data.conversationId) {
+                result.conversationId = data.conversationId;
+              }
             } else if (eventType === "done") {
               result = {
                 review: data.review || null,
                 draft: data.draft || null,
                 message: data.message || "",
                 skill: data.skill,
+                conversationId: data.conversationId || null,
               };
             }
           } catch {
@@ -372,22 +601,30 @@ const AlterPanel = ({ onClose }: Props) => {
     setError("");
     setSteps([]);
     setShowPrep(false);
+    setShowHistory(false);
 
     const userMsg: ChatMessage = {
       id: `u-${Date.now()}`,
       role: "user",
       content: userText,
       skill,
+      createdAt: new Date().toISOString(),
     };
     const history = [...messages, userMsg]
       .filter((m) => m.role === "user" || m.role === "assistant")
       .map((m) => ({ role: m.role, content: m.content }));
 
     setMessages((prev) => [...prev, userMsg]);
+    if (!conversationId || conversationTitle === "새 대화") {
+      setConversationTitle(
+        userText.replace(/\s+/g, " ").trim().slice(0, 40) || "대화"
+      );
+    }
 
     const abort = new AbortController();
     abortRef.current = abort;
     let timedOut = false;
+    cancelledByUserRef.current = false;
     // 서버가 진행 이벤트를 계속 보내는 동안은 끊지 않는다 (무응답 시간 기준)
     const inactivityTimeoutMs =
       skill === "evaluation-draft" || skill === "syllabus-review"
@@ -406,23 +643,22 @@ const AlterPanel = ({ onClose }: Props) => {
     };
 
     try {
-      const response = await fetch(
-        `${process.env.REACT_APP_SERVER_URL}/api/ai/alter`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          signal: abort.signal,
-          body: JSON.stringify({
-            season: currentSeason._id,
-            skill,
-            message: userText,
-            history: history.slice(0, -1),
-            context: buildContext(skill),
-            autoDetectSkill: false,
-          }),
-        }
-      );
+      const response = await fetch(`${alterApiBase()}/alter`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        signal: abort.signal,
+        body: JSON.stringify({
+          season: currentSeason._id,
+          skill,
+          message: userText,
+          history: history.slice(0, -1),
+          context: buildContext(skill),
+          autoDetectSkill: false,
+          conversationId,
+          persist: true,
+        }),
+      });
 
       const contentType = response.headers.get("content-type") || "";
       if (contentType.includes("text/event-stream")) {
@@ -433,6 +669,9 @@ const AlterPanel = ({ onClose }: Props) => {
           },
           resetInactivityTimeout
         );
+        if (result.conversationId) {
+          setConversationId(result.conversationId);
+        }
         setMessages((prev) => [
           ...prev,
           {
@@ -445,11 +684,14 @@ const AlterPanel = ({ onClose }: Props) => {
             skill: result.skill || skill,
             review: result.review,
             draft: result.draft,
+            createdAt: new Date().toISOString(),
           },
         ]);
+        if (!isOpenRef.current) setHasBackgroundResult(true);
       } else {
         if (!response.ok) {
           const data = await response.json().catch(() => ({}));
+          if (data.conversationId) setConversationId(data.conversationId);
           throw new Error(
             MESSAGE.get(data.message) ||
               data.message ||
@@ -457,6 +699,7 @@ const AlterPanel = ({ onClose }: Props) => {
           );
         }
         const data = await response.json();
+        if (data.conversationId) setConversationId(data.conversationId);
         setMessages((prev) => [
           ...prev,
           {
@@ -466,8 +709,10 @@ const AlterPanel = ({ onClose }: Props) => {
             skill: data.skill || skill,
             review: data.review,
             draft: data.draft,
+            createdAt: new Date().toISOString(),
           },
         ]);
+        if (!isOpenRef.current) setHasBackgroundResult(true);
       }
       if (skill === "syllabus-review" || skill === "evaluation-draft") {
         setSelectedSkill("chat");
@@ -481,6 +726,8 @@ const AlterPanel = ({ onClose }: Props) => {
               inactivityTimeoutMs / 1000
             )}초 동안 응답이 없어 요청을 중단했습니다. 잠시 후 다시 시도해 주세요.`
           );
+        } else if (cancelledByUserRef.current) {
+          setError("생성을 중단했습니다.");
         }
         return;
       }
@@ -491,7 +738,13 @@ const AlterPanel = ({ onClose }: Props) => {
       window.clearTimeout(timeoutId);
       setIsWorking(false);
       abortRef.current = null;
+      cancelledByUserRef.current = false;
     }
+  };
+
+  const cancelWorking = () => {
+    cancelledByUserRef.current = true;
+    abortRef.current?.abort();
   };
 
   const startSuggested = () => {
@@ -552,6 +805,7 @@ const AlterPanel = ({ onClose }: Props) => {
           role: "assistant",
           content: `초안 ${result.applied}칸을 평가 표에 반영했습니다. 확인 후 행별 「저장」을 눌러 주세요.`,
           skill: "evaluation-draft",
+          createdAt: new Date().toISOString(),
         },
       ]);
     }
@@ -612,43 +866,218 @@ const AlterPanel = ({ onClose }: Props) => {
   const inEvalPrep = showPrep && selectedSkill === "evaluation-draft";
   const inPrep = inSyllabusPrep || inEvalPrep;
 
-  return (
-    <div
-      className={`${style.panel} ${isExpanded ? style.panelExpanded : ""}`}
+
+  const expandToggleBtn = (
+    <button
+      type="button"
+      className={chatUiStyle.iconBtn}
+      onClick={toggleExpanded}
+      aria-label={isExpanded ? "작게 보기" : "크게 보기"}
+      title={isExpanded ? "작게 보기" : "크게 보기"}
     >
-      <div className={style.header}>
-        <h3 className={style.title}>Alter</h3>
-        <div className={style.headerActions}>
+      {isExpanded ? (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z" />
+        </svg>
+      ) : (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" />
+        </svg>
+      )}
+    </button>
+  );
+
+  const prepPrimaryLabel = inEvalPrep
+    ? messages.some((m) => m.draft)
+      ? "다시 작성"
+      : "초안 작성"
+    : messages.some((m) => m.review)
+      ? "다시 점검"
+      : "점검 시작";
+
+  const plusMenu = (
+    <div className={chatUiStyle.actionMenuWrap} ref={actionMenuRef}>
+      <button
+        type="button"
+        className={chatUiStyle.slotBtn}
+        onClick={() => setActionMenuOpen((v) => !v)}
+        aria-label="더보기"
+        title="더보기"
+        aria-expanded={actionMenuOpen}
+      >
+        <Svg type="plus" width="20px" height="20px" />
+      </button>
+      {actionMenuOpen && (
+        <div className={chatUiStyle.actionMenu} role="menu">
           <button
             type="button"
-            className={style.closeBtn}
-            onClick={toggleExpanded}
-            aria-label={isExpanded ? "작게 보기" : "크게 보기"}
-            title={isExpanded ? "작게 보기" : "크게 보기"}
-          >
-            {isExpanded ? (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z" />
-              </svg>
-            ) : (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" />
-              </svg>
-            )}
-          </button>
-          <button
-            type="button"
-            className={style.closeBtn}
+            className={chatUiStyle.actionMenuItem}
+            role="menuitem"
+            disabled={isWorking}
             onClick={() => {
-              abortRef.current?.abort();
-              onClose();
+              setActionMenuOpen(false);
+              startNewConversation();
             }}
-            aria-label="닫기"
           >
-            <Svg type="x" width="16px" height="16px" />
+            새 대화
           </button>
+          {inPrep && messages.length > 0 && (
+            <button
+              type="button"
+              className={chatUiStyle.actionMenuItem}
+              role="menuitem"
+              disabled={isWorking}
+              onClick={() => {
+                setActionMenuOpen(false);
+                setSelectedSkill("chat");
+                setShowPrep(false);
+              }}
+            >
+              대화로
+            </button>
+          )}
+          {!inPrep && pageContext?.pageType === "syllabus-edit" && (
+            <button
+              type="button"
+              className={chatUiStyle.actionMenuItem}
+              role="menuitem"
+              disabled={isWorking}
+              onClick={() => {
+                setActionMenuOpen(false);
+                setSelectedSkill("syllabus-review");
+                setShowPrep(true);
+              }}
+            >
+              점검하기
+            </button>
+          )}
+          {!inPrep && pageContext?.pageType === "evaluation" && (
+            <button
+              type="button"
+              className={chatUiStyle.actionMenuItem}
+              role="menuitem"
+              disabled={isWorking}
+              onClick={() => {
+                setActionMenuOpen(false);
+                setSelectedSkill("evaluation-draft");
+                setShowPrep(true);
+              }}
+            >
+              평가 초안
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  const historyListView = (
+    <>
+      <ChatPanelHeader
+        title="Alter"
+        leading={
+          <span
+            className={`${style.iconStar} ${style.headerIcon}`}
+            aria-hidden
+          />
+        }
+        actions={expandToggleBtn}
+        onClose={onClose}
+        closeTitle="창만 닫기 (진행 중 작업은 계속됩니다)"
+      />
+      <div className={chatUiStyle.listShell}>
+        <div className={chatUiStyle.listItems}>
+          {error && <div className={style.error}>{error}</div>}
+          {historyLoading ? (
+            <div className={chatUiStyle.loading}>불러오는 중…</div>
+          ) : conversations.length === 0 ? (
+            <ChatEmptyState
+              icon={
+                <span
+                  className={style.iconStar}
+                  style={{ width: 40, height: 40 }}
+                  aria-hidden
+                />
+              }
+              title="저장된 대화가 없습니다"
+              subtitle="새 대화를 시작해 Alter와 이야기해 보세요."
+              action={
+                <Button
+                  type="ghost"
+                  onClick={startNewConversation}
+                  disabled={isWorking}
+                >
+                  새 대화 시작하기
+                </Button>
+              }
+            />
+          ) : (
+            conversations.map((c) => (
+              <ChatListRow
+                key={c._id}
+                title={c.title || "대화"}
+                count={c.messageCount}
+                time={`${c.status === "working" ? "진행 중 · " : ""}${formatAlterListTime(c.lastMessageAt)}`}
+                preview={c.lastMessagePreview}
+                active={conversationId === c._id}
+                leading={
+                  <span
+                    className={style.iconStar}
+                    style={{ width: 28, height: 28 }}
+                    aria-hidden
+                  />
+                }
+                onClick={() => void openConversation(c._id, c)}
+                menuItems={[
+                  {
+                    key: "delete",
+                    label: "삭제",
+                    danger: true,
+                    icon: <Svg type="trash" width="16px" height="16px" />,
+                    onClick: () => void deleteConversation(c._id),
+                  },
+                ]}
+              />
+            ))
+          )}
+        </div>
+        <div className={chatUiStyle.listFooter}>
+          <Button
+            type="ghost"
+            onClick={startNewConversation}
+            disabled={isWorking}
+            style={{ width: "100%" }}
+          >
+            새 대화
+          </Button>
         </div>
       </div>
+    </>
+  );
+
+  const conversationView = (
+    <>
+      <ChatPanelHeader
+        title={conversationTitle || "새 대화"}
+        subtitle={isWorking ? "진행 중" : undefined}
+        onBack={openHistoryList}
+        actions={
+          <>
+            {isWorking && (
+              <button
+                type="button"
+                className={style.actionBtn}
+                onClick={cancelWorking}
+              >
+                중단
+              </button>
+            )}
+            {expandToggleBtn}
+          </>
+        }
+        onClose={onClose}
+        closeTitle="창만 닫기 (진행 중 작업은 계속됩니다)"
+      />
 
       <div className={style.contextBar}>
         현재 화면: {contextLabel}
@@ -723,7 +1152,10 @@ const AlterPanel = ({ onClose }: Props) => {
               ) : (
                 <div className={style.refList}>
                   {references.map((ref, index) => (
-                    <label key={`${ref.title}-${index}`} className={style.refRow}>
+                    <label
+                      key={`${ref.title}-${index}`}
+                      className={style.refRow}
+                    >
                       <input
                         type="checkbox"
                         checked={selectedRefIndexes.includes(index)}
@@ -732,7 +1164,9 @@ const AlterPanel = ({ onClose }: Props) => {
                             if (prev.includes(index)) {
                               return prev.filter((i) => i !== index);
                             }
-                            if (prev.length >= 2) return [...prev.slice(1), index];
+                            if (prev.length >= 2) {
+                              return [...prev.slice(1), index];
+                            }
                             return [...prev, index];
                           });
                         }}
@@ -814,7 +1248,8 @@ const AlterPanel = ({ onClose }: Props) => {
                   </div>
                   <p className={style.prepText}>
                     자기평가와 기존 멘토평가를 함께 참고하면, 둘을 종합한 새
-                    멘토평가 초안을 만듭니다. 원문은 복사되지 않도록 재작성합니다.
+                    멘토평가 초안을 만듭니다. 원문은 복사되지 않도록
+                    재작성합니다.
                   </p>
                 </>
               )}
@@ -846,7 +1281,9 @@ const AlterPanel = ({ onClose }: Props) => {
                     checked={evalFillEmptyOnly}
                     onChange={(e) => setEvalFillEmptyOnly(e.target.checked)}
                   />
-                  <span>빈 칸만 채우기 (끄면 기존 멘토평가를 종합해 덮어씀)</span>
+                  <span>
+                    빈 칸만 채우기 (끄면 기존 멘토평가를 종합해 덮어씀)
+                  </span>
                 </label>
               </div>
               {!evalFillEmptyOnly && (
@@ -925,12 +1362,11 @@ const AlterPanel = ({ onClose }: Props) => {
                   </div>
                   <p className={style.prepText}>
                     선택 {evalSelectedIds.length}명
-                    {evalCandidateStudents.length >
-                    evalSelectedIds.length
+                    {evalCandidateStudents.length > evalSelectedIds.length
                       ? ` · 후보 ${evalCandidateStudents.length}명`
                       : ""}
-                    {` · 한 번에 최대 ${EVAL_DRAFT_MAX}명`}
-                    . 나눠서 여러 번 실행할 수 있습니다.
+                    {` · 한 번에 최대 ${EVAL_DRAFT_MAX}명`}. 나눠서 여러 번
+                    실행할 수 있습니다.
                   </p>
                 </>
               )}
@@ -950,25 +1386,36 @@ const AlterPanel = ({ onClose }: Props) => {
         )}
 
         {messages.length === 0 && !inPrep && (
-          <p className={style.emptyHint}>
-            Alter에게 질문하거나, 추천 Skill로 작업을 시작해 보세요.
-          </p>
+          <ChatEmptyState
+            icon={
+              <Svg
+                type="send"
+                width="40px"
+                height="40px"
+                style={{ fill: "var(--accent-4, #ccc)" }}
+              />
+            }
+            title="메시지를 보내보세요"
+            subtitle="Alter에게 질문하거나 추천 Skill로 작업을 시작할 수 있습니다. 대화는 자동 저장되며, 창을 닫아도 진행 중 작업은 이어집니다."
+          />
         )}
 
         {messages.map((msg) => (
-          <div
+          <ChatMessageBubble
             key={msg.id}
-            className={`${style.bubble} ${
-              msg.role === "user" ? style.bubbleUser : style.bubbleAssistant
-            }`}
+            variant={msg.role === "user" ? "own" : "other"}
+            wide={!!(msg.draft || msg.review)}
+            time={formatBubbleTime(msg.createdAt)}
+            sender={
+              <>
+                {msg.role === "user" ? "나" : "Alter"}
+                {msg.skill ? (
+                  <span className={style.skillTag}>{skillLabel(msg.skill)}</span>
+                ) : null}
+              </>
+            }
           >
-            <div className={style.bubbleMeta}>
-              {msg.role === "user" ? "나" : "Alter"}
-              {msg.skill && (
-                <span className={style.skillTag}>{msg.skill}</span>
-              )}
-            </div>
-            <div>{msg.content}</div>
+            {msg.content}
             {msg.draft && (
               <div className={style.reviewList}>
                 <div className={style.reviewItem}>
@@ -995,10 +1442,9 @@ const AlterPanel = ({ onClose }: Props) => {
                         row.studentId;
                       const grade =
                         row.studentGrade || fromCtx?.studentGrade || "";
-                      const labels =
-                        msg.draft!.targetLabels?.length
-                          ? msg.draft!.targetLabels
-                          : Object.keys(row.values || {});
+                      const labels = msg.draft!.targetLabels?.length
+                        ? msg.draft!.targetLabels
+                        : Object.keys(row.values || {});
                       return (
                         <div
                           key={`${msg.id}-${row.studentId}`}
@@ -1125,123 +1571,66 @@ const AlterPanel = ({ onClose }: Props) => {
                 })}
               </div>
             )}
-          </div>
+          </ChatMessageBubble>
         ))}
 
         {isWorking && steps.length > 0 && (
-          <div className={`${style.bubble} ${style.bubbleAssistant}`}>
-            <div className={style.bubbleMeta}>Alter</div>
+          <ChatMessageBubble variant="other" sender="Alter">
             <div className={style.steps}>
               {steps.map((s, i) => (
                 <div key={`${s}-${i}`}>• {s}</div>
               ))}
             </div>
-          </div>
+          </ChatMessageBubble>
         )}
         <div ref={endRef} />
       </div>
 
-      <div className={style.footer}>
-        {inPrep ? (
-          <div className={style.footerActions} style={{ width: "100%", flexDirection: "column", alignItems: "stretch", gap: 8 }}>
-            {inEvalPrep && (
-              <textarea
-                className={style.textarea}
-                value={draft}
-                disabled={isWorking}
-                placeholder="예: 멘토 의견은 2~3문장, 성장 포인트를 중심으로"
-                onChange={(e) => setDraft(e.target.value)}
-              />
-            )}
-            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              {messages.length > 0 && (
-                <button
-                  type="button"
-                  className={style.actionBtn}
-                  disabled={isWorking}
-                  onClick={() => {
-                    setSelectedSkill("chat");
-                    setShowPrep(false);
-                  }}
-                >
-                  대화로
-                </button>
-              )}
-              <button
-                type="button"
-                className={`${style.actionBtn} ${style.primary}`}
-                disabled={isWorking}
-                onClick={startSuggested}
-              >
-                {inEvalPrep
-                  ? messages.some((m) => m.draft)
-                    ? "다시 작성"
-                    : "초안 작성"
-                  : messages.some((m) => m.review)
-                    ? "다시 점검"
-                    : "점검 시작"}
-              </button>
-            </div>
-          </div>
-        ) : (
-          <>
-            <textarea
-              className={style.textarea}
-              value={draft}
-              disabled={isWorking}
-              placeholder={
-                pageContext?.pageType === "evaluation"
-                  ? "메시지를 입력하세요. (평가 초안은 Skill에서)"
-                  : "메시지를 입력하세요. (점검하려면「다시 점검」또는「계획서 점검해줘」)"
-              }
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => {
+      <ChatInputBar
+        value={draft}
+        onChange={setDraft}
+        onSend={() => {
+          setActionMenuOpen(false);
+          if (inPrep) startSuggested();
+          else sendDraft();
+        }}
+        disabled={isWorking}
+        sendDisabled={inPrep ? isWorking : isWorking || !draft.trim()}
+        sendActive={inPrep ? !isWorking : !!draft.trim() && !isWorking}
+        sendTitle={inPrep ? prepPrimaryLabel : "보내기"}
+        leftSlot={plusMenu}
+        showTextarea={!inPrep || inEvalPrep}
+        centerHint="옵션을 고른 뒤 시작하세요"
+        placeholder={
+          inEvalPrep
+            ? "예: 멘토 의견은 2~3문장, 성장 포인트를 중심으로"
+            : "메시지를 입력하세요"
+        }
+        onKeyDown={
+          inPrep
+            ? (e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
-                  sendDraft();
+                  if (!isWorking) {
+                    setActionMenuOpen(false);
+                    startSuggested();
+                  }
                 }
-              }}
-            />
-            <div className={style.footerActions}>
-              {pageContext?.pageType === "syllabus-edit" && (
-                <button
-                  type="button"
-                  className={style.actionBtn}
-                  disabled={isWorking}
-                  onClick={() => {
-                    setSelectedSkill("syllabus-review");
-                    setShowPrep(true);
-                  }}
-                >
-                  점검하기
-                </button>
-              )}
-              {pageContext?.pageType === "evaluation" && (
-                <button
-                  type="button"
-                  className={style.actionBtn}
-                  disabled={isWorking}
-                  onClick={() => {
-                    setSelectedSkill("evaluation-draft");
-                    setShowPrep(true);
-                  }}
-                >
-                  평가 초안
-                </button>
-              )}
-              <button
-                type="button"
-                className={`${style.actionBtn} ${style.primary}`}
-                disabled={isWorking || !draft.trim()}
-                onClick={sendDraft}
-              >
-                보내기
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+              }
+            : undefined
+        }
+      />
+    </>
+  );
+
+  return (
+    <ChatPanelShell
+      variant={isExpanded ? "expanded" : "default"}
+      showOverlay={isOpen}
+      onOverlayClick={onClose}
+    >
+      {showHistory ? historyListView : conversationView}
+    </ChatPanelShell>
   );
 };
 

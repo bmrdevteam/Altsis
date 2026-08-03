@@ -10,6 +10,14 @@ import ChatMessageContent from "./ChatMessageContent";
 import ImageLightbox from "./ImageLightbox";
 import ChatFileStorage from "./ChatFileStorage";
 import ChatRoomListItem from "./ChatRoomListItem";
+import {
+  ChatPanelShell,
+  ChatPanelHeader,
+  ChatEmptyState,
+  ChatInputBar,
+  ChatMessageBubble,
+  chatUiStyle,
+} from "./chatUi";
 import style from "./chat.module.scss";
 import defaultProfilePic from "assets/img/default_profile.png";
 
@@ -25,7 +33,7 @@ type Props = {
   archivedRooms?: TChatRoom[];
   socket?: Socket;
   onClose: () => void;
-  onRoomSelect: (room: TChatRoom) => void;
+  onRoomSelect: (room: TChatRoom | null) => void;
   onRoomUpdated?: (room: TChatRoom) => void;
   onNewChatCreated: (room: TChatRoom) => void;
   onRoomLeft: () => void;
@@ -60,7 +68,6 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -192,14 +199,6 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
     }, 50);
   };
 
-  const adjustTextareaHeight = () => {
-    const textarea = inputRef.current;
-    if (!textarea) return;
-    textarea.style.height = "auto";
-    const maxHeight = 100; // ~5 lines
-    textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight)}px`;
-  };
-
   const handleSend = async () => {
     if (!room || !newMessage.trim() || isSending || !canChat) return;
 
@@ -211,11 +210,7 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
       });
       setMessages((prev) => [...prev, message]);
       setNewMessage("");
-      if (inputRef.current) {
-        inputRef.current.style.height = "auto";
-      }
       scrollToBottom();
-      inputRef.current?.focus();
     } catch (err) {
       ALERT_ERROR(err);
     }
@@ -517,16 +512,25 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
 
   // Chat list view
   const chatListContent = (
-    <div className={style.chat_list_container}>
-      <div className={style.chat_list_items}>
+    <div className={chatUiStyle.listShell}>
+      <div className={chatUiStyle.listItems}>
         {rooms.length === 0 ? (
-          <div className={style.empty_state}>
-            <Svg type="chatBubble" width="48px" height="48px" style={{ fill: "var(--accent-4, #ccc)" }} />
-            <span className={style.empty_state_text}>채팅방이 없습니다</span>
-            <Button type="ghost" onClick={() => setShowNewChat(true)}>
-              새 채팅 시작하기
-            </Button>
-          </div>
+          <ChatEmptyState
+            icon={
+              <Svg
+                type="chatBubble"
+                width="48px"
+                height="48px"
+                style={{ fill: "var(--accent-4, #ccc)" }}
+              />
+            }
+            title="채팅방이 없습니다"
+            action={
+              <Button type="ghost" onClick={() => setShowNewChat(true)}>
+                새 채팅 시작하기
+              </Button>
+            }
+          />
         ) : (
           rooms.map((r) => (
             <ChatRoomListItem
@@ -562,7 +566,7 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
           </div>
         )}
       </div>
-      <div className={style.chat_list_footer}>
+      <div className={chatUiStyle.listFooter}>
         <Button type="ghost" onClick={() => setShowNewChat(true)} style={{ width: "100%" }}>
           새 채팅
         </Button>
@@ -572,19 +576,25 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
             onClick={() => setShowArchived(!showArchived)}
             style={{ width: "100%" }}
           >
-            <div className={style.archived_toggle}>
-              <Svg type="archive" width="14px" height="14px" />
-              <span>보관함 ({archivedRooms.length})</span>
+            <span className={style.archived_toggle}>
+              <Svg
+                type="archive"
+                width="14px"
+                height="14px"
+                style={{ fill: "var(--accent-1)" }}
+              />
+              보관함 ({archivedRooms.length})
               <Svg
                 type="chevronDown"
                 width="14px"
                 height="14px"
                 style={{
+                  fill: "var(--accent-1)",
                   transform: showArchived ? "rotate(180deg)" : "rotate(0deg)",
                   transition: "transform 0.2s",
                 }}
               />
-            </div>
+            </span>
           </Button>
         )}
       </div>
@@ -598,11 +608,18 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
         {isLoading ? (
           <div className={style.loading}>메시지를 불러오는 중...</div>
         ) : messages.length === 0 ? (
-          <div className={style.empty_state}>
-            <Svg type="send" width="40px" height="40px" style={{ fill: "var(--accent-4, #ccc)" }} />
-            <span className={style.empty_state_text}>아직 메시지가 없습니다</span>
-            <span className={style.empty_state_sub}>첫 메시지를 보내보세요!</span>
-          </div>
+          <ChatEmptyState
+            icon={
+              <Svg
+                type="send"
+                width="40px"
+                height="40px"
+                style={{ fill: "var(--accent-4, #ccc)" }}
+              />
+            }
+            title="아직 메시지가 없습니다"
+            subtitle="첫 메시지를 보내보세요!"
+          />
         ) : (
           messages.map((msg, index) => {
             const groupStart = isGroupStart(index);
@@ -635,34 +652,33 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
                       <Svg type="trash" width="14px" height="14px" />
                     </button>
                   )}
-                  <div
-                    className={`${style.message} ${
-                      msg.isDeleted ? style.deleted : ""
-                    }`}
+                  <ChatMessageBubble
+                    variant={isOwn ? "own" : "other"}
+                    time={formatMessageTime(msg.createdAt)}
+                    sender={
+                      !isOwn && groupStart ? (
+                        <>
+                          {msg.senderName}
+                          <span className={style.sender_id}>
+                            ({msg.senderId})
+                          </span>
+                        </>
+                      ) : undefined
+                    }
+                    className={msg.isDeleted ? chatUiStyle.bubbleDeleted : ""}
                   >
-                    {!isOwn && groupStart && (
-                      <div className={style.sender}>
-                        {msg.senderName}
-                        <span className={style.sender_id}>({msg.senderId})</span>
-                      </div>
+                    {msg.isDeleted ? (
+                      <span className={style.deleted_text}>
+                        삭제된 메시지입니다
+                      </span>
+                    ) : (
+                      <ChatMessageContent
+                        message={msg}
+                        onImageClick={(url) => setLightboxImage(url)}
+                        onFileDownload={handleFileDownload}
+                      />
                     )}
-                    <div className={style.content}>
-                      {msg.isDeleted ? (
-                        <span className={style.deleted_text}>
-                          삭제된 메시지입니다
-                        </span>
-                      ) : (
-                        <ChatMessageContent
-                          message={msg}
-                          onImageClick={(url) => setLightboxImage(url)}
-                          onFileDownload={handleFileDownload}
-                        />
-                      )}
-                    </div>
-                    <div className={style.time}>
-                      {formatMessageTime(msg.createdAt)}
-                    </div>
-                  </div>
+                  </ChatMessageBubble>
                 </div>
               </div>
             );
@@ -733,41 +749,29 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
                 }
               }}
             />
-            <div className={style.input_bar}>
-              <button
-                className={style.attach_button}
-                onClick={() => fileInputRef.current?.click()}
-                title="파일 첨부"
-              >
-                <Svg type="paperclip" width="20px" height="20px" />
-              </button>
-              <textarea
-                ref={inputRef}
-                value={newMessage}
-                onChange={(e) => {
-                  setNewMessage(e.target.value);
-                  adjustTextareaHeight();
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend();
-                  }
-                }}
-                onKeyUp={handleTyping}
-                onPaste={handlePaste}
-                placeholder="메시지를 입력하세요..."
-                rows={1}
-              />
-              <button
-                className={`${style.send_button} ${newMessage.trim() ? style.active : ""}`}
-                onClick={handleSend}
-                disabled={isSending || !newMessage.trim()}
-                title="전송"
-              >
-                <Svg type="send" width="20px" height="20px" />
-              </button>
-            </div>
+            <ChatInputBar
+              bare
+              value={newMessage}
+              onChange={setNewMessage}
+              onSend={handleSend}
+              placeholder="메시지를 입력하세요..."
+              disabled={isSending}
+              sendDisabled={isSending || !newMessage.trim()}
+              sendActive={!!newMessage.trim()}
+              sendTitle="전송"
+              onKeyUp={handleTyping}
+              onPaste={handlePaste}
+              leftSlot={
+                <button
+                  type="button"
+                  className={chatUiStyle.slotBtn}
+                  onClick={() => fileInputRef.current?.click()}
+                  title="파일 첨부"
+                >
+                  <Svg type="paperclip" width="20px" height="20px" />
+                </button>
+              }
+            />
           </>
         ) : (
           <div className={style.chat_disabled}>
@@ -787,45 +791,51 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
   // === Modal (navbar panel) layout ===
   return (
     <>
-      <div className={style.chat_panel_overlay} onClick={onClose} />
-      <div className={style.chat_panel_container}>
-        <div className={style.chat_panel_header}>
-          <div className={style.chat_panel_title_area}>
-            {!showChatList && room ? (
-              <>
-                <button
-                  className={style.chat_panel_btn}
-                  onClick={() => {
-                    setShowChatList(true);
-                    setRoom(null);
-                  }}
-                  title="목록으로"
-                >
-                  <Svg type="arrowLeft" width="16px" height="16px" style={{ fill: "var(--accent-1, #333)" }} />
-                </button>
-                <div className={style.chat_panel_title_info}>
-                  <span className={style.chat_panel_title}>{getRoomDisplayName()}</span>
-                  <span className={style.chat_panel_participants}>
-                    {room.participants.map((p) => p.userName).join(", ")}
-                  </span>
-                </div>
-              </>
-            ) : (
-              <>
-                <Svg type="chat" width="16px" height="16px" style={{ fill: "var(--accent-1, #333)" }} />
-                <span className={style.chat_panel_title}>메시지</span>
-              </>
-            )}
-          </div>
-          <div className={style.chat_panel_actions}>
-            {!showChatList && room && (
+      <ChatPanelShell onOverlayClick={onClose}>
+        <ChatPanelHeader
+          title={
+            !showChatList && room ? getRoomDisplayName() : "메시지"
+          }
+          subtitle={
+            !showChatList && room
+              ? room.participants.map((p) => p.userName).join(", ")
+              : undefined
+          }
+          leading={
+            showChatList || !room ? (
+              <Svg
+                type="chat"
+                width="16px"
+                height="16px"
+                style={{ fill: "var(--accent-1, #333)" }}
+              />
+            ) : undefined
+          }
+          onBack={
+            !showChatList && room
+              ? () => {
+                  setShowChatList(true);
+                  setRoom(null);
+                  // 목록으로 나간 뒤 창을 닫으면 재오픈 시에도 목록 유지
+                  onRoomSelect(null);
+                }
+              : undefined
+          }
+          actions={
+            !showChatList && room ? (
               <div ref={menuRef} className={style.room_actions}>
                 <button
-                  className={style.chat_panel_btn}
+                  type="button"
+                  className={chatUiStyle.iconBtn}
                   onClick={() => setShowMenu(!showMenu)}
                   title="메뉴"
                 >
-                  <Svg type="verticalDots" width="16px" height="16px" style={{ fill: "var(--accent-1, #333)" }} />
+                  <Svg
+                    type="verticalDots"
+                    width="16px"
+                    height="16px"
+                    style={{ fill: "var(--accent-1, #333)" }}
+                  />
                 </button>
                 {showMenu && (
                   <div className={style.menu_dropdown}>
@@ -836,7 +846,11 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
                         handlePinRoom();
                       }}
                     >
-                      <Svg type={room.isPinned ? "pinOff" : "pin"} width="16px" height="16px" />
+                      <Svg
+                        type={room.isPinned ? "pinOff" : "pin"}
+                        width="16px"
+                        height="16px"
+                      />
                       <span>{room.isPinned ? "고정 해제" : "고정"}</span>
                     </div>
                     <div
@@ -856,7 +870,12 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
                         handleArchiveRoom();
                       }}
                     >
-                      <Svg type="archive" width="16px" height="16px" />
+                      <Svg
+                        type="archive"
+                        width="16px"
+                        height="16px"
+                        style={{ fill: "var(--accent-2)" }}
+                      />
                       <span>보관</span>
                     </div>
                     <div
@@ -872,14 +891,12 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
                   </div>
                 )}
               </div>
-            )}
-            <button className={style.chat_panel_btn} onClick={onClose} title="닫기">
-              <Svg type="x" width="16px" height="16px" style={{ fill: "var(--accent-1, #333)" }} />
-            </button>
-          </div>
-        </div>
+            ) : undefined
+          }
+          onClose={onClose}
+        />
         {chatContent}
-      </div>
+      </ChatPanelShell>
 
       {showNewChat && (
         <NewChat

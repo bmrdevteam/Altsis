@@ -1,4 +1,3 @@
-import { useEffect, useRef } from "react";
 import { useAuth } from "contexts/authContext";
 import { useAlter } from "contexts/alterContext";
 import AlterPanel from "./AlterPanel";
@@ -15,8 +14,13 @@ const AlterIcon = ({ size = 20 }: { size?: number }) => (
 
 const Alter = () => {
   const { currentSchool, currentSeason, currentRegistration } = useAuth();
-  const { isOpen, isExpanded, toggle, close } = useAlter();
-  const rootRef = useRef<HTMLDivElement>(null);
+  const {
+    isOpen,
+    isWorking,
+    hasBackgroundResult,
+    toggle,
+    close,
+  } = useAlter();
 
   const aiEnabled =
     currentSchool?.aiEnabled !== false &&
@@ -26,47 +30,47 @@ const Alter = () => {
       ? !!currentSeason?.aiSettings?.permission?.teacher
       : !!currentSeason?.aiSettings?.permission?.student);
 
-  useEffect(() => {
-    if (!isOpen || isExpanded) return;
-    const onDown = (e: MouseEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) {
-        close();
-      }
-    };
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, [isOpen, isExpanded, close]);
-
   if (!aiEnabled) return null;
 
   return (
-    <>
-      {isOpen && isExpanded && (
-        <div
-          className={style.backdrop}
-          onClick={close}
-          aria-hidden
-        />
-      )}
-      <div className={style.alterRoot} ref={rootRef}>
-        <div
-          className={style.iconBtn}
-          onClick={toggle}
-          title="Alter"
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              toggle();
-            }
-          }}
-        >
-          <AlterIcon size={20} />
-        </div>
-        {isOpen && <AlterPanel onClose={close} />}
+    <div className={style.alterRoot}>
+      <div
+        className={style.iconBtn}
+        onClick={toggle}
+        title={
+          isWorking
+            ? "Alter (작업 진행 중)"
+            : hasBackgroundResult
+              ? "Alter (새 결과)"
+              : "Alter"
+        }
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            toggle();
+          }
+        }}
+      >
+        <AlterIcon size={20} />
+        {(isWorking || hasBackgroundResult) && (
+          <span
+            className={`${style.iconBadge} ${
+              isWorking ? style.iconBadgeWorking : style.iconBadgeDone
+            }`}
+            aria-hidden
+          />
+        )}
       </div>
-    </>
+      {/* 닫아도 언마운트하지 않아 진행 중 fetch/SSE가 끊기지 않음 */}
+      <div
+        className={isOpen ? undefined : style.panelHostHidden}
+        aria-hidden={!isOpen}
+      >
+        <AlterPanel onClose={close} />
+      </div>
+    </div>
   );
 };
 

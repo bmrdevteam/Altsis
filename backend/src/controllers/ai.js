@@ -36,6 +36,15 @@ import {
   detectSkillFromMessage,
   mergeTokenUsage,
 } from "../services/aiSkills.js";
+import {
+  listAlterConversations as listAlterConversationsSvc,
+  createAlterConversation as createAlterConversationSvc,
+  listAlterMessages as listAlterMessagesSvc,
+  renameAlterConversation as renameAlterConversationSvc,
+  deleteAlterConversation as deleteAlterConversationSvc,
+  appendAlterTurn,
+  setAlterConversationStatus,
+} from "../services/alterConversations.js";
 
 const mapProviderError = (err) => {
   if (err.status === 404) return AI_ERRORS.MODEL_NOT_FOUND;
@@ -71,10 +80,116 @@ export const listAiSkills = async (_req, res) => {
 };
 
 /**
+ * Alter 대화 목록
+ * @route GET /ai/alter/conversations?season=
+ */
+export const listAlterConversations = async (req, res) => {
+  try {
+    const seasonId = req.query.season;
+    const conversations = await listAlterConversationsSvc({
+      academyId: req.user.academyId,
+      userId: req.user._id,
+      seasonId,
+      limit: req.query.limit,
+    });
+    return res.status(200).send({ conversations });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
+/**
+ * Alter 대화 생성
+ * @route POST /ai/alter/conversations
+ */
+export const createAlterConversation = async (req, res) => {
+  try {
+    const {
+      season: seasonId,
+      title,
+      pageType,
+      contextLabel,
+      syllabusId,
+    } = req.body || {};
+    const conversation = await createAlterConversationSvc({
+      academyId: req.user.academyId,
+      userId: req.user._id,
+      seasonId,
+      title,
+      pageType,
+      contextLabel,
+      syllabusId,
+    });
+    return res.status(200).send({ conversation });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
+/**
+ * Alter 메시지 목록
+ * @route GET /ai/alter/conversations/:id/messages
+ */
+export const listAlterMessages = async (req, res) => {
+  try {
+    const messages = await listAlterMessagesSvc({
+      academyId: req.user.academyId,
+      userId: req.user._id,
+      conversationId: req.params.id,
+      limit: req.query.limit,
+    });
+    return res.status(200).send({ messages });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
+/**
+ * Alter 대화 이름 변경
+ * @route PATCH /ai/alter/conversations/:id
+ */
+export const renameAlterConversation = async (req, res) => {
+  try {
+    const conversation = await renameAlterConversationSvc({
+      academyId: req.user.academyId,
+      userId: req.user._id,
+      conversationId: req.params.id,
+      title: req.body?.title,
+    });
+    return res.status(200).send({ conversation });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
+/**
+ * Alter 대화 삭제(소프트)
+ * @route DELETE /ai/alter/conversations/:id
+ */
+export const deleteAlterConversation = async (req, res) => {
+  try {
+    await deleteAlterConversationSvc({
+      academyId: req.user.academyId,
+      userId: req.user._id,
+      conversationId: req.params.id,
+    });
+    return res.status(200).send({ ok: true });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
+/**
  * Alter 범용 턴 (Skill 라우팅)
  * @memberof APIs.AIAPI
  * @route POST /ai/alter
  * skill=syllabus-review|evaluation-draft 이면 SSE, chat 이면 JSON
+ * conversationId가 있으면(또는 없으면 생성) 유저·AI 메시지를 저장한다.
  */
 export const runAlter = async (req, res) => {
   const {
@@ -84,6 +199,8 @@ export const runAlter = async (req, res) => {
     context = {},
     history = [],
     autoDetectSkill = true,
+    conversationId: rawConversationId,
+    persist = true,
   } = req.body || {};
 
   let skill = rawSkill;
@@ -105,8 +222,15 @@ export const runAlter = async (req, res) => {
 
   const sendEvent = (event, data) => {
     if (!wantsSse) return;
-    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    // 클라이언트가 닫혀도 서버 작업은 계속 (쓰기 실패는 무시)
+    try {
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    } catch (_) {
+      // disconnected client
+    }
   };
+
+  let conversationId = rawConversationId || null;
 
   try {
     if (!seasonId) {
@@ -119,6 +243,29 @@ export const runAlter = async (req, res) => {
 
     if (wantsSse) sendEvent("step", { message: "설정 확인 중..." });
 
+    if (persist !== false) {
+      try {
+        const started = await appendAlterTurn({
+          academyId: req.user.academyId,
+          userId: req.user._id,
+          seasonId,
+          conversationId: conversationId || null,
+          userMessage: message,
+          assistantMessage: null,
+          skill,
+          pageType: context.pageType,
+          contextLabel: context.classTitle || context.label,
+          syllabusId: context.syllabusId,
+          markWorking: true,
+        });
+        conversationId = String(started.conversation._id);
+        // 유저 메시지는 시작 시 저장 → 완료 시 중복 저장 방지
+        req._alterUserMessageSaved = true;
+      } catch (persistErr) {
+        logger.error(`alter persist start: ${persistErr.message}`);
+      }
+    }
+
     const result = await runAlterSkill({
       academyId: req.user.academyId,
       user: req.user,
@@ -130,12 +277,38 @@ export const runAlter = async (req, res) => {
       onEvent: sendEvent,
     });
 
+    let savedConversationId = conversationId;
+    if (persist !== false) {
+      try {
+        const saved = await appendAlterTurn({
+          academyId: req.user.academyId,
+          userId: req.user._id,
+          seasonId,
+          conversationId,
+          userMessage: req._alterUserMessageSaved ? null : message,
+          assistantMessage: result.text || "",
+          skill: result.skill || skill,
+          pageType: context.pageType,
+          contextLabel: context.classTitle || context.label,
+          syllabusId: context.syllabusId,
+          tokenUsage: result.tokenUsage,
+          review: result.review || null,
+          draft: result.draft || null,
+          markWorking: false,
+        });
+        savedConversationId = String(saved.conversation._id);
+      } catch (persistErr) {
+        logger.error(`alter persist done: ${persistErr.message}`);
+      }
+    }
+
     if (wantsSse) {
       sendEvent("done", {
         skill: result.skill,
         review: result.review || null,
         draft: result.draft || null,
         message: result.text,
+        conversationId: savedConversationId,
       });
       return res.end();
     }
@@ -145,9 +318,22 @@ export const runAlter = async (req, res) => {
       message: result.text,
       review: result.review,
       draft: result.draft || null,
+      conversationId: savedConversationId,
     });
   } catch (err) {
     logger.error(err.message);
+    if (persist !== false && conversationId) {
+      try {
+        await setAlterConversationStatus({
+          academyId: req.user.academyId,
+          userId: req.user._id,
+          conversationId,
+          status: "error",
+        });
+      } catch (_) {
+        // ignore
+      }
+    }
     const code =
       err.code ||
       (err.message && Object.values(AI_ERRORS).includes(err.message)
@@ -164,10 +350,10 @@ export const runAlter = async (req, res) => {
       AI_ERRORS.GENERATION_FAILED;
 
     if (wantsSse) {
-      sendEvent("error", { message });
+      sendEvent("error", { message, conversationId });
       return res.end();
     }
-    return res.status(err.status || 500).send({ message });
+    return res.status(err.status || 500).send({ message, conversationId });
   }
 };
 

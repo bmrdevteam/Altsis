@@ -10,6 +10,25 @@ import * as ai from "../controllers/ai.js";
 // Skill catalog
 router.get("/skills", isLoggedIn, ai.listAiSkills);
 
+// Alter conversation persistence
+router.get("/alter/conversations", isLoggedIn, ai.listAlterConversations);
+router.post("/alter/conversations", isLoggedIn, ai.createAlterConversation);
+router.get(
+  "/alter/conversations/:id/messages",
+  isLoggedIn,
+  ai.listAlterMessages
+);
+router.patch(
+  "/alter/conversations/:id",
+  isLoggedIn,
+  ai.renameAlterConversation
+);
+router.delete(
+  "/alter/conversations/:id",
+  isLoggedIn,
+  ai.deleteAlterConversation
+);
+
 // Alter unified turn (skill router)
 router.post("/alter", isLoggedIn, ai.runAlter);
 

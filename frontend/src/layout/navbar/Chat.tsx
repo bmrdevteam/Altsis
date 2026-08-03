@@ -114,7 +114,7 @@ const Chat = () => {
     }
   }, [currentUser?._id]);
 
-  const handleRoomSelect = (room: TChatRoom) => {
+  const handleRoomSelect = (room: TChatRoom | null): void => {
     setSelectedRoom(room);
   };
 
