@@ -2,11 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "contexts/authContext";
 import { TAlterSkillId, useAlter } from "contexts/alterContext";
 import { MESSAGE } from "hooks/_message";
-import {
-  extractSyllabusInputFields,
-  isSyllabusFieldFilled,
-  readSyllabusInfoValue,
-} from "utils/syllabusAiFields";
 import { isEmptyEval } from "utils/evaluationCsv";
 import { TAlterConversation } from "types/alterChat";
 import Button from "components/button/Button";
@@ -47,7 +42,8 @@ const formatAlterListTime = (dateString?: string) => {
 
 const alterApiBase = () => `${process.env.REACT_APP_SERVER_URL}/api/ai`;
 
-type TAlterDraftResult = {
+type TAlterEvalDraftResult = {
+  kind?: "evaluation";
   targetLabels: string[];
   fillEmptyOnly: boolean;
   csv: string;
@@ -59,37 +55,46 @@ type TAlterDraftResult = {
   }>;
 };
 
+type TAlterSyllabusDraftResult = {
+  kind: "syllabus";
+  summary?: string;
+  items: Array<{ field: string; value: string }>;
+};
+
+type TAlterDraftResult = TAlterEvalDraftResult | TAlterSyllabusDraftResult;
+
 type ChatMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
   skill?: string;
-  review?: TAlterReviewResult | null;
   draft?: TAlterDraftResult | null;
   createdAt?: string;
 };
 
-type TAlterReviewResult = {
-  summary: string;
-  overallLevel: "good" | "fair" | "needs_work";
-  items: Array<{
-    field: string;
-    level: "good" | "fair" | "needs_work" | "empty";
-    comment: string;
-    suggestion: string;
-  }>;
+const isSyllabusDraft = (
+  draft?: TAlterDraftResult | null
+): draft is TAlterSyllabusDraftResult => {
+  if (!draft) return false;
+  if (draft.kind === "syllabus") return true;
+  const anyDraft = draft as unknown as {
+    items?: unknown;
+    rows?: unknown;
+  };
+  return Array.isArray(anyDraft.items) && !Array.isArray(anyDraft.rows);
 };
 
-const LEVEL_LABEL: Record<string, string> = {
-  good: "충분",
-  fair: "보통",
-  needs_work: "보완 필요",
-  empty: "미작성",
+const isEvalDraft = (
+  draft?: TAlterDraftResult | null
+): draft is TAlterEvalDraftResult => {
+  if (!draft) return false;
+  const anyDraft = draft as unknown as { rows?: unknown };
+  return Array.isArray(anyDraft.rows);
 };
 
 const SKILL_LABEL: Record<TAlterSkillId, string> = {
   chat: "일반 대화",
-  "syllabus-review": "강의계획서 점검",
+  "syllabus-draft": "강의계획서 초안 작성",
   "evaluation-draft": "평가 초안",
 };
 
@@ -103,6 +108,7 @@ const formatBubbleTime = (dateString?: string) => {
 
 const skillLabel = (skill?: string) => {
   if (!skill) return "";
+  if (skill === "syllabus-review") return SKILL_LABEL["syllabus-draft"];
   if (skill in SKILL_LABEL) return SKILL_LABEL[skill as TAlterSkillId];
   return skill;
 };
@@ -152,7 +158,10 @@ type Props = {
   onClose: () => void;
 };
 
-const wantsReviewText = (text: string) =>
+const wantsSyllabusDraftText = (text: string) =>
+  /계획서.*(초안|작성)/.test(text) ||
+  /(초안|작성).*계획서/.test(text) ||
+  /\/(계획서|syllabus[-_]?draft)/i.test(text) ||
   /^(점검|리뷰|피드백|다시\s*점검)/.test(text) ||
   /계획서.*(점검|리뷰)/.test(text) ||
   /\/(점검|review)/i.test(text);
@@ -163,7 +172,7 @@ const wantsEvalDraftText = (text: string) =>
   /\/(평가|evaluation[-_]?draft)/i.test(text);
 
 const AlterPanel = ({ onClose }: Props) => {
-  const { currentSeason, currentRegistration } = useAuth();
+  const { currentSeason, currentRegistration, currentSchool } = useAuth();
   const {
     pageContext,
     isExpanded,
@@ -185,19 +194,18 @@ const AlterPanel = ({ onClose }: Props) => {
   const [error, setError] = useState("");
   const [isWorking, setIsWorking] = useState(false);
   const [steps, setSteps] = useState<string[]>([]);
-  const [selectedRefIndexes, setSelectedRefIndexes] = useState<number[]>([]);
   const [skillGuidelines, setSkillGuidelines] = useState("");
-  const [skillReferences, setSkillReferences] = useState<
-    Array<{ title?: string; content?: string }>
-  >([]);
   const [skillSettingsLoading, setSkillSettingsLoading] = useState(false);
-  const [appliedFields, setAppliedFields] = useState<Set<string>>(new Set());
+  const [sourceAttachments, setSourceAttachments] = useState<
+    Array<{ name: string; text: string }>
+  >([]);
+  const attachInputRef = useRef<HTMLInputElement>(null);
   const [appliedDraftIds, setAppliedDraftIds] = useState<Set<string>>(
     new Set()
   );
   const [showPrep, setShowPrep] = useState(() => {
     const first = suggested[0] || "chat";
-    return first === "syllabus-review" || first === "evaluation-draft";
+    return first === "syllabus-draft" || first === "evaluation-draft";
   });
 
   const [evalTargetLabels, setEvalTargetLabels] = useState<string[]>([]);
@@ -238,7 +246,6 @@ const AlterPanel = ({ onClose }: Props) => {
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, [actionMenuOpen]);
 
-  const references = skillReferences;
   const guidelines = skillGuidelines.trim();
 
   const formEvaluation = pageContext?.formEvaluation || [];
@@ -258,17 +265,12 @@ const AlterPanel = ({ onClose }: Props) => {
     [formEvaluation]
   );
 
-  const inputFields = useMemo(
-    () => extractSyllabusInputFields(pageContext?.formSyllabus),
-    [pageContext?.formSyllabus]
-  );
-
   // 화면이 바뀌어도 진행 중/저장된 대화는 유지하고 Prep 기본값만 갱신
   useEffect(() => {
     const next = suggested[0] || "chat";
     setSelectedSkill(next);
     if (!isWorking && messages.length === 0) {
-      setShowPrep(next === "syllabus-review" || next === "evaluation-draft");
+      setShowPrep(next === "syllabus-draft" || next === "evaluation-draft");
     }
     setEvalTargetLabels(defaultTargetLabels);
     setEvalContextLabels(allEvalLabels);
@@ -281,15 +283,24 @@ const AlterPanel = ({ onClose }: Props) => {
     setAlterWorking(isWorking);
   }, [isWorking, setAlterWorking]);
 
-  // 새로고침 후에도 최근 대화를 복원
-  const didRestoreRef = useRef(false);
+  const schoolIdForAlter =
+    currentSchool?._id ||
+    currentSchool?.school ||
+    (currentSeason as { school?: string } | undefined)?.school ||
+    "";
+
+  // 새로고침·학교 전환 후에도 최근 대화를 복원 (학교 단위 목록)
+  const didRestoreRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!currentSeason?._id || didRestoreRef.current || isWorking) return;
-    didRestoreRef.current = true;
+    if (!schoolIdForAlter || isWorking) return;
+    if (didRestoreRef.current === schoolIdForAlter) return;
+    didRestoreRef.current = schoolIdForAlter;
     void (async () => {
       try {
         const res = await fetch(
-          `${alterApiBase()}/alter/conversations?season=${currentSeason._id}&limit=1`,
+          `${alterApiBase()}/alter/conversations?school=${encodeURIComponent(
+            schoolIdForAlter
+          )}&limit=1`,
           { credentials: "include" }
         );
         if (!res.ok) return;
@@ -304,7 +315,7 @@ const AlterPanel = ({ onClose }: Props) => {
         // ignore restore errors
       }
     })();
-  }, [currentSeason?._id]);
+  }, [schoolIdForAlter]);
 
   useEffect(() => {
     if (pageContext?.pageType !== "evaluation") return;
@@ -322,7 +333,7 @@ const AlterPanel = ({ onClose }: Props) => {
   useEffect(() => {
     if (!isOpen || !currentSeason?._id) return;
     if (
-      selectedSkill !== "syllabus-review" &&
+      selectedSkill !== "syllabus-draft" &&
       selectedSkill !== "evaluation-draft"
     ) {
       return;
@@ -344,13 +355,9 @@ const AlterPanel = ({ onClose }: Props) => {
         const data = await res.json();
         if (cancelled) return;
         setSkillGuidelines((data.guidelines || "").trim());
-        setSkillReferences(
-          Array.isArray(data.references) ? data.references : []
-        );
       } catch {
         if (cancelled) return;
         setSkillGuidelines("");
-        setSkillReferences([]);
       } finally {
         if (!cancelled) setSkillSettingsLoading(false);
       }
@@ -360,14 +367,6 @@ const AlterPanel = ({ onClose }: Props) => {
       cancelled = true;
     };
   }, [isOpen, currentSeason?._id, selectedSkill]);
-
-  useEffect(() => {
-    if (references.length === 0) {
-      setSelectedRefIndexes([]);
-      return;
-    }
-    setSelectedRefIndexes(references.slice(0, 2).map((_, i) => i));
-  }, [references]);
 
   useEffect(() => {
     const behavior = skipSmoothScrollRef.current ? "auto" : "smooth";
@@ -443,6 +442,9 @@ const AlterPanel = ({ onClose }: Props) => {
         csv: pageContext?.getEvaluationCsv?.() || "",
       };
     }
+    const attachmentText = sourceAttachments
+      .map((a) => `### ${a.name}\n${a.text}`)
+      .join("\n\n");
     return {
       pageType: pageContext?.pageType || "general",
       label: pageContext?.label || "",
@@ -450,16 +452,18 @@ const AlterPanel = ({ onClose }: Props) => {
       classTitle: pageContext?.classTitle || "",
       currentInfo: pageContext?.getCurrentInfo?.() || {},
       formSyllabus: pageContext?.formSyllabus || currentSeason?.formSyllabus,
-      referenceIndexes: selectedRefIndexes,
+      sourceText: attachmentText,
     };
   };
 
   const loadConversations = async () => {
-    if (!currentSeason?._id) return;
+    if (!schoolIdForAlter) return;
     setHistoryLoading(true);
     try {
       const res = await fetch(
-        `${alterApiBase()}/alter/conversations?season=${currentSeason._id}`,
+        `${alterApiBase()}/alter/conversations?school=${encodeURIComponent(
+          schoolIdForAlter
+        )}`,
         { credentials: "include" }
       );
       if (!res.ok) throw new Error("대화 목록을 불러오지 못했습니다.");
@@ -482,12 +486,12 @@ const AlterPanel = ({ onClose }: Props) => {
     setMessages([]);
     setError("");
     setSteps([]);
-    setAppliedFields(new Set());
     setAppliedDraftIds(new Set());
+    setSourceAttachments([]);
     setShowHistory(false);
     const next = suggested[0] || "chat";
     setSelectedSkill(next);
-    setShowPrep(next === "syllabus-review" || next === "evaluation-draft");
+    setShowPrep(next === "syllabus-draft" || next === "evaluation-draft");
   };
 
   const openHistoryList = () => {
@@ -567,7 +571,6 @@ const AlterPanel = ({ onClose }: Props) => {
     onStep: (m: string) => void,
     onActivity?: () => void
   ): Promise<{
-    review?: TAlterReviewResult | null;
     draft?: TAlterDraftResult | null;
     message?: string;
     skill?: string;
@@ -580,7 +583,6 @@ const AlterPanel = ({ onClose }: Props) => {
     const decoder = new TextDecoder();
     let buffer = "";
     let result: {
-      review?: TAlterReviewResult | null;
       draft?: TAlterDraftResult | null;
       message?: string;
       skill?: string;
@@ -612,9 +614,8 @@ const AlterPanel = ({ onClose }: Props) => {
               }
             } else if (eventType === "done") {
               result = {
-                review: data.review || null,
                 draft: data.draft || null,
-                message: data.message || "",
+                message: data.message || data.text || "",
                 skill: data.skill,
                 conversationId: data.conversationId || null,
               };
@@ -630,12 +631,12 @@ const AlterPanel = ({ onClose }: Props) => {
     return result;
   };
 
-  const missingRequired = () => {
-    const info = pageContext?.getCurrentInfo?.() || {};
-    return inputFields
-      .filter((f) => f.required)
-      .filter((f) => !isSyllabusFieldFilled(info, f))
-      .map((f) => f.name);
+  const combinedSourceText = () => {
+    const parts = [
+      draft.trim(),
+      ...sourceAttachments.map((a) => `[첨부: ${a.name}]\n${a.text}`),
+    ].filter(Boolean);
+    return parts.join("\n\n").trim();
   };
 
   const runSkill = async (skill: TAlterSkillId, userText: string) => {
@@ -644,16 +645,15 @@ const AlterPanel = ({ onClose }: Props) => {
       return;
     }
 
-    if (skill === "syllabus-review") {
-      const missing = missingRequired();
-      if (missing.length > 0) {
-        setError(
-          `필수 항목을 작성한 뒤 점검해 주세요. (미작성: ${missing.join(", ")})`
-        );
+    if (skill === "syllabus-draft") {
+      if (pageContext?.pageType !== "syllabus-edit") {
+        setError("강의계획서 작성/수정 화면에서 초안을 작성할 수 있습니다.");
         return;
       }
-      if (pageContext?.pageType !== "syllabus-edit") {
-        setError("강의계획서 작성/수정 화면에서 점검할 수 있습니다.");
+      if (!userText.trim() && sourceAttachments.length === 0) {
+        setError(
+          "초안에 쓸 정보를 입력하거나 텍스트 파일을 첨부해 주세요."
+        );
         return;
       }
     }
@@ -713,7 +713,7 @@ const AlterPanel = ({ onClose }: Props) => {
     cancelledByUserRef.current = false;
     // 서버가 진행 이벤트를 계속 보내는 동안은 끊지 않는다 (무응답 시간 기준)
     const inactivityTimeoutMs =
-      skill === "evaluation-draft" || skill === "syllabus-review"
+      skill === "evaluation-draft" || skill === "syllabus-draft"
         ? 90_000
         : 60_000;
     let timeoutId = window.setTimeout(() => {
@@ -763,16 +763,15 @@ const AlterPanel = ({ onClose }: Props) => {
           {
             id: `a-${Date.now()}`,
             role: "assistant",
-            content:
-              result.message ||
-              result.review?.summary ||
-              "응답을 생성했습니다.",
+            content: result.message || "응답을 생성했습니다.",
             skill: result.skill || skill,
-            review: result.review,
             draft: result.draft,
             createdAt: new Date().toISOString(),
           },
         ]);
+        if (skill === "syllabus-draft") {
+          setSourceAttachments([]);
+        }
         if (!isOpenRef.current) setHasBackgroundResult(true);
       } else {
         if (!response.ok) {
@@ -791,16 +790,15 @@ const AlterPanel = ({ onClose }: Props) => {
           {
             id: `a-${Date.now()}`,
             role: "assistant",
-            content: data.message || "",
+            content: data.message || data.text || "",
             skill: data.skill || skill,
-            review: data.review,
             draft: data.draft,
             createdAt: new Date().toISOString(),
           },
         ]);
         if (!isOpenRef.current) setHasBackgroundResult(true);
       }
-      if (skill === "syllabus-review" || skill === "evaluation-draft") {
+      if (skill === "syllabus-draft" || skill === "evaluation-draft") {
         setSelectedSkill("chat");
         setShowPrep(false);
       }
@@ -834,15 +832,23 @@ const AlterPanel = ({ onClose }: Props) => {
   };
 
   const startSuggested = () => {
-    if (selectedSkill === "evaluation-draft" || (showPrep && pageContext?.pageType === "evaluation")) {
+    if (
+      selectedSkill === "evaluation-draft" ||
+      (showPrep && pageContext?.pageType === "evaluation")
+    ) {
       void runSkill(
         "evaluation-draft",
         draft.trim() || "평가 초안을 작성해 주세요."
       );
       return;
     }
-    if (selectedSkill === "syllabus-review" || showPrep) {
-      void runSkill("syllabus-review", "강의계획서 전체를 점검해 주세요.");
+    if (selectedSkill === "syllabus-draft" || showPrep) {
+      const text = combinedSourceText();
+      void runSkill(
+        "syllabus-draft",
+        text || "강의계획서 초안을 작성해 주세요."
+      );
+      setDraft("");
       return;
     }
     setShowPrep(false);
@@ -850,7 +856,7 @@ const AlterPanel = ({ onClose }: Props) => {
 
   const sendDraft = () => {
     const text = draft.trim();
-    if (!text || isWorking) return;
+    if ((!text && sourceAttachments.length === 0) || isWorking) return;
     setDraft("");
     let skill: TAlterSkillId = "chat";
     if (
@@ -859,22 +865,89 @@ const AlterPanel = ({ onClose }: Props) => {
     ) {
       skill = "evaluation-draft";
     } else if (
-      wantsReviewText(text) &&
+      (wantsSyllabusDraftText(text) || sourceAttachments.length > 0) &&
       pageContext?.pageType === "syllabus-edit"
     ) {
-      skill = "syllabus-review";
+      skill = "syllabus-draft";
+    } else if (
+      selectedSkill === "syllabus-draft" &&
+      pageContext?.pageType === "syllabus-edit"
+    ) {
+      skill = "syllabus-draft";
     }
-    void runSkill(skill, text);
+    const payload =
+      skill === "syllabus-draft"
+        ? [text, ...sourceAttachments.map((a) => `[첨부: ${a.name}]\n${a.text}`)]
+            .filter(Boolean)
+            .join("\n\n")
+        : text;
+    void runSkill(skill, payload);
   };
 
-  const applySuggestion = (field: string, suggestion: string) => {
-    if (!suggestion?.trim() || !pageContext?.applyFieldSuggestion) return;
-    pageContext.applyFieldSuggestion(field, suggestion);
-    setAppliedFields((prev) => new Set(prev).add(field));
+  const handleAttachFiles = async (files: FileList | null) => {
+    if (!files?.length) return;
+    const next: Array<{ name: string; text: string }> = [];
+    for (const file of Array.from(files)) {
+      const lower = file.name.toLowerCase();
+      const isText =
+        file.type.startsWith("text/") ||
+        lower.endsWith(".txt") ||
+        lower.endsWith(".md") ||
+        lower.endsWith(".csv");
+      if (!isText) {
+        setError(
+          `"${file.name}"은(는) 아직 지원하지 않습니다. .txt / .md / .csv 또는 텍스트를 붙여 넣어 주세요.`
+        );
+        continue;
+      }
+      if (file.size > 200_000) {
+        setError(`"${file.name}" 파일이 너무 큽니다. (최대 200KB)`);
+        continue;
+      }
+      try {
+        const text = (await file.text()).trim();
+        if (!text) continue;
+        next.push({ name: file.name, text: text.slice(0, 12000) });
+      } catch {
+        setError(`"${file.name}"을(를) 읽지 못했습니다.`);
+      }
+    }
+    if (next.length > 0) {
+      setSourceAttachments((prev) => [...prev, ...next].slice(0, 3));
+      setError("");
+    }
+    if (attachInputRef.current) attachInputRef.current.value = "";
   };
 
   const applyDraft = (msgId: string, draftResult: TAlterDraftResult) => {
-    if (!pageContext?.applyEvaluationCsv || !draftResult.csv) return;
+    if (isSyllabusDraft(draftResult)) {
+      if (!pageContext?.applyInfoDraft) return;
+      const values: Record<string, string> = {};
+      for (const item of draftResult.items || []) {
+        if (item?.field && item?.value) values[item.field] = item.value;
+      }
+      const result = pageContext.applyInfoDraft(values);
+      setAppliedDraftIds((prev) => new Set(prev).add(msgId));
+      if (result.applied === 0) {
+        setError("반영할 초안 내용이 없었습니다.");
+      } else {
+        setError("");
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `a-applied-${Date.now()}`,
+            role: "assistant",
+            content: `초안 ${result.applied}개 항목을 학습 계획서에 반영했습니다. 내용을 확인·수정한 뒤 저장해 주세요.`,
+            skill: "syllabus-draft",
+            createdAt: new Date().toISOString(),
+          },
+        ]);
+      }
+      return;
+    }
+
+    if (!isEvalDraft(draftResult) || !pageContext?.applyEvaluationCsv) return;
+    if (!draftResult.csv) return;
     const result = pageContext.applyEvaluationCsv(draftResult.csv, {
       fillEmptyOnly: draftResult.fillEmptyOnly !== false,
     });
@@ -932,13 +1005,6 @@ const AlterPanel = ({ onClose }: Props) => {
     );
   };
 
-  const levelClass = (level: string) => {
-    if (level === "good") return style.levelGood;
-    if (level === "fair") return style.levelFair;
-    if (level === "empty") return style.levelEmpty;
-    return style.levelNeeds;
-  };
-
   const contextLabel =
     pageContext?.label ||
     (pageContext?.pageType === "syllabus-edit"
@@ -947,7 +1013,7 @@ const AlterPanel = ({ onClose }: Props) => {
         ? "평가"
         : "일반");
 
-  const inSyllabusPrep = showPrep && selectedSkill === "syllabus-review";
+  const inSyllabusPrep = showPrep && selectedSkill === "syllabus-draft";
   const inEvalPrep = showPrep && selectedSkill === "evaluation-draft";
   const inPrep = inSyllabusPrep || inEvalPrep;
 
@@ -973,12 +1039,12 @@ const AlterPanel = ({ onClose }: Props) => {
   );
 
   const prepPrimaryLabel = inEvalPrep
-    ? messages.some((m) => m.draft)
+    ? messages.some((m) => m.draft && isEvalDraft(m.draft))
       ? "다시 작성"
       : "초안 작성"
-    : messages.some((m) => m.review)
-      ? "다시 점검"
-      : "점검 시작";
+    : messages.some((m) => m.draft && isSyllabusDraft(m.draft))
+      ? "다시 작성"
+      : "초안 작성";
 
   const plusMenu = (
     <div className={chatUiStyle.actionMenuWrap} ref={actionMenuRef}>
@@ -1029,11 +1095,11 @@ const AlterPanel = ({ onClose }: Props) => {
               disabled={isWorking}
               onClick={() => {
                 setActionMenuOpen(false);
-                setSelectedSkill("syllabus-review");
+                setSelectedSkill("syllabus-draft");
                 setShowPrep(true);
               }}
             >
-              점검하기
+              강의계획서 초안
             </button>
           )}
           {!inPrep && pageContext?.pageType === "evaluation" && (
@@ -1103,7 +1169,17 @@ const AlterPanel = ({ onClose }: Props) => {
                 title={c.title || "대화"}
                 count={c.messageCount}
                 time={`${c.status === "working" ? "진행 중 · " : ""}${formatAlterListTime(c.lastMessageAt)}`}
-                preview={c.lastMessagePreview}
+                preview={
+                  <>
+                    {c.seasonLabel ? (
+                      <span className={style.listSeasonTag}>
+                        {c.seasonLabel}
+                        {c.lastMessagePreview ? " · " : ""}
+                      </span>
+                    ) : null}
+                    {c.lastMessagePreview}
+                  </>
+                }
                 active={conversationId === c._id}
                 leading={
                   <span
@@ -1178,7 +1254,7 @@ const AlterPanel = ({ onClose }: Props) => {
             type="button"
             className={`${style.skillChip} ${
               (
-                skill === "syllabus-review" || skill === "evaluation-draft"
+                skill === "syllabus-draft" || skill === "evaluation-draft"
                   ? showPrep && selectedSkill === skill
                   : selectedSkill === skill && !showPrep
               )
@@ -1188,7 +1264,7 @@ const AlterPanel = ({ onClose }: Props) => {
             onClick={() => {
               setSelectedSkill(skill);
               if (
-                skill === "syllabus-review" ||
+                skill === "syllabus-draft" ||
                 skill === "evaluation-draft"
               ) {
                 setShowPrep(true);
@@ -1229,47 +1305,61 @@ const AlterPanel = ({ onClose }: Props) => {
                 {skillSettingsLoading
                   ? "지침을 불러오는 중..."
                   : guidelines ||
-                    "학교에 선택된 작성 지침이 없습니다. 기본 기준으로 점검합니다. (관리 → 학교 AI → 라이브러리)"}
+                    "학교에 선택된 작성 지침이 없습니다. 기본 기준으로 작성합니다. (관리 → 학교 AI → 라이브러리)"}
               </p>
             </div>
             <div className={style.prepCard}>
-              <p className={style.prepLabel}>참고 자료 (최대 2개)</p>
-              {skillSettingsLoading ? (
-                <p className={style.prepText}>참고 자료를 불러오는 중...</p>
-              ) : references.length === 0 ? (
+              <p className={style.prepLabel}>첨부 자료 (텍스트 · 최대 3개)</p>
+              {sourceAttachments.length === 0 ? (
                 <p className={style.prepText}>
-                  등록된 참고 자료가 없습니다. (관리 → 학교 AI → 라이브러리)
+                  아래에서 수업 개요·목표·활동 등을 입력하거나 .txt/.md 파일을
+                  첨부해 주세요.
                 </p>
               ) : (
                 <div className={style.refList}>
-                  {references.map((ref, index) => (
-                    <label
-                      key={`${ref.title}-${index}`}
-                      className={style.refRow}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedRefIndexes.includes(index)}
-                        onChange={() => {
-                          setSelectedRefIndexes((prev) => {
-                            if (prev.includes(index)) {
-                              return prev.filter((i) => i !== index);
-                            }
-                            if (prev.length >= 2) {
-                              return [...prev.slice(1), index];
-                            }
-                            return [...prev, index];
-                          });
-                        }}
-                      />
-                      <span>{ref.title || `참고자료 ${index + 1}`}</span>
-                    </label>
+                  {sourceAttachments.map((a, index) => (
+                    <div key={`${a.name}-${index}`} className={style.refRow}>
+                      <span>
+                        {a.name}{" "}
+                        <span className={style.prepMuted}>
+                          ({a.text.length.toLocaleString()}자)
+                        </span>
+                      </span>
+                      <button
+                        type="button"
+                        className={style.applyBtn}
+                        onClick={() =>
+                          setSourceAttachments((prev) =>
+                            prev.filter((_, i) => i !== index)
+                          )
+                        }
+                      >
+                        제거
+                      </button>
+                    </div>
                   ))}
                 </div>
               )}
+              <div className={style.prepActions}>
+                <input
+                  ref={attachInputRef}
+                  type="file"
+                  accept=".txt,.md,.csv,text/plain"
+                  multiple
+                  hidden
+                  onChange={(e) => handleAttachFiles(e.target.files)}
+                />
+                <button
+                  type="button"
+                  className={style.prepActionBtn}
+                  onClick={() => attachInputRef.current?.click()}
+                >
+                  파일 첨부
+                </button>
+              </div>
             </div>
             <div className={style.prepHintRow}>
-              <PrepHint text="「점검 시작」을 누르면 현재 초안의 모든 항목을 평가합니다. 점검 후에는 이어서 대화할 수 있습니다." />
+              <PrepHint text="정보를 입력·첨부한 뒤 「초안 작성」을 누르면 학습 계획서 전 항목 초안을 만듭니다. 미리보기 확인 후 「전체에 반영」하세요." />
               <span className={style.prepHintRowLabel}>이용 안내</span>
             </div>
           </>
@@ -1495,7 +1585,7 @@ const AlterPanel = ({ onClose }: Props) => {
           <ChatMessageBubble
             key={msg.id}
             variant={msg.role === "user" ? "own" : "other"}
-            wide={!!(msg.draft || msg.review)}
+            wide={!!msg.draft}
             time={formatBubbleTime(msg.createdAt)}
             sender={
               <>
@@ -1516,7 +1606,47 @@ const AlterPanel = ({ onClose }: Props) => {
                 msg.content
               )
             ) : null}
-            {msg.draft && (
+            {msg.draft && isSyllabusDraft(msg.draft) && (
+              <div className={style.reviewList}>
+                <div className={style.reviewItem}>
+                  <div className={style.reviewHeader}>
+                    <span>강의계획서 초안 미리보기</span>
+                    <span className={`${style.levelChip} ${style.levelFair}`}>
+                      {(msg.draft.items || []).filter((it) => it.value).length}/
+                      {(msg.draft.items || []).length}항목
+                    </span>
+                  </div>
+                  <div className={style.draftPreviewList}>
+                    {(msg.draft.items || [])
+                      .filter((it) => it.value)
+                      .map((item) => (
+                        <div
+                          key={`${msg.id}-${item.field}`}
+                          className={style.draftFieldBlock}
+                        >
+                          <p className={style.draftFieldLabel}>{item.field}</p>
+                          <p className={style.draftFieldValue}>{item.value}</p>
+                        </div>
+                      ))}
+                  </div>
+                  <div className={style.draftActions}>
+                    {pageContext?.applyInfoDraft && (
+                      <button
+                        type="button"
+                        className={style.applyBtn}
+                        disabled={appliedDraftIds.has(msg.id)}
+                        onClick={() => applyDraft(msg.id, msg.draft!)}
+                      >
+                        {appliedDraftIds.has(msg.id)
+                          ? "반영됨"
+                          : "전체에 반영"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+            {msg.draft && isEvalDraft(msg.draft) && (
               <div className={style.reviewList}>
                 <div className={style.reviewItem}>
                   <div className={style.reviewHeader}>
@@ -1542,9 +1672,11 @@ const AlterPanel = ({ onClose }: Props) => {
                         row.studentId;
                       const grade =
                         row.studentGrade || fromCtx?.studentGrade || "";
-                      const labels = msg.draft!.targetLabels?.length
-                        ? msg.draft!.targetLabels
-                        : Object.keys(row.values || {});
+                      const labels = msg.draft && isEvalDraft(msg.draft)
+                        ? msg.draft.targetLabels?.length
+                          ? msg.draft.targetLabels
+                          : Object.keys(row.values || {})
+                        : [];
                       return (
                         <div
                           key={`${msg.id}-${row.studentId}`}
@@ -1591,12 +1723,15 @@ const AlterPanel = ({ onClose }: Props) => {
                           : "미리보기 반영"}
                       </button>
                     )}
-                    {msg.draft.csv && (
+                    {isEvalDraft(msg.draft) && msg.draft.csv && (
                       <button
                         type="button"
                         className={style.applyBtn}
                         onClick={() => {
-                          const blob = new Blob(["\uFEFF" + msg.draft!.csv], {
+                          const csv = isEvalDraft(msg.draft)
+                            ? msg.draft.csv
+                            : "";
+                          const blob = new Blob(["\uFEFF" + csv], {
                             type: "text/csv;charset=utf-8",
                           });
                           const url = URL.createObjectURL(blob);
@@ -1612,63 +1747,6 @@ const AlterPanel = ({ onClose }: Props) => {
                     )}
                   </div>
                 </div>
-              </div>
-            )}
-            {msg.review && (
-              <div className={style.reviewList}>
-                {msg.review.items.map((item) => {
-                  const meta = inputFields.find(
-                    (f) => f.name === item.field || f.id === item.field
-                  );
-                  const draftVal = meta
-                    ? readSyllabusInfoValue(
-                        pageContext?.getCurrentInfo?.() || {},
-                        meta
-                      )
-                    : undefined;
-                  return (
-                    <div key={item.field} className={style.reviewItem}>
-                      <div className={style.reviewHeader}>
-                        <span>{item.field}</span>
-                        <span
-                          className={`${style.levelChip} ${levelClass(
-                            item.level
-                          )}`}
-                        >
-                          {LEVEL_LABEL[item.level] || item.level}
-                        </span>
-                      </div>
-                      {draftVal != null && String(draftVal).trim() !== "" && (
-                        <p className={style.reviewComment}>
-                          작성: {String(draftVal).slice(0, 120)}
-                          {String(draftVal).length > 120 ? "…" : ""}
-                        </p>
-                      )}
-                      {item.comment && (
-                        <p className={style.reviewComment}>{item.comment}</p>
-                      )}
-                      {item.suggestion && (
-                        <>
-                          <p className={style.suggestion}>{item.suggestion}</p>
-                          {pageContext?.applyFieldSuggestion && (
-                            <button
-                              type="button"
-                              className={style.applyBtn}
-                              disabled={appliedFields.has(item.field)}
-                              onClick={() =>
-                                applySuggestion(item.field, item.suggestion)
-                              }
-                            >
-                              {appliedFields.has(item.field)
-                                ? "반영됨"
-                                : "이 제안 반영"}
-                            </button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  );
-                })}
               </div>
             )}
           </ChatMessageBubble>
@@ -1695,16 +1773,30 @@ const AlterPanel = ({ onClose }: Props) => {
           else sendDraft();
         }}
         disabled={isWorking}
-        sendDisabled={inPrep ? isWorking : isWorking || !draft.trim()}
-        sendActive={inPrep ? !isWorking : !!draft.trim() && !isWorking}
+        sendDisabled={
+          inSyllabusPrep
+            ? isWorking || (!draft.trim() && sourceAttachments.length === 0)
+            : inPrep
+              ? isWorking
+              : isWorking || (!draft.trim() && sourceAttachments.length === 0)
+        }
+        sendActive={
+          inSyllabusPrep
+            ? !isWorking && (!!draft.trim() || sourceAttachments.length > 0)
+            : inPrep
+              ? !isWorking
+              : (!!draft.trim() || sourceAttachments.length > 0) && !isWorking
+        }
         sendTitle={inPrep ? prepPrimaryLabel : "보내기"}
         leftSlot={plusMenu}
-        showTextarea={!inPrep || inEvalPrep}
+        showTextarea={!inPrep || inEvalPrep || inSyllabusPrep}
         centerHint="옵션을 고른 뒤 시작하세요"
         placeholder={
           inEvalPrep
             ? "예: 멘토 의견은 2~3문장, 성장 포인트를 중심으로"
-            : "메시지를 입력하세요"
+            : inSyllabusPrep
+              ? "예: 주제, 목표, 주차별 활동, 평가 방식을 적어 주세요"
+              : "메시지를 입력하세요"
         }
         onKeyDown={
           inPrep

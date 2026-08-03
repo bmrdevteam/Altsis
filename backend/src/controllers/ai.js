@@ -31,7 +31,7 @@ import {
   SKILL_IDS,
   listSkills,
   assertSeasonAiAccess,
-  executeSyllabusReviewSkill,
+  executeSyllabusDraftSkill,
   runAlterSkill,
   detectSkillFromMessage,
   mergeTokenUsage,
@@ -109,15 +109,17 @@ export const getAlterSkillSettings = async (req, res) => {
 
 /**
  * Alter 대화 목록
- * @route GET /ai/alter/conversations?season=
+ * @route GET /ai/alter/conversations?school=&season=
+ * school 우선. season만 있으면 해당 학기의 학교로 조회 (하위 호환).
+ * 학기와 무관하게 학교 단위로 대화를 모은다.
  */
 export const listAlterConversations = async (req, res) => {
   try {
-    const seasonId = req.query.season;
     const conversations = await listAlterConversationsSvc({
       academyId: req.user.academyId,
       userId: req.user._id,
-      seasonId,
+      schoolId: req.query.school,
+      seasonId: req.query.season,
       limit: req.query.limit,
     });
     return res.status(200).send({ conversations });
@@ -216,7 +218,7 @@ export const deleteAlterConversation = async (req, res) => {
  * Alter 범용 턴 (Skill 라우팅)
  * @memberof APIs.AIAPI
  * @route POST /ai/alter
- * skill=syllabus-review|evaluation-draft 이면 SSE, chat 이면 JSON
+ * skill=syllabus-draft|evaluation-draft 이면 SSE, chat 이면 JSON
  * conversationId가 있으면(또는 없으면 생성) 유저·AI 메시지를 저장한다.
  */
 export const runAlter = async (req, res) => {
@@ -238,7 +240,7 @@ export const runAlter = async (req, res) => {
   skill = skill || SKILL_IDS.CHAT;
 
   const wantsSse =
-    skill === SKILL_IDS.SYLLABUS_REVIEW ||
+    skill === SKILL_IDS.SYLLABUS_DRAFT ||
     skill === SKILL_IDS.EVALUATION_DRAFT;
 
   if (wantsSse) {
@@ -388,7 +390,7 @@ export const runAlter = async (req, res) => {
 /**
  * @memberof APIs.AIAPI
  * @function ReviewSyllabusContent API
- * @description syllabus-review Skill (SSE) — 하위 호환 엔드포인트
+ * @description syllabus-draft Skill (SSE) — 하위 호환 엔드포인트
  */
 export const reviewSyllabusContent = async (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
@@ -401,7 +403,7 @@ export const reviewSyllabusContent = async (req, res) => {
   };
 
   try {
-    const { season: seasonId, context } = req.body;
+    const { season: seasonId, context, message = "" } = req.body;
 
     if (!seasonId) {
       sendEvent("error", { message: FIELD_REQUIRED("season") });
@@ -416,17 +418,22 @@ export const reviewSyllabusContent = async (req, res) => {
       seasonId
     );
 
-    const { review } = await executeSyllabusReviewSkill({
+    const { draft, text } = await executeSyllabusDraftSkill({
       academyId: req.user.academyId,
       user: req.user,
       academy,
       season,
       school,
       context,
+      message,
       onEvent: sendEvent,
     });
 
-    sendEvent("done", { review, skill: SKILL_IDS.SYLLABUS_REVIEW });
+    sendEvent("done", {
+      draft,
+      text,
+      skill: SKILL_IDS.SYLLABUS_DRAFT,
+    });
     return res.end();
   } catch (err) {
     logger.error(err.message);

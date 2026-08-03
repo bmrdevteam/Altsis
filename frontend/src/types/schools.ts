@@ -50,7 +50,7 @@ export type TAcademyFeatures = {
 
 export type TAlterSkillId =
   | "chat"
-  | "syllabus-review"
+  | "syllabus-draft"
   | "evaluation-draft";
 
 export type TAiLibraryKind = "instruction" | "learning";

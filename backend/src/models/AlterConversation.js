@@ -1,7 +1,7 @@
 /**
  * AlterConversation namespace
  * @namespace Models.AlterConversation
- * @description Navbar Alter 개인 대화 세션 (사용자 × 학기)
+ * @description Navbar Alter 개인 대화 세션 (사용자 × 학교, season은 최근 사용 학기 메타)
  */
 import mongoose from "mongoose";
 import { conn } from "../_database/mongodb/index.js";
@@ -9,6 +9,8 @@ import { conn } from "../_database/mongodb/index.js";
 const alterConversationSchema = mongoose.Schema(
   {
     user: { type: mongoose.Types.ObjectId, required: true },
+    school: { type: mongoose.Types.ObjectId },
+    /** 최근 사용한 학기 (목록 필터가 아님 — 실행 문맥/표시용) */
     season: { type: mongoose.Types.ObjectId, required: true },
     title: { type: String, default: "새 대화" },
     pageType: {
@@ -32,8 +34,9 @@ const alterConversationSchema = mongoose.Schema(
   { timestamps: true }
 );
 
+alterConversationSchema.index({ user: 1, school: 1, lastMessageAt: -1 });
 alterConversationSchema.index({ user: 1, season: 1, lastMessageAt: -1 });
-alterConversationSchema.index({ user: 1, season: 1, isDeleted: 1 });
+alterConversationSchema.index({ user: 1, school: 1, isDeleted: 1 });
 
 export const AlterConversation = (dbName) => {
   return conn[dbName].model("AlterConversation", alterConversationSchema);

@@ -10,11 +10,9 @@ import {
   TSchoolAiConfig,
   TSchoolAiSkillConfig,
 } from "types/schools";
-import { TSyllabus } from "types/syllabuses";
 import style from "./AISettings.module.scss";
 
 const SUCCESS_MESSAGE = "저장되었습니다.";
-const MAX_EXAMPLE_SYLLABI = 2;
 
 const SKILLS: Array<{ id: TAlterSkillId; label: string; hint: string }> = [
   {
@@ -23,9 +21,9 @@ const SKILLS: Array<{ id: TAlterSkillId; label: string; hint: string }> = [
     hint: "Alter 일반 대화에 적용할 라이브러리 항목을 선택합니다.",
   },
   {
-    id: "syllabus-review",
-    label: "강의계획서 점검",
-    hint: "강의계획서 점검 Skill에 적용할 라이브러리 항목과 모범 계획서를 선택합니다.",
+    id: "syllabus-draft",
+    label: "강의계획서 초안 작성",
+    hint: "강의계획서 초안 Skill에 적용할 지침 라이브러리 항목을 선택합니다.",
   },
   {
     id: "evaluation-draft",
@@ -41,7 +39,6 @@ const defaultAiConfig = (): TSchoolAiConfig => ({
 
 const emptySkill = (): TSchoolAiSkillConfig => ({
   libraryItemIds: [],
-  exampleSyllabusIds: [],
 });
 
 type Props = {
@@ -50,8 +47,8 @@ type Props = {
   seasonList?: Array<{ _id: string; year?: string; term?: string }>;
 };
 
-const SchoolAISettings = ({ schoolData, setSchoolData, seasonList }: Props) => {
-  const { SchoolAPI, SyllabusAPI } = useAPIv2();
+const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
+  const { SchoolAPI } = useAPIv2();
   const [loading, setLoading] = useState(true);
   const [aiConfig, setAiConfig] = useState<TSchoolAiConfig>(defaultAiConfig());
   const [library, setLibrary] = useState<TAiLibraryItem[]>([]);
@@ -59,8 +56,6 @@ const SchoolAISettings = ({ schoolData, setSchoolData, seasonList }: Props) => {
     "all"
   );
   const [activeSkill, setActiveSkill] = useState<TAlterSkillId>("chat");
-  const [syllabi, setSyllabi] = useState<TSyllabus[]>([]);
-  const [syllabiLoading, setSyllabiLoading] = useState(false);
 
   const [newKind, setNewKind] = useState<"instruction" | "learning">("learning");
   const [newTitle, setNewTitle] = useState("");
@@ -133,32 +128,6 @@ const SchoolAISettings = ({ schoolData, setSchoolData, seasonList }: Props) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schoolData._id]);
 
-  useEffect(() => {
-    if (!schoolEnabled || activeSkill !== "syllabus-review") return;
-    let cancelled = false;
-    (async () => {
-      try {
-        setSyllabiLoading(true);
-        const seasons = seasonList || [];
-        const all: TSyllabus[] = [];
-        for (const s of seasons) {
-          const { syllabuses } = await SyllabusAPI.RSyllabuses({
-            query: { season: s._id },
-          });
-          all.push(...(syllabuses || []));
-        }
-        if (!cancelled) setSyllabi(all);
-      } catch (err) {
-        if (!cancelled) ALERT_ERROR(err);
-      } finally {
-        if (!cancelled) setSyllabiLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [schoolEnabled, activeSkill, seasonList, SyllabusAPI]);
-
   const filteredLibrary = useMemo(() => {
     if (kindFilter === "all") return library;
     return library.filter((i) => i.kind === kindFilter);
@@ -219,20 +188,6 @@ const SchoolAISettings = ({ schoolData, setSchoolData, seasonList }: Props) => {
       ? current.filter((id) => id !== itemId)
       : [...current, itemId].slice(0, 6);
     saveSkillConfig({ libraryItemIds: next });
-  };
-
-  const toggleExampleSyllabus = (id: string) => {
-    const current = skillConfig.exampleSyllabusIds || [];
-    let next: string[];
-    if (current.includes(id)) {
-      next = current.filter((x) => x !== id);
-    } else if (current.length >= MAX_EXAMPLE_SYLLABI) {
-      alert(`모범 계획서는 최대 ${MAX_EXAMPLE_SYLLABI}개까지 선택할 수 있습니다.`);
-      return;
-    } else {
-      next = [...current, id];
-    }
-    saveSkillConfig({ exampleSyllabusIds: next });
   };
 
   const toggleNewSkillTag = (id: TAlterSkillId) => {
@@ -784,52 +739,6 @@ const SchoolAISettings = ({ schoolData, setSchoolData, seasonList }: Props) => {
             )}
           </div>
 
-          {activeSkill === "syllabus-review" && (
-            <div className={style.fieldBlock}>
-              <span className={style.fieldLabel}>
-                모범 강의계획서 (최대 {MAX_EXAMPLE_SYLLABI}개)
-              </span>
-              {syllabiLoading ? (
-                <p className={style.emptyNote}>강의계획서를 불러오는 중...</p>
-              ) : syllabi.length === 0 ? (
-                <p className={style.emptyNote}>
-                  이 학교에 등록된 강의계획서가 없습니다.
-                </p>
-              ) : (
-                <div className={style.listPanel}>
-                  {syllabi.map((s) => {
-                    const checked = (
-                      skillConfig.exampleSyllabusIds || []
-                    ).includes(s._id);
-                    return (
-                      <label
-                        key={s._id}
-                        className={`${style.listRow} ${
-                          checked ? style.listRowChecked : ""
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          className={style.listCheck}
-                          checked={checked}
-                          onChange={() => toggleExampleSyllabus(s._id)}
-                        />
-                        <span>
-                          <span className={style.listTitle}>
-                            {s.classTitle || "(제목 없음)"}
-                          </span>
-                          <span className={style.listMeta}>
-                            {" "}
-                            · {s.userName || "작성자 미상"}
-                          </span>
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
         </section>
       </div>
     </SchoolFeatureToggle>

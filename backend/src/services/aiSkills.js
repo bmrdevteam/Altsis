@@ -1,6 +1,6 @@
 /**
  * Alter AI Skill Router
- * @description 범용 Alter 대화 + 특화 Skill(강의계획서 점검 등)
+ * @description 범용 Alter 대화 + 특화 Skill(강의계획서 초안·평가 초안 등)
  */
 
 import { Academy } from "../models/Academy.js";
@@ -30,8 +30,8 @@ import {
   examplesFromSyllabusInfo,
   buildStyleRubricFromExamples,
   formatCurrentInfoForPrompt,
-  parseSyllabusReviewJson,
-  buildReviewRetryPrompt,
+  parseSyllabusDraftJson,
+  buildSyllabusDraftRetryPrompt,
   truncateText,
 } from "./aiPromptPolicy.js";
 import { maskSensitiveText } from "./aiSafety.js";
@@ -49,7 +49,9 @@ import {
 
 export const SKILL_IDS = {
   CHAT: "chat",
-  SYLLABUS_REVIEW: "syllabus-review",
+  SYLLABUS_DRAFT: "syllabus-draft",
+  /** @deprecated syllabus-draft 로 교체됨. resolveSkillId 에서 매핑 */
+  SYLLABUS_REVIEW: "syllabus-draft",
   EVALUATION_DRAFT: "evaluation-draft",
 };
 
@@ -61,11 +63,12 @@ export const SKILL_CATALOG = {
     description: "학습·작성에 대한 범용 도우미 대화",
     profile: "chat",
   },
-  [SKILL_IDS.SYLLABUS_REVIEW]: {
-    id: SKILL_IDS.SYLLABUS_REVIEW,
-    name: "강의계획서 점검",
-    description: "작성 중인 강의계획서 초안을 전체 항목 기준으로 점검합니다",
-    profile: "syllabusReview",
+  [SKILL_IDS.SYLLABUS_DRAFT]: {
+    id: SKILL_IDS.SYLLABUS_DRAFT,
+    name: "강의계획서 초안 작성",
+    description:
+      "제공된 정보·자료를 바탕으로 강의계획서 전 항목 초안을 작성합니다",
+    profile: "syllabusDraft",
   },
   [SKILL_IDS.EVALUATION_DRAFT]: {
     id: SKILL_IDS.EVALUATION_DRAFT,
@@ -79,7 +82,8 @@ export const SKILL_CATALOG = {
 export const listSkills = () => Object.values(SKILL_CATALOG);
 
 export const resolveSkillId = (raw) => {
-  const id = String(raw || SKILL_IDS.CHAT).trim();
+  let id = String(raw || SKILL_IDS.CHAT).trim();
+  if (id === "syllabus-review") id = SKILL_IDS.SYLLABUS_DRAFT;
   return SKILL_CATALOG[id] ? id : SKILL_IDS.CHAT;
 };
 
@@ -166,12 +170,17 @@ export const resolveSkillPromptPack = async (
         PROMPT_LIMITS.GUIDELINES_CHARS * 4
     );
 
+    const skipRefs = skill === SKILL_IDS.SYLLABUS_DRAFT;
     return {
       guidelines,
-      references: selectReferencesForPrompt(learningRefs, referenceIndexes),
-      exampleSyllabusIds: Array.isArray(skillConfig?.exampleSyllabusIds)
-        ? skillConfig.exampleSyllabusIds.map(String)
-        : [],
+      references: skipRefs
+        ? []
+        : selectReferencesForPrompt(learningRefs, referenceIndexes),
+      exampleSyllabusIds: skipRefs
+        ? []
+        : Array.isArray(skillConfig?.exampleSyllabusIds)
+          ? skillConfig.exampleSyllabusIds.map(String)
+          : [],
       examples: {},
       schoolId: school?._id ? String(school._id) : null,
       fromSchool: true,
@@ -179,18 +188,23 @@ export const resolveSkillPromptPack = async (
   }
 
   // fallback: 시즌 설정 (마이그레이션 전)
+  const skipRefs = skill === SKILL_IDS.SYLLABUS_DRAFT;
   return {
     guidelines: normalizeGuidelines(
       season?.aiSettings?.guidelines || defaultSkillGuide(skill)
     ),
-    references: selectReferencesForPrompt(
-      season?.aiSettings?.references || [],
-      referenceIndexes
-    ),
-    exampleSyllabusIds: Array.isArray(season?.aiSettings?.exampleSyllabusIds)
-      ? season.aiSettings.exampleSyllabusIds.map(String)
-      : [],
-    examples: season?.aiSettings?.examples || {},
+    references: skipRefs
+      ? []
+      : selectReferencesForPrompt(
+          season?.aiSettings?.references || [],
+          referenceIndexes
+        ),
+    exampleSyllabusIds: skipRefs
+      ? []
+      : Array.isArray(season?.aiSettings?.exampleSyllabusIds)
+        ? season.aiSettings.exampleSyllabusIds.map(String)
+        : [],
+    examples: skipRefs ? {} : season?.aiSettings?.examples || {},
     schoolId: school?._id ? String(school._id) : null,
     fromSchool: false,
   };
@@ -210,6 +224,8 @@ export const resolveSkillPrepSettings = async (
   const skillConfig = school?.aiConfig?.skills?.[skill] || null;
   const useSchool = hasSchoolSkillConfig(school);
 
+  const skipRefs = skill === SKILL_IDS.SYLLABUS_DRAFT;
+
   if (useSchool) {
     const { instructionBlocks, learningRefs } =
       await loadSchoolSkillLibraryParts(academyId, school, skillConfig);
@@ -224,14 +240,16 @@ export const resolveSkillPrepSettings = async (
     );
     return {
       guidelines,
-      references: learningRefs,
+      references: skipRefs ? [] : learningRefs,
       fromSchool: true,
     };
   }
 
   return {
     guidelines: normalizeGuidelines(season?.aiSettings?.guidelines || ""),
-    references: normalizeReferences(season?.aiSettings?.references || []),
+    references: skipRefs
+      ? []
+      : normalizeReferences(season?.aiSettings?.references || []),
     fromSchool: false,
   };
 };
@@ -478,53 +496,31 @@ export const resolveStyleRubric = async (
   };
 };
 
-export const buildReviewPrompt = (
-  context,
-  promptPack,
-  stylePack,
-  focusFields
-) => {
+export const buildSyllabusDraftPrompt = (context, promptPack, focusFields) => {
   const fieldNames = (focusFields || []).map((f) =>
     typeof f === "string" ? f : f.name
   );
-  const userInputs = normalizeUserInputs({
-    goal: context.goal,
-    additionalCriteria: context.additionalCriteria,
-  });
   const currentInfo = context.currentInfo || {};
+  const sourceText = truncateText(
+    String(context.sourceText || context.userBrief || "").trim(),
+    PROMPT_LIMITS.SYLLABUS_DRAFT_SOURCE_CHARS
+  );
+  const includeSummary =
+    context?.draftChunkIndex === 0 || context?.draftChunkIndex == null;
 
-  let prompt = `당신은 학교 강의계획서 작성 코치입니다. 이미 작성된 초안을 점검하고 피드백만 제공합니다.
-양식 본문 전체를 새로 쓰지 마세요. 총평과 지정된 항목의 짧은 코멘트·선택적 개선 문장만 JSON으로 반환하세요.
-모범/스타일 기준의 다른 수업 주제·고유명사는 제안 문장에 넣지 마세요.
+  let prompt = `당신은 한국 학교 강의계획서 작성 전문가입니다.
+교사가 제공한 정보·자료를 바탕으로, 지정된 항목의 초안 문장을 작성하세요.
+제공 자료에 근거가 없는 내용은 지어내지 말고 해당 value를 빈 문자열("")로 두세요.
+다른 수업의 고유명사·주제를 끌어오지 마세요.
 응답은 반드시 하나의 JSON 객체만, 마크다운·코드펜스·설명 문구 없이 출력하세요.
 
-## 지침
+## 작성 지침
 ${normalizeGuidelines(
   promptPack?.guidelines ||
-    "구체성, 학습목표와 활동의 연결, 평가와의 정합성을 중심으로 피드백하세요."
+    "구체성, 학습목표와 활동 연결, 평가 정합성을 중심으로 작성하세요."
 )}
 
-`;
-
-  const references = promptPack?.references || [];
-  if (references.length > 0) {
-    prompt += `## 참고 자료\n`;
-    for (const ref of references) {
-      prompt += `### ${ref.title}\n${ref.content}\n\n`;
-    }
-  }
-
-  if (stylePack?.rubric) {
-    const sourceLine = stylePack.sourceLabel
-      ? `\n(기준 출처: ${stylePack.sourceLabel})`
-      : "";
-    prompt += `## 스타일·완성도 기준${sourceLine}
-${stylePack.rubric}
-
-`;
-  }
-
-  prompt += `## 현재 수업
+## 현재 수업
 `;
   if (context.subject?.length) {
     prompt += `- 교과목: ${context.subject.join(" > ")}\n`;
@@ -532,99 +528,66 @@ ${stylePack.rubric}
   if (context.classTitle) {
     prompt += `- 수업명: ${context.classTitle}\n`;
   }
-  if (userInputs.goal) {
-    prompt += `- 점검 시 강조할 목표: ${userInputs.goal}\n`;
-  }
-  if (userInputs.additionalCriteria) {
-    prompt += `- 추가 기준: ${userInputs.additionalCriteria}\n`;
-  }
-
-  const includeSummary =
-    context?.reviewChunkIndex === 0 || context?.reviewChunkIndex == null;
 
   prompt += `
-## 작성된 초안 (점검 대상)
-${formatCurrentInfoForPrompt(currentInfo, focusFields)}
+## 교사 제공 자료
+${sourceText || "(텍스트 자료 없음 — 수업명·교과와 지침만으로 가능한 범위에서 작성)"}
 
-## 점검 대상 항목 (모두 items에 포함)
+## 이미 채워진 항목 (참고, 그대로 복사하지 말고 일관되게 작성)
+${formatCurrentInfoForPrompt(currentInfo, focusFields) || "(없음)"}
+
+## 작성 대상 항목 (모두 items에 포함, field 이름은 정확히 동일)
 ${fieldNames.map((name) => `- ${JSON.stringify(name)}`).join("\n")}
 
 ## 요청
 위 대상 항목을 빠짐없이 items에 넣고 JSON만 출력하세요.
-comment는 각 1문장, suggestion은 보완이 필요할 때만(없으면 "").
-미작성 항목은 level을 "empty"로 두고 comment는 짧게.
+각 value는 해당 필드에 바로 붙여넣을 수 있는 공손한 문어체 초안입니다.
 {
   ${
     includeSummary
-      ? `"summary": "총평 2~3문장",
-  "overallLevel": "good|fair|needs_work",`
-      : `"summary": "",
-  "overallLevel": "fair",`
+      ? `"summary": "초안 요약 1~2문장",`
+      : `"summary": "",`
   }
   "items": [
-    { "field": "위 목록의 항목명", "level": "good|fair|needs_work|empty", "comment": "짧은 코멘트", "suggestion": "" }
+    { "field": "위 목록의 항목명", "value": "초안 본문 또는 빈 문자열" }
   ]
 }
-- level: good(충분), fair(보통), needs_work(보완 필요), empty(미작성)
-- field 이름은 점검 대상 항목과 정확히 동일해야 함
-- suggestion은 해당 필드만의 짧은 개선안(이번 수업 주제)
 `;
 
   return prompt;
 };
 
-const rankReviewLevel = (level) => {
-  if (level === "needs_work") return 3;
-  if (level === "empty") return 2;
-  if (level === "fair") return 1;
-  return 0;
-};
-
-export const mergeReviewChunks = (chunks, fieldNames = []) => {
+export const mergeSyllabusDraftChunks = (chunks, fieldNames = []) => {
   const byField = new Map();
   let summary = "";
-  let overallLevel = "fair";
 
   for (const chunk of chunks) {
     if (!chunk) continue;
-    if (!summary && chunk.summary) {
-      summary = chunk.summary;
-      overallLevel = chunk.overallLevel || overallLevel;
-    }
+    if (!summary && chunk.summary) summary = chunk.summary;
     for (const item of chunk.items || []) {
-      if (!item?.field || byField.has(item.field)) continue;
-      byField.set(item.field, item);
+      if (!item?.field) continue;
+      const prev = byField.get(item.field);
+      if (!prev || (!prev.value && item.value)) {
+        byField.set(item.field, {
+          field: item.field,
+          value: String(item.value || "").trim(),
+        });
+      }
     }
   }
 
   const items =
     fieldNames.length > 0
-      ? fieldNames.map(
-          (field) =>
-            byField.get(field) || {
-              field,
-              level: "empty",
-              comment: "점검 응답에 포함되지 않았습니다.",
-              suggestion: "",
-            }
-        )
+      ? fieldNames.map((field) => byField.get(field) || { field, value: "" })
       : [...byField.values()];
 
-  for (const item of items) {
-    if (item.level === "empty") continue;
-    if (rankReviewLevel(item.level) > rankReviewLevel(overallLevel)) {
-      overallLevel = item.level;
-    }
-  }
-
   return {
-    summary: summary || "작성된 내용을 바탕으로 전체 항목을 점검했습니다.",
-    overallLevel,
+    summary: summary || "제공하신 자료를 바탕으로 강의계획서 초안을 작성했습니다.",
     items,
   };
 };
 
-const reviewFieldChunk = async ({
+const draftFieldChunk = async ({
   provider,
   apiKey,
   modelName,
@@ -654,11 +617,11 @@ const reviewFieldChunk = async ({
       throw err;
     }
     return {
-      review: parseSyllabusReviewJson(fullText, fieldNames),
+      draft: parseSyllabusDraftJson(fullText, fieldNames),
       tokenUsage,
     };
   } catch (_) {
-    const retryPrompt = buildReviewRetryPrompt(fieldNames);
+    const retryPrompt = buildSyllabusDraftRetryPrompt(fieldNames);
     const retryResult = await generateText({
       provider,
       apiKey,
@@ -672,47 +635,58 @@ const reviewFieldChunk = async ({
             ]
           : [{ role: "user", content: retryPrompt }]),
       ],
-      temperature: 0.2,
+      temperature: 0.25,
       maxTokens: profile.maxTokens,
     });
     fullText = retryResult.text || "";
     tokenUsage = mergeTokenUsage(tokenUsage, retryResult.tokenUsage);
     return {
-      review: parseSyllabusReviewJson(fullText, fieldNames),
+      draft: parseSyllabusDraftJson(fullText, fieldNames),
       tokenUsage,
     };
   }
 };
 
 /**
- * syllabus-review Skill 실행
+ * syllabus-draft Skill 실행
  * @param {Object} params
  * @param {(event: string, data: any) => void} [params.onEvent]
  */
-export const executeSyllabusReviewSkill = async ({
+export const executeSyllabusDraftSkill = async ({
   academyId,
   user,
   academy,
   season,
   school,
   context,
+  message,
   onEvent,
 }) => {
-  const profile = FEATURE_PROFILES.syllabusReview;
+  const profile = FEATURE_PROFILES.syllabusDraft;
   const emit = typeof onEvent === "function" ? onEvent : () => {};
 
-  emit("step", { message: "작성 내용 확인 중..." });
+  emit("step", { message: "작성 자료 확인 중..." });
 
   const fields = extractSyllabusInputFields(context?.formSyllabus);
   if (fields.length === 0) {
-    const err = new Error("점검할 강의계획서 입력 항목이 없습니다.");
+    const err = new Error("작성할 강의계획서 입력 항목이 없습니다.");
     err.code = AI_ERRORS.GENERATION_FAILED;
     err.status = 400;
     throw err;
   }
 
+  const sourceText = truncateText(
+    [
+      String(context?.sourceText || "").trim(),
+      String(message || "").trim(),
+    ]
+      .filter(Boolean)
+      .join("\n\n"),
+    PROMPT_LIMITS.SYLLABUS_DRAFT_SOURCE_CHARS
+  );
+
   const allFieldNames = fields.map((f) => f.name);
-  const chunkSize = PROMPT_LIMITS.REVIEW_CHUNK_FIELDS || 10;
+  const chunkSize = PROMPT_LIMITS.SYLLABUS_DRAFT_CHUNK_FIELDS || 8;
   const fieldChunks = [];
   for (let i = 0; i < fields.length; i += chunkSize) {
     fieldChunks.push(fields.slice(i, i + chunkSize));
@@ -722,24 +696,16 @@ export const executeSyllabusReviewSkill = async ({
     academyId,
     school,
     season,
-    SKILL_IDS.SYLLABUS_REVIEW,
-    context?.referenceIndexes
-  );
-
-  const stylePack = await resolveStyleRubric(
-    academyId,
-    user._id,
-    season._id,
-    context,
-    fields,
-    promptPack
+    SKILL_IDS.SYLLABUS_DRAFT,
+    []
   );
 
   const provider = resolveProvider(academy.aiProvider);
   const modelName = resolveModel(provider, academy.aiModel);
 
-  const reviewChunks = [];
+  const draftChunks = [];
   let tokenUsage = null;
+  const draftContext = { ...(context || {}), sourceText };
 
   for (let i = 0; i < fieldChunks.length; i++) {
     const chunkFields = fieldChunks[i];
@@ -747,20 +713,19 @@ export const executeSyllabusReviewSkill = async ({
     emit("step", {
       message:
         fieldChunks.length > 1
-          ? `AI가 항목을 점검하고 있습니다... (${i + 1}/${fieldChunks.length})`
-          : "AI가 초안을 점검하고 있습니다...",
+          ? `AI가 초안을 작성하고 있습니다... (${i + 1}/${fieldChunks.length})`
+          : "AI가 강의계획서 초안을 작성하고 있습니다...",
     });
 
-    const prompt = buildReviewPrompt(
-      { ...(context || {}), reviewChunkIndex: i },
+    const prompt = buildSyllabusDraftPrompt(
+      { ...draftContext, draftChunkIndex: i },
       promptPack,
-      stylePack,
       chunkFields
     );
 
     try {
-      const { review: chunkReview, tokenUsage: chunkUsage } =
-        await reviewFieldChunk({
+      const { draft: chunkDraft, tokenUsage: chunkUsage } =
+        await draftFieldChunk({
           provider,
           apiKey: academy.aiApiKey,
           modelName,
@@ -768,36 +733,38 @@ export const executeSyllabusReviewSkill = async ({
           prompt,
           fieldNames: chunkNames,
         });
-      reviewChunks.push(chunkReview);
+      draftChunks.push(chunkDraft);
       tokenUsage = mergeTokenUsage(tokenUsage, chunkUsage);
     } catch (chunkErr) {
       if (i === 0) throw chunkErr;
       emit("step", {
-        message: `일부 항목(${i + 1}/${fieldChunks.length}) 점검을 건너뛰었습니다.`,
+        message: `일부 항목(${i + 1}/${fieldChunks.length}) 작성을 건너뛰었습니다.`,
       });
-      reviewChunks.push({
+      draftChunks.push({
         summary: "",
-        overallLevel: "fair",
-        items: chunkNames.map((field) => ({
-          field,
-          level: "empty",
-          comment: "이 구간 점검에 실패했습니다. 다시 시도해 주세요.",
-          suggestion: "",
-        })),
+        items: chunkNames.map((field) => ({ field, value: "" })),
       });
     }
   }
 
-  let review = mergeReviewChunks(reviewChunks, allFieldNames);
-  review = {
-    ...review,
-    summary: maskSensitiveText(review.summary).text,
-    items: review.items.map((item) => ({
-      ...item,
-      comment: maskSensitiveText(item.comment).text,
-      suggestion: maskSensitiveText(item.suggestion).text,
+  let merged = mergeSyllabusDraftChunks(draftChunks, allFieldNames);
+  merged = {
+    summary: maskSensitiveText(merged.summary).text,
+    items: merged.items.map((item) => ({
+      field: item.field,
+      value: maskSensitiveText(item.value || "").text,
     })),
   };
+
+  const filled = merged.items.filter((it) => it.value).length;
+  if (filled === 0) {
+    const err = new Error(
+      "초안을 만들지 못했습니다. 수업 정보나 자료를 더 자세히 입력해 주세요."
+    );
+    err.code = AI_ERRORS.GENERATION_FAILED;
+    err.status = 400;
+    throw err;
+  }
 
   logAIUsage(academyId, {
     user,
@@ -808,33 +775,55 @@ export const executeSyllabusReviewSkill = async ({
     tokenUsage,
   });
 
-  return { review, provider, modelName, tokenUsage, skill: SKILL_IDS.SYLLABUS_REVIEW };
+  const draft = {
+    kind: "syllabus",
+    summary: merged.summary,
+    items: merged.items,
+  };
+
+  return {
+    draft,
+    text: formatSyllabusDraftAsChatText(draft),
+    provider,
+    modelName,
+    tokenUsage,
+    skill: SKILL_IDS.SYLLABUS_DRAFT,
+  };
+};
+
+export const formatSyllabusDraftAsChatText = (draft) => {
+  if (!draft) return "초안을 만들지 못했습니다.";
+  const items = draft.items || [];
+  const filled = items.filter((it) => it.value).length;
+  const lines = [
+    `**【강의계획서 초안 · ${filled}/${items.length}항목】**`,
+    "",
+    draft.summary || "",
+    "",
+    "아래 미리보기를 확인한 뒤 「전체에 반영」을 누르면 학습 계획서에 채워집니다.",
+  ];
+  return lines.join("\n");
+};
+
+/** @deprecated 점검 스킬 제거 — 초안 스킬로 위임 */
+export const executeSyllabusReviewSkill = async (params) => {
+  const result = await executeSyllabusDraftSkill(params);
+  return {
+    review: null,
+    draft: result.draft,
+    text: result.text,
+    provider: result.provider,
+    modelName: result.modelName,
+    tokenUsage: result.tokenUsage,
+    skill: SKILL_IDS.SYLLABUS_DRAFT,
+  };
 };
 
 export const formatReviewAsChatText = (review) => {
-  if (!review) return "점검 결과를 만들지 못했습니다.";
-  const levelLabel = {
-    good: "충분",
-    fair: "보통",
-    needs_work: "보완 필요",
-    empty: "미작성",
-  };
-  const lines = [
-    `**【강의계획서 점검 결과 · ${levelLabel[review.overallLevel] || review.overallLevel}】**`,
-    "",
-    review.summary || "",
-    "",
-  ];
-  for (const item of review.items || []) {
-    lines.push(
-      `• **${item.field}** (${levelLabel[item.level] || item.level}): ${item.comment || ""}`
-    );
-    if (item.suggestion) {
-      lines.push(`  제안: ${item.suggestion}`);
-    }
+  if (review?.items?.[0]?.value != null) {
+    return formatSyllabusDraftAsChatText(review);
   }
-  lines.push("", "이어서 특정 항목을 더 다듬고 싶으면 말씀해 주세요.");
-  return lines.join("\n");
+  return "강의계획서 초안 Skill로 전환되었습니다. 자료를 입력한 뒤 초안을 작성해 주세요.";
 };
 
 const buildAlterChatSystem = (promptPack, context, boardTitle) => {
@@ -1525,21 +1514,22 @@ export const runAlterSkill = async ({
     seasonId
   );
 
-  if (skill === SKILL_IDS.SYLLABUS_REVIEW) {
-    const result = await executeSyllabusReviewSkill({
+  if (skill === SKILL_IDS.SYLLABUS_DRAFT) {
+    const result = await executeSyllabusDraftSkill({
       academyId,
       user,
       academy,
       season,
       school,
       context,
+      message,
       onEvent,
     });
     return {
       skill,
-      text: formatReviewAsChatText(result.review),
-      review: result.review,
-      draft: null,
+      text: result.text,
+      review: null,
+      draft: result.draft,
       tokenUsage: result.tokenUsage,
     };
   }
@@ -1657,11 +1647,14 @@ export const detectSkillFromMessage = (message = "") => {
     return SKILL_IDS.EVALUATION_DRAFT;
   }
   if (
+    /계획서.*(초안|작성)/.test(text) ||
+    /(초안|작성).*계획서/.test(text) ||
+    /\/(계획서|syllabus[-_]?draft)/i.test(text) ||
     /^(점검|리뷰|피드백)/.test(text) ||
     /계획서.*(점검|리뷰|피드백)/.test(text) ||
     /\/(점검|review)/i.test(text)
   ) {
-    return SKILL_IDS.SYLLABUS_REVIEW;
+    return SKILL_IDS.SYLLABUS_DRAFT;
   }
   return SKILL_IDS.CHAT;
 };

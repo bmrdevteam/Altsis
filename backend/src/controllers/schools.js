@@ -46,15 +46,41 @@ import {
 import { validate } from "../utils/validate.js";
 import { sanitizeGoalDisplay } from "../constants/defaultGoalDisplay.js";
 
-const VALID_SKILL_IDS = ["chat", "syllabus-review", "evaluation-draft"];
+const VALID_SKILL_IDS = ["chat", "syllabus-draft", "evaluation-draft"];
+const LEGACY_SKILL_IDS = { "syllabus-review": "syllabus-draft" };
 const VALID_LIBRARY_KINDS = ["instruction", "learning"];
 const MAX_LIBRARY_ITEMS_PER_SKILL = 6;
-const MAX_EXAMPLE_SYLLABI = 2;
 
 const defaultAiConfig = () => ({
   permission: { teacher: false, student: false },
   skills: {},
 });
+
+const migrateLegacySkillIds = (aiConfig) => {
+  if (!aiConfig?.skills || typeof aiConfig.skills !== "object") return false;
+  let changed = false;
+  for (const [legacy, next] of Object.entries(LEGACY_SKILL_IDS)) {
+    if (!aiConfig.skills[legacy]) continue;
+    if (!aiConfig.skills[next]) {
+      aiConfig.skills[next] = aiConfig.skills[legacy];
+    } else {
+      const legacyIds = Array.isArray(aiConfig.skills[legacy].libraryItemIds)
+        ? aiConfig.skills[legacy].libraryItemIds.map(String)
+        : [];
+      const nextIds = Array.isArray(aiConfig.skills[next].libraryItemIds)
+        ? aiConfig.skills[next].libraryItemIds.map(String)
+        : [];
+      aiConfig.skills[next].libraryItemIds = [
+        ...new Set([...nextIds, ...legacyIds]),
+      ].slice(0, MAX_LIBRARY_ITEMS_PER_SKILL);
+    }
+    delete aiConfig.skills[legacy];
+    changed = true;
+  }
+  return changed;
+};
+
+const normalizeSkillTag = (tag) => LEGACY_SKILL_IDS[tag] || tag;
 
 const ensureAiConfig = (school) => {
   if (!school.aiConfig) {
@@ -66,6 +92,9 @@ const ensureAiConfig = (school) => {
   if (!school.aiConfig.skills || typeof school.aiConfig.skills !== "object") {
     school.aiConfig.skills = {};
   }
+  if (migrateLegacySkillIds(school.aiConfig)) {
+    school.markModified("aiConfig");
+  }
   return school.aiConfig;
 };
 
@@ -74,7 +103,6 @@ const ensureSkillSlot = (aiConfig, skillId) => {
     aiConfig.skills[skillId] = {
       instructions: "",
       libraryItemIds: [],
-      ...(skillId === "syllabus-review" ? { exampleSyllabusIds: [] } : {}),
     };
   }
   if (!Array.isArray(aiConfig.skills[skillId].libraryItemIds)) {
@@ -91,7 +119,9 @@ const syncLibraryItemToSkills = (school, item) => {
   const aiConfig = ensureAiConfig(school);
   const itemId = String(item._id);
   const tags = Array.isArray(item.skillTags)
-    ? item.skillTags.filter((t) => VALID_SKILL_IDS.includes(t))
+    ? item.skillTags
+        .map(normalizeSkillTag)
+        .filter((t) => VALID_SKILL_IDS.includes(t))
     : [];
   const targetSkills = tags.length > 0 ? tags : VALID_SKILL_IDS;
   let changed = false;
@@ -154,29 +184,7 @@ const normalizeSkillConfig = async (academyId, schoolId, skillId, raw = {}) => {
     }
   }
 
-  const next = { instructions, libraryItemIds };
-
-  if (skillId === "syllabus-review") {
-    const ids = Array.isArray(raw.exampleSyllabusIds)
-      ? [
-          ...new Set(
-            raw.exampleSyllabusIds
-              .map((id) => String(id || "").trim())
-              .filter(Boolean)
-          ),
-        ].slice(0, MAX_EXAMPLE_SYLLABI)
-      : [];
-    const valid = [];
-    for (const id of ids) {
-      const syl = await Syllabus(academyId).findById(id).select("school").lean();
-      if (syl && String(syl.school) === String(schoolId)) {
-        valid.push(id);
-      }
-    }
-    next.exampleSyllabusIds = valid;
-  }
-
-  return next;
+  return { instructions, libraryItemIds };
 };
 
 /**
@@ -1113,7 +1121,6 @@ export const updateAiConfig = async (req, res) => {
             {
               instructions: "",
               libraryItemIds: [],
-              ...(id === "syllabus-review" ? { exampleSyllabusIds: [] } : {}),
             },
           ])
         );
@@ -1205,7 +1212,7 @@ export const createAiLibraryItem = async (req, res) => {
       ? [
           ...new Set(
             req.body.skillTags
-              .map((t) => String(t || "").trim())
+              .map((t) => normalizeSkillTag(String(t || "").trim()))
               .filter((t) => VALID_SKILL_IDS.includes(t))
           ),
         ]
@@ -1269,7 +1276,7 @@ export const updateAiLibraryItem = async (req, res) => {
       item.skillTags = [
         ...new Set(
           req.body.skillTags
-            .map((t) => String(t || "").trim())
+            .map((t) => normalizeSkillTag(String(t || "").trim()))
             .filter((t) => VALID_SKILL_IDS.includes(t))
         ),
       ];
@@ -1385,7 +1392,7 @@ export const uploadAiLibraryItem = async (req, res) => {
               ...new Set(
                 String(req.body.skillTags)
                   .split(",")
-                  .map((t) => t.trim())
+                  .map((t) => normalizeSkillTag(t.trim()))
                   .filter((t) => VALID_SKILL_IDS.includes(t))
               ),
             ]

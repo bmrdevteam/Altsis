@@ -12,7 +12,7 @@ import { logger } from "../log/logger.js";
 import { normalizeGuidelines } from "../services/aiPromptPolicy.js";
 
 const MIGRATION_KEY = "2026-08-03-season-ai-to-school-v1";
-const SKILL_IDS = ["chat", "syllabus-review", "evaluation-draft"];
+const SKILL_IDS = ["chat", "syllabus-draft", "evaluation-draft"];
 
 const waitForMongo = async (timeoutMs = 30000) => {
   const started = Date.now();
@@ -115,13 +115,6 @@ export const migrateSeasonAiToSchool = async () => {
           skills[skillId] = {
             instructions: guidelines,
             libraryItemIds: [...libraryItemIds],
-            ...(skillId === "syllabus-review"
-              ? {
-                  exampleSyllabusIds: Array.isArray(ai.exampleSyllabusIds)
-                    ? ai.exampleSyllabusIds.slice(0, 2).map(String)
-                    : [],
-                }
-              : {}),
           };
         }
 

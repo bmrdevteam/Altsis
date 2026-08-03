@@ -33,6 +33,12 @@ export const PROMPT_LIMITS = {
   REVIEW_CHUNK_FIELDS: 10,
   REVIEW_COMMENT_CHARS: 120,
   REVIEW_SUGGESTION_CHARS: 160,
+  /** 강의계획서 초안: 한 번에 작성할 항목 수 */
+  SYLLABUS_DRAFT_CHUNK_FIELDS: 8,
+  /** 강의계획서 초안: 필드당 최대 글자 */
+  SYLLABUS_DRAFT_FIELD_CHARS: 800,
+  /** 강의계획서 초안: 사용자 제공 자료 최대 글자 */
+  SYLLABUS_DRAFT_SOURCE_CHARS: 12000,
   /** 평가 초안: 한 요청 최대 학생 수 */
   EVAL_DRAFT_MAX_STUDENTS: 30,
   /** 평가 초안: 한 묶음 최대 학생 수 (줄 단위 출력이라 크게 잡아도 안전) */
@@ -57,6 +63,11 @@ export const FEATURE_PROFILES = {
   syllabusReview: {
     feature: "syllabus_review",
     temperature: 0.3,
+    maxTokens: 8192,
+  },
+  syllabusDraft: {
+    feature: "syllabus_draft",
+    temperature: 0.4,
     maxTokens: 8192,
   },
   guidelinesTemplate: {
@@ -586,6 +597,100 @@ export const buildReviewRetryPrompt = (fieldNames = []) => {
     { "field": "필드명", "level": "good|fair|needs_work|empty", "comment": "짧은 코멘트", "suggestion": "" }
   ]
 }${focus}`;
+};
+
+/**
+ * 강의계획서 초안 JSON 파싱
+ * @returns {{ summary: string, items: Array<{ field: string, value: string }> }}
+ */
+export const parseSyllabusDraftJson = (text, fieldNames = []) => {
+  if (!text || !String(text).trim()) {
+    const err = new Error(AI_ERRORS.EMPTY_RESPONSE);
+    err.code = AI_ERRORS.EMPTY_RESPONSE;
+    throw err;
+  }
+
+  let parsed = repairAndParseJson(text);
+  if (!parsed || typeof parsed !== "object") {
+    const err = new Error(AI_ERRORS.INVALID_JSON);
+    err.code = AI_ERRORS.INVALID_JSON;
+    throw err;
+  }
+
+  const summary = String(parsed.summary || parsed.총평 || "").trim();
+  const rawItems = Array.isArray(parsed.items)
+    ? parsed.items
+    : Array.isArray(parsed.fields)
+      ? parsed.fields
+      : [];
+
+  const byField = new Map();
+  for (const item of rawItems) {
+    if (!item || typeof item !== "object") continue;
+    const resolved = resolveReviewFieldName(
+      item.field || item.name || item.key,
+      fieldNames
+    );
+    if (!resolved) continue;
+    const value = truncateText(
+      String(item.value ?? item.text ?? item.content ?? "").trim(),
+      PROMPT_LIMITS.SYLLABUS_DRAFT_FIELD_CHARS
+    );
+    if (!value) continue;
+    byField.set(resolved, { field: resolved, value });
+  }
+
+  // fields 객체가 맵 형태인 경우
+  if (byField.size === 0 && parsed.fields && typeof parsed.fields === "object") {
+    for (const [key, val] of Object.entries(parsed.fields)) {
+      const resolved = resolveReviewFieldName(key, fieldNames);
+      if (!resolved) continue;
+      const value = truncateText(
+        String(val ?? "").trim(),
+        PROMPT_LIMITS.SYLLABUS_DRAFT_FIELD_CHARS
+      );
+      if (!value) continue;
+      byField.set(resolved, { field: resolved, value });
+    }
+  }
+
+  const items = [];
+  if (fieldNames.length > 0) {
+    for (const field of fieldNames) {
+      if (byField.has(field)) items.push(byField.get(field));
+      else items.push({ field, value: "" });
+    }
+  } else {
+    items.push(...byField.values());
+  }
+
+  if (items.every((it) => !it.value) && !summary) {
+    const err = new Error(AI_ERRORS.INVALID_JSON);
+    err.code = AI_ERRORS.INVALID_JSON;
+    throw err;
+  }
+
+  return {
+    summary: summary || "제공하신 자료를 바탕으로 강의계획서 초안을 작성했습니다.",
+    items,
+  };
+};
+
+export const buildSyllabusDraftRetryPrompt = (fieldNames = []) => {
+  const focus =
+    Array.isArray(fieldNames) && fieldNames.length > 0
+      ? `\nitems.field는 다음을 빠짐없이 사용: ${fieldNames
+          .map((n) => JSON.stringify(n))
+          .join(", ")}`
+      : "";
+  return `이전 응답이 유효한 JSON이 아닙니다. 설명·마크다운·코드펜스 없이 JSON 객체 하나만 출력하세요.
+{
+  "summary": "초안 요약 1~2문장",
+  "items": [
+    { "field": "필드명", "value": "해당 항목 작성문" }
+  ]
+}
+근거가 부족한 항목은 value를 ""로 두세요.${focus}`;
 };
 
 const normalizeFieldKey = (key) =>

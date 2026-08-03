@@ -3,47 +3,126 @@
  */
 import { AlterConversation } from "../models/AlterConversation.js";
 import { AlterMessage } from "../models/AlterMessage.js";
-import { FIELD_REQUIRED, PERMISSION_DENIED, __NOT_FOUND } from "../messages/index.js";
+import { Season } from "../models/index.js";
+import {
+  FIELD_REQUIRED,
+  __NOT_FOUND,
+} from "../messages/index.js";
 
 const previewOf = (text = "") => {
-  const t = String(text || "").replace(/\s+/g, " ").trim();
+  const t = String(text || "")
+    .replace(/\s+/g, " ")
+    .trim();
   if (!t) return "";
   return t.length > 80 ? `${t.slice(0, 80)}…` : t;
 };
 
 const titleFromMessage = (text = "") => {
-  const t = String(text || "").replace(/\s+/g, " ").trim();
+  const t = String(text || "")
+    .replace(/\s+/g, " ")
+    .trim();
   if (!t) return "새 대화";
   return t.length > 40 ? `${t.slice(0, 40)}…` : t;
 };
 
+const seasonLabelOf = (season) => {
+  if (!season) return "";
+  return `${season.year || ""} ${season.term || ""}`.trim();
+};
+
+const resolveSeasonSchool = async (academyId, seasonId) => {
+  if (!seasonId) return null;
+  const season = await Season(academyId)
+    .findById(seasonId)
+    .select("school year term")
+    .lean();
+  return season || null;
+};
+
+/**
+ * 학교 소속 학기 ID 목록 (레거시 school 필드 없는 대화 포함용)
+ */
+const seasonIdsForSchool = async (academyId, schoolId) => {
+  if (!schoolId) return [];
+  const ids = await Season(academyId).distinct("_id", { school: schoolId });
+  return ids.map((id) => String(id));
+};
+
+/**
+ * 목록: 사용자 × 학교 (학기 무관). seasonLabel 은 표시용으로 붙인다.
+ */
 export const listAlterConversations = async ({
   academyId,
   userId,
+  schoolId,
   seasonId,
   limit = 30,
 }) => {
-  if (!seasonId) {
-    const err = new Error(FIELD_REQUIRED("season"));
+  let school = schoolId ? String(schoolId) : "";
+  if (!school && seasonId) {
+    const season = await resolveSeasonSchool(academyId, seasonId);
+    school = season?.school ? String(season.school) : "";
+  }
+  if (!school) {
+    const err = new Error(FIELD_REQUIRED("school"));
     err.status = 400;
     throw err;
   }
+
+  const seasonIds = await seasonIdsForSchool(academyId, school);
+  const filter = {
+    user: userId,
+    isDeleted: false,
+    $or: [
+      { school },
+      ...(seasonIds.length > 0
+        ? [
+            {
+              $and: [
+                {
+                  $or: [{ school: { $exists: false } }, { school: null }],
+                },
+                { season: { $in: seasonIds } },
+              ],
+            },
+          ]
+        : []),
+    ],
+  };
+
   const rows = await AlterConversation(academyId)
-    .find({
-      user: userId,
-      season: seasonId,
-      isDeleted: false,
-    })
+    .find(filter)
     .sort({ lastMessageAt: -1, updatedAt: -1 })
     .limit(Math.min(100, Math.max(1, Number(limit) || 30)))
     .lean();
-  return rows;
+
+  const labelSeasonIds = [
+    ...new Set(rows.map((r) => String(r.season || "")).filter(Boolean)),
+  ];
+  const seasons =
+    labelSeasonIds.length > 0
+      ? await Season(academyId)
+          .find({ _id: { $in: labelSeasonIds } })
+          .select("year term")
+          .lean()
+      : [];
+  const labelById = new Map(
+    seasons.map((s) => [String(s._id), seasonLabelOf(s)])
+  );
+
+  return rows.map((row) => ({
+    ...row,
+    school: row.school ? String(row.school) : school,
+    season: row.season ? String(row.season) : "",
+    seasonLabel: labelById.get(String(row.season)) || "",
+  }));
 };
 
 export const createAlterConversation = async ({
   academyId,
   userId,
   seasonId,
+  schoolId,
   title = "새 대화",
   pageType = "general",
   contextLabel = "",
@@ -54,8 +133,22 @@ export const createAlterConversation = async ({
     err.status = 400;
     throw err;
   }
+  const season = await resolveSeasonSchool(academyId, seasonId);
+  if (!season) {
+    const err = new Error(__NOT_FOUND("season"));
+    err.status = 404;
+    throw err;
+  }
+  const school = schoolId || season.school;
+  if (!school) {
+    const err = new Error(FIELD_REQUIRED("school"));
+    err.status = 400;
+    throw err;
+  }
+
   const doc = await AlterConversation(academyId).create({
     user: userId,
+    school,
     season: seasonId,
     title: titleFromMessage(title) || "새 대화",
     pageType: pageType || "general",
@@ -64,7 +157,11 @@ export const createAlterConversation = async ({
     lastMessageAt: new Date(),
     status: "idle",
   });
-  return doc.toObject();
+  const obj = doc.toObject();
+  return {
+    ...obj,
+    seasonLabel: seasonLabelOf(season),
+  };
 };
 
 export const getOwnedConversation = async ({
@@ -161,7 +258,8 @@ export const setAlterConversationStatus = async ({
 };
 
 /**
- * 유저 메시지 + AI 응답을 저장하고 세션 메타를 갱신
+ * 유저 메시지 + AI 응답을 저장하고 세션 메타를 갱신.
+ * 학기가 바뀌어도 같은 대화를 이어가며, season/school 메타만 현재 값으로 갱신한다.
  */
 export const appendAlterTurn = async ({
   academyId,
@@ -179,6 +277,14 @@ export const appendAlterTurn = async ({
   draft,
   markWorking = false,
 }) => {
+  const season = await resolveSeasonSchool(academyId, seasonId);
+  if (!seasonId || !season) {
+    const err = new Error(FIELD_REQUIRED("season"));
+    err.status = 400;
+    throw err;
+  }
+  const schoolId = season.school;
+
   let conversation = null;
   if (conversationId) {
     conversation = await getOwnedConversation({
@@ -186,14 +292,17 @@ export const appendAlterTurn = async ({
       userId,
       conversationId,
     });
-    if (String(conversation.season) !== String(seasonId)) {
-      const err = new Error(PERMISSION_DENIED);
-      err.status = 403;
-      throw err;
+    // 학기 전환 후에도 이어서 사용 — 최근 학기/학교 메타만 갱신
+    conversation.season = seasonId;
+    if (schoolId && !conversation.school) {
+      conversation.school = schoolId;
+    } else if (schoolId) {
+      conversation.school = schoolId;
     }
   } else {
     conversation = await AlterConversation(academyId).create({
       user: userId,
+      school: schoolId,
       season: seasonId,
       title: titleFromMessage(userMessage),
       pageType: pageType || "general",
@@ -250,7 +359,10 @@ export const appendAlterTurn = async ({
   await conversation.save();
 
   return {
-    conversation: conversation.toObject(),
+    conversation: {
+      ...conversation.toObject(),
+      seasonLabel: seasonLabelOf(season),
+    },
     messages: created,
   };
 };

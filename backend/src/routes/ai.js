@@ -35,7 +35,7 @@ router.delete(
 // Alter unified turn (skill router)
 router.post("/alter", isLoggedIn, ai.runAlter);
 
-// Review syllabus draft (syllabus-review skill, SSE — legacy path)
+// Syllabus draft skill (SSE — legacy path alias)
 router.post("/syllabus/review", isLoggedIn, ai.reviewSyllabusContent);
 
 // Generate season AI guidelines template (admin/manager)

@@ -8,7 +8,7 @@ import {
 } from "react";
 import { TFormEvaluation } from "types/seasons";
 
-export type TAlterSkillId = "chat" | "syllabus-review" | "evaluation-draft";
+export type TAlterSkillId = "chat" | "syllabus-draft" | "evaluation-draft";
 
 export type TAlterEvaluationRow = {
   studentId: string;
@@ -25,6 +25,9 @@ export type TAlterPageContext = {
   getCurrentInfo?: () => Record<string, any>;
   formSyllabus?: any;
   applyFieldSuggestion?: (fieldLabel: string, suggestion: string) => void;
+  applyInfoDraft?: (
+    values: Record<string, string>
+  ) => { applied: number; skipped: number };
   syllabusId?: string;
   formEvaluation?: TFormEvaluation;
   getEvaluationCsv?: () => string;

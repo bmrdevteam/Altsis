@@ -1,6 +1,10 @@
 export type TAlterConversation = {
   _id: string;
   title: string;
+  school?: string;
+  season?: string;
+  /** 최근 사용 학기 표시용 (예: 2026학년도 1쿼터) */
+  seasonLabel?: string;
   pageType?: string;
   contextLabel?: string;
   syllabusId?: string;

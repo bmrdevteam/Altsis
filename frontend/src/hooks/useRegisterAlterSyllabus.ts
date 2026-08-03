@@ -42,7 +42,31 @@ const useRegisterAlterSyllabus = (params: Params) => {
         }
         onApplyInfoRef.current(next);
       },
-      suggestedSkills: ["syllabus-review", "chat"],
+      applyInfoDraft: (values) => {
+        const fields = extractSyllabusInputFields(params.formSyllabus);
+        const current = { ...getCurrentInfoRef.current() };
+        let applied = 0;
+        let skipped = 0;
+        for (const [fieldLabel, raw] of Object.entries(values || {})) {
+          const value = String(raw ?? "").trim();
+          if (!value) {
+            skipped += 1;
+            continue;
+          }
+          const meta = fields.find(
+            (f) => f.name === fieldLabel || f.id === fieldLabel
+          );
+          const key = meta?.id || fieldLabel;
+          current[key] = value;
+          if (meta?.name && meta.name !== key && meta.name in current) {
+            delete current[meta.name];
+          }
+          applied += 1;
+        }
+        if (applied > 0) onApplyInfoRef.current(current);
+        return { applied, skipped };
+      },
+      suggestedSkills: ["syllabus-draft", "chat"],
     });
     return () => registerPageContext(null);
   }, [

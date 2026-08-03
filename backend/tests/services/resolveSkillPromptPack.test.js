@@ -142,7 +142,7 @@ describe("resolveSkillPromptPack", () => {
           exampleSyllabusIds: ["syl1"],
         },
       },
-      SKILL_IDS.SYLLABUS_REVIEW
+      SKILL_IDS.EVALUATION_DRAFT
     );
 
     expect(pack.fromSchool).toBe(false);
@@ -150,6 +150,45 @@ describe("resolveSkillPromptPack", () => {
     expect(pack.references[0].title).toBe("시즌참고");
     expect(pack.exampleSyllabusIds).toEqual(["syl1"]);
     expect(mockFind).not.toHaveBeenCalled();
+  });
+
+  test("강의계획서 초안 스킬은 참고자료·모범계획서를 넣지 않는다", async () => {
+    mockFindLean.mockResolvedValue([
+      {
+        _id: "lib1",
+        kind: "learning",
+        title: "학습정보 A",
+        content: "내용 A",
+      },
+      {
+        _id: "lib2",
+        kind: "instruction",
+        title: "작성 지침",
+        content: "구체적으로",
+      },
+    ]);
+
+    const pack = await resolveSkillPromptPack(
+      "academy1",
+      {
+        _id: "school1",
+        aiConfig: {
+          skills: {
+            [SKILL_IDS.SYLLABUS_DRAFT]: {
+              libraryItemIds: ["lib1", "lib2"],
+              exampleSyllabusIds: ["syl1"],
+            },
+          },
+        },
+      },
+      { aiSettings: {} },
+      SKILL_IDS.SYLLABUS_DRAFT
+    );
+
+    expect(pack.fromSchool).toBe(true);
+    expect(pack.guidelines).toContain("작성 지침");
+    expect(pack.references).toEqual([]);
+    expect(pack.exampleSyllabusIds).toEqual([]);
   });
 
   test("평가 초안 스킬도 학교 지침을 읽는다", async () => {
@@ -198,7 +237,7 @@ describe("resolveSkillPromptPack", () => {
         _id: "school1",
         aiConfig: {
           skills: {
-            [SKILL_IDS.SYLLABUS_REVIEW]: {
+            [SKILL_IDS.SYLLABUS_DRAFT]: {
               instructions: "",
               libraryItemIds: ["lib2", "lib1"],
             },
@@ -206,14 +245,14 @@ describe("resolveSkillPromptPack", () => {
         },
       },
       { aiSettings: {} },
-      SKILL_IDS.SYLLABUS_REVIEW
+      SKILL_IDS.SYLLABUS_DRAFT
     );
 
     expect(prep.fromSchool).toBe(true);
     expect(prep.guidelines).toContain("세특 작성 지침");
     expect(prep.guidelines).toContain("성장 중심");
-    expect(prep.references).toHaveLength(1);
-    expect(prep.references[0].title).toBe("학습정보 A");
+    // 초안 스킬 prep 에는 참고자료(learning)를 노출하지 않음
+    expect(prep.references).toEqual([]);
   });
 
   test("prep 설정은 지침이 없으면 빈 문자열을 반환한다", async () => {
