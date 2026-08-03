@@ -4,11 +4,11 @@
 import httpMocks from "node-mocks-http";
 import mongoose from "mongoose";
 
-jest.mock("@models/User");
+jest.mock("@models/User.js");
 import { User } from "@models/User.js";
-import * as users from "@controllers/users";
+import * as users from "@controllers/users.js";
 
-jest.mock("@models/School");
+jest.mock("@models/School.js");
 import { School } from "@models/School.js";
 
 const reqUser = {

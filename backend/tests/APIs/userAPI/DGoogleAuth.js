@@ -3,9 +3,9 @@
  */
 import httpMocks from "node-mocks-http";
 
-jest.mock("@models/User");
+jest.mock("@models/User.js");
 import { User } from "@models/User.js";
-import * as users from "@controllers/users";
+import * as users from "@controllers/users.js";
 
 const reqUser = {
   academyId: "abc",

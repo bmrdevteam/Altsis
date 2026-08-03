@@ -9,7 +9,7 @@
   "clearMocks": true,
   "setupFiles": ["./env.js"],
   "moduleNameMapper": {
-    "@models/(.*)$": "<rootDir>/models/$1",
-    "@controllers/(.*)$": "<rootDir>/controllers/$1"
+    "@models/(.*)$": "<rootDir>/src/models/$1",
+    "@controllers/(.*)$": "<rootDir>/src/controllers/$1"
   }
 }
