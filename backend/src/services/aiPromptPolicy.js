@@ -67,6 +67,16 @@ export const PROMPT_LIMITS = {
   ARCHIVE_DRAFT_CONTEXT_CHARS: 400,
   /** 기록 초안: 교사 요청 문구 최대 글자 */
   ARCHIVE_DRAFT_USER_HINT_CHARS: 1800,
+  /** 문서 초안: 본문 최대 글자 */
+  DOCUMENT_DRAFT_CONTENT_CHARS: 14000,
+  /** 문서 초안: 참고용 현재 본문 최대 글자 */
+  DOCUMENT_DRAFT_CURRENT_CHARS: 10000,
+  /** 문서 초안: 첨부/자료 최대 글자 */
+  DOCUMENT_DRAFT_SOURCE_CHARS: 12000,
+  /** 문서 초안: 교사 요청 문구 최대 글자 */
+  DOCUMENT_DRAFT_USER_HINT_CHARS: 2000,
+  /** 문서 초안: 제목 최대 글자 */
+  DOCUMENT_DRAFT_TITLE_CHARS: 120,
 };
 
 const KEY_FIELD_RE =
@@ -103,6 +113,11 @@ export const FEATURE_PROFILES = {
     feature: "archive_draft",
     temperature: 0.35,
     maxTokens: 4096,
+  },
+  documentDraft: {
+    feature: "document_draft",
+    temperature: 0.45,
+    maxTokens: 8192,
   },
 };
 

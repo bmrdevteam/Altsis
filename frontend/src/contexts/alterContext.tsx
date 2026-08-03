@@ -13,7 +13,8 @@ export type TAlterSkillId =
   | "chat"
   | "syllabus-draft"
   | "evaluation-draft"
-  | "archive-draft";
+  | "archive-draft"
+  | "document-draft";
 
 export type TAlterEvaluationRow = {
   studentId: string;
@@ -31,8 +32,19 @@ export type TAlterArchiveRow = {
   values: Record<string, unknown>;
 };
 
+export type TAlterDocumentSnapshot = {
+  title: string;
+  content: string;
+  boardName?: string;
+};
+
 export type TAlterPageContext = {
-  pageType: "syllabus-edit" | "evaluation" | "archive" | "general";
+  pageType:
+    | "syllabus-edit"
+    | "evaluation"
+    | "archive"
+    | "document"
+    | "general";
   label?: string;
   subject?: string[];
   classTitle?: string;
@@ -64,6 +76,13 @@ export type TAlterPageContext = {
     },
     opts: { fillEmptyOnly: boolean }
   ) => { applied: number; skipped: number; unknownIds: string[] };
+  boardId?: string;
+  boardName?: string;
+  getDocument?: () => TAlterDocumentSnapshot;
+  applyDocumentDraft?: (draft: {
+    title?: string;
+    content: string;
+  }) => { applied: boolean };
   suggestedSkills: TAlterSkillId[];
 };
 

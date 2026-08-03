@@ -242,7 +242,8 @@ export const runAlter = async (req, res) => {
   const wantsSse =
     skill === SKILL_IDS.SYLLABUS_DRAFT ||
     skill === SKILL_IDS.EVALUATION_DRAFT ||
-    skill === SKILL_IDS.ARCHIVE_DRAFT;
+    skill === SKILL_IDS.ARCHIVE_DRAFT ||
+    skill === SKILL_IDS.DOCUMENT_DRAFT;
 
   if (wantsSse) {
     res.setHeader("Content-Type", "text/event-stream");

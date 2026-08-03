@@ -35,6 +35,11 @@ const SKILLS: Array<{ id: TAlterSkillId; label: string; hint: string }> = [
     label: "기록",
     hint: "학생 기록(행동특성 등) 초안 작성에 적용할 지침 라이브러리 항목을 선택합니다.",
   },
+  {
+    id: "document-draft",
+    label: "문서",
+    hint: "보드 문서(매뉴얼·공지·회의록 등) 초안 작성에 적용할 지침 라이브러리 항목을 선택합니다.",
+  },
 ];
 
 const defaultAiConfig = (): TSchoolAiConfig => ({

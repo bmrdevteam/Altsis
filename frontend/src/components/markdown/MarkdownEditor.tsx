@@ -113,7 +113,10 @@ const MarkdownEditor = ({
   const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [mathDialog, setMathDialog] = useState<MathDialogState>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const isInternalUpdate = useRef(false);
+  // 에디터가 onChange로 내보낸 마지막 값. 외부 value와 다를 때만 TipTap에 동기화한다.
+  // boolean isInternalUpdate는 onUpdate 후 state가 동일하면 effect가 안 돌아 플래그가
+  // 남을 수 있어 Alter 반영 등 외부 setContent가 무시되는 버그가 있었다.
+  const lastEmittedRef = useRef(value);
   const viewModeRef = useRef(viewMode);
   viewModeRef.current = viewMode;
   const dragCountRef = useRef(0);
@@ -276,9 +279,9 @@ const MarkdownEditor = ({
       },
     },
     onUpdate: ({ editor }) => {
-      isInternalUpdate.current = true;
-      const md = getMarkdownFromEditor(editor);
-      onChange(postprocessMarkdown(md));
+      const md = postprocessMarkdown(getMarkdownFromEditor(editor));
+      lastEmittedRef.current = md;
+      onChange(md);
     },
   });
 
@@ -482,25 +485,28 @@ const MarkdownEditor = ({
     // 분할 모드에서는 textarea가 직접 value를 편집하므로
     // TipTap 동기화를 건너뛴다 (피드백 루프 방지)
     if (viewModeRef.current !== "wysiwyg") return;
-    if (isInternalUpdate.current) {
-      isInternalUpdate.current = false;
+    // 에디터→부모로 올라온 값이면 재주입하지 않음 (커서 점프/루프 방지)
+    if (value === lastEmittedRef.current) return;
+    const currentMd = postprocessMarkdown(getMarkdownFromEditor(editor));
+    if (value === currentMd) {
+      lastEmittedRef.current = value;
       return;
     }
-    const currentMd = postprocessMarkdown(getMarkdownFromEditor(editor));
-    if (value !== currentMd) {
-      const version = ++contentVersionRef.current;
-      // addToHistory: false로 설정하여 Ctrl+Z 시 이전 상태로 되돌리지 않음
-      editor
-        .chain()
-        .command(({ tr }) => {
-          tr.setMeta("addToHistory", false);
-          return true;
-        })
-        .setContent(value)
-        .run();
-      // 다시 특수 노드 변환 (스케줄 중복·stale 실행 방지)
-      scheduleTransformSpecialNodes(version);
-    }
+    const version = ++contentVersionRef.current;
+    // addToHistory: false로 설정하여 Ctrl+Z 시 이전 상태로 되돌리지 않음
+    editor
+      .chain()
+      .command(({ tr }) => {
+        tr.setMeta("addToHistory", false);
+        return true;
+      })
+      .setContent(value)
+      .run();
+    // setContent → onUpdate가 lastEmitted를 직렬화 결과로 갱신함
+    // 직렬화가 value와 달라도 루프를 막기 위해 외부 주입값을 기준으로 맞춤
+    lastEmittedRef.current = value;
+    // 다시 특수 노드 변환 (스케줄 중복·stale 실행 방지)
+    scheduleTransformSpecialNodes(version);
   }, [value, editor, scheduleTransformSpecialNodes]);
 
   const handleSourceChange = useCallback(

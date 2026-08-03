@@ -54,6 +54,7 @@ export const SKILL_IDS = {
   SYLLABUS_REVIEW: "syllabus-draft",
   EVALUATION_DRAFT: "evaluation-draft",
   ARCHIVE_DRAFT: "archive-draft",
+  DOCUMENT_DRAFT: "document-draft",
 };
 
 /** @type {Record<string, { id: string, name: string, description: string, profile: string }>} */
@@ -85,6 +86,13 @@ export const SKILL_CATALOG = {
       "학생 기록(행동특성·종합의견 등) 항목의 초안을 작성합니다",
     profile: "archiveDraft",
   },
+  [SKILL_IDS.DOCUMENT_DRAFT]: {
+    id: SKILL_IDS.DOCUMENT_DRAFT,
+    name: "문서",
+    description:
+      "보드 문서(매뉴얼·공지·회의록 등) 마크다운 초안을 작성·다듬습니다",
+    profile: "documentDraft",
+  },
 };
 
 export const listSkills = () => Object.values(SKILL_CATALOG);
@@ -112,6 +120,9 @@ const defaultSkillGuide = (skill) => {
   }
   if (skill === SKILL_IDS.ARCHIVE_DRAFT) {
     return "학생을 존중하는 공손한 문어체로, 관찰 가능한 행동·성장·관계 특성을 2~5문장으로 작성하세요. 추측·낙인·민감정보는 피하세요.";
+  }
+  if (skill === SKILL_IDS.DOCUMENT_DRAFT) {
+    return "학교 문서에 맞는 명확한 마크다운으로 작성하세요. 제목·목록·표·체크리스트를 문서 목적에 맞게 활용하고, 퀴즈·인터랙티브 자료는 ```html-app``` 블록을 사용하세요. 추측·민감정보는 넣지 마세요.";
   }
   return "구체성, 학습목표와 활동 연결, 평가 정합성을 중심으로 도와주세요.";
 };
@@ -238,7 +249,8 @@ export const resolveSkillPrepSettings = async (
   const skillConfig = school?.aiConfig?.skills?.[skill] || null;
   const useSchool = hasSchoolSkillConfig(school);
 
-  const skipRefs = skill === SKILL_IDS.SYLLABUS_DRAFT;
+  const skipRefs =
+    skill === SKILL_IDS.SYLLABUS_DRAFT || skill === SKILL_IDS.DOCUMENT_DRAFT;
 
   const loadInstructionChoices = async () => {
     if (!school?._id) {
@@ -295,7 +307,10 @@ export const resolveSkillPrepSettings = async (
       references: skipRefs ? [] : learningRefs,
       fromSchool: true,
     };
-    if (skill === SKILL_IDS.ARCHIVE_DRAFT) {
+    if (
+      skill === SKILL_IDS.ARCHIVE_DRAFT ||
+      skill === SKILL_IDS.DOCUMENT_DRAFT
+    ) {
       const choices = await loadInstructionChoices();
       return { ...base, ...choices };
     }
@@ -309,7 +324,10 @@ export const resolveSkillPrepSettings = async (
       : normalizeReferences(season?.aiSettings?.references || []),
     fromSchool: false,
   };
-  if (skill === SKILL_IDS.ARCHIVE_DRAFT) {
+  if (
+    skill === SKILL_IDS.ARCHIVE_DRAFT ||
+    skill === SKILL_IDS.DOCUMENT_DRAFT
+  ) {
     const choices = await loadInstructionChoices();
     return { ...seasonBase, ...choices };
   }
@@ -317,14 +335,15 @@ export const resolveSkillPrepSettings = async (
 };
 
 /** prep에서 고른 라이브러리 지침(+스킬 기본)으로 guidelines 문자열 구성 */
-const resolveArchiveGuidelines = async (
+const resolveLibraryGuidelines = async (
   academyId,
   school,
   season,
+  skillId,
   context = {}
 ) => {
-  const skillConfig =
-    school?.aiConfig?.skills?.[SKILL_IDS.ARCHIVE_DRAFT] || null;
+  const skill = resolveSkillId(skillId);
+  const skillConfig = school?.aiConfig?.skills?.[skill] || null;
   const requested = Array.isArray(context.guidelineItemIds)
     ? context.guidelineItemIds.map(String).filter(Boolean)
     : [];
@@ -364,11 +383,39 @@ const resolveArchiveGuidelines = async (
     academyId,
     school,
     season,
-    SKILL_IDS.ARCHIVE_DRAFT,
+    skill,
     context?.referenceIndexes
   );
-  return pack.guidelines || defaultSkillGuide(SKILL_IDS.ARCHIVE_DRAFT);
+  return pack.guidelines || defaultSkillGuide(skill);
 };
+
+const resolveArchiveGuidelines = async (
+  academyId,
+  school,
+  season,
+  context = {}
+) =>
+  resolveLibraryGuidelines(
+    academyId,
+    school,
+    season,
+    SKILL_IDS.ARCHIVE_DRAFT,
+    context
+  );
+
+const resolveDocumentGuidelines = async (
+  academyId,
+  school,
+  season,
+  context = {}
+) =>
+  resolveLibraryGuidelines(
+    academyId,
+    school,
+    season,
+    SKILL_IDS.DOCUMENT_DRAFT,
+    context
+  );
 
 export const mergeTokenUsage = (a, b) => {
   if (!b) return a || null;
@@ -2166,6 +2213,323 @@ ${studentBlocks}
   };
 };
 
+const DOCUMENT_DOC_TYPES = {
+  manual: "매뉴얼·안내문",
+  notice: "공지",
+  minutes: "회의록",
+  checklist: "체크리스트",
+  table: "표 중심 안내",
+  lesson: "학습 자료",
+  general: "일반 문서",
+};
+
+/** 응답 전체를 감싼 ```markdown ... ``` 한 겹만 제거 (본문 코드펜스는 유지) */
+const unwrapOuterMarkdownFence = (text) => {
+  const t = String(text || "").trim();
+  const m = t.match(/^```(?:markdown|md)?\s*\r?\n([\s\S]*?)\r?\n```\s*$/i);
+  return m ? m[1].trim() : t;
+};
+
+/**
+ * 에디터가 렌더할 수 있도록, 펜스 없이 나온 인터랙티브 HTML을 ```html-app```으로 감싼다.
+ */
+export const normalizeDocumentDraftContent = (content) => {
+  const text = unwrapOuterMarkdownFence(content);
+  if (!text.trim()) return text;
+  // 이미 html-app을 쓰면 그대로 (모델이 올바르게 작성한 경우)
+  if (/```html-app(?::\d+)?\b/.test(text)) return text;
+
+  const looksLikeHtmlApp =
+    /<script[\s>]/i.test(text) ||
+    /<!DOCTYPE\s+html/i.test(text) ||
+    /<html[\s>]/i.test(text) ||
+    (/<style[\s>]/i.test(text) &&
+      /<\/style>/i.test(text) &&
+      /<(?:div|section|main|body)\b/i.test(text));
+  if (!looksLikeHtmlApp) return text;
+
+  const startMatch = text.match(
+    /<(?:!DOCTYPE\s+html|html\b|head\b|body\b|style\b|script\b|div\b|section\b|main\b)[\s>]/i
+  );
+  if (!startMatch || startMatch.index == null) return text;
+
+  const before = text.slice(0, startMatch.index).trimEnd();
+  // 펜스 조기 종료 방지: HTML 안의 ``` 를 깨진 형태가 아닌 문자로 치환
+  const html = text
+    .slice(startMatch.index)
+    .trim()
+    .replace(/```/g, "`\u200b``");
+  const fenced = `\`\`\`html-app\n${html}\n\`\`\``;
+  return before ? `${before}\n\n${fenced}` : fenced;
+};
+
+/**
+ * AI 문서 초안 응답 파싱
+ * 형식:
+ * <<<TITLE>>>
+ * 제목
+ * <<<CONTENT>>>
+ * 마크다운 본문
+ * <<<END>>>
+ */
+export const parseDocumentDraftResponse = (text) => {
+  // 주의: 본문의 ```html-app / 코드블록을 지우면 안 되므로 전역 ``` 제거 금지
+  const raw = unwrapOuterMarkdownFence(text);
+  if (!raw) return { title: "", content: "" };
+
+  const titleMatch = raw.match(
+    /<<<TITLE>>>\s*([\s\S]*?)\s*<<<CONTENT>>>/i
+  );
+  const contentMatch = raw.match(
+    /<<<CONTENT>>>\s*([\s\S]*?)\s*(?:<<<END>>>|$)/i
+  );
+  if (titleMatch || contentMatch) {
+    return {
+      title: String(titleMatch?.[1] || "")
+        .split(/\r?\n/)[0]
+        .trim(),
+      content: normalizeDocumentDraftContent(
+        String(contentMatch?.[1] || "").trim()
+      ),
+    };
+  }
+
+  // fallback: 첫 줄이 # 제목이면 분리
+  const lines = raw.split(/\r?\n/);
+  if (lines[0] && /^#\s+/.test(lines[0])) {
+    return {
+      title: lines[0].replace(/^#\s+/, "").trim(),
+      content: normalizeDocumentDraftContent(lines.slice(1).join("\n").trim()),
+    };
+  }
+  return { title: "", content: normalizeDocumentDraftContent(raw) };
+};
+
+/**
+ * document-draft Skill 실행 (보드 문서 마크다운 초안)
+ */
+export const executeDocumentDraftSkill = async ({
+  academyId,
+  user,
+  academy,
+  season,
+  school,
+  context = {},
+  message = "",
+  onEvent,
+}) => {
+  const profile = FEATURE_PROFILES.documentDraft;
+  const emit = typeof onEvent === "function" ? onEvent : () => {};
+
+  emit("step", { message: "문서 작성 준비 중..." });
+
+  const writeMode = context.writeMode === "refine" ? "refine" : "create";
+  const docTypeRaw = String(context.docType || "general").trim();
+  const docType = DOCUMENT_DOC_TYPES[docTypeRaw] ? docTypeRaw : "general";
+  const docTypeLabel = DOCUMENT_DOC_TYPES[docType];
+  const boardName = String(context.boardName || context.label || "").trim();
+
+  const currentTitle = String(context.currentTitle || "").trim();
+  const currentContent = truncateText(
+    String(context.currentContent || ""),
+    PROMPT_LIMITS.DOCUMENT_DRAFT_CURRENT_CHARS || 10000
+  );
+  const sourceText = truncateText(
+    String(context.sourceText || ""),
+    PROMPT_LIMITS.DOCUMENT_DRAFT_SOURCE_CHARS || 12000
+  );
+  const userHint = truncateText(
+    String(message || "").trim(),
+    PROMPT_LIMITS.DOCUMENT_DRAFT_USER_HINT_CHARS || 2000
+  );
+
+  if (writeMode === "create" && !userHint && !sourceText) {
+    const err = new Error(
+      "초안에 쓸 정보를 입력하거나 텍스트 파일을 첨부해 주세요."
+    );
+    err.status = 400;
+    err.code = AI_ERRORS.GENERATION_FAILED;
+    throw err;
+  }
+  if (writeMode === "refine" && !currentContent.trim() && !userHint) {
+    const err = new Error(
+      "다듬을 본문이 없습니다. 에디터에 내용을 쓰거나 요청을 입력해 주세요."
+    );
+    err.status = 400;
+    err.code = AI_ERRORS.GENERATION_FAILED;
+    throw err;
+  }
+
+  const guidelines = await resolveDocumentGuidelines(
+    academyId,
+    school,
+    season,
+    context
+  );
+
+  const provider = resolveProvider(academy.aiProvider);
+  const modelName = resolveModel(provider, academy.aiModel);
+
+  const editorCatalog = `에디터가 지원하는 마크다운을 적극 활용하세요.
+- 제목: # ## ###
+- 목록: - 또는 1.
+- 할 일: - [ ] / - [x]
+- 표: GFM 테이블
+- 인용: >
+- 코드: \`\`\`언어 ... \`\`\`
+- 강조: **굵게** *기울임* ~~취소선~~ \`인라인코드\`
+- 링크: [텍스트](https://...)
+- 수식: $인라인$ 또는 $$블록$$
+- 구분선: ---
+- 인터랙티브 HTML(퀴즈·계산기·학습 도구 등): 반드시 아래 형식으로만 넣으세요.
+\`\`\`html-app
+<!-- HTML/CSS/JS 전체. 닫는 펜스(\`\`\`)는 이 블록 안에 넣지 마세요 -->
+\`\`\`
+  · 높이 지정: \`\`\`html-app:500
+  · script/style 포함 가능. 바깥에 생 HTML을 그대로 두지 마세요.
+이미지·멘션·유튜브(\`![youtube](...)\` / \`![embed](...)\`)는 넣지 마세요. 필요하면 「(여기에 이미지)」처럼 자리만 남기세요.`;
+
+  const taskRules =
+    writeMode === "refine"
+      ? `역할: 기존 문서를 목적에 맞게 다듬어 완성본 마크다운을 만듭니다.
+- 기존 구조·핵심 정보를 유지하되 문장·구성을 개선하세요.
+- 불필요한 중복을 줄이고, 문서 형태(${docTypeLabel})에 맞게 제목·목록·표·체크리스트를 활용하세요.
+- 원문을 그대로 복사하지 말고 편집된 결과물만 출력하세요.`
+      : `역할: 요청·자료를 바탕으로 새 문서 마크다운 초안을 만듭니다.
+- 문서 형태(${docTypeLabel})에 맞는 구조로 작성하세요.
+- 제목·소제목·목록·표·체크리스트 등을 목적에 맞게 활용하세요.
+- 근거 없는 사실·개인정보·민감정보는 넣지 마세요.`;
+
+  const prompt = `당신은 학교 보드 문서 작성 보조입니다. 교사가 에디터에서 바로 검토·수정할 마크다운 초안만 작성합니다.
+
+${taskRules}
+
+## 작성 지침
+${guidelines || defaultSkillGuide(SKILL_IDS.DOCUMENT_DRAFT)}
+
+## 문서 형태
+${docTypeLabel}
+
+## 보드
+${boardName || "(미지정)"}
+
+## 에디터 문법 가이드
+${editorCatalog}
+
+## 교사 요청
+${userHint || "(없음)"}
+
+## 첨부·참고 자료
+${sourceText || "(없음)"}
+
+## 현재 문서 (참고)
+제목: ${currentTitle || "(없음)"}
+본문:
+${currentContent || "(없음)"}
+
+## 출력 형식 (필수)
+<<<TITLE>>>
+문서 제목 (한 줄)
+<<<CONTENT>>>
+마크다운 본문 전체
+<<<END>>>
+- 설명·머리말·JSON 없이 위 형식만 출력하세요.
+- CONTENT 안에는 <<<TITLE>>> / <<<CONTENT>>> / <<<END>>> 마커를 넣지 마세요.`;
+
+  emit("step", {
+    message:
+      writeMode === "refine"
+        ? "AI가 문서를 다듬고 있습니다..."
+        : "AI가 문서 초안을 작성하고 있습니다...",
+  });
+
+  let tokenUsage = null;
+  try {
+    const generated = await runEvaluationGeneration({
+      provider,
+      apiKey: academy.aiApiKey,
+      modelName,
+      profile,
+      systemInstruction: `You are Alter, a school document drafting assistant. Output only <<<TITLE>>> / <<<CONTENT>>> / <<<END>>> blocks with markdown the school's Tiptap editor can render. Interactive HTML/CSS/JS must be inside a \`\`\`html-app fenced block, never as raw HTML outside fences.`,
+      messages: [{ role: "user", content: prompt }],
+      onEvent: emit,
+      progressLabel:
+        writeMode === "refine" ? "문서 다듬는 중" : "문서 초안 작성 중",
+    });
+    tokenUsage = mergeTokenUsage(tokenUsage, generated.tokenUsage);
+
+    const parsed = parseDocumentDraftResponse(generated.text || "");
+    let title = truncateText(
+      maskSensitiveText(parsed.title || "").text,
+      PROMPT_LIMITS.DOCUMENT_DRAFT_TITLE_CHARS || 120
+    ).trim();
+    let content = truncateText(
+      maskSensitiveText(parsed.content || "").text,
+      PROMPT_LIMITS.DOCUMENT_DRAFT_CONTENT_CHARS || 14000
+    ).trim();
+    // 파서·마스킹 후에도 생 HTML이면 html-app으로 재정규화
+    content = normalizeDocumentDraftContent(content);
+
+    if (!content) {
+      const err = new Error("생성 가능한 문서 초안이 없습니다. 다시 시도해 주세요.");
+      err.status = 502;
+      err.code = AI_ERRORS.EMPTY_RESPONSE;
+      throw err;
+    }
+    if (!title) {
+      title =
+        currentTitle ||
+        content
+          .split(/\r?\n/)
+          .find((l) => l.trim())
+          ?.replace(/^#+\s*/, "")
+          .slice(0, 80) ||
+        "제목 없음";
+    }
+
+    const summary =
+      writeMode === "refine"
+        ? `「${title}」 문서를 다듬었습니다.`
+        : `「${title}」 ${docTypeLabel} 초안을 만들었습니다.`;
+
+    logAIUsage(academyId, {
+      user,
+      provider,
+      model: modelName,
+      feature: profile.feature,
+      success: true,
+      tokenUsage,
+    });
+
+    return {
+      skill: SKILL_IDS.DOCUMENT_DRAFT,
+      provider,
+      modelName,
+      tokenUsage,
+      text: summary,
+      draft: {
+        kind: "document",
+        writeMode,
+        docType,
+        title,
+        content,
+      },
+    };
+  } catch (err) {
+    if (!err.code) err.code = mapProviderError(err);
+    logAIUsage(academyId, {
+      user,
+      provider,
+      model: modelName,
+      feature: profile.feature,
+      success: false,
+      errorCode: err.code,
+      tokenUsage,
+    });
+    throw err;
+  }
+};
+
 /**
  * Alter 한 턴 실행 (Skill 라우팅)
  */
@@ -2236,6 +2600,26 @@ export const runAlterSkill = async ({
       season,
       school,
       registration,
+      context,
+      message,
+      onEvent,
+    });
+    return {
+      skill,
+      text: result.text,
+      review: null,
+      draft: result.draft,
+      tokenUsage: result.tokenUsage,
+    };
+  }
+
+  if (skill === SKILL_IDS.DOCUMENT_DRAFT) {
+    const result = await executeDocumentDraftSkill({
+      academyId,
+      user,
+      academy,
+      season,
+      school,
       context,
       message,
       onEvent,
@@ -2347,6 +2731,14 @@ export const detectSkillFromMessage = (message = "") => {
     /\/(기록|archive[-_]?draft)/i.test(text)
   ) {
     return SKILL_IDS.ARCHIVE_DRAFT;
+  }
+  if (
+    /문서.*(초안|작성|다듬)/.test(text) ||
+    /(초안|작성|다듬).*문서/.test(text) ||
+    /매뉴얼|회의록|공지문/.test(text) ||
+    /\/(문서|document[-_]?draft)/i.test(text)
+  ) {
+    return SKILL_IDS.DOCUMENT_DRAFT;
   }
   if (
     /계획서.*(초안|작성)/.test(text) ||

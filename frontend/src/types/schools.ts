@@ -52,7 +52,8 @@ export type TAlterSkillId =
   | "chat"
   | "syllabus-draft"
   | "evaluation-draft"
-  | "archive-draft";
+  | "archive-draft"
+  | "document-draft";
 
 export type TAiLibraryKind = "instruction" | "learning";
 

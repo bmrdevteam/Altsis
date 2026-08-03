@@ -26,6 +26,7 @@ import Autofill from "components/input/Autofill";
 import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 import { MarkdownEditor } from "components/markdown";
 import EmbedDialog from "components/markdown/EmbedDialog";
+import useRegisterAlterDocument from "hooks/useRegisterAlterDocument";
 
 import { TBoard, TBoardMembers, TMemberUser } from "types/board";
 import { TAltForm } from "types/altForm";
@@ -93,6 +94,16 @@ const PostCreate = ({
   const [content, setContent] = useState(
     importRef.current?.importedMarkdown || ""
   );
+
+  useRegisterAlterDocument({
+    enabled: !!boardId,
+    label: board?.name ? `${board.name} · 문서` : "문서 작성",
+    boardId,
+    boardName: board?.name,
+    getDocument: () => ({ title, content }),
+    setTitle,
+    setContent,
+  });
 
   // 읽기 권한: 특정 대상만 설정 여부
   const [useSpecificPermission, setUseSpecificPermission] = useState(false);

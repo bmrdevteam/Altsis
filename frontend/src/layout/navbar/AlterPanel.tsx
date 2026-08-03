@@ -68,6 +68,14 @@ type TAlterArchiveDraftResult = {
   }>;
 };
 
+type TAlterDocumentDraftResult = {
+  kind: "document";
+  writeMode?: "create" | "refine";
+  docType?: string;
+  title: string;
+  content: string;
+};
+
 type TAlterSyllabusDraftResult = {
   kind: "syllabus";
   summary?: string;
@@ -77,6 +85,7 @@ type TAlterSyllabusDraftResult = {
 type TAlterDraftResult =
   | TAlterEvalDraftResult
   | TAlterArchiveDraftResult
+  | TAlterDocumentDraftResult
   | TAlterSyllabusDraftResult;
 
 type ChatMessage = {
@@ -107,10 +116,17 @@ const isArchiveDraft = (
   return (draft as { kind?: string }).kind === "archive";
 };
 
+const isDocumentDraft = (
+  draft?: TAlterDraftResult | null
+): draft is TAlterDocumentDraftResult => {
+  if (!draft) return false;
+  return (draft as { kind?: string }).kind === "document";
+};
+
 const isEvalDraft = (
   draft?: TAlterDraftResult | null
 ): draft is TAlterEvalDraftResult => {
-  if (!draft || isArchiveDraft(draft)) return false;
+  if (!draft || isArchiveDraft(draft) || isDocumentDraft(draft)) return false;
   const anyDraft = draft as unknown as { rows?: unknown; kind?: string };
   return Array.isArray(anyDraft.rows) && anyDraft.kind !== "archive";
 };
@@ -120,12 +136,24 @@ const SKILL_LABEL: Record<TAlterSkillId, string> = {
   "syllabus-draft": "수업",
   "evaluation-draft": "평가",
   "archive-draft": "기록",
+  "document-draft": "문서",
 };
 
 const isDraftPrepSkill = (skill: TAlterSkillId) =>
   skill === "syllabus-draft" ||
   skill === "evaluation-draft" ||
-  skill === "archive-draft";
+  skill === "archive-draft" ||
+  skill === "document-draft";
+
+const DOCUMENT_DOC_TYPES: Array<{ id: string; label: string }> = [
+  { id: "manual", label: "매뉴얼·안내" },
+  { id: "notice", label: "공지" },
+  { id: "minutes", label: "회의록" },
+  { id: "checklist", label: "체크리스트" },
+  { id: "table", label: "표 중심 안내" },
+  { id: "lesson", label: "학습 자료" },
+  { id: "general", label: "일반 문서" },
+];
 
 const formatBubbleTime = (dateString?: string) => {
   if (!dateString) return "";
@@ -206,6 +234,12 @@ const wantsArchiveDraftText = (text: string) =>
   /행동특성|종합의견/.test(text) ||
   /\/(기록|archive[-_]?draft)/i.test(text);
 
+const wantsDocumentDraftText = (text: string) =>
+  /문서.*(초안|작성|다듬)/.test(text) ||
+  /(초안|작성|다듬).*문서/.test(text) ||
+  /매뉴얼|회의록|공지문/.test(text) ||
+  /\/(문서|document[-_]?draft)/i.test(text);
+
 const AlterPanel = ({ onClose }: Props) => {
   const { currentSeason, currentRegistration, currentSchool } = useAuth();
   const {
@@ -270,6 +304,17 @@ const AlterPanel = ({ onClose }: Props) => {
   >([]);
   const [archiveSelectedGuidelineIds, setArchiveSelectedGuidelineIds] =
     useState<string[]>([]);
+
+  const [docWriteMode, setDocWriteMode] = useState<"create" | "refine">(
+    "create"
+  );
+  const [docType, setDocType] = useState("general");
+  const [docGuidelineItems, setDocGuidelineItems] = useState<
+    Array<{ _id: string; title: string; content: string }>
+  >([]);
+  const [docSelectedGuidelineIds, setDocSelectedGuidelineIds] = useState<
+    string[]
+  >([]);
 
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [conversationTitle, setConversationTitle] = useState("새 대화");
@@ -362,6 +407,10 @@ const AlterPanel = ({ onClose }: Props) => {
     setArchiveWriteMode("perStudent");
     setArchiveSelectedStudentIds([]);
     setArchiveSelectedGuidelineIds([]);
+    const hasContent = !!(pageContext?.getDocument?.()?.content || "").trim();
+    setDocWriteMode(hasContent ? "refine" : "create");
+    setDocType("general");
+    setDocSelectedGuidelineIds([]);
   }, [pageContext?.pageType, pageContext?.label]);
 
   useEffect(() => {
@@ -459,7 +508,10 @@ const AlterPanel = ({ onClose }: Props) => {
         const data = await res.json();
         if (cancelled) return;
         setSkillGuidelines((data.guidelines || "").trim());
-        if (selectedSkill === "archive-draft") {
+        if (
+          selectedSkill === "archive-draft" ||
+          selectedSkill === "document-draft"
+        ) {
           const items = Array.isArray(data.instructionItems)
             ? data.instructionItems.map(
                 (it: { _id?: string; title?: string; content?: string }) => ({
@@ -469,24 +521,37 @@ const AlterPanel = ({ onClose }: Props) => {
                 })
               )
             : [];
-          setArchiveGuidelineItems(items.filter((it: { _id: string }) => it._id));
+          const filtered = items.filter((it: { _id: string }) => it._id);
           const defaults = Array.isArray(data.defaultGuidelineItemIds)
             ? data.defaultGuidelineItemIds.map(String)
-            : items.map((it: { _id: string }) => it._id);
-          setArchiveSelectedGuidelineIds((prev) => {
+            : filtered.map((it: { _id: string }) => it._id);
+          const pickIds = (
+            prev: string[],
+            allowedItems: Array<{ _id: string }>
+          ) => {
             if (prev.length > 0) {
-              const allowed = new Set(items.map((it: { _id: string }) => it._id));
+              const allowed = new Set(allowedItems.map((it) => it._id));
               const kept = prev.filter((id) => allowed.has(id));
               if (kept.length > 0) return kept;
             }
             return defaults;
-          });
+          };
+          if (selectedSkill === "archive-draft") {
+            setArchiveGuidelineItems(filtered);
+            setArchiveSelectedGuidelineIds((prev) => pickIds(prev, filtered));
+          } else {
+            setDocGuidelineItems(filtered);
+            setDocSelectedGuidelineIds((prev) => pickIds(prev, filtered));
+          }
         }
       } catch {
         if (cancelled) return;
         setSkillGuidelines("");
         if (selectedSkill === "archive-draft") {
           setArchiveGuidelineItems([]);
+        }
+        if (selectedSkill === "document-draft") {
+          setDocGuidelineItems([]);
         }
       } finally {
         if (!cancelled) setSkillSettingsLoading(false);
@@ -651,6 +716,24 @@ const AlterPanel = ({ onClose }: Props) => {
     const attachmentText = sourceAttachments
       .map((a) => `### ${a.name}\n${a.text}`)
       .join("\n\n");
+    if (skill === "document-draft") {
+      const current = pageContext?.getDocument?.() || {
+        title: "",
+        content: "",
+      };
+      return {
+        pageType: "document",
+        label: pageContext?.label || "",
+        boardId: pageContext?.boardId || "",
+        boardName: pageContext?.boardName || "",
+        writeMode: docWriteMode,
+        docType,
+        guidelineItemIds: docSelectedGuidelineIds,
+        currentTitle: current.title || "",
+        currentContent: current.content || "",
+        sourceText: attachmentText,
+      };
+    }
     return {
       pageType: pageContext?.pageType || "general",
       label: pageContext?.label || "",
@@ -864,6 +947,38 @@ const AlterPanel = ({ onClose }: Props) => {
       }
     }
 
+    if (skill === "document-draft") {
+      if (pageContext?.pageType !== "document") {
+        setError("문서 작성/수정 화면에서 초안을 작성할 수 있습니다.");
+        return;
+      }
+      const current = pageContext?.getDocument?.() || {
+        title: "",
+        content: "",
+      };
+      if (
+        docWriteMode === "create" &&
+        !userText.trim() &&
+        sourceAttachments.length === 0
+      ) {
+        setError(
+          "초안에 쓸 정보를 입력하거나 텍스트 파일을 첨부해 주세요."
+        );
+        return;
+      }
+      if (
+        docWriteMode === "refine" &&
+        !(current.content || "").trim() &&
+        !userText.trim() &&
+        sourceAttachments.length === 0
+      ) {
+        setError(
+          "다듬을 본문이 없습니다. 에디터에 내용을 쓰거나 요청을 입력해 주세요."
+        );
+        return;
+      }
+    }
+
     if (skill === "evaluation-draft") {
       if (pageContext?.pageType !== "evaluation") {
         setError("수업 평가 화면에서 초안을 작성할 수 있습니다.");
@@ -999,7 +1114,7 @@ const AlterPanel = ({ onClose }: Props) => {
             createdAt: new Date().toISOString(),
           },
         ]);
-        if (skill === "syllabus-draft") {
+        if (skill === "syllabus-draft" || skill === "document-draft") {
           setSourceAttachments([]);
         }
         if (!isOpenRef.current) setHasBackgroundResult(true);
@@ -1085,6 +1200,21 @@ const AlterPanel = ({ onClose }: Props) => {
       );
       return;
     }
+    if (
+      selectedSkill === "document-draft" ||
+      (showPrep && pageContext?.pageType === "document")
+    ) {
+      const text = combinedSourceText();
+      void runSkill(
+        "document-draft",
+        text ||
+          (docWriteMode === "refine"
+            ? "현재 문서를 목적에 맞게 다듬어 주세요."
+            : "문서 초안을 작성해 주세요.")
+      );
+      setDraft("");
+      return;
+    }
     if (selectedSkill === "syllabus-draft" || showPrep) {
       const text = combinedSourceText();
       void runSkill(
@@ -1113,6 +1243,11 @@ const AlterPanel = ({ onClose }: Props) => {
     ) {
       skill = "archive-draft";
     } else if (
+      wantsDocumentDraftText(text) &&
+      pageContext?.pageType === "document"
+    ) {
+      skill = "document-draft";
+    } else if (
       (wantsSyllabusDraftText(text) || sourceAttachments.length > 0) &&
       pageContext?.pageType === "syllabus-edit"
     ) {
@@ -1122,6 +1257,11 @@ const AlterPanel = ({ onClose }: Props) => {
       pageContext?.pageType === "syllabus-edit"
     ) {
       skill = "syllabus-draft";
+    } else if (
+      selectedSkill === "document-draft" &&
+      pageContext?.pageType === "document"
+    ) {
+      skill = "document-draft";
     }
     const payload =
       skill === "syllabus-draft"
@@ -1211,6 +1351,32 @@ const AlterPanel = ({ onClose }: Props) => {
             role: "assistant",
             content: `초안 ${result.applied}칸을 기록에 반영했습니다. 확인 후 「변경 사항 저장」을 눌러 주세요.`,
             skill: "archive-draft",
+            createdAt: new Date().toISOString(),
+          },
+        ]);
+      }
+      return;
+    }
+
+    if (isDocumentDraft(draftResult)) {
+      if (!pageContext?.applyDocumentDraft) return;
+      const result = pageContext.applyDocumentDraft({
+        title: draftResult.title,
+        content: draftResult.content,
+      });
+      setAppliedDraftIds((prev) => new Set(prev).add(msgId));
+      if (!result.applied) {
+        setError("반영할 문서 초안이 없었습니다.");
+      } else {
+        setError("");
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `a-applied-${Date.now()}`,
+            role: "assistant",
+            content:
+              "문서 초안을 에디터에 반영했습니다. 내용을 확인·수정한 뒤 저장해 주세요.",
+            skill: "document-draft",
             createdAt: new Date().toISOString(),
           },
         ]);
@@ -1309,12 +1475,16 @@ const AlterPanel = ({ onClose }: Props) => {
         ? "평가"
         : pageContext?.pageType === "archive"
           ? "기록"
-          : "일반");
+          : pageContext?.pageType === "document"
+            ? "문서"
+            : "일반");
 
   const inSyllabusPrep = showPrep && selectedSkill === "syllabus-draft";
   const inEvalPrep = showPrep && selectedSkill === "evaluation-draft";
   const inArchivePrep = showPrep && selectedSkill === "archive-draft";
-  const inPrep = inSyllabusPrep || inEvalPrep || inArchivePrep;
+  const inDocPrep = showPrep && selectedSkill === "document-draft";
+  const inPrep =
+    inSyllabusPrep || inEvalPrep || inArchivePrep || inDocPrep;
 
 
   const expandToggleBtn = (
@@ -1338,11 +1508,15 @@ const AlterPanel = ({ onClose }: Props) => {
   );
 
   const prepPrimaryLabel =
-    inEvalPrep || inArchivePrep
+    inEvalPrep || inArchivePrep || inDocPrep
       ? messages.some(
           (m) =>
             m.draft &&
-            (inArchivePrep ? isArchiveDraft(m.draft) : isEvalDraft(m.draft))
+            (inDocPrep
+              ? isDocumentDraft(m.draft)
+              : inArchivePrep
+                ? isArchiveDraft(m.draft)
+                : isEvalDraft(m.draft))
         )
         ? "다시 작성"
         : "초안 작성"
@@ -1434,6 +1608,21 @@ const AlterPanel = ({ onClose }: Props) => {
               }}
             >
               기록
+            </button>
+          )}
+          {!inPrep && pageContext?.pageType === "document" && (
+            <button
+              type="button"
+              className={chatUiStyle.actionMenuItem}
+              role="menuitem"
+              disabled={isWorking}
+              onClick={() => {
+                setActionMenuOpen(false);
+                setSelectedSkill("document-draft");
+                setShowPrep(true);
+              }}
+            >
+              문서
             </button>
           )}
         </div>
@@ -1612,6 +1801,148 @@ const AlterPanel = ({ onClose }: Props) => {
 
       <div className={style.body}>
         {error && <div className={style.error}>{error}</div>}
+
+        {inDocPrep && (
+          <>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>작성 모드</p>
+              <div className={style.refList}>
+                <label className={style.refRow}>
+                  <input
+                    type="radio"
+                    name="docWriteMode"
+                    checked={docWriteMode === "create"}
+                    onChange={() => setDocWriteMode("create")}
+                  />
+                  <span>새로 작성</span>
+                </label>
+                <label className={style.refRow}>
+                  <input
+                    type="radio"
+                    name="docWriteMode"
+                    checked={docWriteMode === "refine"}
+                    onChange={() => setDocWriteMode("refine")}
+                  />
+                  <span>기존 글 다듬기</span>
+                </label>
+              </div>
+            </div>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>
+                문서 형태
+                <PrepHint text="형태에 맞게 제목·목록·표·체크리스트 등 에디터 문법을 활용한 초안을 만듭니다." />
+              </p>
+              <div className={style.refList}>
+                {DOCUMENT_DOC_TYPES.map((t) => (
+                  <label key={t.id} className={style.refRow}>
+                    <input
+                      type="radio"
+                      name="docType"
+                      checked={docType === t.id}
+                      onChange={() => setDocType(t.id)}
+                    />
+                    <span>{t.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>
+                작성 지침
+                <PrepHint text="학교 AI 라이브러리의 지침 중 이번 문서에 쓸 항목을 고릅니다." />
+              </p>
+              {skillSettingsLoading ? (
+                <p className={style.prepText}>지침을 불러오는 중...</p>
+              ) : docGuidelineItems.length === 0 ? (
+                <p className={style.prepText}>
+                  선택 가능한 지침이 없습니다. 관리 → 학교 AI → 라이브러리에서
+                  「문서」 지침을 추가해 주세요. 기본 기준으로 작성합니다.
+                </p>
+              ) : (
+                <div className={style.refList}>
+                  {docGuidelineItems.map((item) => (
+                    <label key={item._id} className={style.refRow}>
+                      <input
+                        type="checkbox"
+                        checked={docSelectedGuidelineIds.includes(item._id)}
+                        onChange={() =>
+                          toggleLabel(
+                            item._id,
+                            docSelectedGuidelineIds,
+                            setDocSelectedGuidelineIds
+                          )
+                        }
+                      />
+                      <span>
+                        {item.title}
+                        {item.content ? (
+                          <span className={style.prepMuted}>
+                            {" "}
+                            — {item.content.slice(0, 60)}
+                            {item.content.length > 60 ? "…" : ""}
+                          </span>
+                        ) : null}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>첨부 자료 (텍스트 · 최대 3개)</p>
+              {sourceAttachments.length === 0 ? (
+                <p className={style.prepText}>
+                  개요·참고 자료를 입력하거나 .txt/.md 파일을 첨부할 수 있습니다.
+                </p>
+              ) : (
+                <div className={style.refList}>
+                  {sourceAttachments.map((a, index) => (
+                    <div key={`${a.name}-${index}`} className={style.refRow}>
+                      <span>
+                        {a.name}{" "}
+                        <span className={style.prepMuted}>
+                          ({a.text.length.toLocaleString()}자)
+                        </span>
+                      </span>
+                      <button
+                        type="button"
+                        className={style.applyBtn}
+                        onClick={() =>
+                          setSourceAttachments((prev) =>
+                            prev.filter((_, i) => i !== index)
+                          )
+                        }
+                      >
+                        제거
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className={style.prepActions}>
+                <input
+                  ref={attachInputRef}
+                  type="file"
+                  accept=".txt,.md,.csv,text/plain"
+                  multiple
+                  hidden
+                  onChange={(e) => handleAttachFiles(e.target.files)}
+                />
+                <button
+                  type="button"
+                  className={style.prepActionBtn}
+                  onClick={() => attachInputRef.current?.click()}
+                >
+                  파일 첨부
+                </button>
+              </div>
+            </div>
+            <div className={style.prepHintRow}>
+              <PrepHint text="초안은 에디터 전체를 덮어씁니다. 미리보기 확인 후 「전체에 반영」하고 저장하세요." />
+              <span className={style.prepHintRowLabel}>이용 안내</span>
+            </div>
+          </>
+        )}
 
         {inSyllabusPrep && (
           <>
@@ -2409,6 +2740,54 @@ const AlterPanel = ({ onClose }: Props) => {
                 </div>
               </div>
             )}
+            {msg.draft && isDocumentDraft(msg.draft) && (() => {
+              const docDraft = msg.draft as TAlterDocumentDraftResult;
+              const docTypeLabel =
+                DOCUMENT_DOC_TYPES.find((t) => t.id === docDraft.docType)
+                  ?.label || docDraft.docType;
+              return (
+              <div className={style.reviewList}>
+                <div className={style.reviewItem}>
+                  <div className={style.reviewHeader}>
+                    <span>문서 초안 미리보기</span>
+                    <span className={`${style.levelChip} ${style.levelFair}`}>
+                      {docDraft.writeMode === "refine" ? "다듬기" : "새 작성"}
+                    </span>
+                  </div>
+                  <p className={style.reviewComment}>
+                    제목: {docDraft.title || "-"}
+                    {docTypeLabel ? ` · ${docTypeLabel}` : ""}
+                    {" · 전체에 덮어쓰기"}
+                  </p>
+                  <div className={style.draftPreviewList}>
+                    <div className={style.draftFieldBlock}>
+                      <p className={style.draftFieldLabel}>본문</p>
+                      <p
+                        className={style.draftFieldValue}
+                        style={{ whiteSpace: "pre-wrap" }}
+                      >
+                        {(docDraft.content || "").slice(0, 2500)}
+                        {(docDraft.content || "").length > 2500 ? "…" : ""}
+                      </p>
+                    </div>
+                  </div>
+                  <div className={style.draftActions}>
+                    {pageContext?.applyDocumentDraft && (
+                      <button
+                        type="button"
+                        className={style.applyBtn}
+                        onClick={() => applyDraft(msg.id, docDraft)}
+                      >
+                        {appliedDraftIds.has(msg.id)
+                          ? "다시 반영"
+                          : "전체에 반영"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+              );
+            })()}
           </ChatMessageBubble>
         ))}
 
@@ -2434,14 +2813,14 @@ const AlterPanel = ({ onClose }: Props) => {
         }}
         disabled={isWorking}
         sendDisabled={
-          inSyllabusPrep
+          inSyllabusPrep || (inDocPrep && docWriteMode === "create")
             ? isWorking || (!draft.trim() && sourceAttachments.length === 0)
             : inPrep
               ? isWorking
               : isWorking || (!draft.trim() && sourceAttachments.length === 0)
         }
         sendActive={
-          inSyllabusPrep
+          inSyllabusPrep || (inDocPrep && docWriteMode === "create")
             ? !isWorking && (!!draft.trim() || sourceAttachments.length > 0)
             : inPrep
               ? !isWorking
@@ -2450,19 +2829,27 @@ const AlterPanel = ({ onClose }: Props) => {
         sendTitle={inPrep ? prepPrimaryLabel : "보내기"}
         leftSlot={plusMenu}
         showTextarea={
-          !inPrep || inEvalPrep || inSyllabusPrep || inArchivePrep
+          !inPrep ||
+          inEvalPrep ||
+          inSyllabusPrep ||
+          inArchivePrep ||
+          inDocPrep
         }
         centerHint="옵션을 고른 뒤 시작하세요"
         placeholder={
-          inArchivePrep
-            ? archiveWriteMode === "sameText"
-              ? "예: 공동체 의식과 배려를 중심으로 2~3문장"
-              : "예: 관찰된 성장과 관계 특성을 학생별로 2~4문장"
-            : inEvalPrep
-              ? "예: 멘토 의견은 2~3문장, 성장 포인트를 중심으로"
-              : inSyllabusPrep
-                ? "예: 주제, 목표, 주차별 활동, 평가 방식을 적어 주세요"
-                : "메시지를 입력하세요"
+          inDocPrep
+            ? docWriteMode === "refine"
+              ? "예: 문장을 더 간결하게, 체크리스트를 추가해 주세요"
+              : "예: 저녁활동 이용 안내 매뉴얼, 공간·수칙·신청 방법 포함"
+            : inArchivePrep
+              ? archiveWriteMode === "sameText"
+                ? "예: 공동체 의식과 배려를 중심으로 2~3문장"
+                : "예: 관찰된 성장과 관계 특성을 학생별로 2~4문장"
+              : inEvalPrep
+                ? "예: 멘토 의견은 2~3문장, 성장 포인트를 중심으로"
+                : inSyllabusPrep
+                  ? "예: 주제, 목표, 주차별 활동, 평가 방식을 적어 주세요"
+                  : "메시지를 입력하세요"
         }
         onKeyDown={
           inPrep
