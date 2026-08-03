@@ -53,6 +53,20 @@ export const PROMPT_LIMITS = {
   EVAL_DRAFT_CONTEXT_CHARS: 400,
   /** 평가 초안: 교사 요청 문구 최대 글자 */
   EVAL_DRAFT_USER_HINT_CHARS: 1800,
+  /** 기록 초안: 한 요청 최대 학생 수 */
+  ARCHIVE_DRAFT_MAX_STUDENTS: 30,
+  /** 기록 초안: 한 묶음 최대 학생 수 */
+  ARCHIVE_DRAFT_CHUNK_SIZE: 10,
+  /** 기록 초안: 한 묶음 최대 칸 수 */
+  ARCHIVE_DRAFT_CHUNK_CELLS: 12,
+  /** 기록 초안: 동시 묶음 수 */
+  ARCHIVE_DRAFT_CONCURRENCY: 3,
+  /** 기록 초안: 셀당 최대 글자 */
+  ARCHIVE_DRAFT_CELL_CHARS: 800,
+  /** 기록 초안: 기존 값 참고 최대 글자 */
+  ARCHIVE_DRAFT_CONTEXT_CHARS: 400,
+  /** 기록 초안: 교사 요청 문구 최대 글자 */
+  ARCHIVE_DRAFT_USER_HINT_CHARS: 1800,
 };
 
 const KEY_FIELD_RE =
@@ -83,6 +97,11 @@ export const FEATURE_PROFILES = {
   evaluationDraft: {
     feature: "evaluation_draft",
     temperature: 0.3,
+    maxTokens: 4096,
+  },
+  archiveDraft: {
+    feature: "archive_draft",
+    temperature: 0.35,
     maxTokens: 4096,
   },
 };

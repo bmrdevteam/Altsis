@@ -15,7 +15,7 @@ const alterConversationSchema = mongoose.Schema(
     title: { type: String, default: "새 대화" },
     pageType: {
       type: String,
-      enum: ["syllabus-edit", "evaluation", "general", ""],
+      enum: ["syllabus-edit", "evaluation", "archive", "general", ""],
       default: "general",
     },
     contextLabel: { type: String, default: "" },

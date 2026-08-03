@@ -7,8 +7,13 @@ import {
   ReactNode,
 } from "react";
 import { TFormEvaluation } from "types/seasons";
+import { TSchoolFormArchiveField } from "types/schools";
 
-export type TAlterSkillId = "chat" | "syllabus-draft" | "evaluation-draft";
+export type TAlterSkillId =
+  | "chat"
+  | "syllabus-draft"
+  | "evaluation-draft"
+  | "archive-draft";
 
 export type TAlterEvaluationRow = {
   studentId: string;
@@ -17,8 +22,17 @@ export type TAlterEvaluationRow = {
   evaluation: Record<string, unknown>;
 };
 
+export type TAlterArchiveRow = {
+  studentId: string;
+  studentName?: string;
+  studentGrade?: string;
+  archiveId?: string;
+  registrationId?: string;
+  values: Record<string, unknown>;
+};
+
 export type TAlterPageContext = {
-  pageType: "syllabus-edit" | "evaluation" | "general";
+  pageType: "syllabus-edit" | "evaluation" | "archive" | "general";
   label?: string;
   subject?: string[];
   classTitle?: string;
@@ -34,6 +48,20 @@ export type TAlterPageContext = {
   getEvaluationRows?: () => TAlterEvaluationRow[];
   applyEvaluationCsv?: (
     csv: string,
+    opts: { fillEmptyOnly: boolean }
+  ) => { applied: number; skipped: number; unknownIds: string[] };
+  archiveLabel?: string;
+  formArchiveFields?: TSchoolFormArchiveField[];
+  getArchiveRows?: () => TAlterArchiveRow[];
+  applyArchiveDraft?: (
+    draft: {
+      rows: Array<{
+        studentId: string;
+        values: Record<string, string>;
+      }>;
+      fillEmptyOnly?: boolean;
+      targetLabels?: string[];
+    },
     opts: { fillEmptyOnly: boolean }
   ) => { applied: number; skipped: number; unknownIds: string[] };
   suggestedSkills: TAlterSkillId[];

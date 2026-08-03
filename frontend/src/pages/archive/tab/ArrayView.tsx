@@ -12,6 +12,7 @@ import _ from "lodash";
 
 import ExcelPopup from "./ExcelPopup";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import useRegisterAlterArchive from "hooks/useRegisterAlterArchive";
 
 type Props = {
   pid: string;
@@ -173,6 +174,98 @@ const One = (props: Props) => {
       })[0] ?? { fields: [] }
     );
   }
+
+  const formArchiveItem = formArchive();
+  const canEditArchive =
+    !isLoading &&
+    !!props.pid &&
+    archiveList.length > 0 &&
+    ((currentUser.auth === "manager" &&
+      formArchiveItem.authManager === "viewAndEdit") ||
+      formArchiveItem.authTeacher === "viewAndEditStudents" ||
+      formArchiveItem.authTeacher === "viewAndEditMyStudents");
+
+  /** Alter용: 학생당 1행 (첫 데이터 행 기준, 없으면 빈 값) */
+  const getAlterArchiveRows = () => {
+    const fieldLabels = (formArchiveItem.fields || []).map(
+      (f: any) => f.label
+    );
+    const firstByUser = new Map<string, any>();
+    for (const row of archiveListFlattenedRef.current || []) {
+      const key = String(row.user ?? "").trim();
+      if (!key || firstByUser.has(key)) continue;
+      firstByUser.set(key, row);
+    }
+    return (archiveList || []).map((a) => {
+      const key = String(a.user ?? "").trim();
+      const existing = firstByUser.get(key);
+      if (existing) return existing;
+      const empty: Record<string, any> = {
+        user: a.user,
+        userId: a.userId,
+        userName: a.userName,
+        grade: a.grade,
+        registration: a.registration,
+        _id: a._id,
+      };
+      for (const label of fieldLabels) empty[label] = "";
+      return empty;
+    });
+  };
+
+  const applyAlterArchiveRows = (next: any[]) => {
+    const fieldLabels = (formArchiveItem.fields || [])
+      .filter((f: any) => f?.label && f.type === "input")
+      .map((f: any) => f.label);
+    const flattened = [...(archiveListFlattenedRef.current || [])];
+    const firstIdxByUser = new Map<string, number>();
+    for (let i = 0; i < flattened.length; i++) {
+      const key = String(flattened[i].user ?? "").trim();
+      if (key && !firstIdxByUser.has(key)) firstIdxByUser.set(key, i);
+    }
+
+    for (const student of next || []) {
+      const key = String(student.user ?? "").trim();
+      if (!key) continue;
+      const idx = firstIdxByUser.get(key);
+      if (idx != null) {
+        const merged = { ...flattened[idx] };
+        for (const label of fieldLabels) {
+          if (label in student) merged[label] = student[label];
+        }
+        flattened[idx] = merged;
+      } else {
+        const meta =
+          (archiveList || []).find(
+            (a) => String(a.user ?? "").trim() === key
+          ) || {};
+        const row: Record<string, any> = {
+          _id: meta._id || student._id,
+          user: meta.user || student.user,
+          userId: meta.userId || student.userId,
+          userName: meta.userName || student.userName,
+          grade: meta.grade || student.grade,
+          registration: meta.registration || student.registration,
+        };
+        for (const label of fieldLabels) {
+          row[label] = student[label] ?? "";
+        }
+        flattened.push(row);
+      }
+    }
+
+    archiveListFlattenedRef.current = flattened;
+    setArchiveListFlattened(flattened);
+    checkForChanges();
+  };
+
+  useRegisterAlterArchive({
+    enabled: canEditArchive,
+    archiveLabel: props.pid || "",
+    formArchiveFields: formArchiveItem.fields || [],
+    getArchiveList: getAlterArchiveRows,
+    setArchiveList: applyAlterArchiveRows,
+  });
 
   const updateArchives = async () => {
     // Build current archive list from flattened data

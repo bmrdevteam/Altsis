@@ -12,6 +12,7 @@ import _ from "lodash";
 
 import ExcelPopup from "./ExcelPopup";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import useRegisterAlterArchive from "hooks/useRegisterAlterArchive";
 
 type Props = {
   pid: string;
@@ -139,6 +140,29 @@ const ObjectView = (props: Props) => {
       })[0] ?? { fields: [] }
     );
   }
+
+  const formArchiveItem = formArchive();
+  const canEditArchive =
+    !isLoading &&
+    !!props.pid &&
+    archiveList.length > 0 &&
+    ((currentUser.auth === "manager" &&
+      formArchiveItem.authManager === "viewAndEdit") ||
+      formArchiveItem.authTeacher === "viewAndEditStudents" ||
+      formArchiveItem.authTeacher === "viewAndEditMyStudents");
+
+  useRegisterAlterArchive({
+    enabled: canEditArchive,
+    archiveLabel: props.pid || "",
+    formArchiveFields: formArchiveItem.fields || [],
+    getArchiveList: () => archiveListRef.current || [],
+    setArchiveList: (next) => {
+      archiveListRef.current = next;
+      setArchiveList(next);
+      checkForChanges();
+    },
+    onApplied: () => setRefresh(true),
+  });
 
   const updateArchives = async () => {
     setUpdatingRatio(0);

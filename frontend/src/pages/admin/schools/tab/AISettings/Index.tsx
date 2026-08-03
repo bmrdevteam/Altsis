@@ -17,18 +17,23 @@ const SUCCESS_MESSAGE = "저장되었습니다.";
 const SKILLS: Array<{ id: TAlterSkillId; label: string; hint: string }> = [
   {
     id: "chat",
-    label: "일반 대화",
-    hint: "Alter 일반 대화에 적용할 라이브러리 항목을 선택합니다.",
+    label: "챗봇",
+    hint: "Alter 챗봇 대화에 적용할 라이브러리 항목을 선택합니다.",
   },
   {
     id: "syllabus-draft",
-    label: "강의계획서 초안 작성",
-    hint: "강의계획서 초안 Skill에 적용할 지침 라이브러리 항목을 선택합니다.",
+    label: "수업",
+    hint: "강의계획서 전 항목 초안 작성에 적용할 지침 라이브러리 항목을 선택합니다.",
   },
   {
     id: "evaluation-draft",
-    label: "평가 초안",
-    hint: "평가 초안 Skill에 적용할 라이브러리 항목을 선택합니다.",
+    label: "평가",
+    hint: "평가 항목 초안 작성에 적용할 라이브러리 항목을 선택합니다.",
+  },
+  {
+    id: "archive-draft",
+    label: "기록",
+    hint: "학생 기록(행동특성 등) 초안 작성에 적용할 지침 라이브러리 항목을 선택합니다.",
   },
 ];
 

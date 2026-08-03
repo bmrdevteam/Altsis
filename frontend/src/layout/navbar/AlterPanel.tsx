@@ -55,13 +55,29 @@ type TAlterEvalDraftResult = {
   }>;
 };
 
+type TAlterArchiveDraftResult = {
+  kind: "archive";
+  writeMode?: "perStudent" | "sameText";
+  targetLabels: string[];
+  fillEmptyOnly: boolean;
+  rows: Array<{
+    studentId: string;
+    studentName?: string;
+    studentGrade?: string;
+    values: Record<string, string>;
+  }>;
+};
+
 type TAlterSyllabusDraftResult = {
   kind: "syllabus";
   summary?: string;
   items: Array<{ field: string; value: string }>;
 };
 
-type TAlterDraftResult = TAlterEvalDraftResult | TAlterSyllabusDraftResult;
+type TAlterDraftResult =
+  | TAlterEvalDraftResult
+  | TAlterArchiveDraftResult
+  | TAlterSyllabusDraftResult;
 
 type ChatMessage = {
   id: string;
@@ -84,19 +100,32 @@ const isSyllabusDraft = (
   return Array.isArray(anyDraft.items) && !Array.isArray(anyDraft.rows);
 };
 
+const isArchiveDraft = (
+  draft?: TAlterDraftResult | null
+): draft is TAlterArchiveDraftResult => {
+  if (!draft) return false;
+  return (draft as { kind?: string }).kind === "archive";
+};
+
 const isEvalDraft = (
   draft?: TAlterDraftResult | null
 ): draft is TAlterEvalDraftResult => {
-  if (!draft) return false;
-  const anyDraft = draft as unknown as { rows?: unknown };
-  return Array.isArray(anyDraft.rows);
+  if (!draft || isArchiveDraft(draft)) return false;
+  const anyDraft = draft as unknown as { rows?: unknown; kind?: string };
+  return Array.isArray(anyDraft.rows) && anyDraft.kind !== "archive";
 };
 
 const SKILL_LABEL: Record<TAlterSkillId, string> = {
-  chat: "일반 대화",
-  "syllabus-draft": "강의계획서 초안 작성",
-  "evaluation-draft": "평가 초안",
+  chat: "챗봇",
+  "syllabus-draft": "수업",
+  "evaluation-draft": "평가",
+  "archive-draft": "기록",
 };
+
+const isDraftPrepSkill = (skill: TAlterSkillId) =>
+  skill === "syllabus-draft" ||
+  skill === "evaluation-draft" ||
+  skill === "archive-draft";
 
 const formatBubbleTime = (dateString?: string) => {
   if (!dateString) return "";
@@ -171,6 +200,12 @@ const wantsEvalDraftText = (text: string) =>
   /(초안|작성).*평가/.test(text) ||
   /\/(평가|evaluation[-_]?draft)/i.test(text);
 
+const wantsArchiveDraftText = (text: string) =>
+  /기록.*(초안|작성)/.test(text) ||
+  /(초안|작성).*기록/.test(text) ||
+  /행동특성|종합의견/.test(text) ||
+  /\/(기록|archive[-_]?draft)/i.test(text);
+
 const AlterPanel = ({ onClose }: Props) => {
   const { currentSeason, currentRegistration, currentSchool } = useAuth();
   const {
@@ -205,7 +240,7 @@ const AlterPanel = ({ onClose }: Props) => {
   );
   const [showPrep, setShowPrep] = useState(() => {
     const first = suggested[0] || "chat";
-    return first === "syllabus-draft" || first === "evaluation-draft";
+    return isDraftPrepSkill(first);
   });
 
   const [evalTargetLabels, setEvalTargetLabels] = useState<string[]>([]);
@@ -216,6 +251,25 @@ const AlterPanel = ({ onClose }: Props) => {
   const [evalSelectedStudentIds, setEvalSelectedStudentIds] = useState<
     string[]
   >([]);
+
+  const [archiveTargetLabels, setArchiveTargetLabels] = useState<string[]>([]);
+  const [archiveContextLabels, setArchiveContextLabels] = useState<string[]>(
+    []
+  );
+  // 기본은 선택 학생 전체에 작성(덮어쓰기 가능). 빈 칸만은 옵션.
+  const [archiveFillEmptyOnly, setArchiveFillEmptyOnly] = useState(false);
+  const [archiveScope, setArchiveScope] = useState<"empty" | "all">("all");
+  const [archiveWriteMode, setArchiveWriteMode] = useState<
+    "perStudent" | "sameText"
+  >("perStudent");
+  const [archiveSelectedStudentIds, setArchiveSelectedStudentIds] = useState<
+    string[]
+  >([]);
+  const [archiveGuidelineItems, setArchiveGuidelineItems] = useState<
+    Array<{ _id: string; title: string; content: string }>
+  >([]);
+  const [archiveSelectedGuidelineIds, setArchiveSelectedGuidelineIds] =
+    useState<string[]>([]);
 
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [conversationTitle, setConversationTitle] = useState("새 대화");
@@ -264,19 +318,50 @@ const AlterPanel = ({ onClose }: Props) => {
     () => formEvaluation.map((f) => f.label).filter(Boolean),
     [formEvaluation]
   );
+  const formArchiveFields = pageContext?.formArchiveFields || [];
+  const archiveInputFields = useMemo(
+    () => formArchiveFields.filter((f) => f?.label && f.type === "input"),
+    [formArchiveFields]
+  );
+  const archiveReferenceFields = useMemo(
+    () =>
+      formArchiveFields.filter(
+        (f) =>
+          f?.label &&
+          (f.type === "input" ||
+            f.type === "input-number" ||
+            f.type === "select")
+      ),
+    [formArchiveFields]
+  );
+  const defaultArchiveTargetLabels = useMemo(
+    () => archiveInputFields.map((f) => f.label),
+    [archiveInputFields]
+  );
+  const defaultArchiveContextLabels = useMemo(
+    () => archiveReferenceFields.map((f) => f.label),
+    [archiveReferenceFields]
+  );
 
   // 화면이 바뀌어도 진행 중/저장된 대화는 유지하고 Prep 기본값만 갱신
   useEffect(() => {
     const next = suggested[0] || "chat";
     setSelectedSkill(next);
     if (!isWorking && messages.length === 0) {
-      setShowPrep(next === "syllabus-draft" || next === "evaluation-draft");
+      setShowPrep(isDraftPrepSkill(next));
     }
     setEvalTargetLabels(defaultTargetLabels);
     setEvalContextLabels(allEvalLabels);
     setEvalFillEmptyOnly(false);
     setEvalScope("all");
     setEvalSelectedStudentIds([]);
+    setArchiveTargetLabels(defaultArchiveTargetLabels);
+    setArchiveContextLabels(defaultArchiveContextLabels);
+    setArchiveFillEmptyOnly(false);
+    setArchiveScope("all");
+    setArchiveWriteMode("perStudent");
+    setArchiveSelectedStudentIds([]);
+    setArchiveSelectedGuidelineIds([]);
   }, [pageContext?.pageType, pageContext?.label]);
 
   useEffect(() => {
@@ -331,11 +416,30 @@ const AlterPanel = ({ onClose }: Props) => {
   ]);
 
   useEffect(() => {
-    if (!isOpen || !currentSeason?._id) return;
+    if (pageContext?.pageType !== "archive") return;
     if (
-      selectedSkill !== "syllabus-draft" &&
-      selectedSkill !== "evaluation-draft"
+      archiveTargetLabels.length === 0 &&
+      defaultArchiveTargetLabels.length > 0
     ) {
+      setArchiveTargetLabels(defaultArchiveTargetLabels);
+    }
+    if (
+      archiveContextLabels.length === 0 &&
+      defaultArchiveContextLabels.length > 0
+    ) {
+      setArchiveContextLabels(defaultArchiveContextLabels);
+    }
+  }, [
+    pageContext?.pageType,
+    defaultArchiveTargetLabels,
+    defaultArchiveContextLabels,
+    archiveTargetLabels.length,
+    archiveContextLabels.length,
+  ]);
+
+  useEffect(() => {
+    if (!isOpen || !currentSeason?._id) return;
+    if (!isDraftPrepSkill(selectedSkill)) {
       return;
     }
 
@@ -355,9 +459,35 @@ const AlterPanel = ({ onClose }: Props) => {
         const data = await res.json();
         if (cancelled) return;
         setSkillGuidelines((data.guidelines || "").trim());
+        if (selectedSkill === "archive-draft") {
+          const items = Array.isArray(data.instructionItems)
+            ? data.instructionItems.map(
+                (it: { _id?: string; title?: string; content?: string }) => ({
+                  _id: String(it._id || ""),
+                  title: it.title || "지침",
+                  content: it.content || "",
+                })
+              )
+            : [];
+          setArchiveGuidelineItems(items.filter((it: { _id: string }) => it._id));
+          const defaults = Array.isArray(data.defaultGuidelineItemIds)
+            ? data.defaultGuidelineItemIds.map(String)
+            : items.map((it: { _id: string }) => it._id);
+          setArchiveSelectedGuidelineIds((prev) => {
+            if (prev.length > 0) {
+              const allowed = new Set(items.map((it: { _id: string }) => it._id));
+              const kept = prev.filter((id) => allowed.has(id));
+              if (kept.length > 0) return kept;
+            }
+            return defaults;
+          });
+        }
       } catch {
         if (cancelled) return;
         setSkillGuidelines("");
+        if (selectedSkill === "archive-draft") {
+          setArchiveGuidelineItems([]);
+        }
       } finally {
         if (!cancelled) setSkillSettingsLoading(false);
       }
@@ -397,7 +527,35 @@ const AlterPanel = ({ onClose }: Props) => {
     evalScope,
   ]);
 
+  const archiveCandidateStudents = useMemo(() => {
+    if (pageContext?.pageType !== "archive") return [];
+    const rows = pageContext.getArchiveRows?.() || [];
+    const targets =
+      archiveTargetLabels.length > 0
+        ? archiveTargetLabels
+        : defaultArchiveTargetLabels;
+    let filtered = rows.filter((r) => r.studentId);
+    if (archiveScope === "empty") {
+      filtered = filtered.filter((r) =>
+        targets.some((label) => isEmptyEval(r.values?.[label]))
+      );
+    }
+    return filtered.map((r) => ({
+      studentId: r.studentId,
+      studentName: r.studentName || "",
+      studentGrade: r.studentGrade || "",
+    }));
+  }, [
+    pageContext,
+    archiveTargetLabels,
+    defaultArchiveTargetLabels,
+    archiveScope,
+  ]);
+
   const evalCandidateKey = evalCandidateStudents
+    .map((s) => s.studentId)
+    .join("\0");
+  const archiveCandidateKey = archiveCandidateStudents
     .map((s) => s.studentId)
     .join("\0");
 
@@ -417,12 +575,34 @@ const AlterPanel = ({ onClose }: Props) => {
     });
   }, [pageContext?.pageType, evalCandidateKey]);
 
+  useEffect(() => {
+    if (pageContext?.pageType !== "archive") {
+      setArchiveSelectedStudentIds([]);
+      return;
+    }
+    const ids = archiveCandidateKey ? archiveCandidateKey.split("\0") : [];
+    setArchiveSelectedStudentIds((prev) => {
+      const valid = prev.filter((id) => ids.includes(id));
+      if (valid.length > 0) {
+        return valid.slice(0, EVAL_DRAFT_MAX);
+      }
+      return ids.slice(0, Math.min(EVAL_DRAFT_DEFAULT_BATCH, EVAL_DRAFT_MAX));
+    });
+  }, [pageContext?.pageType, archiveCandidateKey]);
+
   const evalSelectedIds = useMemo(() => {
     const allowed = new Set(evalCandidateStudents.map((s) => s.studentId));
     return evalSelectedStudentIds
       .filter((id) => allowed.has(id))
       .slice(0, EVAL_DRAFT_MAX);
   }, [evalSelectedStudentIds, evalCandidateStudents]);
+
+  const archiveSelectedIds = useMemo(() => {
+    const allowed = new Set(archiveCandidateStudents.map((s) => s.studentId));
+    return archiveSelectedStudentIds
+      .filter((id) => allowed.has(id))
+      .slice(0, EVAL_DRAFT_MAX);
+  }, [archiveSelectedStudentIds, archiveCandidateStudents]);
 
   const buildContext = (skill: TAlterSkillId) => {
     if (skill === "evaluation-draft") {
@@ -440,6 +620,32 @@ const AlterPanel = ({ onClose }: Props) => {
         fillEmptyOnly: evalFillEmptyOnly,
         studentIds: evalSelectedIds,
         csv: pageContext?.getEvaluationCsv?.() || "",
+      };
+    }
+    if (skill === "archive-draft") {
+      const targets =
+        archiveTargetLabels.length > 0
+          ? archiveTargetLabels
+          : defaultArchiveTargetLabels;
+      const selected = new Set(archiveSelectedIds);
+      const rows = (pageContext?.getArchiveRows?.() || []).filter((r) =>
+        selected.has(r.studentId)
+      );
+      return {
+        pageType: "archive",
+        archiveLabel: pageContext?.archiveLabel || pageContext?.label || "",
+        label: pageContext?.label || "",
+        formArchive: pageContext?.formArchiveFields || [],
+        targetLabels: targets,
+        contextLabels:
+          archiveContextLabels.length > 0
+            ? archiveContextLabels
+            : defaultArchiveContextLabels,
+        fillEmptyOnly: archiveFillEmptyOnly,
+        writeMode: archiveWriteMode,
+        studentIds: archiveSelectedIds,
+        guidelineItemIds: archiveSelectedGuidelineIds,
+        rows,
       };
     }
     const attachmentText = sourceAttachments
@@ -491,7 +697,7 @@ const AlterPanel = ({ onClose }: Props) => {
     setShowHistory(false);
     const next = suggested[0] || "chat";
     setSelectedSkill(next);
-    setShowPrep(next === "syllabus-draft" || next === "evaluation-draft");
+    setShowPrep(isDraftPrepSkill(next));
   };
 
   const openHistoryList = () => {
@@ -683,6 +889,33 @@ const AlterPanel = ({ onClose }: Props) => {
       }
     }
 
+    if (skill === "archive-draft") {
+      if (pageContext?.pageType !== "archive") {
+        setError("기록 화면에서 초안을 작성할 수 있습니다.");
+        return;
+      }
+      const targets =
+        archiveTargetLabels.length > 0
+          ? archiveTargetLabels
+          : defaultArchiveTargetLabels;
+      if (targets.length === 0) {
+        setError("작성할 기록 항목을 선택해 주세요.");
+        return;
+      }
+      if (archiveCandidateStudents.length === 0) {
+        setError(
+          archiveScope === "empty"
+            ? "채울 빈 칸이 있는 학생이 없습니다."
+            : "초안을 작성할 학생이 없습니다."
+        );
+        return;
+      }
+      if (archiveSelectedIds.length === 0) {
+        setError("초안을 작성할 학생을 선택해 주세요.");
+        return;
+      }
+    }
+
     setIsWorking(true);
     setError("");
     setSteps([]);
@@ -712,10 +945,7 @@ const AlterPanel = ({ onClose }: Props) => {
     let timedOut = false;
     cancelledByUserRef.current = false;
     // 서버가 진행 이벤트를 계속 보내는 동안은 끊지 않는다 (무응답 시간 기준)
-    const inactivityTimeoutMs =
-      skill === "evaluation-draft" || skill === "syllabus-draft"
-        ? 90_000
-        : 60_000;
+    const inactivityTimeoutMs = isDraftPrepSkill(skill) ? 90_000 : 60_000;
     let timeoutId = window.setTimeout(() => {
       timedOut = true;
       abort.abort();
@@ -798,7 +1028,7 @@ const AlterPanel = ({ onClose }: Props) => {
         ]);
         if (!isOpenRef.current) setHasBackgroundResult(true);
       }
-      if (skill === "syllabus-draft" || skill === "evaluation-draft") {
+      if (isDraftPrepSkill(skill)) {
         setSelectedSkill("chat");
         setShowPrep(false);
       }
@@ -842,6 +1072,19 @@ const AlterPanel = ({ onClose }: Props) => {
       );
       return;
     }
+    if (
+      selectedSkill === "archive-draft" ||
+      (showPrep && pageContext?.pageType === "archive")
+    ) {
+      void runSkill(
+        "archive-draft",
+        draft.trim() ||
+          (archiveWriteMode === "sameText"
+            ? "선택 학생에게 동일한 기록 문구 초안을 작성해 주세요."
+            : "학생별 기록 초안을 작성해 주세요.")
+      );
+      return;
+    }
     if (selectedSkill === "syllabus-draft" || showPrep) {
       const text = combinedSourceText();
       void runSkill(
@@ -864,6 +1107,11 @@ const AlterPanel = ({ onClose }: Props) => {
       pageContext?.pageType === "evaluation"
     ) {
       skill = "evaluation-draft";
+    } else if (
+      wantsArchiveDraftText(text) &&
+      pageContext?.pageType === "archive"
+    ) {
+      skill = "archive-draft";
     } else if (
       (wantsSyllabusDraftText(text) || sourceAttachments.length > 0) &&
       pageContext?.pageType === "syllabus-edit"
@@ -946,6 +1194,30 @@ const AlterPanel = ({ onClose }: Props) => {
       return;
     }
 
+    if (isArchiveDraft(draftResult)) {
+      if (!pageContext?.applyArchiveDraft) return;
+      const result = pageContext.applyArchiveDraft(draftResult, {
+        fillEmptyOnly: draftResult.fillEmptyOnly !== false,
+      });
+      setAppliedDraftIds((prev) => new Set(prev).add(msgId));
+      if (result.applied === 0) {
+        setError("반영할 빈 칸이 없었습니다. 이미 값이 있는 칸은 유지됩니다.");
+      } else {
+        setError("");
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `a-applied-${Date.now()}`,
+            role: "assistant",
+            content: `초안 ${result.applied}칸을 기록에 반영했습니다. 확인 후 「변경 사항 저장」을 눌러 주세요.`,
+            skill: "archive-draft",
+            createdAt: new Date().toISOString(),
+          },
+        ]);
+      }
+      return;
+    }
+
     if (!isEvalDraft(draftResult) || !pageContext?.applyEvaluationCsv) return;
     if (!draftResult.csv) return;
     const result = pageContext.applyEvaluationCsv(draftResult.csv, {
@@ -991,6 +1263,16 @@ const AlterPanel = ({ onClose }: Props) => {
     });
   };
 
+  const toggleArchiveStudentId = (studentId: string) => {
+    setArchiveSelectedStudentIds((prev) => {
+      if (prev.includes(studentId)) {
+        return prev.filter((id) => id !== studentId);
+      }
+      if (prev.length >= EVAL_DRAFT_MAX) return prev;
+      return [...prev, studentId];
+    });
+  };
+
   const selectDefaultStudentBatch = () => {
     setEvalSelectedStudentIds(
       evalCandidateStudents
@@ -1005,17 +1287,34 @@ const AlterPanel = ({ onClose }: Props) => {
     );
   };
 
+  const selectDefaultArchiveStudentBatch = () => {
+    setArchiveSelectedStudentIds(
+      archiveCandidateStudents
+        .slice(0, Math.min(EVAL_DRAFT_DEFAULT_BATCH, EVAL_DRAFT_MAX))
+        .map((s) => s.studentId)
+    );
+  };
+
+  const selectAllArchiveCandidateStudents = () => {
+    setArchiveSelectedStudentIds(
+      archiveCandidateStudents.slice(0, EVAL_DRAFT_MAX).map((s) => s.studentId)
+    );
+  };
+
   const contextLabel =
     pageContext?.label ||
     (pageContext?.pageType === "syllabus-edit"
       ? "강의계획서 작성"
       : pageContext?.pageType === "evaluation"
         ? "평가"
-        : "일반");
+        : pageContext?.pageType === "archive"
+          ? "기록"
+          : "일반");
 
   const inSyllabusPrep = showPrep && selectedSkill === "syllabus-draft";
   const inEvalPrep = showPrep && selectedSkill === "evaluation-draft";
-  const inPrep = inSyllabusPrep || inEvalPrep;
+  const inArchivePrep = showPrep && selectedSkill === "archive-draft";
+  const inPrep = inSyllabusPrep || inEvalPrep || inArchivePrep;
 
 
   const expandToggleBtn = (
@@ -1038,13 +1337,18 @@ const AlterPanel = ({ onClose }: Props) => {
     </button>
   );
 
-  const prepPrimaryLabel = inEvalPrep
-    ? messages.some((m) => m.draft && isEvalDraft(m.draft))
-      ? "다시 작성"
-      : "초안 작성"
-    : messages.some((m) => m.draft && isSyllabusDraft(m.draft))
-      ? "다시 작성"
-      : "초안 작성";
+  const prepPrimaryLabel =
+    inEvalPrep || inArchivePrep
+      ? messages.some(
+          (m) =>
+            m.draft &&
+            (inArchivePrep ? isArchiveDraft(m.draft) : isEvalDraft(m.draft))
+        )
+        ? "다시 작성"
+        : "초안 작성"
+      : messages.some((m) => m.draft && isSyllabusDraft(m.draft))
+        ? "다시 작성"
+        : "초안 작성";
 
   const plusMenu = (
     <div className={chatUiStyle.actionMenuWrap} ref={actionMenuRef}>
@@ -1099,7 +1403,7 @@ const AlterPanel = ({ onClose }: Props) => {
                 setShowPrep(true);
               }}
             >
-              강의계획서 초안
+              수업
             </button>
           )}
           {!inPrep && pageContext?.pageType === "evaluation" && (
@@ -1114,7 +1418,22 @@ const AlterPanel = ({ onClose }: Props) => {
                 setShowPrep(true);
               }}
             >
-              평가 초안
+              평가
+            </button>
+          )}
+          {!inPrep && pageContext?.pageType === "archive" && (
+            <button
+              type="button"
+              className={chatUiStyle.actionMenuItem}
+              role="menuitem"
+              disabled={isWorking}
+              onClick={() => {
+                setActionMenuOpen(false);
+                setSelectedSkill("archive-draft");
+                setShowPrep(true);
+              }}
+            >
+              기록
             </button>
           )}
         </div>
@@ -1254,7 +1573,7 @@ const AlterPanel = ({ onClose }: Props) => {
             type="button"
             className={`${style.skillChip} ${
               (
-                skill === "syllabus-draft" || skill === "evaluation-draft"
+                isDraftPrepSkill(skill)
                   ? showPrep && selectedSkill === skill
                   : selectedSkill === skill && !showPrep
               )
@@ -1263,10 +1582,7 @@ const AlterPanel = ({ onClose }: Props) => {
             }`}
             onClick={() => {
               setSelectedSkill(skill);
-              if (
-                skill === "syllabus-draft" ||
-                skill === "evaluation-draft"
-              ) {
+              if (isDraftPrepSkill(skill)) {
                 setShowPrep(true);
               } else {
                 setShowPrep(false);
@@ -1566,6 +1882,265 @@ const AlterPanel = ({ onClose }: Props) => {
           </>
         )}
 
+        {inArchivePrep && (
+          <>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>작성 모드</p>
+              <div className={style.refList}>
+                <label className={style.refRow}>
+                  <input
+                    type="radio"
+                    name="archiveWriteMode"
+                    checked={archiveWriteMode === "perStudent"}
+                    onChange={() => setArchiveWriteMode("perStudent")}
+                  />
+                  <span>학생별 차별 작성</span>
+                </label>
+                <label className={style.refRow}>
+                  <input
+                    type="radio"
+                    name="archiveWriteMode"
+                    checked={archiveWriteMode === "sameText"}
+                    onChange={() => setArchiveWriteMode("sameText")}
+                  />
+                  <span>선택 학생 동일 문구</span>
+                </label>
+              </div>
+            </div>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>작성할 항목</p>
+              {archiveInputFields.length === 0 ? (
+                <p className={style.prepText}>
+                  텍스트(input) 기록 항목이 없습니다.
+                </p>
+              ) : (
+                <div className={style.refList}>
+                  {archiveInputFields.map((field) => (
+                    <label key={field.label} className={style.refRow}>
+                      <input
+                        type="checkbox"
+                        checked={archiveTargetLabels.includes(field.label)}
+                        onChange={() =>
+                          toggleLabel(
+                            field.label,
+                            archiveTargetLabels,
+                            setArchiveTargetLabels
+                          )
+                        }
+                      />
+                      <span>{field.label}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>
+                참고할 항목
+                <PrepHint text="이미 작성된 기록 내용을 참고해 초안을 만듭니다. 문장을 그대로 복사하지 않고 종합·재작성합니다. 작성 대상 항목의 기존 내용도 여기에 포함하면 이어서 다듬을 수 있습니다." />
+              </p>
+              {archiveReferenceFields.length === 0 ? (
+                <p className={style.prepText}>참고할 항목이 없습니다.</p>
+              ) : (
+                <div className={style.refList}>
+                  {archiveReferenceFields.map((field) => {
+                    const isTarget = archiveTargetLabels.includes(field.label);
+                    return (
+                      <label key={field.label} className={style.refRow}>
+                        <input
+                          type="checkbox"
+                          checked={archiveContextLabels.includes(field.label)}
+                          onChange={() =>
+                            toggleLabel(
+                              field.label,
+                              archiveContextLabels,
+                              setArchiveContextLabels
+                            )
+                          }
+                        />
+                        <span>
+                          {field.label}
+                          {field.type !== "input" ? ` (${field.type})` : ""}
+                          {isTarget ? " (작성 대상·기존 내용)" : ""}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>
+                작성 지침
+                <PrepHint text="학교 AI 라이브러리의 지침 중 이번 작성에 쓸 항목을 고릅니다. 기록 양식마다 다른 지침을 골라 쓸 수 있습니다." />
+              </p>
+              {skillSettingsLoading ? (
+                <p className={style.prepText}>지침을 불러오는 중...</p>
+              ) : archiveGuidelineItems.length === 0 ? (
+                <p className={style.prepText}>
+                  선택 가능한 지침이 없습니다. 관리 → 학교 AI → 라이브러리에서
+                  「기록」 지침을 추가해 주세요. 기본 기준으로 작성합니다.
+                </p>
+              ) : (
+                <div className={style.refList}>
+                  {archiveGuidelineItems.map((item) => (
+                    <label key={item._id} className={style.refRow}>
+                      <input
+                        type="checkbox"
+                        checked={archiveSelectedGuidelineIds.includes(item._id)}
+                        onChange={() =>
+                          toggleLabel(
+                            item._id,
+                            archiveSelectedGuidelineIds,
+                            setArchiveSelectedGuidelineIds
+                          )
+                        }
+                      />
+                      <span>
+                        {item.title}
+                        {item.content ? (
+                          <span className={style.prepMuted}>
+                            {" "}
+                            — {item.content.slice(0, 60)}
+                            {item.content.length > 60 ? "…" : ""}
+                          </span>
+                        ) : null}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>
+                범위
+                <PrepHint text="「빈 칸만 채우기」가 켜져 있으면 이미 내용이 있는 칸은 건너뜁니다. 표가 비어 보여도 저장된 값이 있으면 제외될 수 있습니다." />
+              </p>
+              <div className={style.refList}>
+                <label className={style.refRow}>
+                  <input
+                    type="radio"
+                    name="archiveScope"
+                    checked={archiveScope === "empty"}
+                    onChange={() => {
+                      setArchiveScope("empty");
+                      setArchiveFillEmptyOnly(true);
+                    }}
+                  />
+                  <span>미작성 학생만</span>
+                </label>
+                <label className={style.refRow}>
+                  <input
+                    type="radio"
+                    name="archiveScope"
+                    checked={archiveScope === "all"}
+                    onChange={() => setArchiveScope("all")}
+                  />
+                  <span>전체 학생 목록</span>
+                </label>
+                <label className={style.refRow}>
+                  <input
+                    type="checkbox"
+                    checked={archiveFillEmptyOnly}
+                    onChange={(e) => setArchiveFillEmptyOnly(e.target.checked)}
+                  />
+                  <span>빈 칸만 채우기</span>
+                </label>
+              </div>
+            </div>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>
+                학생 선택
+                <PrepHint
+                  text={`한 번에 최대 ${EVAL_DRAFT_MAX}명까지 선택해 초안을 만들 수 있습니다.`}
+                />
+              </p>
+              {archiveCandidateStudents.length === 0 ? (
+                <p className={style.prepText}>
+                  {archiveScope === "empty"
+                    ? "채울 빈 칸이 있는 학생이 없습니다."
+                    : "선택 가능한 학생이 없습니다."}
+                </p>
+              ) : (
+                <>
+                  <div className={style.prepActions}>
+                    <button
+                      type="button"
+                      className={style.prepActionBtn}
+                      onClick={selectDefaultArchiveStudentBatch}
+                    >
+                      기본 {EVAL_DRAFT_DEFAULT_BATCH}명
+                    </button>
+                    <button
+                      type="button"
+                      className={style.prepActionBtn}
+                      onClick={selectAllArchiveCandidateStudents}
+                    >
+                      전체
+                      {archiveCandidateStudents.length > EVAL_DRAFT_MAX
+                        ? ` (최대 ${EVAL_DRAFT_MAX})`
+                        : ""}
+                    </button>
+                    <button
+                      type="button"
+                      className={style.prepActionBtn}
+                      onClick={() => setArchiveSelectedStudentIds([])}
+                    >
+                      선택 해제
+                    </button>
+                  </div>
+                  <div className={`${style.refList} ${style.refListScroll}`}>
+                    {archiveCandidateStudents.map((student) => {
+                      const checked = archiveSelectedIds.includes(
+                        student.studentId
+                      );
+                      const atLimit =
+                        !checked &&
+                        archiveSelectedIds.length >= EVAL_DRAFT_MAX;
+                      return (
+                        <label
+                          key={student.studentId}
+                          className={style.refRow}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            disabled={atLimit}
+                            onChange={() =>
+                              toggleArchiveStudentId(student.studentId)
+                            }
+                          />
+                          <span>
+                            {student.studentGrade
+                              ? `${student.studentGrade} · `
+                              : ""}
+                            {student.studentName || "(이름 없음)"}
+                            <span className={style.prepMuted}>
+                              {" "}
+                              ({student.studentId})
+                            </span>
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <p className={style.prepText}>
+                    선택 {archiveSelectedIds.length}명
+                    {archiveCandidateStudents.length >
+                    archiveSelectedIds.length
+                      ? ` · 후보 ${archiveCandidateStudents.length}명`
+                      : ""}
+                  </p>
+                </>
+              )}
+            </div>
+            <div className={style.prepHintRow}>
+              <PrepHint text="지침·항목·학생을 고른 뒤 「초안 작성」을 누르세요. 미리보기 반영 후 「변경 사항 저장」으로 DB에 저장합니다." />
+              <span className={style.prepHintRowLabel}>이용 안내</span>
+            </div>
+          </>
+        )}
+
         {messages.length === 0 && !inPrep && (
           <ChatEmptyState
             icon={
@@ -1610,7 +2185,7 @@ const AlterPanel = ({ onClose }: Props) => {
               <div className={style.reviewList}>
                 <div className={style.reviewItem}>
                   <div className={style.reviewHeader}>
-                    <span>강의계획서 초안 미리보기</span>
+                    <span>수업 초안 미리보기</span>
                     <span className={`${style.levelChip} ${style.levelFair}`}>
                       {(msg.draft.items || []).filter((it) => it.value).length}/
                       {(msg.draft.items || []).length}항목
@@ -1749,6 +2324,91 @@ const AlterPanel = ({ onClose }: Props) => {
                 </div>
               </div>
             )}
+            {msg.draft && isArchiveDraft(msg.draft) && (
+              <div className={style.reviewList}>
+                <div className={style.reviewItem}>
+                  <div className={style.reviewHeader}>
+                    <span>기록 초안 미리보기</span>
+                    <span className={`${style.levelChip} ${style.levelFair}`}>
+                      {msg.draft.rows?.length || 0}명
+                    </span>
+                  </div>
+                  <p className={style.reviewComment}>
+                    항목: {(msg.draft.targetLabels || []).join(", ") || "-"}
+                    {msg.draft.writeMode === "sameText"
+                      ? " · 동일 문구"
+                      : " · 학생별"}
+                    {msg.draft.fillEmptyOnly !== false
+                      ? " · 빈 칸만 반영"
+                      : " · 덮어쓰기 가능"}
+                  </p>
+                  <div className={style.draftPreviewList}>
+                    {(msg.draft.rows || []).map((row) => {
+                      const fromCtx = (
+                        pageContext?.getArchiveRows?.() || []
+                      ).find((r) => r.studentId === row.studentId);
+                      const name =
+                        row.studentName ||
+                        fromCtx?.studentName ||
+                        row.studentId;
+                      const grade =
+                        row.studentGrade || fromCtx?.studentGrade || "";
+                      const labels =
+                        msg.draft && isArchiveDraft(msg.draft)
+                          ? msg.draft.targetLabels?.length
+                            ? msg.draft.targetLabels
+                            : Object.keys(row.values || {})
+                          : [];
+                      return (
+                        <div
+                          key={`${msg.id}-arch-${row.studentId}`}
+                          className={style.draftStudentCard}
+                        >
+                          <div className={style.draftStudentMeta}>
+                            <span>
+                              {grade ? `${grade} ` : ""}
+                              {name}
+                            </span>
+                            <span className={style.draftStudentId}>
+                              {row.studentId}
+                            </span>
+                          </div>
+                          {labels.map((label) => {
+                            const value = row.values?.[label];
+                            if (value == null || String(value).trim() === "") {
+                              return null;
+                            }
+                            return (
+                              <div
+                                key={`${row.studentId}-${label}`}
+                                className={style.draftFieldBlock}
+                              >
+                                <p className={style.draftFieldLabel}>{label}</p>
+                                <p className={style.draftFieldValue}>{value}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className={style.draftActions}>
+                    {pageContext?.applyArchiveDraft && (
+                      <button
+                        type="button"
+                        className={style.applyBtn}
+                        disabled={appliedDraftIds.has(msg.id)}
+                        onClick={() => applyDraft(msg.id, msg.draft!)}
+                      >
+                        {appliedDraftIds.has(msg.id)
+                          ? "반영됨"
+                          : "미리보기 반영"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </ChatMessageBubble>
         ))}
 
@@ -1789,14 +2449,20 @@ const AlterPanel = ({ onClose }: Props) => {
         }
         sendTitle={inPrep ? prepPrimaryLabel : "보내기"}
         leftSlot={plusMenu}
-        showTextarea={!inPrep || inEvalPrep || inSyllabusPrep}
+        showTextarea={
+          !inPrep || inEvalPrep || inSyllabusPrep || inArchivePrep
+        }
         centerHint="옵션을 고른 뒤 시작하세요"
         placeholder={
-          inEvalPrep
-            ? "예: 멘토 의견은 2~3문장, 성장 포인트를 중심으로"
-            : inSyllabusPrep
-              ? "예: 주제, 목표, 주차별 활동, 평가 방식을 적어 주세요"
-              : "메시지를 입력하세요"
+          inArchivePrep
+            ? archiveWriteMode === "sameText"
+              ? "예: 공동체 의식과 배려를 중심으로 2~3문장"
+              : "예: 관찰된 성장과 관계 특성을 학생별로 2~4문장"
+            : inEvalPrep
+              ? "예: 멘토 의견은 2~3문장, 성장 포인트를 중심으로"
+              : inSyllabusPrep
+                ? "예: 주제, 목표, 주차별 활동, 평가 방식을 적어 주세요"
+                : "메시지를 입력하세요"
         }
         onKeyDown={
           inPrep

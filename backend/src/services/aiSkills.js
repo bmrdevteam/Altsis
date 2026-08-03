@@ -53,29 +53,37 @@ export const SKILL_IDS = {
   /** @deprecated syllabus-draft 로 교체됨. resolveSkillId 에서 매핑 */
   SYLLABUS_REVIEW: "syllabus-draft",
   EVALUATION_DRAFT: "evaluation-draft",
+  ARCHIVE_DRAFT: "archive-draft",
 };
 
 /** @type {Record<string, { id: string, name: string, description: string, profile: string }>} */
 export const SKILL_CATALOG = {
   [SKILL_IDS.CHAT]: {
     id: SKILL_IDS.CHAT,
-    name: "일반 대화",
+    name: "챗봇",
     description: "학습·작성에 대한 범용 도우미 대화",
     profile: "chat",
   },
   [SKILL_IDS.SYLLABUS_DRAFT]: {
     id: SKILL_IDS.SYLLABUS_DRAFT,
-    name: "강의계획서 초안 작성",
+    name: "수업",
     description:
       "제공된 정보·자료를 바탕으로 강의계획서 전 항목 초안을 작성합니다",
     profile: "syllabusDraft",
   },
   [SKILL_IDS.EVALUATION_DRAFT]: {
     id: SKILL_IDS.EVALUATION_DRAFT,
-    name: "평가 초안",
+    name: "평가",
     description:
       "자기평가·기존 멘토평가 등을 종합해 선택한 항목의 초안을 새로 작성합니다",
     profile: "evaluationDraft",
+  },
+  [SKILL_IDS.ARCHIVE_DRAFT]: {
+    id: SKILL_IDS.ARCHIVE_DRAFT,
+    name: "기록",
+    description:
+      "학생 기록(행동특성·종합의견 등) 항목의 초안을 작성합니다",
+    profile: "archiveDraft",
   },
 };
 
@@ -98,10 +106,15 @@ const hasSchoolSkillConfig = (school) =>
     Object.keys(school.aiConfig.skills).length > 0
   );
 
-const defaultSkillGuide = (skill) =>
-  skill === SKILL_IDS.EVALUATION_DRAFT
-    ? "학생을 존중하는 공손한 문어체로, 관찰 가능한 사실과 성장 포인트를 2~4문장으로 작성하세요."
-    : "구체성, 학습목표와 활동 연결, 평가 정합성을 중심으로 도와주세요.";
+const defaultSkillGuide = (skill) => {
+  if (skill === SKILL_IDS.EVALUATION_DRAFT) {
+    return "학생을 존중하는 공손한 문어체로, 관찰 가능한 사실과 성장 포인트를 2~4문장으로 작성하세요.";
+  }
+  if (skill === SKILL_IDS.ARCHIVE_DRAFT) {
+    return "학생을 존중하는 공손한 문어체로, 관찰 가능한 행동·성장·관계 특성을 2~5문장으로 작성하세요. 추측·낙인·민감정보는 피하세요.";
+  }
+  return "구체성, 학습목표와 활동 연결, 평가 정합성을 중심으로 도와주세요.";
+};
 
 /** 스킬에 선택된 라이브러리 → 지침 블록 / 학습정보 */
 const loadSchoolSkillLibraryParts = async (academyId, school, skillConfig) => {
@@ -213,6 +226,7 @@ export const resolveSkillPromptPack = async (
 /**
  * Alter prep UI용 — 저장된 지침/참고자료 (기본 가이드 문구는 넣지 않음).
  * references 는 선택 전 전체 목록(인덱스는 프롬프트와 동일 순서).
+ * archive-draft 는 instructionItems + defaultGuidelineItemIds 도 함께 반환.
  */
 export const resolveSkillPrepSettings = async (
   academyId,
@@ -226,6 +240,44 @@ export const resolveSkillPrepSettings = async (
 
   const skipRefs = skill === SKILL_IDS.SYLLABUS_DRAFT;
 
+  const loadInstructionChoices = async () => {
+    if (!school?._id) {
+      return { instructionItems: [], defaultGuidelineItemIds: [] };
+    }
+    const linkedIds = Array.isArray(skillConfig?.libraryItemIds)
+      ? skillConfig.libraryItemIds.map(String).filter(Boolean)
+      : [];
+    const linkedSet = new Set(linkedIds);
+    const items = await AiLibraryItem(academyId)
+      .find({ school: school._id, kind: "instruction" })
+      .select("_id title content skillTags")
+      .lean();
+    const tagged = [];
+    const linked = [];
+    const others = [];
+    for (const it of items || []) {
+      const id = String(it._id);
+      const tags = Array.isArray(it.skillTags)
+        ? it.skillTags.map(String)
+        : [];
+      const row = {
+        _id: id,
+        title: it.title || "지침",
+        content: truncateText(it.content || "", 400),
+      };
+      if (linkedSet.has(id)) linked.push(row);
+      else if (tags.includes(skill)) tagged.push(row);
+      else others.push(row);
+    }
+    let instructionItems = [...linked, ...tagged];
+    if (instructionItems.length === 0) instructionItems = others;
+    const defaultGuidelineItemIds =
+      linked.length > 0
+        ? linked.map((r) => r._id)
+        : tagged.map((r) => r._id);
+    return { instructionItems, defaultGuidelineItemIds };
+  };
+
   if (useSchool) {
     const { instructionBlocks, learningRefs } =
       await loadSchoolSkillLibraryParts(academyId, school, skillConfig);
@@ -238,20 +290,84 @@ export const resolveSkillPrepSettings = async (
       PROMPT_LIMITS.GUIDELINES_TOTAL_CHARS ||
         PROMPT_LIMITS.GUIDELINES_CHARS * 4
     );
-    return {
+    const base = {
       guidelines,
       references: skipRefs ? [] : learningRefs,
       fromSchool: true,
     };
+    if (skill === SKILL_IDS.ARCHIVE_DRAFT) {
+      const choices = await loadInstructionChoices();
+      return { ...base, ...choices };
+    }
+    return base;
   }
 
-  return {
+  const seasonBase = {
     guidelines: normalizeGuidelines(season?.aiSettings?.guidelines || ""),
     references: skipRefs
       ? []
       : normalizeReferences(season?.aiSettings?.references || []),
     fromSchool: false,
   };
+  if (skill === SKILL_IDS.ARCHIVE_DRAFT) {
+    const choices = await loadInstructionChoices();
+    return { ...seasonBase, ...choices };
+  }
+  return seasonBase;
+};
+
+/** prep에서 고른 라이브러리 지침(+스킬 기본)으로 guidelines 문자열 구성 */
+const resolveArchiveGuidelines = async (
+  academyId,
+  school,
+  season,
+  context = {}
+) => {
+  const skillConfig =
+    school?.aiConfig?.skills?.[SKILL_IDS.ARCHIVE_DRAFT] || null;
+  const requested = Array.isArray(context.guidelineItemIds)
+    ? context.guidelineItemIds.map(String).filter(Boolean)
+    : [];
+  const fallbackLinked = Array.isArray(skillConfig?.libraryItemIds)
+    ? skillConfig.libraryItemIds.map(String).filter(Boolean)
+    : [];
+  const ids = requested.length > 0 ? requested : fallbackLinked;
+
+  if (ids.length > 0 && school?._id) {
+    const items = await AiLibraryItem(academyId)
+      .find({
+        _id: { $in: ids },
+        school: school._id,
+        kind: "instruction",
+      })
+      .lean();
+    const byId = new Map(items.map((it) => [String(it._id), it]));
+    const blocks = ids
+      .map((id) => byId.get(id))
+      .filter(Boolean)
+      .map((it) => {
+        const title = String(it.title || "지침").trim();
+        const body = String(it.content || "").trim();
+        return body ? `### ${title}\n${body}` : "";
+      })
+      .filter(Boolean);
+    if (blocks.length > 0) {
+      return truncateText(
+        blocks.join("\n\n"),
+        PROMPT_LIMITS.GUIDELINES_TOTAL_CHARS ||
+          PROMPT_LIMITS.GUIDELINES_CHARS * 4
+      );
+    }
+  }
+
+  const pack = await resolveSkillPromptPack(
+    academyId,
+    school,
+    season,
+    SKILL_IDS.ARCHIVE_DRAFT,
+    context?.referenceIndexes
+  );
+  return pack.guidelines || defaultSkillGuide(SKILL_IDS.ARCHIVE_DRAFT);
 };
 
 export const mergeTokenUsage = (a, b) => {
@@ -796,7 +912,7 @@ export const formatSyllabusDraftAsChatText = (draft) => {
   const items = draft.items || [];
   const filled = items.filter((it) => it.value).length;
   const lines = [
-    `**【강의계획서 초안 · ${filled}/${items.length}항목】**`,
+    `**【수업 초안 · ${filled}/${items.length}항목】**`,
     "",
     draft.summary || "",
     "",
@@ -1494,6 +1610,563 @@ ${buildStudentBlocks(chunkRows).join("\n\n")}
 };
 
 /**
+ * 동일 문구 모드 파싱: 항목라벨|||초안내용 (+ END)
+ */
+const parseSameTextArchiveDraftLines = (text, { validLabels }) => {
+  const raw = String(text || "")
+    .replace(/```[a-z]*\r?\n?/gi, "")
+    .replace(/```/g, "");
+  const lines = raw
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  const hasEndMark = lines[lines.length - 1] === "END";
+  const dataLines = hasEndMark ? lines.slice(0, -1) : lines;
+  const values = {};
+  let current = null;
+  for (const line of dataLines) {
+    if (line === "END") continue;
+    const parts = line.split(EVAL_DRAFT_SEP);
+    if (parts.length >= 2) {
+      const label = String(parts[0] || "").trim();
+      if (validLabels.has(label)) {
+        if (current?.label && current.value) {
+          values[current.label] = current.value;
+        }
+        current = {
+          label,
+          value: normalizeDraftValue(parts.slice(1).join(EVAL_DRAFT_SEP)),
+        };
+        continue;
+      }
+    }
+    if (current) {
+      current.value = normalizeDraftValue(`${current.value} ${line}`);
+    }
+  }
+  if (current?.label && current.value) {
+    values[current.label] = current.value;
+  }
+  return values;
+};
+
+/**
+ * archive-draft Skill 실행 (object 기록 양식)
+ */
+export const executeArchiveDraftSkill = async ({
+  academyId,
+  user,
+  academy,
+  season,
+  school,
+  registration,
+  context = {},
+  message = "",
+  onEvent,
+}) => {
+  const profile = FEATURE_PROFILES.archiveDraft;
+  const emit = typeof onEvent === "function" ? onEvent : () => {};
+  const maxStudents = PROMPT_LIMITS.ARCHIVE_DRAFT_MAX_STUDENTS || 30;
+
+  emit("step", { message: "기록 권한 확인 중..." });
+
+  const archiveLabel = String(
+    context.archiveLabel || context.label || ""
+  ).trim();
+  if (!archiveLabel) {
+    const err = new Error(FIELD_REQUIRED("archiveLabel"));
+    err.status = 400;
+    err.code = FIELD_REQUIRED("archiveLabel");
+    throw err;
+  }
+
+  const formItem = (school?.formArchive || []).find(
+    (fa) => fa && fa.label === archiveLabel
+  );
+  if (!formItem) {
+    const err = new Error(__NOT_FOUND("formArchive_Item"));
+    err.status = 404;
+    err.code = __NOT_FOUND("formArchive_Item");
+    throw err;
+  }
+
+  const isManager =
+    (user.auth === "manager" || user.auth === "admin") &&
+    formItem.authManager === "viewAndEdit";
+  const teacherAuth = formItem.authTeacher;
+  const isTeacherEditor =
+    registration?.role === "teacher" &&
+    (teacherAuth === "viewAndEditStudents" ||
+      teacherAuth === "viewAndEditMyStudents");
+  if (!isManager && !isTeacherEditor) {
+    const err = new Error(PERMISSION_DENIED);
+    err.status = 403;
+    err.code = PERMISSION_DENIED;
+    throw err;
+  }
+
+  const formFields =
+    (Array.isArray(context.formArchive) && context.formArchive.length > 0
+      ? context.formArchive
+      : null) ||
+    formItem.fields ||
+    [];
+  const inputFields = formFields.filter(
+    (f) => f?.label && f.type === "input"
+  );
+  const referenceFields = formFields.filter(
+    (f) =>
+      f?.label &&
+      (f.type === "input" || f.type === "input-number" || f.type === "select")
+  );
+  const inputByLabel = new Map(inputFields.map((f) => [f.label, f]));
+  const referenceByLabel = new Map(referenceFields.map((f) => [f.label, f]));
+
+  let targetLabels = Array.isArray(context.targetLabels)
+    ? context.targetLabels.map((l) => String(l || "").trim()).filter(Boolean)
+    : [];
+  if (targetLabels.length === 0) {
+    targetLabels = inputFields.map((f) => f.label);
+  }
+  targetLabels = targetLabels.filter((label) => inputByLabel.has(label));
+  if (targetLabels.length === 0) {
+    const err = new Error("초안을 작성할 기록 항목이 없습니다.");
+    err.status = 400;
+    err.code = AI_ERRORS.GENERATION_FAILED;
+    throw err;
+  }
+
+  let contextLabels = (
+    Array.isArray(context.contextLabels) ? context.contextLabels : []
+  )
+    .map((l) => String(l || "").trim())
+    .filter((label) => label && referenceByLabel.has(label));
+  // 미지정이면 작성 대상(+참고 가능 항목)의 기존 내용을 기본 참고
+  if (contextLabels.length === 0) {
+    contextLabels = [
+      ...new Set([...targetLabels, ...referenceFields.map((f) => f.label)]),
+    ];
+  }
+
+  const fillEmptyOnly = context.fillEmptyOnly !== false;
+  const writeMode =
+    context.writeMode === "sameText" ? "sameText" : "perStudent";
+
+  emit("step", { message: "기록 데이터 확인 중..." });
+
+  const rawRows = Array.isArray(context.rows) ? context.rows : [];
+  const studentIdFilter = Array.isArray(context.studentIds)
+    ? new Set(
+        context.studentIds.map((id) => String(id || "").trim()).filter(Boolean)
+      )
+    : null;
+
+  let workRows = rawRows
+    .map((r) => ({
+      studentId: String(r?.studentId || "").trim(),
+      studentName: r?.studentName || "",
+      studentGrade: r?.studentGrade || "",
+      registrationId: r?.registrationId
+        ? String(r.registrationId)
+        : undefined,
+      values:
+        r?.values && typeof r.values === "object" ? r.values : {},
+    }))
+    .filter((r) => r.studentId);
+
+  if (studentIdFilter && studentIdFilter.size > 0) {
+    workRows = workRows.filter((r) => studentIdFilter.has(r.studentId));
+  }
+
+  // 담당 학생만 가능한 양식이면 등록정보로 필터
+  if (!isManager && teacherAuth === "viewAndEditMyStudents") {
+    const regs = await Registration(academyId)
+      .find({
+        season: season._id,
+        role: "student",
+        $or: [{ teacher: user._id }, { subTeacher: user._id }],
+      })
+      .select("user")
+      .lean();
+    const allowedUsers = new Set(regs.map((r) => String(r.user)));
+    workRows = workRows.filter((r) => allowedUsers.has(r.studentId));
+  }
+
+  if (workRows.length === 0) {
+    const err = new Error("초안을 작성할 학생이 없습니다.");
+    err.status = 400;
+    err.code = AI_ERRORS.GENERATION_FAILED;
+    throw err;
+  }
+
+  if (fillEmptyOnly) {
+    workRows = workRows.filter((r) =>
+      targetLabels.some((label) => isEmptyEval(r.values?.[label]))
+    );
+    if (workRows.length === 0) {
+      const err = new Error(
+        "채울 빈 칸이 있는 학생이 없습니다. 「빈 칸만 채우기」를 끄거나 미작성 학생을 선택해 주세요."
+      );
+      err.status = 400;
+      err.code = AI_ERRORS.GENERATION_FAILED;
+      throw err;
+    }
+  }
+
+  workRows = workRows.slice(0, maxStudents);
+
+  const guidelines = await resolveArchiveGuidelines(
+    academyId,
+    school,
+    season,
+    context
+  );
+  const userHint = truncateText(
+    String(message || "").trim(),
+    PROMPT_LIMITS.ARCHIVE_DRAFT_USER_HINT_CHARS || 1800
+  );
+
+  const schemaLines = targetLabels.map((label) => `- ${label} (text)`);
+  const provider = resolveProvider(academy.aiProvider);
+  const modelName = resolveModel(provider, academy.aiModel);
+  const validLabels = new Set(targetLabels);
+  let tokenUsage = null;
+
+  const buildContextLines = (row) =>
+    contextLabels
+      .map((label) => {
+        const val = truncateText(
+          flattenEvalText(row.values?.[label] || ""),
+          PROMPT_LIMITS.ARCHIVE_DRAFT_CONTEXT_CHARS
+        );
+        if (!val) return null;
+        const isTarget = targetLabels.includes(label);
+        return `  - ${label}${isTarget ? " (작성 대상 기존값)" : ""}: ${val}`;
+      })
+      .filter(Boolean);
+
+  const finalizeValues = (rawValues, srcRow) => {
+    const values = {};
+    for (const label of targetLabels) {
+      if (fillEmptyOnly && !isEmptyEval(srcRow?.values?.[label])) continue;
+      let val = rawValues?.[label];
+      if (val == null) continue;
+      val = maskSensitiveText(String(val)).text;
+      val = truncateText(val, PROMPT_LIMITS.ARCHIVE_DRAFT_CELL_CHARS).trim();
+      if (!val) continue;
+      values[label] = val;
+    }
+    return values;
+  };
+
+  let draftRows = [];
+
+  if (writeMode === "sameText") {
+    emit("step", {
+      message: `AI가 공통 기록 문구를 작성하고 있습니다... (적용 ${workRows.length}명)`,
+    });
+    const sampleNotes = workRows
+      .slice(0, 5)
+      .map((row, idx) => {
+        const notes = buildContextLines(row);
+        return [
+          `### 예시 학생 ${idx + 1}`,
+          `- 이름: ${row.studentName || ""}`,
+          `- 학년: ${row.studentGrade || ""}`,
+          notes.length
+            ? `기존 내용(참고만, 복사 금지):\n${notes.join("\n")}`
+            : "기존 내용: (없음)",
+        ].join("\n");
+      })
+      .join("\n\n");
+
+    const prompt = `당신은 학교 생활기록 작성 보조입니다. 선택한 모든 학생에게 동일하게 넣을 문구 초안을 만듭니다.
+
+역할:
+- 아래에 주어진 기존 기록 내용을 참고하되, 문장을 그대로 복사하지 마세요.
+- 개인 특성이 드러나지 않게 일반화한 공통 문구로 작성하세요.
+
+## 기록 양식
+${archiveLabel}
+
+## 작성 지침
+${guidelines || defaultSkillGuide(SKILL_IDS.ARCHIVE_DRAFT)}
+
+## 작성할 항목
+${schemaLines.join("\n")}
+
+## 참고할 항목
+${contextLabels.join(", ") || "(없음)"}
+
+## 교사 요청
+${userHint || "선택 학생 전원에게 쓸 동일한 기록 문구를 작성해 주세요."}
+
+## 참고(개인 특성이 드러나지 않게 일반화)
+${sampleNotes || "(없음)"}
+
+## 출력 형식 (필수)
+- 한 줄에 한 칸: 항목라벨${EVAL_DRAFT_SEP}초안내용
+- 구분자 ${EVAL_DRAFT_SEP} 는 정확히 세 개의 세로줄(|)입니다. 내용에 ${EVAL_DRAFT_SEP}·줄바꿈을 넣지 마세요.
+- 학생 이름·개별 사실을 넣지 말고, 전원에게 공통으로 쓸 수 있는 문장으로 쓰세요.
+- 설명·마크다운·JSON 없이 데이터 줄만 출력하고 마지막 줄에 END 를 출력하세요.`;
+
+    try {
+      const generated = await runEvaluationGeneration({
+        provider,
+        apiKey: academy.aiApiKey,
+        modelName,
+        profile,
+        systemInstruction: `You are Alter, a school archive drafting assistant. Write ONE shared draft phrase per field for all selected students. Output label${EVAL_DRAFT_SEP}draft lines then END.`,
+        messages: [{ role: "user", content: prompt }],
+        onEvent: emit,
+        progressLabel: "공통 기록 문구 작성 중",
+      });
+      tokenUsage = mergeTokenUsage(tokenUsage, generated.tokenUsage);
+      const shared = parseSameTextArchiveDraftLines(generated.text || "", {
+        validLabels,
+      });
+      const sharedValues = finalizeValues(shared, { values: {} });
+      if (Object.keys(sharedValues).length === 0) {
+        const err = new Error("생성 가능한 초안이 없습니다. 다시 시도해 주세요.");
+        err.status = 502;
+        err.code = AI_ERRORS.EMPTY_RESPONSE;
+        throw err;
+      }
+      draftRows = workRows.map((row) => ({
+        studentId: row.studentId,
+        studentName: row.studentName || "",
+        studentGrade: row.studentGrade || "",
+        values: finalizeValues(sharedValues, row),
+      })).filter((r) => Object.keys(r.values).length > 0);
+    } catch (err) {
+      if (!err.code) err.code = mapProviderError(err);
+      logAIUsage(academyId, {
+        user,
+        provider,
+        model: modelName,
+        feature: profile.feature,
+        success: false,
+        errorCode: err.code,
+        tokenUsage,
+      });
+      throw err;
+    }
+  } else {
+    const cellBudget = Math.max(
+      1,
+      PROMPT_LIMITS.ARCHIVE_DRAFT_CHUNK_CELLS || 12
+    );
+    const chunkSize = Math.min(
+      Math.max(1, PROMPT_LIMITS.ARCHIVE_DRAFT_CHUNK_SIZE || 10),
+      Math.max(3, Math.floor(cellBudget / Math.max(1, targetLabels.length)))
+    );
+    const chunks = [];
+    for (let i = 0; i < workRows.length; i += chunkSize) {
+      chunks.push(workRows.slice(i, i + chunkSize));
+    }
+
+    const sharedPrompt = `당신은 학교 생활기록 작성 보조입니다. 교사가 검토·수정할 초안만 작성합니다.
+
+역할: 학생별로 차별화된 기록 문구를 작성합니다.
+- 참고 항목에 적힌 기존 내용을 사실·성장 포인트로 종합해 작성 항목을 새로 쓰세요.
+- 참고 문장을 그대로 복사·붙여넣기 하지 마세요.
+- 관찰 가능한 행동·성장·관계 특성을 중심으로 쓰세요.
+- 추측·낙인·민감정보(주소, 연락처, 의료 등)를 쓰지 마세요.
+- 지정된 학생·작성 항목만 출력하세요.
+${fillEmptyOnly ? "- 이미 값이 있는 작성 칸은 출력하지 마세요." : ""}
+
+## 기록 양식
+${archiveLabel}
+
+## 작성 지침
+${guidelines || defaultSkillGuide(SKILL_IDS.ARCHIVE_DRAFT)}
+
+## 작성할 항목
+${schemaLines.join("\n")}
+
+## 참고할 항목
+${contextLabels.join(", ") || "(없음)"}
+
+## 교사 요청
+${userHint || "학생별 특성을 반영한 기록 초안을 작성해 주세요."}
+
+## 출력 형식 (필수)
+- 한 줄에 한 칸: 학생ID${EVAL_DRAFT_SEP}항목라벨${EVAL_DRAFT_SEP}초안내용
+- 구분자 ${EVAL_DRAFT_SEP} 는 정확히 세 개의 세로줄(|)입니다. 내용에 ${EVAL_DRAFT_SEP}·탭·줄바꿈을 넣지 마세요.
+- 각 내용은 2~5문장으로 간결하게 한 줄로 작성하세요.
+- 설명·마크다운·JSON 없이 데이터 줄만 출력하고 마지막 줄에 END 를 출력하세요.`;
+
+    emit("step", {
+      message: `AI가 기록 초안을 작성하고 있습니다... (학생 ${workRows.length}명, ${chunks.length}묶음)`,
+    });
+
+    const aiParsedRows = [];
+    const chunkErrors = [];
+    let doneStudents = 0;
+
+    const runChunk = async (idx) => {
+      const chunkRows = chunks[idx];
+      const validIds = new Set(chunkRows.map((r) => r.studentId));
+      const studentBlocks = chunkRows
+        .map((row, i) => {
+          const notes = buildContextLines(row);
+          const emptyTargets = targetLabels.filter((label) =>
+            fillEmptyOnly ? isEmptyEval(row.values?.[label]) : true
+          );
+          return [
+            `### 학생 ${i + 1}`,
+            `- ID: ${row.studentId}`,
+            `- 이름: ${row.studentName || ""}`,
+            `- 학년: ${row.studentGrade || ""}`,
+            notes.length
+              ? `참고 기록(사실·성장 포인트 종합용. 문장 복사 금지):\n${notes.join(
+                  "\n"
+                )}`
+              : "참고 기록: (없음)",
+            `작성할 항목: ${emptyTargets.join(", ") || "(없음)"}`,
+          ].join("\n");
+        })
+        .join("\n\n");
+
+      const prompt = `${sharedPrompt}
+
+## 학생 목록 (${chunkRows.length}명)
+${studentBlocks}
+
+이번에 출력할 학생 ID: ${chunkRows.map((r) => r.studentId).join(", ")}
+작성할 항목 라벨: ${targetLabels.join(", ")}
+참고할 항목 라벨: ${contextLabels.join(", ")}`;
+
+      const generated = await runEvaluationGeneration({
+        provider,
+        apiKey: academy.aiApiKey,
+        modelName,
+        profile,
+        systemInstruction: `You are Alter, a school archive drafting assistant. Synthesize selected reference archive fields into NEW per-student drafts. Never copy reference sentences verbatim. Output studentId${EVAL_DRAFT_SEP}label${EVAL_DRAFT_SEP}draft lines then END.`,
+        messages: [{ role: "user", content: prompt }],
+        onEvent: emit,
+        progressLabel: `기록 초안 작성 중 (${idx + 1}/${chunks.length}묶음)`,
+      });
+      tokenUsage = mergeTokenUsage(tokenUsage, generated.tokenUsage);
+      return parseEvaluationDraftLines(generated.text || "", {
+        validIds,
+        validLabels,
+      });
+    };
+
+    let nextChunk = 0;
+    const worker = async () => {
+      while (nextChunk < chunks.length) {
+        const idx = nextChunk;
+        nextChunk += 1;
+        try {
+          const rows = await runChunk(idx);
+          if (rows.length > 0) {
+            aiParsedRows.push(...rows);
+            doneStudents += rows.length;
+            emit("step", {
+              message: `초안 생성 진행: ${doneStudents}/${workRows.length}명 완료`,
+            });
+          }
+        } catch (err) {
+          if (!err.code) err.code = mapProviderError(err);
+          chunkErrors.push(err);
+          emit("step", {
+            message: `${idx + 1}묶음 생성에 실패해 건너뜁니다.`,
+          });
+        }
+      }
+    };
+
+    const concurrency = Math.max(
+      1,
+      PROMPT_LIMITS.ARCHIVE_DRAFT_CONCURRENCY || 3
+    );
+    await Promise.all(
+      Array.from({ length: Math.min(concurrency, chunks.length) }, worker)
+    );
+
+    if (!aiParsedRows.length) {
+      const err = chunkErrors[0] || new Error(AI_ERRORS.INVALID_JSON);
+      if (!err.code) err.code = AI_ERRORS.INVALID_JSON;
+      if (!err.status) err.status = 502;
+      logAIUsage(academyId, {
+        user,
+        provider,
+        model: modelName,
+        feature: profile.feature,
+        success: false,
+        errorCode: err.code,
+        tokenUsage,
+      });
+      throw err;
+    }
+
+    const workById = new Map(workRows.map((r) => [r.studentId, r]));
+    for (const row of aiParsedRows) {
+      const studentId = String(row?.studentId || "").trim();
+      if (!studentId || !workById.has(studentId)) continue;
+      const src = workById.get(studentId);
+      const values = finalizeValues(row.values || {}, src);
+      if (Object.keys(values).length === 0) continue;
+      draftRows.push({
+        studentId,
+        studentName: src.studentName || "",
+        studentGrade: src.studentGrade || "",
+        values,
+      });
+    }
+  }
+
+  if (draftRows.length === 0) {
+    const err = new Error("생성 가능한 초안이 없습니다. 다시 시도해 주세요.");
+    err.status = 502;
+    err.code = AI_ERRORS.EMPTY_RESPONSE;
+    logAIUsage(academyId, {
+      user,
+      provider,
+      model: modelName,
+      feature: profile.feature,
+      success: false,
+      errorCode: err.code,
+      tokenUsage,
+    });
+    throw err;
+  }
+
+  const summary =
+    writeMode === "sameText"
+      ? `${draftRows.length}명에게 동일 문구 초안을 만들었습니다. (${targetLabels.join(
+          ", "
+        )})`
+      : `${draftRows.length}명 · ${targetLabels.join(", ")} 기록 초안을 만들었습니다.`;
+
+  logAIUsage(academyId, {
+    user,
+    provider,
+    model: modelName,
+    feature: profile.feature,
+    success: true,
+    tokenUsage,
+  });
+
+  return {
+    skill: SKILL_IDS.ARCHIVE_DRAFT,
+    provider,
+    modelName,
+    tokenUsage,
+    text: summary,
+    draft: {
+      kind: "archive",
+      writeMode,
+      targetLabels,
+      fillEmptyOnly,
+      rows: draftRows,
+    },
+  };
+};
+
+/**
  * Alter 한 턴 실행 (Skill 라우팅)
  */
 export const runAlterSkill = async ({
@@ -1536,6 +2209,27 @@ export const runAlterSkill = async ({
 
   if (skill === SKILL_IDS.EVALUATION_DRAFT) {
     const result = await executeEvaluationDraftSkill({
+      academyId,
+      user,
+      academy,
+      season,
+      school,
+      registration,
+      context,
+      message,
+      onEvent,
+    });
+    return {
+      skill,
+      text: result.text,
+      review: null,
+      draft: result.draft,
+      tokenUsage: result.tokenUsage,
+    };
+  }
+
+  if (skill === SKILL_IDS.ARCHIVE_DRAFT) {
+    const result = await executeArchiveDraftSkill({
       academyId,
       user,
       academy,
@@ -1645,6 +2339,14 @@ export const detectSkillFromMessage = (message = "") => {
     /\/(평가|evaluation[-_]?draft)/i.test(text)
   ) {
     return SKILL_IDS.EVALUATION_DRAFT;
+  }
+  if (
+    /기록.*(초안|작성)/.test(text) ||
+    /(초안|작성).*기록/.test(text) ||
+    /행동특성|종합의견/.test(text) ||
+    /\/(기록|archive[-_]?draft)/i.test(text)
+  ) {
+    return SKILL_IDS.ARCHIVE_DRAFT;
   }
   if (
     /계획서.*(초안|작성)/.test(text) ||

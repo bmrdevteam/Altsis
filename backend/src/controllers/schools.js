@@ -46,7 +46,12 @@ import {
 import { validate } from "../utils/validate.js";
 import { sanitizeGoalDisplay } from "../constants/defaultGoalDisplay.js";
 
-const VALID_SKILL_IDS = ["chat", "syllabus-draft", "evaluation-draft"];
+const VALID_SKILL_IDS = [
+  "chat",
+  "syllabus-draft",
+  "evaluation-draft",
+  "archive-draft",
+];
 const LEGACY_SKILL_IDS = { "syllabus-review": "syllabus-draft" };
 const VALID_LIBRARY_KINDS = ["instruction", "learning"];
 const MAX_LIBRARY_ITEMS_PER_SKILL = 6;

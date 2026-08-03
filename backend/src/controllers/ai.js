@@ -218,7 +218,7 @@ export const deleteAlterConversation = async (req, res) => {
  * Alter 범용 턴 (Skill 라우팅)
  * @memberof APIs.AIAPI
  * @route POST /ai/alter
- * skill=syllabus-draft|evaluation-draft 이면 SSE, chat 이면 JSON
+ * skill=syllabus-draft|evaluation-draft|archive-draft 이면 SSE, chat 이면 JSON
  * conversationId가 있으면(또는 없으면 생성) 유저·AI 메시지를 저장한다.
  */
 export const runAlter = async (req, res) => {
@@ -241,7 +241,8 @@ export const runAlter = async (req, res) => {
 
   const wantsSse =
     skill === SKILL_IDS.SYLLABUS_DRAFT ||
-    skill === SKILL_IDS.EVALUATION_DRAFT;
+    skill === SKILL_IDS.EVALUATION_DRAFT ||
+    skill === SKILL_IDS.ARCHIVE_DRAFT;
 
   if (wantsSse) {
     res.setHeader("Content-Type", "text/event-stream");
@@ -369,14 +370,18 @@ export const runAlter = async (req, res) => {
       (err.message && Object.values(AI_ERRORS).includes(err.message)
         ? err.message
         : mapProviderError(err));
+    // 한글 안내 메시지는 코드 기본문구보다 우선 (예: 빈 칸 없음)
+    const rawMessage = String(err.message || "").trim();
+    const isKoreanHint = /[가-힣]/.test(rawMessage) && !Object.values(AI_ERRORS).includes(rawMessage);
     const message =
       (err.code === "AI_TIMEOUT" && err.message) ||
-      (err.message &&
-      /응답 시간이 초과|timeout/i.test(err.message)
-        ? err.message
+      (rawMessage &&
+      /응답 시간이 초과|timeout/i.test(rawMessage)
+        ? rawMessage
         : null) ||
+      (isKoreanHint ? rawMessage : null) ||
       AI_ERROR_MESSAGES[code] ||
-      err.message ||
+      rawMessage ||
       AI_ERRORS.GENERATION_FAILED;
 
     if (wantsSse) {
