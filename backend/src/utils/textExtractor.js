@@ -16,7 +16,10 @@ export const extractText = async (buffer, mimeType) => {
       const result = await mammoth.extractRawText({ buffer });
       return result.value.trim();
     }
-    case "text/plain": {
+    case "text/plain":
+    case "text/csv":
+    case "text/markdown":
+    case "application/json": {
       return buffer.toString("utf-8").trim();
     }
     case "application/vnd.hancom.hwp":

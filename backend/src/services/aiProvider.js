@@ -2,11 +2,75 @@
  * AI Provider Service
  * @description AI 제공자(OpenAI/Anthropic/Gemini) 추상화 계층.
  * 모든 어댑터는 Node 내장 fetch 기반으로 동작하며,
- * 메시지는 중립 형식({ role: "user" | "assistant", content: string })을 사용한다.
+ * 메시지는 중립 형식
+ * { role: "user" | "assistant", content: string | Array<{type:"text"|"image", ...}> }
+ * 을 사용한다. image part: { type:"image", mimeType, data(base64) }.
  *
  * Gemini는 Google 약관(18세 미만 접근 가능 서비스에 사용 금지)상
  * 운영 환경에서 사용할 수 없으므로 테스트 용도로만 제공한다.
  */
+
+/** OpenAI Chat Completions content */
+export const toOpenAIContent = (content) => {
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return String(content || "");
+  return content
+    .map((p) => {
+      if (p?.type === "text") return { type: "text", text: String(p.text || "") };
+      if (p?.type === "image" && p?.data) {
+        return {
+          type: "image_url",
+          image_url: {
+            url: `data:${p.mimeType || "image/jpeg"};base64,${p.data}`,
+          },
+        };
+      }
+      return null;
+    })
+    .filter(Boolean);
+};
+
+/** Anthropic Messages content */
+export const toAnthropicContent = (content) => {
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return String(content || "");
+  return content
+    .map((p) => {
+      if (p?.type === "text") return { type: "text", text: String(p.text || "") };
+      if (p?.type === "image" && p?.data) {
+        return {
+          type: "image",
+          source: {
+            type: "base64",
+            media_type: p.mimeType || "image/jpeg",
+            data: p.data,
+          },
+        };
+      }
+      return null;
+    })
+    .filter(Boolean);
+};
+
+/** Gemini parts */
+export const toGeminiParts = (content) => {
+  if (typeof content === "string") return [{ text: content }];
+  if (!Array.isArray(content)) return [{ text: String(content || "") }];
+  const parts = [];
+  for (const p of content) {
+    if (p?.type === "text" && p.text != null) {
+      parts.push({ text: String(p.text) });
+    } else if (p?.type === "image" && p?.data) {
+      parts.push({
+        inlineData: {
+          mimeType: p.mimeType || "image/jpeg",
+          data: p.data,
+        },
+      });
+    }
+  }
+  return parts.length > 0 ? parts : [{ text: "" }];
+};
 
 const DEFAULT_MAX_TOKENS = 8192;
 
@@ -158,7 +222,7 @@ async function* iterateSSE(response) {
  * OpenAI (Chat Completions API)
  * ========================================================================== */
 
-const openaiBuildBody = ({
+export const openaiBuildBody = ({
   model,
   systemInstruction,
   messages,
@@ -171,7 +235,10 @@ const openaiBuildBody = ({
       ...(systemInstruction
         ? [{ role: "system", content: systemInstruction }]
         : []),
-      ...messages.map((m) => ({ role: m.role, content: m.content })),
+      ...messages.map((m) => ({
+        role: m.role,
+        content: toOpenAIContent(m.content),
+      })),
     ],
   };
   if (typeof temperature === "number") body.temperature = temperature;
@@ -317,6 +384,18 @@ const anthropicHeaders = (apiKey) => ({
   "anthropic-version": ANTHROPIC_VERSION,
 });
 
+const mergeAnthropicContent = (a, b) => {
+  const left = toAnthropicContent(a);
+  const right = toAnthropicContent(b);
+  if (typeof left === "string" && typeof right === "string") {
+    return `${left}\n\n${right}`;
+  }
+  const leftArr = typeof left === "string" ? [{ type: "text", text: left }] : left;
+  const rightArr =
+    typeof right === "string" ? [{ type: "text", text: right }] : right;
+  return [...leftArr, ...rightArr];
+};
+
 /**
  * Anthropic은 user/assistant 역할이 교대로 나와야 하므로 연속된 같은 역할 메시지를 병합
  */
@@ -324,10 +403,11 @@ const anthropicMergeMessages = (messages) => {
   const merged = [];
   for (const m of messages) {
     const last = merged[merged.length - 1];
+    const content = toAnthropicContent(m.content);
     if (last && last.role === m.role) {
-      last.content += `\n\n${m.content}`;
+      last.content = mergeAnthropicContent(last.content, content);
     } else {
-      merged.push({ role: m.role, content: m.content });
+      merged.push({ role: m.role, content });
     }
   }
   // 첫 메시지는 user여야 함
@@ -337,7 +417,7 @@ const anthropicMergeMessages = (messages) => {
   return merged;
 };
 
-const anthropicBuildBody = ({
+export const anthropicBuildBody = ({
   model,
   systemInstruction,
   messages,
@@ -481,7 +561,7 @@ const anthropicListModels = async ({ apiKey }) => {
 
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
-const geminiBuildBody = ({
+export const geminiBuildBody = ({
   systemInstruction,
   messages,
   temperature,
@@ -492,7 +572,7 @@ const geminiBuildBody = ({
     : {}),
   contents: messages.map((m) => ({
     role: m.role === "assistant" ? "model" : "user",
-    parts: [{ text: m.content }],
+    parts: toGeminiParts(m.content),
   })),
   // 강의계획서 등 구조화 생성에서는 thinking 토큰을 최소화
   generationConfig: {

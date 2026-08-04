@@ -15,6 +15,20 @@ const tokenUsageSchema = mongoose.Schema(
   { _id: false }
 );
 
+const alterAttachmentSchema = mongoose.Schema(
+  {
+    kind: {
+      type: String,
+      enum: ["text", "image"],
+      required: true,
+    },
+    name: { type: String, default: "" },
+    key: { type: String, default: "" },
+    mimeType: { type: String, default: "" },
+  },
+  { _id: false }
+);
+
 const alterMessageSchema = mongoose.Schema(
   {
     conversation: { type: mongoose.Types.ObjectId, required: true },
@@ -25,6 +39,8 @@ const alterMessageSchema = mongoose.Schema(
     },
     content: { type: String, default: "" },
     skill: { type: String, default: "chat" },
+    /** 유저 메시지 첨부 메타(이미지 S3 key 등). 미리보기는 조회 시 signed URL로 채움 */
+    attachments: { type: [alterAttachmentSchema], default: [] },
     review: { type: mongoose.Schema.Types.Mixed, default: null },
     draft: { type: mongoose.Schema.Types.Mixed, default: null },
     tokenUsage: tokenUsageSchema,

@@ -47,6 +47,9 @@ import {
   appendAlterTurn,
   setAlterConversationStatus,
 } from "../services/alterConversations.js";
+import { alterMulter } from "../_s3/alterMulter.js";
+import { fileBucket, fileS3 } from "../_s3/fileBucket.js";
+import { processAlterUpload } from "../services/alterAttachments.js";
 
 const mapProviderError = (err) => {
   if (err.status === 404) return AI_ERRORS.MODEL_NOT_FOUND;
@@ -65,6 +68,75 @@ const AI_ERROR_MESSAGES = {
     "AI API 키가 유효하지 않습니다. 설정을 확인해주세요.",
   [AI_ERRORS.GENERATION_FAILED]:
     "AI 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+};
+
+/**
+ * @memberof APIs.AIAPI
+ * @function UploadAlterAttachment API
+ * @route POST /ai/alter/attachment
+ * @description Alter 첨부 업로드. 문서는 텍스트 추출, 이미지는 S3 key 반환.
+ */
+export const uploadAlterAttachment = async (req, res) => {
+  try {
+    const seasonId = req.query.season || req.body?.season;
+    if (!seasonId) {
+      return res.status(400).send({ message: FIELD_REQUIRED("season") });
+    }
+
+    await assertSeasonAiAccess(req.user.academyId, req.user, seasonId);
+
+    alterMulter(seasonId).single("file")(req, res, async (err) => {
+      try {
+        if (err) {
+          if (err.code === "LIMIT_FILE_SIZE") {
+            return res
+              .status(400)
+              .send({ message: "파일 크기는 5MB를 초과할 수 없습니다." });
+          }
+          if (err.code === "INVALID_FILE_TYPE") {
+            return res.status(400).send({
+              message:
+                "지원하지 않는 파일입니다. txt/md/csv/pdf/docx/png/jpg/webp만 첨부할 수 있습니다.",
+            });
+          }
+          return res
+            .status(400)
+            .send({ message: err.message || "파일 업로드에 실패했습니다." });
+        }
+
+        if (!req.file || !req.tmp?.key) {
+          return res.status(400).send({ message: FIELD_REQUIRED("file") });
+        }
+
+        const s3Object = await fileS3
+          .getObject({ Bucket: fileBucket, Key: req.tmp.key })
+          .promise();
+        const buffer = Buffer.isBuffer(s3Object.Body)
+          ? s3Object.Body
+          : Buffer.from(s3Object.Body);
+
+        const attachment = await processAlterUpload({
+          buffer,
+          mimeType: req.file.mimetype,
+          originalName: req.file.originalname,
+          fileKey: req.tmp.key,
+          fileSize: req.file.size,
+        });
+
+        return res.status(200).send({ attachment });
+      } catch (innerErr) {
+        logger.error(innerErr.message);
+        return res.status(innerErr.status || 500).send({
+          message: innerErr.message || "서버 오류가 발생했습니다.",
+        });
+      }
+    });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(err.status || 500).send({
+      message: err.message || "서버 오류가 발생했습니다.",
+    });
+  }
 };
 
 /**
@@ -289,6 +361,7 @@ export const runAlter = async (req, res) => {
           pageType: context.pageType,
           contextLabel: context.classTitle || context.label,
           syllabusId: context.syllabusId,
+          attachments: context.attachments,
           markWorking: true,
         });
         conversationId = String(started.conversation._id);
@@ -324,6 +397,9 @@ export const runAlter = async (req, res) => {
           pageType: context.pageType,
           contextLabel: context.classTitle || context.label,
           syllabusId: context.syllabusId,
+          attachments: req._alterUserMessageSaved
+            ? undefined
+            : context.attachments,
           tokenUsage: result.tokenUsage,
           review: result.review || null,
           draft: result.draft || null,

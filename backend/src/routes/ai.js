@@ -32,6 +32,9 @@ router.delete(
   ai.deleteAlterConversation
 );
 
+// Alter attachment upload (text extract / image key)
+router.post("/alter/attachment", isLoggedIn, ai.uploadAlterAttachment);
+
 // Alter unified turn (skill router)
 router.post("/alter", isLoggedIn, ai.runAlter);
 

@@ -46,6 +46,48 @@ import {
   PERMISSION_DENIED,
   __NOT_FOUND,
 } from "../messages/index.js";
+import {
+  attachmentsToSourceText,
+  buildMultimodalUserContent,
+} from "./alterAttachments.js";
+
+const IMAGE_HINT =
+  "첨부 이미지가 있으면 내용을 참고하세요. 이미지에서 읽은 내용이 불명확하면 추측하지 말고 표시하세요.";
+
+const hasImageAttachments = (context = {}) =>
+  Array.isArray(context.attachments) &&
+  context.attachments.some((a) => a?.kind === "image" && a?.key);
+
+const mergeContextSourceText = (context = {}, extra = "", limit) => {
+  const merged = [
+    String(context.sourceText || "").trim(),
+    attachmentsToSourceText(context.attachments),
+    String(extra || "").trim(),
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+  return truncateText(merged, limit);
+};
+
+const modelSupportsVision = (modelName) => {
+  const m = String(modelName || "").toLowerCase();
+  if (!m) return false;
+  if (m.includes("gpt-3.5") || m.includes("text-davinci")) return false;
+  if (m.includes("o1-mini") || m.includes("o1-preview")) return false;
+  if (m.includes("claude-instant")) return false;
+  return true;
+};
+
+const assertVisionIfNeeded = (modelName, context) => {
+  if (!hasImageAttachments(context)) return;
+  if (modelSupportsVision(modelName)) return;
+  const err = new Error(
+    "현재 AI 모델은 이미지를 읽을 수 없습니다. 텍스트·PDF를 첨부하거나 비전 지원 모델로 바꿔 주세요."
+  );
+  err.status = 400;
+  err.code = AI_ERRORS.GENERATION_FAILED;
+  throw err;
+};
 
 export const SKILL_IDS = {
   CHAT: "chat",
@@ -786,8 +828,13 @@ const draftFieldChunk = async ({
   profile,
   prompt,
   fieldNames,
+  attachments = [],
 }) => {
   const safePrompt = maskSensitiveText(prompt).text;
+  const userContent = await buildMultimodalUserContent(
+    `${safePrompt}\n\n${IMAGE_HINT}`,
+    attachments
+  );
   let fullText = "";
   let tokenUsage = null;
 
@@ -795,7 +842,7 @@ const draftFieldChunk = async ({
     provider,
     apiKey,
     model: modelName,
-    messages: [{ role: "user", content: safePrompt }],
+    messages: [{ role: "user", content: userContent }],
     temperature: profile.temperature,
     maxTokens: profile.maxTokens,
   });
@@ -819,7 +866,7 @@ const draftFieldChunk = async ({
       apiKey,
       model: modelName,
       messages: [
-        { role: "user", content: safePrompt },
+        { role: "user", content: userContent },
         ...(fullText.trim()
           ? [
               { role: "assistant", content: fullText },
@@ -867,15 +914,20 @@ export const executeSyllabusDraftSkill = async ({
     throw err;
   }
 
-  const sourceText = truncateText(
-    [
-      String(context?.sourceText || "").trim(),
-      String(message || "").trim(),
-    ]
-      .filter(Boolean)
-      .join("\n\n"),
+  const sourceText = mergeContextSourceText(
+    context,
+    message,
     PROMPT_LIMITS.SYLLABUS_DRAFT_SOURCE_CHARS
   );
+
+  if (!sourceText && !hasImageAttachments(context)) {
+    const err = new Error(
+      "초안에 쓸 정보를 입력하거나 파일을 첨부해 주세요."
+    );
+    err.status = 400;
+    err.code = AI_ERRORS.GENERATION_FAILED;
+    throw err;
+  }
 
   const allFieldNames = fields.map((f) => f.name);
   const chunkSize = PROMPT_LIMITS.SYLLABUS_DRAFT_CHUNK_FIELDS || 8;
@@ -894,10 +946,14 @@ export const executeSyllabusDraftSkill = async ({
 
   const provider = resolveProvider(academy.aiProvider);
   const modelName = resolveModel(provider, academy.aiModel);
+  assertVisionIfNeeded(modelName, context);
 
   const draftChunks = [];
   let tokenUsage = null;
   const draftContext = { ...(context || {}), sourceText };
+  const attachments = Array.isArray(context?.attachments)
+    ? context.attachments
+    : [];
 
   for (let i = 0; i < fieldChunks.length; i++) {
     const chunkFields = fieldChunks[i];
@@ -924,6 +980,7 @@ export const executeSyllabusDraftSkill = async ({
           profile,
           prompt,
           fieldNames: chunkNames,
+          attachments,
         });
       draftChunks.push(chunkDraft);
       tokenUsage = mergeTokenUsage(tokenUsage, chunkUsage);
@@ -1019,9 +1076,20 @@ export const formatReviewAsChatText = (review) => {
 };
 
 const buildAlterChatSystem = (promptPack, context, boardTitle) => {
+  const pageType = String(context?.pageType || "general");
+  const isSyllabusContext =
+    pageType === "syllabus-edit" || pageType === "syllabus";
+  const isEvalContext = pageType === "evaluation";
+  const isArchiveContext = pageType === "archive";
+  const isDocumentContext = pageType === "document";
+  const isActivityContext = pageType === "activity";
+
+  const defaultGuide = isSyllabusContext
+    ? "구체성, 학습목표와 활동 연결, 평가 정합성을 중심으로 도와주세요."
+    : "학교 업무·학습·작성에 대해 정확하고 실용적으로 도와주세요. 사용자가 묻지 않은 특정 양식(강의계획서 등)으로 대화를 유도하지 마세요.";
+
   const guidelines = normalizeGuidelines(
-    promptPack?.guidelines ||
-      "구체성, 학습목표와 활동 연결, 평가 정합성을 중심으로 도와주세요."
+    promptPack?.guidelines || defaultGuide
   );
   const refs = promptPack?.references || [];
   let refBlock = "";
@@ -1036,20 +1104,26 @@ const buildAlterChatSystem = (promptPack, context, boardTitle) => {
       ? context.subject.join(" > ")
       : "";
   const classTitle = context?.classTitle || "";
+  const label = String(context?.label || context?.boardName || "").trim();
 
   const boardLine = boardTitle
     ? `학습 보드 「${boardTitle}」의 AI 도우미 "Alter"입니다.`
     : `학교 정보 시스템의 AI 도우미 "Alter"입니다.`;
 
-  return `당신은 ${boardLine}
-한국어로 친절하고 구체적으로 답하세요. 강의계획서·수업 설계 맥락이 있으면 이를 우선합니다.
-당신이 AI임을 숨기지 마세요. 유해·개인정보 요청은 거절하세요.
+  const pageHint = isSyllabusContext
+    ? "현재 화면은 강의계획서 작성/수정입니다. 수업 설계·계획서 관련 질문에 우선 답하세요."
+    : isEvalContext
+      ? "현재 화면은 수업 평가입니다. 평가 작성·피드백 관련 질문에 우선 답하세요."
+      : isArchiveContext
+        ? "현재 화면은 학생 기록입니다. 기록·종합의견 관련 질문에 우선 답하세요."
+        : isDocumentContext
+          ? "현재 화면은 보드 문서 작성입니다. 문서 구성·문구 다듬기에 우선 답하세요."
+          : isActivityContext
+            ? "현재 화면은 활동/양식 작성입니다. 문항·필드·설정 구성에 우선 답하세요."
+            : "현재 화면은 일반 화면입니다. 사용자가 요청한 주제만 다루고, 강의계획서·평가 등 특정 스킬로 유도하지 마세요.";
 
-## 학교 작성 지침
-${guidelines}
-${refBlock}
-
-## 현재 수업 맥락
+  const contextBlock = isSyllabusContext
+    ? `## 현재 수업 맥락
 - 교과목: ${subject || "(미입력)"}
 - 수업명: ${classTitle || "(미입력)"}
 ${
@@ -1057,8 +1131,23 @@ ${
     ? `\n## 직전 점검 총평\n${context.reviewSummary}\n`
     : ""
 }
-요청이 강의계획서 점검이면 항목별로 짧고 실행 가능한 조언을 주세요.
-양식 전체를 한 번에 다시 쓰지 말고, 사용자가 묻는 범위만 다루세요.`;
+요청이 강의계획서 관련이면 항목별로 짧고 실행 가능한 조언을 주세요.
+양식 전체를 한 번에 다시 쓰지 말고, 사용자가 묻는 범위만 다루세요.`
+    : `## 현재 화면
+- 유형: ${pageType || "general"}
+- 라벨: ${label || "(없음)"}
+${classTitle ? `- 관련 수업: ${classTitle}\n` : ""}사용자가 첨부·질문을 통해 요청한 범위만 다루세요. 불필요하게 강의계획서 작성으로 화제를 돌리지 마세요.`;
+
+  return `당신은 ${boardLine}
+한국어로 친절하고 구체적으로 답하세요.
+${pageHint}
+당신이 AI임을 숨기지 마세요. 유해·개인정보 요청은 거절하세요.
+
+## 학교 작성 지침
+${guidelines}
+${refBlock}
+
+${contextBlock}`;
 };
 
 /** 평가 초안 레코드 구분자 (탭보다 모델이 안정적으로 출력) */
@@ -2363,18 +2452,27 @@ export const executeDocumentDraftSkill = async ({
     String(context.currentContent || ""),
     PROMPT_LIMITS.DOCUMENT_DRAFT_CURRENT_CHARS || 10000
   );
-  const sourceText = truncateText(
-    String(context.sourceText || ""),
+  const sourceText = mergeContextSourceText(
+    context,
+    "",
     PROMPT_LIMITS.DOCUMENT_DRAFT_SOURCE_CHARS || 12000
   );
   const userHint = truncateText(
     String(message || "").trim(),
     PROMPT_LIMITS.DOCUMENT_DRAFT_USER_HINT_CHARS || 2000
   );
+  const attachments = Array.isArray(context.attachments)
+    ? context.attachments
+    : [];
 
-  if (writeMode === "create" && !userHint && !sourceText) {
+  if (
+    writeMode === "create" &&
+    !userHint &&
+    !sourceText &&
+    !hasImageAttachments(context)
+  ) {
     const err = new Error(
-      "초안에 쓸 정보를 입력하거나 텍스트 파일을 첨부해 주세요."
+      "초안에 쓸 정보를 입력하거나 파일을 첨부해 주세요."
     );
     err.status = 400;
     err.code = AI_ERRORS.GENERATION_FAILED;
@@ -2398,6 +2496,7 @@ export const executeDocumentDraftSkill = async ({
 
   const provider = resolveProvider(academy.aiProvider);
   const modelName = resolveModel(provider, academy.aiModel);
+  assertVisionIfNeeded(modelName, context);
 
   const editorCatalog = `에디터가 지원하는 마크다운을 적극 활용하세요.
 - 제목: # ## ###
@@ -2451,6 +2550,8 @@ ${userHint || "(없음)"}
 ## 첨부·참고 자료
 ${sourceText || "(없음)"}
 
+${IMAGE_HINT}
+
 ## 현재 문서 (참고)
 제목: ${currentTitle || "(없음)"}
 본문:
@@ -2474,13 +2575,14 @@ ${currentContent || "(없음)"}
 
   let tokenUsage = null;
   try {
+    const userContent = await buildMultimodalUserContent(prompt, attachments);
     const generated = await runEvaluationGeneration({
       provider,
       apiKey: academy.aiApiKey,
       modelName,
       profile,
       systemInstruction: `You are Alter, a school document drafting assistant. Output only <<<TITLE>>> / <<<CONTENT>>> / <<<END>>> blocks with markdown the school's Tiptap editor can render. Interactive HTML/CSS/JS must be inside a \`\`\`html-app fenced block, never as raw HTML outside fences.`,
-      messages: [{ role: "user", content: prompt }],
+      messages: [{ role: "user", content: userContent }],
       onEvent: emit,
       progressLabel:
         writeMode === "refine" ? "문서 다듬는 중" : "문서 초안 작성 중",
@@ -2920,18 +3022,27 @@ export const executeActivityDraftSkill = async ({
     }),
     PROMPT_LIMITS.ACTIVITY_DRAFT_CURRENT_CHARS || 14000
   );
-  const sourceText = truncateText(
-    String(context.sourceText || ""),
+  const sourceText = mergeContextSourceText(
+    context,
+    "",
     PROMPT_LIMITS.ACTIVITY_DRAFT_SOURCE_CHARS || 12000
   );
   const userHint = truncateText(
     String(message || "").trim(),
     PROMPT_LIMITS.ACTIVITY_DRAFT_USER_HINT_CHARS || 2000
   );
+  const attachments = Array.isArray(context.attachments)
+    ? context.attachments
+    : [];
 
-  if (writeMode === "create" && !userHint && !sourceText) {
+  if (
+    writeMode === "create" &&
+    !userHint &&
+    !sourceText &&
+    !hasImageAttachments(context)
+  ) {
     const err = new Error(
-      "초안에 쓸 정보를 입력하거나 텍스트 파일을 첨부해 주세요."
+      "초안에 쓸 정보를 입력하거나 파일을 첨부해 주세요."
     );
     err.status = 400;
     err.code = AI_ERRORS.GENERATION_FAILED;
@@ -2960,6 +3071,7 @@ export const executeActivityDraftSkill = async ({
 
   const provider = resolveProvider(academy.aiProvider);
   const modelName = resolveModel(provider, academy.aiModel);
+  assertVisionIfNeeded(modelName, context);
 
   const fieldCatalog = `허용 필드 type (정확히 이 값만):
 text, textarea, number, date, multiDate, time, file, select, multiSelect, checkbox, radio, userSelect, rating, scale, counter, approval, link, content, docResponse
@@ -3023,6 +3135,8 @@ ${userHint || "(없음)"}
 
 ## 첨부·참고 자료
 ${sourceText || "(없음)"}
+
+${IMAGE_HINT}
 
 ## 현재 양식 (참고)
 ${currentSnapshot}
@@ -3090,13 +3204,14 @@ ${currentSnapshot}
 
   let tokenUsage = null;
   try {
+    const userContent = await buildMultimodalUserContent(prompt, attachments);
     const generated = await runEvaluationGeneration({
       provider,
       apiKey: academy.aiApiKey,
       modelName,
       profile,
       systemInstruction: `You are Alter, a school activity/form drafting assistant. Output only <<<JSON>>> / <<<END>>> with valid JSON for AltForm (fields, settings, rubrics). Prefer ordinary response fields for submitted answers. For assessment forms, define rubrics with keys and link fields via gradingMethod="rubric" and rubricKeys. Use \`\`\`html-app only for optional demos/games that do not need to be saved.`,
-      messages: [{ role: "user", content: prompt }],
+      messages: [{ role: "user", content: userContent }],
       onEvent: emit,
       progressLabel:
         writeMode === "refine" ? "활동 양식 다듬는 중" : "활동 양식 초안 작성 중",
@@ -3299,6 +3414,7 @@ export const runAlterSkill = async ({
   const profile = FEATURE_PROFILES.chat;
   const provider = resolveProvider(academy.aiProvider);
   const modelName = resolveModel(provider, academy.aiModel);
+  assertVisionIfNeeded(modelName, context);
   const chatPromptPack = await resolveSkillPromptPack(
     academyId,
     school,
@@ -3312,6 +3428,10 @@ export const runAlterSkill = async ({
     boardTitle
   );
 
+  const attachments = Array.isArray(context?.attachments)
+    ? context.attachments
+    : [];
+  const attachmentTextBlock = attachmentsToSourceText(attachments);
   const chatMessages = [];
   for (const m of (history || []).slice(-16)) {
     if (!m?.content) continue;
@@ -3321,10 +3441,21 @@ export const runAlterSkill = async ({
       content: maskSensitiveText(String(m.content)).text,
     });
   }
-  if (message?.trim()) {
+  const userTextParts = [
+    message?.trim() ? maskSensitiveText(message.trim()).text : "",
+    attachmentTextBlock,
+    hasImageAttachments(context) ? IMAGE_HINT : "",
+  ].filter(Boolean);
+  if (userTextParts.length > 0 || hasImageAttachments(context)) {
+    const textPrompt =
+      userTextParts.join("\n\n") || "첨부한 이미지를 설명해 주세요.";
+    const userContent = await buildMultimodalUserContent(
+      textPrompt,
+      attachments
+    );
     chatMessages.push({
       role: "user",
-      content: maskSensitiveText(message.trim()).text,
+      content: userContent,
     });
   }
   if (chatMessages.length === 0) {

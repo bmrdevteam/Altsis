@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  ClipboardEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useAuth } from "contexts/authContext";
 import { TAlterSkillId, useAlter } from "contexts/alterContext";
 import { MESSAGE } from "hooks/_message";
@@ -115,6 +121,16 @@ type TAlterDraftResult =
   | TAlterActivityDraftResult
   | TAlterSyllabusDraftResult;
 
+type TAlterAttachment = {
+  kind: "text" | "image";
+  name: string;
+  text?: string;
+  key?: string;
+  mimeType?: string;
+  previewUrl?: string;
+  uploading?: boolean;
+};
+
 type ChatMessage = {
   id: string;
   role: "user" | "assistant";
@@ -122,6 +138,8 @@ type ChatMessage = {
   skill?: string;
   draft?: TAlterDraftResult | null;
   createdAt?: string;
+  /** 전송 직후 말풍선에 바로 보이는 첨부(미리보기) */
+  attachments?: TAlterAttachment[];
 };
 
 const isSyllabusDraft = (
@@ -324,9 +342,15 @@ const AlterPanel = ({ onClose }: Props) => {
   const [skillGuidelines, setSkillGuidelines] = useState("");
   const [skillSettingsLoading, setSkillSettingsLoading] = useState(false);
   const [sourceAttachments, setSourceAttachments] = useState<
-    Array<{ name: string; text: string }>
+    TAlterAttachment[]
   >([]);
-  const attachInputRef = useRef<HTMLInputElement>(null);
+  const [attachUploading, setAttachUploading] = useState(false);
+  const [attachMenuOpen, setAttachMenuOpen] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const attachMenuRef = useRef<HTMLDivElement | null>(null);
+  /** 말풍선에 남은 object URL — 대화 초기화/언마운트 시 해제 */
+  const messagePreviewUrlsRef = useRef<string[]>([]);
   const [appliedDraftIds, setAppliedDraftIds] = useState<Set<string>>(
     new Set()
   );
@@ -389,29 +413,37 @@ const AlterPanel = ({ onClose }: Props) => {
   const [conversations, setConversations] = useState<TAlterConversation[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [actionMenuOpen, setActionMenuOpen] = useState(false);
-
   const abortRef = useRef<AbortController | null>(null);
   const cancelledByUserRef = useRef(false);
   const endRef = useRef<HTMLDivElement | null>(null);
-  const actionMenuRef = useRef<HTMLDivElement | null>(null);
   const skipSmoothScrollRef = useRef(false);
   const isOpenRef = useRef(isOpen);
   isOpenRef.current = isOpen;
 
   useEffect(() => {
-    if (!actionMenuOpen) return;
+    return () => {
+      sourceAttachments.forEach((a) => {
+        if (a.previewUrl) URL.revokeObjectURL(a.previewUrl);
+      });
+      messagePreviewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      messagePreviewUrlsRef.current = [];
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- unmount cleanup only
+  }, []);
+
+  useEffect(() => {
+    if (!attachMenuOpen) return;
     const onPointerDown = (e: MouseEvent) => {
       if (
-        actionMenuRef.current &&
-        !actionMenuRef.current.contains(e.target as Node)
+        attachMenuRef.current &&
+        !attachMenuRef.current.contains(e.target as Node)
       ) {
-        setActionMenuOpen(false);
+        setAttachMenuOpen(false);
       }
     };
     document.addEventListener("mousedown", onPointerDown);
     return () => document.removeEventListener("mousedown", onPointerDown);
-  }, [actionMenuOpen]);
+  }, [attachMenuOpen]);
 
   const guidelines = skillGuidelines.trim();
 
@@ -789,8 +821,18 @@ const AlterPanel = ({ onClose }: Props) => {
       };
     }
     const attachmentText = sourceAttachments
+      .filter((a) => a.kind === "text" && a.text)
       .map((a) => `### ${a.name}\n${a.text}`)
       .join("\n\n");
+    const attachments = sourceAttachments
+      .filter((a) => !a.uploading && (a.kind === "text" ? !!a.text : !!a.key))
+      .map(({ kind, name, text, key, mimeType }) => ({
+        kind,
+        name,
+        text,
+        key,
+        mimeType,
+      }));
     if (skill === "document-draft") {
       const current = pageContext?.getDocument?.() || {
         title: "",
@@ -807,6 +849,7 @@ const AlterPanel = ({ onClose }: Props) => {
         currentTitle: current.title || "",
         currentContent: current.content || "",
         sourceText: attachmentText,
+        attachments,
       };
     }
     if (skill === "activity-draft") {
@@ -831,6 +874,7 @@ const AlterPanel = ({ onClose }: Props) => {
         currentSettings: current.settings || {},
         currentRubrics: current.rubrics || [],
         sourceText: attachmentText,
+        attachments,
       };
     }
     return {
@@ -841,6 +885,7 @@ const AlterPanel = ({ onClose }: Props) => {
       currentInfo: pageContext?.getCurrentInfo?.() || {},
       formSyllabus: pageContext?.formSyllabus || currentSeason?.formSyllabus,
       sourceText: attachmentText,
+      attachments,
     };
   };
 
@@ -864,6 +909,11 @@ const AlterPanel = ({ onClose }: Props) => {
     }
   };
 
+  const revokeMessagePreviews = () => {
+    messagePreviewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    messagePreviewUrlsRef.current = [];
+  };
+
   const startNewConversation = () => {
     if (isWorking) {
       setError("작업이 끝난 뒤 새 대화를 시작할 수 있습니다.");
@@ -871,11 +921,17 @@ const AlterPanel = ({ onClose }: Props) => {
     }
     setConversationId(null);
     setConversationTitle("새 대화");
+    revokeMessagePreviews();
     setMessages([]);
     setError("");
     setSteps([]);
     setAppliedDraftIds(new Set());
-    setSourceAttachments([]);
+    setSourceAttachments((prev) => {
+      prev.forEach((a) => {
+        if (a.previewUrl) URL.revokeObjectURL(a.previewUrl);
+      });
+      return [];
+    });
     setShowHistory(false);
     const next = suggested[0] || "chat";
     setSelectedSkill(next);
@@ -912,22 +968,48 @@ const AlterPanel = ({ onClose }: Props) => {
         review?: any;
         draft?: any;
         createdAt?: string;
+        attachments?: Array<{
+          kind: "text" | "image";
+          name?: string;
+          key?: string;
+          mimeType?: string;
+          previewUrl?: string;
+        }>;
       }>;
       setConversationId(id);
       const meta =
         preset || conversations.find((c) => c._id === id);
       setConversationTitle(meta?.title || "대화");
+      revokeMessagePreviews();
       skipSmoothScrollRef.current = true;
       setMessages(
-        rows.map((m) => ({
-          id: m._id,
-          role: m.role,
-          content: m.content || "",
-          skill: m.skill,
-          review: m.review || null,
-          draft: m.draft || null,
-          createdAt: m.createdAt,
-        }))
+        rows.map((m) => {
+          const attachments = (m.attachments || []).map((a) => ({
+            kind: a.kind,
+            name: a.name || "첨부",
+            key: a.key,
+            mimeType: a.mimeType,
+            previewUrl: a.previewUrl,
+          }));
+          // 첨부가 있으면 `[첨부: 이름]`만 있는 본문은 말풍선에서 숨김
+          const raw = m.content || "";
+          const attachOnly =
+            attachments.length > 0 &&
+            raw
+              .replace(/\[첨부:\s*[^\]]+\]/g, "")
+              .replace(/\s+/g, "")
+              .length === 0;
+          return {
+            id: m._id,
+            role: m.role,
+            content: attachOnly ? "" : raw,
+            skill: m.skill,
+            review: m.review || null,
+            draft: m.draft || null,
+            createdAt: m.createdAt,
+            attachments: attachments.length > 0 ? attachments : undefined,
+          };
+        })
       );
       setShowHistory(false);
       setShowPrep(false);
@@ -1022,9 +1104,25 @@ const AlterPanel = ({ onClose }: Props) => {
   const combinedSourceText = () => {
     const parts = [
       draft.trim(),
-      ...sourceAttachments.map((a) => `[첨부: ${a.name}]\n${a.text}`),
+      ...sourceAttachments
+        .filter((a) => a.kind === "text" && a.text)
+        .map((a) => `[첨부: ${a.name}]\n${a.text}`),
     ].filter(Boolean);
     return parts.join("\n\n").trim();
+  };
+
+  const removeAttachment = (index: number) => {
+    setSourceAttachments((prev) => {
+      const target = prev[index];
+      if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  const attachmentLabel = (a: TAlterAttachment) => {
+    if (a.kind === "image") return a.name;
+    const n = (a.text || "").length;
+    return n > 0 ? `${a.name} (${n.toLocaleString()}자)` : a.name;
   };
 
   const runSkill = async (skill: TAlterSkillId, userText: string) => {
@@ -1039,9 +1137,7 @@ const AlterPanel = ({ onClose }: Props) => {
         return;
       }
       if (!userText.trim() && sourceAttachments.length === 0) {
-        setError(
-          "초안에 쓸 정보를 입력하거나 텍스트 파일을 첨부해 주세요."
-        );
+        setError("초안에 쓸 정보를 입력하거나 파일을 첨부해 주세요.");
         return;
       }
     }
@@ -1060,9 +1156,7 @@ const AlterPanel = ({ onClose }: Props) => {
         !userText.trim() &&
         sourceAttachments.length === 0
       ) {
-        setError(
-          "초안에 쓸 정보를 입력하거나 텍스트 파일을 첨부해 주세요."
-        );
+        setError("초안에 쓸 정보를 입력하거나 파일을 첨부해 주세요.");
         return;
       }
       if (
@@ -1095,9 +1189,7 @@ const AlterPanel = ({ onClose }: Props) => {
         !userText.trim() &&
         sourceAttachments.length === 0
       ) {
-        setError(
-          "초안에 쓸 정보를 입력하거나 텍스트 파일을 첨부해 주세요."
-        );
+        setError("초안에 쓸 정보를 입력하거나 파일을 첨부해 주세요.");
         return;
       }
       if (
@@ -1166,28 +1258,63 @@ const AlterPanel = ({ onClose }: Props) => {
       }
     }
 
+    if (attachUploading || sourceAttachments.some((a) => a.uploading)) {
+      setError("첨부 업로드가 끝난 뒤 보내 주세요.");
+      return;
+    }
+
+    const pendingAttachments = sourceAttachments.filter(
+      (a) => !a.uploading && (a.kind === "text" ? !!a.text : !!a.key)
+    );
+
     setIsWorking(true);
     setError("");
     setSteps([]);
     setShowPrep(false);
     setShowHistory(false);
+    setAttachMenuOpen(false);
 
+    const displayContent = userText.trim();
+    const titleFallback =
+      displayContent ||
+      pendingAttachments.map((a) => a.name).join(", ") ||
+      "대화";
     const userMsg: ChatMessage = {
       id: `u-${Date.now()}`,
       role: "user",
-      content: userText,
+      content: displayContent,
       skill,
       createdAt: new Date().toISOString(),
+      attachments: pendingAttachments.map(
+        ({ kind, name, mimeType, previewUrl, key }) => ({
+          kind,
+          name,
+          mimeType,
+          previewUrl,
+          key,
+        })
+      ),
     };
+    pendingAttachments.forEach((a) => {
+      if (a.previewUrl) messagePreviewUrlsRef.current.push(a.previewUrl);
+    });
+    // 말풍선에 바로 올린 뒤 입력창 첨부는 비움 (URL은 말풍선용이므로 revoke 하지 않음)
+    setSourceAttachments([]);
+
     const history = [...messages, userMsg]
       .filter((m) => m.role === "user" || m.role === "assistant")
-      .map((m) => ({ role: m.role, content: m.content }));
+      .map((m) => ({
+        role: m.role,
+        content:
+          m.content ||
+          (m.attachments?.length
+            ? m.attachments.map((a) => `[첨부: ${a.name}]`).join(" ")
+            : ""),
+      }));
 
     setMessages((prev) => [...prev, userMsg]);
     if (!conversationId || conversationTitle === "새 대화") {
-      setConversationTitle(
-        userText.replace(/\s+/g, " ").trim().slice(0, 40) || "대화"
-      );
+      setConversationTitle(titleFallback.replace(/\s+/g, " ").trim().slice(0, 40));
     }
 
     const abort = new AbortController();
@@ -1217,9 +1344,29 @@ const AlterPanel = ({ onClose }: Props) => {
         body: JSON.stringify({
           season: currentSeason._id,
           skill,
-          message: userText,
+          // 본문이 없을 때만 첨부 라벨을 남겨 대화 목록/히스토리에 보이게 함
+          message:
+            userText.trim() ||
+            (pendingAttachments.length
+              ? pendingAttachments.map((a) => `[첨부: ${a.name}]`).join(" ")
+              : ""),
           history: history.slice(0, -1),
-          context: buildContext(skill),
+          context: {
+            ...buildContext(skill),
+            attachments: pendingAttachments.map(
+              ({ kind, name, text, key, mimeType }) => ({
+                kind,
+                name,
+                text,
+                key,
+                mimeType,
+              })
+            ),
+            sourceText: pendingAttachments
+              .filter((a) => a.kind === "text" && a.text)
+              .map((a) => `### ${a.name}\n${a.text}`)
+              .join("\n\n"),
+          },
           autoDetectSkill: false,
           conversationId,
           persist: true,
@@ -1249,13 +1396,6 @@ const AlterPanel = ({ onClose }: Props) => {
             createdAt: new Date().toISOString(),
           },
         ]);
-        if (
-          skill === "syllabus-draft" ||
-          skill === "document-draft" ||
-          skill === "activity-draft"
-        ) {
-          setSourceAttachments([]);
-        }
         if (!isOpenRef.current) setHasBackgroundResult(true);
       } else {
         if (!response.ok) {
@@ -1383,7 +1523,12 @@ const AlterPanel = ({ onClose }: Props) => {
 
   const sendDraft = () => {
     const text = draft.trim();
-    if ((!text && sourceAttachments.length === 0) || isWorking) return;
+    if (
+      (!text && sourceAttachments.length === 0) ||
+      isWorking ||
+      attachUploading
+    )
+      return;
     setDraft("");
     let skill: TAlterSkillId = "chat";
     if (
@@ -1427,50 +1572,200 @@ const AlterPanel = ({ onClose }: Props) => {
     ) {
       skill = "activity-draft";
     }
-    const payload =
-      skill === "syllabus-draft" ||
-      skill === "document-draft" ||
-      skill === "activity-draft"
-        ? [text, ...sourceAttachments.map((a) => `[첨부: ${a.name}]\n${a.text}`)]
-            .filter(Boolean)
-            .join("\n\n")
-        : text;
-    void runSkill(skill, payload);
+    void runSkill(skill, text);
   };
 
-  const handleAttachFiles = async (files: FileList | null) => {
+  const guessAttachKind = (file: File): "image" | "file" => {
+    const lower = file.name.toLowerCase();
+    if (
+      file.type.startsWith("image/") ||
+      /\.(png|jpe?g|webp)$/i.test(lower)
+    ) {
+      return "image";
+    }
+    return "file";
+  };
+
+  const isAcceptedAlterFile = (file: File) => {
+    const lower = file.name.toLowerCase();
+    const mime = String(file.type || "").toLowerCase();
+    if (
+      ["image/png", "image/jpeg", "image/jpg", "image/webp"].includes(mime) ||
+      /\.(png|jpe?g|webp)$/i.test(lower)
+    ) {
+      return true;
+    }
+    return (
+      /\.(txt|md|markdown|csv|pdf|docx)$/i.test(lower) ||
+      [
+        "text/plain",
+        "text/markdown",
+        "text/csv",
+        "application/pdf",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      ].includes(mime)
+    );
+  };
+
+  const collectClipboardFiles = (dt: DataTransfer | null): File[] => {
+    if (!dt) return [];
+    const byKey = new Map<string, File>();
+    const add = (file: File | null) => {
+      if (!file) return;
+      const key = `${file.name}|${file.size}|${file.type}|${file.lastModified}`;
+      if (!byKey.has(key)) byKey.set(key, file);
+    };
+    if (dt.files?.length) {
+      Array.from(dt.files).forEach(add);
+    }
+    if (dt.items?.length) {
+      for (const item of Array.from(dt.items)) {
+        if (item.kind === "file") add(item.getAsFile());
+      }
+    }
+    return Array.from(byKey.values());
+  };
+
+  const handlePasteAttach = (e: ClipboardEvent<HTMLTextAreaElement>) => {
+    if (isWorking || attachUploading) return;
+    const files = collectClipboardFiles(e.clipboardData).filter(
+      isAcceptedAlterFile
+    );
+    if (files.length === 0) return; // 일반 텍스트 붙여넣기 유지
+    e.preventDefault();
+    void handleAttachFiles(files);
+  };
+
+  const handleAttachFiles = async (files: FileList | File[] | null) => {
     if (!files?.length) return;
-    const next: Array<{ name: string; text: string }> = [];
-    for (const file of Array.from(files)) {
-      const lower = file.name.toLowerCase();
-      const isText =
-        file.type.startsWith("text/") ||
-        lower.endsWith(".txt") ||
-        lower.endsWith(".md") ||
-        lower.endsWith(".csv");
-      if (!isText) {
-        setError(
-          `"${file.name}"은(는) 아직 지원하지 않습니다. .txt / .md / .csv 또는 텍스트를 붙여 넣어 주세요.`
+    if (!currentSeason?._id) {
+      setError("학기 정보가 없어 첨부할 수 없습니다.");
+      return;
+    }
+    const remaining = 3 - sourceAttachments.length;
+    if (remaining <= 0) {
+      setError("첨부는 최대 3개까지입니다.");
+      if (imageInputRef.current) imageInputRef.current.value = "";
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    const picked = Array.from(files as ArrayLike<File>).slice(0, remaining);
+    setAttachMenuOpen(false);
+    setAttachUploading(true);
+    setError("");
+
+    // 채팅처럼 입력창에 바로 미리보기 칩을 올린 뒤 업로드
+    const placeholders: TAlterAttachment[] = picked.map((file) => {
+      const isImage = guessAttachKind(file) === "image";
+      return {
+        kind: isImage ? "image" : "text",
+        name: file.name,
+        mimeType: file.type || undefined,
+        previewUrl: isImage ? URL.createObjectURL(file) : undefined,
+        uploading: true,
+      };
+    });
+    setSourceAttachments((prev) => [...prev, ...placeholders].slice(0, 3));
+
+    try {
+      for (let i = 0; i < picked.length; i++) {
+        const file = picked[i];
+        const placeholder = placeholders[i];
+        if (file.size > 5 * 1024 * 1024) {
+          setError(`"${file.name}" 파일이 너무 큽니다. (최대 5MB)`);
+          setSourceAttachments((prev) =>
+            prev.filter((a) => {
+              if (a === placeholder || (a.uploading && a.name === file.name && a.previewUrl === placeholder.previewUrl)) {
+                if (a.previewUrl) URL.revokeObjectURL(a.previewUrl);
+                return false;
+              }
+              return true;
+            })
+          );
+          continue;
+        }
+        const form = new FormData();
+        form.append("file", file);
+        const res = await fetch(
+          `${alterApiBase()}/alter/attachment?season=${encodeURIComponent(
+            currentSeason._id
+          )}`,
+          { method: "POST", credentials: "include", body: form }
         );
-        continue;
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setError(
+            MESSAGE.get(data.message) ||
+              data.message ||
+              `"${file.name}" 첨부에 실패했습니다.`
+          );
+          setSourceAttachments((prev) =>
+            prev.filter((a) => {
+              if (
+                a.uploading &&
+                a.name === file.name &&
+                a.previewUrl === placeholder.previewUrl
+              ) {
+                if (a.previewUrl) URL.revokeObjectURL(a.previewUrl);
+                return false;
+              }
+              return true;
+            })
+          );
+          continue;
+        }
+        const att = data.attachment as TAlterAttachment | undefined;
+        if (!att?.kind) {
+          setSourceAttachments((prev) =>
+            prev.filter((a) => {
+              if (
+                a.uploading &&
+                a.name === file.name &&
+                a.previewUrl === placeholder.previewUrl
+              ) {
+                if (a.previewUrl) URL.revokeObjectURL(a.previewUrl);
+                return false;
+              }
+              return true;
+            })
+          );
+          continue;
+        }
+        setSourceAttachments((prev) =>
+          prev.map((a) =>
+            a.uploading &&
+            a.name === file.name &&
+            a.previewUrl === placeholder.previewUrl
+              ? {
+                  kind: att.kind,
+                  name: att.name || file.name,
+                  text: att.text,
+                  key: att.key,
+                  mimeType: att.mimeType,
+                  previewUrl: placeholder.previewUrl,
+                  uploading: false,
+                }
+              : a
+          )
+        );
       }
-      if (file.size > 200_000) {
-        setError(`"${file.name}" 파일이 너무 큽니다. (최대 200KB)`);
-        continue;
-      }
-      try {
-        const text = (await file.text()).trim();
-        if (!text) continue;
-        next.push({ name: file.name, text: text.slice(0, 12000) });
-      } catch {
-        setError(`"${file.name}"을(를) 읽지 못했습니다.`);
-      }
+    } catch {
+      setError("첨부 업로드 중 오류가 발생했습니다.");
+      setSourceAttachments((prev) =>
+        prev.filter((a) => {
+          if (a.uploading) {
+            if (a.previewUrl) URL.revokeObjectURL(a.previewUrl);
+            return false;
+          }
+          return true;
+        })
+      );
+    } finally {
+      setAttachUploading(false);
+      if (imageInputRef.current) imageInputRef.current.value = "";
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
-    if (next.length > 0) {
-      setSourceAttachments((prev) => [...prev, ...next].slice(0, 3));
-      setError("");
-    }
-    if (attachInputRef.current) attachInputRef.current.value = "";
   };
 
   const applyDraft = (msgId: string, draftResult: TAlterDraftResult) => {
@@ -1728,126 +2023,112 @@ const AlterPanel = ({ onClose }: Props) => {
         ? "다시 작성"
         : "초안 작성";
 
-  const plusMenu = (
-    <div className={chatUiStyle.actionMenuWrap} ref={actionMenuRef}>
+  const attachDisabled =
+    isWorking || attachUploading || sourceAttachments.length >= 3;
+
+  const attachButton = (
+    <div className={chatUiStyle.actionMenuWrap} ref={attachMenuRef}>
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+        multiple
+        hidden
+        onChange={(e) => void handleAttachFiles(e.target.files)}
+      />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".txt,.md,.csv,.pdf,.docx,text/plain,text/markdown,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        multiple
+        hidden
+        onChange={(e) => void handleAttachFiles(e.target.files)}
+      />
       <button
         type="button"
         className={chatUiStyle.slotBtn}
-        onClick={() => setActionMenuOpen((v) => !v)}
-        aria-label="더보기"
-        title="더보기"
-        aria-expanded={actionMenuOpen}
+        onClick={() => setAttachMenuOpen((v) => !v)}
+        aria-label="첨부"
+        title="사진·파일 첨부"
+        aria-expanded={attachMenuOpen}
+        disabled={attachDisabled}
       >
         <Svg type="plus" width="20px" height="20px" />
       </button>
-      {actionMenuOpen && (
+      {attachMenuOpen && (
         <div className={chatUiStyle.actionMenu} role="menu">
           <button
             type="button"
-            className={chatUiStyle.actionMenuItem}
+            className={`${chatUiStyle.actionMenuItem} ${style.attachMenuItem}`}
             role="menuitem"
-            disabled={isWorking}
-            onClick={() => {
-              setActionMenuOpen(false);
-              startNewConversation();
-            }}
+            disabled={attachDisabled}
+            onClick={() => imageInputRef.current?.click()}
           >
-            새 대화
+            <Svg type="image" width="18px" height="18px" />
+            사진
           </button>
-          {inPrep && messages.length > 0 && (
-            <button
-              type="button"
-              className={chatUiStyle.actionMenuItem}
-              role="menuitem"
-              disabled={isWorking}
-              onClick={() => {
-                setActionMenuOpen(false);
-                setSelectedSkill("chat");
-                setShowPrep(false);
-              }}
-            >
-              대화로
-            </button>
-          )}
-          {!inPrep && pageContext?.pageType === "syllabus-edit" && (
-            <button
-              type="button"
-              className={chatUiStyle.actionMenuItem}
-              role="menuitem"
-              disabled={isWorking}
-              onClick={() => {
-                setActionMenuOpen(false);
-                setSelectedSkill("syllabus-draft");
-                setShowPrep(true);
-              }}
-            >
-              수업
-            </button>
-          )}
-          {!inPrep && pageContext?.pageType === "evaluation" && (
-            <button
-              type="button"
-              className={chatUiStyle.actionMenuItem}
-              role="menuitem"
-              disabled={isWorking}
-              onClick={() => {
-                setActionMenuOpen(false);
-                setSelectedSkill("evaluation-draft");
-                setShowPrep(true);
-              }}
-            >
-              평가
-            </button>
-          )}
-          {!inPrep && pageContext?.pageType === "archive" && (
-            <button
-              type="button"
-              className={chatUiStyle.actionMenuItem}
-              role="menuitem"
-              disabled={isWorking}
-              onClick={() => {
-                setActionMenuOpen(false);
-                setSelectedSkill("archive-draft");
-                setShowPrep(true);
-              }}
-            >
-              기록
-            </button>
-          )}
-          {!inPrep && pageContext?.pageType === "document" && (
-            <button
-              type="button"
-              className={chatUiStyle.actionMenuItem}
-              role="menuitem"
-              disabled={isWorking}
-              onClick={() => {
-                setActionMenuOpen(false);
-                setSelectedSkill("document-draft");
-                setShowPrep(true);
-              }}
-            >
-              문서
-            </button>
-          )}
-          {!inPrep && pageContext?.pageType === "activity" && (
-            <button
-              type="button"
-              className={chatUiStyle.actionMenuItem}
-              role="menuitem"
-              disabled={isWorking}
-              onClick={() => {
-                setActionMenuOpen(false);
-                setSelectedSkill("activity-draft");
-                setShowPrep(true);
-              }}
-            >
-              활동
-            </button>
-          )}
+          <button
+            type="button"
+            className={`${chatUiStyle.actionMenuItem} ${style.attachMenuItem}`}
+            role="menuitem"
+            disabled={attachDisabled}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Svg type="file" width="18px" height="18px" />
+            파일
+          </button>
         </div>
       )}
     </div>
   );
+
+  const renderAttachmentBlock = (
+    items: TAlterAttachment[],
+    opts?: { removable?: boolean; onRemove?: (index: number) => void }
+  ) => (
+    <div className={style.msgAttachList}>
+      {items.map((a, index) => (
+        <div
+          key={`${a.kind}-${a.name}-${index}`}
+          className={`${style.msgAttachItem} ${
+            a.kind === "image" ? style.msgAttachImage : style.msgAttachFile
+          } ${a.uploading ? style.msgAttachUploading : ""}`}
+        >
+          {a.kind === "image" && a.previewUrl ? (
+            <img src={a.previewUrl} alt={a.name} className={style.msgAttachImg} />
+          ) : (
+            <div className={style.msgAttachFileInner}>
+              <Svg type="file" width="18px" height="18px" />
+              <span className={style.msgAttachFileName} title={a.name}>
+                {a.uploading ? `${a.name} (업로드 중…)` : attachmentLabel(a)}
+              </span>
+            </div>
+          )}
+          {opts?.removable ? (
+            <button
+              type="button"
+              className={style.attachChipRemove}
+              onClick={() => opts.onRemove?.(index)}
+              aria-label={`${a.name} 제거`}
+              disabled={isWorking || a.uploading}
+            >
+              ×
+            </button>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  );
+
+  const attachmentChips =
+    sourceAttachments.length > 0 ? (
+      <div className={style.attachChipRow}>
+        {renderAttachmentBlock(sourceAttachments, {
+          removable: true,
+          onRemove: removeAttachment,
+        })}
+      </div>
+    ) : null;
 
   const historyListView = (
     <>
@@ -2108,53 +2389,11 @@ const AlterPanel = ({ onClose }: Props) => {
               )}
             </div>
             <div className={style.prepCard}>
-              <p className={style.prepLabel}>첨부 자료 (텍스트 · 최대 3개)</p>
-              {sourceAttachments.length === 0 ? (
-                <p className={style.prepText}>
-                  개요·참고 자료를 입력하거나 .txt/.md 파일을 첨부할 수 있습니다.
-                </p>
-              ) : (
-                <div className={style.refList}>
-                  {sourceAttachments.map((a, index) => (
-                    <div key={`${a.name}-${index}`} className={style.refRow}>
-                      <span>
-                        {a.name}{" "}
-                        <span className={style.prepMuted}>
-                          ({a.text.length.toLocaleString()}자)
-                        </span>
-                      </span>
-                      <button
-                        type="button"
-                        className={style.applyBtn}
-                        onClick={() =>
-                          setSourceAttachments((prev) =>
-                            prev.filter((_, i) => i !== index)
-                          )
-                        }
-                      >
-                        제거
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className={style.prepActions}>
-                <input
-                  ref={attachInputRef}
-                  type="file"
-                  accept=".txt,.md,.csv,text/plain"
-                  multiple
-                  hidden
-                  onChange={(e) => handleAttachFiles(e.target.files)}
-                />
-                <button
-                  type="button"
-                  className={style.prepActionBtn}
-                  onClick={() => attachInputRef.current?.click()}
-                >
-                  파일 첨부
-                </button>
-              </div>
+              <p className={style.prepLabel}>첨부 자료</p>
+              <p className={style.prepText}>
+                입력창 위 + 버튼으로 txt·md·csv·pdf·docx·이미지를 첨부할 수
+                있습니다. (최대 3개)
+              </p>
             </div>
             <div className={style.prepHintRow}>
               <PrepHint text="초안은 에디터 전체를 덮어씁니다. 미리보기 확인 후 「전체에 반영」하고 저장하세요." />
@@ -2252,54 +2491,11 @@ const AlterPanel = ({ onClose }: Props) => {
               )}
             </div>
             <div className={style.prepCard}>
-              <p className={style.prepLabel}>첨부 자료 (텍스트 · 최대 3개)</p>
-              {sourceAttachments.length === 0 ? (
-                <p className={style.prepText}>
-                  활동 개요·문항·규칙을 입력하거나 .txt/.md 파일을 첨부할 수
-                  있습니다.
-                </p>
-              ) : (
-                <div className={style.refList}>
-                  {sourceAttachments.map((a, index) => (
-                    <div key={`${a.name}-${index}`} className={style.refRow}>
-                      <span>
-                        {a.name}{" "}
-                        <span className={style.prepMuted}>
-                          ({a.text.length.toLocaleString()}자)
-                        </span>
-                      </span>
-                      <button
-                        type="button"
-                        className={style.applyBtn}
-                        onClick={() =>
-                          setSourceAttachments((prev) =>
-                            prev.filter((_, i) => i !== index)
-                          )
-                        }
-                      >
-                        제거
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className={style.prepActions}>
-                <input
-                  ref={attachInputRef}
-                  type="file"
-                  accept=".txt,.md,.csv,text/plain"
-                  multiple
-                  hidden
-                  onChange={(e) => handleAttachFiles(e.target.files)}
-                />
-                <button
-                  type="button"
-                  className={style.prepActionBtn}
-                  onClick={() => attachInputRef.current?.click()}
-                >
-                  파일 첨부
-                </button>
-              </div>
+              <p className={style.prepLabel}>첨부 자료</p>
+              <p className={style.prepText}>
+                입력창 위 + 버튼으로 txt·md·csv·pdf·docx·이미지를 첨부할 수
+                있습니다. (최대 3개)
+              </p>
             </div>
             <div className={style.prepHintRow}>
               <PrepHint text="초안은 양식 필드·설정을 덮어씁니다. 미리보기 확인 후 「전체에 반영」하고 저장하세요." />
@@ -2320,54 +2516,11 @@ const AlterPanel = ({ onClose }: Props) => {
               </p>
             </div>
             <div className={style.prepCard}>
-              <p className={style.prepLabel}>첨부 자료 (텍스트 · 최대 3개)</p>
-              {sourceAttachments.length === 0 ? (
-                <p className={style.prepText}>
-                  아래에서 수업 개요·목표·활동 등을 입력하거나 .txt/.md 파일을
-                  첨부해 주세요.
-                </p>
-              ) : (
-                <div className={style.refList}>
-                  {sourceAttachments.map((a, index) => (
-                    <div key={`${a.name}-${index}`} className={style.refRow}>
-                      <span>
-                        {a.name}{" "}
-                        <span className={style.prepMuted}>
-                          ({a.text.length.toLocaleString()}자)
-                        </span>
-                      </span>
-                      <button
-                        type="button"
-                        className={style.applyBtn}
-                        onClick={() =>
-                          setSourceAttachments((prev) =>
-                            prev.filter((_, i) => i !== index)
-                          )
-                        }
-                      >
-                        제거
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className={style.prepActions}>
-                <input
-                  ref={attachInputRef}
-                  type="file"
-                  accept=".txt,.md,.csv,text/plain"
-                  multiple
-                  hidden
-                  onChange={(e) => handleAttachFiles(e.target.files)}
-                />
-                <button
-                  type="button"
-                  className={style.prepActionBtn}
-                  onClick={() => attachInputRef.current?.click()}
-                >
-                  파일 첨부
-                </button>
-              </div>
+              <p className={style.prepLabel}>첨부 자료</p>
+              <p className={style.prepText}>
+                아래에서 수업 개요를 입력하거나, 입력창 위 + 로
+                txt·pdf·docx·이미지를 첨부해 주세요. (최대 3개)
+              </p>
             </div>
             <div className={style.prepHintRow}>
               <PrepHint text="정보를 입력·첨부한 뒤 「초안 작성」을 누르면 학습 계획서 전 항목 초안을 만듭니다. 미리보기 확인 후 「전체에 반영」하세요." />
@@ -2866,6 +3019,9 @@ const AlterPanel = ({ onClose }: Props) => {
               </>
             }
           >
+            {msg.role === "user" && msg.attachments?.length
+              ? renderAttachmentBlock(msg.attachments)
+              : null}
             {msg.content ? (
               msg.role === "assistant" ? (
                 <MarkdownViewer
@@ -2873,7 +3029,7 @@ const AlterPanel = ({ onClose }: Props) => {
                   className={style.mdContent}
                 />
               ) : (
-                msg.content
+                <div className={style.msgText}>{msg.content}</div>
               )
             ) : null}
             {msg.draft && isSyllabusDraft(msg.draft) && (
@@ -3238,77 +3394,86 @@ const AlterPanel = ({ onClose }: Props) => {
         <div ref={endRef} />
       </div>
 
-      <ChatInputBar
-        value={draft}
-        onChange={setDraft}
-        onSend={() => {
-          setActionMenuOpen(false);
-          if (inPrep) startSuggested();
-          else sendDraft();
-        }}
-        disabled={isWorking}
-        sendDisabled={
-          inSyllabusPrep ||
-          (inDocPrep && docWriteMode === "create") ||
-          (inActivityPrep && activityWriteMode === "create")
-            ? isWorking || (!draft.trim() && sourceAttachments.length === 0)
-            : inPrep
-              ? isWorking
-              : isWorking || (!draft.trim() && sourceAttachments.length === 0)
-        }
-        sendActive={
-          inSyllabusPrep ||
-          (inDocPrep && docWriteMode === "create") ||
-          (inActivityPrep && activityWriteMode === "create")
-            ? !isWorking && (!!draft.trim() || sourceAttachments.length > 0)
-            : inPrep
-              ? !isWorking
-              : (!!draft.trim() || sourceAttachments.length > 0) && !isWorking
-        }
-        sendTitle={inPrep ? prepPrimaryLabel : "보내기"}
-        leftSlot={plusMenu}
-        showTextarea={
-          !inPrep ||
-          inEvalPrep ||
-          inSyllabusPrep ||
-          inArchivePrep ||
-          inDocPrep ||
-          inActivityPrep
-        }
-        centerHint="옵션을 고른 뒤 시작하세요"
-        placeholder={
-          inActivityPrep
-            ? activityWriteMode === "refine"
-              ? "예: 객관식 3문항 추가, 서술형 필드 하나 더"
-              : "예: 수학 복습 퀴즈 5문항, 객관식+단답, 필수 응답"
-            : inDocPrep
-              ? docWriteMode === "refine"
-                ? "예: 문장을 더 간결하게, 체크리스트를 추가해 주세요"
-                : "예: 저녁활동 이용 안내 매뉴얼, 공간·수칙·신청 방법 포함"
-              : inArchivePrep
-                ? archiveWriteMode === "sameText"
-                  ? "예: 공동체 의식과 배려를 중심으로 2~3문장"
-                  : "예: 관찰된 성장과 관계 특성을 학생별로 2~4문장"
-                : inEvalPrep
-                  ? "예: 멘토 의견은 2~3문장, 성장 포인트를 중심으로"
-                  : inSyllabusPrep
-                    ? "예: 주제, 목표, 주차별 활동, 평가 방식을 적어 주세요"
-                    : "메시지를 입력하세요"
-        }
-        onKeyDown={
-          inPrep
-            ? (e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  if (!isWorking) {
-                    setActionMenuOpen(false);
-                    startSuggested();
+      <div className={style.composerWrap}>
+        {attachmentChips}
+        <ChatInputBar
+          bare
+          value={draft}
+          onChange={setDraft}
+          onSend={() => {
+            if (inPrep) startSuggested();
+            else sendDraft();
+          }}
+          disabled={isWorking || attachUploading}
+          sendDisabled={
+            inSyllabusPrep ||
+            (inDocPrep && docWriteMode === "create") ||
+            (inActivityPrep && activityWriteMode === "create")
+              ? isWorking ||
+                attachUploading ||
+                (!draft.trim() && sourceAttachments.length === 0)
+              : inPrep
+                ? isWorking || attachUploading
+                : isWorking ||
+                  attachUploading ||
+                  (!draft.trim() && sourceAttachments.length === 0)
+          }
+          sendActive={
+            inSyllabusPrep ||
+            (inDocPrep && docWriteMode === "create") ||
+            (inActivityPrep && activityWriteMode === "create")
+              ? !isWorking &&
+                !attachUploading &&
+                (!!draft.trim() || sourceAttachments.length > 0)
+              : inPrep
+                ? !isWorking && !attachUploading
+                : (!!draft.trim() || sourceAttachments.length > 0) &&
+                  !isWorking &&
+                  !attachUploading
+          }
+          sendTitle={inPrep ? prepPrimaryLabel : "보내기"}
+          leftSlot={attachButton}
+          showTextarea={
+            !inPrep ||
+            inEvalPrep ||
+            inSyllabusPrep ||
+            inArchivePrep ||
+            inDocPrep ||
+            inActivityPrep
+          }
+          centerHint="옵션을 고른 뒤 시작하세요"
+          placeholder={
+            inActivityPrep
+              ? activityWriteMode === "refine"
+                ? "예: 객관식 3문항 추가, 서술형 필드 하나 더"
+                : "예: 수학 복습 퀴즈 5문항, 객관식+단답, 필수 응답"
+              : inDocPrep
+                ? docWriteMode === "refine"
+                  ? "예: 문장을 더 간결하게, 체크리스트를 추가해 주세요"
+                  : "예: 저녁활동 이용 안내 매뉴얼, 공간·수칙·신청 방법 포함"
+                : inArchivePrep
+                  ? archiveWriteMode === "sameText"
+                    ? "예: 공동체 의식과 배려를 중심으로 2~3문장"
+                    : "예: 관찰된 성장과 관계 특성을 학생별로 2~4문장"
+                  : inEvalPrep
+                    ? "예: 멘토 의견은 2~3문장, 성장 포인트를 중심으로"
+                    : inSyllabusPrep
+                      ? "예: 주제, 목표, 주차별 활동, 평가 방식을 적어 주세요"
+                      : "메시지를 입력하세요 (이미지·파일 붙여넣기 가능)"
+          }
+          onPaste={handlePasteAttach}
+          onKeyDown={
+            inPrep
+              ? (e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    if (!isWorking && !attachUploading) startSuggested();
                   }
                 }
-              }
-            : undefined
-        }
-      />
+              : undefined
+          }
+        />
+      </div>
     </>
   );
 

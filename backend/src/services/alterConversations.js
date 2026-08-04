@@ -8,6 +8,39 @@ import {
   FIELD_REQUIRED,
   __NOT_FOUND,
 } from "../messages/index.js";
+import { signUrlForView } from "../_s3/fileBucket.js";
+
+const normalizeStoredAttachments = (attachments = []) =>
+  (Array.isArray(attachments) ? attachments : [])
+    .filter((a) => a && (a.kind === "text" || a.kind === "image"))
+    .slice(0, 10)
+    .map((a) => ({
+      kind: a.kind,
+      name: String(a.name || "첨부").slice(0, 200),
+      key: String(a.key || "").slice(0, 500),
+      mimeType: String(a.mimeType || "").slice(0, 100),
+    }))
+    .filter((a) => a.kind === "text" || a.key);
+
+const withPreviewUrls = (rows, academyId) => {
+  const prefix = `${academyId}/alter/`;
+  return (rows || []).map((row) => {
+    const attachments = (row.attachments || []).map((a) => {
+      if (a?.kind === "image" && a?.key && String(a.key).startsWith(prefix)) {
+        try {
+          return {
+            ...a,
+            previewUrl: signUrlForView(a.key, 3600),
+          };
+        } catch {
+          return { ...a };
+        }
+      }
+      return { ...a };
+    });
+    return { ...row, attachments };
+  });
+};
 
 const previewOf = (text = "") => {
   const t = String(text || "")
@@ -200,7 +233,7 @@ export const listAlterMessages = async ({
     .sort({ createdAt: 1 })
     .limit(Math.min(500, Math.max(1, Number(limit) || 200)))
     .lean();
-  return rows;
+  return withPreviewUrls(rows, academyId);
 };
 
 export const renameAlterConversation = async ({
@@ -275,6 +308,7 @@ export const appendAlterTurn = async ({
   tokenUsage,
   review,
   draft,
+  attachments,
   markWorking = false,
 }) => {
   const season = await resolveSeasonSchool(academyId, seasonId);
@@ -318,11 +352,13 @@ export const appendAlterTurn = async ({
   const created = [];
 
   if (userMessage != null) {
+    const storedAttachments = normalizeStoredAttachments(attachments);
     const userDoc = await Message.create({
       conversation: conversation._id,
       role: "user",
       content: String(userMessage || ""),
       skill,
+      attachments: storedAttachments,
     });
     created.push(userDoc.toObject());
   }
