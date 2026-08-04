@@ -1,8 +1,7 @@
 import Button from "components/button/Button";
 import Table from "components/tableV2/Table";
 import { useAuth } from "contexts/authContext";
-import style from "style/pages/archive.module.scss";
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useMemo, useState } from "react";
 
 import Loading from "components/loading/Loading";
 import Popup from "components/popup/Popup";
@@ -13,10 +12,18 @@ import _ from "lodash";
 import ExcelPopup from "./ExcelPopup";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import useRegisterAlterArchive from "hooks/useRegisterAlterArchive";
+import {
+  ARCHIVE_NAME_COLUMN_KEY,
+  matchesArchiveKeyword,
+} from "../useArchiveListFilter";
 
 type Props = {
   pid: string;
   registrationList: any[];
+  keyword?: string;
+  onSearchChange?: (value: string) => void;
+  visibleKeys?: Set<string>;
+  fieldLabels?: string[];
 };
 
 const colors = ["#ff595e", "#2c6e49", "#1982c4", "#6a4c93"];
@@ -107,6 +114,7 @@ const One = (props: Props) => {
           userName: archive.userName,
           grade: archive.grade,
           registration: archive.registration,
+          _archiveRowKey: `${archive._id}:${idx}`,
         });
       }
     }
@@ -374,8 +382,13 @@ const One = (props: Props) => {
   }, [isUpdating]);
 
   function archiveHeader() {
-    let arr: any = [
-      {
+    const visibleKeys = props.visibleKeys;
+    const showName =
+      !visibleKeys || visibleKeys.has(ARCHIVE_NAME_COLUMN_KEY);
+
+    let arr: any = [];
+    if (showName) {
+      arr.push({
         text: "이름",
         whiteSpace: "pre",
         key: "_id",
@@ -384,9 +397,10 @@ const One = (props: Props) => {
         textAlign: "center",
         status: userNameStatus,
         fontWeight: "600",
-      },
-    ];
+      });
+    }
     formArchive().fields?.map((val: any) => {
+      if (visibleKeys && !visibleKeys.has(val.label)) return;
       if (val.type === "select") {
         arr.push({
           text: val.label,
@@ -428,6 +442,119 @@ const One = (props: Props) => {
     });
     return arr;
   }
+
+  const fieldLabels = props.fieldLabels ?? [];
+  const keyword = props.keyword ?? "";
+
+  const displayedRows = useMemo(() => {
+    const q = keyword.trim().toLowerCase();
+    const source =
+      archiveListFlattenedRef.current?.length > 0
+        ? archiveListFlattenedRef.current
+        : archiveListFlattened ?? [];
+    if (!q) return source;
+    return source.filter((row: any) =>
+      matchesArchiveKeyword(row, q, fieldLabels)
+    );
+  }, [archiveListFlattened, keyword, fieldLabels]);
+
+  const applyTableChange = (value: any[]) => {
+    const q = keyword.trim().toLowerCase();
+    const full = archiveListFlattenedRef.current;
+
+    const commit = (next: any[], { save }: { save: boolean }) => {
+      archiveListFlattenedRef.current = next;
+      if (save) {
+        setArchiveListFlattened(next);
+        setIsUpdating(true);
+      } else {
+        checkForChanges();
+      }
+    };
+
+    if (!q) {
+      if (value.length === full.length) {
+        commit(value, { save: false });
+        return;
+      }
+      if (value.length > full.length) {
+        if (archiveList.length === 0) {
+          alert("학생을 먼저 선택해주세요");
+          setIsLoading(true);
+          return;
+        }
+        if (value[value.length - 1]._id === "") {
+          const base = value[value.length - 1];
+          value.splice(value.length - 1, 1);
+          for (let archive of archiveList) {
+            value.push({
+              ...base,
+              _id: archive._id,
+              _archiveRowKey: `${archive._id}:new:${Date.now()}:${Math.random()}`,
+            });
+          }
+        }
+      }
+      commit(value, { save: true });
+      return;
+    }
+
+    const valueByKey = new Map(
+      value
+        .filter((v) => v._archiveRowKey)
+        .map((v) => [v._archiveRowKey as string, v])
+    );
+    const newRows = value.filter((v) => !v._archiveRowKey || v._id === "");
+
+    if (newRows.length > 0) {
+      if (archiveList.length === 0) {
+        alert("학생을 먼저 선택해주세요");
+        setIsLoading(true);
+        return;
+      }
+      const next = [...full];
+      for (const base of newRows) {
+        if (base._id === "") {
+          for (let archive of archiveList) {
+            next.push({
+              ...base,
+              _id: archive._id,
+              user: archive.user,
+              userId: archive.userId,
+              userName: archive.userName,
+              grade: archive.grade,
+              registration: archive.registration,
+              _archiveRowKey: `${archive._id}:new:${Date.now()}:${Math.random()}`,
+            });
+          }
+        } else {
+          next.push(base);
+        }
+      }
+      for (let i = 0; i < next.length; i++) {
+        const key = next[i]._archiveRowKey;
+        if (key && valueByKey.has(key)) {
+          const v = valueByKey.get(key);
+          next[i] = { ...next[i], ...v, _archiveRowKey: key };
+        }
+      }
+      commit(next, { save: true });
+      return;
+    }
+
+    const next: any[] = [];
+    for (const row of full) {
+      if (!matchesArchiveKeyword(row, q, fieldLabels)) {
+        next.push(row);
+        continue;
+      }
+      if (valueByKey.has(row._archiveRowKey)) {
+        const v = valueByKey.get(row._archiveRowKey);
+        next.push({ ...row, ...v, _archiveRowKey: row._archiveRowKey });
+      }
+    }
+    commit(next, { save: next.length !== full.length });
+  };
 
   return !isLoading ? (
     <>
@@ -475,35 +602,12 @@ const One = (props: Props) => {
         <Table
           defaultPageBy={200}
           control
-          onChange={(value) => {
-            /* if value is updated */
-            if (value.length === archiveListFlattenedRef.current.length) {
-              archiveListFlattenedRef.current = value;
-              checkForChanges();
-              return;
-            }
-            /* if value is added or removed */
-            /* if value is added */
-            if (value.length > archiveListFlattenedRef.current.length) {
-              if (archiveList.length === 0) {
-                alert("학생을 먼저 선택해주세요");
-                setIsLoading(true);
-                return;
-              }
-              if (value[value.length - 1]._id === "") {
-                const base = value[value.length - 1];
-                value.splice(value.length - 1, 1);
-                for (let archive of archiveList) {
-                  value.push({ ...base, _id: archive._id });
-                }
-              }
-            }
-            archiveListFlattenedRef.current = value;
-
-            setIsUpdating(true);
-          }}
+          searchValue={keyword}
+          onSearchChange={props.onSearchChange}
+          searchPlaceholder="이름, 필드값 검색"
+          onChange={applyTableChange}
           type="object-array"
-          data={archiveListFlattened ?? []}
+          data={displayedRows}
           header={archiveHeader()}
           menus={[]}
         />

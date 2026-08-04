@@ -39,6 +39,44 @@
     }
   }
 
+  .search_wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 420px;
+    margin-bottom: 12px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    border: 1px solid var(--border-default-color, rgba(0, 0, 0, 0.08));
+    background: transparent;
+  }
+
+  .search_icon {
+    display: flex;
+    flex-shrink: 0;
+    opacity: 0.4;
+
+    svg {
+      fill: var(--accent-4);
+    }
+  }
+
+  .search_external {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 4px 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 13px;
+    color: var(--accent-1);
+
+    &::placeholder {
+      color: var(--accent-4);
+      opacity: 0.85;
+    }
+  }
+
   .content {
     margin-top: 24px;
     font-weight: 600;

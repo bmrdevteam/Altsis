@@ -2,7 +2,7 @@ import Button from "components/button/Button";
 import { useAuth } from "contexts/authContext";
 import React from "react";
 import style from "style/pages/archive.module.scss";
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useMemo, useState } from "react";
 
 import Loading from "components/loading/Loading";
 import Popup from "components/popup/Popup";
@@ -13,10 +13,17 @@ import _ from "lodash";
 import ExcelPopup from "./ExcelPopup";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import useRegisterAlterArchive from "hooks/useRegisterAlterArchive";
+import {
+  ARCHIVE_NAME_COLUMN_KEY,
+  matchesArchiveKeyword,
+} from "../useArchiveListFilter";
 
 type Props = {
   pid: string;
   registrationList: any[];
+  keyword?: string;
+  visibleKeys?: Set<string>;
+  fieldLabels?: string[];
 };
 
 const ObjectView = (props: Props) => {
@@ -150,6 +157,14 @@ const ObjectView = (props: Props) => {
       formArchiveItem.authManager === "viewAndEdit") ||
       formArchiveItem.authTeacher === "viewAndEditStudents" ||
       formArchiveItem.authTeacher === "viewAndEditMyStudents");
+
+  const fieldLabels = props.fieldLabels ?? [];
+  const displayedArchives = useMemo(() => {
+    const q = (props.keyword ?? "").trim().toLowerCase();
+    return archiveList
+      .map((archive, aIdx) => ({ archive, aIdx }))
+      .filter(({ archive }) => matchesArchiveKeyword(archive, q, fieldLabels));
+  }, [archiveList, props.keyword, fieldLabels]);
 
   useRegisterAlterArchive({
     enabled: canEditArchive,
@@ -700,15 +715,23 @@ const ObjectView = (props: Props) => {
         </div>
       )}
       <div className={style.content} style={{ paddingBottom: "24px" }}>
-        {archiveList.map((archive: any, aIdx: number) => {
+        {displayedArchives.map(({ archive, aIdx }) => {
+          const showName =
+            !props.visibleKeys ||
+            props.visibleKeys.has(ARCHIVE_NAME_COLUMN_KEY);
           return (
-            <div style={{ marginTop: "24px" }}>
-              <div style={{ marginBottom: "12px" }}>
-                <h3>{`${aIdx + 1}. ${archive.userName} (${archive.grade}/${
-                  archive.userId
-                })`}</h3>
-              </div>
+            <div key={archive._id} style={{ marginTop: "24px" }}>
+              {showName && (
+                <div style={{ marginBottom: "12px" }}>
+                  <h3>{`${aIdx + 1}. ${archive.userName} (${archive.grade}/${
+                    archive.userId
+                  })`}</h3>
+                </div>
+              )}
               {formArchive().fields?.map((val: any, index: number) => {
+                if (props.visibleKeys && !props.visibleKeys.has(val.label)) {
+                  return null;
+                }
                 if (
                   val.type === "input" ||
                   val.type === "input-number" ||
