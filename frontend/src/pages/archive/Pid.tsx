@@ -16,6 +16,10 @@ import ObjectView from "./tab/ObjectView";
 import Loading from "components/loading/Loading";
 import { TSeasonRegistration } from "types/seasons";
 import { useArchiveListFilter } from "./useArchiveListFilter";
+import {
+  loadSelectedRegistrationIds,
+  saveSelectedRegistrationIds,
+} from "./selectedRegistrationsStorage";
 
 type Props = {};
 
@@ -131,8 +135,15 @@ const ArchiveField = (props: Props) => {
         return navigate("/");
       }
 
+      const seasonId = String(currentSeason?._id ?? "");
+      const persistedIds = loadSelectedRegistrationIds(seasonId);
+      const idsToRestore = new Set<string>([
+        ...persistedIds,
+        ...selectedRegistrationList.map((r) => String(r._id)),
+      ]);
+
       for (let reg of newRegistrationList) {
-        if (_.find(selectedRegistrationList, { _id: reg._id })) {
+        if (idsToRestore.has(String(reg._id))) {
           reg.tableRowChecked = true;
           newSelectedRegistrationList.push(reg);
         }
@@ -142,6 +153,10 @@ const ArchiveField = (props: Props) => {
       setRegistrationList(newRegistrationList);
       registrationListRef.current = newRegistrationList;
       setSelectedRegistrationList(newSelectedRegistrationList);
+      saveSelectedRegistrationIds(
+        seasonId,
+        newSelectedRegistrationList.map((r) => String(r._id))
+      );
       setIsLoading(false);
     }
   }, [isLoading]);
@@ -224,11 +239,20 @@ const ArchiveField = (props: Props) => {
     );
   };
 
+  const commitSelectedRegistrationList = (next: any[]) => {
+    setSelectedRegistrationList(next);
+    const seasonId = String(currentSeason?._id ?? "");
+    saveSelectedRegistrationIds(
+      seasonId,
+      next.map((r) => String(r._id))
+    );
+  };
+
   const removeSelectedStudent = (idx: number) => {
     const registration = selectedRegistrationList[idx];
     if (!registration) return;
     const next = selectedRegistrationList.filter((_, i) => i !== idx);
-    setSelectedRegistrationList(next);
+    commitSelectedRegistrationList(next);
     const reg = _.find(registrationListRef.current, {
       _id: registration._id,
     });
@@ -343,7 +367,7 @@ const ArchiveField = (props: Props) => {
             <Button
               type="ghost"
               onClick={() => {
-                setSelectedRegistrationList(
+                commitSelectedRegistrationList(
                   _.filter(registrationListRef.current, {
                     tableRowChecked: true,
                   })
