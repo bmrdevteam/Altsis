@@ -4189,13 +4189,77 @@ tbody tr:hover .actionCell {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
+  padding: 10px 12px;
+  border: var(--border-default);
+  border-radius: 8px;
+  background: var(--background-color);
+}
+
+.sheetTimetableToolbarLeft {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.sheetTimetableWeekNav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.sheetTimetableWeekNavBtns {
+  display: flex;
+  align-items: center;
+  border: var(--border-default);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.sheetTimetableWeekNavBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  border: none;
+  border-right: var(--border-default);
+  background: transparent;
+  color: var(--text-color-1);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:last-child {
+    border-right: none;
+  }
+
+  &:hover:not(:disabled) {
+    background: var(--component-hover-color);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+}
+
+.sheetTimetableWeekLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-color-1);
+  white-space: nowrap;
 }
 
 .sheetTimetableOptions {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .sheetTimetableOptionGroup {
@@ -4215,13 +4279,13 @@ tbody tr:hover .actionCell {
 .sheetTimetableChipRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 6px;
 }
 
 .sheetTimetableChip {
   display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
+  padding: 4px 10px;
   border: 1px solid var(--border-color);
   border-radius: 999px;
   background: var(--background-color);
@@ -4230,8 +4294,10 @@ tbody tr:hover .actionCell {
   font-weight: 500;
   cursor: pointer;
   font: inherit;
+  line-height: 1.3;
 
   &:hover {
+    background: var(--component-hover-color);
     border-color: var(--text-color-3);
   }
 }
@@ -4240,6 +4306,11 @@ tbody tr:hover .actionCell {
   background: var(--status-info-bg);
   color: var(--status-info);
   border-color: color-mix(in srgb, var(--status-info) 35%, var(--border-color));
+
+  &:hover {
+    background: var(--status-info-bg);
+    filter: brightness(0.98);
+  }
 }
 
 .sheetTimetableField {
@@ -4251,14 +4322,17 @@ tbody tr:hover .actionCell {
 
   span {
     white-space: nowrap;
+    font-weight: 600;
+    font-size: 12px;
   }
 
   select {
     min-width: 120px;
     max-width: 200px;
-    padding: 4px 8px;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
+    height: 30px;
+    padding: 0 8px;
+    border: var(--border-default);
+    border-radius: 4px;
     background: var(--background-color);
     color: var(--text-color-1);
     font-size: 13px;
@@ -4267,7 +4341,7 @@ tbody tr:hover .actionCell {
 
 .sheetTimetableWrap {
   overflow: auto;
-  border: 1px solid var(--border-color);
+  border: var(--border-default);
   border-radius: 8px;
   background: var(--background-color);
 }
@@ -4281,15 +4355,16 @@ tbody tr:hover .actionCell {
   th,
   td {
     border: 1px solid var(--border-color);
-    padding: 6px 8px;
+    padding: 8px;
     vertical-align: top;
   }
 
   thead th {
-    background: var(--background-color-2);
+    background: var(--background-color);
     font-weight: 600;
     text-align: center;
     white-space: nowrap;
+    border-bottom: var(--border-default);
   }
 
   tbody th {
@@ -4298,16 +4373,44 @@ tbody tr:hover .actionCell {
     text-align: left;
     white-space: nowrap;
     min-width: 72px;
+    color: var(--text-color-2);
   }
 
   td {
-    min-width: 88px;
+    min-width: 96px;
   }
 }
 
-.sheetTimetableDayDate {
-  font-weight: 400;
+.sheetTimetableDayHead {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 0;
+}
+
+.sheetTimetableDayName {
+  font-size: 12px;
+  font-weight: 500;
   color: var(--text-color-2);
+}
+
+.sheetTimetableDayDate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 4px;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-color-1);
+}
+
+.sheetTimetableDayDateToday {
+  background: var(--highlight-color);
+  color: var(--highlight-text);
 }
 
 .sheetTimetableCell {
@@ -4322,9 +4425,10 @@ tbody tr:hover .actionCell {
   align-items: flex-start;
   gap: 2px;
   width: 100%;
-  padding: 4px 6px;
+  padding: 5px 8px 5px 10px;
   border: none;
   border-radius: 4px;
+  border-left: 3px solid var(--status-info);
   background: var(--status-info-bg);
   color: var(--text-color-1);
   text-align: left;
@@ -4332,7 +4436,7 @@ tbody tr:hover .actionCell {
   font: inherit;
 
   &:hover:not(:disabled) {
-    filter: brightness(0.97);
+    opacity: 0.85;
   }
 
   &:disabled {
@@ -4352,5 +4456,164 @@ tbody tr:hover .actionCell {
   color: var(--text-color-2);
   line-height: 1.3;
   word-break: break-word;
+}
+
+/* ─── Document sections (결재·평가) ─── */
+
+.docSection {
+  margin-top: 20px;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--background-color-2);
+}
+
+.docSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.docSectionTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-color-1);
+  margin-bottom: 8px;
+}
+
+.docSectionHeader .docSectionTitle {
+  margin-bottom: 0;
+}
+
+.docSectionActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.assessmentGradePanel {
+  margin-top: 4px;
+}
+
+.assessmentFieldBlock {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-color);
+}
+
+.assessmentFieldLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-color-1);
+}
+
+.assessmentFieldMethod {
+  margin-left: 6px;
+  font-weight: 400;
+  color: var(--text-color-2);
+  font-size: 12px;
+}
+
+.assessmentScoreRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-color-2);
+}
+
+.assessmentRubricBlock {
+  margin-top: 8px;
+}
+
+.assessmentHint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-color-2);
+  line-height: 1.45;
+}
+
+.assessmentFinalBlock {
+  margin-top: 12px;
+}
+
+.assessmentSaveBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* ─── Print (영역 격리는 global.scss body.altsis-printing) ─── */
+
+.printTitle {
+  display: none;
+}
+
+@media print {
+  .noPrint {
+    display: none !important;
+  }
+
+  .printTitle {
+    display: block !important;
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 12px;
+    color: #000;
+  }
+
+  .formSectionPanel,
+  .formCard,
+  .docSection,
+  .questionItem,
+  .approvalProgressSection,
+  .quizScoreBanner,
+  .readonlyBanner {
+    break-inside: avoid;
+    box-shadow: none !important;
+  }
+
+  .sheetTable {
+    font-size: 11px !important;
+    width: 100% !important;
+  }
+
+  .sheetTable th,
+  .sheetTable td {
+    padding: 4px 6px !important;
+  }
+
+  .colAction,
+  .actionCell {
+    display: none !important;
+  }
+
+  .approvalActionBtn,
+  .removeBtn,
+  .sheetColMenuBtn,
+  .sheetColSortMark {
+    display: none !important;
+  }
+
+  .sheetTimetableSlot {
+    break-inside: avoid;
+    border: 1px solid #ccc !important;
+    background: transparent !important;
+  }
+
+  .sheetTimetableTable {
+    width: 100% !important;
+    font-size: 11px !important;
+  }
+
+  .docViewCardHeader {
+    border-bottom-color: #ccc !important;
+  }
 }
 

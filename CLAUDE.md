@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Code quality
+
+Always follow [`.agents/rules/code-quality-standards.md`](.agents/rules/code-quality-standards.md) (6 pillars) while implementing, not only at review time. See also `AGENTS.md`.
+
 ## Project Overview
 
 Altsis (Alternative School Information System) — a Korean-language educational management system for alternative schools. Supports multi-academy, multi-school operations. MIT licensed, open-source.

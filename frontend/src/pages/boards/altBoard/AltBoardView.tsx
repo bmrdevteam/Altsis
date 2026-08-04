@@ -487,7 +487,6 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
     return (
       <>
         <AltSheetView
-          board={board}
           forms={forms}
           canManage={canManage}
           canDeleteAnyRow={canDeleteAnyRow}
@@ -534,7 +533,6 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
           </div>
         ) : (
           <AltSheetView
-            board={board}
             forms={forms}
             canManage={canManage}
             canDeleteAnyRow={canDeleteAnyRow}

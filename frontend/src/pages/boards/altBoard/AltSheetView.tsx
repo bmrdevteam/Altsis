@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import style from "./altBoard.module.scss";
-import { TBoard } from "types/board";
-import { TAltForm, TAltFormField, TAssessmentData, TFormRubric } from "types/altForm";
+import { TAltForm, TAltFormField, TAssessmentData } from "types/altForm";
 import { TAltSheetRow } from "types/altSheet";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import { useAuth } from "contexts/authContext";
@@ -15,6 +14,7 @@ import DateRangeFilterDropdown, {
 import MergeStyleFilterBar from "components/mergeFilter/MergeStyleFilterBar";
 import { MarkdownEditor, MarkdownViewer } from "components/markdown";
 import { isCurrentApprover, normalizeApprovalValue } from "utils/approvalLine";
+import { NO_PRINT_CLASS, printArea } from "utils/printArea";
 import RecordsListFilterBar, {
   TRecordsViewCounts,
   TRecordsViewFilter,
@@ -22,9 +22,12 @@ import RecordsListFilterBar, {
 import SheetTimetableView, {
   getTimetableAxisFields,
 } from "./SheetTimetableView";
+import SheetApprovalDocSection from "./SheetApprovalDocSection";
+import SheetAssessmentSection, {
+  TGradeDraft,
+} from "./SheetAssessmentSection";
 
 type Props = {
-  board: TBoard;
   forms: TAltForm[];
   canManage: boolean;
   canDeleteAnyRow: boolean;
@@ -104,7 +107,6 @@ const formMatchesRecordsFilter = (
 };
 
 const AltSheetView = ({
-  board,
   forms,
   canManage,
   canDeleteAnyRow,
@@ -143,7 +145,7 @@ const AltSheetView = ({
   } | null>(null);
   const [editValue, setEditValue] = useState("");
 
-  // Phase 3: 필터, 정렬, 컬럼 숨기기
+  // 필터, 정렬, 컬럼 숨기기
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [dateFilters, setDateFilters] = useState<Record<string, DateRange>>({});
   const [sortConfig, setSortConfig] = useState<SortConfig>(null);
@@ -192,7 +194,30 @@ const AltSheetView = ({
   );
   const [isDeletingRow, setIsDeletingRow] = useState(false);
 
+  /** 인쇄: printArea로 현재 보기 영역만 격리 */
+  const listPrintRootRef = useRef<HTMLDivElement>(null);
+  const docPrintRootRef = useRef<HTMLDivElement>(null);
+  const tablePrintRootRef = useRef<HTMLDivElement>(null);
+  const timetablePrintRootRef = useRef<HTMLDivElement>(null);
+
   const selectedForm = forms.find((f) => f._id === selectedFormId);
+
+  const handleSheetPrint = () => {
+    if (!selectedFormId) {
+      printArea(listPrintRootRef.current);
+      return;
+    }
+    if (viewMode === "doc") {
+      printArea(docPrintRootRef.current);
+      return;
+    }
+    if (viewMode === "timetable") {
+      printArea(timetablePrintRootRef.current);
+      return;
+    }
+    // 테이블: 조회된(필터·정렬) 전체
+    printArea(tablePrintRootRef.current);
+  };
 
   // 표시할 필드: 문서(content) 제외. 관리자는 전체, 응답자는 respondent + visibleToRespondent
   const allVisibleFields: TAltFormField[] = selectedForm
@@ -211,16 +236,17 @@ const AltSheetView = ({
   const visibleFields = allVisibleFields.filter(
     (f) => !hiddenColumns.has(f._id)
   );
+  const contentFields = visibleFields.filter((f) => f.type !== "approval");
+  const approvalFields = visibleFields.filter((f) => f.type === "approval");
 
   // 퀴즈 모드 여부
   const isQuiz = selectedForm?.settings.quizMode;
   const isAssessment = !!selectedForm?.settings.assessmentMode;
 
-  const supportsTimetable = useMemo(() => {
-    const fields = selectedForm?.fields || [];
-    const { dateFields, periodFields } = getTimetableAxisFields(fields);
-    return dateFields.length > 0 && periodFields.length > 0;
-  }, [selectedForm?.fields]);
+  const supportsTimetable = useMemo(
+    () => formSupportsTimetable(selectedForm),
+    [selectedForm]
+  );
 
   useEffect(() => {
     if (!supportsTimetable && viewMode === "timetable") {
@@ -230,18 +256,10 @@ const AltSheetView = ({
   }, [supportsTimetable, viewMode, selectedFormId]);
 
   // 평가 채점 초안 (문서 보기)
-  const [gradeDraft, setGradeDraft] = useState<{
-    byField: Record<
-      string,
-      {
-        score?: number;
-        levelId?: string;
-        comment?: string;
-        byRubric?: Record<string, { levelId?: string; comment?: string }>;
-      }
-    >;
-    final: { comment?: string };
-  }>({ byField: {}, final: {} });
+  const [gradeDraft, setGradeDraft] = useState<TGradeDraft>({
+    byField: {},
+    final: {},
+  });
   const [isSavingGrade, setIsSavingGrade] = useState(false);
 
   // localStorage에서 숨김 컬럼 복원
@@ -624,15 +642,7 @@ const AltSheetView = ({
       return;
     }
     const a = (currentDocRow.data?._assessment || {}) as TAssessmentData;
-    const byField: Record<
-      string,
-      {
-        score?: number;
-        levelId?: string;
-        comment?: string;
-        byRubric?: Record<string, { levelId?: string; comment?: string }>;
-      }
-    > = {};
+    const byField: TGradeDraft["byField"] = {};
     for (const [fid, g] of Object.entries(a.byField || {})) {
       const byRubric: Record<string, { levelId?: string; comment?: string }> =
         {};
@@ -1084,6 +1094,7 @@ const AltSheetView = ({
         </span>
         {isApprover && status === "pending" && (
           <div
+            className={`${style.noPrint} ${NO_PRINT_CLASS}`}
             style={{ display: "flex", gap: "4px", flexDirection: "column" }}
           >
             <input
@@ -1402,10 +1413,6 @@ const AltSheetView = ({
       );
     }
 
-    if (field.type === "approval") {
-      return renderApprovalCell(row, field);
-    }
-
     if (field.type === "rating") {
       return <span style={{ fontSize: "18px" }}>{"★".repeat(Number(value))}</span>;
     }
@@ -1494,16 +1501,20 @@ const AltSheetView = ({
   if (!selectedFormId) {
     return (
       <div className={style.formList}>
-        <RecordsListFilterBar
-          keyword={recordsKeyword}
-          onKeywordChange={setRecordsKeyword}
-          viewFilter={recordsFilter}
-          onViewFilterChange={setRecordsFilter}
-          counts={recordsCounts}
-          onClear={clearRecordsFilters}
-        />
+        <div className={`${style.noPrint} ${NO_PRINT_CLASS}`}>
+          <RecordsListFilterBar
+            keyword={recordsKeyword}
+            onKeywordChange={setRecordsKeyword}
+            viewFilter={recordsFilter}
+            onViewFilterChange={setRecordsFilter}
+            counts={recordsCounts}
+            onClear={clearRecordsFilters}
+          />
+        </div>
         <section className={style.formSectionPanel}>
-          <div className={style.formSectionHeaderStatic}>
+          <div
+            className={`${style.formSectionHeaderStatic} ${style.noPrint} ${NO_PRINT_CLASS}`}
+          >
             <div className={style.formSectionHeaderMain}>
               <h3 className={style.formSectionTitle}>기록</h3>
               <span className={style.formSectionCount}>
@@ -1519,9 +1530,19 @@ const AltSheetView = ({
               <span>
                 총 응답 <strong>{responseSum}</strong>
               </span>
+              <button
+                type="button"
+                className={style.formCardIconBtn}
+                title="인쇄"
+                aria-label="인쇄"
+                onClick={handleSheetPrint}
+              >
+                <Svg type="print" width="18px" height="18px" />
+              </button>
             </div>
           </div>
-          <div className={style.formSectionBody}>
+          <div ref={listPrintRootRef} className={style.formSectionBody}>
+            <div className={style.printTitle}>기록</div>
             {filteredForms.length === 0 ? (
               <div className={style.emptyState}>
                 {hasRecordsFilters
@@ -1589,7 +1610,9 @@ const AltSheetView = ({
                         </div>
                       </div>
                     </div>
-                    <div className={style.formCardRight}>
+                    <div
+                      className={`${style.formCardRight} ${style.noPrint} ${NO_PRINT_CLASS}`}
+                    >
                       <button
                         type="button"
                         className={style.formCardIconBtn}
@@ -1681,7 +1704,7 @@ const AltSheetView = ({
         <div className={style.builderHeaderLeft}>
           <button
             type="button"
-            className={style.backBtn}
+            className={`${style.backBtn} ${style.noPrint} ${NO_PRINT_CLASS}`}
             title="목록"
             onClick={() => {
               setSelectedFormId("");
@@ -1702,7 +1725,9 @@ const AltSheetView = ({
             <span className={style.sheetCount}>{submissionSummary}</span>
           </div>
         </div>
-        <div className={style.builderHeaderActions}>
+        <div
+          className={`${style.builderHeaderActions} ${style.noPrint} ${NO_PRINT_CLASS}`}
+        >
           <button
             type="button"
             className={style.formCardIconBtn}
@@ -1737,6 +1762,15 @@ const AltSheetView = ({
               <Svg type="calender" width="20px" height="20px" />
             </button>
           )}
+          <button
+            type="button"
+            className={style.formCardIconBtn}
+            title="인쇄"
+            aria-label="인쇄"
+            onClick={handleSheetPrint}
+          >
+            <Svg type="print" width="20px" height="20px" />
+          </button>
           {onCopySheetLink && (
             <button
               type="button"
@@ -1830,8 +1864,11 @@ const AltSheetView = ({
         <div className={style.sheetEmpty}>아직 응답이 없습니다.</div>
       ) : !isLoading && viewMode === "timetable" && selectedForm ? (
         <SheetTimetableView
+          formId={selectedFormId}
           rows={filteredRows}
           fields={selectedForm.fields}
+          printRootRef={timetablePrintRootRef}
+          printTitle={selectedForm?.title || "기록"}
           onOpenRow={(rowId) => {
             const idx = filteredRows.findIndex((r) => r._id === rowId);
             if (idx >= 0) {
@@ -1843,7 +1880,9 @@ const AltSheetView = ({
       ) : !isLoading && viewMode === "doc" ? (
         /* ── 문서 뷰 (양식형 개별 보기) ── */
         <div className={style.docViewSingle}>
-          <div className={style.docViewSearch}>
+          <div
+            className={`${style.docViewSearch} ${style.noPrint} ${NO_PRINT_CLASS}`}
+          >
             <MergeStyleFilterBar
               keyword={docKeyword}
               onKeywordChange={setDocKeyword}
@@ -1866,7 +1905,9 @@ const AltSheetView = ({
             <div className={style.sheetEmpty}>표시할 응답이 없습니다.</div>
           ) : (
             <>
-              <div className={style.reviewNav}>
+              <div
+                className={`${style.reviewNav} ${style.noPrint} ${NO_PRINT_CLASS}`}
+              >
                 <button
                   type="button"
                   className={style.reviewNavBtn}
@@ -1894,451 +1935,183 @@ const AltSheetView = ({
                 </button>
               </div>
 
-              <div className={style.docViewCardHeader}>
-                <div>
-                  <span style={{ fontWeight: 600 }}>
-                    {currentDocRow._respondentName || "응답자"}
-                  </span>
-                  {currentDocRow._respondentId && (
+              <div ref={docPrintRootRef}>
+                <div className={style.printTitle}>
+                  {selectedForm?.title || "기록"}
+                </div>
+                <div className={style.docViewCardHeader}>
+                  <div>
+                    <span style={{ fontWeight: 600 }}>
+                      {currentDocRow._respondentName || "응답자"}
+                    </span>
+                    {currentDocRow._respondentId && (
+                      <span
+                        style={{
+                          fontSize: "12px",
+                          color: "var(--text-color-2)",
+                          marginLeft: "4px",
+                        }}
+                      >
+                        ({currentDocRow._respondentId})
+                      </span>
+                    )}
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "8px",
+                      alignItems: "center",
+                    }}
+                  >
                     <span
                       style={{
                         fontSize: "12px",
                         color: "var(--text-color-2)",
-                        marginLeft: "4px",
                       }}
                     >
-                      ({currentDocRow._respondentId})
-                    </span>
-                  )}
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "8px",
-                    alignItems: "center",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: "12px",
-                      color: "var(--text-color-2)",
-                    }}
-                  >
-                    {currentDocRow._submittedAt
-                      ? new Date(currentDocRow._submittedAt).toLocaleString(
-                          "ko-KR",
-                          {
-                            year: "numeric",
-                            month: "2-digit",
-                            day: "2-digit",
-                            weekday: "short",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          }
-                        )
-                      : "-"}
-                  </span>
-                  {canEditRowDoc(currentDocRow) &&
-                    editingRowId !== currentDocRow._id && (
-                      <button
-                        type="button"
-                        className={style.formCardIconBtn}
-                        title="수정"
-                        onClick={() => handleDocEditStart(currentDocRow)}
-                      >
-                        <Svg type="edit" width="18px" height="18px" />
-                      </button>
-                    )}
-                  {editingRowId === currentDocRow._id && (
-                    <>
-                      <Button
-                        type="ghost"
-                        onClick={handleDocEditSave}
-                        style={{ padding: "2px 8px", fontSize: "12px" }}
-                      >
-                        저장
-                      </Button>
-                      <Button
-                        type="ghost"
-                        onClick={() => setEditingRowId(null)}
-                        style={{ padding: "2px 8px", fontSize: "12px" }}
-                      >
-                        취소
-                      </Button>
-                    </>
-                  )}
-                  {(canDeleteAnyRow ||
-                    (currentDocRow._respondent === currentUser?._id &&
-                      (selectedForm?.settings?.allowResubmit ||
-                        selectedForm?.settings?.allowMultipleResponses))) && (
-                    <button
-                      className={style.removeBtn}
-                      onClick={() => requestDeleteRow(currentDocRow)}
-                      title="삭제"
-                      style={{ opacity: 0.5 }}
-                    >
-                      ×
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {isQuiz && currentDocRow.data?._quiz_score != null && (
-                <div className={style.quizScoreBanner}>
-                  <div className={style.quizScoreText}>
-                    <strong>
-                      점수: {currentDocRow.data._quiz_score} /{" "}
-                      {currentDocRow.data._quiz_total || 0}점
-                    </strong>
-                  </div>
-                </div>
-              )}
-
-              {isAssessment && (
-                <div className={style.quizScoreBanner}>
-                  <div className={style.quizScoreText}>
-                    <strong>
-                      평가:{" "}
-                      {currentDocRow.data?._assessment?.final?.status ===
-                      "finalized"
-                        ? "확정됨"
-                        : "초안"}
-                    </strong>
-                    {currentDocRow.data?._assessment?.final?.max != null && (
-                      <span>
-                        {" "}
-                        {currentDocRow.data._assessment.final.score ?? 0} /{" "}
-                        {currentDocRow.data._assessment.final.max}점
-                      </span>
-                    )}
-                    {currentDocRow.data?._assessment?.final?.comment && (
-                      <span>
-                        {" "}
-                        · {currentDocRow.data._assessment.final.comment}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {visibleFields.map((field) => (
-                <div key={field._id} className={style.questionItem}>
-                  <div className={style.questionLabel}>
-                    <span className={style.questionLabelText}>
-                      {field.label}
-                    </span>
-                    {field.required && (
-                      <span className={style.requiredMark}>*</span>
-                    )}
-                    {field.permission === "owner" && (
-                      <span className={style.docViewOwnerBadge}>(관리자)</span>
-                    )}
-                  </div>
-                  <div className={style.docViewValue}>
-                    {renderDocFieldValue(
-                      currentDocRow,
-                      field,
-                      editingRowId === currentDocRow._id
-                    )}
-                  </div>
-                </div>
-              ))}
-
-              {/* 관리자 채점 패널 */}
-              {isAssessment && canManage && (
-                <div
-                  className={style.questionItem}
-                  style={{
-                    marginTop: 16,
-                    padding: 12,
-                    border: "1px solid var(--border-color)",
-                    borderRadius: 8,
-                    background: "var(--background-color-2)",
-                  }}
-                >
-                  <div className={style.questionLabel}>
-                    <span className={style.questionLabelText}>채점</span>
-                  </div>
-                  {(selectedForm?.fields || [])
-                    .filter(
-                      (f) =>
-                        f.gradingMethod &&
-                        f.gradingMethod !== "none" &&
-                        f.permission === "respondent"
-                    )
-                    .map((field) => {
-                      const method = field.gradingMethod!;
-                      const draft = gradeDraft.byField[field._id] || {};
-                      const fieldRubricIds =
-                        field.rubricIds?.length
-                          ? field.rubricIds
-                          : field.rubricId
-                            ? [field.rubricId]
-                            : [];
-                      const fieldRubrics = fieldRubricIds
-                        .map((id) =>
-                          (selectedForm?.rubrics || []).find(
-                            (r: TFormRubric) => r.id === id
-                          )
-                        )
-                        .filter(Boolean) as TFormRubric[];
-                      return (
-                        <div
-                          key={field._id}
-                          style={{
-                            marginTop: 10,
-                            paddingTop: 8,
-                            borderTop: "1px solid var(--border-color)",
-                          }}
-                        >
-                          <div style={{ fontSize: 13, fontWeight: 600 }}>
-                            {field.label}
-                            <span
-                              style={{
-                                marginLeft: 6,
-                                fontWeight: 400,
-                                color: "var(--text-color-2)",
-                                fontSize: 12,
-                              }}
-                            >
-                              (
-                              {method === "completion"
-                                ? "자기선언"
-                                : method === "manual_score"
-                                  ? "수동 점수"
-                                  : fieldRubrics.length > 1
-                                    ? `루브릭 ${fieldRubrics.length}개`
-                                    : "루브릭"}
-                              )
-                            </span>
-                          </div>
-                          {(method === "manual_score" ||
-                            method === "completion") && (
-                            <div
-                              style={{
-                                display: "flex",
-                                gap: 8,
-                                alignItems: "center",
-                                marginTop: 6,
-                              }}
-                            >
-                              <input
-                                className={style.filterInput}
-                                type="number"
-                                min={0}
-                                max={field.points || 0}
-                                style={{ width: 80 }}
-                                value={draft.score ?? ""}
-                                onChange={(e) => {
-                                  const score =
-                                    e.target.value === ""
-                                      ? undefined
-                                      : Number(e.target.value);
-                                  setGradeDraft((p) => ({
-                                    ...p,
-                                    byField: {
-                                      ...p.byField,
-                                      [field._id]: { ...draft, score },
-                                    },
-                                  }));
-                                }}
-                              />
-                              <span style={{ fontSize: 12 }}>
-                                / {field.points || 0}점
-                              </span>
-                            </div>
-                          )}
-                          {method === "rubric" &&
-                            (fieldRubrics.length === 0 ? (
-                              <div
-                                style={{
-                                  marginTop: 6,
-                                  fontSize: 12,
-                                  color: "var(--text-color-2)",
-                                }}
-                              >
-                                연결된 루브릭이 없습니다. 양식 편집에서
-                                루브릭을 선택하세요.
-                              </div>
-                            ) : (
-                              fieldRubrics.map((rubric) => {
-                                const rDraft =
-                                  draft.byRubric?.[rubric.id] ||
-                                  (fieldRubrics.length === 1
-                                    ? { levelId: draft.levelId }
-                                    : {});
-                                return (
-                                  <div
-                                    key={rubric.id}
-                                    style={{ marginTop: 8 }}
-                                  >
-                                    <div
-                                      style={{
-                                        fontSize: 12,
-                                        color: "var(--text-color-2)",
-                                        marginBottom: 4,
-                                      }}
-                                    >
-                                      {rubric.title}
-                                    </div>
-                                    <select
-                                      className={style.filterInput}
-                                      style={{ maxWidth: 280 }}
-                                      value={rDraft.levelId || ""}
-                                      onChange={(e) => {
-                                        const levelId =
-                                          e.target.value || undefined;
-                                        setGradeDraft((p) => {
-                                          const prev =
-                                            p.byField[field._id] || {};
-                                          return {
-                                            ...p,
-                                            byField: {
-                                              ...p.byField,
-                                              [field._id]: {
-                                                ...prev,
-                                                byRubric: {
-                                                  ...(prev.byRubric || {}),
-                                                  [rubric.id]: {
-                                                    ...(prev.byRubric?.[
-                                                      rubric.id
-                                                    ] || {}),
-                                                    levelId,
-                                                  },
-                                                },
-                                                // 단일일 때 레거시 필드도 동기화
-                                                levelId:
-                                                  fieldRubrics.length === 1
-                                                    ? levelId
-                                                    : prev.levelId,
-                                              },
-                                            },
-                                          };
-                                        });
-                                      }}
-                                    >
-                                      <option value="">수준 선택</option>
-                                      {(rubric.levels || []).map((l) => (
-                                        <option key={l.id} value={l.id}>
-                                          {l.label}
-                                          {l.points != null
-                                            ? ` (${l.points}점)`
-                                            : ""}
-                                        </option>
-                                      ))}
-                                    </select>
-                                  </div>
-                                );
-                              })
-                            ))}
-                          <input
-                            className={style.filterInput}
-                            placeholder="코멘트"
-                            style={{ marginTop: 6, width: "100%" }}
-                            value={draft.comment || ""}
-                            onChange={(e) =>
-                              setGradeDraft((p) => ({
-                                ...p,
-                                byField: {
-                                  ...p.byField,
-                                  [field._id]: {
-                                    ...draft,
-                                    comment: e.target.value,
-                                  },
-                                },
-                              }))
+                      {currentDocRow._submittedAt
+                        ? new Date(currentDocRow._submittedAt).toLocaleString(
+                            "ko-KR",
+                            {
+                              year: "numeric",
+                              month: "2-digit",
+                              day: "2-digit",
+                              weekday: "short",
+                              hour: "2-digit",
+                              minute: "2-digit",
                             }
-                          />
-                        </div>
-                      );
-                    })}
-
-                  <div style={{ marginTop: 12 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600 }}>
-                      최종 코멘트
-                    </div>
-                    <input
-                      className={style.filterInput}
-                      placeholder="학생에게 보여줄 코멘트 (선택)"
-                      style={{ marginTop: 6, width: "100%" }}
-                      value={gradeDraft.final.comment || ""}
-                      onChange={(e) =>
-                        setGradeDraft((p) => ({
-                          ...p,
-                          final: {
-                            ...p.final,
-                            comment: e.target.value,
-                          },
-                        }))
-                      }
-                    />
+                          )
+                        : "-"}
+                    </span>
+                    <span className={`${style.noPrint} ${NO_PRINT_CLASS}`}>
+                      {canEditRowDoc(currentDocRow) &&
+                        editingRowId !== currentDocRow._id && (
+                          <button
+                            type="button"
+                            className={style.formCardIconBtn}
+                            title="수정"
+                            onClick={() => handleDocEditStart(currentDocRow)}
+                          >
+                            <Svg type="edit" width="18px" height="18px" />
+                          </button>
+                        )}
+                      {editingRowId === currentDocRow._id && (
+                        <>
+                          <Button
+                            type="ghost"
+                            onClick={handleDocEditSave}
+                            style={{ padding: "2px 8px", fontSize: "12px" }}
+                          >
+                            저장
+                          </Button>
+                          <Button
+                            type="ghost"
+                            onClick={() => setEditingRowId(null)}
+                            style={{ padding: "2px 8px", fontSize: "12px" }}
+                          >
+                            취소
+                          </Button>
+                        </>
+                      )}
+                      {(canDeleteAnyRow ||
+                        (currentDocRow._respondent === currentUser?._id &&
+                          (selectedForm?.settings?.allowResubmit ||
+                            selectedForm?.settings
+                              ?.allowMultipleResponses))) && (
+                        <button
+                          className={style.removeBtn}
+                          onClick={() => requestDeleteRow(currentDocRow)}
+                          title="삭제"
+                          style={{ opacity: 0.5 }}
+                        >
+                          ×
+                        </button>
+                      )}
+                    </span>
                   </div>
+                </div>
 
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 8,
-                      marginTop: 12,
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: "var(--text-color-2)",
-                        lineHeight: 1.45,
-                      }}
-                    >
-                      <strong>채점 저장</strong>: 초안으로만 저장합니다. 학생에게는
-                      결과가 보이지 않습니다.
-                      <br />
-                      <strong>평가 확정</strong>: 학생에게 평가 결과를 공개합니다.
+                {isQuiz && currentDocRow.data?._quiz_score != null && (
+                  <div className={style.quizScoreBanner}>
+                    <div className={style.quizScoreText}>
+                      <strong>
+                        점수: {currentDocRow.data._quiz_score} /{" "}
+                        {currentDocRow.data._quiz_total || 0}점
+                      </strong>
                     </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: 8,
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <Button
-                        type="ghost"
-                        onClick={() => saveAssessmentGrade()}
-                        disabled={isSavingGrade}
-                      >
-                        채점 저장
-                      </Button>
-                      {currentDocRow.data?._assessment?.final?.status ===
-                      "finalized" ? (
-                        <Button
-                          type="ghost"
-                          onClick={() =>
-                            saveAssessmentGrade({ unfinalize: true })
-                          }
-                          disabled={isSavingGrade}
-                        >
-                          확정 취소
-                        </Button>
-                      ) : (
-                        <Button
-                          onClick={() =>
-                            saveAssessmentGrade({ finalize: true })
-                          }
-                          disabled={isSavingGrade}
-                        >
-                          평가 확정
-                        </Button>
+                  </div>
+                )}
+
+                {contentFields.map((field) => (
+                  <div key={field._id} className={style.questionItem}>
+                    <div className={style.questionLabel}>
+                      <span className={style.questionLabelText}>
+                        {field.label}
+                      </span>
+                      {field.required && (
+                        <span className={style.requiredMark}>*</span>
+                      )}
+                      {field.permission === "owner" && (
+                        <span className={style.docViewOwnerBadge}>
+                          (관리자)
+                        </span>
+                      )}
+                    </div>
+                    <div className={style.docViewValue}>
+                      {renderDocFieldValue(
+                        currentDocRow,
+                        field,
+                        editingRowId === currentDocRow._id
                       )}
                     </div>
                   </div>
-                </div>
-              )}
+                ))}
+
+                {approvalFields.map((field) => (
+                  <SheetApprovalDocSection
+                    key={field._id}
+                    field={field}
+                    row={currentDocRow}
+                    currentUserId={currentUser?.userId}
+                    reason={
+                      approvalReason[`${currentDocRow._id}_${field._id}`] || ""
+                    }
+                    onReasonChange={(value) =>
+                      setApprovalReason((p) => ({
+                        ...p,
+                        [`${currentDocRow._id}_${field._id}`]: value,
+                      }))
+                    }
+                    onApprove={() =>
+                      handleApproval(currentDocRow._id, field._id, "approved")
+                    }
+                    onReject={() =>
+                      handleApproval(currentDocRow._id, field._id, "rejected")
+                    }
+                  />
+                ))}
+
+                {isAssessment && selectedForm && (
+                  <SheetAssessmentSection
+                    form={selectedForm}
+                    row={currentDocRow}
+                    canManage={canManage}
+                    gradeDraft={gradeDraft}
+                    setGradeDraft={setGradeDraft}
+                    isSavingGrade={isSavingGrade}
+                    onSave={saveAssessmentGrade}
+                  />
+                )}
+              </div>
             </>
           )}
         </div>
       ) : !isLoading ? (
         /* ── 테이블 뷰 ── */
-        <div className={style.sheetTableWrap}>
+        <div ref={tablePrintRootRef} className={style.sheetTableWrap}>
+          <div className={style.printTitle}>
+            {selectedForm?.title || "기록"}
+          </div>
           <table className={style.sheetTable}>
             <colgroup>
               <col className={style.colRowNum} />

@@ -1,6 +1,7 @@
 import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import useOutsideClick from "hooks/useOutsideClick";
 import style from "./altBoard.module.scss";
+import { NO_PRINT_CLASS } from "utils/printArea";
 
 type SortConfig = {
   fieldId: string;
@@ -73,7 +74,7 @@ const SheetColHeader = ({
         <button
           ref={triggerRef}
           type="button"
-          className={`${style.sheetColMenuBtn} ${
+          className={`${style.sheetColMenuBtn} ${style.noPrint} ${NO_PRINT_CLASS} ${
             outsideClick.active || hasActiveFilter
               ? style.sheetColMenuBtnActive
               : ""
@@ -93,7 +94,7 @@ const SheetColHeader = ({
       {outsideClick.active && (
         <div
           ref={outsideClick.RefObject}
-          className={style.sheetColMenu}
+          className={`${style.sheetColMenu} ${style.noPrint} ${NO_PRINT_CLASS}`}
           style={{ top: menuPos.top, left: menuPos.left }}
           onClick={(e) => e.stopPropagation()}
         >

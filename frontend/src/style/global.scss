@@ -100,6 +100,42 @@ svg {
     height: auto !important;
     margin: 0 !important;
   }
+
+  /*
+   * 기록 등: printArea()가 body.altsis-printing + [data-print-root]로
+   * 현재 화면 영역만 인쇄하도록 격리한다.
+   */
+  body.altsis-printing * {
+    visibility: hidden !important;
+  }
+
+  body.altsis-printing [data-print-root],
+  body.altsis-printing [data-print-root] * {
+    visibility: visible !important;
+  }
+
+  body.altsis-printing [data-print-root] {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 8px !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  body.altsis-printing .altsis-no-print,
+  body.altsis-printing .altsis-no-print * {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  body.altsis-printing [data-print-root] a {
+    text-decoration: none !important;
+    color: inherit !important;
+  }
 }
 
 // 스크롤바 숨김 유틸리티 클래스

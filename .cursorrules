@@ -1,0 +1,8 @@
+# Legacy Cursor rules entrypoint
+
+Prefer project rules under `.cursor/rules/` (especially `code-quality-standards.mdc`, always applied).
+
+Canonical quality standards: `.agents/rules/code-quality-standards.md`
+Cross-tool agent entry: `AGENTS.md`
+
+While coding, enforce the 6 pillars (Architecture, Security/OWASP, Performance, Testing, Documentation, Accessibility). Do not defer quality checks only to PR review or 「마무리」.

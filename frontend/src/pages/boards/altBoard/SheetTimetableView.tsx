@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { Ref, useEffect, useMemo, useState } from "react";
 import style from "./altBoard.module.scss";
 import Svg from "assets/svg/Svg";
 import { TAltFormField } from "types/altForm";
 import { TAltSheetRow } from "types/altSheet";
+import { NO_PRINT_CLASS } from "utils/printArea";
 import {
   buildTimetableSlots,
   buildWeekGrid,
@@ -15,9 +16,20 @@ import {
 } from "utils/timetableSlots";
 
 type Props = {
+  formId: string;
   rows: TAltSheetRow[];
   fields: TAltFormField[];
   onOpenRow: (rowId: string) => void;
+  /** 인쇄 대상 루트 (현재 주 그리드) */
+  printRootRef?: Ref<HTMLDivElement>;
+  printTitle?: string;
+};
+
+type TTimetablePrefs = {
+  dateFieldId?: string;
+  periodFieldId?: string;
+  selectedDays?: number[];
+  contentKeys?: string[];
 };
 
 /** 칸 내용용 특수 키: 응답자 이름 */
@@ -33,6 +45,8 @@ const DAY_OPTIONS: { index: number; label: string }[] = [
   { index: 6, label: "일" },
 ];
 
+const DEFAULT_DAYS = [0, 1, 2, 3, 4, 5, 6];
+
 const CONTENT_FIELD_TYPES = [
   "text",
   "textarea",
@@ -43,6 +57,43 @@ const CONTENT_FIELD_TYPES = [
   "time",
   "userSelect",
 ];
+
+const prefsKey = (formId: string) => `altSheet_${formId}_timetablePrefs`;
+
+const readTimetablePrefs = (formId: string): TTimetablePrefs => {
+  if (!formId) return {};
+  try {
+    const raw = localStorage.getItem(prefsKey(formId));
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return {};
+    return parsed as TTimetablePrefs;
+  } catch {
+    return {};
+  }
+};
+
+const writeTimetablePrefs = (formId: string, prefs: TTimetablePrefs) => {
+  if (!formId) return;
+  try {
+    localStorage.setItem(prefsKey(formId), JSON.stringify(prefs));
+  } catch {
+    /* ignore */
+  }
+};
+
+const sanitizeDays = (days: unknown): number[] => {
+  if (!Array.isArray(days)) return DEFAULT_DAYS;
+  const next = Array.from(
+    new Set(
+      days.filter(
+        (d): d is number =>
+          typeof d === "number" && Number.isInteger(d) && d >= 0 && d <= 6
+      )
+    )
+  ).sort((a, b) => a - b);
+  return next.length > 0 ? next : DEFAULT_DAYS;
+};
 
 const formatCellValue = (value: unknown): string => {
   if (value == null || value === "") return "";
@@ -157,23 +208,48 @@ const defaultContentKeys = (
   return picked;
 };
 
-const SheetTimetableView = ({ rows, fields, onOpenRow }: Props) => {
+const SheetTimetableView = ({
+  formId,
+  rows,
+  fields,
+  onOpenRow,
+  printRootRef,
+  printTitle,
+}: Props) => {
   const { dateFields, periodFields } = useMemo(
     () => getTimetableAxisFields(fields),
     [fields]
   );
 
-  const [dateFieldId, setDateFieldId] = useState(dateFields[0]?._id || "");
-  const [periodFieldId, setPeriodFieldId] = useState(
-    periodFields[0]?._id || ""
-  );
+  const [dateFieldId, setDateFieldId] = useState(() => {
+    const prefs = readTimetablePrefs(formId);
+    if (
+      prefs.dateFieldId &&
+      dateFields.some((f) => f._id === prefs.dateFieldId)
+    ) {
+      return prefs.dateFieldId;
+    }
+    return dateFields[0]?._id || "";
+  });
+  const [periodFieldId, setPeriodFieldId] = useState(() => {
+    const prefs = readTimetablePrefs(formId);
+    if (
+      prefs.periodFieldId &&
+      periodFields.some((f) => f._id === prefs.periodFieldId)
+    ) {
+      return prefs.periodFieldId;
+    }
+    return periodFields[0]?._id || "";
+  });
   const [weekStart, setWeekStart] = useState<string | null>(null);
   /** Mon=0 .. Sun=6 */
-  const [selectedDays, setSelectedDays] = useState<number[]>([
-    0, 1, 2, 3, 4, 5, 6,
-  ]);
+  const [selectedDays, setSelectedDays] = useState<number[]>(() =>
+    sanitizeDays(readTimetablePrefs(formId).selectedDays)
+  );
   const [contentKeys, setContentKeys] = useState<string[]>([]);
   const [contentInit, setContentInit] = useState(false);
+
+  const todayStr = formatDateOnly(new Date());
 
   useEffect(() => {
     if (
@@ -207,7 +283,16 @@ const SheetTimetableView = ({ rows, fields, onOpenRow }: Props) => {
 
   useEffect(() => {
     if (!contentInit && contentOptions.length > 0) {
-      setContentKeys(defaultContentKeys(contentOptions));
+      const prefs = readTimetablePrefs(formId);
+      const allowed = new Set(contentOptions.map((o) => o.id));
+      const fromPrefs = (prefs.contentKeys || []).filter((id) =>
+        allowed.has(id)
+      );
+      setContentKeys(
+        fromPrefs.length > 0
+          ? fromPrefs
+          : defaultContentKeys(contentOptions)
+      );
       setContentInit(true);
       return;
     }
@@ -223,7 +308,24 @@ const SheetTimetableView = ({ rows, fields, onOpenRow }: Props) => {
     });
     // contentOptionIds: options membership only (avoid resetting chips on parent re-render)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contentOptionIds, contentInit]);
+  }, [contentOptionIds, contentInit, formId]);
+
+  useEffect(() => {
+    if (!formId || !contentInit) return;
+    writeTimetablePrefs(formId, {
+      dateFieldId,
+      periodFieldId,
+      selectedDays,
+      contentKeys,
+    });
+  }, [
+    formId,
+    dateFieldId,
+    periodFieldId,
+    selectedDays,
+    contentKeys,
+    contentInit,
+  ]);
 
   const dateField = dateFields.find((f) => f._id === dateFieldId);
   const periodField = periodFields.find((f) => f._id === periodFieldId);
@@ -254,7 +356,7 @@ const SheetTimetableView = ({ rows, fields, onOpenRow }: Props) => {
 
   const dayIndexes = useMemo(() => {
     const sorted = [...selectedDays].sort((a, b) => a - b);
-    return sorted.length > 0 ? sorted : [0, 1, 2, 3, 4, 5, 6];
+    return sorted.length > 0 ? sorted : DEFAULT_DAYS;
   }, [selectedDays]);
 
   const gridResult = useMemo(() => {
@@ -270,6 +372,11 @@ const SheetTimetableView = ({ rows, fields, onOpenRow }: Props) => {
     sun.setUTCDate(sun.getUTCDate() + 6);
     return `${weekStart} ~ ${formatDateOnly(sun)}`;
   }, [weekStart]);
+
+  const goToToday = () => {
+    const today = weekStartMonday(formatDateOnly(new Date()));
+    if (today) setWeekStart(today);
+  };
 
   const toggleDay = (index: number) => {
     setSelectedDays((prev) => {
@@ -301,70 +408,95 @@ const SheetTimetableView = ({ rows, fields, onOpenRow }: Props) => {
 
   return (
     <div className={style.sheetTimetable}>
-      <div className={style.sheetTimetableToolbar}>
-        <label className={style.sheetTimetableField}>
-          <span>날짜</span>
-          <select
-            value={dateFieldId}
-            onChange={(e) => {
-              setDateFieldId(e.target.value);
-              setWeekStart(null);
-            }}
-          >
-            {dateFields.map((f) => (
-              <option key={f._id} value={f._id}>
-                {f.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className={style.sheetTimetableField}>
-          <span>항목</span>
-          <select
-            value={periodFieldId}
-            onChange={(e) => {
-              setPeriodFieldId(e.target.value);
-              setWeekStart(null);
-            }}
-          >
-            {periodFields.map((f) => (
-              <option key={f._id} value={f._id}>
-                {f.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className={style.reviewNav}>
-          <button
-            type="button"
-            className={style.reviewNavBtn}
-            disabled={!weekStart}
-            onClick={() =>
-              weekStart && setWeekStart(shiftWeekStart(weekStart, -1))
-            }
-            title="이전 주"
-          >
-            <Svg type="chevronLeft" width="18px" height="18px" />
-          </button>
-          <span className={style.reviewNavCount}>{weekLabel || "—"}</span>
-          <button
-            type="button"
-            className={style.reviewNavBtn}
-            disabled={!weekStart}
-            onClick={() =>
-              weekStart && setWeekStart(shiftWeekStart(weekStart, 1))
-            }
-            title="다음 주"
-          >
-            <Svg type="chevronRight" width="18px" height="18px" />
-          </button>
+      <div
+        className={`${style.sheetTimetableToolbar} ${style.noPrint} ${NO_PRINT_CLASS}`}
+      >
+        <div className={style.sheetTimetableToolbarLeft}>
+          <label className={style.sheetTimetableField}>
+            <span>날짜</span>
+            <select
+              value={dateFieldId}
+              onChange={(e) => {
+                setDateFieldId(e.target.value);
+                setWeekStart(null);
+              }}
+            >
+              {dateFields.map((f) => (
+                <option key={f._id} value={f._id}>
+                  {f.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className={style.sheetTimetableField}>
+            <span>항목</span>
+            <select
+              value={periodFieldId}
+              onChange={(e) => {
+                setPeriodFieldId(e.target.value);
+                setWeekStart(null);
+              }}
+            >
+              {periodFields.map((f) => (
+                <option key={f._id} value={f._id}>
+                  {f.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className={style.sheetTimetableWeekNav}>
+          <div className={style.sheetTimetableWeekNavBtns}>
+            <button
+              type="button"
+              className={style.sheetTimetableWeekNavBtn}
+              disabled={!weekStart}
+              onClick={() =>
+                weekStart && setWeekStart(shiftWeekStart(weekStart, -1))
+              }
+              title="이전 주"
+              aria-label="이전 주"
+            >
+              <Svg type="chevronLeft" width="16px" height="16px" />
+            </button>
+            <button
+              type="button"
+              className={style.sheetTimetableWeekNavBtn}
+              disabled={!weekStart}
+              onClick={goToToday}
+              title="오늘"
+            >
+              오늘
+            </button>
+            <button
+              type="button"
+              className={style.sheetTimetableWeekNavBtn}
+              disabled={!weekStart}
+              onClick={() =>
+                weekStart && setWeekStart(shiftWeekStart(weekStart, 1))
+              }
+              title="다음 주"
+              aria-label="다음 주"
+            >
+              <Svg type="chevronRight" width="16px" height="16px" />
+            </button>
+          </div>
+          <span className={style.sheetTimetableWeekLabel}>
+            {weekLabel || "—"}
+          </span>
         </div>
       </div>
 
-      <div className={style.sheetTimetableOptions}>
+      <div
+        className={`${style.sheetTimetableOptions} ${style.noPrint} ${NO_PRINT_CLASS}`}
+      >
         <div className={style.sheetTimetableOptionGroup}>
           <span className={style.sheetTimetableOptionLabel}>요일</span>
-          <div className={style.sheetTimetableChipRow} role="group" aria-label="요일 선택">
+          <div
+            className={style.sheetTimetableChipRow}
+            role="group"
+            aria-label="요일 선택"
+          >
             {DAY_OPTIONS.map((d) => {
               const active = selectedDays.includes(d.index);
               return (
@@ -385,7 +517,11 @@ const SheetTimetableView = ({ rows, fields, onOpenRow }: Props) => {
         </div>
         <div className={style.sheetTimetableOptionGroup}>
           <span className={style.sheetTimetableOptionLabel}>내용</span>
-          <div className={style.sheetTimetableChipRow} role="group" aria-label="칸 내용">
+          <div
+            className={style.sheetTimetableChipRow}
+            role="group"
+            aria-label="칸 내용"
+          >
             {contentOptions.map((opt) => {
               const active = contentKeys.includes(opt.id);
               return (
@@ -413,22 +549,40 @@ const SheetTimetableView = ({ rows, fields, onOpenRow }: Props) => {
       ) : gridResult.grid.length === 0 ? (
         <div className={style.sheetEmpty}>이 주에 표시할 항목이 없습니다.</div>
       ) : (
-        <div className={style.sheetTimetableWrap}>
+        <div ref={printRootRef} className={style.sheetTimetableWrap}>
+          {printTitle ? (
+            <div className={style.printTitle}>{printTitle}</div>
+          ) : null}
+          {weekLabel ? (
+            <div className={style.printTitle} style={{ fontSize: 13, fontWeight: 500 }}>
+              {weekLabel}
+            </div>
+          ) : null}
           <table className={style.sheetTimetableTable}>
             <thead>
               <tr>
                 <th>{periodField?.label || "항목"}</th>
-                {gridResult.dayCols.map((col) => (
-                  <th key={col.index}>
-                    {col.label}
-                    {col.date ? (
-                      <span className={style.sheetTimetableDayDate}>
-                        {" "}
-                        {col.date.slice(5)}
-                      </span>
-                    ) : null}
-                  </th>
-                ))}
+                {gridResult.dayCols.map((col) => {
+                  const isToday = !!col.date && col.date === todayStr;
+                  return (
+                    <th key={col.index}>
+                      <div className={style.sheetTimetableDayHead}>
+                        <span className={style.sheetTimetableDayName}>
+                          {col.label}
+                        </span>
+                        {col.date ? (
+                          <span
+                            className={`${style.sheetTimetableDayDate} ${
+                              isToday ? style.sheetTimetableDayDateToday : ""
+                            }`}
+                          >
+                            {col.date.slice(5)}
+                          </span>
+                        ) : null}
+                      </div>
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
