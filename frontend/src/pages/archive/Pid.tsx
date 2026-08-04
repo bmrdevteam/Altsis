@@ -224,34 +224,51 @@ const ArchiveField = (props: Props) => {
     );
   };
 
+  const removeSelectedStudent = (idx: number) => {
+    const registration = selectedRegistrationList[idx];
+    if (!registration) return;
+    const next = selectedRegistrationList.filter((_, i) => i !== idx);
+    setSelectedRegistrationList(next);
+    const reg = _.find(registrationListRef.current, {
+      _id: registration._id,
+    });
+    if (reg) reg.tableRowChecked = false;
+  };
+
   const selectedStudents = () => {
     if (selectedRegistrationList.length === 0) {
       return (
-        <div className={style.category} onClick={openSelectPopup}>
-          조회할 학생을 선택해주세요
-        </div>
+        <button
+          type="button"
+          className={style.student_select_cta}
+          onClick={openSelectPopup}
+        >
+          <Svg type="userPlus" width="16px" height="16px" />
+          학생 선택
+        </button>
       );
     }
     return (
       <>
-        <div className={style.category} onClick={openSelectPopup}>
-          선택된 학생 수: {selectedRegistrationList.length}
-        </div>
+        <button
+          type="button"
+          className={style.student_summary_chip}
+          onClick={openSelectPopup}
+        >
+          학생 {selectedRegistrationList.length}명 · 변경
+        </button>
         {selectedRegistrationList.map((registration: any, idx: number) => (
-          <div
-            className={style.category}
-            key={registration._id}
-            onClick={() => {
-              selectedRegistrationList.splice(idx, 1);
-              setSelectedRegistrationList([...selectedRegistrationList]);
-              const reg = _.find(registrationListRef.current, {
-                _id: registration._id,
-              });
-              if (reg) reg.tableRowChecked = false;
-            }}
-          >
+          <span className={style.student_name_chip} key={registration._id}>
             {registration.userName}
-          </div>
+            <button
+              type="button"
+              className={style.student_name_chip_remove}
+              aria-label={`${registration.userName} 제거`}
+              onClick={() => removeSelectedStudent(idx)}
+            >
+              <Svg type="x" width="12px" height="12px" />
+            </button>
+          </span>
         ))}
       </>
     );
@@ -291,8 +308,8 @@ const ArchiveField = (props: Props) => {
           </div>
         )}
 
-        <div className={style.categories_container}>
-          <div className={style.categories}>{selectedStudents()}</div>
+        <div className={style.student_select_container}>
+          <div className={style.student_select_row}>{selectedStudents()}</div>
         </div>
 
         {!isLoading &&
