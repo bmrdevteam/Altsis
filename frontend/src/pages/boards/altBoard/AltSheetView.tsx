@@ -39,6 +39,48 @@ type SortConfig = {
   direction: "asc" | "desc";
 } | null;
 
+type TSheetViewMode = "table" | "doc" | "timetable";
+
+const SHEET_VIEW_MODES: TSheetViewMode[] = ["table", "doc", "timetable"];
+
+const formSupportsTimetable = (form: TAltForm | undefined) => {
+  if (!form) return false;
+  const { dateFields, periodFields } = getTimetableAxisFields(
+    form.fields || []
+  );
+  return dateFields.length > 0 && periodFields.length > 0;
+};
+
+const readStoredViewMode = (formId: string): TSheetViewMode | null => {
+  try {
+    const stored = localStorage.getItem(`altSheet_${formId}_viewMode`);
+    if (stored && SHEET_VIEW_MODES.includes(stored as TSheetViewMode)) {
+      return stored as TSheetViewMode;
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+};
+
+const writeStoredViewMode = (formId: string, mode: TSheetViewMode) => {
+  try {
+    localStorage.setItem(`altSheet_${formId}_viewMode`, mode);
+  } catch {
+    /* ignore */
+  }
+};
+
+const resolveViewMode = (
+  formId: string,
+  form: TAltForm | undefined,
+  mode?: TSheetViewMode
+): TSheetViewMode => {
+  const next = mode ?? readStoredViewMode(formId) ?? "doc";
+  if (next === "timetable" && !formSupportsTimetable(form)) return "doc";
+  return next;
+};
+
 const formMatchesKeyword = (form: TAltForm, keyword: string) => {
   const kw = keyword.trim().toLowerCase();
   if (!kw) return true;
@@ -113,10 +155,25 @@ const AltSheetView = ({
     Record<string, string>
   >({});
 
-  // 뷰 모드: 테이블 / 문서 / 시간표
-  const [viewMode, setViewMode] = useState<"table" | "doc" | "timetable">(
-    "doc"
-  );
+  // 뷰 모드: 테이블 / 문서 / 시간표 (양식별 localStorage 기억)
+  const [viewMode, setViewMode] = useState<TSheetViewMode>(() => {
+    if (!initialFormId) return "doc";
+    const form = forms.find((f) => f._id === initialFormId);
+    return resolveViewMode(initialFormId, form);
+  });
+
+  const applyViewMode = (formId: string, mode: TSheetViewMode) => {
+    setViewMode(mode);
+    writeStoredViewMode(formId, mode);
+  };
+
+  const openForm = (formId: string, mode?: TSheetViewMode) => {
+    const form = forms.find((f) => f._id === formId);
+    const resolved = resolveViewMode(formId, form, mode);
+    applyViewMode(formId, resolved);
+    setSelectedFormId(formId);
+    onFormSelect?.(formId);
+  };
 
   // 문서 뷰 편집 상태
   const [editingRowId, setEditingRowId] = useState<string | null>(null);
@@ -168,8 +225,9 @@ const AltSheetView = ({
   useEffect(() => {
     if (!supportsTimetable && viewMode === "timetable") {
       setViewMode("doc");
+      if (selectedFormId) writeStoredViewMode(selectedFormId, "doc");
     }
-  }, [supportsTimetable, viewMode]);
+  }, [supportsTimetable, viewMode, selectedFormId]);
 
   // 평가 채점 초안 (문서 보기)
   const [gradeDraft, setGradeDraft] = useState<{
@@ -1472,22 +1530,20 @@ const AltSheetView = ({
               </div>
             ) : (
               <div className={style.formCardList}>
-                {filteredForms.map((form) => (
+                {filteredForms.map((form) => {
+                  const canTimetable = formSupportsTimetable(form);
+                  return (
                   <div
                     key={form._id}
                     className={style.formCard}
                     title="기록 열기"
-                    onClick={() => {
-                      setSelectedFormId(form._id);
-                      onFormSelect?.(form._id);
-                    }}
+                    onClick={() => openForm(form._id)}
                     role="button"
                     tabIndex={0}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
-                        setSelectedFormId(form._id);
-                        onFormSelect?.(form._id);
+                        openForm(form._id);
                       }
                     }}
                   >
@@ -1534,6 +1590,44 @@ const AltSheetView = ({
                       </div>
                     </div>
                     <div className={style.formCardRight}>
+                      <button
+                        type="button"
+                        className={style.formCardIconBtn}
+                        title="테이블 보기"
+                        aria-label="테이블 보기"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openForm(form._id, "table");
+                        }}
+                      >
+                        <Svg type="table" width="20px" height="20px" />
+                      </button>
+                      <button
+                        type="button"
+                        className={style.formCardIconBtn}
+                        title="문서 보기"
+                        aria-label="문서 보기"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openForm(form._id, "doc");
+                        }}
+                      >
+                        <Svg type="article" width="20px" height="20px" />
+                      </button>
+                      {canTimetable && (
+                        <button
+                          type="button"
+                          className={style.formCardIconBtn}
+                          title="시간표 보기"
+                          aria-label="시간표 보기"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openForm(form._id, "timetable");
+                          }}
+                        >
+                          <Svg type="calender" width="20px" height="20px" />
+                        </button>
+                      )}
                       {onCopySheetLink && (
                         <button
                           type="button"
@@ -1549,7 +1643,8 @@ const AltSheetView = ({
                       )}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1611,9 +1706,10 @@ const AltSheetView = ({
           <button
             type="button"
             className={style.formCardIconBtn}
-            onClick={() =>
-              setViewMode(viewMode === "table" ? "doc" : "table")
-            }
+            onClick={() => {
+              const next = viewMode === "table" ? "doc" : "table";
+              applyViewMode(selectedFormId, next);
+            }}
             title={
               viewMode === "table" ? "문서 보기로 전환" : "테이블 보기로 전환"
             }
@@ -1633,7 +1729,7 @@ const AltSheetView = ({
               className={`${style.formCardIconBtn} ${
                 viewMode === "timetable" ? style.formCardIconBtnActive : ""
               }`}
-              onClick={() => setViewMode("timetable")}
+              onClick={() => applyViewMode(selectedFormId, "timetable")}
               title="시간표 보기"
               aria-label="시간표 보기"
               aria-pressed={viewMode === "timetable"}
@@ -1740,7 +1836,7 @@ const AltSheetView = ({
             const idx = filteredRows.findIndex((r) => r._id === rowId);
             if (idx >= 0) {
               setDocIndex(idx);
-              setViewMode("doc");
+              applyViewMode(selectedFormId, "doc");
             }
           }}
         />
