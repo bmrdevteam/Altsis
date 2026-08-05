@@ -1,5 +1,5 @@
 /**
- * School-wide Alt Board todos (approve / outgoing / unsubmitted)
+ * School-wide Alt Board todos (approve / grade / outgoing / unsubmitted)
  * Batched queries to avoid per-board / per-form N+1.
  */
 
@@ -9,6 +9,7 @@ import {
   isSeasonScopedBoard,
   canBypassSeasonRegistration,
 } from "./boards.js";
+import { canManageForm } from "./altForms.js";
 import {
   assembleSchoolTodos,
   sortSchoolTodos,
@@ -18,6 +19,7 @@ import { countRequiredFormProgress } from "../utils/requiredFormProgress.js";
 export { assembleSchoolTodos, sortSchoolTodos };
 
 const APPROVER_ROWS_LIMIT = 200;
+const PENDING_GRADE_ROWS_LIMIT = 500;
 
 /**
  * Accessible alt boards + forms + myRows for a user (shared by todos / goals).
@@ -181,11 +183,41 @@ export const getSchoolTodosForUser = async (
       .lean();
   }
 
+  const boardsById = new Map(
+    accessibleBoards.map((b) => [b._id.toString(), b])
+  );
+  const gradeFormIds = [];
+  for (const form of forms) {
+    if (!form.settings?.assessmentMode) continue;
+    if (form.settings?.directInputMode) continue;
+    const board = boardsById.get(form.board.toString());
+    if (!board) continue;
+    if (!canManageForm(board, user) && user.auth !== "manager") continue;
+    gradeFormIds.push(form._id);
+  }
+
+  let pendingGradeRows = [];
+  if (gradeFormIds.length > 0) {
+    pendingGradeRows = await AltSheetRow(academyId)
+      .find({
+        form: { $in: gradeFormIds },
+        isActive: true,
+        _respondent: { $exists: true, $ne: null },
+        _submittedAt: { $exists: true, $ne: null },
+        "data._assessment.final.status": { $ne: "finalized" },
+      })
+      .select("form _submittedAt createdAt")
+      .sort({ _submittedAt: -1 })
+      .limit(PENDING_GRADE_ROWS_LIMIT)
+      .lean();
+  }
+
   const items = assembleSchoolTodos({
     boards: accessibleBoards,
     forms,
     myRows,
     approverRows,
+    pendingGradeRows,
     user,
   });
 

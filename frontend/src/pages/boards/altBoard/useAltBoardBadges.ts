@@ -4,6 +4,10 @@ import { useAuth } from "contexts/authContext";
 import useAPIv2 from "hooks/useAPIv2";
 import { TBoard } from "types/board";
 import { TAltForm } from "types/altForm";
+import {
+  getSchoolTodosCached,
+  schoolTodosCacheKey,
+} from "../schoolTodosCache";
 
 /**
  * 수업 탭 등 외부 Tab에 넘길 보드 뱃지(활동/문서/채팅)
@@ -15,16 +19,20 @@ export const useAltBoardBadges = (
   board: TBoard | null,
   options?: { chatEnabled?: boolean; activeTab?: string }
 ) => {
-  const { currentUser } = useAuth();
+  const { currentUser, currentSchool, currentRegistration, currentSeason } =
+    useAuth();
   const { AltFormAPI, BoardChatAPI, PostAPI, AltSheetRowAPI } = useAPIv2();
   const [forms, setForms] = useState<TAltForm[]>([]);
   const [docsUnreadCount, setDocsUnreadCount] = useState(0);
   const [pendingApprovalCount, setPendingApprovalCount] = useState(0);
+  const [gradeTodoCount, setGradeTodoCount] = useState(0);
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
   const activeTabRef = useRef(options?.activeTab || "");
   /** 채팅 탭에서 읽음 처리한 뒤, 늦은 rooms 응답이 뱃지를 다시 올리지 못하게 */
   const chatReadEpochRef = useRef(0);
   const boardId = board?._id;
+  const currentSeasonId =
+    currentRegistration?.season || currentSeason?._id || undefined;
 
   useEffect(() => {
     activeTabRef.current = options?.activeTab || "";
@@ -45,14 +53,37 @@ export const useAltBoardBadges = (
     })
       .then(({ count }) => setPendingApprovalCount(count))
       .catch(() => setPendingApprovalCount(0));
+    if (currentSchool?._id) {
+      const key = schoolTodosCacheKey(currentSchool._id, currentSeasonId);
+      getSchoolTodosCached(key, () =>
+        AltSheetRowAPI.RAltSheetRowSchoolTodos({
+          query: {
+            school: currentSchool._id,
+            ...(currentSeasonId ? { season: currentSeasonId } : {}),
+          },
+        })
+      )
+        .then(({ items }) => {
+          setGradeTodoCount(
+            (items || []).filter(
+              (item) =>
+                item.kind === "grade" && String(item.boardId) === String(boardId)
+            ).length
+          );
+        })
+        .catch(() => setGradeTodoCount(0));
+    } else {
+      setGradeTodoCount(0);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- useAPIv2 refs are unstable
-  }, [boardId]);
+  }, [boardId, currentSchool?._id, currentSeasonId]);
 
   useEffect(() => {
     if (!boardId) {
       setForms([]);
       setDocsUnreadCount(0);
       setPendingApprovalCount(0);
+      setGradeTodoCount(0);
       setChatUnreadCount(0);
       return;
     }
@@ -158,7 +189,7 @@ export const useAltBoardBadges = (
       if (f.settings?.openAt && new Date(f.settings.openAt) > now) return false;
       return !f.mySubmitted;
     }).length;
-    return unsubmitted + pendingApprovalCount;
+    return unsubmitted + pendingApprovalCount + gradeTodoCount;
   })();
 
   const badges: Record<string, number> = {};

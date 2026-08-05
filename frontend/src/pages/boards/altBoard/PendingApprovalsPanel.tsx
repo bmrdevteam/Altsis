@@ -58,6 +58,9 @@ type Props = {
     approve: number;
     outgoing: number;
   }) => void;
+  /** 할 일 섹션: 채점 대기 카드들 (승인 다음·미제출 앞) */
+  gradeCards?: ReactNode;
+  gradeCount?: number;
   /** 할 일 섹션 하단: 미제출 카드들 */
   unsubmittedCards?: ReactNode;
   unsubmittedCount?: number;
@@ -252,6 +255,8 @@ const PendingApprovalsPanel = ({
   keyword = "",
   hidden = false,
   onVisibleTodoCounts,
+  gradeCards,
+  gradeCount = 0,
   unsubmittedCards,
   unsubmittedCount = 0,
 }: Props) => {
@@ -383,6 +388,7 @@ const PendingApprovalsPanel = ({
     loading &&
     items.length === 0 &&
     outgoing.length === 0 &&
+    gradeCount === 0 &&
     unsubmittedCount === 0
   ) {
     return null;
@@ -393,7 +399,10 @@ const PendingApprovalsPanel = ({
   }
 
   const todoCount =
-    visibleItems.length + visibleOutgoing.length + unsubmittedCount;
+    visibleItems.length +
+    visibleOutgoing.length +
+    gradeCount +
+    unsubmittedCount;
   const showTodoSection = todoCount > 0;
   const isReadonly = activeKind === "outgoing";
 
@@ -646,6 +655,7 @@ const PendingApprovalsPanel = ({
                   </div>
                 );
               })}
+              {gradeCards}
               {unsubmittedCards}
             </div>
           </div>

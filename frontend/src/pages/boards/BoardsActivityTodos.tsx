@@ -3,7 +3,7 @@ import Svg from "assets/svg/Svg";
 import Button from "components/button/Button";
 
 export type TSchoolTodoItem = {
-  kind: "approve" | "outgoing" | "unsubmitted";
+  kind: "approve" | "grade" | "outgoing" | "unsubmitted";
   boardId: string;
   boardTitle: string;
   formId: string;
@@ -19,6 +19,8 @@ export type TSchoolTodoItem = {
   currentStep?: number;
   totalSteps?: number;
   progress?: string;
+  /** grade 전용 — 미확정 채점 건수 */
+  pendingCount?: number;
   myResponseCount?: number;
   requiredResponseCount?: number | null;
   submittedAt?: string;
@@ -184,6 +186,56 @@ const BoardsActivityTodos = ({
                                 : ""}
                             </span>
                           )}
+                          {submittedAt && <span>{submittedAt}</span>}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              if (item.kind === "grade") {
+                const pending =
+                  item.pendingCount ??
+                  (item.progress ? Number(item.progress) : 0);
+                return (
+                  <div
+                    key={key}
+                    className={style.formCard}
+                    title="채점하기"
+                    onClick={() => onOpenTodo(item)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onOpenTodo(item);
+                      }
+                    }}
+                  >
+                    <div className={style.formCardMain}>
+                      <div
+                        className={`${style.formCardLeadIcon} ${style.formCardLeadIconWarning}`}
+                        aria-hidden
+                      >
+                        <Svg type="edit" width="20px" height="20px" />
+                      </div>
+                      <div className={style.formCardLeft}>
+                        <div className={style.formCardTitle}>
+                          {item.formTitle}
+                        </div>
+                        <div className={style.formCardMeta}>
+                          <span
+                            className={`${style.formCardBadge} ${style.formCardTypeAssessment}`}
+                          >
+                            평가
+                          </span>
+                          <span
+                            className={`${style.formCardBadge} ${style.badgePending}`}
+                          >
+                            채점 대기{pending > 0 ? ` ${pending}건` : ""}
+                          </span>
+                          <span>{item.boardTitle}</span>
                           {submittedAt && <span>{submittedAt}</span>}
                         </div>
                       </div>

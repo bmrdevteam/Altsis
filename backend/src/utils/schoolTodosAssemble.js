@@ -4,6 +4,7 @@
 
 import {
   getAltBoardRole,
+  canManageForm,
   hasSubmittedForList,
   isFormRequiredMode,
   getRequiredResponseCount,
@@ -18,7 +19,7 @@ import {
  * @returns {Array}
  */
 export const sortSchoolTodos = (todos) => {
-  const kindRank = { approve: 0, outgoing: 1, unsubmitted: 2 };
+  const kindRank = { approve: 0, grade: 1, outgoing: 2, unsubmitted: 3 };
   return [...todos].sort((a, b) => {
     const kr = (kindRank[a.kind] ?? 9) - (kindRank[b.kind] ?? 9);
     if (kr !== 0) return kr;
@@ -28,6 +29,9 @@ export const sortSchoolTodos = (todos) => {
   });
 };
 
+const canGradeAssessment = (board, user) =>
+  canManageForm(board, user) || user?.auth === "manager";
+
 /**
  * 메모리에서 할 일 항목 조립
  *
@@ -36,6 +40,7 @@ export const sortSchoolTodos = (todos) => {
  * @param {Object[]} params.forms
  * @param {Object[]} params.myRows
  * @param {Object[]} params.approverRows
+ * @param {Object[]} [params.pendingGradeRows] - 미확정 평가 응답 행
  * @param {Object} params.user - req.user
  * @param {Date} [params.now]
  * @returns {Object[]}
@@ -45,6 +50,7 @@ export const assembleSchoolTodos = ({
   forms,
   myRows,
   approverRows,
+  pendingGradeRows = [],
   user,
   now = new Date(),
 }) => {
@@ -69,6 +75,13 @@ export const assembleSchoolTodos = ({
     approverRowsByForm.get(fid).push(row);
   }
 
+  const pendingGradeByForm = new Map();
+  for (const row of pendingGradeRows) {
+    const fid = row.form.toString();
+    if (!pendingGradeByForm.has(fid)) pendingGradeByForm.set(fid, []);
+    pendingGradeByForm.get(fid).push(row);
+  }
+
   const todos = [];
 
   for (const board of boards) {
@@ -79,6 +92,7 @@ export const assembleSchoolTodos = ({
     if (!boardForms.length) continue;
 
     const altRole = getAltBoardRole(board, user);
+    const grader = canGradeAssessment(board, user);
 
     for (const form of boardForms) {
       const formId = form._id;
@@ -87,6 +101,33 @@ export const assembleSchoolTodos = ({
       const approvalFields = (form.fields || []).filter(
         (f) => f.type === "approval"
       );
+
+      if (
+        grader &&
+        form.settings?.assessmentMode &&
+        !form.settings?.directInputMode
+      ) {
+        const pending = pendingGradeByForm.get(formIdStr) || [];
+        if (pending.length > 0) {
+          let newest = null;
+          for (const row of pending) {
+            const t = row._submittedAt || row.createdAt;
+            if (!t) continue;
+            if (!newest || new Date(t) > new Date(newest)) newest = t;
+          }
+          todos.push({
+            kind: "grade",
+            boardId,
+            boardTitle,
+            formId,
+            formTitle: form.title,
+            pendingCount: pending.length,
+            progress: String(pending.length),
+            submittedAt: newest,
+            assessmentMode: true,
+          });
+        }
+      }
 
       if (approvalFields.length > 0) {
         const formApproverRows = approverRowsByForm.get(formIdStr) || [];

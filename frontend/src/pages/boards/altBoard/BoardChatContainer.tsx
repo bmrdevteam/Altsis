@@ -50,7 +50,12 @@ const BoardChatContainer = ({ board, onNewMessage }: Props) => {
   const myRole: TAltBoardRole | null = (() => {
     if (!currentUser) return null;
     if (currentUser.auth === "admin") return "admin";
-    if (board.creator === currentUser._id) return "admin";
+    if (
+      board.creator != null &&
+      String(board.creator) === String(currentUser._id)
+    ) {
+      return "admin";
+    }
     const roles = board.altBoardRole;
     if (!roles) return null;
     return (
@@ -64,7 +69,8 @@ const BoardChatContainer = ({ board, onNewMessage }: Props) => {
   const canManageRooms =
     currentUser?.auth === "admin" ||
     currentUser?.auth === "manager" ||
-    board.creator === currentUser?._id ||
+    (board.creator != null &&
+      String(board.creator) === String(currentUser?._id)) ||
     myRole === "admin" ||
     myRole === "writer";
 

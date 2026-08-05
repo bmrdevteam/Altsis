@@ -46,13 +46,20 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
   const [docsUnreadCount, setDocsUnreadCount] = useState(0);
   const [pendingApprovalCount, setPendingApprovalCount] = useState(0);
+  const [gradeTodoCount, setGradeTodoCount] = useState(0);
   const activeTabRef = useRef<string>("");
 
   // 현재 유저의 Alt Board 역할
   const myRole: TAltBoardRole | null = (() => {
     if (!currentUser) return null;
     if (currentUser.auth === "admin") return "admin";
-    if (board.creator === currentUser._id) return "admin";
+    // ObjectId/string 혼용 대비 — 생성자는 항상 admin
+    if (
+      board.creator != null &&
+      String(board.creator) === String(currentUser._id)
+    ) {
+      return "admin";
+    }
     const roles = board.altBoardRole;
     if (!roles) return null;
     return (
@@ -62,7 +69,10 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
     );
   })();
 
-  const canManage = myRole === "admin" || myRole === "writer";
+  const canManage =
+    myRole === "admin" ||
+    myRole === "writer" ||
+    currentUser?.auth === "manager";
   const canDeleteAnyRow = myRole === "admin" || currentUser?.auth === "manager";
 
   // 채팅 활성화 여부 (학교 + 아카데미 + 보드 수준 모두 확인)
@@ -76,7 +86,12 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
     if (!currentUser) return false;
     if (myRole === "admin") return true;
     if (currentUser.auth === "manager") return true;
-    if (form.creator === currentUser._id) return true;
+    if (
+      form.creator != null &&
+      String(form.creator) === String(currentUser._id)
+    ) {
+      return true;
+    }
     return false;
   };
 
@@ -154,7 +169,7 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- load once per board/surface
   }, [board._id, surface]);
 
-  // 활동 뱃지: 필수·미제출 + 승인해야 함 + 승인 진행 중
+  // 활동 뱃지: 필수·미제출 + 승인/승인진행 + 채점 대기 (할 일 칩과 동일 구성)
   const activityBadgeCount = (() => {
     const now = new Date();
     const unsubmitted = forms.filter((f) => {
@@ -165,7 +180,7 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
       if (f.settings?.openAt && new Date(f.settings.openAt) > now) return false;
       return !f.mySubmitted;
     }).length;
-    return unsubmitted + pendingApprovalCount;
+    return unsubmitted + pendingApprovalCount + gradeTodoCount;
   })();
 
   // 채팅 뱃지: 초기 unread count 로드 + 소켓 리스너
@@ -522,6 +537,7 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
           onCopyFormLink={handleCopyFormLink}
           openApprovalRowId={urlApprovalRowId}
           onPendingApprovalCountChange={setPendingApprovalCount}
+          onGradeTodoCountChange={setGradeTodoCount}
         />
       </div>
     ),

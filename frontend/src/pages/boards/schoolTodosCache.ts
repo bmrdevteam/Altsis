@@ -4,7 +4,7 @@
  */
 
 export type TSchoolTodoItem = {
-  kind: "approve" | "outgoing" | "unsubmitted";
+  kind: "approve" | "grade" | "outgoing" | "unsubmitted";
   boardId: string;
   boardTitle: string;
   formId: string;
@@ -20,9 +20,13 @@ export type TSchoolTodoItem = {
   currentStep?: number;
   totalSteps?: number;
   progress?: string;
+  pendingCount?: number;
   myResponseCount?: number;
   requiredResponseCount?: number | null;
   submittedAt?: string;
+  quizMode?: boolean;
+  assessmentMode?: boolean;
+  closeAt?: string | null;
 };
 
 export type TSchoolTodosResult = {

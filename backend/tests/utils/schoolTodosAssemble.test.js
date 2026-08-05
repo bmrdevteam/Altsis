@@ -4,7 +4,7 @@ import {
 } from "../../src/utils/schoolTodosAssemble.js";
 
 describe("sortSchoolTodos", () => {
-  test("orders approve then outgoing then unsubmitted; newest first within kind", () => {
+  test("orders approve then grade then outgoing then unsubmitted; newest first within kind", () => {
     const sorted = sortSchoolTodos([
       {
         kind: "unsubmitted",
@@ -21,6 +21,11 @@ describe("sortSchoolTodos", () => {
         submittedAt: "2026-02-01T00:00:00.000Z",
       },
       {
+        kind: "grade",
+        formTitle: "g",
+        submittedAt: "2026-02-15T00:00:00.000Z",
+      },
+      {
         kind: "approve",
         formTitle: "a-new",
         submittedAt: "2026-03-01T00:00:00.000Z",
@@ -29,6 +34,7 @@ describe("sortSchoolTodos", () => {
     expect(sorted.map((t) => t.formTitle)).toEqual([
       "a-new",
       "a-old",
+      "g",
       "o",
       "u",
     ]);
@@ -172,5 +178,88 @@ describe("assembleSchoolTodos", () => {
     });
 
     expect(items).toEqual([]);
+  });
+
+  test("aggregates pending assessment rows into one grade todo per form", () => {
+    const adminBoard = {
+      _id: "boardGrade",
+      name: "평가 보드",
+      creator: { equals: () => false },
+      altBoardRole: new Map([["user1", "admin"]]),
+    };
+    const formAssessment = {
+      _id: "formGrade",
+      board: "boardGrade",
+      title: "평가 양식",
+      fields: [],
+      settings: { assessmentMode: true, requiredMode: false },
+    };
+    const formDirect = {
+      _id: "formDirect",
+      board: "boardGrade",
+      title: "직접입력 평가",
+      fields: [],
+      settings: {
+        assessmentMode: true,
+        directInputMode: true,
+        requiredMode: false,
+      },
+    };
+
+    const items = assembleSchoolTodos({
+      boards: [adminBoard],
+      forms: [formAssessment, formDirect],
+      myRows: [],
+      approverRows: [],
+      pendingGradeRows: [
+        {
+          form: "formGrade",
+          _submittedAt: "2026-07-01T00:00:00.000Z",
+        },
+        {
+          form: "formGrade",
+          _submittedAt: "2026-07-10T00:00:00.000Z",
+        },
+        {
+          form: "formDirect",
+          _submittedAt: "2026-07-11T00:00:00.000Z",
+        },
+      ],
+      user,
+    });
+
+    const gradeItems = items.filter((i) => i.kind === "grade");
+    expect(gradeItems).toHaveLength(1);
+    expect(gradeItems[0]).toMatchObject({
+      kind: "grade",
+      formTitle: "평가 양식",
+      pendingCount: 2,
+      progress: "2",
+      assessmentMode: true,
+      submittedAt: "2026-07-10T00:00:00.000Z",
+    });
+  });
+
+  test("does not create grade todos for respondents", () => {
+    const formAssessment = {
+      _id: "formGrade2",
+      board: "board1",
+      title: "평가",
+      fields: [],
+      settings: { assessmentMode: true },
+    };
+
+    const items = assembleSchoolTodos({
+      boards: [board],
+      forms: [formAssessment],
+      myRows: [],
+      approverRows: [],
+      pendingGradeRows: [
+        { form: "formGrade2", _submittedAt: "2026-07-01T00:00:00.000Z" },
+      ],
+      user,
+    });
+
+    expect(items.filter((i) => i.kind === "grade")).toHaveLength(0);
   });
 });

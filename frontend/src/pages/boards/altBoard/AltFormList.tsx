@@ -3,6 +3,7 @@ import style from "./altBoard.module.scss";
 import { TAltForm } from "types/altForm";
 import { TAltBoardRole, TBoard } from "types/board";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import { useAuth } from "contexts/authContext";
 import { objectDownloadAsJson } from "functions/functions";
 import Button from "components/button/Button";
 import Popup from "components/popup/Popup";
@@ -21,6 +22,12 @@ import {
   TActivityBadgeKind,
   TActivityLeadTone,
 } from "./activityStatusVisual";
+import {
+  getSchoolTodosCached,
+  invalidateSchoolTodosCache,
+  schoolTodosCacheKey,
+  TSchoolTodoItem,
+} from "../schoolTodosCache";
 
 const formMatchesKeyword = (form: TAltForm, keyword: string) => {
   const kw = keyword.trim().toLowerCase();
@@ -51,6 +58,8 @@ type Props = {
   openApprovalRowId?: string | null;
   /** 승인 대기 건수 변경 시 탭 뱃지 동기화 */
   onPendingApprovalCountChange?: (count: number) => void;
+  /** 채점 대기(양식 집계) 건수 변경 시 탭 뱃지 동기화 */
+  onGradeTodoCountChange?: (count: number) => void;
 };
 
 const formMatchesStatus = (
@@ -152,8 +161,10 @@ const AltFormList = ({
   onCopyFormLink,
   openApprovalRowId,
   onPendingApprovalCountChange,
+  onGradeTodoCountChange,
 }: Props) => {
-  const { AltFormAPI } = useAPIv2();
+  const { AltFormAPI, AltSheetRowAPI } = useAPIv2();
+  const { currentSchool, currentRegistration, currentSeason } = useAuth();
 
   const [comboForm, setComboForm] = useState<TAltForm | null>(null);
   const [deleteForm, setDeleteForm] = useState<TAltForm | null>(null);
@@ -166,11 +177,54 @@ const AltFormList = ({
     approve: 0,
     outgoing: 0,
   });
+  const [gradeTodos, setGradeTodos] = useState<TSchoolTodoItem[]>([]);
   const importRef = useRef<HTMLInputElement>(null);
+
+  const currentSeasonId =
+    currentRegistration?.season || currentSeason?._id || undefined;
 
   useEffect(() => {
     setApprovalsSettled(false);
   }, [board._id]);
+
+  // 채점 대기(학교 할 일과 동일 소스) — 이 보드분만 표시
+  useEffect(() => {
+    if (!currentSchool?._id) {
+      setGradeTodos([]);
+      onGradeTodoCountChange?.(0);
+      return;
+    }
+    let cancelled = false;
+    const key = schoolTodosCacheKey(currentSchool._id, currentSeasonId);
+    // 채점 확정 직후 등 캐시가 남아 있으면 빠질 수 있어 보드 진입 시 갱신
+    invalidateSchoolTodosCache(key);
+    getSchoolTodosCached(key, () =>
+      AltSheetRowAPI.RAltSheetRowSchoolTodos({
+        query: {
+          school: currentSchool._id,
+          ...(currentSeasonId ? { season: currentSeasonId } : {}),
+        },
+      })
+    )
+      .then(({ items }) => {
+        if (cancelled) return;
+        const grades = (items || []).filter(
+          (item) =>
+            item.kind === "grade" && String(item.boardId) === String(board._id)
+        );
+        setGradeTodos(grades);
+        onGradeTodoCountChange?.(grades.length);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setGradeTodos([]);
+          onGradeTodoCountChange?.(0);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [board._id, currentSchool?._id, currentSeasonId]);
 
   /** 제출형 활동 (통계·정렬용) */
   const submitForms = useMemo(() => {
@@ -218,6 +272,14 @@ const AltFormList = ({
     [todoUnsubmitted, activityKeyword]
   );
 
+  const keywordGradeTodos = useMemo(() => {
+    const kw = activityKeyword.trim().toLowerCase();
+    if (!kw) return gradeTodos;
+    return gradeTodos.filter((item) =>
+      (item.formTitle || "").toLowerCase().includes(kw)
+    );
+  }, [gradeTodos, activityKeyword]);
+
   const keywordActivityForms = useMemo(
     () =>
       activityForms.filter((f) => formMatchesKeyword(f, activityKeyword)),
@@ -231,6 +293,11 @@ const AltFormList = ({
     if (!showTodos) return [];
     return keywordTodoUnsubmitted;
   }, [showTodos, keywordTodoUnsubmitted]);
+
+  const filteredGradeTodos = useMemo(() => {
+    if (!showTodos) return [];
+    return keywordGradeTodos;
+  }, [showTodos, keywordGradeTodos]);
 
   const filteredActivityForms = useMemo(() => {
     if (!showActivity) return [];
@@ -253,6 +320,7 @@ const AltFormList = ({
       todo:
         approvalTodoCounts.approve +
         approvalTodoCounts.outgoing +
+        keywordGradeTodos.length +
         keywordTodoUnsubmitted.length,
       open: 0,
       submitted: 0,
@@ -269,6 +337,7 @@ const AltFormList = ({
     return counts;
   }, [
     approvalTodoCounts,
+    keywordGradeTodos.length,
     keywordTodoUnsubmitted.length,
     keywordActivityForms,
   ]);
@@ -693,6 +762,52 @@ const AltFormList = ({
         keyword={activityKeyword}
         hidden={!showTodos}
         onVisibleTodoCounts={setApprovalTodoCounts}
+        gradeCount={filteredGradeTodos.length}
+        gradeCards={filteredGradeTodos.map((item) => {
+          const pending =
+            item.pendingCount ??
+            (item.progress ? Number(item.progress) : 0);
+          return (
+            <div
+              key={`grade_${item.formId}`}
+              className={style.formCard}
+              title="채점하기"
+              onClick={() => onOpenSheet?.(item.formId)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onOpenSheet?.(item.formId);
+                }
+              }}
+            >
+              <div className={style.formCardMain}>
+                <div
+                  className={`${style.formCardLeadIcon} ${style.formCardLeadIconWarning}`}
+                  aria-hidden
+                >
+                  <Svg type="edit" width="20px" height="20px" />
+                </div>
+                <div className={style.formCardLeft}>
+                  <div className={style.formCardTitle}>{item.formTitle}</div>
+                  <div className={style.formCardMeta}>
+                    <span
+                      className={`${style.formCardBadge} ${style.formCardTypeAssessment}`}
+                    >
+                      평가
+                    </span>
+                    <span
+                      className={`${style.formCardBadge} ${style.badgePending}`}
+                    >
+                      채점 대기{pending > 0 ? ` ${pending}건` : ""}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
         unsubmittedCount={filteredTodoUnsubmitted.length}
         unsubmittedCards={filteredTodoUnsubmitted.map(renderActivityCard)}
         onOpenHandled={() => {

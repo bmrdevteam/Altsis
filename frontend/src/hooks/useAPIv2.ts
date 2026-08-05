@@ -5017,7 +5017,7 @@ export default function useAPIv2() {
     });
     return {
       items: (items || []) as {
-        kind: "approve" | "outgoing" | "unsubmitted";
+        kind: "approve" | "grade" | "outgoing" | "unsubmitted";
         boardId: string;
         boardTitle: string;
         formId: string;
@@ -5033,9 +5033,13 @@ export default function useAPIv2() {
         currentStep?: number;
         totalSteps?: number;
         progress?: string;
+        pendingCount?: number;
         myResponseCount?: number;
         requiredResponseCount?: number | null;
         submittedAt?: string;
+        quizMode?: boolean;
+        assessmentMode?: boolean;
+        closeAt?: string | null;
       }[],
       count: (count as number) || 0,
     };
