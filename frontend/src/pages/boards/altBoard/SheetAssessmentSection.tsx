@@ -1,15 +1,11 @@
 import { Dispatch, SetStateAction } from "react";
 import style from "./altBoard.module.scss";
 import Button from "components/button/Button";
-import {
-  TAltForm,
-  TAssessmentData,
-  TAssessmentFieldGrade,
-  TAssessmentFieldRubricGrade,
-} from "types/altForm";
+import { TAltForm, TAssessmentData } from "types/altForm";
 import { TAltSheetRow } from "types/altSheet";
 import { NO_PRINT_CLASS } from "utils/printArea";
 import { TGradeDraft } from "./FieldAssessmentInline";
+import AssessmentResultBanner from "./AssessmentResultBanner";
 
 type Props = {
   form: TAltForm;
@@ -20,70 +16,6 @@ type Props = {
   isSavingGrade: boolean;
   onSave: (opts?: { finalize?: boolean; unfinalize?: boolean }) => void;
 };
-
-const AssessmentResultReadOnly = ({
-  form,
-  assessment,
-}: {
-  form: TAltForm;
-  assessment: TAssessmentData;
-}) => (
-  <div className={style.quizScoreBanner}>
-    <div className={style.quizScoreText}>
-      <strong>평가 결과</strong>
-      {assessment.final?.max != null && (
-        <span>
-          {" "}
-          {assessment.final.score ?? 0} / {assessment.final.max}점
-        </span>
-      )}
-      {assessment.final?.comment && (
-        <div className={style.assessmentSummaryComment}>
-          {assessment.final.comment}
-        </div>
-      )}
-      {Object.entries(assessment.byField || {}).map(
-        ([fid, g]: [string, TAssessmentFieldGrade]) => {
-          const field = form.fields.find((f) => f._id === fid);
-          const byRubric = g?.byRubric || {};
-          const entries = Object.entries(byRubric).filter(
-            ([, rg]: [string, TAssessmentFieldRubricGrade]) => !!rg?.levelLabel
-          );
-          if (
-            !entries.length &&
-            !g?.levelLabel &&
-            !g?.comment &&
-            g?.score == null
-          ) {
-            return null;
-          }
-          return (
-            <div key={fid} className={style.assessmentResultField}>
-              <div className={style.assessmentResultFieldTitle}>
-                {field?.label || "항목"}
-                {g?.score != null && g?.max != null
-                  ? ` · ${g.score}/${g.max}점`
-                  : ""}
-              </div>
-              {entries.map(([rid, rg]) => {
-                const rubric = form.rubrics?.find((r) => r.id === rid);
-                return (
-                  <div key={rid}>
-                    {rubric?.title ? `${rubric.title}: ` : ""}
-                    {rg.levelLabel}
-                    {rg.score != null ? ` (${rg.score}점)` : ""}
-                  </div>
-                );
-              })}
-              {!entries.length && g?.levelLabel && <div>{g.levelLabel}</div>}
-              {g?.comment && <div>{g.comment}</div>}
-            </div>
-          );
-        }
-      )}
-    </div>
-  </div>
-);
 
 /** 문서 보기 하단: 총점·최종 코멘트·저장/확정 (항목 채점은 카드 인라인) */
 const SheetAssessmentSection = ({
@@ -104,7 +36,7 @@ const SheetAssessmentSection = ({
       return (
         <div className={style.docSection}>
           <div className={style.docSectionTitle}>평가</div>
-          <AssessmentResultReadOnly form={form} assessment={assessment} />
+          <AssessmentResultBanner form={form} assessment={assessment} />
         </div>
       );
     }

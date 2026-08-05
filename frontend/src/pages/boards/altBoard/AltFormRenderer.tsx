@@ -5,8 +5,6 @@ import {
   TAltForm,
   TAltFormField,
   TAssessmentData,
-  TAssessmentFieldGrade,
-  TAssessmentFieldRubricGrade,
   TDisplayCondition,
 } from "types/altForm";
 import { TAltSheetRow } from "types/altSheet";
@@ -25,6 +23,7 @@ import FieldRubricPanel, {
   getFieldRubrics,
   selectedLevelsFromDraft,
 } from "./FieldRubricPanel";
+import AssessmentResultBanner from "./AssessmentResultBanner";
 
 type Props = {
   board: TBoard;
@@ -2055,65 +2054,14 @@ const AltFormRenderer = ({
       )}
 
       {/* 평가 결과 (확정 후만) */}
-      {assessmentFinalized && activeRow?.data?._assessment && (
-        <div className={style.quizScoreBanner}>
-          <div className={style.quizScoreText}>
-            <strong>평가 결과</strong>
-            {activeRow.data._assessment.final?.max != null && (
-                <span>
-                  {" "}
-                  {activeRow.data._assessment.final.score ?? 0} /{" "}
-                  {activeRow.data._assessment.final.max}점
-                </span>
-              )}
-            {activeRow.data._assessment.final?.comment && (
-              <div style={{ marginTop: 4, fontSize: 13 }}>
-                {activeRow.data._assessment.final.comment}
-              </div>
-            )}
-            {Object.entries(
-              (activeRow.data._assessment as TAssessmentData).byField || {}
-            ).map(([fid, g]: [string, TAssessmentFieldGrade]) => {
-                const field = form?.fields.find((f) => f._id === fid);
-                const byRubric = g?.byRubric || {};
-                const entries = Object.entries(byRubric).filter(
-                  ([, rg]: [string, TAssessmentFieldRubricGrade]) =>
-                    !!rg?.levelLabel
-                );
-                if (!entries.length && !g?.levelLabel && !g?.comment) {
-                  return null;
-                }
-                return (
-                  <div
-                    key={fid}
-                    style={{ marginTop: 6, fontSize: 12, opacity: 0.95 }}
-                  >
-                    <div style={{ fontWeight: 600 }}>
-                      {field?.label || "항목"}
-                      {g?.score != null && g?.max != null
-                        ? ` · ${g.score}/${g.max}점`
-                        : ""}
-                    </div>
-                    {entries.map(([rid, rg]) => {
-                      const rubric = form?.rubrics?.find((r) => r.id === rid);
-                      return (
-                        <div key={rid}>
-                          {rubric?.title ? `${rubric.title}: ` : ""}
-                          {rg.levelLabel}
-                          {rg.score != null ? ` (${rg.score}점)` : ""}
-                        </div>
-                      );
-                    })}
-                    {!entries.length && g?.levelLabel && (
-                      <div>{g.levelLabel}</div>
-                    )}
-                    {g?.comment && <div>{g.comment}</div>}
-                  </div>
-                );
-              })}
-          </div>
-        </div>
-      )}
+      {assessmentFinalized &&
+        activeRow?.data?._assessment &&
+        form && (
+          <AssessmentResultBanner
+            form={form}
+            assessment={activeRow.data._assessment as TAssessmentData}
+          />
+        )}
 
       {/* 평가 대기 */}
       {assessmentPending && (
