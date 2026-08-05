@@ -1,10 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import style from "./autoFill.module.scss";
+
+type Option = {
+  text: string;
+  value: string | number;
+};
+
 type Props = {
-  options: {
-    text: string;
-    value: string | number;
-  }[];
+  options: Option[];
   style?: any;
   ref?: any;
   label?: string;
@@ -16,38 +19,34 @@ type Props = {
   appearence?: "flat";
   resetOnClick?: boolean;
   onChange?: (value: string | number) => void;
-
   onEdit?: any;
 };
 
 const Autofill = (props: Props) => {
-  // 1. 초기 inputValue 설정 개선:
-  // defaultValue에 해당하는 text를 찾아 초기값으로 설정합니다.
   const [inputValue, setInputValue] = useState<string>(() => {
     if (props.defaultValue) {
       const defaultOption = props.options.find(
-        (val) => val.value && val.value.toString() === props.defaultValue?.toString()
+        (val) =>
+          val.value && val.value.toString() === props.defaultValue?.toString()
       );
       return defaultOption ? defaultOption.text : "";
     }
     return "";
   });
   const [valid, setValid] = useState(true);
-
-  const [edit, setEdit] = useState<boolean>(false);
+  const [edit, setEdit] = useState(false);
   const selectRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const composingRef = useRef(false);
 
   function handleMousedown(e: MouseEvent) {
     if (selectRef.current && !selectRef.current.contains(e.target as Node)) {
       setEdit(false);
     }
   }
+
   useEffect(() => {
     document.addEventListener("mousedown", handleMousedown);
-    // 2. useEffect의 defaultValue 처리 제거:
-    // 이 부분은 이제 useState의 초기화 로직으로 대체됩니다.
-    // props.setValue && props.setValue(props.defaultValue || "");
-
     return () => {
       document.removeEventListener("mousedown", handleMousedown);
     };
@@ -59,20 +58,30 @@ const Autofill = (props: Props) => {
     }
   }, [edit]);
 
-  // 현재 필터링된 옵션을 계산하는 헬퍼 함수
   const getFilteredOptions = (currentValue: string) => {
-    return props.options.filter((val: { text: string; value: string | number }) => {
-      if (currentValue === "") {
-        return true;
-      } else if (
-        val.text &&
-        val.text?.toLowerCase()?.includes(currentValue?.toLowerCase())
-      ) {
-        return true;
-      }
-      return false;
+    return props.options.filter((val: Option) => {
+      if (currentValue === "") return true;
+      return (
+        !!val.text &&
+        val.text.toLowerCase().includes(currentValue.toLowerCase())
+      );
     });
   };
+
+  const applyOption = (option: Option) => {
+    // 한글 IME 조합 중 확정 글자가 뒤에 붙지 않도록 blur 후 값 설정
+    inputRef.current?.blur();
+    composingRef.current = false;
+    // resetOnClick: 목록에 추가 후 검색창을 비움
+    setInputValue(props.resetOnClick ? "" : option.text);
+    props.onChange?.(option.value);
+    props.setState?.(option.value);
+    setEdit(false);
+    setValid(true);
+  };
+
+  const showOptions = edit && (valid || inputValue !== "");
+  const filteredOptions = getFilteredOptions(inputValue);
 
   return (
     <div
@@ -89,6 +98,7 @@ const Autofill = (props: Props) => {
         </label>
       )}
       <input
+        ref={inputRef}
         style={{
           borderRadius: props.style?.borderRadius,
           borderColor: !valid
@@ -98,6 +108,12 @@ const Autofill = (props: Props) => {
         placeholder={props.placeholder}
         type="text"
         value={inputValue}
+        onCompositionStart={() => {
+          composingRef.current = true;
+        }}
+        onCompositionEnd={() => {
+          composingRef.current = false;
+        }}
         onChange={(e) => {
           setInputValue(e.target.value);
           const filtered = getFilteredOptions(e.target.value);
@@ -108,7 +124,8 @@ const Autofill = (props: Props) => {
             setValid(true);
           }
           const o = props.options.filter(
-            (val: { text: string; value: string | number }) =>
+            (val: Option) =>
+              !!val.text &&
               val.text.toLowerCase() === e.target.value.toLowerCase()
           );
           if (props.onChange && e.target.value !== "" && o.length > 0) {
@@ -120,27 +137,28 @@ const Autofill = (props: Props) => {
           }
         }}
         onKeyDown={(e) => {
+          // 한글 IME 조합 중 Enter/Tab은 조합 확정용 — 자동완성 확정하지 않음
+          if (e.nativeEvent.isComposing || composingRef.current) {
+            return;
+          }
           if (e.key === "Enter" || e.key === "Tab") {
             e.preventDefault();
-            const filteredOptions = getFilteredOptions(inputValue);
-            if (filteredOptions.length > 0) {
-              const selectedValue = filteredOptions[0];
-              setInputValue(selectedValue.text);
-              props.onChange && props.onChange(selectedValue.value);
-              props.setState && props.setState(selectedValue.value);
+            const options = getFilteredOptions(inputValue);
+            if (options.length > 0) {
+              applyOption(options[0]);
+            } else {
+              setEdit(false);
             }
-            setEdit(false); // Enter 또는 Tab 키를 누르면 드롭다운 닫기
           }
         }}
         className={style.input}
         onFocus={() => {
           setEdit(true);
-          // 1. 입력창이 클릭되면 입력창이 초기화되도록
-          setInputValue(""); // 입력창 초기화
+          setInputValue("");
         }}
       />
 
-      {edit && (valid || inputValue !== "") && (
+      {showOptions && (
         <div
           className={style.options}
           style={{
@@ -148,48 +166,19 @@ const Autofill = (props: Props) => {
             borderRadius: props.style?.borderRadius,
           }}
         >
-          {getFilteredOptions(inputValue).map((value, index) => {
-              return (
-                <div
-                  key={index}
-                  onClick={() => {
-                    setInputValue(value.text);
-                    props.onChange && props.onChange(value.value);
-                    props.setState && props.setState(value.value);
-                    setEdit(false);
-                  }}
-                  className={style.option}
-                >
-                  {value.text}
-                </div>
-              );
-            })}
-        </div>
-      )}
-
-      {edit && (valid || inputValue !== "") && props.resetOnClick && (
-        <div
-          className={style.options}
-          style={{
-            borderTop: "none",
-            borderRadius: props.style?.borderRadius,
-          }}
-        >
-          {getFilteredOptions(inputValue).map((value, index) => {
-              return (
-                <div
-                  key={index}
-                  onClick={() => {
-                    setInputValue("");
-                    props.setState && props.setState(value.value);
-                    setEdit(false);
-                  }}
-                  className={style.option}
-                >
-                  {value.text}
-                </div>
-              );
-            })}
+          {filteredOptions.map((value, index) => (
+            <div
+              key={`${value.value}_${index}`}
+              // mousedown + preventDefault: click 전에 포커스를 빼 IME 잔여 입력 방지
+              onMouseDown={(e) => {
+                e.preventDefault();
+                applyOption(value);
+              }}
+              className={style.option}
+            >
+              {value.text}
+            </div>
+          ))}
         </div>
       )}
     </div>
