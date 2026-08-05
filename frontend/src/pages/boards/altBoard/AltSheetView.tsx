@@ -27,6 +27,7 @@ import SheetAssessmentSection from "./SheetAssessmentSection";
 import FieldAssessmentInline, {
   TGradeDraft,
 } from "./FieldAssessmentInline";
+import useRegisterAlterAssessmentGrade from "hooks/useRegisterAlterAssessmentGrade";
 
 type Props = {
   forms: TAltForm[];
@@ -36,6 +37,7 @@ type Props = {
   onFormSelect?: (formId: string) => void;
   onFormDeselect?: () => void;
   onCopySheetLink?: (formId: string) => void;
+  boardName?: string;
 };
 
 type SortConfig = {
@@ -115,6 +117,7 @@ const AltSheetView = ({
   onFormSelect,
   onFormDeselect,
   onCopySheetLink,
+  boardName,
 }: Props) => {
   const { AltSheetRowAPI, FileAPI, PostAPI } = useAPIv2();
   const { currentUser } = useAuth();
@@ -635,6 +638,20 @@ const AltSheetView = ({
   }, [currentDocRowId, viewMode]);
 
   const currentDocRow = filteredRows[docIndex] ?? null;
+
+  useRegisterAlterAssessmentGrade({
+    enabled:
+      !!canManage &&
+      !!isAssessment &&
+      viewMode === "doc" &&
+      !!selectedForm &&
+      !!currentDocRow,
+    form: selectedForm,
+    row: currentDocRow,
+    gradeDraft,
+    setGradeDraft,
+    boardName,
+  });
 
   // 문서 행 변경 시 채점 초안 동기화
   useEffect(() => {

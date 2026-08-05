@@ -509,6 +509,7 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
           onFormSelect={handleOpenSheet}
           onFormDeselect={handleBackToSheetList}
           onCopySheetLink={handleCopySheetLink}
+          boardName={board.name}
         />
         {linkCopiedPopup}
       </>
@@ -556,6 +557,7 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
             onFormSelect={handleOpenSheet}
             onFormDeselect={handleBackToSheetList}
             onCopySheetLink={handleCopySheetLink}
+            boardName={board.name}
           />
         )}
       </div>

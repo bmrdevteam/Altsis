@@ -108,6 +108,21 @@ type TAlterActivityDraftResult = {
   }>;
 };
 
+type TAlterAssessmentGradeDraftResult = {
+  kind: "assessment-grade";
+  fillEmptyOnly?: boolean;
+  byField?: Record<
+    string,
+    {
+      score?: number;
+      levelId?: string;
+      comment?: string;
+      byRubric?: Record<string, { levelId?: string; comment?: string }>;
+    }
+  >;
+  final?: { comment?: string };
+};
+
 type TAlterSyllabusDraftResult = {
   kind: "syllabus";
   summary?: string;
@@ -119,6 +134,7 @@ type TAlterDraftResult =
   | TAlterArchiveDraftResult
   | TAlterDocumentDraftResult
   | TAlterActivityDraftResult
+  | TAlterAssessmentGradeDraftResult
   | TAlterSyllabusDraftResult;
 
 type TAlterAttachment = {
@@ -175,6 +191,13 @@ const isActivityDraft = (
   return (draft as { kind?: string }).kind === "activity";
 };
 
+const isAssessmentGradeDraft = (
+  draft?: TAlterDraftResult | null
+): draft is TAlterAssessmentGradeDraftResult => {
+  if (!draft) return false;
+  return (draft as { kind?: string }).kind === "assessment-grade";
+};
+
 const isEvalDraft = (
   draft?: TAlterDraftResult | null
 ): draft is TAlterEvalDraftResult => {
@@ -182,7 +205,8 @@ const isEvalDraft = (
     !draft ||
     isArchiveDraft(draft) ||
     isDocumentDraft(draft) ||
-    isActivityDraft(draft)
+    isActivityDraft(draft) ||
+    isAssessmentGradeDraft(draft)
   )
     return false;
   const anyDraft = draft as unknown as { rows?: unknown; kind?: string };
@@ -196,6 +220,7 @@ const SKILL_LABEL: Record<TAlterSkillId, string> = {
   "archive-draft": "기록",
   "document-draft": "문서",
   "activity-draft": "활동",
+  "assessment-grade": "채점",
 };
 
 const isDraftPrepSkill = (skill: TAlterSkillId) =>
@@ -203,7 +228,8 @@ const isDraftPrepSkill = (skill: TAlterSkillId) =>
   skill === "evaluation-draft" ||
   skill === "archive-draft" ||
   skill === "document-draft" ||
-  skill === "activity-draft";
+  skill === "activity-draft" ||
+  skill === "assessment-grade";
 
 const DOCUMENT_DOC_TYPES: Array<{ id: string; label: string }> = [
   { id: "manual", label: "매뉴얼·안내" },
@@ -363,6 +389,7 @@ const AlterPanel = ({ onClose }: Props) => {
   const [evalContextLabels, setEvalContextLabels] = useState<string[]>([]);
   // 기본: 자기평가·기존 멘토평가를 종합해 멘토평가를 덮어쓰는 흐름
   const [evalFillEmptyOnly, setEvalFillEmptyOnly] = useState(false);
+  const [gradeFillEmptyOnly, setGradeFillEmptyOnly] = useState(false);
   const [evalScope, setEvalScope] = useState<"empty" | "all">("all");
   const [evalSelectedStudentIds, setEvalSelectedStudentIds] = useState<
     string[]
@@ -511,6 +538,7 @@ const AlterPanel = ({ onClose }: Props) => {
     setDocWriteMode(hasContent ? "refine" : "create");
     setDocType("general");
     setDocSelectedGuidelineIds([]);
+    setGradeFillEmptyOnly(false);
   }, [pageContext?.pageType, pageContext?.label]);
 
   useEffect(() => {
@@ -877,6 +905,24 @@ const AlterPanel = ({ onClose }: Props) => {
         attachments,
       };
     }
+    if (skill === "assessment-grade") {
+      const gradeCtx = pageContext?.getAssessmentGradeContext?.();
+      return {
+        pageType: "assessment-grade",
+        label: pageContext?.label || "",
+        boardName: pageContext?.boardName || gradeCtx?.boardName || "",
+        fillEmptyOnly: gradeFillEmptyOnly,
+        formId: gradeCtx?.formId || "",
+        rowId: gradeCtx?.rowId || "",
+        formTitle: gradeCtx?.formTitle || "",
+        respondentName: gradeCtx?.respondentName || "",
+        respondentId: gradeCtx?.respondentId || "",
+        finalized: !!gradeCtx?.finalized,
+        fields: gradeCtx?.fields || [],
+        responses: gradeCtx?.responses || {},
+        currentDraft: gradeCtx?.currentDraft || { byField: {}, final: {} },
+      };
+    }
     return {
       pageType: pageContext?.pageType || "general",
       label: pageContext?.label || "",
@@ -1206,6 +1252,26 @@ const AlterPanel = ({ onClose }: Props) => {
       }
     }
 
+    if (skill === "assessment-grade") {
+      if (pageContext?.pageType !== "assessment-grade") {
+        setError("평가 기록 문서 보기에서 채점할 수 있습니다.");
+        return;
+      }
+      const gradeCtx = pageContext?.getAssessmentGradeContext?.();
+      if (!gradeCtx?.formId || !gradeCtx?.rowId) {
+        setError("채점할 응답을 열어 주세요.");
+        return;
+      }
+      if (gradeCtx.finalized) {
+        setError("이미 확정된 평가입니다. 확정을 해제한 뒤 다시 시도해 주세요.");
+        return;
+      }
+      if (!(gradeCtx.fields || []).length) {
+        setError("채점 대상 항목이 없습니다.");
+        return;
+      }
+    }
+
     if (skill === "evaluation-draft") {
       if (pageContext?.pageType !== "evaluation") {
         setError("수업 평가 화면에서 초안을 작성할 수 있습니다.");
@@ -1509,6 +1575,18 @@ const AlterPanel = ({ onClose }: Props) => {
       setDraft("");
       return;
     }
+    if (
+      selectedSkill === "assessment-grade" ||
+      (showPrep && pageContext?.pageType === "assessment-grade")
+    ) {
+      const text = draft.trim();
+      void runSkill(
+        "assessment-grade",
+        text || "이 응답을 루브릭에 맞게 채점 초안을 작성해 주세요."
+      );
+      setDraft("");
+      return;
+    }
     if (selectedSkill === "syllabus-draft" || showPrep) {
       const text = combinedSourceText();
       void runSkill(
@@ -1551,6 +1629,11 @@ const AlterPanel = ({ onClose }: Props) => {
       pageContext?.pageType === "activity"
     ) {
       skill = "activity-draft";
+    } else if (
+      (/채점/.test(text) || selectedSkill === "assessment-grade") &&
+      pageContext?.pageType === "assessment-grade"
+    ) {
+      skill = "assessment-grade";
     } else if (
       (wantsSyllabusDraftText(text) || sourceAttachments.length > 0) &&
       pageContext?.pageType === "syllabus-edit"
@@ -1874,6 +1957,42 @@ const AlterPanel = ({ onClose }: Props) => {
       return;
     }
 
+    if (isAssessmentGradeDraft(draftResult)) {
+      if (!pageContext?.applyGradeDraft) return;
+      const result = pageContext.applyGradeDraft(
+        {
+          byField: draftResult.byField,
+          final: draftResult.final,
+        },
+        {
+          fillEmptyOnly:
+            draftResult.fillEmptyOnly !== undefined
+              ? !!draftResult.fillEmptyOnly
+              : gradeFillEmptyOnly,
+        }
+      );
+      setAppliedDraftIds((prev) => new Set(prev).add(msgId));
+      if (!result.applied) {
+        setError(
+          "반영할 채점 초안이 없거나 이미 확정된 평가입니다."
+        );
+      } else {
+        setError("");
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `a-applied-${Date.now()}`,
+            role: "assistant",
+            content:
+              "채점 초안을 문서 보기에 반영했습니다. 확인 후 「채점 저장」또는 「평가 확정」을 눌러 주세요.",
+            skill: "assessment-grade",
+            createdAt: new Date().toISOString(),
+          },
+        ]);
+      }
+      return;
+    }
+
     if (!isEvalDraft(draftResult) || !pageContext?.applyEvaluationCsv) return;
     if (!draftResult.csv) return;
     const result = pageContext.applyEvaluationCsv(draftResult.csv, {
@@ -1969,19 +2088,23 @@ const AlterPanel = ({ onClose }: Props) => {
             ? "문서"
             : pageContext?.pageType === "activity"
               ? "활동"
-              : "일반");
+              : pageContext?.pageType === "assessment-grade"
+                ? "채점"
+                : "일반");
 
   const inSyllabusPrep = showPrep && selectedSkill === "syllabus-draft";
   const inEvalPrep = showPrep && selectedSkill === "evaluation-draft";
   const inArchivePrep = showPrep && selectedSkill === "archive-draft";
   const inDocPrep = showPrep && selectedSkill === "document-draft";
   const inActivityPrep = showPrep && selectedSkill === "activity-draft";
+  const inGradePrep = showPrep && selectedSkill === "assessment-grade";
   const inPrep =
     inSyllabusPrep ||
     inEvalPrep ||
     inArchivePrep ||
     inDocPrep ||
-    inActivityPrep;
+    inActivityPrep ||
+    inGradePrep;
 
 
   const expandToggleBtn = (
@@ -2005,20 +2128,28 @@ const AlterPanel = ({ onClose }: Props) => {
   );
 
   const prepPrimaryLabel =
-    inEvalPrep || inArchivePrep || inDocPrep || inActivityPrep
+    inEvalPrep ||
+    inArchivePrep ||
+    inDocPrep ||
+    inActivityPrep ||
+    inGradePrep
       ? messages.some(
           (m) =>
             m.draft &&
-            (inActivityPrep
-              ? isActivityDraft(m.draft)
-              : inDocPrep
-                ? isDocumentDraft(m.draft)
-                : inArchivePrep
-                  ? isArchiveDraft(m.draft)
-                  : isEvalDraft(m.draft))
+            (inGradePrep
+              ? isAssessmentGradeDraft(m.draft)
+              : inActivityPrep
+                ? isActivityDraft(m.draft)
+                : inDocPrep
+                  ? isDocumentDraft(m.draft)
+                  : inArchivePrep
+                    ? isArchiveDraft(m.draft)
+                    : isEvalDraft(m.draft))
         )
         ? "다시 작성"
-        : "초안 작성"
+        : inGradePrep
+          ? "채점 초안 작성"
+          : "초안 작성"
       : messages.some((m) => m.draft && isSyllabusDraft(m.draft))
         ? "다시 작성"
         : "초안 작성";
@@ -2499,6 +2630,34 @@ const AlterPanel = ({ onClose }: Props) => {
             </div>
             <div className={style.prepHintRow}>
               <PrepHint text="초안은 양식 필드·설정을 덮어씁니다. 미리보기 확인 후 「전체에 반영」하고 저장하세요." />
+              <span className={style.prepHintRowLabel}>이용 안내</span>
+            </div>
+          </>
+        )}
+
+        {inGradePrep && (
+          <>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>채점 대상</p>
+              <p className={style.prepText}>
+                {pageContext?.label || "현재 문서 보기의 응답"}
+              </p>
+            </div>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>반영 방식</p>
+              <div className={style.refList}>
+                <label className={style.refRow}>
+                  <input
+                    type="checkbox"
+                    checked={gradeFillEmptyOnly}
+                    onChange={(e) => setGradeFillEmptyOnly(e.target.checked)}
+                  />
+                  <span>이미 채점한 칸은 유지 (빈 칸만 채움)</span>
+                </label>
+              </div>
+            </div>
+            <div className={style.prepHintRow}>
+              <PrepHint text="초안은 문서 보기 채점 칸에만 반영됩니다. 확인 후 「채점 저장」또는 「평가 확정」을 눌러 주세요." />
               <span className={style.prepHintRowLabel}>이용 안내</span>
             </div>
           </>
@@ -3379,6 +3538,71 @@ const AlterPanel = ({ onClose }: Props) => {
               </div>
               );
             })()}
+            {msg.draft && isAssessmentGradeDraft(msg.draft) && (() => {
+              const gDraft = msg.draft as TAlterAssessmentGradeDraftResult;
+              const fieldEntries = Object.entries(gDraft.byField || {});
+              const gradeFields =
+                pageContext?.getAssessmentGradeContext?.()?.fields || [];
+              const previewLines = fieldEntries.slice(0, 8).map(([fid, g]) => {
+                const fieldMeta = gradeFields.find((f) => f.fieldId === fid);
+                const label = fieldMeta?.label || fid.slice(0, 8);
+                const levelBits: string[] = [];
+                if (g.score != null) levelBits.push(`점수 ${g.score}`);
+                for (const [rid, rg] of Object.entries(g.byRubric || {})) {
+                  const rubric = fieldMeta?.rubrics?.find((r) => r.id === rid);
+                  const lv = rubric?.levels?.find((l) => l.id === rg.levelId);
+                  if (lv?.label) levelBits.push(lv.label);
+                  else if (rg.levelId) levelBits.push(rg.levelId);
+                }
+                const comment = String(g.comment || "").trim();
+                return `${label}: ${levelBits.join(", ") || "초안"}${
+                  comment ? ` — ${comment.slice(0, 60)}` : ""
+                }`;
+              });
+              return (
+                <div className={style.reviewList}>
+                  <div className={style.reviewItem}>
+                    <div className={style.reviewHeader}>
+                      <span>채점 초안 미리보기</span>
+                      <span className={`${style.levelChip} ${style.levelFair}`}>
+                        {gDraft.fillEmptyOnly ? "빈 칸만" : "덮어쓰기"}
+                      </span>
+                    </div>
+                    <p className={style.reviewComment}>
+                      항목 {fieldEntries.length}개
+                      {gDraft.final?.comment
+                        ? ` · 총평 ${String(gDraft.final.comment).slice(0, 40)}`
+                        : ""}
+                    </p>
+                    <div className={style.draftPreviewList}>
+                      <div className={style.draftFieldBlock}>
+                        <p className={style.draftFieldLabel}>채점</p>
+                        <p
+                          className={style.draftFieldValue}
+                          style={{ whiteSpace: "pre-wrap" }}
+                        >
+                          {previewLines.join("\n") || "(없음)"}
+                          {fieldEntries.length > 8 ? "\n…" : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <div className={style.draftActions}>
+                      {pageContext?.applyGradeDraft && (
+                        <button
+                          type="button"
+                          className={style.applyBtn}
+                          onClick={() => applyDraft(msg.id, gDraft)}
+                        >
+                          {appliedDraftIds.has(msg.id)
+                            ? "다시 반영"
+                            : "채점에 반영"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </ChatMessageBubble>
         ))}
 
@@ -3439,27 +3663,30 @@ const AlterPanel = ({ onClose }: Props) => {
             inSyllabusPrep ||
             inArchivePrep ||
             inDocPrep ||
-            inActivityPrep
+            inActivityPrep ||
+            inGradePrep
           }
           centerHint="옵션을 고른 뒤 시작하세요"
           placeholder={
-            inActivityPrep
-              ? activityWriteMode === "refine"
-                ? "예: 객관식 3문항 추가, 서술형 필드 하나 더"
-                : "예: 수학 복습 퀴즈 5문항, 객관식+단답, 필수 응답"
-              : inDocPrep
-                ? docWriteMode === "refine"
-                  ? "예: 문장을 더 간결하게, 체크리스트를 추가해 주세요"
-                  : "예: 저녁활동 이용 안내 매뉴얼, 공간·수칙·신청 방법 포함"
-                : inArchivePrep
-                  ? archiveWriteMode === "sameText"
-                    ? "예: 공동체 의식과 배려를 중심으로 2~3문장"
-                    : "예: 관찰된 성장과 관계 특성을 학생별로 2~4문장"
-                  : inEvalPrep
-                    ? "예: 멘토 의견은 2~3문장, 성장 포인트를 중심으로"
-                    : inSyllabusPrep
-                      ? "예: 주제, 목표, 주차별 활동, 평가 방식을 적어 주세요"
-                      : "메시지를 입력하세요 (이미지·파일 붙여넣기 가능)"
+            inGradePrep
+              ? "예: 감상문의 구체성을 중심으로, 피드백은 2문장"
+              : inActivityPrep
+                ? activityWriteMode === "refine"
+                  ? "예: 객관식 3문항 추가, 서술형 필드 하나 더"
+                  : "예: 수학 복습 퀴즈 5문항, 객관식+단답, 필수 응답"
+                : inDocPrep
+                  ? docWriteMode === "refine"
+                    ? "예: 문장을 더 간결하게, 체크리스트를 추가해 주세요"
+                    : "예: 저녁활동 이용 안내 매뉴얼, 공간·수칙·신청 방법 포함"
+                  : inArchivePrep
+                    ? archiveWriteMode === "sameText"
+                      ? "예: 공동체 의식과 배려를 중심으로 2~3문장"
+                      : "예: 관찰된 성장과 관계 특성을 학생별로 2~4문장"
+                    : inEvalPrep
+                      ? "예: 멘토 의견은 2~3문장, 성장 포인트를 중심으로"
+                      : inSyllabusPrep
+                        ? "예: 주제, 목표, 주차별 활동, 평가 방식을 적어 주세요"
+                        : "메시지를 입력하세요 (이미지·파일 붙여넣기 가능)"
           }
           onPaste={handlePasteAttach}
           onKeyDown={

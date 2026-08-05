@@ -20,7 +20,55 @@ export type TAlterSkillId =
   | "evaluation-draft"
   | "archive-draft"
   | "document-draft"
-  | "activity-draft";
+  | "activity-draft"
+  | "assessment-grade";
+
+export type TAlterAssessmentGradeField = {
+  fieldId: string;
+  label: string;
+  gradingMethod: string;
+  points?: number;
+  rubrics: Array<{
+    id: string;
+    title?: string;
+    levels: Array<{
+      id: string;
+      label: string;
+      description?: string;
+      points?: number;
+    }>;
+  }>;
+};
+
+export type TAlterAssessmentGradeContext = {
+  formId: string;
+  rowId: string;
+  formTitle: string;
+  boardName?: string;
+  respondentName?: string;
+  respondentId?: string;
+  finalized: boolean;
+  fields: TAlterAssessmentGradeField[];
+  responses: Record<string, string>;
+  currentDraft: {
+    byField: Record<
+      string,
+      {
+        score?: number;
+        levelId?: string;
+        comment?: string;
+        byRubric?: Record<string, { levelId?: string; comment?: string }>;
+      }
+    >;
+    final: { comment?: string };
+  };
+};
+
+export type TAlterAssessmentGradeDraft = {
+  byField?: TAlterAssessmentGradeContext["currentDraft"]["byField"];
+  final?: { comment?: string };
+  fillEmptyOnly?: boolean;
+};
 
 export type TAlterActivitySnapshot = {
   title: string;
@@ -68,6 +116,7 @@ export type TAlterPageContext = {
     | "archive"
     | "document"
     | "activity"
+    | "assessment-grade"
     | "general";
   label?: string;
   subject?: string[];
@@ -110,6 +159,11 @@ export type TAlterPageContext = {
   getActivity?: () => TAlterActivitySnapshot;
   applyActivityDraft?: (
     draft: TAlterActivityDraft
+  ) => { applied: boolean };
+  getAssessmentGradeContext?: () => TAlterAssessmentGradeContext;
+  applyGradeDraft?: (
+    draft: TAlterAssessmentGradeDraft,
+    opts?: { fillEmptyOnly?: boolean }
   ) => { applied: boolean };
   suggestedSkills: TAlterSkillId[];
 };
