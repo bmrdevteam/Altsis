@@ -369,6 +369,9 @@ export const runAlter = async (req, res) => {
         // 유저 메시지는 시작 시 저장 → 완료 시 중복 저장 방지
         req._alterUserMessageSaved = true;
       } catch (persistErr) {
+        if (persistErr.code === "ALTER_SKILL_LOCKED") {
+          throw persistErr;
+        }
         logger.error(`alter persist start: ${persistErr.message}`);
       }
     }
@@ -394,7 +397,8 @@ export const runAlter = async (req, res) => {
           conversationId,
           userMessage: req._alterUserMessageSaved ? null : message,
           assistantMessage: result.text || "",
-          skill: result.skill || skill,
+          // 요청 스킬로 고정 (result.skill 드리프트로 잠금 거부되지 않게)
+          skill,
           pageType: context.pageType,
           contextLabel: context.classTitle || context.label,
           syllabusId: context.syllabusId,
@@ -408,6 +412,9 @@ export const runAlter = async (req, res) => {
         });
         savedConversationId = String(saved.conversation._id);
       } catch (persistErr) {
+        if (persistErr.code === "ALTER_SKILL_LOCKED") {
+          throw persistErr;
+        }
         logger.error(`alter persist done: ${persistErr.message}`);
       }
     }

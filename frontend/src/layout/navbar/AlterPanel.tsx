@@ -266,6 +266,24 @@ const skillLabel = (skill?: string) => {
   return skill;
 };
 
+const normalizeSkillId = (skill?: string): TAlterSkillId => {
+  if (skill === "syllabus-review") return "syllabus-draft";
+  if (skill && skill in SKILL_LABEL) return skill as TAlterSkillId;
+  return "chat";
+};
+
+const conversationListTitle = (c: {
+  contextLabel?: string;
+  lastSkill?: string;
+  title?: string;
+  titleCustom?: boolean;
+}) =>
+  (c.titleCustom && c.title?.trim()) ||
+  c.contextLabel?.trim() ||
+  skillLabel(c.lastSkill) ||
+  c.title ||
+  "대화";
+
 const EVAL_DRAFT_MAX = 30;
 /** Prep에서 기본으로 선택하는 학생 수 (나눠 진행 권장) */
 const EVAL_DRAFT_DEFAULT_BATCH = 8;
@@ -440,6 +458,9 @@ const AlterPanel = ({ onClose }: Props) => {
   const [conversations, setConversations] = useState<TAlterConversation[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameDraft, setRenameDraft] = useState("");
+  const renameCancelledRef = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
   const cancelledByUserRef = useRef(false);
   const endRef = useRef<HTMLDivElement | null>(null);
@@ -960,7 +981,7 @@ const AlterPanel = ({ onClose }: Props) => {
     messagePreviewUrlsRef.current = [];
   };
 
-  const startNewConversation = () => {
+  const startNewConversation = (preferSkill?: TAlterSkillId) => {
     if (isWorking) {
       setError("작업이 끝난 뒤 새 대화를 시작할 수 있습니다.");
       return;
@@ -979,9 +1000,24 @@ const AlterPanel = ({ onClose }: Props) => {
       return [];
     });
     setShowHistory(false);
-    const next = suggested[0] || "chat";
+    // onClick에 그대로 넘기면 이벤트가 들어오므로 스킬 id만 허용
+    const next =
+      preferSkill && preferSkill in SKILL_LABEL
+        ? preferSkill
+        : suggested[0] || "chat";
     setSelectedSkill(next);
     setShowPrep(isDraftPrepSkill(next));
+  };
+
+  const selectSkill = (skill: TAlterSkillId) => {
+    if (isWorking) return;
+    // 챗방 = 스킬 1개: 기존 대화에서 다른 스킬이면 새 대화로
+    if (conversationId && selectedSkill !== skill) {
+      startNewConversation(skill);
+      return;
+    }
+    setSelectedSkill(skill);
+    setShowPrep(isDraftPrepSkill(skill));
   };
 
   const openHistoryList = () => {
@@ -1025,7 +1061,9 @@ const AlterPanel = ({ onClose }: Props) => {
       setConversationId(id);
       const meta =
         preset || conversations.find((c) => c._id === id);
-      setConversationTitle(meta?.title || "대화");
+      setConversationTitle(
+        conversationListTitle(meta || { title: "대화" })
+      );
       revokeMessagePreviews();
       skipSmoothScrollRef.current = true;
       setMessages(
@@ -1058,8 +1096,9 @@ const AlterPanel = ({ onClose }: Props) => {
         })
       );
       setShowHistory(false);
-      setShowPrep(false);
-      setSelectedSkill("chat");
+      const restored = normalizeSkillId(meta?.lastSkill);
+      setSelectedSkill(restored);
+      setShowPrep(isDraftPrepSkill(restored));
     } catch (err: any) {
       setError(err.message || "대화를 불러오지 못했습니다.");
     } finally {
@@ -1076,9 +1115,73 @@ const AlterPanel = ({ onClose }: Props) => {
       });
       if (!res.ok) throw new Error("대화를 삭제하지 못했습니다.");
       setConversations((prev) => prev.filter((c) => c._id !== id));
+      if (renamingId === id) {
+        setRenamingId(null);
+        setRenameDraft("");
+      }
       if (conversationId === id) startNewConversation();
     } catch (err: any) {
       setError(err.message || "대화를 삭제하지 못했습니다.");
+    }
+  };
+
+  const beginRenameConversation = (c: TAlterConversation) => {
+    renameCancelledRef.current = false;
+    setRenamingId(c._id);
+    setRenameDraft(conversationListTitle(c));
+    setError("");
+  };
+
+  const cancelRenameConversation = () => {
+    renameCancelledRef.current = true;
+    setRenamingId(null);
+    setRenameDraft("");
+  };
+
+  const submitRenameConversation = async () => {
+    if (renameCancelledRef.current) {
+      renameCancelledRef.current = false;
+      return;
+    }
+    const id = renamingId;
+    const draft = renameDraft;
+    if (!id) return;
+    // Enter 후 blur로 이중 호출되지 않게 즉시 종료
+    setRenamingId(null);
+    setRenameDraft("");
+    const next = draft.replace(/\s+/g, " ").trim();
+    if (!next) return;
+    const prev = conversations.find((c) => c._id === id);
+    if (prev && conversationListTitle(prev) === next) return;
+    try {
+      const res = await fetch(`${alterApiBase()}/alter/conversations/${id}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: next }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || "이름을 바꾸지 못했습니다.");
+      }
+      const data = await res.json();
+      const updated = data.conversation as TAlterConversation | undefined;
+      setConversations((list) =>
+        list.map((c) =>
+          c._id === id
+            ? {
+                ...c,
+                title: updated?.title || next,
+                titleCustom: true,
+              }
+            : c
+        )
+      );
+      if (conversationId === id) {
+        setConversationTitle(updated?.title || next);
+      }
+    } catch (err: any) {
+      setError(err.message || "이름을 바꾸지 못했습니다.");
     }
   };
 
@@ -1342,6 +1445,8 @@ const AlterPanel = ({ onClose }: Props) => {
 
     const displayContent = userText.trim();
     const titleFallback =
+      pageContext?.label?.trim() ||
+      skillLabel(skill) ||
       displayContent ||
       pendingAttachments.map((a) => a.name).join(", ") ||
       "대화";
@@ -2106,6 +2211,13 @@ const AlterPanel = ({ onClose }: Props) => {
     inActivityPrep ||
     inGradePrep;
 
+  const skillChips: TAlterSkillId[] = [];
+  const pushSkillChip = (s: TAlterSkillId) => {
+    if (!skillChips.includes(s)) skillChips.push(s);
+  };
+  if (conversationId) pushSkillChip(selectedSkill);
+  suggested.forEach(pushSkillChip);
+  pushSkillChip("chat");
 
   const expandToggleBtn = (
     <button
@@ -2302,43 +2414,78 @@ const AlterPanel = ({ onClose }: Props) => {
               }
             />
           ) : (
-            conversations.map((c) => (
-              <ChatListRow
-                key={c._id}
-                title={c.title || "대화"}
-                count={c.messageCount}
-                time={`${c.status === "working" ? "진행 중 · " : ""}${formatAlterListTime(c.lastMessageAt)}`}
-                preview={
-                  <>
-                    {c.seasonLabel ? (
-                      <span className={style.listSeasonTag}>
-                        {c.seasonLabel}
-                        {c.lastMessagePreview ? " · " : ""}
+            conversations.map((c) => {
+              const skillName = skillLabel(c.lastSkill);
+              const isRenaming = renamingId === c._id;
+              return (
+                <ChatListRow
+                  key={c._id}
+                  title={conversationListTitle(c)}
+                  count={c.messageCount}
+                  time={`${c.status === "working" ? "진행 중 · " : ""}${formatAlterListTime(c.lastMessageAt)}`}
+                  preview={
+                    c.lastMessagePreview || c.seasonLabel ? (
+                      <>
+                        {c.lastMessagePreview ? (
+                          <span className={style.listPreviewText}>
+                            {c.lastMessagePreview}
+                          </span>
+                        ) : null}
+                        {c.lastMessagePreview && c.seasonLabel ? " · " : null}
+                        {c.seasonLabel ? (
+                          <span className={style.listSeasonTag}>
+                            {c.seasonLabel}
+                          </span>
+                        ) : null}
+                      </>
+                    ) : undefined
+                  }
+                  active={conversationId === c._id}
+                  leading={
+                    skillName ? (
+                      <span
+                        className={style.skillTag}
+                        aria-label={`스킬 ${skillName}`}
+                      >
+                        {skillName}
                       </span>
-                    ) : null}
-                    {c.lastMessagePreview}
-                  </>
-                }
-                active={conversationId === c._id}
-                leading={
-                  <span
-                    className={style.iconStar}
-                    style={{ width: 28, height: 28 }}
-                    aria-hidden
-                  />
-                }
-                onClick={() => void openConversation(c._id, c)}
-                menuItems={[
-                  {
-                    key: "delete",
-                    label: "삭제",
-                    danger: true,
-                    icon: <Svg type="trash" width="16px" height="16px" />,
-                    onClick: () => void deleteConversation(c._id),
-                  },
-                ]}
-              />
-            ))
+                    ) : (
+                      <span
+                        className={style.iconStar}
+                        style={{ width: 28, height: 28 }}
+                        aria-hidden
+                      />
+                    )
+                  }
+                  onClick={() => void openConversation(c._id, c)}
+                  titleEdit={
+                    isRenaming
+                      ? {
+                          value: renameDraft,
+                          onChange: setRenameDraft,
+                          onSubmit: () => void submitRenameConversation(),
+                          onCancel: cancelRenameConversation,
+                        }
+                      : undefined
+                  }
+                  menuItems={[
+                    {
+                      key: "rename",
+                      label: "이름 변경",
+                      icon: <Svg type="edit" width="16px" height="16px" />,
+                      onClick: () => beginRenameConversation(c),
+                    },
+                    {
+                      key: "delete",
+                      label: "삭제",
+                      danger: true,
+                      icon: <Svg type="trash" width="16px" height="16px" />,
+                      onClick: () => void deleteConversation(c._id),
+                    },
+                  ]}
+                />
+              );
+            })
           )}
         </div>
         <div className={chatUiStyle.listFooter}>
@@ -2387,7 +2534,7 @@ const AlterPanel = ({ onClose }: Props) => {
       </div>
 
       <div className={style.skillRow}>
-        {suggested.map((skill) => (
+        {skillChips.map((skill) => (
           <button
             key={skill}
             type="button"
@@ -2400,34 +2547,12 @@ const AlterPanel = ({ onClose }: Props) => {
                 ? style.active
                 : ""
             }`}
-            onClick={() => {
-              setSelectedSkill(skill);
-              if (isDraftPrepSkill(skill)) {
-                setShowPrep(true);
-              } else {
-                setShowPrep(false);
-              }
-            }}
+            onClick={() => selectSkill(skill)}
             disabled={isWorking}
           >
             {SKILL_LABEL[skill]}
           </button>
         ))}
-        {!suggested.includes("chat") && (
-          <button
-            type="button"
-            className={`${style.skillChip} ${
-              selectedSkill === "chat" && !inPrep ? style.active : ""
-            }`}
-            onClick={() => {
-              setSelectedSkill("chat");
-              setShowPrep(false);
-            }}
-            disabled={isWorking}
-          >
-            {SKILL_LABEL.chat}
-          </button>
-        )}
       </div>
 
       <div className={style.body}>

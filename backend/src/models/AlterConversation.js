@@ -13,6 +13,8 @@ const alterConversationSchema = mongoose.Schema(
     /** 최근 사용한 학기 (목록 필터가 아님 — 실행 문맥/표시용) */
     season: { type: mongoose.Types.ObjectId, required: true },
     title: { type: String, default: "새 대화" },
+    /** 사용자가 직접 이름을 바꾼 경우 — contextLabel로 title을 덮어쓰지 않음 */
+    titleCustom: { type: Boolean, default: false },
     pageType: {
       type: String,
       enum: [
@@ -21,6 +23,7 @@ const alterConversationSchema = mongoose.Schema(
         "archive",
         "document",
         "activity",
+        "assessment-grade",
         "general",
         "",
       ],

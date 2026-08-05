@@ -10,6 +10,13 @@ export type TChatListMenuItem = {
   onClick: () => void;
 };
 
+export type TChatListTitleEdit = {
+  value: string;
+  onChange: (value: string) => void;
+  onSubmit: () => void;
+  onCancel: () => void;
+};
+
 type Props = {
   title: string;
   count?: number | string;
@@ -18,6 +25,7 @@ type Props = {
   leading?: ReactNode;
   active?: boolean;
   menuItems?: TChatListMenuItem[];
+  titleEdit?: TChatListTitleEdit;
   onClick: () => void;
 };
 
@@ -29,10 +37,12 @@ const ChatListRow = ({
   leading,
   active,
   menuItems,
+  titleEdit,
   onClick,
 }: Props) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -51,25 +61,59 @@ const ChatListRow = ({
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, [menuOpen]);
 
+  const isEditingTitle = !!titleEdit;
+  useEffect(() => {
+    if (!isEditingTitle) return;
+    inputRef.current?.focus();
+    inputRef.current?.select();
+    // 편집 모드 진입 시에만 전체 선택 — value 변경마다 select 하면 한 글자만 남음
+  }, [isEditingTitle]);
+
   return (
     <div
       className={`${style.listRow} ${active ? style.listRowActive : ""}`}
-      onClick={onClick}
+      onClick={titleEdit ? undefined : onClick}
     >
       {leading ? <div className={style.listLeading}>{leading}</div> : null}
       <div className={style.listInfo}>
         <div className={style.listHeaderRow}>
-          <span className={style.listTitle}>
-            {title}
-            {count != null && count !== "" ? (
-              <span className={style.listCount}>({count})</span>
-            ) : null}
-          </span>
-          {time ? <span className={style.listTime}>{time}</span> : null}
+          {titleEdit ? (
+            <input
+              ref={inputRef}
+              className={style.listTitleInput}
+              value={titleEdit.value}
+              onChange={(e) => titleEdit.onChange(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  titleEdit.onSubmit();
+                } else if (e.key === "Escape") {
+                  e.preventDefault();
+                  titleEdit.onCancel();
+                }
+              }}
+              onBlur={() => titleEdit.onSubmit()}
+              maxLength={40}
+              aria-label="대화 이름"
+            />
+          ) : (
+            <span className={style.listTitle}>
+              {title}
+              {count != null && count !== "" ? (
+                <span className={style.listCount}>({count})</span>
+              ) : null}
+            </span>
+          )}
+          {!titleEdit && time ? (
+            <span className={style.listTime}>{time}</span>
+          ) : null}
         </div>
-        {preview ? <div className={style.listPreview}>{preview}</div> : null}
+        {!titleEdit && preview ? (
+          <div className={style.listPreview}>{preview}</div>
+        ) : null}
       </div>
-      {menuItems && menuItems.length > 0 && (
+      {!titleEdit && menuItems && menuItems.length > 0 && (
         <div
           className={style.listMenu}
           ref={menuRef}

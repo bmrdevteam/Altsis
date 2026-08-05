@@ -168,6 +168,7 @@
   border-radius: 10px;
   background: var(--component-color);
   color: var(--accent-3);
+  white-space: nowrap;
 }
 
 .prepCard {
@@ -308,6 +309,10 @@
   &:hover {
     background: var(--component-hover-color, #ebebeb);
   }
+}
+
+.listPreviewText {
+  color: var(--accent-2);
 }
 
 .listSeasonTag {

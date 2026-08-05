@@ -58,6 +58,31 @@ const titleFromMessage = (text = "") => {
   return t.length > 40 ? `${t.slice(0, 40)}…` : t;
 };
 
+/** 목록 제목: 화면 위치(contextLabel) 우선, 없으면 메시지 요약 */
+const titleFromContext = (contextLabel, fallbackMessage = "") => {
+  const fromCtx = String(contextLabel || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (fromCtx) {
+    return fromCtx.length > 40 ? `${fromCtx.slice(0, 40)}…` : fromCtx;
+  }
+  return titleFromMessage(fallbackMessage);
+};
+
+const SKILL_DISPLAY = {
+  chat: "챗봇",
+  "syllabus-draft": "수업",
+  "syllabus-review": "수업",
+  "evaluation-draft": "평가",
+  "archive-draft": "기록",
+  "document-draft": "문서",
+  "activity-draft": "활동",
+  "assessment-grade": "채점",
+};
+
+const skillDisplayName = (skill) =>
+  SKILL_DISPLAY[skill] || skill || "챗봇";
+
 const seasonLabelOf = (season) => {
   if (!season) return "";
   return `${season.year || ""} ${season.term || ""}`.trim();
@@ -183,7 +208,7 @@ export const createAlterConversation = async ({
     user: userId,
     school,
     season: seasonId,
-    title: titleFromMessage(title) || "새 대화",
+    title: titleFromContext(contextLabel, title) || "새 대화",
     pageType: pageType || "general",
     contextLabel: contextLabel || "",
     syllabusId: syllabusId ? String(syllabusId) : "",
@@ -254,6 +279,7 @@ export const renameAlterConversation = async ({
     throw err;
   }
   doc.title = titleFromMessage(next);
+  doc.titleCustom = true;
   await doc.save();
   return doc.toObject();
 };
@@ -333,12 +359,26 @@ export const appendAlterTurn = async ({
     } else if (schoolId) {
       conversation.school = schoolId;
     }
+    // 챗방 = 스킬 1개: 메시지가 있는 대화는 lastSkill 고정
+    if (
+      (conversation.messageCount || 0) > 0 &&
+      conversation.lastSkill &&
+      skill &&
+      skill !== conversation.lastSkill
+    ) {
+      const err = new Error(
+        `이 대화는 ${skillDisplayName(conversation.lastSkill)} 스킬 전용입니다. 새 대화를 시작해 주세요.`
+      );
+      err.status = 400;
+      err.code = "ALTER_SKILL_LOCKED";
+      throw err;
+    }
   } else {
     conversation = await AlterConversation(academyId).create({
       user: userId,
       school: schoolId,
       season: seasonId,
-      title: titleFromMessage(userMessage),
+      title: titleFromContext(contextLabel, userMessage),
       pageType: pageType || "general",
       contextLabel: contextLabel || "",
       syllabusId: syllabusId ? String(syllabusId) : "",
@@ -376,21 +416,38 @@ export const appendAlterTurn = async ({
     created.push(aiDoc.toObject());
   }
 
-  const previewSource =
-    assistantMessage != null ? assistantMessage : userMessage;
   conversation.lastMessageAt = new Date();
-  conversation.lastMessagePreview = previewOf(previewSource);
-  conversation.lastSkill = skill || conversation.lastSkill;
+  // 목록 구분용: 사용자 요청 요약을 우선 (완료 턴의 assistant로 덮어쓰지 않음)
+  if (userMessage != null && String(userMessage).trim()) {
+    conversation.lastMessagePreview = previewOf(userMessage);
+  } else if (
+    !conversation.lastMessagePreview &&
+    assistantMessage != null
+  ) {
+    conversation.lastMessagePreview = previewOf(assistantMessage);
+  }
+  // 첫 턴에만 lastSkill 설정 — 이후 고정
+  if (!(conversation.messageCount > 0 && conversation.lastSkill)) {
+    conversation.lastSkill = skill || conversation.lastSkill || "chat";
+  }
   conversation.messageCount = (conversation.messageCount || 0) + created.length;
   conversation.status = markWorking ? "working" : "idle";
+  if (pageType) conversation.pageType = pageType;
+  if (contextLabel != null) {
+    conversation.contextLabel = contextLabel;
+    if (!conversation.titleCustom) {
+      const fromCtx = titleFromContext(contextLabel, "");
+      if (fromCtx && fromCtx !== "새 대화") {
+        conversation.title = fromCtx;
+      }
+    }
+  }
   if (
     (!conversation.title || conversation.title === "새 대화") &&
     userMessage
   ) {
     conversation.title = titleFromMessage(userMessage);
   }
-  if (pageType) conversation.pageType = pageType;
-  if (contextLabel != null) conversation.contextLabel = contextLabel;
   if (syllabusId != null) conversation.syllabusId = String(syllabusId || "");
   await conversation.save();
 
