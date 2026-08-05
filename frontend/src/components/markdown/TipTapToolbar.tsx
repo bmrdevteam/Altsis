@@ -16,6 +16,7 @@ type Props = {
   onYouTubeClick: () => void;
   onLinkClick: () => void;
   onMathClick: () => void;
+  onPrintClick?: () => void;
   enableMention?: boolean;
 };
 
@@ -26,6 +27,7 @@ const TipTapToolbar = ({
   onYouTubeClick,
   onLinkClick,
   onMathClick,
+  onPrintClick,
   enableMention = false,
 }: Props) => {
   const [activeDropdown, setActiveDropdown] = useState<
@@ -289,6 +291,12 @@ const TipTapToolbar = ({
         action: () => editor.chain().focus().setTextAlign("right").run(),
         isActive: () => editor.isActive({ textAlign: "right" }),
       })}
+      {renderBtn({
+        icon: "alignJustify",
+        title: "양쪽 정렬",
+        action: () => editor.chain().focus().setTextAlign("justify").run(),
+        isActive: () => editor.isActive({ textAlign: "justify" }),
+      })}
 
       <span className={style.divider} />
 
@@ -335,6 +343,17 @@ const TipTapToolbar = ({
           <CheckDropdown editor={editor} onClose={close} />
         )}
       </div>
+
+      {onPrintClick && (
+        <>
+          <span className={style.divider} />
+          {renderBtn({
+            icon: "print",
+            title: "인쇄 / 미리보기",
+            action: onPrintClick,
+          })}
+        </>
+      )}
 
       <div className={style.colorBtnWrapper}>
         <button

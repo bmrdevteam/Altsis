@@ -253,6 +253,9 @@ export const svgData = {
   alignRight: (
     <path d="M3 21h18v-2H3v2zm6-4h12v-2H9v2zm-6-4h18v-2H3v2zm6-4h12V7H9v2zM3 3v2h18V3H3z"></path>
   ),
+  alignJustify: (
+    <path d="M3 21h18v-2H3v2zm0-4h18v-2H3v2zm0-4h18v-2H3v2zm0-4h18V7H3v2zm0-6v2h18V3H3z"></path>
+  ),
   alignTop: (
     <path d="M8 11h3v10h2V11h3l-4-4-4 4zM4 3v2h16V3H4z"></path>
   ),
@@ -264,6 +267,12 @@ export const svgData = {
   ),
   tableHeaderRow: (
     <path d="M3 3v18h18V3H3zm16 2v3H5V5h14zM5 19v-9h14v9H5z"></path>
+  ),
+  tableSplit: (
+    <>
+      <path d="M3 5v14h18V5H3zm8 12H5v-4h6v4zm0-6H5V7h6v4zm8 6h-6v-4h6v4zm0-6h-6V7h6v4z"></path>
+      <path d="M11 3h2v18h-2z"></path>
+    </>
   ),
   filter: (
     <>

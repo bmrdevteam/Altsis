@@ -6,7 +6,9 @@ import rehypeRaw from "rehype-raw";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
-import DOMPurify from "dompurify";
+import DOMPurify, {
+  type UponSanitizeAttributeHookEvent,
+} from "dompurify";
 import style from "./markdown.module.scss";
 import { preprocessCallouts } from "./extensions/callout";
 
@@ -296,41 +298,66 @@ const MarkdownViewer = ({ content, className }: Props) => {
     // 콜아웃 마크다운 → HTML (sanitize 전에 변환)
     const withCallouts = preprocessCallouts(withPlaceholders);
 
-    let sanitized = DOMPurify.sanitize(withCallouts, {
-      ADD_TAGS: [
-        "iframe",
-        "math", "semantics", "mrow", "mi", "mn", "mo", "msup", "msub", "mfrac", "annotation",
-        "svg",
-        "path",
-      ],
-      ADD_ATTR: [
-        "allow",
-        "allowfullscreen",
-        "frameborder",
-        "scrolling",
-        "sandbox",
-        "srcdoc",
-        "data-youtube-video",
-        "data-html-embed",
-        "data-embed-type",
-        "data-embed-content",
-        "data-embed-height",
-        "data-mention",
-        "data-id",
-        "data-color",
-        "data-align",
-        "data-inline-checkbox",
-        "data-checked",
-        "data-callout",
-        "viewBox",
-        "xmlns",
-        "fill",
-        "d",
-        "aria-hidden",
-        "aria-label",
-        "title",
-      ],
-    });
+    // 표 셀 스타일만 허용 (전역 style 허용은 CSS 주입 면적을 넓힘)
+    const styleHook = (node: Element, data: UponSanitizeAttributeHookEvent) => {
+      if (data.attrName !== "style") return;
+      const tag = node.nodeName?.toLowerCase();
+      if (tag !== "td" && tag !== "th" && tag !== "table" && tag !== "tr") {
+        data.keepAttr = false;
+        return;
+      }
+      const allowed =
+        /^(background-color|vertical-align|border(-[a-z]+)?|text-align|color)\s*:/i;
+      data.attrValue = data.attrValue
+        .split(";")
+        .map((part) => part.trim())
+        .filter((part) => part && allowed.test(part))
+        .join("; ");
+      if (!data.attrValue) data.keepAttr = false;
+    };
+    DOMPurify.addHook("uponSanitizeAttribute", styleHook);
+
+    let sanitized = "";
+    try {
+      sanitized = DOMPurify.sanitize(withCallouts, {
+        ADD_TAGS: [
+          "iframe",
+          "math", "semantics", "mrow", "mi", "mn", "mo", "msup", "msub", "mfrac", "annotation",
+          "svg",
+          "path",
+        ],
+        ADD_ATTR: [
+          "allow",
+          "allowfullscreen",
+          "frameborder",
+          "scrolling",
+          "sandbox",
+          "srcdoc",
+          "style",
+          "data-youtube-video",
+          "data-html-embed",
+          "data-embed-type",
+          "data-embed-content",
+          "data-embed-height",
+          "data-mention",
+          "data-id",
+          "data-color",
+          "data-align",
+          "data-inline-checkbox",
+          "data-checked",
+          "data-callout",
+          "viewBox",
+          "xmlns",
+          "fill",
+          "d",
+          "aria-hidden",
+          "aria-label",
+          "title",
+        ],
+      });
+    } finally {
+      DOMPurify.removeHook("uponSanitizeAttribute", styleHook);
+    }
 
     // 보존된 html-app 코드 블록 복원
     preserved.forEach((block, i) => {

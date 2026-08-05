@@ -30,6 +30,7 @@ import { TComment } from "types/comment";
 import { DateRange } from "components/dateRangeFilter/DateRangeFilterDropdown";
 import MergeStyleFilterBar from "components/mergeFilter/MergeStyleFilterBar";
 import { getBoardDocsListPath } from "utils/boardCoursePath";
+import { printArea } from "utils/printArea";
 
 import UserListPopup from "./popup/UserListPopup";
 import SurveyViewPopup from "./survey/SurveyViewPopup";
@@ -223,6 +224,7 @@ const PostPid = ({
 
   // 필터 변경 시 머지 재조회
   const mergeFilterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const contentPrintRef = useRef<HTMLDivElement>(null);
 
   const refetchMerge = (
     keyword: string,
@@ -516,6 +518,15 @@ const PostPid = ({
             <button
               type="button"
               className={abStyle.formCardIconBtn}
+              title="인쇄 / 미리보기"
+              aria-label="인쇄 / 미리보기"
+              onClick={() => printArea(contentPrintRef.current)}
+            >
+              <Svg type="print" width="20px" height="20px" />
+            </button>
+            <button
+              type="button"
+              className={abStyle.formCardIconBtn}
               title="다운로드"
               onClick={() => {
                 const raw = (post as any)._rawContent || post.content || "";
@@ -620,7 +631,7 @@ const PostPid = ({
           />
         )}
 
-        <div style={{ minHeight: "300px" }}>
+        <div ref={contentPrintRef} style={{ minHeight: "300px" }}>
           <MarkdownViewer content={processedContent} />
         </div>
 

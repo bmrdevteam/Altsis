@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import { getMarkRange } from "@tiptap/core";
 import { NodeSelection, TextSelection } from "@tiptap/pm/state";
+import { CellSelection } from "@tiptap/pm/tables";
 import StarterKit from "@tiptap/starter-kit";
 import { Markdown } from "tiptap-markdown";
 import TaskList from "@tiptap/extension-task-list";
@@ -16,12 +17,7 @@ import TextAlign from "@tiptap/extension-text-align";
 import { TextStyle } from "@tiptap/extension-text-style";
 import Color from "@tiptap/extension-color";
 import Highlight from "@tiptap/extension-highlight";
-import {
-  Table,
-  TableRow,
-  TableCell,
-  TableHeader,
-} from "@tiptap/extension-table";
+import { TableRow, TableCell, TableHeader } from "@tiptap/extension-table";
 import { HtmlEmbed } from "./extensions/htmlEmbed";
 import {
   MathInline,
@@ -34,6 +30,7 @@ import TipTapToolbar from "./TipTapToolbar";
 import TableBubbleMenu from "./TableBubbleMenu";
 import LinkBubbleMenu from "./LinkBubbleMenu";
 import ImageBubbleMenu from "./ImageBubbleMenu";
+import SelectionBubbleMenu from "./SelectionBubbleMenu";
 import EmbedDialog from "./EmbedDialog";
 import ImageInsertDialog from "./ImageInsertDialog";
 import YouTubeInsertDialog from "./YouTubeInsertDialog";
@@ -45,6 +42,9 @@ import {
   transformSpecialNodes,
 } from "./extensions/youtube";
 import { useEditorDraft } from "./hooks/useEditorDraft";
+import { tableCellStyleAttributes } from "./tableCellAttributes";
+import { StyledTable } from "./tableMarkdown";
+import { printArea } from "utils/printArea";
 import style from "./markdown.module.scss";
 import Svg from "assets/svg/Svg";
 import "katex/dist/katex.min.css";
@@ -74,16 +74,6 @@ type Props = {
 };
 
 type ViewMode = "wysiwyg" | "split";
-
-/** 표 셀 스타일 속성 — TipTap mergeAttributes가 style을 이어 붙임 */
-const cellBgHTML = (attributes: { backgroundColor?: string | null }) => {
-  if (!attributes.backgroundColor) return {};
-  return { style: `background-color: ${attributes.backgroundColor}` };
-};
-const cellVAlignHTML = (attributes: { verticalAlign?: string | null }) => {
-  if (!attributes.verticalAlign) return {};
-  return { style: `vertical-align: ${attributes.verticalAlign}` };
-};
 
 // tiptap-markdown 스토리지에서 마크다운 추출
 const getMarkdownFromEditor = (
@@ -183,28 +173,24 @@ const MarkdownEditor = ({
         controls: true,
         nocookie: true,
       }),
-      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      TextAlign.configure({
+        types: ["heading", "paragraph"],
+        alignments: ["left", "center", "right", "justify"],
+      }),
       TextStyle.configure({}),
       Color,
       Highlight.configure({ multicolor: true }),
-      Table.configure({ resizable: true }),
+      // resizable:true 시 TableView가 트랜잭션마다 DOM을 갈아끼워
+      // CellSelection(드래그 다중 선택)이 유지되지 않는 TipTap 이슈가 있음.
+      // 열 너비 조절보다 셀 병합 선택을 우선한다.
+      // StyledTable: 셀 스타일이 있으면 HTML로 직렬화해 저장 시 스타일 유지
+      StyledTable.configure({ resizable: false }),
       TableRow,
       TableCell.extend({
         addAttributes() {
           return {
             ...this.parent?.(),
-            backgroundColor: {
-              default: null,
-              parseHTML: (element) =>
-                element.style.backgroundColor || null,
-              renderHTML: (attributes) => cellBgHTML(attributes),
-            },
-            verticalAlign: {
-              default: null,
-              parseHTML: (element) =>
-                element.style.verticalAlign || null,
-              renderHTML: (attributes) => cellVAlignHTML(attributes),
-            },
+            ...tableCellStyleAttributes,
           };
         },
       }),
@@ -212,18 +198,7 @@ const MarkdownEditor = ({
         addAttributes() {
           return {
             ...this.parent?.(),
-            backgroundColor: {
-              default: null,
-              parseHTML: (element) =>
-                element.style.backgroundColor || null,
-              renderHTML: (attributes) => cellBgHTML(attributes),
-            },
-            verticalAlign: {
-              default: null,
-              parseHTML: (element) =>
-                element.style.verticalAlign || null,
-              renderHTML: (attributes) => cellVAlignHTML(attributes),
-            },
+            ...tableCellStyleAttributes,
           };
         },
       }),
@@ -305,9 +280,9 @@ const MarkdownEditor = ({
     };
   }, [editor]);
 
-  // 버블 메뉴: 링크/표/이미지가 동시에 뜨지 않도록 활성 상태에 따라 하나만 마운트
+  // 버블 메뉴: 링크/표/이미지/선택이 동시에 뜨지 않도록 활성 상태에 따라 하나만 마운트
   const [bubbleKind, setBubbleKind] = useState<
-    "none" | "link" | "table" | "image"
+    "none" | "link" | "table" | "image" | "selection"
   >("none");
   const [linkHover, setLinkHover] = useState<{
     href: string;
@@ -316,6 +291,26 @@ const MarkdownEditor = ({
     from: number;
     to: number;
   } | null>(null);
+  const printRootRef = useRef<HTMLDivElement>(null);
+  const [printContent, setPrintContent] = useState<string | null>(null);
+
+  const handlePrint = useCallback(() => {
+    // 인쇄 시에만 MarkdownViewer를 마운트 (키입력마다 sanitize/파싱 방지)
+    setPrintContent(valueRef.current);
+  }, []);
+
+  useEffect(() => {
+    if (printContent == null) return;
+    let cancelled = false;
+    requestAnimationFrame(() => {
+      if (cancelled) return;
+      printArea(printRootRef.current);
+      setPrintContent(null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [printContent]);
 
   useEffect(() => {
     if (!editor) return;
@@ -329,8 +324,16 @@ const MarkdownEditor = ({
       } else if (editor.isActive("link")) {
         setBubbleKind("link");
         setLinkHover(null);
-      } else if (editor.isActive("table")) {
+      } else if (
+        selection instanceof CellSelection ||
+        editor.isActive("table")
+      ) {
         setBubbleKind("table");
+      } else if (
+        !selection.empty &&
+        selection instanceof TextSelection
+      ) {
+        setBubbleKind("selection");
       } else {
         setBubbleKind("none");
       }
@@ -641,11 +644,22 @@ const MarkdownEditor = ({
             onYouTubeClick={() => setShowYouTubeDialog(true)}
             onLinkClick={() => setShowLinkDialog(true)}
             onMathClick={() => setMathDialog({ kind: "insert" })}
+            onPrintClick={handlePrint}
             enableMention={!!searchMentionUsers}
           />
           {toolbarExtra}
         </div>
       </div>
+
+      {printContent != null && (
+        <div
+          ref={printRootRef}
+          className={style.editorPrintRoot}
+          aria-hidden="true"
+        >
+          <MarkdownViewer content={printContent} />
+        </div>
+      )}
 
       {viewMode === "wysiwyg" ? (
         <div
@@ -668,6 +682,12 @@ const MarkdownEditor = ({
           )}
           {editor && bubbleKind === "image" && (
             <ImageBubbleMenu editor={editor} />
+          )}
+          {editor && bubbleKind === "selection" && (
+            <SelectionBubbleMenu
+              editor={editor}
+              onLinkClick={() => setShowLinkDialog(true)}
+            />
           )}
           {linkHover && bubbleKind !== "link" && (
             <div

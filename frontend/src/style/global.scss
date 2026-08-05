@@ -136,6 +136,24 @@ svg {
     text-decoration: none !important;
     color: inherit !important;
   }
+
+  body.altsis-printing [data-print-root] table {
+    break-inside: auto;
+  }
+
+  body.altsis-printing [data-print-root] tr,
+  body.altsis-printing [data-print-root] img,
+  body.altsis-printing [data-print-root] pre,
+  body.altsis-printing [data-print-root] blockquote {
+    break-inside: avoid;
+  }
+
+  body.altsis-printing [data-print-root] h1,
+  body.altsis-printing [data-print-root] h2,
+  body.altsis-printing [data-print-root] h3,
+  body.altsis-printing [data-print-root] h4 {
+    break-after: avoid;
+  }
 }
 
 // 스크롤바 숨김 유틸리티 클래스
