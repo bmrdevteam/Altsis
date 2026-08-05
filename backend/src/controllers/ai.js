@@ -91,7 +91,7 @@ export const uploadAlterAttachment = async (req, res) => {
           if (err.code === "LIMIT_FILE_SIZE") {
             return res
               .status(400)
-              .send({ message: "파일 크기는 5MB를 초과할 수 없습니다." });
+              .send({ message: "파일 크기는 10MB를 초과할 수 없습니다." });
           }
           if (err.code === "INVALID_FILE_TYPE") {
             return res.status(400).send({

@@ -1919,8 +1919,8 @@ const AlterPanel = ({ onClose }: Props) => {
       for (let i = 0; i < picked.length; i++) {
         const file = picked[i];
         const placeholder = placeholders[i];
-        if (file.size > 5 * 1024 * 1024) {
-          setError(`"${file.name}" 파일이 너무 큽니다. (최대 5MB)`);
+        if (file.size > 10 * 1024 * 1024) {
+          setError(`"${file.name}" 파일이 너무 큽니다. (최대 10MB)`);
           setSourceAttachments((prev) =>
             prev.filter((a) => {
               if (a === placeholder || (a.uploading && a.name === file.name && a.previewUrl === placeholder.previewUrl)) {

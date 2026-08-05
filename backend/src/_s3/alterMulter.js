@@ -43,7 +43,7 @@ export const alterMulter = (seasonId) =>
   multer({
     limits: {
       files: 1,
-      fileSize: 5 * 1024 * 1024, // 5MB
+      fileSize: 10 * 1024 * 1024, // 10MB
     },
     storage: multerS3({
       s3: fileS3,
