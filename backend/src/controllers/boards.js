@@ -28,6 +28,9 @@ import {
   isSeasonScopedBoard,
   canAccessSeasonBoard,
   hasActiveSeasonRegistration,
+  lookupAltBoardRole,
+  nextAltRoleOnAddWriter,
+  nextAltRoleOnRemoveWriter,
 } from "../services/boards.js";
 import { sendAutoNotification, isBoardNotificationEnabled } from "../services/notifications.js";
 import {
@@ -814,9 +817,11 @@ export const addWriterUser = async (req, res) => {
       });
     }
 
-    // altBoardRole을 writer로 승격
+    // altBoardRole 승격 (admin이면 유지)
     if (!board.altBoardRole) board.altBoardRole = new Map();
-    board.altBoardRole.set(req.body.user.toString(), "writer");
+    const writerOid = req.body.user.toString();
+    const existingRole = lookupAltBoardRole(board, writerOid);
+    board.altBoardRole.set(writerOid, nextAltRoleOnAddWriter(existingRole));
     board.markModified("altBoardRole");
 
     board.markModified("writers");
@@ -862,15 +867,18 @@ export const removeWriterUser = async (req, res) => {
       board.markModified("writers");
     }
 
-    // altBoardRole: 여전히 멤버면 respondent로 강등, 아니면 삭제
+    // altBoardRole: admin 유지, writer만 respondent로 강등, 비멤버면 삭제
     if (removedWriter && board.altBoardRole) {
+      const writerOid = removedWriter.user.toString();
       const isMember = board.members?.users?.some(
         (u) => u.userId === req.query.userId
       );
-      if (isMember) {
-        board.altBoardRole.set(removedWriter.user.toString(), "respondent");
+      const existingRole = lookupAltBoardRole(board, writerOid);
+      const nextRole = nextAltRoleOnRemoveWriter(existingRole, !!isMember);
+      if (nextRole === null) {
+        board.altBoardRole.delete(writerOid);
       } else {
-        board.altBoardRole.delete(removedWriter.user.toString());
+        board.altBoardRole.set(writerOid, nextRole);
       }
       board.markModified("altBoardRole");
     }

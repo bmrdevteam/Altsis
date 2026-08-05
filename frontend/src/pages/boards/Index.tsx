@@ -92,7 +92,14 @@ const Boards = () => {
 
   const canManageBoard = (board: TBoard) => {
     if (isManager) return true;
-    if (board.creator && board.creator === currentUser?._id) return true;
+    if (
+      board.creator &&
+      String(board.creator) === String(currentUser?._id)
+    ) {
+      return true;
+    }
+    const uid = currentUser?._id ? String(currentUser._id) : "";
+    if (uid && board.altBoardRole?.[uid] === "admin") return true;
     return false;
   };
 

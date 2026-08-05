@@ -17,7 +17,42 @@ export {
 };
 
 /**
- * 보드 관리 권한 확인 (admin/manager 또는 보드 생성자)
+ * altBoardRole Map/plain object에서 사용자 역할 조회
+ * @param {Object} board
+ * @param {string} userOid - user._id 문자열
+ * @returns {"admin"|"writer"|"respondent"|undefined}
+ */
+export const lookupAltBoardRole = (board, userOid) => {
+  if (!board?.altBoardRole || !userOid) return undefined;
+  return typeof board.altBoardRole.get === "function"
+    ? board.altBoardRole.get(userOid)
+    : board.altBoardRole[userOid];
+};
+
+/**
+ * 작성자 추가 시 altBoardRole 승격 결과 (admin 유지)
+ * @param {"admin"|"writer"|"respondent"|undefined|null} existingRole
+ * @returns {"admin"|"writer"}
+ */
+export const nextAltRoleOnAddWriter = (existingRole) => {
+  if (existingRole === "admin") return "admin";
+  return "writer";
+};
+
+/**
+ * 작성자 제거 시 altBoardRole 갱신 결과
+ * @param {"admin"|"writer"|"respondent"|undefined|null} existingRole
+ * @param {boolean} remainsMember - members.users에 남아 있는지
+ * @returns {"admin"|"respondent"|null} null이면 맵에서 삭제
+ */
+export const nextAltRoleOnRemoveWriter = (existingRole, remainsMember) => {
+  if (!remainsMember) return null;
+  if (existingRole === "admin") return "admin";
+  return "respondent";
+};
+
+/**
+ * 보드 관리 권한 확인 (admin/manager, 보드 생성자, 또는 altBoardRole admin)
  * @memberof Services.BoardService
  * @function canManageBoard
  *
@@ -28,11 +63,14 @@ export {
  */
 export const canManageBoard = (board, user) => {
   if (user.auth === "admin" || user.auth === "manager") return true;
-  if (!board?.creator || !user?._id) return false;
-  const creatorId =
-    board.creator?.toString?.() || String(board.creator);
+  if (!user?._id) return false;
   const userId = user._id?.toString?.() || String(user._id);
-  return creatorId === userId;
+  if (board?.creator) {
+    const creatorId =
+      board.creator?.toString?.() || String(board.creator);
+    if (creatorId === userId) return true;
+  }
+  return lookupAltBoardRole(board, userId) === "admin";
 };
 
 /**
@@ -148,31 +186,28 @@ const resolveBoardWriters = (board) => {
 };
 
 /**
- * 사용자가 보드 멤버인지 확인
- * @memberof Services.BoardService
- * @function isBoardMember
- *
- * @param {Object} board - 게시판 문서
- * @param {Object} user - 사용자 객체
+ * 보드 멤버십 공통 판정 (목록·상세 동일 기준)
+ * @param {Object} board
+ * @param {Object} user
  * @param {string|null} role - 현재 시즌에서의 역할
- *
  * @returns {boolean}
  */
-export const isBoardMemberAsUser = (board, user, role) => {
-  if (board.creator && board.creator.equals(user._id)) return true;
+const matchesBoardMembership = (board, user, role) => {
+  if (user.auth === "admin" || user.auth === "manager") return true;
+
+  if (
+    board.creator &&
+    (board.creator.equals?.(user._id) ||
+      String(board.creator) === String(user._id))
+  ) {
+    return true;
+  }
 
   // 기본 보드(공지사항)는 전체 접근 허용
   if (board.isDefault) return true;
 
-  // Alt Board: altBoardRole 확인
-  if (board.altBoardRole) {
-    const userOid = user._id.toString();
-    const altRole =
-      typeof board.altBoardRole.get === "function"
-        ? board.altBoardRole.get(userOid)
-        : board.altBoardRole[userOid];
-    if (altRole) return true;
-  }
+  const userOid = user._id?.toString?.() || String(user._id);
+  if (lookupAltBoardRole(board, userOid)) return true;
 
   const members = resolveBoardMembers(board);
 
@@ -190,29 +225,34 @@ export const isBoardMemberAsUser = (board, user, role) => {
   return false;
 };
 
+/**
+ * 사용자가 보드 멤버인지 확인 (목록 필터용)
+ * @memberof Services.BoardService
+ * @function isBoardMemberAsUser
+ *
+ * @param {Object} board - 게시판 문서
+ * @param {Object} user - 사용자 객체
+ * @param {string|null} role - 현재 시즌에서의 역할
+ *
+ * @returns {boolean}
+ */
+export const isBoardMemberAsUser = (board, user, role) => {
+  return matchesBoardMembership(board, user, role);
+};
+
+/**
+ * 사용자가 보드 멤버인지 확인 (상세·API 접근용)
+ * @memberof Services.BoardService
+ * @function isBoardMember
+ *
+ * @param {Object} board - 게시판 문서
+ * @param {Object} user - 사용자 객체
+ * @param {string|null} role - 현재 시즌에서의 역할
+ *
+ * @returns {boolean}
+ */
 export const isBoardMember = (board, user, role) => {
-  if (user.auth === "admin" || user.auth === "manager") return true;
-  if (board.creator && board.creator.equals(user._id)) return true;
-
-  // 기본 보드(공지사항)는 전체 접근 허용
-  if (board.isDefault) return true;
-
-  // Alt Board: altBoardRole 확인
-  if (board.altBoardRole) {
-    const userOid = user._id.toString();
-    const altRole =
-      typeof board.altBoardRole.get === "function"
-        ? board.altBoardRole.get(userOid)
-        : board.altBoardRole[userOid];
-    if (altRole) return true;
-  }
-
-  const members = resolveBoardMembers(board);
-
-  // 개별 초대 사용자 확인
-  if (members.users?.some((u) => u.userId === user.userId)) return true;
-
-  return false;
+  return matchesBoardMembership(board, user, role);
 };
 
 /**
@@ -468,6 +508,7 @@ export const getPostReaders = async (academyId, board, post) => {
 
 /**
  * 게시글 permissionRead가 보드 멤버 범위 내인지 검증
+ * groups는 UI가 없어 무시하고 users만 검사한다.
  * @memberof Services.BoardService
  * @function validatePostPermission
  *
@@ -477,6 +518,61 @@ export const getPostReaders = async (academyId, board, post) => {
  * @returns {{ valid: boolean, message?: string }}
  */
 export const validatePostPermission = (board, postPermission) => {
+  if (!postPermission) return { valid: true };
+
+  const users = postPermission.users;
+  if (!Array.isArray(users) || users.length === 0) {
+    return {
+      valid: false,
+      message: "읽기 권한 대상을 한 명 이상 선택해주세요.",
+    };
+  }
+
+  // default 보드: 멤버가 학교 전체라 sync 전개 불가 → 형식만 검사
+  if (board.isDefault) {
+    for (const u of users) {
+      if (!u?.userId) {
+        return {
+          valid: false,
+          message: "읽기 권한 대상이 올바르지 않습니다.",
+        };
+      }
+    }
+    return { valid: true };
+  }
+
+  const allowedUserIds = new Set();
+  if (board.creatorId) allowedUserIds.add(board.creatorId);
+
+  const members = resolveBoardMembers(board);
+  for (const u of members.users || []) {
+    if (u.userId) allowedUserIds.add(u.userId);
+  }
+
+  const writers = resolveBoardWriters(board);
+  for (const u of writers.users || []) {
+    if (u.userId) allowedUserIds.add(u.userId);
+  }
+
+  for (const u of users) {
+    if (!u?.userId) {
+      return {
+        valid: false,
+        message: "읽기 권한 대상이 올바르지 않습니다.",
+      };
+    }
+    if (allowedUserIds.has(u.userId)) continue;
+
+    // altBoardRole만 있는 멤버 (members.users 미동기화)
+    const oid = u.user?.toString?.() || (u.user ? String(u.user) : "");
+    if (oid && lookupAltBoardRole(board, oid)) continue;
+
+    return {
+      valid: false,
+      message: "보드 멤버만 읽기 권한 대상으로 지정할 수 있습니다.",
+    };
+  }
+
   return { valid: true };
 };
 

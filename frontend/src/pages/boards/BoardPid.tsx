@@ -55,7 +55,11 @@ const BoardPid = () => {
 
   const canManageBoard = (b: TBoard) => {
     if (isManager) return true;
-    if (b.creator && b.creator === currentUser?._id) return true;
+    if (b.creator && String(b.creator) === String(currentUser?._id)) {
+      return true;
+    }
+    const uid = currentUser?._id ? String(currentUser._id) : "";
+    if (uid && b.altBoardRole?.[uid] === "admin") return true;
     return false;
   };
 
