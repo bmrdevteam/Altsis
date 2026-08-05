@@ -325,6 +325,53 @@ const PrepHint = ({ text }: { text: string }) => {
   );
 };
 
+/** 작성 지침 선택 행 — 체크는 선택, 제목 클릭 시 본문 펼침 */
+const GuidelinePickRow = ({
+  id,
+  title,
+  content,
+  checked,
+  expanded,
+  onToggleChecked,
+  onToggleExpanded,
+}: {
+  id: string;
+  title: string;
+  content?: string;
+  checked: boolean;
+  expanded: boolean;
+  onToggleChecked: () => void;
+  onToggleExpanded: () => void;
+}) => {
+  const bodyId = `${id}-guideline-body`;
+  return (
+    <div className={style.guidelineRow}>
+      <div className={style.guidelineRowMain}>
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={onToggleChecked}
+          aria-label={`${title} 선택`}
+        />
+        <button
+          type="button"
+          className={style.guidelineToggle}
+          onClick={onToggleExpanded}
+          aria-expanded={expanded}
+          aria-controls={bodyId}
+        >
+          <span className={style.guidelineTitle}>{title}</span>
+        </button>
+      </div>
+      {expanded && content ? (
+        <div id={bodyId} className={style.guidelineBody}>
+          {content}
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
 type Props = {
   onClose: () => void;
 };
@@ -461,6 +508,10 @@ const AlterPanel = ({ onClose }: Props) => {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
   const renameCancelledRef = useRef(false);
+  const [prepCollapsed, setPrepCollapsed] = useState(false);
+  const [expandedGuidelineId, setExpandedGuidelineId] = useState<string | null>(
+    null
+  );
   const abortRef = useRef<AbortController | null>(null);
   const cancelledByUserRef = useRef(false);
   const endRef = useRef<HTMLDivElement | null>(null);
@@ -1000,13 +1051,16 @@ const AlterPanel = ({ onClose }: Props) => {
       return [];
     });
     setShowHistory(false);
+    setExpandedGuidelineId(null);
     // onClick에 그대로 넘기면 이벤트가 들어오므로 스킬 id만 허용
     const next =
       preferSkill && preferSkill in SKILL_LABEL
         ? preferSkill
         : suggested[0] || "chat";
     setSelectedSkill(next);
-    setShowPrep(isDraftPrepSkill(next));
+    const prep = isDraftPrepSkill(next);
+    setShowPrep(prep);
+    if (prep) setPrepCollapsed(false);
   };
 
   const selectSkill = (skill: TAlterSkillId) => {
@@ -1017,7 +1071,10 @@ const AlterPanel = ({ onClose }: Props) => {
       return;
     }
     setSelectedSkill(skill);
-    setShowPrep(isDraftPrepSkill(skill));
+    setExpandedGuidelineId(null);
+    const prep = isDraftPrepSkill(skill);
+    setShowPrep(prep);
+    if (prep) setPrepCollapsed(false);
   };
 
   const openHistoryList = () => {
@@ -1098,7 +1155,9 @@ const AlterPanel = ({ onClose }: Props) => {
       setShowHistory(false);
       const restored = normalizeSkillId(meta?.lastSkill);
       setSelectedSkill(restored);
-      setShowPrep(isDraftPrepSkill(restored));
+      const prep = isDraftPrepSkill(restored);
+      setShowPrep(prep);
+      if (prep) setPrepCollapsed(false);
     } catch (err: any) {
       setError(err.message || "대화를 불러오지 못했습니다.");
     } finally {
@@ -2533,745 +2592,8 @@ const AlterPanel = ({ onClose }: Props) => {
           : ""}
       </div>
 
-      <div className={style.skillRow}>
-        {skillChips.map((skill) => (
-          <button
-            key={skill}
-            type="button"
-            className={`${style.skillChip} ${
-              (
-                isDraftPrepSkill(skill)
-                  ? showPrep && selectedSkill === skill
-                  : selectedSkill === skill && !showPrep
-              )
-                ? style.active
-                : ""
-            }`}
-            onClick={() => selectSkill(skill)}
-            disabled={isWorking}
-          >
-            {SKILL_LABEL[skill]}
-          </button>
-        ))}
-      </div>
-
       <div className={style.body}>
         {error && <div className={style.error}>{error}</div>}
-
-        {inDocPrep && (
-          <>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>작성 모드</p>
-              <div className={style.refList}>
-                <label className={style.refRow}>
-                  <input
-                    type="radio"
-                    name="docWriteMode"
-                    checked={docWriteMode === "create"}
-                    onChange={() => setDocWriteMode("create")}
-                  />
-                  <span>새로 작성</span>
-                </label>
-                <label className={style.refRow}>
-                  <input
-                    type="radio"
-                    name="docWriteMode"
-                    checked={docWriteMode === "refine"}
-                    onChange={() => setDocWriteMode("refine")}
-                  />
-                  <span>기존 글 다듬기</span>
-                </label>
-              </div>
-            </div>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>
-                문서 형태
-                <PrepHint text="형태에 맞게 제목·목록·표·체크리스트 등 에디터 문법을 활용한 초안을 만듭니다." />
-              </p>
-              <div className={style.refList}>
-                {DOCUMENT_DOC_TYPES.map((t) => (
-                  <label key={t.id} className={style.refRow}>
-                    <input
-                      type="radio"
-                      name="docType"
-                      checked={docType === t.id}
-                      onChange={() => setDocType(t.id)}
-                    />
-                    <span>{t.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>
-                작성 지침
-                <PrepHint text="학교 AI 라이브러리의 지침 중 이번 문서에 쓸 항목을 고릅니다." />
-              </p>
-              {skillSettingsLoading ? (
-                <p className={style.prepText}>지침을 불러오는 중...</p>
-              ) : docGuidelineItems.length === 0 ? (
-                <p className={style.prepText}>
-                  선택 가능한 지침이 없습니다. 관리 → 학교 AI → 라이브러리에서
-                  「문서」 지침을 추가해 주세요. 기본 기준으로 작성합니다.
-                </p>
-              ) : (
-                <div className={style.refList}>
-                  {docGuidelineItems.map((item) => (
-                    <label key={item._id} className={style.refRow}>
-                      <input
-                        type="checkbox"
-                        checked={docSelectedGuidelineIds.includes(item._id)}
-                        onChange={() =>
-                          toggleLabel(
-                            item._id,
-                            docSelectedGuidelineIds,
-                            setDocSelectedGuidelineIds
-                          )
-                        }
-                      />
-                      <span>
-                        {item.title}
-                        {item.content ? (
-                          <span className={style.prepMuted}>
-                            {" "}
-                            — {item.content.slice(0, 60)}
-                            {item.content.length > 60 ? "…" : ""}
-                          </span>
-                        ) : null}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>첨부 자료</p>
-              <p className={style.prepText}>
-                입력창 위 + 버튼으로 txt·md·csv·pdf·docx·이미지를 첨부할 수
-                있습니다. (최대 3개)
-              </p>
-            </div>
-            <div className={style.prepHintRow}>
-              <PrepHint text="초안은 에디터 전체를 덮어씁니다. 미리보기 확인 후 「전체에 반영」하고 저장하세요." />
-              <span className={style.prepHintRowLabel}>이용 안내</span>
-            </div>
-          </>
-        )}
-
-        {inActivityPrep && (
-          <>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>작성 모드</p>
-              <div className={style.refList}>
-                <label className={style.refRow}>
-                  <input
-                    type="radio"
-                    name="activityWriteMode"
-                    checked={activityWriteMode === "create"}
-                    onChange={() => setActivityWriteMode("create")}
-                  />
-                  <span>새로 작성</span>
-                </label>
-                <label className={style.refRow}>
-                  <input
-                    type="radio"
-                    name="activityWriteMode"
-                    checked={activityWriteMode === "refine"}
-                    onChange={() => setActivityWriteMode("refine")}
-                  />
-                  <span>기존 양식 다듬기</span>
-                </label>
-              </div>
-            </div>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>
-                활동 형태
-                <PrepHint text="형태에 맞게 일반 응답 필드·설정을 중심으로 초안을 만듭니다. html-app은 제출이 필요 없는 체험용일 때만 씁니다." />
-              </p>
-              <div className={style.refList}>
-                {ACTIVITY_FORM_TYPES.map((t) => (
-                  <label key={t.id} className={style.refRow}>
-                    <input
-                      type="radio"
-                      name="activityFormType"
-                      checked={activityFormType === t.id}
-                      onChange={() => setActivityFormType(t.id)}
-                    />
-                    <span>{t.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>
-                작성 지침
-                <PrepHint text="학교 AI 라이브러리의 지침 중 이번 활동에 쓸 항목을 고릅니다." />
-              </p>
-              {skillSettingsLoading ? (
-                <p className={style.prepText}>지침을 불러오는 중...</p>
-              ) : activityGuidelineItems.length === 0 ? (
-                <p className={style.prepText}>
-                  선택 가능한 지침이 없습니다. 관리 → 학교 AI → 라이브러리에서
-                  「활동」 지침을 추가해 주세요. 기본 기준으로 작성합니다.
-                </p>
-              ) : (
-                <div className={style.refList}>
-                  {activityGuidelineItems.map((item) => (
-                    <label key={item._id} className={style.refRow}>
-                      <input
-                        type="checkbox"
-                        checked={activitySelectedGuidelineIds.includes(
-                          item._id
-                        )}
-                        onChange={() =>
-                          toggleLabel(
-                            item._id,
-                            activitySelectedGuidelineIds,
-                            setActivitySelectedGuidelineIds
-                          )
-                        }
-                      />
-                      <span>
-                        {item.title}
-                        {item.content ? (
-                          <span className={style.prepMuted}>
-                            {" "}
-                            — {item.content.slice(0, 60)}
-                            {item.content.length > 60 ? "…" : ""}
-                          </span>
-                        ) : null}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>첨부 자료</p>
-              <p className={style.prepText}>
-                입력창 위 + 버튼으로 txt·md·csv·pdf·docx·이미지를 첨부할 수
-                있습니다. (최대 3개)
-              </p>
-            </div>
-            <div className={style.prepHintRow}>
-              <PrepHint text="초안은 양식 필드·설정을 덮어씁니다. 미리보기 확인 후 「전체에 반영」하고 저장하세요." />
-              <span className={style.prepHintRowLabel}>이용 안내</span>
-            </div>
-          </>
-        )}
-
-        {inGradePrep && (
-          <>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>채점 대상</p>
-              <p className={style.prepText}>
-                {pageContext?.label || "현재 문서 보기의 응답"}
-              </p>
-            </div>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>반영 방식</p>
-              <div className={style.refList}>
-                <label className={style.refRow}>
-                  <input
-                    type="checkbox"
-                    checked={gradeFillEmptyOnly}
-                    onChange={(e) => setGradeFillEmptyOnly(e.target.checked)}
-                  />
-                  <span>이미 채점한 칸은 유지 (빈 칸만 채움)</span>
-                </label>
-              </div>
-            </div>
-            <div className={style.prepHintRow}>
-              <PrepHint text="초안은 문서 보기 채점 칸에만 반영됩니다. 확인 후 「채점 저장」또는 「평가 확정」을 눌러 주세요." />
-              <span className={style.prepHintRowLabel}>이용 안내</span>
-            </div>
-          </>
-        )}
-
-        {inSyllabusPrep && (
-          <>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>학교 작성 지침</p>
-              <p className={style.prepText}>
-                {skillSettingsLoading
-                  ? "지침을 불러오는 중..."
-                  : guidelines ||
-                    "학교에 선택된 작성 지침이 없습니다. 기본 기준으로 작성합니다. (관리 → 학교 AI → 라이브러리)"}
-              </p>
-            </div>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>첨부 자료</p>
-              <p className={style.prepText}>
-                아래에서 수업 개요를 입력하거나, 입력창 위 + 로
-                txt·pdf·docx·이미지를 첨부해 주세요. (최대 3개)
-              </p>
-            </div>
-            <div className={style.prepHintRow}>
-              <PrepHint text="정보를 입력·첨부한 뒤 「초안 작성」을 누르면 학습 계획서 전 항목 초안을 만듭니다. 미리보기 확인 후 「전체에 반영」하세요." />
-              <span className={style.prepHintRowLabel}>이용 안내</span>
-            </div>
-          </>
-        )}
-
-        {inEvalPrep && (
-          <>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>작성할 항목</p>
-              {teacherEditableFields.length === 0 ? (
-                <p className={style.prepText}>
-                  교사 편집이 가능한 평가 항목이 없습니다.
-                </p>
-              ) : (
-                <div className={style.refList}>
-                  {teacherEditableFields.map((field) => (
-                    <label key={field.label} className={style.refRow}>
-                      <input
-                        type="checkbox"
-                        checked={evalTargetLabels.includes(field.label)}
-                        onChange={() =>
-                          toggleLabel(
-                            field.label,
-                            evalTargetLabels,
-                            setEvalTargetLabels
-                          )
-                        }
-                      />
-                      <span>
-                        {field.label}
-                        {field.type !== "input" ? ` (${field.type})` : ""}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>
-                참고할 항목
-                <PrepHint text="자기평가와 기존 멘토평가를 함께 참고하면, 둘을 종합한 새 멘토평가 초안을 만듭니다. 원문은 복사되지 않도록 재작성합니다." />
-              </p>
-              {allEvalLabels.length === 0 ? (
-                <p className={style.prepText}>참고할 항목이 없습니다.</p>
-              ) : (
-                <div className={style.refList}>
-                  {allEvalLabels.map((label) => {
-                    const isTarget = evalTargetLabels.includes(label);
-                    return (
-                      <label key={label} className={style.refRow}>
-                        <input
-                          type="checkbox"
-                          checked={evalContextLabels.includes(label)}
-                          onChange={() =>
-                            toggleLabel(
-                              label,
-                              evalContextLabels,
-                              setEvalContextLabels
-                            )
-                          }
-                        />
-                        <span>
-                          {label}
-                          {isTarget ? " (작성 대상·기존 내용)" : ""}
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>
-                범위
-                {!evalFillEmptyOnly ? (
-                  <PrepHint text="종합 재작성 모드: 참고 항목을 합쳐 작성 항목을 새로 씁니다. 「빈 칸만 채우기」를 끄면 기존 내용을 덮어씁니다." />
-                ) : null}
-              </p>
-              <div className={style.refList}>
-                <label className={style.refRow}>
-                  <input
-                    type="radio"
-                    name="evalScope"
-                    checked={evalScope === "empty"}
-                    onChange={() => setEvalScope("empty")}
-                  />
-                  <span>미작성 행만</span>
-                </label>
-                <label className={style.refRow}>
-                  <input
-                    type="radio"
-                    name="evalScope"
-                    checked={evalScope === "all"}
-                    onChange={() => setEvalScope("all")}
-                  />
-                  <span>전체 학생 목록</span>
-                </label>
-                <label className={style.refRow}>
-                  <input
-                    type="checkbox"
-                    checked={evalFillEmptyOnly}
-                    onChange={(e) => setEvalFillEmptyOnly(e.target.checked)}
-                  />
-                  <span>빈 칸만 채우기</span>
-                </label>
-              </div>
-            </div>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>
-                학생 선택
-                <PrepHint
-                  text={`한 번에 최대 ${EVAL_DRAFT_MAX}명까지 선택해 초안을 만들 수 있습니다. 나눠서 여러 번 실행할 수 있습니다.`}
-                />
-              </p>
-              {evalCandidateStudents.length === 0 ? (
-                <p className={style.prepText}>
-                  {evalScope === "empty"
-                    ? "채울 빈 칸이 있는 학생이 없습니다."
-                    : "선택 가능한 학생이 없습니다."}
-                </p>
-              ) : (
-                <>
-                  <div className={style.prepActions}>
-                    <button
-                      type="button"
-                      className={style.prepActionBtn}
-                      onClick={selectDefaultStudentBatch}
-                    >
-                      기본 {EVAL_DRAFT_DEFAULT_BATCH}명
-                    </button>
-                    <button
-                      type="button"
-                      className={style.prepActionBtn}
-                      onClick={selectAllCandidateStudents}
-                    >
-                      전체
-                      {evalCandidateStudents.length > EVAL_DRAFT_MAX
-                        ? ` (최대 ${EVAL_DRAFT_MAX})`
-                        : ""}
-                    </button>
-                    <button
-                      type="button"
-                      className={style.prepActionBtn}
-                      onClick={() => setEvalSelectedStudentIds([])}
-                    >
-                      선택 해제
-                    </button>
-                  </div>
-                  <div className={`${style.refList} ${style.refListScroll}`}>
-                    {evalCandidateStudents.map((student) => {
-                      const checked = evalSelectedIds.includes(
-                        student.studentId
-                      );
-                      const atLimit =
-                        !checked && evalSelectedIds.length >= EVAL_DRAFT_MAX;
-                      return (
-                        <label
-                          key={student.studentId}
-                          className={style.refRow}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            disabled={atLimit}
-                            onChange={() => toggleStudentId(student.studentId)}
-                          />
-                          <span>
-                            {student.studentGrade
-                              ? `${student.studentGrade} · `
-                              : ""}
-                            {student.studentName || "(이름 없음)"}
-                            <span className={style.prepMuted}>
-                              {" "}
-                              ({student.studentId})
-                            </span>
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                  <p className={style.prepText}>
-                    선택 {evalSelectedIds.length}명
-                    {evalCandidateStudents.length > evalSelectedIds.length
-                      ? ` · 후보 ${evalCandidateStudents.length}명`
-                      : ""}
-                  </p>
-                </>
-              )}
-            </div>
-            {(skillSettingsLoading || guidelines) && (
-              <div className={style.prepCard}>
-                <p className={style.prepLabel}>학교 작성 지침</p>
-                <p className={style.prepText}>
-                  {skillSettingsLoading
-                    ? "지침을 불러오는 중..."
-                    : guidelines}
-                </p>
-              </div>
-            )}
-            <div className={style.prepHintRow}>
-              <PrepHint text="참고(자기평가·기존 멘토평가) → 작성(멘토평가)로 종합 초안을 만듭니다. 학생을 고른 뒤 「초안 작성」을 누르세요. 반영 후에도 행별 저장이 필요합니다." />
-              <span className={style.prepHintRowLabel}>이용 안내</span>
-            </div>
-          </>
-        )}
-
-        {inArchivePrep && (
-          <>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>작성 모드</p>
-              <div className={style.refList}>
-                <label className={style.refRow}>
-                  <input
-                    type="radio"
-                    name="archiveWriteMode"
-                    checked={archiveWriteMode === "perStudent"}
-                    onChange={() => setArchiveWriteMode("perStudent")}
-                  />
-                  <span>학생별 차별 작성</span>
-                </label>
-                <label className={style.refRow}>
-                  <input
-                    type="radio"
-                    name="archiveWriteMode"
-                    checked={archiveWriteMode === "sameText"}
-                    onChange={() => setArchiveWriteMode("sameText")}
-                  />
-                  <span>선택 학생 동일 문구</span>
-                </label>
-              </div>
-            </div>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>작성할 항목</p>
-              {archiveInputFields.length === 0 ? (
-                <p className={style.prepText}>
-                  텍스트(input) 기록 항목이 없습니다.
-                </p>
-              ) : (
-                <div className={style.refList}>
-                  {archiveInputFields.map((field) => (
-                    <label key={field.label} className={style.refRow}>
-                      <input
-                        type="checkbox"
-                        checked={archiveTargetLabels.includes(field.label)}
-                        onChange={() =>
-                          toggleLabel(
-                            field.label,
-                            archiveTargetLabels,
-                            setArchiveTargetLabels
-                          )
-                        }
-                      />
-                      <span>{field.label}</span>
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>
-                참고할 항목
-                <PrepHint text="이미 작성된 기록 내용을 참고해 초안을 만듭니다. 문장을 그대로 복사하지 않고 종합·재작성합니다. 작성 대상 항목의 기존 내용도 여기에 포함하면 이어서 다듬을 수 있습니다." />
-              </p>
-              {archiveReferenceFields.length === 0 ? (
-                <p className={style.prepText}>참고할 항목이 없습니다.</p>
-              ) : (
-                <div className={style.refList}>
-                  {archiveReferenceFields.map((field) => {
-                    const isTarget = archiveTargetLabels.includes(field.label);
-                    return (
-                      <label key={field.label} className={style.refRow}>
-                        <input
-                          type="checkbox"
-                          checked={archiveContextLabels.includes(field.label)}
-                          onChange={() =>
-                            toggleLabel(
-                              field.label,
-                              archiveContextLabels,
-                              setArchiveContextLabels
-                            )
-                          }
-                        />
-                        <span>
-                          {field.label}
-                          {field.type !== "input" ? ` (${field.type})` : ""}
-                          {isTarget ? " (작성 대상·기존 내용)" : ""}
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>
-                작성 지침
-                <PrepHint text="학교 AI 라이브러리의 지침 중 이번 작성에 쓸 항목을 고릅니다. 기록 양식마다 다른 지침을 골라 쓸 수 있습니다." />
-              </p>
-              {skillSettingsLoading ? (
-                <p className={style.prepText}>지침을 불러오는 중...</p>
-              ) : archiveGuidelineItems.length === 0 ? (
-                <p className={style.prepText}>
-                  선택 가능한 지침이 없습니다. 관리 → 학교 AI → 라이브러리에서
-                  「기록」 지침을 추가해 주세요. 기본 기준으로 작성합니다.
-                </p>
-              ) : (
-                <div className={style.refList}>
-                  {archiveGuidelineItems.map((item) => (
-                    <label key={item._id} className={style.refRow}>
-                      <input
-                        type="checkbox"
-                        checked={archiveSelectedGuidelineIds.includes(item._id)}
-                        onChange={() =>
-                          toggleLabel(
-                            item._id,
-                            archiveSelectedGuidelineIds,
-                            setArchiveSelectedGuidelineIds
-                          )
-                        }
-                      />
-                      <span>
-                        {item.title}
-                        {item.content ? (
-                          <span className={style.prepMuted}>
-                            {" "}
-                            — {item.content.slice(0, 60)}
-                            {item.content.length > 60 ? "…" : ""}
-                          </span>
-                        ) : null}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>
-                범위
-                <PrepHint text="「빈 칸만 채우기」가 켜져 있으면 이미 내용이 있는 칸은 건너뜁니다. 표가 비어 보여도 저장된 값이 있으면 제외될 수 있습니다." />
-              </p>
-              <div className={style.refList}>
-                <label className={style.refRow}>
-                  <input
-                    type="radio"
-                    name="archiveScope"
-                    checked={archiveScope === "empty"}
-                    onChange={() => {
-                      setArchiveScope("empty");
-                      setArchiveFillEmptyOnly(true);
-                    }}
-                  />
-                  <span>미작성 학생만</span>
-                </label>
-                <label className={style.refRow}>
-                  <input
-                    type="radio"
-                    name="archiveScope"
-                    checked={archiveScope === "all"}
-                    onChange={() => setArchiveScope("all")}
-                  />
-                  <span>전체 학생 목록</span>
-                </label>
-                <label className={style.refRow}>
-                  <input
-                    type="checkbox"
-                    checked={archiveFillEmptyOnly}
-                    onChange={(e) => setArchiveFillEmptyOnly(e.target.checked)}
-                  />
-                  <span>빈 칸만 채우기</span>
-                </label>
-              </div>
-            </div>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>
-                학생 선택
-                <PrepHint
-                  text={`한 번에 최대 ${EVAL_DRAFT_MAX}명까지 선택해 초안을 만들 수 있습니다.`}
-                />
-              </p>
-              {archiveCandidateStudents.length === 0 ? (
-                <p className={style.prepText}>
-                  {archiveScope === "empty"
-                    ? "채울 빈 칸이 있는 학생이 없습니다."
-                    : "선택 가능한 학생이 없습니다."}
-                </p>
-              ) : (
-                <>
-                  <div className={style.prepActions}>
-                    <button
-                      type="button"
-                      className={style.prepActionBtn}
-                      onClick={selectDefaultArchiveStudentBatch}
-                    >
-                      기본 {EVAL_DRAFT_DEFAULT_BATCH}명
-                    </button>
-                    <button
-                      type="button"
-                      className={style.prepActionBtn}
-                      onClick={selectAllArchiveCandidateStudents}
-                    >
-                      전체
-                      {archiveCandidateStudents.length > EVAL_DRAFT_MAX
-                        ? ` (최대 ${EVAL_DRAFT_MAX})`
-                        : ""}
-                    </button>
-                    <button
-                      type="button"
-                      className={style.prepActionBtn}
-                      onClick={() => setArchiveSelectedStudentIds([])}
-                    >
-                      선택 해제
-                    </button>
-                  </div>
-                  <div className={`${style.refList} ${style.refListScroll}`}>
-                    {archiveCandidateStudents.map((student) => {
-                      const checked = archiveSelectedIds.includes(
-                        student.studentId
-                      );
-                      const atLimit =
-                        !checked &&
-                        archiveSelectedIds.length >= EVAL_DRAFT_MAX;
-                      return (
-                        <label
-                          key={student.studentId}
-                          className={style.refRow}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            disabled={atLimit}
-                            onChange={() =>
-                              toggleArchiveStudentId(student.studentId)
-                            }
-                          />
-                          <span>
-                            {student.studentGrade
-                              ? `${student.studentGrade} · `
-                              : ""}
-                            {student.studentName || "(이름 없음)"}
-                            <span className={style.prepMuted}>
-                              {" "}
-                              ({student.studentId})
-                            </span>
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                  <p className={style.prepText}>
-                    선택 {archiveSelectedIds.length}명
-                    {archiveCandidateStudents.length >
-                    archiveSelectedIds.length
-                      ? ` · 후보 ${archiveCandidateStudents.length}명`
-                      : ""}
-                  </p>
-                </>
-              )}
-            </div>
-            <div className={style.prepHintRow}>
-              <PrepHint text="지침·항목·학생을 고른 뒤 「초안 작성」을 누르세요. 미리보기 반영 후 「변경 사항 저장」으로 DB에 저장합니다." />
-              <span className={style.prepHintRowLabel}>이용 안내</span>
-            </div>
-          </>
-        )}
 
         {messages.length === 0 && !inPrep && (
           <ChatEmptyState
@@ -3741,6 +3063,728 @@ const AlterPanel = ({ onClose }: Props) => {
           </ChatMessageBubble>
         )}
         <div ref={endRef} />
+      </div>
+
+      <div className={style.skillDock}>
+        <div className={style.skillDockHeader}>
+          <div className={style.skillRow}>
+            {skillChips.map((skill) => (
+              <button
+                key={skill}
+                type="button"
+                className={`${style.skillChip} ${
+                  (
+                    isDraftPrepSkill(skill)
+                      ? showPrep && selectedSkill === skill
+                      : selectedSkill === skill && !showPrep
+                  )
+                    ? style.active
+                    : ""
+                }`}
+                onClick={() => selectSkill(skill)}
+                disabled={isWorking}
+              >
+                {SKILL_LABEL[skill]}
+              </button>
+            ))}
+          </div>
+          {inPrep && (
+            <button
+              type="button"
+              className={style.prepCollapseBtn}
+              onClick={() => setPrepCollapsed((v) => !v)}
+              aria-expanded={!prepCollapsed}
+            >
+              {prepCollapsed ? "설정 펼치기" : "설정 접기"}
+            </button>
+          )}
+        </div>
+        {inPrep && !prepCollapsed && (
+          <div className={style.prepScroll}>
+        {inDocPrep && (
+          <>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>작성 모드</p>
+              <div className={style.refList}>
+                <label className={style.refRow}>
+                  <input
+                    type="radio"
+                    name="docWriteMode"
+                    checked={docWriteMode === "create"}
+                    onChange={() => setDocWriteMode("create")}
+                  />
+                  <span>새로 작성</span>
+                </label>
+                <label className={style.refRow}>
+                  <input
+                    type="radio"
+                    name="docWriteMode"
+                    checked={docWriteMode === "refine"}
+                    onChange={() => setDocWriteMode("refine")}
+                  />
+                  <span>기존 글 다듬기</span>
+                </label>
+              </div>
+            </div>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>
+                문서 형태
+                <PrepHint text="형태에 맞게 제목·목록·표·체크리스트 등 에디터 문법을 활용한 초안을 만듭니다." />
+              </p>
+              <div className={style.refList}>
+                {DOCUMENT_DOC_TYPES.map((t) => (
+                  <label key={t.id} className={style.refRow}>
+                    <input
+                      type="radio"
+                      name="docType"
+                      checked={docType === t.id}
+                      onChange={() => setDocType(t.id)}
+                    />
+                    <span>{t.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>
+                작성 지침
+                <PrepHint text="학교 AI 라이브러리의 지침 중 이번 문서에 쓸 항목을 고릅니다." />
+              </p>
+              {skillSettingsLoading ? (
+                <p className={style.prepText}>지침을 불러오는 중...</p>
+              ) : docGuidelineItems.length === 0 ? (
+                <p className={style.prepText}>
+                  선택 가능한 지침이 없습니다. 관리 → 학교 AI → 라이브러리에서
+                  「문서」 지침을 추가해 주세요. 기본 기준으로 작성합니다.
+                </p>
+              ) : (
+                <div className={style.refList}>
+                  {docGuidelineItems.map((item) => (
+                    <GuidelinePickRow
+                      key={item._id}
+                      id={item._id}
+                      title={item.title}
+                      content={item.content}
+                      checked={docSelectedGuidelineIds.includes(item._id)}
+                      expanded={expandedGuidelineId === item._id}
+                      onToggleChecked={() =>
+                        toggleLabel(
+                          item._id,
+                          docSelectedGuidelineIds,
+                          setDocSelectedGuidelineIds
+                        )
+                      }
+                      onToggleExpanded={() =>
+                        setExpandedGuidelineId((cur) =>
+                          cur === item._id ? null : item._id
+                        )
+                      }
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className={style.prepHintRow}>
+              <PrepHint text="초안은 에디터 전체를 덮어씁니다. 미리보기 확인 후 「전체에 반영」하고 저장하세요." />
+              <span className={style.prepHintRowLabel}>이용 안내</span>
+            </div>
+          </>
+        )}
+
+        {inActivityPrep && (
+          <>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>작성 모드</p>
+              <div className={style.refList}>
+                <label className={style.refRow}>
+                  <input
+                    type="radio"
+                    name="activityWriteMode"
+                    checked={activityWriteMode === "create"}
+                    onChange={() => setActivityWriteMode("create")}
+                  />
+                  <span>새로 작성</span>
+                </label>
+                <label className={style.refRow}>
+                  <input
+                    type="radio"
+                    name="activityWriteMode"
+                    checked={activityWriteMode === "refine"}
+                    onChange={() => setActivityWriteMode("refine")}
+                  />
+                  <span>기존 양식 다듬기</span>
+                </label>
+              </div>
+            </div>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>
+                활동 형태
+                <PrepHint text="형태에 맞게 일반 응답 필드·설정을 중심으로 초안을 만듭니다. html-app은 제출이 필요 없는 체험용일 때만 씁니다." />
+              </p>
+              <div className={style.refList}>
+                {ACTIVITY_FORM_TYPES.map((t) => (
+                  <label key={t.id} className={style.refRow}>
+                    <input
+                      type="radio"
+                      name="activityFormType"
+                      checked={activityFormType === t.id}
+                      onChange={() => setActivityFormType(t.id)}
+                    />
+                    <span>{t.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>
+                작성 지침
+                <PrepHint text="학교 AI 라이브러리의 지침 중 이번 활동에 쓸 항목을 고릅니다." />
+              </p>
+              {skillSettingsLoading ? (
+                <p className={style.prepText}>지침을 불러오는 중...</p>
+              ) : activityGuidelineItems.length === 0 ? (
+                <p className={style.prepText}>
+                  선택 가능한 지침이 없습니다. 관리 → 학교 AI → 라이브러리에서
+                  「활동」 지침을 추가해 주세요. 기본 기준으로 작성합니다.
+                </p>
+              ) : (
+                <div className={style.refList}>
+                  {activityGuidelineItems.map((item) => (
+                    <GuidelinePickRow
+                      key={item._id}
+                      id={item._id}
+                      title={item.title}
+                      content={item.content}
+                      checked={activitySelectedGuidelineIds.includes(item._id)}
+                      expanded={expandedGuidelineId === item._id}
+                      onToggleChecked={() =>
+                        toggleLabel(
+                          item._id,
+                          activitySelectedGuidelineIds,
+                          setActivitySelectedGuidelineIds
+                        )
+                      }
+                      onToggleExpanded={() =>
+                        setExpandedGuidelineId((cur) =>
+                          cur === item._id ? null : item._id
+                        )
+                      }
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className={style.prepHintRow}>
+              <PrepHint text="초안은 양식 필드·설정을 덮어씁니다. 미리보기 확인 후 「전체에 반영」하고 저장하세요." />
+              <span className={style.prepHintRowLabel}>이용 안내</span>
+            </div>
+          </>
+        )}
+
+        {inGradePrep && (
+          <>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>채점 대상</p>
+              <p className={style.prepText}>
+                {pageContext?.label || "현재 문서 보기의 응답"}
+              </p>
+            </div>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>반영 방식</p>
+              <div className={style.refList}>
+                <label className={style.refRow}>
+                  <input
+                    type="checkbox"
+                    checked={gradeFillEmptyOnly}
+                    onChange={(e) => setGradeFillEmptyOnly(e.target.checked)}
+                  />
+                  <span>이미 채점한 칸은 유지 (빈 칸만 채움)</span>
+                </label>
+              </div>
+            </div>
+            <div className={style.prepHintRow}>
+              <PrepHint text="초안은 문서 보기 채점 칸에만 반영됩니다. 확인 후 「채점 저장」또는 「평가 확정」을 눌러 주세요." />
+              <span className={style.prepHintRowLabel}>이용 안내</span>
+            </div>
+          </>
+        )}
+
+        {inSyllabusPrep && (
+          <>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>학교 작성 지침</p>
+              <p className={style.prepText}>
+                {skillSettingsLoading
+                  ? "지침을 불러오는 중..."
+                  : guidelines ||
+                    "학교에 선택된 작성 지침이 없습니다. 기본 기준으로 작성합니다. (관리 → 학교 AI → 라이브러리)"}
+              </p>
+            </div>
+            <div className={style.prepHintRow}>
+              <PrepHint text="정보를 입력·첨부한 뒤 「초안 작성」을 누르면 학습 계획서 전 항목 초안을 만듭니다. 미리보기 확인 후 「전체에 반영」하세요." />
+              <span className={style.prepHintRowLabel}>이용 안내</span>
+            </div>
+          </>
+        )}
+
+        {inEvalPrep && (
+          <>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>작성할 항목</p>
+              {teacherEditableFields.length === 0 ? (
+                <p className={style.prepText}>
+                  교사 편집이 가능한 평가 항목이 없습니다.
+                </p>
+              ) : (
+                <div className={style.refList}>
+                  {teacherEditableFields.map((field) => (
+                    <label key={field.label} className={style.refRow}>
+                      <input
+                        type="checkbox"
+                        checked={evalTargetLabels.includes(field.label)}
+                        onChange={() =>
+                          toggleLabel(
+                            field.label,
+                            evalTargetLabels,
+                            setEvalTargetLabels
+                          )
+                        }
+                      />
+                      <span>
+                        {field.label}
+                        {field.type !== "input" ? ` (${field.type})` : ""}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>
+                참고할 항목
+                <PrepHint text="자기평가와 기존 멘토평가를 함께 참고하면, 둘을 종합한 새 멘토평가 초안을 만듭니다. 원문은 복사되지 않도록 재작성합니다." />
+              </p>
+              {allEvalLabels.length === 0 ? (
+                <p className={style.prepText}>참고할 항목이 없습니다.</p>
+              ) : (
+                <div className={style.refList}>
+                  {allEvalLabels.map((label) => {
+                    const isTarget = evalTargetLabels.includes(label);
+                    return (
+                      <label key={label} className={style.refRow}>
+                        <input
+                          type="checkbox"
+                          checked={evalContextLabels.includes(label)}
+                          onChange={() =>
+                            toggleLabel(
+                              label,
+                              evalContextLabels,
+                              setEvalContextLabels
+                            )
+                          }
+                        />
+                        <span>
+                          {label}
+                          {isTarget ? " (작성 대상·기존 내용)" : ""}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>
+                범위
+                {!evalFillEmptyOnly ? (
+                  <PrepHint text="종합 재작성 모드: 참고 항목을 합쳐 작성 항목을 새로 씁니다. 「빈 칸만 채우기」를 끄면 기존 내용을 덮어씁니다." />
+                ) : null}
+              </p>
+              <div className={style.refList}>
+                <label className={style.refRow}>
+                  <input
+                    type="radio"
+                    name="evalScope"
+                    checked={evalScope === "empty"}
+                    onChange={() => setEvalScope("empty")}
+                  />
+                  <span>미작성 행만</span>
+                </label>
+                <label className={style.refRow}>
+                  <input
+                    type="radio"
+                    name="evalScope"
+                    checked={evalScope === "all"}
+                    onChange={() => setEvalScope("all")}
+                  />
+                  <span>전체 학생 목록</span>
+                </label>
+                <label className={style.refRow}>
+                  <input
+                    type="checkbox"
+                    checked={evalFillEmptyOnly}
+                    onChange={(e) => setEvalFillEmptyOnly(e.target.checked)}
+                  />
+                  <span>빈 칸만 채우기</span>
+                </label>
+              </div>
+            </div>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>
+                학생 선택
+                <PrepHint
+                  text={`한 번에 최대 ${EVAL_DRAFT_MAX}명까지 선택해 초안을 만들 수 있습니다. 나눠서 여러 번 실행할 수 있습니다.`}
+                />
+              </p>
+              {evalCandidateStudents.length === 0 ? (
+                <p className={style.prepText}>
+                  {evalScope === "empty"
+                    ? "채울 빈 칸이 있는 학생이 없습니다."
+                    : "선택 가능한 학생이 없습니다."}
+                </p>
+              ) : (
+                <>
+                  <div className={style.prepActions}>
+                    <button
+                      type="button"
+                      className={style.prepActionBtn}
+                      onClick={selectDefaultStudentBatch}
+                    >
+                      기본 {EVAL_DRAFT_DEFAULT_BATCH}명
+                    </button>
+                    <button
+                      type="button"
+                      className={style.prepActionBtn}
+                      onClick={selectAllCandidateStudents}
+                    >
+                      전체
+                      {evalCandidateStudents.length > EVAL_DRAFT_MAX
+                        ? ` (최대 ${EVAL_DRAFT_MAX})`
+                        : ""}
+                    </button>
+                    <button
+                      type="button"
+                      className={style.prepActionBtn}
+                      onClick={() => setEvalSelectedStudentIds([])}
+                    >
+                      선택 해제
+                    </button>
+                  </div>
+                  <div className={`${style.refList} ${style.refListScroll}`}>
+                    {evalCandidateStudents.map((student) => {
+                      const checked = evalSelectedIds.includes(
+                        student.studentId
+                      );
+                      const atLimit =
+                        !checked && evalSelectedIds.length >= EVAL_DRAFT_MAX;
+                      return (
+                        <label
+                          key={student.studentId}
+                          className={style.refRow}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            disabled={atLimit}
+                            onChange={() => toggleStudentId(student.studentId)}
+                          />
+                          <span>
+                            {student.studentGrade
+                              ? `${student.studentGrade} · `
+                              : ""}
+                            {student.studentName || "(이름 없음)"}
+                            <span className={style.prepMuted}>
+                              {" "}
+                              ({student.studentId})
+                            </span>
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <p className={style.prepText}>
+                    선택 {evalSelectedIds.length}명
+                    {evalCandidateStudents.length > evalSelectedIds.length
+                      ? ` · 후보 ${evalCandidateStudents.length}명`
+                      : ""}
+                  </p>
+                </>
+              )}
+            </div>
+            {(skillSettingsLoading || guidelines) && (
+              <div className={style.prepCard}>
+                <p className={style.prepLabel}>학교 작성 지침</p>
+                <p className={style.prepText}>
+                  {skillSettingsLoading
+                    ? "지침을 불러오는 중..."
+                    : guidelines}
+                </p>
+              </div>
+            )}
+            <div className={style.prepHintRow}>
+              <PrepHint text="참고(자기평가·기존 멘토평가) → 작성(멘토평가)로 종합 초안을 만듭니다. 학생을 고른 뒤 「초안 작성」을 누르세요. 반영 후에도 행별 저장이 필요합니다." />
+              <span className={style.prepHintRowLabel}>이용 안내</span>
+            </div>
+          </>
+        )}
+
+        {inArchivePrep && (
+          <>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>작성 모드</p>
+              <div className={style.refList}>
+                <label className={style.refRow}>
+                  <input
+                    type="radio"
+                    name="archiveWriteMode"
+                    checked={archiveWriteMode === "perStudent"}
+                    onChange={() => setArchiveWriteMode("perStudent")}
+                  />
+                  <span>학생별 차별 작성</span>
+                </label>
+                <label className={style.refRow}>
+                  <input
+                    type="radio"
+                    name="archiveWriteMode"
+                    checked={archiveWriteMode === "sameText"}
+                    onChange={() => setArchiveWriteMode("sameText")}
+                  />
+                  <span>선택 학생 동일 문구</span>
+                </label>
+              </div>
+            </div>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>작성할 항목</p>
+              {archiveInputFields.length === 0 ? (
+                <p className={style.prepText}>
+                  텍스트(input) 기록 항목이 없습니다.
+                </p>
+              ) : (
+                <div className={style.refList}>
+                  {archiveInputFields.map((field) => (
+                    <label key={field.label} className={style.refRow}>
+                      <input
+                        type="checkbox"
+                        checked={archiveTargetLabels.includes(field.label)}
+                        onChange={() =>
+                          toggleLabel(
+                            field.label,
+                            archiveTargetLabels,
+                            setArchiveTargetLabels
+                          )
+                        }
+                      />
+                      <span>{field.label}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>
+                참고할 항목
+                <PrepHint text="이미 작성된 기록 내용을 참고해 초안을 만듭니다. 문장을 그대로 복사하지 않고 종합·재작성합니다. 작성 대상 항목의 기존 내용도 여기에 포함하면 이어서 다듬을 수 있습니다." />
+              </p>
+              {archiveReferenceFields.length === 0 ? (
+                <p className={style.prepText}>참고할 항목이 없습니다.</p>
+              ) : (
+                <div className={style.refList}>
+                  {archiveReferenceFields.map((field) => {
+                    const isTarget = archiveTargetLabels.includes(field.label);
+                    return (
+                      <label key={field.label} className={style.refRow}>
+                        <input
+                          type="checkbox"
+                          checked={archiveContextLabels.includes(field.label)}
+                          onChange={() =>
+                            toggleLabel(
+                              field.label,
+                              archiveContextLabels,
+                              setArchiveContextLabels
+                            )
+                          }
+                        />
+                        <span>
+                          {field.label}
+                          {field.type !== "input" ? ` (${field.type})` : ""}
+                          {isTarget ? " (작성 대상·기존 내용)" : ""}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>
+                작성 지침
+                <PrepHint text="학교 AI 라이브러리의 지침 중 이번 작성에 쓸 항목을 고릅니다. 기록 양식마다 다른 지침을 골라 쓸 수 있습니다." />
+              </p>
+              {skillSettingsLoading ? (
+                <p className={style.prepText}>지침을 불러오는 중...</p>
+              ) : archiveGuidelineItems.length === 0 ? (
+                <p className={style.prepText}>
+                  선택 가능한 지침이 없습니다. 관리 → 학교 AI → 라이브러리에서
+                  「기록」 지침을 추가해 주세요. 기본 기준으로 작성합니다.
+                </p>
+              ) : (
+                <div className={style.refList}>
+                  {archiveGuidelineItems.map((item) => (
+                    <GuidelinePickRow
+                      key={item._id}
+                      id={item._id}
+                      title={item.title}
+                      content={item.content}
+                      checked={archiveSelectedGuidelineIds.includes(item._id)}
+                      expanded={expandedGuidelineId === item._id}
+                      onToggleChecked={() =>
+                        toggleLabel(
+                          item._id,
+                          archiveSelectedGuidelineIds,
+                          setArchiveSelectedGuidelineIds
+                        )
+                      }
+                      onToggleExpanded={() =>
+                        setExpandedGuidelineId((cur) =>
+                          cur === item._id ? null : item._id
+                        )
+                      }
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>
+                범위
+                <PrepHint text="「빈 칸만 채우기」가 켜져 있으면 이미 내용이 있는 칸은 건너뜁니다. 표가 비어 보여도 저장된 값이 있으면 제외될 수 있습니다." />
+              </p>
+              <div className={style.refList}>
+                <label className={style.refRow}>
+                  <input
+                    type="radio"
+                    name="archiveScope"
+                    checked={archiveScope === "empty"}
+                    onChange={() => {
+                      setArchiveScope("empty");
+                      setArchiveFillEmptyOnly(true);
+                    }}
+                  />
+                  <span>미작성 학생만</span>
+                </label>
+                <label className={style.refRow}>
+                  <input
+                    type="radio"
+                    name="archiveScope"
+                    checked={archiveScope === "all"}
+                    onChange={() => setArchiveScope("all")}
+                  />
+                  <span>전체 학생 목록</span>
+                </label>
+                <label className={style.refRow}>
+                  <input
+                    type="checkbox"
+                    checked={archiveFillEmptyOnly}
+                    onChange={(e) => setArchiveFillEmptyOnly(e.target.checked)}
+                  />
+                  <span>빈 칸만 채우기</span>
+                </label>
+              </div>
+            </div>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>
+                학생 선택
+                <PrepHint
+                  text={`한 번에 최대 ${EVAL_DRAFT_MAX}명까지 선택해 초안을 만들 수 있습니다.`}
+                />
+              </p>
+              {archiveCandidateStudents.length === 0 ? (
+                <p className={style.prepText}>
+                  {archiveScope === "empty"
+                    ? "채울 빈 칸이 있는 학생이 없습니다."
+                    : "선택 가능한 학생이 없습니다."}
+                </p>
+              ) : (
+                <>
+                  <div className={style.prepActions}>
+                    <button
+                      type="button"
+                      className={style.prepActionBtn}
+                      onClick={selectDefaultArchiveStudentBatch}
+                    >
+                      기본 {EVAL_DRAFT_DEFAULT_BATCH}명
+                    </button>
+                    <button
+                      type="button"
+                      className={style.prepActionBtn}
+                      onClick={selectAllArchiveCandidateStudents}
+                    >
+                      전체
+                      {archiveCandidateStudents.length > EVAL_DRAFT_MAX
+                        ? ` (최대 ${EVAL_DRAFT_MAX})`
+                        : ""}
+                    </button>
+                    <button
+                      type="button"
+                      className={style.prepActionBtn}
+                      onClick={() => setArchiveSelectedStudentIds([])}
+                    >
+                      선택 해제
+                    </button>
+                  </div>
+                  <div className={`${style.refList} ${style.refListScroll}`}>
+                    {archiveCandidateStudents.map((student) => {
+                      const checked = archiveSelectedIds.includes(
+                        student.studentId
+                      );
+                      const atLimit =
+                        !checked &&
+                        archiveSelectedIds.length >= EVAL_DRAFT_MAX;
+                      return (
+                        <label
+                          key={student.studentId}
+                          className={style.refRow}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            disabled={atLimit}
+                            onChange={() =>
+                              toggleArchiveStudentId(student.studentId)
+                            }
+                          />
+                          <span>
+                            {student.studentGrade
+                              ? `${student.studentGrade} · `
+                              : ""}
+                            {student.studentName || "(이름 없음)"}
+                            <span className={style.prepMuted}>
+                              {" "}
+                              ({student.studentId})
+                            </span>
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <p className={style.prepText}>
+                    선택 {archiveSelectedIds.length}명
+                    {archiveCandidateStudents.length >
+                    archiveSelectedIds.length
+                      ? ` · 후보 ${archiveCandidateStudents.length}명`
+                      : ""}
+                  </p>
+                </>
+              )}
+            </div>
+            <div className={style.prepHintRow}>
+              <PrepHint text="지침·항목·학생을 고른 뒤 「초안 작성」을 누르세요. 미리보기 반영 후 「변경 사항 저장」으로 DB에 저장합니다." />
+              <span className={style.prepHintRowLabel}>이용 안내</span>
+            </div>
+          </>
+        )}
+          </div>
+        )}
       </div>
 
       <div className={style.composerWrap}>
