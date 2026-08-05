@@ -6,23 +6,10 @@ import {
   TAssessmentData,
   TAssessmentFieldGrade,
   TAssessmentFieldRubricGrade,
-  TFormRubric,
 } from "types/altForm";
 import { TAltSheetRow } from "types/altSheet";
 import { NO_PRINT_CLASS } from "utils/printArea";
-
-export type TGradeDraft = {
-  byField: Record<
-    string,
-    {
-      score?: number;
-      levelId?: string;
-      comment?: string;
-      byRubric?: Record<string, { levelId?: string; comment?: string }>;
-    }
-  >;
-  final: { comment?: string };
-};
+import { TGradeDraft } from "./FieldAssessmentInline";
 
 type Props = {
   form: TAltForm;
@@ -51,7 +38,7 @@ const AssessmentResultReadOnly = ({
         </span>
       )}
       {assessment.final?.comment && (
-        <div style={{ marginTop: 4, fontSize: 13 }}>
+        <div className={style.assessmentSummaryComment}>
           {assessment.final.comment}
         </div>
       )}
@@ -62,15 +49,17 @@ const AssessmentResultReadOnly = ({
           const entries = Object.entries(byRubric).filter(
             ([, rg]: [string, TAssessmentFieldRubricGrade]) => !!rg?.levelLabel
           );
-          if (!entries.length && !g?.levelLabel && !g?.comment && g?.score == null) {
+          if (
+            !entries.length &&
+            !g?.levelLabel &&
+            !g?.comment &&
+            g?.score == null
+          ) {
             return null;
           }
           return (
-            <div
-              key={fid}
-              style={{ marginTop: 6, fontSize: 12, opacity: 0.95 }}
-            >
-              <div style={{ fontWeight: 600 }}>
+            <div key={fid} className={style.assessmentResultField}>
+              <div className={style.assessmentResultFieldTitle}>
                 {field?.label || "항목"}
                 {g?.score != null && g?.max != null
                   ? ` · ${g.score}/${g.max}점`
@@ -96,6 +85,7 @@ const AssessmentResultReadOnly = ({
   </div>
 );
 
+/** 문서 보기 하단: 총점·최종 코멘트·저장/확정 (항목 채점은 카드 인라인) */
 const SheetAssessmentSection = ({
   form,
   row,
@@ -107,6 +97,7 @@ const SheetAssessmentSection = ({
 }: Props) => {
   const assessment = (row.data?._assessment || {}) as TAssessmentData;
   const finalized = assessment.final?.status === "finalized";
+  const hasScore = assessment.final?.max != null;
 
   if (!canManage) {
     if (finalized && row.data?._assessment) {
@@ -145,169 +136,23 @@ const SheetAssessmentSection = ({
 
       <div className={style.quizScoreBanner}>
         <div className={style.quizScoreText}>
-          <strong>
-            평가: {finalized ? "확정됨" : "초안"}
-          </strong>
-          {assessment.final?.max != null && (
-            <span>
-              {" "}
-              {assessment.final.score ?? 0} / {assessment.final.max}점
-            </span>
+          <strong>총점</strong>
+          {hasScore ? (
+            <div className={style.assessmentSummaryScore}>
+              {assessment.final?.score ?? 0} / {assessment.final?.max}점
+            </div>
+          ) : (
+            <div className={style.assessmentSummaryMuted}>점수 미집계</div>
           )}
           {assessment.final?.comment && (
-            <span> · {assessment.final.comment}</span>
+            <div className={style.assessmentSummaryComment}>
+              {assessment.final.comment}
+            </div>
           )}
         </div>
       </div>
 
       <div className={style.assessmentGradePanel}>
-        {(form.fields || [])
-          .filter(
-            (f) =>
-              f.gradingMethod &&
-              f.gradingMethod !== "none" &&
-              f.permission === "respondent"
-          )
-          .map((field) => {
-            const method = field.gradingMethod!;
-            const draft = gradeDraft.byField[field._id] || {};
-            const fieldRubricIds = field.rubricIds?.length
-              ? field.rubricIds
-              : field.rubricId
-                ? [field.rubricId]
-                : [];
-            const fieldRubrics = fieldRubricIds
-              .map((id) =>
-                (form.rubrics || []).find((r: TFormRubric) => r.id === id)
-              )
-              .filter(Boolean) as TFormRubric[];
-
-            return (
-              <div key={field._id} className={style.assessmentFieldBlock}>
-                <div className={style.assessmentFieldLabel}>
-                  {field.label}
-                  <span className={style.assessmentFieldMethod}>
-                    (
-                    {method === "completion"
-                      ? "자기선언"
-                      : method === "manual_score"
-                        ? "수동 점수"
-                        : fieldRubrics.length > 1
-                          ? `루브릭 ${fieldRubrics.length}개`
-                          : "루브릭"}
-                    )
-                  </span>
-                </div>
-                {(method === "manual_score" || method === "completion") && (
-                  <div className={style.assessmentScoreRow}>
-                    <input
-                      className={style.filterInput}
-                      type="number"
-                      min={0}
-                      max={field.points || 0}
-                      style={{ width: 80 }}
-                      value={draft.score ?? ""}
-                      onChange={(e) => {
-                        const raw = e.target.value;
-                        const parsed =
-                          raw === "" ? undefined : Number(raw);
-                        const score =
-                          parsed === undefined || Number.isFinite(parsed)
-                            ? parsed
-                            : draft.score;
-                        setGradeDraft((p) => ({
-                          ...p,
-                          byField: {
-                            ...p.byField,
-                            [field._id]: { ...draft, score },
-                          },
-                        }));
-                      }}
-                    />
-                    <span>/ {field.points || 0}점</span>
-                  </div>
-                )}
-                {method === "rubric" &&
-                  (fieldRubrics.length === 0 ? (
-                    <div className={style.assessmentHint}>
-                      연결된 루브릭이 없습니다. 양식 편집에서 루브릭을
-                      선택하세요.
-                    </div>
-                  ) : (
-                    fieldRubrics.map((rubric) => {
-                      const rDraft =
-                        draft.byRubric?.[rubric.id] ||
-                        (fieldRubrics.length === 1
-                          ? { levelId: draft.levelId }
-                          : {});
-                      return (
-                        <div key={rubric.id} className={style.assessmentRubricBlock}>
-                          <div className={style.assessmentHint}>{rubric.title}</div>
-                          <select
-                            className={style.filterInput}
-                            style={{ maxWidth: 280 }}
-                            value={rDraft.levelId || ""}
-                            onChange={(e) => {
-                              const levelId = e.target.value || undefined;
-                              setGradeDraft((p) => {
-                                const prev = p.byField[field._id] || {};
-                                return {
-                                  ...p,
-                                  byField: {
-                                    ...p.byField,
-                                    [field._id]: {
-                                      ...prev,
-                                      byRubric: {
-                                        ...(prev.byRubric || {}),
-                                        [rubric.id]: {
-                                          ...(prev.byRubric?.[rubric.id] || {}),
-                                          levelId,
-                                        },
-                                      },
-                                      levelId:
-                                        fieldRubrics.length === 1
-                                          ? levelId
-                                          : prev.levelId,
-                                    },
-                                  },
-                                };
-                              });
-                            }}
-                          >
-                            <option value="">수준 선택</option>
-                            {(rubric.levels || []).map((l) => (
-                              <option key={l.id} value={l.id}>
-                                {l.label}
-                                {l.points != null ? ` (${l.points}점)` : ""}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      );
-                    })
-                  ))}
-                <input
-                  className={style.filterInput}
-                  placeholder="코멘트"
-                  style={{ marginTop: 6, width: "100%" }}
-                  value={draft.comment || ""}
-                  onChange={(e) =>
-                    setGradeDraft((p) => ({
-                      ...p,
-                      byField: {
-                        ...p.byField,
-                        [field._id]: {
-                          ...draft,
-                          comment: e.target.value,
-                        },
-                      },
-                    }))
-                  }
-                />
-              </div>
-            );
-          })}
-
         <div className={style.assessmentFinalBlock}>
           <div className={style.assessmentFieldLabel}>최종 코멘트</div>
           <input

@@ -23,9 +23,10 @@ import SheetTimetableView, {
   getTimetableAxisFields,
 } from "./SheetTimetableView";
 import SheetApprovalDocSection from "./SheetApprovalDocSection";
-import SheetAssessmentSection, {
+import SheetAssessmentSection from "./SheetAssessmentSection";
+import FieldAssessmentInline, {
   TGradeDraft,
-} from "./SheetAssessmentSection";
+} from "./FieldAssessmentInline";
 
 type Props = {
   forms: TAltForm[];
@@ -2042,30 +2043,53 @@ const AltSheetView = ({
                   </div>
                 )}
 
-                {contentFields.map((field) => (
-                  <div key={field._id} className={style.questionItem}>
-                    <div className={style.questionLabel}>
-                      <span className={style.questionLabelText}>
-                        {field.label}
-                      </span>
-                      {field.required && (
-                        <span className={style.requiredMark}>*</span>
-                      )}
-                      {field.permission === "owner" && (
-                        <span className={style.docViewOwnerBadge}>
-                          (관리자)
+                {contentFields.map((field) => {
+                  const showAssessment =
+                    isAssessment &&
+                    selectedForm &&
+                    !!field.gradingMethod &&
+                    field.gradingMethod !== "none";
+                  return (
+                    <div key={field._id} className={style.questionItem}>
+                      <div className={style.questionLabel}>
+                        <span className={style.questionLabelText}>
+                          {field.label}
                         </span>
+                        {field.required && (
+                          <span className={style.requiredMark}>*</span>
+                        )}
+                        {field.permission === "owner" && (
+                          <span className={style.docViewOwnerBadge}>
+                            (관리자)
+                          </span>
+                        )}
+                      </div>
+                      <div className={style.docViewValue}>
+                        {renderDocFieldValue(
+                          currentDocRow,
+                          field,
+                          editingRowId === currentDocRow._id
+                        )}
+                      </div>
+                      {showAssessment && (
+                        <FieldAssessmentInline
+                          field={field}
+                          form={selectedForm}
+                          canManage={canManage}
+                          isEditingDoc={
+                            editingRowId === currentDocRow._id
+                          }
+                          gradeDraft={gradeDraft}
+                          setGradeDraft={setGradeDraft}
+                          assessment={
+                            (currentDocRow.data?._assessment ||
+                              {}) as TAssessmentData
+                          }
+                        />
                       )}
                     </div>
-                    <div className={style.docViewValue}>
-                      {renderDocFieldValue(
-                        currentDocRow,
-                        field,
-                        editingRowId === currentDocRow._id
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
 
                 {approvalFields.map((field) => (
                   <SheetApprovalDocSection

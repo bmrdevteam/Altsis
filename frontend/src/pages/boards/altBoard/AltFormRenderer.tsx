@@ -21,6 +21,10 @@ import {
   normalizeApprovalValue,
 } from "utils/approvalLine";
 import { getRequiredResponseCount } from "./activityStatusVisual";
+import FieldRubricPanel, {
+  getFieldRubrics,
+  selectedLevelsFromDraft,
+} from "./FieldRubricPanel";
 
 type Props = {
   board: TBoard;
@@ -2224,6 +2228,33 @@ const AltFormRenderer = ({
                       : String(field.correctAnswer)}
                   </div>
                 )}
+              {form?.settings.assessmentMode &&
+                field.gradingMethod === "rubric" &&
+                (() => {
+                  const rubrics = getFieldRubrics(field, form.rubrics);
+                  if (!rubrics.length) return null;
+                  const grade = assessmentFinalized
+                    ? (activeRow?.data?._assessment as TAssessmentData | undefined)
+                        ?.byField?.[field._id]
+                    : undefined;
+                  const selected = assessmentFinalized
+                    ? selectedLevelsFromDraft(
+                        {
+                          levelId: grade?.levelId,
+                          byRubric: grade?.byRubric,
+                        },
+                        rubrics
+                      )
+                    : {};
+                  return (
+                    <FieldRubricPanel
+                      rubrics={rubrics}
+                      mode="criteria"
+                      selectedByRubric={selected}
+                      toggleLabel="평가 기준"
+                    />
+                  );
+                })()}
             </div>
           );
         })}

@@ -4495,14 +4495,286 @@ tbody tr:hover .actionCell {
   margin-top: 12px;
 }
 
+.assessmentFieldGrade {
+  display: flex;
+  flex-direction: column;
+  margin-top: 12px;
+}
+
+.assessmentFieldGradeToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 40px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--status-info) 35%, var(--border-color));
+  border-radius: 8px;
+  background: var(--status-info-bg);
+  color: var(--status-info);
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+
+  &:hover {
+    filter: brightness(0.97);
+  }
+
+  &[aria-expanded="true"] {
+    border-radius: 8px 8px 0 0;
+  }
+}
+
+.assessmentFieldGradeToggleMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.assessmentFieldGradeToggleTitle {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--status-info);
+}
+
+.assessmentFieldGradeToggleSummary {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-color-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assessmentFieldGradeBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: -1px;
+  padding: 12px 14px 14px;
+  border: 1px solid color-mix(in srgb, var(--status-info) 35%, var(--border-color));
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  background: var(--background-color);
+}
+
+.assessmentCommentBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.assessmentCommentLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-color-1);
+}
+
+.assessmentCommentOptional {
+  font-weight: 400;
+  color: var(--text-color-2);
+}
+
+.assessmentCommentInput {
+  width: 100%;
+  min-height: 64px;
+  padding: 8px 10px;
+  border: var(--border-default);
+  border-radius: 6px;
+  background: var(--background-color);
+  color: var(--text-color-1);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.45;
+  resize: vertical;
+
+  &::placeholder {
+    color: var(--text-color-3, var(--text-color-2));
+  }
+
+  &:focus {
+    outline: 2px solid color-mix(in srgb, var(--status-info) 45%, transparent);
+    outline-offset: 1px;
+  }
+}
+
+.assessmentInlineResult {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-color-1);
+}
+
+.assessmentInlineResultScore {
+  font-weight: 600;
+}
+
+.assessmentInlineResultComment {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--text-color-2);
+  line-height: 1.45;
+}
+
+.rubricPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rubricPanelToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--status-info) 35%, var(--border-color));
+  border-radius: 8px;
+  background: var(--status-info-bg);
+  color: var(--status-info);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  cursor: pointer;
+  text-align: left;
+
+  &:hover {
+    filter: brightness(0.97);
+  }
+
+  &[aria-expanded="true"] {
+    border-radius: 8px 8px 0 0;
+  }
+}
+
+.rubricPanelToggleIcon {
+  flex-shrink: 0;
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0.9;
+}
+
+.rubricCriteriaList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: -1px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--status-info) 35%, var(--border-color));
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  background: var(--background-color-2, var(--background-hover-color));
+}
+
+.rubricCriteriaBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rubricCriteriaTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-color-1);
+}
+
+.rubricLevelList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rubricLevelItem {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: var(--background-color);
+}
+
+.rubricLevelItemSelected {
+  border-color: color-mix(in srgb, var(--status-info) 40%, var(--border-color));
+  background: var(--status-info-bg);
+}
+
+.rubricLevelHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.rubricLevelLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-color-1);
+}
+
+.rubricLevelSelectedBadge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--status-info);
+}
+
+.rubricLevelDesc,
+.rubricSelectedDesc {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-color-2);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .assessmentGradePanel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   margin-top: 4px;
 }
 
-.assessmentFieldBlock {
-  margin-top: 10px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border-color);
+.assessmentSummaryScore {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-color-1);
+  line-height: 1.3;
+}
+
+.assessmentSummaryMuted {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-color-2);
+}
+
+.assessmentSummaryComment {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-color-1);
+  line-height: 1.45;
+}
+
+.assessmentResultField {
+  margin-top: 6px;
+  font-size: 12px;
+  opacity: 0.95;
+}
+
+.assessmentResultFieldTitle {
+  font-weight: 600;
 }
 
 .assessmentFieldLabel {
@@ -4511,42 +4783,91 @@ tbody tr:hover .actionCell {
   color: var(--text-color-1);
 }
 
-.assessmentFieldMethod {
-  margin-left: 6px;
-  font-weight: 400;
-  color: var(--text-color-2);
-  font-size: 12px;
+.assessmentMethodBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--status-info-bg);
+  color: var(--status-info);
 }
 
 .assessmentScoreRow {
   display: flex;
   gap: 8px;
   align-items: center;
-  margin-top: 6px;
   font-size: 12px;
   color: var(--text-color-2);
 }
 
 .assessmentRubricBlock {
-  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.assessmentRubricTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-color-2);
+}
+
+.assessmentLevelChipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.assessmentLevelChip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--background-color);
+  color: var(--text-color-2);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--component-hover-color);
+    border-color: var(--text-color-3);
+  }
+}
+
+.assessmentLevelChipActive {
+  background: var(--status-info-bg);
+  color: var(--status-info);
+  border-color: color-mix(in srgb, var(--status-info) 35%, var(--border-color));
+
+  &:hover {
+    background: var(--status-info-bg);
+    filter: brightness(0.98);
+  }
 }
 
 .assessmentHint {
-  margin-top: 6px;
   font-size: 12px;
   color: var(--text-color-2);
   line-height: 1.45;
 }
 
 .assessmentFinalBlock {
-  margin-top: 12px;
+  padding: 14px 16px;
+  border: var(--border-default);
+  border-radius: 8px;
+  background: var(--background-color);
 }
 
 .assessmentSaveBlock {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-top: 12px;
 }
 
 /* ─── Print (영역 격리는 global.scss body.altsis-printing) ─── */
