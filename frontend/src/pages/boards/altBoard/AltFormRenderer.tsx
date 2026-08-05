@@ -2182,79 +2182,97 @@ const AltFormRenderer = ({
             isReviewMode || (isSubmitted && !canResubmit) || !canSubmit;
           const quizMark = getQuizMark(field);
 
+          const assessmentRubrics =
+            form?.settings.assessmentMode && field.gradingMethod === "rubric"
+              ? getFieldRubrics(field, form.rubrics)
+              : [];
+          const assessmentGrade = assessmentFinalized
+            ? (activeRow?.data?._assessment as TAssessmentData | undefined)
+                ?.byField?.[field._id]
+            : undefined;
+          const assessmentSelected =
+            assessmentFinalized && assessmentRubrics.length
+              ? selectedLevelsFromDraft(
+                  {
+                    levelId: assessmentGrade?.levelId,
+                    byRubric: assessmentGrade?.byRubric,
+                  },
+                  assessmentRubrics
+                )
+              : {};
+
           return (
-            <div
-              key={field._id}
-              className={`${style.questionItem} ${
-                quizMark === true
-                  ? style.questionCorrect
-                  : quizMark === false
-                    ? style.questionWrong
-                    : ""
-              }`}
-            >
-              <div className={style.questionLabel}>
-                <span className={style.questionLabelText}>{field.label}</span>
-                {field.required && (
-                  <span className={style.requiredMark}>*</span>
-                )}
-                {quizMark === true && (
-                  <span className={style.quizMarkCorrect}>✓</span>
-                )}
-                {quizMark === false &&
-                  form.settings.quizSettings?.showWrongMarks && (
-                    <span className={style.quizMarkWrong}>✗</span>
+            <div key={field._id} className={style.questionWithAssessment}>
+              <div
+                className={`${style.questionItem} ${
+                  quizMark === true
+                    ? style.questionCorrect
+                    : quizMark === false
+                      ? style.questionWrong
+                      : ""
+                }`}
+              >
+                <div className={style.questionLabel}>
+                  <span className={style.questionLabelText}>{field.label}</span>
+                  {field.required && (
+                    <span className={style.requiredMark}>*</span>
                   )}
-                {field.points != null &&
-                  field.points > 0 &&
-                  form.settings.quizMode && (
-                    <span className={style.pointsBadge}>
-                      {field.points}점
-                    </span>
+                  {quizMark === true && (
+                    <span className={style.quizMarkCorrect}>✓</span>
+                  )}
+                  {quizMark === false &&
+                    form.settings.quizSettings?.showWrongMarks && (
+                      <span className={style.quizMarkWrong}>✗</span>
+                    )}
+                  {field.points != null &&
+                    field.points > 0 &&
+                    form.settings.quizMode && (
+                      <span className={style.pointsBadge}>
+                        {field.points}점
+                      </span>
+                    )}
+                </div>
+                {renderField(field, disabled)}
+                {errors[field._id] && (
+                  <div className={style.questionError}>{errors[field._id]}</div>
+                )}
+                {/* 퀴즈 정답 표시 */}
+                {quizAnswerVisible &&
+                  field.correctAnswer !== undefined &&
+                  field.correctAnswer !== null && (
+                    <div className={style.correctAnswerHint}>
+                      정답:{" "}
+                      {Array.isArray(field.correctAnswer)
+                        ? field.correctAnswer.join(", ")
+                        : String(field.correctAnswer)}
+                    </div>
                   )}
               </div>
-              {renderField(field, disabled)}
-              {errors[field._id] && (
-                <div className={style.questionError}>{errors[field._id]}</div>
-              )}
-              {/* 퀴즈 정답 표시 */}
-              {quizAnswerVisible &&
-                field.correctAnswer !== undefined &&
-                field.correctAnswer !== null && (
-                  <div className={style.correctAnswerHint}>
-                    정답:{" "}
-                    {Array.isArray(field.correctAnswer)
-                      ? field.correctAnswer.join(", ")
-                      : String(field.correctAnswer)}
+              {assessmentRubrics.length > 0 && (
+                <aside
+                  className={style.questionAssessmentAside}
+                  aria-label={`${field.label} 평가 기준`}
+                >
+                  <div className={style.questionAssessmentAsideHeader}>
+                    <span className={style.questionAssessmentAsideTitle}>
+                      평가 기준
+                    </span>
+                    <span
+                      className={style.questionAssessmentAsideHint}
+                      title="채점용 안내입니다. 여기에 작성하지 마세요."
+                    >
+                      <Svg type="info-circle" width="12px" height="12px" />
+                      채점용
+                    </span>
                   </div>
-                )}
-              {form?.settings.assessmentMode &&
-                field.gradingMethod === "rubric" &&
-                (() => {
-                  const rubrics = getFieldRubrics(field, form.rubrics);
-                  if (!rubrics.length) return null;
-                  const grade = assessmentFinalized
-                    ? (activeRow?.data?._assessment as TAssessmentData | undefined)
-                        ?.byField?.[field._id]
-                    : undefined;
-                  const selected = assessmentFinalized
-                    ? selectedLevelsFromDraft(
-                        {
-                          levelId: grade?.levelId,
-                          byRubric: grade?.byRubric,
-                        },
-                        rubrics
-                      )
-                    : {};
-                  return (
-                    <FieldRubricPanel
-                      rubrics={rubrics}
-                      mode="criteria"
-                      selectedByRubric={selected}
-                      toggleLabel="평가 기준"
-                    />
-                  );
-                })()}
+                  <FieldRubricPanel
+                    rubrics={assessmentRubrics}
+                    mode="criteria"
+                    selectedByRubric={assessmentSelected}
+                    toggleLabel="기준 자세히 보기"
+                  />
+                </aside>
+              )}
             </div>
           );
         })}
