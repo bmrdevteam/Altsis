@@ -1,5 +1,4 @@
 import Svg from "assets/svg/Svg";
-import Autofill from "components/input/Autofill";
 import Loading from "components/loading/Loading";
 import Popup from "components/popup/Popup";
 import Select from "components/select/Select";
@@ -10,7 +9,9 @@ import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import _ from "lodash";
 import React, { useEffect, useState } from "react";
 import style from "style/pages/docs/docs.module.scss";
+import { TRegistration } from "types/registrations";
 import DocFormSelector from "./DocFormSelector";
+import StudentPicker from "./StudentPicker";
 
 const getStorageKey = (schoolId: string) => `docsSelectedForms_${schoolId}`;
 
@@ -39,9 +40,7 @@ function Docs({}: Props) {
   const [printForms, setPrintForms] = useState<any>([]);
   const [DBData, setDBData] = useState<any>();
   /* not users but registrations */
-  const [users, setUsers] = useState<any[]>([]);
-  const [grades, setGrades] = useState<any[]>([]);
-  const [selectedGrade, setSelectedGrade] = useState<string>();
+  const [users, setUsers] = useState<TRegistration[]>([]);
   const [choosePopupActive, setChoosePopupActive] = useState<boolean>(false);
   const [selectorPopupActive, setSelectorPopupActive] = useState<boolean>(false);
   const [selectedFormIds, setSelectedFormIds] = useState<string[]>([]);
@@ -170,14 +169,7 @@ function Docs({}: Props) {
         }) => {
           // registrations (teacher only)
           if (!isStudent) {
-            const g: any = _.uniqBy(res.registrations, "grade");
-            setGrades(
-              g.map((val: any) => {
-                return { text: val.grade, value: val.grade };
-              })
-            );
-            setSelectedGrade(g[0]?.grade);
-            setUsers(_.sortBy(res.registrations, ["userName"]));
+            setUsers(_.sortBy(res.registrations, ["grade", "userName"]));
           }
 
           // forms, form, documentData
@@ -246,42 +238,22 @@ function Docs({}: Props) {
             <>
               <div className={style.label}>학생선택</div>
               <div className={style.search}>
-                <Select
-                  options={grades}
-                  onChange={(val: string) => {
-                    setSelectedGrade(val);
-                  }}
-                  className={style.selectGrade}
-                  style={{ borderRadius: "4px", maxWidth: "120px" }}
-                />
-                <Autofill
-                  style={{ borderRadius: "4px" }}
-                  options={[
-                    { text: "", value: "" },
-                    ...users
-                      ?.filter((val) => val.grade === selectedGrade)
-                      .map((val) => {
-                        return {
-                          value: JSON.stringify({
-                            rid: val._id,
-                            uid: val.user,
-                          }),
-                          text: `${val.userName} / ${val.userId}`,
-                        };
-                      }),
-                  ]}
-                  onChange={(value: string | number) => {
-                    if (value === "") return;
+                <StudentPicker
+                  students={users}
+                  schoolId={currentSchool.schoolId}
+                  onSelect={({ rid, uid }) => {
                     setLoading(true);
-                    if (value !== "") {
-                      const { rid, uid } = JSON.parse(`${value}`);
-                      getDBData(rid, uid).then((res) => {
+                    getDBData(rid, uid)
+                      .then((res) => {
                         setDBData(res);
+                      })
+                      .catch((err) => {
+                        ALERT_ERROR(err);
+                      })
+                      .finally(() => {
                         setLoading(false);
                       });
-                    }
                   }}
-                  placeholder={"검색"}
                 />
               </div>
             </>

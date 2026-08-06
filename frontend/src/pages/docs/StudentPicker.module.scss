@@ -1,0 +1,239 @@
+.container {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 10px;
+  border: var(--border-default);
+  border-radius: 4px;
+  background-color: var(--background-color);
+  cursor: text;
+
+  svg {
+    fill: var(--accent-3);
+    flex-shrink: 0;
+  }
+
+  .triggerText {
+    flex: 1;
+    min-width: 0;
+    font-size: 14px;
+    color: var(--accent-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .placeholder {
+    color: var(--placeholder-color);
+  }
+
+  &:focus-within,
+  &.open {
+    border-color: var(--accent-3);
+  }
+}
+
+.panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 100;
+  min-width: 320px;
+  max-width: 480px;
+  background-color: var(--background-color);
+  border: var(--border-default);
+  border-radius: 12px;
+  box-shadow: var(--component-box-shadow), 0 16px 48px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  animation: slideDown 0.12s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.inputRow {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: var(--border-default);
+  gap: 8px;
+
+  svg {
+    fill: var(--accent-3);
+    flex-shrink: 0;
+  }
+
+  input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 14px;
+    color: var(--accent-1);
+    font-family: inherit;
+
+    &::placeholder {
+      color: var(--placeholder-color);
+    }
+  }
+
+  .shortcutHint {
+    font-size: 11px;
+    color: var(--accent-4);
+    background-color: var(--component-color);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: var(--border-default);
+    flex-shrink: 0;
+  }
+}
+
+.results {
+  max-height: min(320px, 50vh);
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.recentHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px 4px;
+
+  .recentLabel {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent-3);
+  }
+
+  .clearBtn {
+    font-size: 11px;
+    color: var(--accent-4);
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+
+    &:hover {
+      color: var(--accent-1);
+    }
+  }
+}
+
+.groupHeader {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-3);
+  padding: 8px 12px 4px;
+}
+
+.resultItem {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  gap: 10px;
+  width: 100%;
+  border: none;
+  background: none;
+  text-align: left;
+  font-family: inherit;
+
+  svg {
+    fill: var(--accent-3);
+    flex-shrink: 0;
+  }
+
+  &.active {
+    background-color: var(--component-hover-color);
+
+    svg {
+      fill: var(--accent-1);
+    }
+  }
+}
+
+.itemText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.itemLabel {
+  font-size: 14px;
+  color: var(--accent-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.itemDesc {
+  font-size: 12px;
+  color: var(--accent-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.badge {
+  font-size: 10px;
+  color: var(--accent-4);
+  background-color: var(--component-color);
+  padding: 1px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.empty {
+  padding: 20px 12px;
+  text-align: center;
+  color: var(--accent-3);
+  font-size: 13px;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 6px 12px;
+  border-top: var(--border-default);
+  font-size: 11px;
+  color: var(--accent-4);
+
+  kbd {
+    font-size: 10px;
+    background-color: var(--component-color);
+    padding: 1px 5px;
+    border-radius: 3px;
+    border: var(--border-default);
+    font-family: inherit;
+  }
+}
+
+@media (max-width: 768px) {
+  .panel {
+    min-width: 0;
+    max-width: none;
+    width: 100%;
+  }
+}
