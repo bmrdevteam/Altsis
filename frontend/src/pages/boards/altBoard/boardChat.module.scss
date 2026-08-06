@@ -252,22 +252,6 @@
   flex: 1;
 }
 
-.dm_ai_btn {
-  background: none;
-  border: 1px solid var(--highlight-color);
-  color: var(--highlight-color);
-  font-size: 12px;
-  padding: 4px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-  white-space: nowrap;
-
-  &:hover {
-    background-color: var(--highlight-color);
-    color: #fff;
-  }
-}
-
 // Input area
 .input_area {
   display: flex;

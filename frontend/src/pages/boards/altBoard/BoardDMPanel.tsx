@@ -22,10 +22,9 @@ type Props = {
   socket: Socket | null;
   onBack: () => void;
   onRoomCreated: (roomId: string) => void;
-  onViewStudentAI?: () => void; // 교사: 상대 학생의 AI 대화 보기
 };
 
-const BoardDMPanel = ({ roomId, partner, partnerName, socket, onBack, onRoomCreated, onViewStudentAI }: Props) => {
+const BoardDMPanel = ({ roomId, partner, partnerName, socket, onBack, onRoomCreated }: Props) => {
   const { currentUser } = useAuth();
   const { ChatAPI } = useAPIv2();
 
@@ -473,15 +472,6 @@ const BoardDMPanel = ({ roomId, partner, partnerName, socket, onBack, onRoomCrea
           ←
         </button>
         <span className={style.dm_partner_name}>{partnerName}</span>
-        {onViewStudentAI && (
-          <button
-            className={style.dm_ai_btn}
-            onClick={onViewStudentAI}
-            title={`${partnerName}의 AI 대화 보기`}
-          >
-            AI 대화
-          </button>
-        )}
       </div>
 
       {/* Messages */}

@@ -2,7 +2,10 @@
  * resolveSkillPromptPack 스모크
  */
 const mockFindLean = jest.fn();
-const mockFind = jest.fn(() => ({ lean: mockFindLean }));
+const mockFind = jest.fn(() => ({
+  lean: mockFindLean,
+  select: () => ({ lean: mockFindLean }),
+}));
 
 jest.mock("../../src/models/index.js", () => ({
   AiLibraryItem: () => ({ find: mockFind }),
@@ -41,7 +44,10 @@ describe("resolveSkillPromptPack", () => {
   beforeEach(() => {
     mockFindLean.mockReset();
     mockFind.mockReset();
-    mockFind.mockImplementation(() => ({ lean: mockFindLean }));
+    mockFind.mockImplementation(() => ({
+      lean: mockFindLean,
+      select: () => ({ lean: mockFindLean }),
+    }));
   });
 
   test("학교 skills 가 있으면 라이브러리 지침·학습정보를 사용한다", async () => {
@@ -319,6 +325,12 @@ describe("resolveSkillPromptPack", () => {
     expect(prep.guidelines).toContain("성장 중심");
     // 초안 스킬 prep 에는 참고자료(learning)를 노출하지 않음
     expect(prep.references).toEqual([]);
+    expect(prep.instructionItems?.map((it) => it._id)).toEqual(
+      expect.arrayContaining(["lib2"])
+    );
+    expect(prep.defaultGuidelineItemIds).toEqual(
+      expect.arrayContaining(["lib2"])
+    );
   });
 
   test("prep 설정은 지침이 없으면 빈 문자열을 반환한다", async () => {

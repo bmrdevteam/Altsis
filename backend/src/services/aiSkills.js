@@ -417,7 +417,8 @@ export const resolveSkillPromptPack = async (
 /**
  * Alter prep UI용 — 저장된 지침/참고자료 (기본 가이드 문구는 넣지 않음).
  * references 는 선택 전 전체 목록(인덱스는 프롬프트와 동일 순서).
- * archive-draft 는 instructionItems + defaultGuidelineItemIds 도 함께 반환.
+ * syllabus/archive/document/form-response/activity(-review) 는
+ * instructionItems + defaultGuidelineItemIds 도 함께 반환.
  */
 export const resolveSkillPrepSettings = async (
   academyId,
@@ -529,6 +530,7 @@ export const resolveSkillPrepSettings = async (
       fromSchool: true,
     };
     if (
+      skill === SKILL_IDS.SYLLABUS_DRAFT ||
       skill === SKILL_IDS.ARCHIVE_DRAFT ||
       skill === SKILL_IDS.DOCUMENT_DRAFT ||
       skill === SKILL_IDS.DOCUMENT_REVIEW ||
@@ -553,6 +555,7 @@ export const resolveSkillPrepSettings = async (
     fromSchool: false,
   };
   if (
+    skill === SKILL_IDS.SYLLABUS_DRAFT ||
     skill === SKILL_IDS.ARCHIVE_DRAFT ||
     skill === SKILL_IDS.DOCUMENT_DRAFT ||
     skill === SKILL_IDS.DOCUMENT_REVIEW ||
@@ -623,6 +626,20 @@ const resolveLibraryGuidelines = async (
   );
   return pack.guidelines || defaultSkillGuide(skill);
 };
+
+const resolveSyllabusGuidelines = async (
+  academyId,
+  school,
+  season,
+  context = {}
+) =>
+  resolveLibraryGuidelines(
+    academyId,
+    school,
+    season,
+    SKILL_IDS.SYLLABUS_DRAFT,
+    context
+  );
 
 const resolveArchiveGuidelines = async (
   academyId,
@@ -1001,9 +1018,9 @@ export const buildSyllabusDraftPrompt = (context, promptPack, focusFields) => {
     context?.draftChunkIndex === 0 || context?.draftChunkIndex == null;
 
   let prompt = `당신은 한국 학교 강의계획서 작성 전문가입니다.
-교사가 제공한 정보·자료를 바탕으로, 지정된 항목의 초안 문장을 작성하세요.
-제공 자료에 근거가 없는 내용은 지어내지 말고 해당 value를 빈 문자열("")로 두세요.
-다른 수업의 고유명사·주제를 끌어오지 마세요.
+교사가 제공한 정보·자료·작성 지침·교과/수업명을 바탕으로, 지정된 항목의 초안을 작성하세요.
+작성 대상 항목은 모두 비어 있지 않은 value로 채우세요. 자료가 짧아도 교과·수업명·지침에 맞게 합리적인 초안을 구성합니다.
+사실이 아닌 고유명사(실제 학교·도서·인물명)나 다른 수업의 내용을 끌어오지 마세요. 불확실한 세부 정보는 일반적인 표현으로 충분합니다.
 응답은 반드시 하나의 JSON 객체만, 마크다운·코드펜스·설명 문구 없이 출력하세요.
 
 ## 작성 지침
@@ -1023,17 +1040,18 @@ ${normalizeGuidelines(
 
   prompt += `
 ## 교사 제공 자료
-${sourceText || "(텍스트 자료 없음 — 수업명·교과와 지침만으로 가능한 범위에서 작성)"}
+${sourceText || "(텍스트 자료 없음 — 수업명·교과와 지침만으로 전 항목을 합리적으로 작성)"}
 
 ## 이미 채워진 항목 (참고, 그대로 복사하지 말고 일관되게 작성)
 ${formatCurrentInfoForPrompt(currentInfo, focusFields) || "(없음)"}
 
-## 작성 대상 항목 (모두 items에 포함, field 이름은 정확히 동일)
+## 작성 대상 항목 (모두 items에 포함, field 이름은 정확히 동일, value는 비우지 말 것)
 ${fieldNames.map((name) => `- ${JSON.stringify(name)}`).join("\n")}
 
 ## 요청
 위 대상 항목을 빠짐없이 items에 넣고 JSON만 출력하세요.
-각 value는 해당 필드에 바로 붙여넣을 수 있는 공손한 문어체 초안입니다.
+각 value는 해당 필드에 바로 붙여넣을 수 있는 공손한 문어체 초안이며, 빈 문자열은 사용하지 마세요.
+주차별·차시 항목이 있으면 순서에 맞는 학습 흐름으로 서로 다르게 작성하세요.
 {
   ${
     includeSummary
@@ -1041,7 +1059,7 @@ ${fieldNames.map((name) => `- ${JSON.stringify(name)}`).join("\n")}
       : `"summary": "",`
   }
   "items": [
-    { "field": "위 목록의 항목명", "value": "초안 본문 또는 빈 문자열" }
+    { "field": "위 목록의 항목명", "value": "초안 본문" }
   ]
 }
 `;
@@ -1206,6 +1224,16 @@ export const executeSyllabusDraftSkill = async ({
     SKILL_IDS.SYLLABUS_DRAFT,
     []
   );
+  const selectedGuidelines = await resolveSyllabusGuidelines(
+    academyId,
+    school,
+    season,
+    context
+  );
+  const draftPromptPack = {
+    ...promptPack,
+    guidelines: selectedGuidelines || promptPack.guidelines || "",
+  };
 
   const provider = resolveProvider(academy.aiProvider);
   const modelName = resolveModel(provider, academy.aiModel);
@@ -1230,7 +1258,7 @@ export const executeSyllabusDraftSkill = async ({
 
     const prompt = buildSyllabusDraftPrompt(
       { ...draftContext, draftChunkIndex: i },
-      promptPack,
+      draftPromptPack,
       chunkFields
     );
 
@@ -1260,6 +1288,66 @@ export const executeSyllabusDraftSkill = async ({
   }
 
   let merged = mergeSyllabusDraftChunks(draftChunks, allFieldNames);
+
+  // 빈 항목이 남으면 한 번 더 채워 전 항목 초안을 맞춘다
+  const emptyAfterFirst = merged.items
+    .filter((it) => !String(it.value || "").trim())
+    .map((it) => it.field);
+  if (emptyAfterFirst.length > 0 && emptyAfterFirst.length < allFieldNames.length) {
+    const emptyFields = fields.filter((f) => emptyAfterFirst.includes(f.name));
+    const refillChunks = [];
+    for (let i = 0; i < emptyFields.length; i += chunkSize) {
+      refillChunks.push(emptyFields.slice(i, i + chunkSize));
+    }
+    emit("step", {
+      message: `비어 있는 ${emptyAfterFirst.length}개 항목을 보완하는 중...`,
+    });
+    const filledAsCurrent = {};
+    for (const item of merged.items) {
+      if (item?.field && item.value) filledAsCurrent[item.field] = item.value;
+    }
+    for (let i = 0; i < refillChunks.length; i++) {
+      const chunkFields = refillChunks[i];
+      const chunkNames = chunkFields.map((f) => f.name);
+      try {
+        const prompt = buildSyllabusDraftPrompt(
+          {
+            ...draftContext,
+            draftChunkIndex: i,
+            currentInfo: {
+              ...(draftContext.currentInfo || {}),
+              ...filledAsCurrent,
+            },
+          },
+          draftPromptPack,
+          chunkFields
+        );
+        const { draft: chunkDraft, tokenUsage: chunkUsage } =
+          await draftFieldChunk({
+            provider,
+            apiKey: academy.aiApiKey,
+            modelName,
+            profile,
+            prompt,
+            fieldNames: chunkNames,
+            attachments,
+          });
+        draftChunks.push(chunkDraft);
+        tokenUsage = mergeTokenUsage(tokenUsage, chunkUsage);
+      } catch (err) {
+        logger.warn(
+          `syllabus draft refill chunk ${i + 1}/${refillChunks.length}: ${
+            err?.message || err
+          }`
+        );
+        emit("step", {
+          message: `일부 빈 항목(${i + 1}/${refillChunks.length}) 보완을 건너뛰었습니다.`,
+        });
+      }
+    }
+    merged = mergeSyllabusDraftChunks(draftChunks, allFieldNames);
+  }
+
   merged = {
     summary: maskSensitiveText(merged.summary).text,
     items: merged.items.map((item) => ({

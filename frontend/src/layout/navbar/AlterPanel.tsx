@@ -15,7 +15,6 @@ import Button from "components/button/Button";
 import { MarkdownViewer } from "components/markdown";
 import normalizeAlterMarkdown from "utils/normalizeAlterMarkdown";
 import { FORM_RESPONSE_WRITABLE_TYPES } from "utils/formResponseDraft";
-import { redactImagesForPreview } from "utils/formResponseSlots";
 import Svg from "assets/svg/Svg";
 import {
   ChatPanelShell,
@@ -26,6 +25,23 @@ import {
   ChatInputBar,
   chatUiStyle,
 } from "./chatUi";
+import {
+  EVAL_DRAFT_DEFAULT_BATCH,
+  EVAL_DRAFT_MAX,
+  SkillDraftResult,
+  SkillPrepDock,
+  isActivityDraft,
+  isArchiveDraft,
+  isAssessmentGradeDraft,
+  isDocumentDraft,
+  isEvalDraft,
+  isFormResponseDraft,
+  isSyllabusDraft,
+  prepKindFromSkill,
+  prepPrimaryLabel as prepPrimaryLabelFor,
+  type TAlterDraftResult,
+  type TAlterDocumentReviewResult,
+} from "./alterUi";
 import style from "./Alter.module.scss";
 
 const formatAlterListTime = (dateString?: string) => {
@@ -51,119 +67,6 @@ const formatAlterListTime = (dateString?: string) => {
 
 const alterApiBase = () => `${process.env.REACT_APP_SERVER_URL}/api/ai`;
 
-type TAlterEvalDraftResult = {
-  kind?: "evaluation";
-  targetLabels: string[];
-  fillEmptyOnly: boolean;
-  csv: string;
-  rows: Array<{
-    studentId: string;
-    studentName?: string;
-    studentGrade?: string;
-    values: Record<string, string>;
-  }>;
-};
-
-type TAlterArchiveDraftResult = {
-  kind: "archive";
-  writeMode?: "perStudent" | "sameText";
-  targetLabels: string[];
-  fillEmptyOnly: boolean;
-  rows: Array<{
-    studentId: string;
-    studentName?: string;
-    studentGrade?: string;
-    values: Record<string, string>;
-  }>;
-};
-
-type TAlterDocumentDraftResult = {
-  kind: "document";
-  writeMode?: "create" | "refine";
-  docType?: string;
-  title: string;
-  content: string;
-};
-
-type TAlterReviewLevel = "good" | "fair" | "needs_work" | "empty";
-
-type TAlterDocumentReviewResult = {
-  summary: string;
-  overallLevel: TAlterReviewLevel | string;
-  items: Array<{
-    field: string;
-    level: TAlterReviewLevel | string;
-    comment: string;
-    suggestion: string;
-    quote?: string;
-    exampleBefore?: string;
-    exampleAfter?: string;
-  }>;
-};
-
-type TAlterFormResponseDraftResult = {
-  kind: "form-response";
-  writeMode?: "create" | "refine";
-  fillEmptyOnly?: boolean;
-  byField: Record<string, unknown>;
-};
-
-type TAlterActivityDraftResult = {
-  kind: "activity";
-  writeMode?: "create" | "refine";
-  formType?: string;
-  title: string;
-  description?: string;
-  fields: Array<{
-    label?: string;
-    type?: string;
-    required?: boolean;
-    permission?: string;
-    options?: string[];
-    content?: string;
-    gradingMethod?: string;
-    rubricIds?: string[];
-    rubricKeys?: string[];
-  }>;
-  settings?: Record<string, unknown>;
-  rubrics?: Array<{
-    id?: string;
-    key?: string;
-    title?: string;
-    levels?: Array<{ label?: string; points?: number }>;
-  }>;
-};
-
-type TAlterAssessmentGradeDraftResult = {
-  kind: "assessment-grade";
-  fillEmptyOnly?: boolean;
-  byField?: Record<
-    string,
-    {
-      score?: number;
-      levelId?: string;
-      comment?: string;
-      byRubric?: Record<string, { levelId?: string; comment?: string }>;
-    }
-  >;
-  final?: { comment?: string };
-};
-
-type TAlterSyllabusDraftResult = {
-  kind: "syllabus";
-  summary?: string;
-  items: Array<{ field: string; value: string }>;
-};
-
-type TAlterDraftResult =
-  | TAlterEvalDraftResult
-  | TAlterArchiveDraftResult
-  | TAlterDocumentDraftResult
-  | TAlterFormResponseDraftResult
-  | TAlterActivityDraftResult
-  | TAlterAssessmentGradeDraftResult
-  | TAlterSyllabusDraftResult;
-
 type TAlterAttachment = {
   kind: "text" | "image";
   name: string;
@@ -186,69 +89,6 @@ type ChatMessage = {
   attachments?: TAlterAttachment[];
 };
 
-const isSyllabusDraft = (
-  draft?: TAlterDraftResult | null
-): draft is TAlterSyllabusDraftResult => {
-  if (!draft) return false;
-  if (draft.kind === "syllabus") return true;
-  const anyDraft = draft as unknown as {
-    items?: unknown;
-    rows?: unknown;
-  };
-  return Array.isArray(anyDraft.items) && !Array.isArray(anyDraft.rows);
-};
-
-const isArchiveDraft = (
-  draft?: TAlterDraftResult | null
-): draft is TAlterArchiveDraftResult => {
-  if (!draft) return false;
-  return (draft as { kind?: string }).kind === "archive";
-};
-
-const isDocumentDraft = (
-  draft?: TAlterDraftResult | null
-): draft is TAlterDocumentDraftResult => {
-  if (!draft) return false;
-  return (draft as { kind?: string }).kind === "document";
-};
-
-const isFormResponseDraft = (
-  draft?: TAlterDraftResult | null
-): draft is TAlterFormResponseDraftResult => {
-  if (!draft) return false;
-  return (draft as { kind?: string }).kind === "form-response";
-};
-
-const isActivityDraft = (
-  draft?: TAlterDraftResult | null
-): draft is TAlterActivityDraftResult => {
-  if (!draft) return false;
-  return (draft as { kind?: string }).kind === "activity";
-};
-
-const isAssessmentGradeDraft = (
-  draft?: TAlterDraftResult | null
-): draft is TAlterAssessmentGradeDraftResult => {
-  if (!draft) return false;
-  return (draft as { kind?: string }).kind === "assessment-grade";
-};
-
-const isEvalDraft = (
-  draft?: TAlterDraftResult | null
-): draft is TAlterEvalDraftResult => {
-  if (
-    !draft ||
-    isArchiveDraft(draft) ||
-    isDocumentDraft(draft) ||
-    isFormResponseDraft(draft) ||
-    isActivityDraft(draft) ||
-    isAssessmentGradeDraft(draft)
-  )
-    return false;
-  const anyDraft = draft as unknown as { rows?: unknown; kind?: string };
-  return Array.isArray(anyDraft.rows) && anyDraft.kind !== "archive";
-};
-
 const SKILL_LABEL: Record<TAlterSkillId, string> = {
   chat: "챗봇",
   "syllabus-draft": "수업",
@@ -261,20 +101,6 @@ const SKILL_LABEL: Record<TAlterSkillId, string> = {
   "assessment-grade": "채점",
 };
 
-const REVIEW_LEVEL_LABEL: Record<string, string> = {
-  good: "충족",
-  fair: "보통",
-  needs_work: "보완 필요",
-  empty: "미작성",
-};
-
-const reviewLevelClass = (level?: string) => {
-  if (level === "good") return style.levelGood;
-  if (level === "fair") return style.levelFair;
-  if (level === "empty") return style.levelEmpty;
-  return style.levelNeeds;
-};
-
 const isDraftPrepSkill = (skill: TAlterSkillId) =>
   skill === "syllabus-draft" ||
   skill === "evaluation-draft" ||
@@ -284,26 +110,6 @@ const isDraftPrepSkill = (skill: TAlterSkillId) =>
   skill === "form-response-draft" ||
   skill === "activity-draft" ||
   skill === "assessment-grade";
-
-const DOCUMENT_DOC_TYPES: Array<{ id: string; label: string }> = [
-  { id: "manual", label: "매뉴얼·안내" },
-  { id: "notice", label: "공지" },
-  { id: "minutes", label: "회의록" },
-  { id: "checklist", label: "체크리스트" },
-  { id: "table", label: "표 중심 안내" },
-  { id: "lesson", label: "학습 자료" },
-  { id: "general", label: "일반 문서" },
-];
-
-const ACTIVITY_FORM_TYPES: Array<{ id: string; label: string }> = [
-  { id: "survey", label: "설문·조사" },
-  { id: "quiz", label: "퀴즈" },
-  { id: "application", label: "신청·접수" },
-  { id: "checklist", label: "체크리스트" },
-  { id: "interactive", label: "인터랙티브(학습 도구)" },
-  { id: "assessment", label: "평가 활동" },
-  { id: "general", label: "일반 활동" },
-];
 
 const formatBubbleTime = (dateString?: string) => {
   if (!dateString) return "";
@@ -337,94 +143,6 @@ const conversationListTitle = (c: {
   skillLabel(c.lastSkill) ||
   c.title ||
   "대화";
-
-const EVAL_DRAFT_MAX = 30;
-/** Prep에서 기본으로 선택하는 학생 수 (나눠 진행 권장) */
-const EVAL_DRAFT_DEFAULT_BATCH = 8;
-
-/** 설명 아이콘 — 클릭 시에만 안내 문구 표시 */
-const PrepHint = ({ text }: { text: string }) => {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLSpanElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDoc = (e: MouseEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, [open]);
-
-  return (
-    <span className={style.prepHintWrap} ref={rootRef}>
-      <button
-        type="button"
-        className={style.prepHintBtn}
-        aria-label="설명 보기"
-        aria-expanded={open}
-        onClick={(e) => {
-          e.stopPropagation();
-          setOpen((v) => !v);
-        }}
-      >
-        <Svg type="info-circle" width="13px" height="13px" />
-      </button>
-      {open && (
-        <span className={style.prepHintPopover} role="tooltip">
-          {text}
-        </span>
-      )}
-    </span>
-  );
-};
-
-/** 작성 지침 선택 행 — 체크는 선택, 제목 클릭 시 본문 펼침 */
-const GuidelinePickRow = ({
-  id,
-  title,
-  content,
-  checked,
-  expanded,
-  onToggleChecked,
-  onToggleExpanded,
-}: {
-  id: string;
-  title: string;
-  content?: string;
-  checked: boolean;
-  expanded: boolean;
-  onToggleChecked: () => void;
-  onToggleExpanded: () => void;
-}) => {
-  const bodyId = `${id}-guideline-body`;
-  return (
-    <div className={style.guidelineRow}>
-      <div className={style.guidelineRowMain}>
-        <input
-          type="checkbox"
-          checked={checked}
-          onChange={onToggleChecked}
-          aria-label={`${title} 선택`}
-        />
-        <button
-          type="button"
-          className={style.guidelineToggle}
-          onClick={onToggleExpanded}
-          aria-expanded={expanded}
-          aria-controls={bodyId}
-        >
-          <span className={style.guidelineTitle}>{title}</span>
-        </button>
-      </div>
-      {expanded && content ? (
-        <div id={bodyId} className={style.guidelineBody}>
-          {content}
-        </div>
-      ) : null}
-    </div>
-  );
-};
 
 type Props = {
   onClose: () => void;
@@ -548,6 +266,12 @@ const AlterPanel = ({ onClose }: Props) => {
     Array<{ _id: string; title: string; content: string }>
   >([]);
   const [archiveSelectedGuidelineIds, setArchiveSelectedGuidelineIds] =
+    useState<string[]>([]);
+
+  const [syllabusGuidelineItems, setSyllabusGuidelineItems] = useState<
+    Array<{ _id: string; title: string; content: string }>
+  >([]);
+  const [syllabusSelectedGuidelineIds, setSyllabusSelectedGuidelineIds] =
     useState<string[]>([]);
 
   const [docWriteMode, setDocWriteMode] = useState<"create" | "refine">(
@@ -706,6 +430,7 @@ const AlterPanel = ({ onClose }: Props) => {
     setArchiveWriteMode("perStudent");
     setArchiveSelectedStudentIds([]);
     setArchiveSelectedGuidelineIds([]);
+    setSyllabusSelectedGuidelineIds([]);
     const hasContent = !!(pageContext?.getDocument?.()?.content || "").trim();
     setDocWriteMode(hasContent ? "refine" : "create");
     setDocType("general");
@@ -868,6 +593,7 @@ const AlterPanel = ({ onClose }: Props) => {
         if (cancelled) return;
         setSkillGuidelines((data.guidelines || "").trim());
         if (
+          selectedSkill === "syllabus-draft" ||
           selectedSkill === "archive-draft" ||
           selectedSkill === "document-draft" ||
           selectedSkill === "document-review" ||
@@ -899,7 +625,10 @@ const AlterPanel = ({ onClose }: Props) => {
             }
             return defaultIds;
           };
-          if (selectedSkill === "archive-draft") {
+          if (selectedSkill === "syllabus-draft") {
+            setSyllabusGuidelineItems(filtered);
+            setSyllabusSelectedGuidelineIds((prev) => pickIds(prev, filtered));
+          } else if (selectedSkill === "archive-draft") {
             setArchiveGuidelineItems(filtered);
             setArchiveSelectedGuidelineIds((prev) => pickIds(prev, filtered));
           } else if (selectedSkill === "document-draft") {
@@ -945,6 +674,9 @@ const AlterPanel = ({ onClose }: Props) => {
       } catch {
         if (cancelled) return;
         setSkillGuidelines("");
+        if (selectedSkill === "syllabus-draft") {
+          setSyllabusGuidelineItems([]);
+        }
         if (selectedSkill === "archive-draft") {
           setArchiveGuidelineItems([]);
         }
@@ -1263,6 +995,19 @@ const AlterPanel = ({ onClose }: Props) => {
         fields: gradeCtx?.fields || [],
         responses: gradeCtx?.responses || {},
         currentDraft: gradeCtx?.currentDraft || { byField: {}, final: {} },
+      };
+    }
+    if (skill === "syllabus-draft") {
+      return {
+        pageType: pageContext?.pageType || "syllabus-edit",
+        label: pageContext?.label || "",
+        subject: pageContext?.subject || [],
+        classTitle: pageContext?.classTitle || "",
+        currentInfo: pageContext?.getCurrentInfo?.() || {},
+        formSyllabus: pageContext?.formSyllabus || currentSeason?.formSyllabus,
+        guidelineItemIds: syllabusSelectedGuidelineIds,
+        sourceText: attachmentText,
+        attachments,
       };
     }
     const chatSnapshot = pageContext?.getChatSnapshot?.() || null;
@@ -2703,6 +2448,8 @@ const AlterPanel = ({ onClose }: Props) => {
     inActivityPrep ||
     inGradePrep;
 
+  const prepKind = prepKindFromSkill(showPrep, selectedSkill);
+
   const formResponseWritableFields = (() => {
     if (!inFormResponsePrep) return [];
     const snap = pageContext?.getFormResponse?.();
@@ -2739,42 +2486,7 @@ const AlterPanel = ({ onClose }: Props) => {
     </button>
   );
 
-  const prepPrimaryLabel =
-    inEvalPrep ||
-    inArchivePrep ||
-    inDocPrep ||
-    inDocReviewPrep ||
-    inFormResponsePrep ||
-    inActivityPrep ||
-    inGradePrep
-      ? messages.some(
-          (m) =>
-            (m.draft || m.review) &&
-            (inDocReviewPrep
-              ? !!m.review
-              : inGradePrep
-              ? isAssessmentGradeDraft(m.draft!)
-              : inActivityPrep
-                ? isActivityDraft(m.draft)
-                : inFormResponsePrep
-                  ? isFormResponseDraft(m.draft)
-                  : inDocPrep
-                    ? isDocumentDraft(m.draft)
-                    : inArchivePrep
-                      ? isArchiveDraft(m.draft)
-                      : isEvalDraft(m.draft))
-        )
-        ? inDocReviewPrep
-          ? "다시 점검"
-          : "다시 작성"
-        : inDocReviewPrep
-          ? "문서 점검"
-          : inGradePrep
-            ? "채점 초안 작성"
-            : "초안 작성"
-      : messages.some((m) => m.draft && isSyllabusDraft(m.draft))
-        ? "다시 작성"
-        : "초안 작성";
+  const prepPrimaryLabel = prepPrimaryLabelFor(prepKind, messages);
 
   const attachDisabled =
     isWorking || attachUploading || sourceAttachments.length >= 3;
@@ -3100,555 +2812,14 @@ const AlterPanel = ({ onClose }: Props) => {
                 <div className={style.msgText}>{msg.content}</div>
               )
             ) : null}
-            {msg.draft && isSyllabusDraft(msg.draft) && (
-              <div className={style.reviewList}>
-                <div className={style.reviewItem}>
-                  <div className={style.reviewHeader}>
-                    <span>수업 초안 미리보기</span>
-                    <span className={`${style.levelChip} ${style.levelFair}`}>
-                      {(msg.draft.items || []).filter((it) => it.value).length}/
-                      {(msg.draft.items || []).length}항목
-                    </span>
-                  </div>
-                  <div className={style.draftPreviewList}>
-                    {(msg.draft.items || [])
-                      .filter((it) => it.value)
-                      .map((item) => (
-                        <div
-                          key={`${msg.id}-${item.field}`}
-                          className={style.draftFieldBlock}
-                        >
-                          <p className={style.draftFieldLabel}>{item.field}</p>
-                          <p className={style.draftFieldValue}>{item.value}</p>
-                        </div>
-                      ))}
-                  </div>
-                  <div className={style.draftActions}>
-                    {pageContext?.applyInfoDraft && (
-                      <button
-                        type="button"
-                        className={style.applyBtn}
-                        disabled={appliedDraftIds.has(msg.id)}
-                        onClick={() => applyDraft(msg.id, msg.draft!)}
-                      >
-                        {appliedDraftIds.has(msg.id)
-                          ? "반영됨"
-                          : "전체에 반영"}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-            {msg.draft && isEvalDraft(msg.draft) && (
-              <div className={style.reviewList}>
-                <div className={style.reviewItem}>
-                  <div className={style.reviewHeader}>
-                    <span>평가 초안 미리보기</span>
-                    <span className={`${style.levelChip} ${style.levelFair}`}>
-                      {msg.draft.rows?.length || 0}명
-                    </span>
-                  </div>
-                  <p className={style.reviewComment}>
-                    항목: {(msg.draft.targetLabels || []).join(", ") || "-"}
-                    {msg.draft.fillEmptyOnly !== false
-                      ? " · 빈 칸만 반영"
-                      : " · 덮어쓰기 가능"}
-                  </p>
-                  <div className={style.draftPreviewList}>
-                    {(msg.draft.rows || []).map((row) => {
-                      const fromCtx = (
-                        pageContext?.getEvaluationRows?.() || []
-                      ).find((r) => r.studentId === row.studentId);
-                      const name =
-                        row.studentName ||
-                        fromCtx?.studentName ||
-                        row.studentId;
-                      const grade =
-                        row.studentGrade || fromCtx?.studentGrade || "";
-                      const labels = msg.draft && isEvalDraft(msg.draft)
-                        ? msg.draft.targetLabels?.length
-                          ? msg.draft.targetLabels
-                          : Object.keys(row.values || {})
-                        : [];
-                      return (
-                        <div
-                          key={`${msg.id}-${row.studentId}`}
-                          className={style.draftStudentCard}
-                        >
-                          <div className={style.draftStudentMeta}>
-                            <span>
-                              {grade ? `${grade} ` : ""}
-                              {name}
-                            </span>
-                            <span className={style.draftStudentId}>
-                              {row.studentId}
-                            </span>
-                          </div>
-                          {labels.map((label) => {
-                            const value = row.values?.[label];
-                            if (value == null || String(value).trim() === "") {
-                              return null;
-                            }
-                            return (
-                              <div
-                                key={`${row.studentId}-${label}`}
-                                className={style.draftFieldBlock}
-                              >
-                                <p className={style.draftFieldLabel}>{label}</p>
-                                <p className={style.draftFieldValue}>{value}</p>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className={style.draftActions}>
-                    {pageContext?.applyEvaluationCsv && (
-                      <button
-                        type="button"
-                        className={style.applyBtn}
-                        disabled={appliedDraftIds.has(msg.id)}
-                        onClick={() => applyDraft(msg.id, msg.draft!)}
-                      >
-                        {appliedDraftIds.has(msg.id)
-                          ? "반영됨"
-                          : "미리보기 반영"}
-                      </button>
-                    )}
-                    {isEvalDraft(msg.draft) && msg.draft.csv && (
-                      <button
-                        type="button"
-                        className={style.applyBtn}
-                        onClick={() => {
-                          const csv = isEvalDraft(msg.draft)
-                            ? msg.draft.csv
-                            : "";
-                          const blob = new Blob(["\uFEFF" + csv], {
-                            type: "text/csv;charset=utf-8",
-                          });
-                          const url = URL.createObjectURL(blob);
-                          const a = document.createElement("a");
-                          a.href = url;
-                          a.download = "evaluation-draft.csv";
-                          a.click();
-                          URL.revokeObjectURL(url);
-                        }}
-                      >
-                        CSV 받기
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-            {msg.draft && isArchiveDraft(msg.draft) && (
-              <div className={style.reviewList}>
-                <div className={style.reviewItem}>
-                  <div className={style.reviewHeader}>
-                    <span>기록 초안 미리보기</span>
-                    <span className={`${style.levelChip} ${style.levelFair}`}>
-                      {msg.draft.rows?.length || 0}명
-                    </span>
-                  </div>
-                  <p className={style.reviewComment}>
-                    항목: {(msg.draft.targetLabels || []).join(", ") || "-"}
-                    {msg.draft.writeMode === "sameText"
-                      ? " · 동일 문구"
-                      : " · 학생별"}
-                    {msg.draft.fillEmptyOnly !== false
-                      ? " · 빈 칸만 반영"
-                      : " · 덮어쓰기 가능"}
-                  </p>
-                  <div className={style.draftPreviewList}>
-                    {(msg.draft.rows || []).map((row) => {
-                      const fromCtx = (
-                        pageContext?.getArchiveRows?.() || []
-                      ).find((r) => r.studentId === row.studentId);
-                      const name =
-                        row.studentName ||
-                        fromCtx?.studentName ||
-                        row.studentId;
-                      const grade =
-                        row.studentGrade || fromCtx?.studentGrade || "";
-                      const labels =
-                        msg.draft && isArchiveDraft(msg.draft)
-                          ? msg.draft.targetLabels?.length
-                            ? msg.draft.targetLabels
-                            : Object.keys(row.values || {})
-                          : [];
-                      return (
-                        <div
-                          key={`${msg.id}-arch-${row.studentId}`}
-                          className={style.draftStudentCard}
-                        >
-                          <div className={style.draftStudentMeta}>
-                            <span>
-                              {grade ? `${grade} ` : ""}
-                              {name}
-                            </span>
-                            <span className={style.draftStudentId}>
-                              {row.studentId}
-                            </span>
-                          </div>
-                          {labels.map((label) => {
-                            const value = row.values?.[label];
-                            if (value == null || String(value).trim() === "") {
-                              return null;
-                            }
-                            return (
-                              <div
-                                key={`${row.studentId}-${label}`}
-                                className={style.draftFieldBlock}
-                              >
-                                <p className={style.draftFieldLabel}>{label}</p>
-                                <p className={style.draftFieldValue}>{value}</p>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className={style.draftActions}>
-                    {pageContext?.applyArchiveDraft && (
-                      <button
-                        type="button"
-                        className={style.applyBtn}
-                        disabled={appliedDraftIds.has(msg.id)}
-                        onClick={() => applyDraft(msg.id, msg.draft!)}
-                      >
-                        {appliedDraftIds.has(msg.id)
-                          ? "반영됨"
-                          : "미리보기 반영"}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-            {msg.draft && isDocumentDraft(msg.draft) && (() => {
-              const docDraft = msg.draft as TAlterDocumentDraftResult;
-              const docTypeLabel =
-                DOCUMENT_DOC_TYPES.find((t) => t.id === docDraft.docType)
-                  ?.label || docDraft.docType;
-              return (
-              <div className={style.reviewList}>
-                <div className={style.reviewItem}>
-                  <div className={style.reviewHeader}>
-                    <span>문서 초안 미리보기</span>
-                    <span className={`${style.levelChip} ${style.levelFair}`}>
-                      {docDraft.writeMode === "refine" ? "다듬기" : "새 작성"}
-                    </span>
-                  </div>
-                  <p className={style.reviewComment}>
-                    제목: {docDraft.title || "-"}
-                    {docTypeLabel ? ` · ${docTypeLabel}` : ""}
-                    {" · 전체에 덮어쓰기"}
-                  </p>
-                  <div className={style.draftPreviewList}>
-                    <div className={style.draftFieldBlock}>
-                      <p className={style.draftFieldLabel}>본문</p>
-                      <p
-                        className={style.draftFieldValue}
-                        style={{ whiteSpace: "pre-wrap" }}
-                      >
-                        {(docDraft.content || "").slice(0, 2500)}
-                        {(docDraft.content || "").length > 2500 ? "…" : ""}
-                      </p>
-                    </div>
-                  </div>
-                  <div className={style.draftActions}>
-                    {pageContext?.applyDocumentDraft && (
-                      <button
-                        type="button"
-                        className={style.applyBtn}
-                        onClick={() => applyDraft(msg.id, docDraft)}
-                      >
-                        {appliedDraftIds.has(msg.id)
-                          ? "다시 반영"
-                          : "전체에 반영"}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-              );
-            })()}
-            {msg.review && Array.isArray(msg.review.items) && (
-              <div className={style.reviewList}>
-                <div className={style.reviewItem}>
-                  <div className={style.reviewHeader}>
-                    <span>문서 점검 리포트</span>
-                    <span
-                      className={`${style.levelChip} ${reviewLevelClass(
-                        msg.review.overallLevel
-                      )}`}
-                    >
-                      {REVIEW_LEVEL_LABEL[msg.review.overallLevel] ||
-                        msg.review.overallLevel ||
-                        "점검"}
-                    </span>
-                  </div>
-                  {msg.review.summary ? (
-                    <p className={style.reviewComment}>{msg.review.summary}</p>
-                  ) : null}
-                </div>
-                {msg.review.items.map((item, idx) => (
-                  <div
-                    key={`${item.field || "item"}-${idx}`}
-                    className={style.reviewItem}
-                  >
-                    <div className={style.reviewHeader}>
-                      <span>{item.field || "항목"}</span>
-                      <span
-                        className={`${style.levelChip} ${reviewLevelClass(
-                          item.level
-                        )}`}
-                      >
-                        {REVIEW_LEVEL_LABEL[item.level] || item.level || ""}
-                      </span>
-                    </div>
-                    {item.comment ? (
-                      <p className={style.reviewComment}>{item.comment}</p>
-                    ) : null}
-                    {item.quote ? (
-                      <p className={style.reviewQuote}>
-                        <span className={style.reviewMetaLabel}>원문</span>
-                        {item.quote}
-                      </p>
-                    ) : null}
-                    {item.exampleBefore || item.exampleAfter ? (
-                      <div className={style.reviewExampleBox}>
-                        {item.exampleBefore ? (
-                          <p className={style.reviewExampleRow}>
-                            <span className={style.reviewMetaLabel}>
-                              변경 전
-                            </span>
-                            {item.exampleBefore}
-                          </p>
-                        ) : null}
-                        {item.exampleAfter ? (
-                          <p className={style.reviewExampleRow}>
-                            <span className={style.reviewMetaLabel}>
-                              변경 후
-                            </span>
-                            {item.exampleAfter}
-                          </p>
-                        ) : null}
-                      </div>
-                    ) : null}
-                    {item.suggestion ? (
-                      <p className={style.suggestion}>
-                        제안: {item.suggestion}
-                      </p>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            )}
-            {msg.draft && isFormResponseDraft(msg.draft) && (() => {
-              const frDraft = msg.draft as TAlterFormResponseDraftResult;
-              const snap = pageContext?.getFormResponse?.();
-              const labelById = new Map(
-                (snap?.fields || []).map((f) => [
-                  f.fieldId,
-                  f.label || f.fieldId,
-                ])
-              );
-              const entries = Object.entries(frDraft.byField || {});
-              return (
-                <div className={style.reviewList}>
-                  <div className={style.reviewItem}>
-                    <div className={style.reviewHeader}>
-                      <span>응답 초안 미리보기</span>
-                      <span className={`${style.levelChip} ${style.levelFair}`}>
-                        {frDraft.writeMode === "refine"
-                          ? "양식 채우기"
-                          : "새 작성"}
-                      </span>
-                    </div>
-                    <p className={style.reviewComment}>
-                      {entries.length}개 필드
-                      {frDraft.fillEmptyOnly ? " · 빈 칸만" : ""}
-                    </p>
-                    <div className={style.draftPreviewList}>
-                      {entries.slice(0, 12).map(([fid, val]) => {
-                        const raw =
-                          typeof val === "string"
-                            ? val
-                            : JSON.stringify(val, null, 2);
-                        const text = redactImagesForPreview(raw || "");
-                        return (
-                          <div key={fid} className={style.draftFieldBlock}>
-                            <p className={style.draftFieldLabel}>
-                              {labelById.get(fid) || fid}
-                            </p>
-                            <p
-                              className={style.draftFieldValue}
-                              style={{ whiteSpace: "pre-wrap" }}
-                            >
-                              {text.slice(0, 800)}
-                              {text.length > 800 ? "…" : ""}
-                            </p>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div className={style.draftActions}>
-                      {pageContext?.applyFormResponseDraft && (
-                        <button
-                          type="button"
-                          className={style.applyBtn}
-                          onClick={() => applyDraft(msg.id, frDraft)}
-                        >
-                          {appliedDraftIds.has(msg.id)
-                            ? "다시 반영"
-                            : "응답에 반영"}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
-            {msg.draft && isActivityDraft(msg.draft) && (() => {
-              const actDraft = msg.draft as TAlterActivityDraftResult;
-              const formTypeLabel =
-                ACTIVITY_FORM_TYPES.find((t) => t.id === actDraft.formType)
-                  ?.label || actDraft.formType;
-              const fieldPreview = (actDraft.fields || [])
-                .slice(0, 12)
-                .map((f) => {
-                  const t = String(f.type || "");
-                  const label = String(f.label || "(제목 없음)");
-                  return `${label} · ${t}`;
-                });
-              const settings = actDraft.settings || {};
-              const modeBits = [
-                settings.quizMode ? "퀴즈" : null,
-                settings.assessmentMode ? "평가" : null,
-                settings.requiredMode ? "필수 응답" : null,
-                settings.allowMultipleResponses ? "복수 응답" : null,
-              ].filter(Boolean);
-              return (
-              <div className={style.reviewList}>
-                <div className={style.reviewItem}>
-                  <div className={style.reviewHeader}>
-                    <span>활동 초안 미리보기</span>
-                    <span className={`${style.levelChip} ${style.levelFair}`}>
-                      {actDraft.writeMode === "refine" ? "다듬기" : "새 작성"}
-                    </span>
-                  </div>
-                  <p className={style.reviewComment}>
-                    제목: {actDraft.title || "-"}
-                    {formTypeLabel ? ` · ${formTypeLabel}` : ""}
-                    {" · 필드 "}
-                    {(actDraft.fields || []).length}개
-                    {(actDraft.rubrics || []).length > 0
-                      ? ` · 루브릭 ${(actDraft.rubrics || []).length}개`
-                      : ""}
-                    {modeBits.length > 0 ? ` · ${modeBits.join(", ")}` : ""}
-                    {" · 전체에 덮어쓰기"}
-                  </p>
-                  {actDraft.description ? (
-                    <p className={style.prepText}>{actDraft.description}</p>
-                  ) : null}
-                  <div className={style.draftPreviewList}>
-                    <div className={style.draftFieldBlock}>
-                      <p className={style.draftFieldLabel}>필드</p>
-                      <p
-                        className={style.draftFieldValue}
-                        style={{ whiteSpace: "pre-wrap" }}
-                      >
-                        {fieldPreview.join("\n") || "(없음)"}
-                        {(actDraft.fields || []).length > 12 ? "\n…" : ""}
-                      </p>
-                    </div>
-                  </div>
-                  <div className={style.draftActions}>
-                    {pageContext?.applyActivityDraft && (
-                      <button
-                        type="button"
-                        className={style.applyBtn}
-                        onClick={() => applyDraft(msg.id, actDraft)}
-                      >
-                        {appliedDraftIds.has(msg.id)
-                          ? "다시 반영"
-                          : "전체에 반영"}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-              );
-            })()}
-            {msg.draft && isAssessmentGradeDraft(msg.draft) && (() => {
-              const gDraft = msg.draft as TAlterAssessmentGradeDraftResult;
-              const fieldEntries = Object.entries(gDraft.byField || {});
-              const gradeFields =
-                pageContext?.getAssessmentGradeContext?.()?.fields || [];
-              const previewLines = fieldEntries.slice(0, 8).map(([fid, g]) => {
-                const fieldMeta = gradeFields.find((f) => f.fieldId === fid);
-                const label = fieldMeta?.label || fid.slice(0, 8);
-                const levelBits: string[] = [];
-                if (g.score != null) levelBits.push(`점수 ${g.score}`);
-                for (const [rid, rg] of Object.entries(g.byRubric || {})) {
-                  const rubric = fieldMeta?.rubrics?.find((r) => r.id === rid);
-                  const lv = rubric?.levels?.find((l) => l.id === rg.levelId);
-                  if (lv?.label) levelBits.push(lv.label);
-                  else if (rg.levelId) levelBits.push(rg.levelId);
-                }
-                const comment = String(g.comment || "").trim();
-                return `${label}: ${levelBits.join(", ") || "초안"}${
-                  comment ? ` — ${comment.slice(0, 60)}` : ""
-                }`;
-              });
-              return (
-                <div className={style.reviewList}>
-                  <div className={style.reviewItem}>
-                    <div className={style.reviewHeader}>
-                      <span>채점 초안 미리보기</span>
-                      <span className={`${style.levelChip} ${style.levelFair}`}>
-                        {gDraft.fillEmptyOnly ? "빈 칸만" : "덮어쓰기"}
-                      </span>
-                    </div>
-                    <p className={style.reviewComment}>
-                      항목 {fieldEntries.length}개
-                      {gDraft.final?.comment
-                        ? ` · 총평 ${String(gDraft.final.comment).slice(0, 40)}`
-                        : ""}
-                    </p>
-                    <div className={style.draftPreviewList}>
-                      <div className={style.draftFieldBlock}>
-                        <p className={style.draftFieldLabel}>채점</p>
-                        <p
-                          className={style.draftFieldValue}
-                          style={{ whiteSpace: "pre-wrap" }}
-                        >
-                          {previewLines.join("\n") || "(없음)"}
-                          {fieldEntries.length > 8 ? "\n…" : ""}
-                        </p>
-                      </div>
-                    </div>
-                    <div className={style.draftActions}>
-                      {pageContext?.applyGradeDraft && (
-                        <button
-                          type="button"
-                          className={style.applyBtn}
-                          onClick={() => applyDraft(msg.id, gDraft)}
-                        >
-                          {appliedDraftIds.has(msg.id)
-                            ? "다시 반영"
-                            : "채점에 반영"}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
+            <SkillDraftResult
+              msgId={msg.id}
+              draft={msg.draft}
+              review={msg.review}
+              applied={appliedDraftIds.has(msg.id)}
+              pageContext={pageContext}
+              onApply={applyDraft}
+            />
           </ChatMessageBubble>
         ))}
 
@@ -3700,907 +2871,87 @@ const AlterPanel = ({ onClose }: Props) => {
         </div>
         {inPrep && !prepCollapsed && (
           <div className={style.prepScroll}>
-        {inDocPrep && (
-          <>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>작성 모드</p>
-              <div className={style.refList}>
-                <label className={style.refRow}>
-                  <input
-                    type="radio"
-                    name="docWriteMode"
-                    checked={docWriteMode === "create"}
-                    onChange={() => setDocWriteMode("create")}
-                  />
-                  <span>새로 작성</span>
-                </label>
-                <label className={style.refRow}>
-                  <input
-                    type="radio"
-                    name="docWriteMode"
-                    checked={docWriteMode === "refine"}
-                    onChange={() => setDocWriteMode("refine")}
-                  />
-                  <span>기존 글 다듬기</span>
-                </label>
-              </div>
-            </div>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>
-                문서 형태
-                <PrepHint text="형태에 맞게 제목·목록·표·체크리스트 등 에디터 문법을 활용한 초안을 만듭니다." />
-              </p>
-              <div className={style.refList}>
-                {DOCUMENT_DOC_TYPES.map((t) => (
-                  <label key={t.id} className={style.refRow}>
-                    <input
-                      type="radio"
-                      name="docType"
-                      checked={docType === t.id}
-                      onChange={() => setDocType(t.id)}
-                    />
-                    <span>{t.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>
-                작성 지침
-                <PrepHint text="학교 AI 라이브러리의 지침 중 이번 문서에 쓸 항목을 고릅니다." />
-              </p>
-              {skillSettingsLoading ? (
-                <p className={style.prepText}>지침을 불러오는 중...</p>
-              ) : docGuidelineItems.length === 0 ? (
-                <p className={style.prepText}>
-                  선택 가능한 지침이 없습니다. 관리 → 학교 AI → 라이브러리에서
-                  「문서」 지침을 추가해 주세요. 기본 기준으로 작성합니다.
-                </p>
-              ) : (
-                <div className={style.refList}>
-                  {docGuidelineItems.map((item) => (
-                    <GuidelinePickRow
-                      key={item._id}
-                      id={item._id}
-                      title={item.title}
-                      content={item.content}
-                      checked={docSelectedGuidelineIds.includes(item._id)}
-                      expanded={expandedGuidelineId === item._id}
-                      onToggleChecked={() =>
-                        toggleLabel(
-                          item._id,
-                          docSelectedGuidelineIds,
-                          setDocSelectedGuidelineIds
-                        )
-                      }
-                      onToggleExpanded={() =>
-                        setExpandedGuidelineId((cur) =>
-                          cur === item._id ? null : item._id
-                        )
-                      }
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className={style.prepHintRow}>
-              <PrepHint text="초안은 에디터 전체를 덮어씁니다. 미리보기 확인 후 「전체에 반영」하고 저장하세요." />
-              <span className={style.prepHintRowLabel}>이용 안내</span>
-            </div>
-          </>
-        )}
-
-        {inDocReviewPrep && (
-          <>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>
-                점검 지침
-                <PrepHint text="관리 → 학교 AI → 「문서 점검」에 연결한 지침만 표시됩니다. 선택한 지침을 기준으로 점검합니다." />
-              </p>
-              {skillSettingsLoading ? (
-                <p className={style.prepText}>지침을 불러오는 중...</p>
-              ) : docReviewGuidelineItems.length === 0 ? (
-                <p className={style.prepText}>
-                  연결된 지침이 없습니다. 관리 → 학교 AI → 문서 점검에서
-                  지침을 연결해 주세요. 기본 기준으로 점검합니다.
-                </p>
-              ) : (
-                <div className={`${style.refList} ${style.refListScroll}`}>
-                  {docReviewGuidelineItems.map((item) => (
-                    <GuidelinePickRow
-                      key={item._id}
-                      id={item._id}
-                      title={item.title}
-                      content={item.content}
-                      checked={docReviewSelectedGuidelineIds.includes(item._id)}
-                      expanded={expandedGuidelineId === item._id}
-                      onToggleChecked={() =>
-                        toggleLabel(
-                          item._id,
-                          docReviewSelectedGuidelineIds,
-                          setDocReviewSelectedGuidelineIds
-                        )
-                      }
-                      onToggleExpanded={() =>
-                        setExpandedGuidelineId((cur) =>
-                          cur === item._id ? null : item._id
-                        )
-                      }
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>
-                학습정보
-                <PrepHint text="관리 → 학교 AI → 「문서 점검」에 연결한 학습정보를 참고 자료로 넣을 수 있습니다." />
-              </p>
-              {skillSettingsLoading ? (
-                <p className={style.prepText}>학습정보를 불러오는 중...</p>
-              ) : docReviewLearningItems.length === 0 ? (
-                <p className={style.prepText}>
-                  연결된 학습정보가 없습니다. 관리 → 학교 AI → 문서 점검에서
-                  학습정보를 연결해 주세요.
-                </p>
-              ) : (
-                <div className={`${style.refList} ${style.refListScroll}`}>
-                  {docReviewLearningItems.map((item) => (
-                    <GuidelinePickRow
-                      key={item._id}
-                      id={item._id}
-                      title={item.title}
-                      content={item.content}
-                      checked={docReviewSelectedLearningIds.includes(item._id)}
-                      expanded={expandedGuidelineId === `learning-${item._id}`}
-                      onToggleChecked={() =>
-                        toggleLabel(
-                          item._id,
-                          docReviewSelectedLearningIds,
-                          setDocReviewSelectedLearningIds
-                        )
-                      }
-                      onToggleExpanded={() =>
-                        setExpandedGuidelineId((cur) =>
-                          cur === `learning-${item._id}`
-                            ? null
-                            : `learning-${item._id}`
-                        )
-                      }
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className={style.prepHintRow}>
-              <PrepHint text="현재 화면에 열린 문서 내용을 점검합니다. 결과는 리포트로만 제공되며 문서에 자동 반영되지 않습니다." />
-              <span className={style.prepHintRowLabel}>이용 안내</span>
-            </div>
-          </>
-        )}
-
-        {inFormResponsePrep && (
-          <>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>
-                작성 모드
-                <PrepHint text="문서형 필드에는 (작성)·(본문 작성)처럼 「작성」으로 끝나는 칸만 채웁니다. 표·수신/경유·로고는 유지됩니다." />
-              </p>
-              <div className={style.refList}>
-                <label className={style.refRow}>
-                  <input
-                    type="radio"
-                    name="formResponseWriteMode"
-                    checked={formResponseWriteMode === "create"}
-                    onChange={() => setFormResponseWriteMode("create")}
-                  />
-                  <span>새로 작성</span>
-                </label>
-                <label className={style.refRow}>
-                  <input
-                    type="radio"
-                    name="formResponseWriteMode"
-                    checked={formResponseWriteMode === "refine"}
-                    onChange={() => setFormResponseWriteMode("refine")}
-                  />
-                  <span>양식에 채우기 / 기존 응답 다듬기</span>
-                </label>
-              </div>
-            </div>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>
-                대상 필드
-                <PrepHint text="file·안내(content)는 제외됩니다. 기본은 전체 선택입니다." />
-              </p>
-              {formResponseWritableFields.length === 0 ? (
-                <p className={style.prepText}>작성 가능한 응답 필드가 없습니다.</p>
-              ) : (
-                <div className={style.refList}>
-                  {formResponseWritableFields.map((f) => (
-                    <label key={f.fieldId} className={style.refRow}>
-                      <input
-                        type="checkbox"
-                        checked={
-                          formResponseTargetFieldIds.length === 0 ||
-                          formResponseTargetFieldIds.includes(f.fieldId)
-                        }
-                        onChange={() => {
-                          const allIds = formResponseWritableFields.map(
-                            (x) => x.fieldId
-                          );
-                          const current =
-                            formResponseTargetFieldIds.length === 0
-                              ? allIds
-                              : formResponseTargetFieldIds;
-                          const next = current.includes(f.fieldId)
-                            ? current.filter((id) => id !== f.fieldId)
-                            : [...current, f.fieldId];
-                          setFormResponseTargetFieldIds(
-                            next.length === allIds.length ? [] : next
-                          );
-                        }}
-                      />
-                      <span>
-                        {f.label || f.fieldId}
-                        <span style={{ opacity: 0.6 }}> · {f.type}</span>
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className={style.prepCard}>
-              <label className={style.refRow}>
-                <input
-                  type="checkbox"
-                  checked={formResponseFillEmptyOnly}
-                  onChange={(e) =>
-                    setFormResponseFillEmptyOnly(e.target.checked)
-                  }
-                />
-                <span>빈 칸만 채우기</span>
-              </label>
-            </div>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>
-                작성 지침
-                <PrepHint text="학교 AI 라이브러리의 「응답」지침을 고릅니다." />
-              </p>
-              {skillSettingsLoading ? (
-                <p className={style.prepText}>지침을 불러오는 중...</p>
-              ) : formResponseGuidelineItems.length === 0 ? (
-                <p className={style.prepText}>
-                  선택 가능한 지침이 없습니다. 관리 → 학교 AI → 라이브러리에서
-                  「응답」 지침을 추가해 주세요. 기본 기준으로 작성합니다.
-                </p>
-              ) : (
-                <div className={style.refList}>
-                  {formResponseGuidelineItems.map((item) => (
-                    <GuidelinePickRow
-                      key={item._id}
-                      id={item._id}
-                      title={item.title}
-                      content={item.content}
-                      checked={formResponseSelectedGuidelineIds.includes(
-                        item._id
-                      )}
-                      expanded={expandedGuidelineId === item._id}
-                      onToggleChecked={() =>
-                        toggleLabel(
-                          item._id,
-                          formResponseSelectedGuidelineIds,
-                          setFormResponseSelectedGuidelineIds
-                        )
-                      }
-                      onToggleExpanded={() =>
-                        setExpandedGuidelineId((cur) =>
-                          cur === item._id ? null : item._id
-                        )
-                      }
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className={style.prepHintRow}>
-              <PrepHint text="문서형 필드에는 (작성)·(본문 작성) 칸을 넣어 두세요. AI는 그 칸만 채우고 표·로고는 유지합니다. 미리보기 후 「응답에 반영」하세요." />
-              <span className={style.prepHintRowLabel}>이용 안내</span>
-            </div>
-          </>
-        )}
-
-        {inActivityPrep && (
-          <>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>작성 모드</p>
-              <div className={style.refList}>
-                <label className={style.refRow}>
-                  <input
-                    type="radio"
-                    name="activityWriteMode"
-                    checked={activityWriteMode === "create"}
-                    onChange={() => setActivityWriteMode("create")}
-                  />
-                  <span>새로 작성</span>
-                </label>
-                <label className={style.refRow}>
-                  <input
-                    type="radio"
-                    name="activityWriteMode"
-                    checked={activityWriteMode === "refine"}
-                    onChange={() => setActivityWriteMode("refine")}
-                  />
-                  <span>기존 양식 다듬기</span>
-                </label>
-              </div>
-            </div>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>
-                활동 형태
-                <PrepHint text="형태에 맞게 일반 응답 필드·설정을 중심으로 초안을 만듭니다. html-app은 제출이 필요 없는 체험용일 때만 씁니다." />
-              </p>
-              <div className={style.refList}>
-                {ACTIVITY_FORM_TYPES.map((t) => (
-                  <label key={t.id} className={style.refRow}>
-                    <input
-                      type="radio"
-                      name="activityFormType"
-                      checked={activityFormType === t.id}
-                      onChange={() => setActivityFormType(t.id)}
-                    />
-                    <span>{t.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>
-                작성 지침
-                <PrepHint text="학교 AI 라이브러리의 지침 중 이번 활동에 쓸 항목을 고릅니다." />
-              </p>
-              {skillSettingsLoading ? (
-                <p className={style.prepText}>지침을 불러오는 중...</p>
-              ) : activityGuidelineItems.length === 0 ? (
-                <p className={style.prepText}>
-                  선택 가능한 지침이 없습니다. 관리 → 학교 AI → 라이브러리에서
-                  「활동」 지침을 추가해 주세요. 기본 기준으로 작성합니다.
-                </p>
-              ) : (
-                <div className={style.refList}>
-                  {activityGuidelineItems.map((item) => (
-                    <GuidelinePickRow
-                      key={item._id}
-                      id={item._id}
-                      title={item.title}
-                      content={item.content}
-                      checked={activitySelectedGuidelineIds.includes(item._id)}
-                      expanded={expandedGuidelineId === item._id}
-                      onToggleChecked={() =>
-                        toggleLabel(
-                          item._id,
-                          activitySelectedGuidelineIds,
-                          setActivitySelectedGuidelineIds
-                        )
-                      }
-                      onToggleExpanded={() =>
-                        setExpandedGuidelineId((cur) =>
-                          cur === item._id ? null : item._id
-                        )
-                      }
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className={style.prepHintRow}>
-              <PrepHint text="초안은 양식 필드·설정을 덮어씁니다. 미리보기 확인 후 「전체에 반영」하고 저장하세요." />
-              <span className={style.prepHintRowLabel}>이용 안내</span>
-            </div>
-          </>
-        )}
-
-        {inGradePrep && (
-          <>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>채점 대상</p>
-              <p className={style.prepText}>
-                {pageContext?.label || "현재 문서 보기의 응답"}
-              </p>
-            </div>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>반영 방식</p>
-              <div className={style.refList}>
-                <label className={style.refRow}>
-                  <input
-                    type="checkbox"
-                    checked={gradeFillEmptyOnly}
-                    onChange={(e) => setGradeFillEmptyOnly(e.target.checked)}
-                  />
-                  <span>이미 채점한 칸은 유지 (빈 칸만 채움)</span>
-                </label>
-              </div>
-            </div>
-            <div className={style.prepHintRow}>
-              <PrepHint text="초안은 문서 보기 채점 칸에만 반영됩니다. 확인 후 「채점 저장」또는 「평가 확정」을 눌러 주세요." />
-              <span className={style.prepHintRowLabel}>이용 안내</span>
-            </div>
-          </>
-        )}
-
-        {inSyllabusPrep && (
-          <>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>학교 작성 지침</p>
-              <p className={style.prepText}>
-                {skillSettingsLoading
-                  ? "지침을 불러오는 중..."
-                  : guidelines ||
-                    "학교에 선택된 작성 지침이 없습니다. 기본 기준으로 작성합니다. (관리 → 학교 AI → 라이브러리)"}
-              </p>
-            </div>
-            <div className={style.prepHintRow}>
-              <PrepHint text="정보를 입력·첨부한 뒤 「초안 작성」을 누르면 학습 계획서 전 항목 초안을 만듭니다. 미리보기 확인 후 「전체에 반영」하세요." />
-              <span className={style.prepHintRowLabel}>이용 안내</span>
-            </div>
-          </>
-        )}
-
-        {inEvalPrep && (
-          <>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>작성할 항목</p>
-              {teacherEditableFields.length === 0 ? (
-                <p className={style.prepText}>
-                  교사 편집이 가능한 평가 항목이 없습니다.
-                </p>
-              ) : (
-                <div className={style.refList}>
-                  {teacherEditableFields.map((field) => (
-                    <label key={field.label} className={style.refRow}>
-                      <input
-                        type="checkbox"
-                        checked={evalTargetLabels.includes(field.label)}
-                        onChange={() =>
-                          toggleLabel(
-                            field.label,
-                            evalTargetLabels,
-                            setEvalTargetLabels
-                          )
-                        }
-                      />
-                      <span>
-                        {field.label}
-                        {field.type !== "input" ? ` (${field.type})` : ""}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>
-                참고할 항목
-                <PrepHint text="자기평가와 기존 멘토평가를 함께 참고하면, 둘을 종합한 새 멘토평가 초안을 만듭니다. 원문은 복사되지 않도록 재작성합니다." />
-              </p>
-              {allEvalLabels.length === 0 ? (
-                <p className={style.prepText}>참고할 항목이 없습니다.</p>
-              ) : (
-                <div className={style.refList}>
-                  {allEvalLabels.map((label) => {
-                    const isTarget = evalTargetLabels.includes(label);
-                    return (
-                      <label key={label} className={style.refRow}>
-                        <input
-                          type="checkbox"
-                          checked={evalContextLabels.includes(label)}
-                          onChange={() =>
-                            toggleLabel(
-                              label,
-                              evalContextLabels,
-                              setEvalContextLabels
-                            )
-                          }
-                        />
-                        <span>
-                          {label}
-                          {isTarget ? " (작성 대상·기존 내용)" : ""}
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>
-                범위
-                {!evalFillEmptyOnly ? (
-                  <PrepHint text="종합 재작성 모드: 참고 항목을 합쳐 작성 항목을 새로 씁니다. 「빈 칸만 채우기」를 끄면 기존 내용을 덮어씁니다." />
-                ) : null}
-              </p>
-              <div className={style.refList}>
-                <label className={style.refRow}>
-                  <input
-                    type="radio"
-                    name="evalScope"
-                    checked={evalScope === "empty"}
-                    onChange={() => setEvalScope("empty")}
-                  />
-                  <span>미작성 행만</span>
-                </label>
-                <label className={style.refRow}>
-                  <input
-                    type="radio"
-                    name="evalScope"
-                    checked={evalScope === "all"}
-                    onChange={() => setEvalScope("all")}
-                  />
-                  <span>전체 학생 목록</span>
-                </label>
-                <label className={style.refRow}>
-                  <input
-                    type="checkbox"
-                    checked={evalFillEmptyOnly}
-                    onChange={(e) => setEvalFillEmptyOnly(e.target.checked)}
-                  />
-                  <span>빈 칸만 채우기</span>
-                </label>
-              </div>
-            </div>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>
-                학생 선택
-                <PrepHint
-                  text={`한 번에 최대 ${EVAL_DRAFT_MAX}명까지 선택해 초안을 만들 수 있습니다. 나눠서 여러 번 실행할 수 있습니다.`}
-                />
-              </p>
-              {evalCandidateStudents.length === 0 ? (
-                <p className={style.prepText}>
-                  {evalScope === "empty"
-                    ? "채울 빈 칸이 있는 학생이 없습니다."
-                    : "선택 가능한 학생이 없습니다."}
-                </p>
-              ) : (
-                <>
-                  <div className={style.prepActions}>
-                    <button
-                      type="button"
-                      className={style.prepActionBtn}
-                      onClick={selectDefaultStudentBatch}
-                    >
-                      기본 {EVAL_DRAFT_DEFAULT_BATCH}명
-                    </button>
-                    <button
-                      type="button"
-                      className={style.prepActionBtn}
-                      onClick={selectAllCandidateStudents}
-                    >
-                      전체
-                      {evalCandidateStudents.length > EVAL_DRAFT_MAX
-                        ? ` (최대 ${EVAL_DRAFT_MAX})`
-                        : ""}
-                    </button>
-                    <button
-                      type="button"
-                      className={style.prepActionBtn}
-                      onClick={() => setEvalSelectedStudentIds([])}
-                    >
-                      선택 해제
-                    </button>
-                  </div>
-                  <div className={`${style.refList} ${style.refListScroll}`}>
-                    {evalCandidateStudents.map((student) => {
-                      const checked = evalSelectedIds.includes(
-                        student.studentId
-                      );
-                      const atLimit =
-                        !checked && evalSelectedIds.length >= EVAL_DRAFT_MAX;
-                      return (
-                        <label
-                          key={student.studentId}
-                          className={style.refRow}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            disabled={atLimit}
-                            onChange={() => toggleStudentId(student.studentId)}
-                          />
-                          <span>
-                            {student.studentGrade
-                              ? `${student.studentGrade} · `
-                              : ""}
-                            {student.studentName || "(이름 없음)"}
-                            <span className={style.prepMuted}>
-                              {" "}
-                              ({student.studentId})
-                            </span>
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                  <p className={style.prepText}>
-                    선택 {evalSelectedIds.length}명
-                    {evalCandidateStudents.length > evalSelectedIds.length
-                      ? ` · 후보 ${evalCandidateStudents.length}명`
-                      : ""}
-                  </p>
-                </>
-              )}
-            </div>
-            {(skillSettingsLoading || guidelines) && (
-              <div className={style.prepCard}>
-                <p className={style.prepLabel}>학교 작성 지침</p>
-                <p className={style.prepText}>
-                  {skillSettingsLoading
-                    ? "지침을 불러오는 중..."
-                    : guidelines}
-                </p>
-              </div>
-            )}
-            <div className={style.prepHintRow}>
-              <PrepHint text="참고(자기평가·기존 멘토평가) → 작성(멘토평가)로 종합 초안을 만듭니다. 학생을 고른 뒤 「초안 작성」을 누르세요. 반영 후에도 행별 저장이 필요합니다." />
-              <span className={style.prepHintRowLabel}>이용 안내</span>
-            </div>
-          </>
-        )}
-
-        {inArchivePrep && (
-          <>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>작성 모드</p>
-              <div className={style.refList}>
-                <label className={style.refRow}>
-                  <input
-                    type="radio"
-                    name="archiveWriteMode"
-                    checked={archiveWriteMode === "perStudent"}
-                    onChange={() => setArchiveWriteMode("perStudent")}
-                  />
-                  <span>학생별 차별 작성</span>
-                </label>
-                <label className={style.refRow}>
-                  <input
-                    type="radio"
-                    name="archiveWriteMode"
-                    checked={archiveWriteMode === "sameText"}
-                    onChange={() => setArchiveWriteMode("sameText")}
-                  />
-                  <span>선택 학생 동일 문구</span>
-                </label>
-              </div>
-            </div>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>작성할 항목</p>
-              {archiveInputFields.length === 0 ? (
-                <p className={style.prepText}>
-                  텍스트(input) 기록 항목이 없습니다.
-                </p>
-              ) : (
-                <div className={style.refList}>
-                  {archiveInputFields.map((field) => (
-                    <label key={field.label} className={style.refRow}>
-                      <input
-                        type="checkbox"
-                        checked={archiveTargetLabels.includes(field.label)}
-                        onChange={() =>
-                          toggleLabel(
-                            field.label,
-                            archiveTargetLabels,
-                            setArchiveTargetLabels
-                          )
-                        }
-                      />
-                      <span>{field.label}</span>
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>
-                참고할 항목
-                <PrepHint text="이미 작성된 기록 내용을 참고해 초안을 만듭니다. 문장을 그대로 복사하지 않고 종합·재작성합니다. 작성 대상 항목의 기존 내용도 여기에 포함하면 이어서 다듬을 수 있습니다." />
-              </p>
-              {archiveReferenceFields.length === 0 ? (
-                <p className={style.prepText}>참고할 항목이 없습니다.</p>
-              ) : (
-                <div className={style.refList}>
-                  {archiveReferenceFields.map((field) => {
-                    const isTarget = archiveTargetLabels.includes(field.label);
-                    return (
-                      <label key={field.label} className={style.refRow}>
-                        <input
-                          type="checkbox"
-                          checked={archiveContextLabels.includes(field.label)}
-                          onChange={() =>
-                            toggleLabel(
-                              field.label,
-                              archiveContextLabels,
-                              setArchiveContextLabels
-                            )
-                          }
-                        />
-                        <span>
-                          {field.label}
-                          {field.type !== "input" ? ` (${field.type})` : ""}
-                          {isTarget ? " (작성 대상·기존 내용)" : ""}
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>
-                작성 지침
-                <PrepHint text="학교 AI 라이브러리의 지침 중 이번 작성에 쓸 항목을 고릅니다. 기록 양식마다 다른 지침을 골라 쓸 수 있습니다." />
-              </p>
-              {skillSettingsLoading ? (
-                <p className={style.prepText}>지침을 불러오는 중...</p>
-              ) : archiveGuidelineItems.length === 0 ? (
-                <p className={style.prepText}>
-                  선택 가능한 지침이 없습니다. 관리 → 학교 AI → 라이브러리에서
-                  「기록」 지침을 추가해 주세요. 기본 기준으로 작성합니다.
-                </p>
-              ) : (
-                <div className={style.refList}>
-                  {archiveGuidelineItems.map((item) => (
-                    <GuidelinePickRow
-                      key={item._id}
-                      id={item._id}
-                      title={item.title}
-                      content={item.content}
-                      checked={archiveSelectedGuidelineIds.includes(item._id)}
-                      expanded={expandedGuidelineId === item._id}
-                      onToggleChecked={() =>
-                        toggleLabel(
-                          item._id,
-                          archiveSelectedGuidelineIds,
-                          setArchiveSelectedGuidelineIds
-                        )
-                      }
-                      onToggleExpanded={() =>
-                        setExpandedGuidelineId((cur) =>
-                          cur === item._id ? null : item._id
-                        )
-                      }
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>
-                범위
-                <PrepHint text="「빈 칸만 채우기」가 켜져 있으면 이미 내용이 있는 칸은 건너뜁니다. 표가 비어 보여도 저장된 값이 있으면 제외될 수 있습니다." />
-              </p>
-              <div className={style.refList}>
-                <label className={style.refRow}>
-                  <input
-                    type="radio"
-                    name="archiveScope"
-                    checked={archiveScope === "empty"}
-                    onChange={() => {
-                      setArchiveScope("empty");
-                      setArchiveFillEmptyOnly(true);
-                    }}
-                  />
-                  <span>미작성 학생만</span>
-                </label>
-                <label className={style.refRow}>
-                  <input
-                    type="radio"
-                    name="archiveScope"
-                    checked={archiveScope === "all"}
-                    onChange={() => setArchiveScope("all")}
-                  />
-                  <span>전체 학생 목록</span>
-                </label>
-                <label className={style.refRow}>
-                  <input
-                    type="checkbox"
-                    checked={archiveFillEmptyOnly}
-                    onChange={(e) => setArchiveFillEmptyOnly(e.target.checked)}
-                  />
-                  <span>빈 칸만 채우기</span>
-                </label>
-              </div>
-            </div>
-            <div className={style.prepCard}>
-              <p className={style.prepLabel}>
-                학생 선택
-                <PrepHint
-                  text={`한 번에 최대 ${EVAL_DRAFT_MAX}명까지 선택해 초안을 만들 수 있습니다.`}
-                />
-              </p>
-              {archiveCandidateStudents.length === 0 ? (
-                <p className={style.prepText}>
-                  {archiveScope === "empty"
-                    ? "채울 빈 칸이 있는 학생이 없습니다."
-                    : "선택 가능한 학생이 없습니다."}
-                </p>
-              ) : (
-                <>
-                  <div className={style.prepActions}>
-                    <button
-                      type="button"
-                      className={style.prepActionBtn}
-                      onClick={selectDefaultArchiveStudentBatch}
-                    >
-                      기본 {EVAL_DRAFT_DEFAULT_BATCH}명
-                    </button>
-                    <button
-                      type="button"
-                      className={style.prepActionBtn}
-                      onClick={selectAllArchiveCandidateStudents}
-                    >
-                      전체
-                      {archiveCandidateStudents.length > EVAL_DRAFT_MAX
-                        ? ` (최대 ${EVAL_DRAFT_MAX})`
-                        : ""}
-                    </button>
-                    <button
-                      type="button"
-                      className={style.prepActionBtn}
-                      onClick={() => setArchiveSelectedStudentIds([])}
-                    >
-                      선택 해제
-                    </button>
-                  </div>
-                  <div className={`${style.refList} ${style.refListScroll}`}>
-                    {archiveCandidateStudents.map((student) => {
-                      const checked = archiveSelectedIds.includes(
-                        student.studentId
-                      );
-                      const atLimit =
-                        !checked &&
-                        archiveSelectedIds.length >= EVAL_DRAFT_MAX;
-                      return (
-                        <label
-                          key={student.studentId}
-                          className={style.refRow}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            disabled={atLimit}
-                            onChange={() =>
-                              toggleArchiveStudentId(student.studentId)
-                            }
-                          />
-                          <span>
-                            {student.studentGrade
-                              ? `${student.studentGrade} · `
-                              : ""}
-                            {student.studentName || "(이름 없음)"}
-                            <span className={style.prepMuted}>
-                              {" "}
-                              ({student.studentId})
-                            </span>
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                  <p className={style.prepText}>
-                    선택 {archiveSelectedIds.length}명
-                    {archiveCandidateStudents.length >
-                    archiveSelectedIds.length
-                      ? ` · 후보 ${archiveCandidateStudents.length}명`
-                      : ""}
-                  </p>
-                </>
-              )}
-            </div>
-            <div className={style.prepHintRow}>
-              <PrepHint text="지침·항목·학생을 고른 뒤 「초안 작성」을 누르세요. 미리보기 반영 후 「변경 사항 저장」으로 DB에 저장합니다." />
-              <span className={style.prepHintRowLabel}>이용 안내</span>
-            </div>
-          </>
-        )}
+            <SkillPrepDock
+              prepKind={prepKind}
+              skillSettingsLoading={skillSettingsLoading}
+              guidelines={guidelines}
+              pageContext={pageContext}
+              expandedGuidelineId={expandedGuidelineId}
+              setExpandedGuidelineId={setExpandedGuidelineId}
+              toggleLabel={toggleLabel}
+              teacherEditableFields={teacherEditableFields}
+              allEvalLabels={allEvalLabels}
+              evalTargetLabels={evalTargetLabels}
+              setEvalTargetLabels={setEvalTargetLabels}
+              evalContextLabels={evalContextLabels}
+              setEvalContextLabels={setEvalContextLabels}
+              evalScope={evalScope}
+              setEvalScope={setEvalScope}
+              evalFillEmptyOnly={evalFillEmptyOnly}
+              setEvalFillEmptyOnly={setEvalFillEmptyOnly}
+              evalCandidateStudents={evalCandidateStudents}
+              evalSelectedIds={evalSelectedIds}
+              toggleStudentId={toggleStudentId}
+              selectDefaultStudentBatch={selectDefaultStudentBatch}
+              selectAllCandidateStudents={selectAllCandidateStudents}
+              clearEvalStudents={() => setEvalSelectedStudentIds([])}
+              archiveInputFields={archiveInputFields}
+              archiveReferenceFields={archiveReferenceFields}
+              archiveWriteMode={archiveWriteMode}
+              setArchiveWriteMode={setArchiveWriteMode}
+              archiveTargetLabels={archiveTargetLabels}
+              setArchiveTargetLabels={setArchiveTargetLabels}
+              archiveContextLabels={archiveContextLabels}
+              setArchiveContextLabels={setArchiveContextLabels}
+              archiveScope={archiveScope}
+              setArchiveScope={setArchiveScope}
+              archiveFillEmptyOnly={archiveFillEmptyOnly}
+              setArchiveFillEmptyOnly={setArchiveFillEmptyOnly}
+              archiveGuidelineItems={archiveGuidelineItems}
+              archiveSelectedGuidelineIds={archiveSelectedGuidelineIds}
+              setArchiveSelectedGuidelineIds={setArchiveSelectedGuidelineIds}
+              archiveCandidateStudents={archiveCandidateStudents}
+              archiveSelectedIds={archiveSelectedIds}
+              toggleArchiveStudentId={toggleArchiveStudentId}
+              selectDefaultArchiveStudentBatch={selectDefaultArchiveStudentBatch}
+              selectAllArchiveCandidateStudents={selectAllArchiveCandidateStudents}
+              clearArchiveStudents={() => setArchiveSelectedStudentIds([])}
+              syllabusGuidelineItems={syllabusGuidelineItems}
+              syllabusSelectedGuidelineIds={syllabusSelectedGuidelineIds}
+              setSyllabusSelectedGuidelineIds={setSyllabusSelectedGuidelineIds}
+              docWriteMode={docWriteMode}
+              setDocWriteMode={setDocWriteMode}
+              docType={docType}
+              setDocType={setDocType}
+              docGuidelineItems={docGuidelineItems}
+              docSelectedGuidelineIds={docSelectedGuidelineIds}
+              setDocSelectedGuidelineIds={setDocSelectedGuidelineIds}
+              docReviewGuidelineItems={docReviewGuidelineItems}
+              docReviewSelectedGuidelineIds={docReviewSelectedGuidelineIds}
+              setDocReviewSelectedGuidelineIds={setDocReviewSelectedGuidelineIds}
+              docReviewLearningItems={docReviewLearningItems}
+              docReviewSelectedLearningIds={docReviewSelectedLearningIds}
+              setDocReviewSelectedLearningIds={setDocReviewSelectedLearningIds}
+              formResponseWritableFields={formResponseWritableFields}
+              formResponseWriteMode={formResponseWriteMode}
+              setFormResponseWriteMode={setFormResponseWriteMode}
+              formResponseFillEmptyOnly={formResponseFillEmptyOnly}
+              setFormResponseFillEmptyOnly={setFormResponseFillEmptyOnly}
+              formResponseTargetFieldIds={formResponseTargetFieldIds}
+              setFormResponseTargetFieldIds={setFormResponseTargetFieldIds}
+              formResponseGuidelineItems={formResponseGuidelineItems}
+              formResponseSelectedGuidelineIds={formResponseSelectedGuidelineIds}
+              setFormResponseSelectedGuidelineIds={setFormResponseSelectedGuidelineIds}
+              activityWriteMode={activityWriteMode}
+              setActivityWriteMode={setActivityWriteMode}
+              activityFormType={activityFormType}
+              setActivityFormType={setActivityFormType}
+              activityGuidelineItems={activityGuidelineItems}
+              activitySelectedGuidelineIds={activitySelectedGuidelineIds}
+              setActivitySelectedGuidelineIds={setActivitySelectedGuidelineIds}
+              gradeFillEmptyOnly={gradeFillEmptyOnly}
+              setGradeFillEmptyOnly={setGradeFillEmptyOnly}
+            />
           </div>
         )}
       </div>
@@ -4656,7 +3007,20 @@ const AlterPanel = ({ onClose }: Props) => {
             inActivityPrep ||
             inGradePrep
           }
-          centerHint="옵션을 고른 뒤 시작하세요"
+          centerHint={
+            inPrep &&
+            !(
+              inEvalPrep ||
+              inSyllabusPrep ||
+              inArchivePrep ||
+              inDocPrep ||
+              inFormResponsePrep ||
+              inActivityPrep ||
+              inGradePrep
+            )
+              ? "옵션을 고른 뒤 시작하세요"
+              : undefined
+          }
           placeholder={
             inGradePrep
               ? "예: 감상문의 구체성을 중심으로, 피드백은 2문장"

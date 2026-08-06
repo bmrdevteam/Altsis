@@ -16,14 +16,11 @@ type Props = {
   board: TBoard;
   rooms: TChatRoom[];
   selectedRoomId?: string | null;
-  chatMode: "group" | "ai" | "dm";
-  aiEnabled: boolean;
-  selectedAISessionId?: string;
+  chatMode: "group" | "dm";
   selectedDMUserId?: string;
   canManageRooms: boolean;
   onSelectRoom: (roomId: string) => void;
   onCreateRoom: () => void;
-  onSelectAIChat: () => void;
   onDMClick: (member: Member) => void;
 };
 
@@ -36,13 +33,10 @@ const BoardChatMemberSidebar = ({
   rooms,
   selectedRoomId,
   chatMode,
-  aiEnabled,
-  selectedAISessionId,
   selectedDMUserId,
   canManageRooms,
   onSelectRoom,
   onCreateRoom,
-  onSelectAIChat,
   onDMClick,
 }: Props) => {
   const [membersCollapsed, setMembersCollapsed] = useState(true);
@@ -198,25 +192,6 @@ const BoardChatMemberSidebar = ({
             );
           })}
       </div>
-
-      {aiEnabled && (
-        <div className={style.sidebar_section}>
-          <div className={style.sidebar_header}>AI 도우미</div>
-          <div
-            className={`${style.sidebar_item} ${
-              chatMode === "ai" && !selectedAISessionId ? style.active : ""
-            }`}
-            onClick={() => onSelectAIChat()}
-          >
-            <div
-              className={`${style.sidebar_avatar} ${style.sidebar_avatar_ai}`}
-            >
-              A
-            </div>
-            <span className={style.sidebar_name}>Alter</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

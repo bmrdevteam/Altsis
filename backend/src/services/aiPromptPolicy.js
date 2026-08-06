@@ -906,7 +906,7 @@ export const buildSyllabusDraftRetryPrompt = (fieldNames = []) => {
     { "field": "필드명", "value": "해당 항목 작성문" }
   ]
 }
-근거가 부족한 항목은 value를 ""로 두세요.${focus}`;
+작성 대상 항목은 모두 비어 있지 않은 value로 채우세요. 자료가 짧아도 교과·수업명·지침에 맞게 합리적인 초안을 넣으세요.${focus}`;
 };
 
 const normalizeFieldKey = (key) =>

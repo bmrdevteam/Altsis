@@ -2,13 +2,11 @@ import { useState, useEffect, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 import { TBoard, TAltBoardRole } from "types/board";
 import { TChatRoom } from "types/chat";
-import { TAIChatSession } from "types/aiChat";
 import { useAuth } from "contexts/authContext";
 import useAPIv2 from "hooks/useAPIv2";
 import BoardChatTab from "./BoardChatTab";
 import BoardChatMemberSidebar from "./BoardChatMemberSidebar";
 import BoardDMPanel from "./BoardDMPanel";
-import AIChatPanel from "./AIChatPanel";
 import MemberInvitePicker from "./MemberInvitePicker";
 import style from "./boardChatContainer.module.scss";
 
@@ -26,17 +24,13 @@ type Props = {
 
 const BoardChatContainer = ({ board, onNewMessage }: Props) => {
   const { currentUser } = useAuth();
-  const { BoardAPI, BoardChatAPI, AIChatAPI } = useAPIv2();
+  const { BoardAPI, BoardChatAPI } = useAPIv2();
 
   const [socket, setSocket] = useState<Socket | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [rooms, setRooms] = useState<TChatRoom[]>([]);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
-  const [chatMode, setChatMode] = useState<"group" | "ai" | "dm">("group");
-  const [aiEnabled, setAiEnabled] = useState(false);
-  const [selectedAISessionId, setSelectedAISessionId] = useState<
-    string | undefined
-  >();
+  const [chatMode, setChatMode] = useState<"group" | "dm">("group");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newRoomName, setNewRoomName] = useState("");
   const [newRoomDescription, setNewRoomDescription] = useState("");
@@ -65,7 +59,6 @@ const BoardChatContainer = ({ board, onNewMessage }: Props) => {
     );
   })();
 
-  const isTeacher = myRole === "admin" || myRole === "writer";
   const canManageRooms =
     currentUser?.auth === "admin" ||
     currentUser?.auth === "manager" ||
@@ -125,13 +118,6 @@ const BoardChatContainer = ({ board, onNewMessage }: Props) => {
   }, [loadRooms]);
 
   useEffect(() => {
-    if (!board._id) return;
-    AIChatAPI.RAIChatSettings({ params: { _id: board._id } })
-      .then(({ enabled }) => setAiEnabled(enabled))
-      .catch(() => setAiEnabled(false));
-  }, [board._id]);
-
-  useEffect(() => {
     if (!socket) return;
     const handleNewMessage = (data: { boardId?: string; room?: string }) => {
       if (data.boardId !== board._id) return;
@@ -147,7 +133,6 @@ const BoardChatContainer = ({ board, onNewMessage }: Props) => {
   const handleSelectRoom = (roomId: string) => {
     setSelectedRoomId(roomId);
     setChatMode("group");
-    setSelectedAISessionId(undefined);
     setDmRoomId(null);
     setDmPartner(null);
     setRooms((prev) =>
@@ -160,42 +145,12 @@ const BoardChatContainer = ({ board, onNewMessage }: Props) => {
     setDmRoomId(null);
     setDmPartner(member);
     setChatMode("dm");
-    setSelectedAISessionId(undefined);
-  };
-
-  const handleSelectAIChat = () => {
-    setChatMode("ai");
-    setSelectedAISessionId(undefined);
-    setDmRoomId(null);
-    setDmPartner(null);
   };
 
   const handleDMBack = () => {
     setChatMode("group");
     setDmRoomId(null);
     setDmPartner(null);
-  };
-
-  const handleViewStudentAI = async () => {
-    if (!dmPartner || !isTeacher) return;
-    try {
-      const { sessions } = await AIChatAPI.RAIChatSessions({
-        params: { _id: board._id },
-      });
-      const studentSession = sessions.find(
-        (s: TAIChatSession) => s.student === dmPartner.user
-      );
-      if (studentSession) {
-        setChatMode("ai");
-        setSelectedAISessionId(studentSession._id);
-        setDmRoomId(null);
-        setDmPartner(null);
-      } else {
-        alert("해당 학생의 AI 대화가 아직 없습니다.");
-      }
-    } catch {
-      // error handled by useAPIv2
-    }
   };
 
   const openCreateModal = () => {
@@ -255,13 +210,10 @@ const BoardChatContainer = ({ board, onNewMessage }: Props) => {
         rooms={rooms}
         selectedRoomId={selectedRoomId}
         chatMode={chatMode}
-        aiEnabled={aiEnabled}
-        selectedAISessionId={selectedAISessionId}
         selectedDMUserId={dmPartner?.user}
         canManageRooms={canManageRooms}
         onSelectRoom={handleSelectRoom}
         onCreateRoom={openCreateModal}
-        onSelectAIChat={handleSelectAIChat}
         onDMClick={handleDMClick}
       />
       <div className={style.chat_area}>
@@ -273,16 +225,6 @@ const BoardChatContainer = ({ board, onNewMessage }: Props) => {
             socket={socket}
             onBack={handleDMBack}
             onRoomCreated={(roomId) => setDmRoomId(roomId)}
-            onViewStudentAI={
-              isTeacher && aiEnabled ? handleViewStudentAI : undefined
-            }
-          />
-        ) : chatMode === "ai" ? (
-          <AIChatPanel
-            board={board}
-            socket={socket}
-            sessionId={selectedAISessionId}
-            myRole={myRole}
           />
         ) : selectedRoomId && selectedRoom ? (
           <BoardChatTab
