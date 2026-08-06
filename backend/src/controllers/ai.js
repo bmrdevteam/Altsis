@@ -316,6 +316,7 @@ export const runAlter = async (req, res) => {
     skill === SKILL_IDS.EVALUATION_DRAFT ||
     skill === SKILL_IDS.ARCHIVE_DRAFT ||
     skill === SKILL_IDS.DOCUMENT_DRAFT ||
+    skill === SKILL_IDS.FORM_RESPONSE_DRAFT ||
     skill === SKILL_IDS.ACTIVITY_DRAFT ||
     skill === SKILL_IDS.ASSESSMENT_GRADE;
 

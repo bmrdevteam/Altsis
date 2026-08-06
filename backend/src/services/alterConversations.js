@@ -76,12 +76,32 @@ const SKILL_DISPLAY = {
   "evaluation-draft": "평가",
   "archive-draft": "기록",
   "document-draft": "문서",
+  "form-response-draft": "응답",
   "activity-draft": "활동",
   "assessment-grade": "채점",
 };
 
 const skillDisplayName = (skill) =>
   SKILL_DISPLAY[skill] || skill || "챗봇";
+
+/** AlterConversation.pageType enum — 미등록 값은 저장 실패를 피하기 위해 general로 떨어뜨린다 */
+const ALLOWED_PAGE_TYPES = new Set([
+  "syllabus-edit",
+  "evaluation",
+  "archive",
+  "document",
+  "form-response",
+  "activity",
+  "assessment-grade",
+  "general",
+  "",
+]);
+
+const normalizePageType = (pageType) => {
+  if (pageType == null || pageType === "") return pageType || "general";
+  const next = String(pageType);
+  return ALLOWED_PAGE_TYPES.has(next) ? next : "general";
+};
 
 const seasonLabelOf = (season) => {
   if (!season) return "";
@@ -209,7 +229,7 @@ export const createAlterConversation = async ({
     school,
     season: seasonId,
     title: titleFromContext(contextLabel, title) || "새 대화",
-    pageType: pageType || "general",
+    pageType: normalizePageType(pageType),
     contextLabel: contextLabel || "",
     syllabusId: syllabusId ? String(syllabusId) : "",
     lastMessageAt: new Date(),
@@ -379,7 +399,7 @@ export const appendAlterTurn = async ({
       school: schoolId,
       season: seasonId,
       title: titleFromContext(contextLabel, userMessage),
-      pageType: pageType || "general",
+      pageType: normalizePageType(pageType),
       contextLabel: contextLabel || "",
       syllabusId: syllabusId ? String(syllabusId) : "",
       lastSkill: skill,
@@ -432,7 +452,7 @@ export const appendAlterTurn = async ({
   }
   conversation.messageCount = (conversation.messageCount || 0) + created.length;
   conversation.status = markWorking ? "working" : "idle";
-  if (pageType) conversation.pageType = pageType;
+  if (pageType) conversation.pageType = normalizePageType(pageType);
   if (contextLabel != null) {
     conversation.contextLabel = contextLabel;
     if (!conversation.titleCustom) {

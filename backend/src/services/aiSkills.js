@@ -54,6 +54,20 @@ import {
   attachmentsToSourceText,
   buildMultimodalUserContent,
 } from "./alterAttachments.js";
+import {
+  isFormResponseWritableType,
+  parseFormResponseDraftResponse,
+} from "./formResponseDraft.js";
+import {
+  formatSlotsForPrompt,
+  isAcceptableMergedDocResponse,
+  isBrokenDocResponseImageDump,
+  mergeDocResponseTemplate,
+  redactImagesForPrompt,
+  sanitizeAiDocResponseFill,
+} from "./formResponseSlots.js";
+
+export { parseFormResponseDraftResponse } from "./formResponseDraft.js";
 
 const IMAGE_HINT =
   "첨부 이미지가 있으면 내용을 참고하세요. 이미지에서 읽은 내용이 불명확하면 추측하지 말고 표시하세요.";
@@ -101,6 +115,7 @@ export const SKILL_IDS = {
   EVALUATION_DRAFT: "evaluation-draft",
   ARCHIVE_DRAFT: "archive-draft",
   DOCUMENT_DRAFT: "document-draft",
+  FORM_RESPONSE_DRAFT: "form-response-draft",
   ACTIVITY_DRAFT: "activity-draft",
   ASSESSMENT_GRADE: "assessment-grade",
 };
@@ -140,6 +155,13 @@ export const SKILL_CATALOG = {
     description:
       "보드 문서(매뉴얼·공지·회의록 등) 마크다운 초안을 작성·다듬습니다",
     profile: "documentDraft",
+  },
+  [SKILL_IDS.FORM_RESPONSE_DRAFT]: {
+    id: SKILL_IDS.FORM_RESPONSE_DRAFT,
+    name: "응답",
+    description:
+      "양식 응답(기안문·선택 등) 초안을 작성하고, 기안문은 기존 양식 구조에 내용을 채웁니다",
+    profile: "formResponseDraft",
   },
   [SKILL_IDS.ACTIVITY_DRAFT]: {
     id: SKILL_IDS.ACTIVITY_DRAFT,
@@ -185,6 +207,9 @@ const defaultSkillGuide = (skill) => {
   }
   if (skill === SKILL_IDS.DOCUMENT_DRAFT) {
     return "학교 문서에 맞는 명확한 마크다운으로 작성하세요. 제목·목록·표·체크리스트를 문서 목적에 맞게 활용하고, 퀴즈·인터랙티브 자료는 ```html-app``` 블록을 사용하세요. 추측·민감정보는 넣지 마세요.";
+  }
+  if (skill === SKILL_IDS.FORM_RESPONSE_DRAFT) {
+    return "양식 안내·필드 규칙을 지키며 응답 초안을 작성하세요. docResponse는 `(작성)`·`(본문 작성)` 등 작성 칸만 채우고 표·수신/경유·로고 골격은 유지하세요. 선택형은 제시된 옵션만 쓰고, 근거 없는 사실·민감정보는 넣지 마세요.";
   }
   if (skill === SKILL_IDS.ACTIVITY_DRAFT) {
     return "활동 목적에 맞는 양식 구조를 만드세요. 제출·채점이 필요한 답은 text/textarea/radio/select 등 일반 필드로 만드세요. html-app은 제출이 필요 없는 데모·게임·시각 안내일 때만 쓰고, 퀴즈와 평가 모드는 동시에 켜지 마세요.";
@@ -320,6 +345,7 @@ export const resolveSkillPrepSettings = async (
   const skipRefs =
     skill === SKILL_IDS.SYLLABUS_DRAFT ||
     skill === SKILL_IDS.DOCUMENT_DRAFT ||
+    skill === SKILL_IDS.FORM_RESPONSE_DRAFT ||
     skill === SKILL_IDS.ACTIVITY_DRAFT;
 
   const loadInstructionChoices = async () => {
@@ -380,6 +406,7 @@ export const resolveSkillPrepSettings = async (
     if (
       skill === SKILL_IDS.ARCHIVE_DRAFT ||
       skill === SKILL_IDS.DOCUMENT_DRAFT ||
+      skill === SKILL_IDS.FORM_RESPONSE_DRAFT ||
       skill === SKILL_IDS.ACTIVITY_DRAFT
     ) {
       const choices = await loadInstructionChoices();
@@ -398,6 +425,7 @@ export const resolveSkillPrepSettings = async (
   if (
     skill === SKILL_IDS.ARCHIVE_DRAFT ||
     skill === SKILL_IDS.DOCUMENT_DRAFT ||
+    skill === SKILL_IDS.FORM_RESPONSE_DRAFT ||
     skill === SKILL_IDS.ACTIVITY_DRAFT
   ) {
     const choices = await loadInstructionChoices();
@@ -486,6 +514,20 @@ const resolveDocumentGuidelines = async (
     school,
     season,
     SKILL_IDS.DOCUMENT_DRAFT,
+    context
+  );
+
+const resolveFormResponseGuidelines = async (
+  academyId,
+  school,
+  season,
+  context = {}
+) =>
+  resolveLibraryGuidelines(
+    academyId,
+    school,
+    season,
+    SKILL_IDS.FORM_RESPONSE_DRAFT,
     context
   );
 
@@ -2690,6 +2732,394 @@ ${currentContent || "(없음)"}
   }
 };
 
+/**
+ * form-response-draft Skill — 양식 응답 필드 초안
+ */
+export const executeFormResponseDraftSkill = async ({
+  academyId,
+  user,
+  academy,
+  season,
+  school,
+  context = {},
+  message = "",
+  onEvent,
+}) => {
+  const profile = FEATURE_PROFILES.formResponseDraft;
+  const emit = typeof onEvent === "function" ? onEvent : () => {};
+
+  emit("step", { message: "양식 응답 초안 준비 중..." });
+
+  const writeMode = context.writeMode === "refine" ? "refine" : "create";
+  const fillEmptyOnly = !!context.fillEmptyOnly;
+  const formTitle = String(context.formTitle || context.label || "").trim();
+  const boardName = String(context.boardName || "").trim();
+  const allFields = Array.isArray(context.fields) ? context.fields : [];
+  const targetIds = Array.isArray(context.targetFieldIds)
+    ? context.targetFieldIds.map(String).filter(Boolean)
+    : [];
+  const targetSet = new Set(targetIds);
+  const writableFields = allFields.filter(
+    (f) =>
+      f &&
+      isFormResponseWritableType(f.type) &&
+      (targetSet.size === 0 || targetSet.has(String(f.fieldId)))
+  );
+  const userCandidates = Array.isArray(context.userCandidates)
+    ? context.userCandidates
+    : [];
+
+  if (writableFields.length === 0) {
+    const err = new Error("작성할 응답 필드가 없습니다.");
+    err.status = 400;
+    err.code = AI_ERRORS.GENERATION_FAILED;
+    throw err;
+  }
+
+  const currentResponses = context.currentResponses || context.responses || {};
+  const currentJson = truncateText(
+    JSON.stringify(currentResponses, null, 2),
+    PROMPT_LIMITS.FORM_RESPONSE_DRAFT_CURRENT_CHARS || 12000
+  );
+  const sourceText = mergeContextSourceText(
+    context,
+    "",
+    PROMPT_LIMITS.FORM_RESPONSE_DRAFT_SOURCE_CHARS || 12000
+  );
+  const userHint = truncateText(
+    String(message || "").trim(),
+    PROMPT_LIMITS.FORM_RESPONSE_DRAFT_USER_HINT_CHARS || 2000
+  );
+  const attachments = Array.isArray(context.attachments)
+    ? context.attachments
+    : [];
+
+  const hasCurrent = writableFields.some((f) => {
+    const v = currentResponses[f.fieldId];
+    if (v == null) return false;
+    if (typeof v === "string") return !!v.trim();
+    if (Array.isArray(v)) return v.length > 0;
+    if (typeof v === "object") return Object.keys(v).length > 0;
+    return true;
+  });
+  const hasDocTemplate = writableFields.some(
+    (f) =>
+      String(f?.type || "") === "docResponse" &&
+      !!String(f.template || "").trim()
+  );
+
+  if (
+    writeMode === "create" &&
+    !userHint &&
+    !sourceText &&
+    !hasImageAttachments(context)
+  ) {
+    const err = new Error(
+      "초안에 쓸 정보를 입력하거나 파일을 첨부해 주세요."
+    );
+    err.status = 400;
+    err.code = AI_ERRORS.GENERATION_FAILED;
+    throw err;
+  }
+  if (
+    writeMode === "refine" &&
+    !hasCurrent &&
+    !hasDocTemplate &&
+    !userHint
+  ) {
+    const err = new Error(
+      "다듬을 응답이 없습니다. 필드에 내용을 쓰거나 요청을 입력해 주세요."
+    );
+    err.status = 400;
+    err.code = AI_ERRORS.GENERATION_FAILED;
+    throw err;
+  }
+
+  const guidelines = await resolveFormResponseGuidelines(
+    academyId,
+    school,
+    season,
+    context
+  );
+
+  const provider = resolveProvider(academy.aiProvider);
+  const modelName = resolveModel(provider, academy.aiModel);
+  assertVisionIfNeeded(modelName, context);
+
+  const templateLimit =
+    PROMPT_LIMITS.FORM_RESPONSE_DRAFT_TEMPLATE_CHARS || 12000;
+
+  /** @type {Record<string, string>} fieldId → baseDocument for merge */
+  const docResponseBases = {};
+  let anyDocSlots = false;
+
+  const fieldBlocks = writableFields
+    .map((f) => {
+      const opts = Array.isArray(f.options) ? f.options : [];
+      const cur = currentResponses[f.fieldId];
+      const type = String(f.type || "");
+      if (type === "docResponse") {
+        const template = String(f.template || "").trim();
+        const currentStr =
+          typeof cur === "string"
+            ? cur
+            : cur == null
+              ? ""
+              : JSON.stringify(cur);
+        const baseDocument = currentStr.trim() || template || "";
+        docResponseBases[String(f.fieldId)] = baseDocument;
+        const slotList = formatSlotsForPrompt(baseDocument);
+        if (slotList) anyDocSlots = true;
+        // base64 로고 등은 프롬프트에서 자리만 남기고, 병합은 원본 base 사용
+        const promptTemplate = redactImagesForPrompt(template);
+        const promptBase = redactImagesForPrompt(baseDocument);
+        return `- id=${f.fieldId} | type=${f.type} | label=${f.label || ""}
+  template=
+<<<TEMPLATE
+${truncateText(promptTemplate, templateLimit) || "(없음)"}
+>>>
+  baseDocument=
+<<<BASE
+${truncateText(promptBase, templateLimit) || "(없음)"}
+>>>
+  writeSlots=
+${slotList || "(작성 칸 없음 — 골격 유지하며 빈칸만 채우기)"}
+  imageNote=본문의 <<KEEP_IMAGE_n>> 은 기존 로고/이미지 자리입니다. 절대 data:image나 base64로 다시 쓰지 마세요.`;
+      }
+      return `- id=${f.fieldId} | type=${f.type} | label=${f.label || ""}
+  options=${opts.length ? JSON.stringify(opts) : "(없음)"}
+  template=${truncateText(String(f.template || ""), 800) || "(없음)"}
+  current=${truncateText(JSON.stringify(cur ?? null), 600)}`;
+    })
+    .join("\n");
+
+  const contentFields = allFields
+    .filter((f) => f?.type === "content")
+    .map(
+      (f) =>
+        `### ${f.label || "안내"}\n${truncateText(String(f.template || f.content || ""), 1500)}`
+    )
+    .join("\n\n");
+
+  const candidatesText = userCandidates
+    .slice(0, 80)
+    .map((u) => `${u.userName}(${u.userId}) oid=${u.user}`)
+    .join("\n");
+
+  const typeRules = `타입별 출력 본문 규칙:
+- text/textarea/date/time: 본문 raw 문자열
+- docResponse: 아래 「작성 칸」규칙을 따르세요 (마크다운, html-app은 \`\`\`html-app 펜스)
+- number/rating/scale/counter: JSON 숫자
+- checkbox: JSON true/false
+- select/radio: 옵션 문자열 그대로 (options에 있는 값만)
+- multiSelect/multiDate: JSON 문자열 배열
+- link: JSON {"url":"https://..."}
+- userSelect: JSON {"user":"oid","userId":"...","userName":"..."} 또는 배열 (후보 목록에서만)
+- approval: JSON {"steps":[{"order":0,"label":"...","approver":{"user","userId","userName"}}]} (pick 단계만, 후보에서만)
+- file 필드는 출력하지 마세요.`;
+
+  const docFillRules = hasDocTemplate
+    ? `## docResponse(기안문) 작성 칸 채우기 (필수)
+- 양식의 표·제목란·수신/경유/결재란·로고/이미지 골격은 절대 새로 쓰지 마세요.
+- 채울 자리는 관용구만입니다: \`(작성)\`, \`(본문 작성)\`, \`(금액 작성)\`처럼 괄호 안이 「작성」으로 끝나는 칸, 그리고 \`(이곳에 입력하세요.)\`.
+- **권장 출력**: FIELD 본문에 슬롯 값만 순서대로 넣으세요. 문서 전체를 다시 쓰지 마세요.
+<<<SLOT (작성)>>>
+채운 짧은 문구
+<<<END_SLOT>>>
+<<<SLOT (본문 작성)>>>
+채운 본문 마크다운
+<<<END_SLOT>>>
+- writeSlots에 적힌 칸을 빠짐없이, 양식에 나온 순서·표기 그대로 사용하세요.
+- <<KEEP_IMAGE_n>>·로고·기존 이미지를 data:image/base64로 출력하지 마세요. 첨부 사진은 참고만 하고 본문에 붙이지 마세요.
+- 첨부 이미지·요청은 칸에 넣을 글의 근거로만 사용하세요.`
+    : "";
+
+  const taskRules =
+    writeMode === "refine"
+      ? anyDocSlots
+        ? `역할: 양식의 \`(작성)\` 칸만 채워 완성본을 만듭니다. 지정 필드만 출력하세요.`
+        : `역할: 기존 응답(또는 양식 템플릿)을 요청에 맞게 다듬어/채워 완성본을 만듭니다. 지정 필드만 출력하세요.`
+      : hasDocTemplate
+        ? `역할: 요청·자료를 바탕으로 지정 필드 초안을 만듭니다. docResponse는 \`(작성)\` 칸만 채우세요.`
+        : `역할: 요청·자료를 바탕으로 지정 필드의 응답 초안을 만듭니다.`;
+
+  const prompt = `당신은 학교 양식 응답 작성 보조입니다. 응답자가 바로 검토·수정할 필드 값만 작성합니다.
+
+${taskRules}
+${fillEmptyOnly ? "- 이미 값이 있는 필드는 건너뛰고 빈 칸만 채우세요." : ""}
+
+## 작성 지침
+${guidelines || defaultSkillGuide(SKILL_IDS.FORM_RESPONSE_DRAFT)}
+
+${docFillRules}
+
+## 양식
+제목: ${formTitle || "(미지정)"}
+보드: ${boardName || "(미지정)"}
+
+## 안내 문서 (참고, 출력 금지)
+${contentFields || "(없음)"}
+
+## 작성 대상 필드
+${fieldBlocks}
+
+## 사용자 후보 (userSelect/approval용)
+${candidatesText || "(없음)"}
+
+## ${typeRules}
+
+## 응답자 요청
+${userHint || "(없음)"}
+
+## 첨부·참고 자료
+${sourceText || "(없음)"}
+
+${IMAGE_HINT}
+
+## 현재 응답 JSON (참고)
+${currentJson || "{}"}
+
+## 출력 형식 (필수)
+필드마다 아래 블록을 반복하세요. 설명·머리말 없이 블록만 출력합니다.
+<<<FIELD fieldId type=타입>>>
+본문또는JSON
+<<<END_FIELD>>>
+- FIELD id는 위 작성 대상의 id와 일치해야 합니다.
+- docResponse에 작성 칸이 있으면 FIELD 안에 <<<SLOT …>>>/<<<END_SLOT>>> 만 넣는 것을 권장합니다.
+- 본문에 <<<FIELD / <<<END_FIELD>>> 마커를 넣지 마세요.`;
+
+  emit("step", {
+    message:
+      writeMode === "refine"
+        ? hasDocTemplate
+          ? "AI가 양식 작성 칸을 채우고 있습니다..."
+          : "AI가 응답을 다듬고 있습니다..."
+        : "AI가 응답 초안을 작성하고 있습니다...",
+  });
+
+  let tokenUsage = null;
+  try {
+    const userContent = await buildMultimodalUserContent(prompt, attachments);
+    const generated = await runEvaluationGeneration({
+      provider,
+      apiKey: academy.aiApiKey,
+      modelName,
+      profile,
+      systemInstruction: `You are Alter, a school form-response drafting assistant. Output ONLY <<<FIELD id type=...>>> / <<<END_FIELD>>> blocks — no preamble. The id MUST be the exact field id from the prompt (not the Korean label). Follow field types and options strictly. For docResponse with writeSlots like (작성)/(본문 작성), prefer <<<SLOT …>>> fills inside the FIELD and do NOT rewrite the whole template. Never output data:image or base64. Never drop logos/tables/수신·경유.`,
+      messages: [{ role: "user", content: userContent }],
+      onEvent: emit,
+      progressLabel:
+        writeMode === "refine"
+          ? hasDocTemplate
+            ? "작성 칸 채우는 중"
+            : "응답 다듬는 중"
+          : "응답 초안 작성 중",
+    });
+    tokenUsage = mergeTokenUsage(tokenUsage, generated.tokenUsage);
+
+    const parsed = parseFormResponseDraftResponse(
+      generated.text || "",
+      writableFields.map((f) => ({
+        fieldId: String(f.fieldId),
+        type: f.type,
+        label: f.label,
+        options: f.options,
+        validation: f.validation,
+      })),
+      userCandidates
+    );
+
+    const byField = {};
+    const contentLimit =
+      PROMPT_LIMITS.FORM_RESPONSE_DRAFT_CONTENT_CHARS || 14000;
+    for (const [fid, val] of Object.entries(parsed.byField || {})) {
+      if (typeof val === "string") {
+        // AI fill만 길이 제한. 병합된 기안문(로고 data URI 포함)은 자르지 않는다.
+        const aiFill = truncateText(
+          maskSensitiveText(val).text,
+          contentLimit
+        );
+        if (Object.prototype.hasOwnProperty.call(docResponseBases, fid)) {
+          const base = String(docResponseBases[fid] || "");
+          if (base.trim()) {
+            const merged = mergeDocResponseTemplate(base, aiFill);
+            if (merged.trim() === base.trim()) continue;
+            if (!isAcceptableMergedDocResponse(base, merged)) continue;
+            byField[fid] = merged;
+          } else {
+            const cleaned = sanitizeAiDocResponseFill(aiFill);
+            if (!cleaned.trim() || isBrokenDocResponseImageDump(cleaned)) {
+              continue;
+            }
+            byField[fid] = cleaned;
+          }
+        } else if (aiFill.trim()) {
+          byField[fid] = aiFill;
+        }
+      } else if (val != null) {
+        byField[fid] = val;
+      }
+    }
+
+    if (Object.keys(byField).length === 0) {
+      const rawPreview = String(generated.text || "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 120);
+      const err = new Error(
+        rawPreview
+          ? `응답 초안 형식을 해석하지 못했습니다. 다시 시도해 주세요. (${rawPreview}…)`
+          : "AI가 빈 응답을 반환했습니다. 이미지·요청을 단순화해 다시 시도해 주세요."
+      );
+      err.status = 502;
+      err.code = AI_ERRORS.EMPTY_RESPONSE;
+      throw err;
+    }
+
+    const summary =
+      writeMode === "refine"
+        ? hasDocTemplate
+          ? `${Object.keys(byField).length}개 필드에 양식 내용을 채웠습니다.`
+          : `${Object.keys(byField).length}개 필드 응답을 다듬었습니다.`
+        : `${Object.keys(byField).length}개 필드 응답 초안을 만들었습니다.`;
+
+    logAIUsage(academyId, {
+      user,
+      provider,
+      model: modelName,
+      feature: profile.feature,
+      success: true,
+      tokenUsage,
+    });
+
+    return {
+      skill: SKILL_IDS.FORM_RESPONSE_DRAFT,
+      provider,
+      modelName,
+      tokenUsage,
+      text: summary,
+      draft: {
+        kind: "form-response",
+        writeMode,
+        fillEmptyOnly,
+        byField,
+      },
+    };
+  } catch (err) {
+    if (!err.code) err.code = mapProviderError(err);
+    logAIUsage(academyId, {
+      user,
+      provider,
+      model: modelName,
+      feature: profile.feature,
+      success: false,
+      errorCode: err.code,
+      tokenUsage,
+    });
+    throw err;
+  }
+};
+
 const ACTIVITY_FIELD_TYPES = new Set([
   "text",
   "textarea",
@@ -3840,6 +4270,26 @@ export const runAlterSkill = async ({
     };
   }
 
+  if (skill === SKILL_IDS.FORM_RESPONSE_DRAFT) {
+    const result = await executeFormResponseDraftSkill({
+      academyId,
+      user,
+      academy,
+      season,
+      school,
+      context,
+      message,
+      onEvent,
+    });
+    return {
+      skill,
+      text: result.text,
+      review: null,
+      draft: result.draft,
+      tokenUsage: result.tokenUsage,
+    };
+  }
+
   if (skill === SKILL_IDS.ACTIVITY_DRAFT) {
     const result = await executeActivityDraftSkill({
       academyId,
@@ -4010,6 +4460,14 @@ export const detectSkillFromMessage = (message = "") => {
     /\/(문서|document[-_]?draft)/i.test(text)
   ) {
     return SKILL_IDS.DOCUMENT_DRAFT;
+  }
+  if (
+    /응답.*(초안|작성|다듬|기안)/.test(text) ||
+    /(초안|작성|다듬).*응답/.test(text) ||
+    /기안문.*(초안|작성|다듬)/.test(text) ||
+    /\/(응답|form[-_]?response[-_]?draft)/i.test(text)
+  ) {
+    return SKILL_IDS.FORM_RESPONSE_DRAFT;
   }
   if (
     /활동.*(초안|작성|다듬|양식)/.test(text) ||

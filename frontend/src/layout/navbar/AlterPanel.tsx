@@ -13,6 +13,8 @@ import { TAlterConversation } from "types/alterChat";
 import Button from "components/button/Button";
 import { MarkdownViewer } from "components/markdown";
 import normalizeAlterMarkdown from "utils/normalizeAlterMarkdown";
+import { FORM_RESPONSE_WRITABLE_TYPES } from "utils/formResponseDraft";
+import { redactImagesForPreview } from "utils/formResponseSlots";
 import Svg from "assets/svg/Svg";
 import {
   ChatPanelShell,
@@ -82,6 +84,13 @@ type TAlterDocumentDraftResult = {
   content: string;
 };
 
+type TAlterFormResponseDraftResult = {
+  kind: "form-response";
+  writeMode?: "create" | "refine";
+  fillEmptyOnly?: boolean;
+  byField: Record<string, unknown>;
+};
+
 type TAlterActivityDraftResult = {
   kind: "activity";
   writeMode?: "create" | "refine";
@@ -133,6 +142,7 @@ type TAlterDraftResult =
   | TAlterEvalDraftResult
   | TAlterArchiveDraftResult
   | TAlterDocumentDraftResult
+  | TAlterFormResponseDraftResult
   | TAlterActivityDraftResult
   | TAlterAssessmentGradeDraftResult
   | TAlterSyllabusDraftResult;
@@ -184,6 +194,13 @@ const isDocumentDraft = (
   return (draft as { kind?: string }).kind === "document";
 };
 
+const isFormResponseDraft = (
+  draft?: TAlterDraftResult | null
+): draft is TAlterFormResponseDraftResult => {
+  if (!draft) return false;
+  return (draft as { kind?: string }).kind === "form-response";
+};
+
 const isActivityDraft = (
   draft?: TAlterDraftResult | null
 ): draft is TAlterActivityDraftResult => {
@@ -205,6 +222,7 @@ const isEvalDraft = (
     !draft ||
     isArchiveDraft(draft) ||
     isDocumentDraft(draft) ||
+    isFormResponseDraft(draft) ||
     isActivityDraft(draft) ||
     isAssessmentGradeDraft(draft)
   )
@@ -219,6 +237,7 @@ const SKILL_LABEL: Record<TAlterSkillId, string> = {
   "evaluation-draft": "평가",
   "archive-draft": "기록",
   "document-draft": "문서",
+  "form-response-draft": "응답",
   "activity-draft": "활동",
   "assessment-grade": "채점",
 };
@@ -228,6 +247,7 @@ const isDraftPrepSkill = (skill: TAlterSkillId) =>
   skill === "evaluation-draft" ||
   skill === "archive-draft" ||
   skill === "document-draft" ||
+  skill === "form-response-draft" ||
   skill === "activity-draft" ||
   skill === "assessment-grade";
 
@@ -401,6 +421,12 @@ const wantsDocumentDraftText = (text: string) =>
   /매뉴얼|회의록|공지문/.test(text) ||
   /\/(문서|document[-_]?draft)/i.test(text);
 
+const wantsFormResponseDraftText = (text: string) =>
+  /응답.*(초안|작성|다듬|기안)/.test(text) ||
+  /(초안|작성|다듬).*응답/.test(text) ||
+  /기안문.*(초안|작성|다듬)/.test(text) ||
+  /\/(응답|form[-_]?response[-_]?draft)/i.test(text);
+
 const wantsActivityDraftText = (text: string) =>
   /활동.*(초안|작성|다듬|양식)/.test(text) ||
   /(초안|작성|다듬).*활동/.test(text) ||
@@ -489,6 +515,20 @@ const AlterPanel = ({ onClose }: Props) => {
   const [docSelectedGuidelineIds, setDocSelectedGuidelineIds] = useState<
     string[]
   >([]);
+
+  const [formResponseWriteMode, setFormResponseWriteMode] = useState<
+    "create" | "refine"
+  >("create");
+  const [formResponseFillEmptyOnly, setFormResponseFillEmptyOnly] =
+    useState(false);
+  const [formResponseTargetFieldIds, setFormResponseTargetFieldIds] = useState<
+    string[]
+  >([]);
+  const [formResponseGuidelineItems, setFormResponseGuidelineItems] = useState<
+    Array<{ _id: string; title: string; content: string }>
+  >([]);
+  const [formResponseSelectedGuidelineIds, setFormResponseSelectedGuidelineIds] =
+    useState<string[]>([]);
 
   const [activityWriteMode, setActivityWriteMode] = useState<
     "create" | "refine"
@@ -610,6 +650,24 @@ const AlterPanel = ({ onClose }: Props) => {
     setDocWriteMode(hasContent ? "refine" : "create");
     setDocType("general");
     setDocSelectedGuidelineIds([]);
+    const formSnap = pageContext?.getFormResponse?.();
+    const hasFormTemplateOrBody = (formSnap?.fields || []).some((f) => {
+      const tpl = String(f.template || "").trim();
+      const cur =
+        typeof f.currentValue === "string"
+          ? f.currentValue.trim()
+          : f.currentValue != null
+            ? JSON.stringify(f.currentValue).trim()
+            : "";
+      if (String(f.type) === "docResponse") {
+        return tpl.length >= 40 || cur.length >= 40;
+      }
+      return cur.length >= 1;
+    });
+    setFormResponseWriteMode(hasFormTemplateOrBody ? "refine" : "create");
+    setFormResponseFillEmptyOnly(false);
+    setFormResponseTargetFieldIds([]);
+    setFormResponseSelectedGuidelineIds([]);
     setGradeFillEmptyOnly(false);
   }, [pageContext?.pageType, pageContext?.label]);
 
@@ -711,6 +769,7 @@ const AlterPanel = ({ onClose }: Props) => {
         if (
           selectedSkill === "archive-draft" ||
           selectedSkill === "document-draft" ||
+          selectedSkill === "form-response-draft" ||
           selectedSkill === "activity-draft"
         ) {
           const items = Array.isArray(data.instructionItems)
@@ -743,6 +802,11 @@ const AlterPanel = ({ onClose }: Props) => {
           } else if (selectedSkill === "document-draft") {
             setDocGuidelineItems(filtered);
             setDocSelectedGuidelineIds((prev) => pickIds(prev, filtered));
+          } else if (selectedSkill === "form-response-draft") {
+            setFormResponseGuidelineItems(filtered);
+            setFormResponseSelectedGuidelineIds((prev) =>
+              pickIds(prev, filtered)
+            );
           } else {
             setActivityGuidelineItems(filtered);
             setActivitySelectedGuidelineIds((prev) => pickIds(prev, filtered));
@@ -756,6 +820,9 @@ const AlterPanel = ({ onClose }: Props) => {
         }
         if (selectedSkill === "document-draft") {
           setDocGuidelineItems([]);
+        }
+        if (selectedSkill === "form-response-draft") {
+          setFormResponseGuidelineItems([]);
         }
         if (selectedSkill === "activity-draft") {
           setActivityGuidelineItems([]);
@@ -948,6 +1015,47 @@ const AlterPanel = ({ onClose }: Props) => {
         guidelineItemIds: docSelectedGuidelineIds,
         currentTitle: current.title || "",
         currentContent: current.content || "",
+        sourceText: attachmentText,
+        attachments,
+      };
+    }
+    if (skill === "form-response-draft") {
+      const current = pageContext?.getFormResponse?.() || {
+        formId: "",
+        formTitle: "",
+        fields: [],
+        responses: {},
+        userCandidates: [],
+      };
+      const writable = (current.fields || []).filter((f) =>
+        FORM_RESPONSE_WRITABLE_TYPES.has(String(f.type))
+      );
+      const targets =
+        formResponseTargetFieldIds.length > 0
+          ? formResponseTargetFieldIds
+          : writable.map((f) => f.fieldId);
+      return {
+        pageType: "form-response",
+        label: pageContext?.label || "",
+        boardId: pageContext?.boardId || "",
+        boardName: pageContext?.boardName || current.boardName || "",
+        formId: current.formId,
+        formTitle: current.formTitle,
+        writeMode: formResponseWriteMode,
+        fillEmptyOnly: formResponseFillEmptyOnly,
+        targetFieldIds: targets,
+        guidelineItemIds: formResponseSelectedGuidelineIds,
+        fields: (current.fields || []).map((f) => ({
+          fieldId: f.fieldId,
+          label: f.label,
+          type: f.type,
+          options: f.options,
+          template: f.template,
+          validation: f.validation,
+          content: f.template,
+        })),
+        currentResponses: current.responses || {},
+        userCandidates: current.userCandidates || [],
         sourceText: attachmentText,
         attachments,
       };
@@ -1380,6 +1488,54 @@ const AlterPanel = ({ onClose }: Props) => {
       }
     }
 
+    if (skill === "form-response-draft") {
+      if (pageContext?.pageType !== "form-response") {
+        setError("양식 응답 화면에서만 응답 초안을 사용할 수 있습니다.");
+        return;
+      }
+      const current = pageContext?.getFormResponse?.();
+      const writable = (current?.fields || []).filter((f) =>
+        FORM_RESPONSE_WRITABLE_TYPES.has(String(f.type))
+      );
+      if (writable.length === 0) {
+        setError("작성 가능한 응답 필드가 없습니다.");
+        return;
+      }
+      const hasAttach = sourceAttachments.some((a) => !a.uploading);
+      if (
+        formResponseWriteMode === "create" &&
+        !userText.trim() &&
+        !hasAttach
+      ) {
+        setError("초안에 쓸 정보를 입력하거나 파일을 첨부해 주세요.");
+        return;
+      }
+      const hasCurrent = writable.some((f) => {
+        const v = current?.responses?.[f.fieldId];
+        if (v == null) return false;
+        if (typeof v === "string") return !!v.trim();
+        if (Array.isArray(v)) return v.length > 0;
+        if (typeof v === "object") return Object.keys(v as object).length > 0;
+        return true;
+      });
+      const hasTpl = writable.some(
+        (f) =>
+          String(f.type) === "docResponse" &&
+          !!String(f.template || "").trim()
+      );
+      if (
+        formResponseWriteMode === "refine" &&
+        !hasCurrent &&
+        !hasTpl &&
+        !userText.trim()
+      ) {
+        setError(
+          "다듬을 응답이 없습니다. 필드에 내용을 쓰거나 요청을 입력해 주세요."
+        );
+        return;
+      }
+    }
+
     if (skill === "activity-draft") {
       if (pageContext?.pageType !== "activity") {
         setError("활동 양식 작성/수정 화면에서 초안을 작성할 수 있습니다.");
@@ -1552,7 +1708,13 @@ const AlterPanel = ({ onClose }: Props) => {
     let timedOut = false;
     cancelledByUserRef.current = false;
     // 서버가 진행 이벤트를 계속 보내는 동안은 끊지 않는다 (무응답 시간 기준)
-    const inactivityTimeoutMs = isDraftPrepSkill(skill) ? 90_000 : 60_000;
+    // 응답 스킬+이미지/첨부는 비전·긴 기안문 생성이라 여유를 둔다
+    const inactivityTimeoutMs =
+      skill === "form-response-draft" && sourceAttachments.length > 0
+        ? 150_000
+        : isDraftPrepSkill(skill)
+          ? 90_000
+          : 60_000;
     let timeoutId = window.setTimeout(() => {
       timedOut = true;
       abort.abort();
@@ -1725,6 +1887,21 @@ const AlterPanel = ({ onClose }: Props) => {
       return;
     }
     if (
+      selectedSkill === "form-response-draft" ||
+      (showPrep && pageContext?.pageType === "form-response")
+    ) {
+      const text = combinedSourceText();
+      void runSkill(
+        "form-response-draft",
+        text ||
+          (formResponseWriteMode === "refine"
+            ? "양식 구조를 유지한 채 내용을 채워 주세요."
+            : "양식 응답 초안을 작성해 주세요.")
+      );
+      setDraft("");
+      return;
+    }
+    if (
       selectedSkill === "activity-draft" ||
       (showPrep && pageContext?.pageType === "activity")
     ) {
@@ -1789,6 +1966,11 @@ const AlterPanel = ({ onClose }: Props) => {
     ) {
       skill = "document-draft";
     } else if (
+      wantsFormResponseDraftText(text) &&
+      pageContext?.pageType === "form-response"
+    ) {
+      skill = "form-response-draft";
+    } else if (
       wantsActivityDraftText(text) &&
       pageContext?.pageType === "activity"
     ) {
@@ -1813,6 +1995,11 @@ const AlterPanel = ({ onClose }: Props) => {
       pageContext?.pageType === "document"
     ) {
       skill = "document-draft";
+    } else if (
+      selectedSkill === "form-response-draft" &&
+      pageContext?.pageType === "form-response"
+    ) {
+      skill = "form-response-draft";
     } else if (
       selectedSkill === "activity-draft" &&
       pageContext?.pageType === "activity"
@@ -2092,6 +2279,38 @@ const AlterPanel = ({ onClose }: Props) => {
       return;
     }
 
+    if (isFormResponseDraft(draftResult)) {
+      if (!pageContext?.applyFormResponseDraft) return;
+      const result = pageContext.applyFormResponseDraft({
+        byField: draftResult.byField || {},
+        fillEmptyOnly:
+          draftResult.fillEmptyOnly ?? formResponseFillEmptyOnly,
+      });
+      setAppliedDraftIds((prev) => new Set(prev).add(msgId));
+      if (!result.applied) {
+        setError(
+          result.skipped
+            ? "변경된 내용이 없습니다. 이미 같은 값이거나 초안이 비어 있습니다."
+            : "반영할 응답 초안이 없었습니다."
+        );
+      } else {
+        setError("");
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `a-applied-${Date.now()}`,
+            role: "assistant",
+            content: `응답 초안 ${result.applied}개 필드를 반영했습니다${
+              result.skipped ? ` (${result.skipped}개 변경 없음/건너뜀)` : ""
+            }. 확인 후 제출해 주세요.`,
+            skill: "form-response-draft",
+            createdAt: new Date().toISOString(),
+          },
+        ]);
+      }
+      return;
+    }
+
     if (isActivityDraft(draftResult)) {
       if (!pageContext?.applyActivityDraft) return;
       const result = pageContext.applyActivityDraft({
@@ -2250,16 +2469,20 @@ const AlterPanel = ({ onClose }: Props) => {
           ? "기록"
           : pageContext?.pageType === "document"
             ? "문서"
-            : pageContext?.pageType === "activity"
-              ? "활동"
-              : pageContext?.pageType === "assessment-grade"
-                ? "채점"
-                : "일반");
+            : pageContext?.pageType === "form-response"
+              ? "응답"
+              : pageContext?.pageType === "activity"
+                ? "활동"
+                : pageContext?.pageType === "assessment-grade"
+                  ? "채점"
+                  : "일반");
 
   const inSyllabusPrep = showPrep && selectedSkill === "syllabus-draft";
   const inEvalPrep = showPrep && selectedSkill === "evaluation-draft";
   const inArchivePrep = showPrep && selectedSkill === "archive-draft";
   const inDocPrep = showPrep && selectedSkill === "document-draft";
+  const inFormResponsePrep =
+    showPrep && selectedSkill === "form-response-draft";
   const inActivityPrep = showPrep && selectedSkill === "activity-draft";
   const inGradePrep = showPrep && selectedSkill === "assessment-grade";
   const inPrep =
@@ -2267,8 +2490,17 @@ const AlterPanel = ({ onClose }: Props) => {
     inEvalPrep ||
     inArchivePrep ||
     inDocPrep ||
+    inFormResponsePrep ||
     inActivityPrep ||
     inGradePrep;
+
+  const formResponseWritableFields = (() => {
+    if (!inFormResponsePrep) return [];
+    const snap = pageContext?.getFormResponse?.();
+    return (snap?.fields || []).filter((f) =>
+      FORM_RESPONSE_WRITABLE_TYPES.has(String(f.type))
+    );
+  })();
 
   const skillChips: TAlterSkillId[] = [];
   const pushSkillChip = (s: TAlterSkillId) => {
@@ -2302,6 +2534,7 @@ const AlterPanel = ({ onClose }: Props) => {
     inEvalPrep ||
     inArchivePrep ||
     inDocPrep ||
+    inFormResponsePrep ||
     inActivityPrep ||
     inGradePrep
       ? messages.some(
@@ -2311,11 +2544,13 @@ const AlterPanel = ({ onClose }: Props) => {
               ? isAssessmentGradeDraft(m.draft)
               : inActivityPrep
                 ? isActivityDraft(m.draft)
-                : inDocPrep
-                  ? isDocumentDraft(m.draft)
-                  : inArchivePrep
-                    ? isArchiveDraft(m.draft)
-                    : isEvalDraft(m.draft))
+                : inFormResponsePrep
+                  ? isFormResponseDraft(m.draft)
+                  : inDocPrep
+                    ? isDocumentDraft(m.draft)
+                    : inArchivePrep
+                      ? isArchiveDraft(m.draft)
+                      : isEvalDraft(m.draft))
         )
         ? "다시 작성"
         : inGradePrep
@@ -2914,6 +3149,71 @@ const AlterPanel = ({ onClose }: Props) => {
               </div>
               );
             })()}
+            {msg.draft && isFormResponseDraft(msg.draft) && (() => {
+              const frDraft = msg.draft as TAlterFormResponseDraftResult;
+              const snap = pageContext?.getFormResponse?.();
+              const labelById = new Map(
+                (snap?.fields || []).map((f) => [
+                  f.fieldId,
+                  f.label || f.fieldId,
+                ])
+              );
+              const entries = Object.entries(frDraft.byField || {});
+              return (
+                <div className={style.reviewList}>
+                  <div className={style.reviewItem}>
+                    <div className={style.reviewHeader}>
+                      <span>응답 초안 미리보기</span>
+                      <span className={`${style.levelChip} ${style.levelFair}`}>
+                        {frDraft.writeMode === "refine"
+                          ? "양식 채우기"
+                          : "새 작성"}
+                      </span>
+                    </div>
+                    <p className={style.reviewComment}>
+                      {entries.length}개 필드
+                      {frDraft.fillEmptyOnly ? " · 빈 칸만" : ""}
+                    </p>
+                    <div className={style.draftPreviewList}>
+                      {entries.slice(0, 12).map(([fid, val]) => {
+                        const raw =
+                          typeof val === "string"
+                            ? val
+                            : JSON.stringify(val, null, 2);
+                        const text = redactImagesForPreview(raw || "");
+                        return (
+                          <div key={fid} className={style.draftFieldBlock}>
+                            <p className={style.draftFieldLabel}>
+                              {labelById.get(fid) || fid}
+                            </p>
+                            <p
+                              className={style.draftFieldValue}
+                              style={{ whiteSpace: "pre-wrap" }}
+                            >
+                              {text.slice(0, 800)}
+                              {text.length > 800 ? "…" : ""}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className={style.draftActions}>
+                      {pageContext?.applyFormResponseDraft && (
+                        <button
+                          type="button"
+                          className={style.applyBtn}
+                          onClick={() => applyDraft(msg.id, frDraft)}
+                        >
+                          {appliedDraftIds.has(msg.id)
+                            ? "다시 반영"
+                            : "응답에 반영"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
             {msg.draft && isActivityDraft(msg.draft) && (() => {
               const actDraft = msg.draft as TAlterActivityDraftResult;
               const formTypeLabel =
@@ -3186,6 +3486,136 @@ const AlterPanel = ({ onClose }: Props) => {
             </div>
             <div className={style.prepHintRow}>
               <PrepHint text="초안은 에디터 전체를 덮어씁니다. 미리보기 확인 후 「전체에 반영」하고 저장하세요." />
+              <span className={style.prepHintRowLabel}>이용 안내</span>
+            </div>
+          </>
+        )}
+
+        {inFormResponsePrep && (
+          <>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>
+                작성 모드
+                <PrepHint text="기안문에는 (작성)·(본문 작성)처럼 「작성」으로 끝나는 칸만 채웁니다. 표·수신/경유·로고는 유지됩니다." />
+              </p>
+              <div className={style.refList}>
+                <label className={style.refRow}>
+                  <input
+                    type="radio"
+                    name="formResponseWriteMode"
+                    checked={formResponseWriteMode === "create"}
+                    onChange={() => setFormResponseWriteMode("create")}
+                  />
+                  <span>새로 작성</span>
+                </label>
+                <label className={style.refRow}>
+                  <input
+                    type="radio"
+                    name="formResponseWriteMode"
+                    checked={formResponseWriteMode === "refine"}
+                    onChange={() => setFormResponseWriteMode("refine")}
+                  />
+                  <span>양식에 채우기 / 기존 응답 다듬기</span>
+                </label>
+              </div>
+            </div>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>
+                대상 필드
+                <PrepHint text="file·안내(content)는 제외됩니다. 기본은 전체 선택입니다." />
+              </p>
+              {formResponseWritableFields.length === 0 ? (
+                <p className={style.prepText}>작성 가능한 응답 필드가 없습니다.</p>
+              ) : (
+                <div className={style.refList}>
+                  {formResponseWritableFields.map((f) => (
+                    <label key={f.fieldId} className={style.refRow}>
+                      <input
+                        type="checkbox"
+                        checked={
+                          formResponseTargetFieldIds.length === 0 ||
+                          formResponseTargetFieldIds.includes(f.fieldId)
+                        }
+                        onChange={() => {
+                          const allIds = formResponseWritableFields.map(
+                            (x) => x.fieldId
+                          );
+                          const current =
+                            formResponseTargetFieldIds.length === 0
+                              ? allIds
+                              : formResponseTargetFieldIds;
+                          const next = current.includes(f.fieldId)
+                            ? current.filter((id) => id !== f.fieldId)
+                            : [...current, f.fieldId];
+                          setFormResponseTargetFieldIds(
+                            next.length === allIds.length ? [] : next
+                          );
+                        }}
+                      />
+                      <span>
+                        {f.label || f.fieldId}
+                        <span style={{ opacity: 0.6 }}> · {f.type}</span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className={style.prepCard}>
+              <label className={style.refRow}>
+                <input
+                  type="checkbox"
+                  checked={formResponseFillEmptyOnly}
+                  onChange={(e) =>
+                    setFormResponseFillEmptyOnly(e.target.checked)
+                  }
+                />
+                <span>빈 칸만 채우기</span>
+              </label>
+            </div>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>
+                작성 지침
+                <PrepHint text="학교 AI 라이브러리의 「응답」지침을 고릅니다." />
+              </p>
+              {skillSettingsLoading ? (
+                <p className={style.prepText}>지침을 불러오는 중...</p>
+              ) : formResponseGuidelineItems.length === 0 ? (
+                <p className={style.prepText}>
+                  선택 가능한 지침이 없습니다. 관리 → 학교 AI → 라이브러리에서
+                  「응답」 지침을 추가해 주세요. 기본 기준으로 작성합니다.
+                </p>
+              ) : (
+                <div className={style.refList}>
+                  {formResponseGuidelineItems.map((item) => (
+                    <GuidelinePickRow
+                      key={item._id}
+                      id={item._id}
+                      title={item.title}
+                      content={item.content}
+                      checked={formResponseSelectedGuidelineIds.includes(
+                        item._id
+                      )}
+                      expanded={expandedGuidelineId === item._id}
+                      onToggleChecked={() =>
+                        toggleLabel(
+                          item._id,
+                          formResponseSelectedGuidelineIds,
+                          setFormResponseSelectedGuidelineIds
+                        )
+                      }
+                      onToggleExpanded={() =>
+                        setExpandedGuidelineId((cur) =>
+                          cur === item._id ? null : item._id
+                        )
+                      }
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className={style.prepHintRow}>
+              <PrepHint text="기안문 양식에는 (작성)·(본문 작성) 칸을 넣어 두세요. AI는 그 칸만 채우고 표·로고는 유지합니다. 미리보기 후 「응답에 반영」하세요." />
               <span className={style.prepHintRowLabel}>이용 안내</span>
             </div>
           </>
@@ -3801,6 +4231,7 @@ const AlterPanel = ({ onClose }: Props) => {
           sendDisabled={
             inSyllabusPrep ||
             (inDocPrep && docWriteMode === "create") ||
+            (inFormResponsePrep && formResponseWriteMode === "create") ||
             (inActivityPrep && activityWriteMode === "create")
               ? isWorking ||
                 attachUploading ||
@@ -3814,6 +4245,7 @@ const AlterPanel = ({ onClose }: Props) => {
           sendActive={
             inSyllabusPrep ||
             (inDocPrep && docWriteMode === "create") ||
+            (inFormResponsePrep && formResponseWriteMode === "create") ||
             (inActivityPrep && activityWriteMode === "create")
               ? !isWorking &&
                 !attachUploading &&
@@ -3832,6 +4264,7 @@ const AlterPanel = ({ onClose }: Props) => {
             inSyllabusPrep ||
             inArchivePrep ||
             inDocPrep ||
+            inFormResponsePrep ||
             inActivityPrep ||
             inGradePrep
           }
@@ -3843,19 +4276,23 @@ const AlterPanel = ({ onClose }: Props) => {
                 ? activityWriteMode === "refine"
                   ? "예: 객관식 3문항 추가, 서술형 필드 하나 더"
                   : "예: 수학 복습 퀴즈 5문항, 객관식+단답, 필수 응답"
-                : inDocPrep
-                  ? docWriteMode === "refine"
-                    ? "예: 문장을 더 간결하게, 체크리스트를 추가해 주세요"
-                    : "예: 저녁활동 이용 안내 매뉴얼, 공간·수칙·신청 방법 포함"
-                  : inArchivePrep
-                    ? archiveWriteMode === "sameText"
-                      ? "예: 공동체 의식과 배려를 중심으로 2~3문장"
-                      : "예: 관찰된 성장과 관계 특성을 학생별로 2~4문장"
-                    : inEvalPrep
-                      ? "예: 멘토 의견은 2~3문장, 성장 포인트를 중심으로"
-                      : inSyllabusPrep
-                        ? "예: 주제, 목표, 주차별 활동, 평가 방식을 적어 주세요"
-                        : "메시지를 입력하세요 (이미지·파일 붙여넣기 가능)"
+                : inFormResponsePrep
+                  ? formResponseWriteMode === "refine"
+                    ? "예: 영수증 기준으로 금액·사유 채우기, 문장은 공손하게"
+                    : "예: 결제 요청 기안문, 사유·금액·일정 포함"
+                  : inDocPrep
+                    ? docWriteMode === "refine"
+                      ? "예: 문장을 더 간결하게, 체크리스트를 추가해 주세요"
+                      : "예: 저녁활동 이용 안내 매뉴얼, 공간·수칙·신청 방법 포함"
+                    : inArchivePrep
+                      ? archiveWriteMode === "sameText"
+                        ? "예: 공동체 의식과 배려를 중심으로 2~3문장"
+                        : "예: 관찰된 성장과 관계 특성을 학생별로 2~4문장"
+                      : inEvalPrep
+                        ? "예: 멘토 의견은 2~3문장, 성장 포인트를 중심으로"
+                        : inSyllabusPrep
+                          ? "예: 주제, 목표, 주차별 활동, 평가 방식을 적어 주세요"
+                          : "메시지를 입력하세요 (이미지·파일 붙여넣기 가능)"
           }
           onPaste={handlePasteAttach}
           onKeyDown={

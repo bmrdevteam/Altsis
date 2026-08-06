@@ -54,7 +54,9 @@ export type TAlterSkillId =
   | "evaluation-draft"
   | "archive-draft"
   | "document-draft"
-  | "activity-draft";
+  | "form-response-draft"
+  | "activity-draft"
+  | "assessment-grade";
 
 export type TAiLibraryKind = "instruction" | "learning";
 

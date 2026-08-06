@@ -32,7 +32,7 @@ const ChatRoomListItem = ({
     if (room.name) return room.name;
     const others = room.participants.filter((p) => p.userId !== currentUserId);
     if (others.length === 0) return "채팅";
-    return others.map((p) => p.userId).join(", ");
+    return others.map((p) => p.userName || p.userId).join(", ");
   })();
 
   const formatTime = (dateString?: string) => {
@@ -93,7 +93,7 @@ const ChatRoomListItem = ({
           <img
             key={p.userId}
             src={p.profile || defaultProfilePic}
-            alt={p.userId}
+            alt={p.userName || p.userId}
             className={style.stacked_avatar}
             style={{ zIndex: others.length - i }}
           />

@@ -77,6 +77,16 @@ export const PROMPT_LIMITS = {
   DOCUMENT_DRAFT_USER_HINT_CHARS: 2000,
   /** 문서 초안: 제목 최대 글자 */
   DOCUMENT_DRAFT_TITLE_CHARS: 120,
+  /** 양식 응답 초안: 필드 값 합계 최대 글자 */
+  FORM_RESPONSE_DRAFT_CONTENT_CHARS: 14000,
+  /** 양식 응답 초안: 현재 응답 JSON 참고 최대 글자 */
+  FORM_RESPONSE_DRAFT_CURRENT_CHARS: 12000,
+  /** 양식 응답 초안: docResponse 템플릿/baseDocument 최대 글자 */
+  FORM_RESPONSE_DRAFT_TEMPLATE_CHARS: 12000,
+  /** 양식 응답 초안: 첨부/자료 최대 글자 */
+  FORM_RESPONSE_DRAFT_SOURCE_CHARS: 12000,
+  /** 양식 응답 초안: 요청 문구 최대 글자 */
+  FORM_RESPONSE_DRAFT_USER_HINT_CHARS: 2000,
   /** 활동 초안: 필드 최대 개수 */
   ACTIVITY_DRAFT_MAX_FIELDS: 40,
   /** 활동 초안: 필드 content 최대 글자 */
@@ -137,6 +147,11 @@ export const FEATURE_PROFILES = {
   documentDraft: {
     feature: "document_draft",
     temperature: 0.45,
+    maxTokens: 8192,
+  },
+  formResponseDraft: {
+    feature: "form_response_draft",
+    temperature: 0.4,
     maxTokens: 8192,
   },
   activityDraft: {

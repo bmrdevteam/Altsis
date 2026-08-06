@@ -10,6 +10,7 @@ import {
 import { TAltSheetRow } from "types/altSheet";
 import { TChatUser } from "types/chat";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import useRegisterAlterFormResponse from "hooks/useRegisterAlterFormResponse";
 import { useAuth } from "contexts/authContext";
 import Button from "components/button/Button";
 import Svg from "assets/svg/Svg";
@@ -491,6 +492,47 @@ const AltFormRenderer = ({
       });
     }
   };
+
+  const alterUserCandidates = useMemo(() => {
+    const map = new Map<
+      string,
+      { user: string; userId: string; userName: string }
+    >();
+    for (const u of [
+      ...(board.members?.users || []),
+      ...(board.writers?.users || []),
+    ]) {
+      if (!u?.userId) continue;
+      map.set(String(u.userId), {
+        user: String(u.user),
+        userId: u.userId,
+        userName: u.userName || u.userId,
+      });
+    }
+    return Array.from(map.values());
+  }, [board.members?.users, board.writers?.users]);
+
+  const alterEnabled =
+    !isLoading &&
+    !!form &&
+    viewMode === "compose" &&
+    canSubmit &&
+    (!isSubmitted || canResubmit || canComposeMultiple);
+
+  useRegisterAlterFormResponse({
+    enabled: alterEnabled,
+    label: form
+      ? `${board.name || ""} · ${form.title}`.trim()
+      : board.name || "양식 응답",
+    boardId: board._id,
+    boardName: board.name,
+    formId: form?._id || formId,
+    formTitle: form?.title,
+    fields: respondentFields,
+    data,
+    setValue,
+    userCandidates: alterUserCandidates,
+  });
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};

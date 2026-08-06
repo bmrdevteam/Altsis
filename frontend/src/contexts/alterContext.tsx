@@ -20,6 +20,7 @@ export type TAlterSkillId =
   | "evaluation-draft"
   | "archive-draft"
   | "document-draft"
+  | "form-response-draft"
   | "activity-draft"
   | "assessment-grade";
 
@@ -109,12 +110,43 @@ export type TAlterDocumentSnapshot = {
   boardName?: string;
 };
 
+export type TAlterFormResponseField = {
+  fieldId: string;
+  label?: string;
+  type: string;
+  permission?: string;
+  options?: string[];
+  template?: string;
+  validation?: { min?: number; max?: number };
+  currentValue?: unknown;
+};
+
+export type TAlterFormResponseSnapshot = {
+  formId: string;
+  formTitle: string;
+  boardName?: string;
+  fields: TAlterFormResponseField[];
+  responses: Record<string, unknown>;
+  userCandidates?: Array<{
+    user: string;
+    userId: string;
+    userName: string;
+  }>;
+};
+
+export type TAlterFormResponseDraft = {
+  byField?: Record<string, unknown>;
+  fillEmptyOnly?: boolean;
+  writeMode?: "create" | "refine";
+};
+
 export type TAlterPageContext = {
   pageType:
     | "syllabus-edit"
     | "evaluation"
     | "archive"
     | "document"
+    | "form-response"
     | "activity"
     | "assessment-grade"
     | "general";
@@ -156,6 +188,10 @@ export type TAlterPageContext = {
     title?: string;
     content: string;
   }) => { applied: boolean };
+  getFormResponse?: () => TAlterFormResponseSnapshot;
+  applyFormResponseDraft?: (
+    draft: TAlterFormResponseDraft
+  ) => { applied: number; skipped: number };
   getActivity?: () => TAlterActivitySnapshot;
   applyActivityDraft?: (
     draft: TAlterActivityDraft

@@ -1334,9 +1334,11 @@ const AltFormBuilder = ({
                 marginBottom: "8px",
               }}
             >
-              응답자에게 미리 채워지는 템플릿입니다. 필수 항목일 때만 템플릿을
-              수정한 뒤에 제출할 수 있으며, 편집한 마크다운이 응답값으로
-              저장됩니다.
+              응답자에게 미리 채워지는 템플릿입니다. Alter가 채울 자리는{" "}
+              <code>(작성)</code>, <code>(본문 작성)</code>,{" "}
+              <code>(금액 작성)</code>처럼 괄호 안이 「작성」으로 끝나게
+              표시하세요. (호환: <code>(이곳에 입력하세요.)</code>) 표·로고 등
+              골격은 그대로 두고 칸만 바꾸면 됩니다.
             </div>
             <MarkdownEditor
               value={field.content ?? ""}

@@ -22,6 +22,7 @@ const alterConversationSchema = mongoose.Schema(
         "evaluation",
         "archive",
         "document",
+        "form-response",
         "activity",
         "assessment-grade",
         "general",
