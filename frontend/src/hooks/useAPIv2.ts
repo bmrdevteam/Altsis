@@ -24,7 +24,11 @@ import {
   TAlterSkillId,
 } from "types/schools";
 import { TGoalDisplay, TGoalsMe } from "types/goals";
-import { TDashboard } from "types/dashboard";
+import {
+  TDashboard,
+  TDashboardPeriod,
+  TDashboardScope,
+} from "types/dashboard";
 import {
   TFormEvaluation,
   TSeason,
@@ -1018,16 +1022,22 @@ export default function useAPIv2() {
   /**
    * RSchoolDashboard API
    * @description 학교 대시보드 통계 조회 API
-   * @version 2.0.0
+   * @version 2.1.0
    * @auth admin|manager
    */
   async function RSchoolDashboard(props: {
     params: {
       _id: string;
     };
+    query?: {
+      period?: TDashboardPeriod;
+      scope?: TDashboardScope;
+    };
   }) {
     const { dashboard } = await database.R({
-      location: `schools/${props.params._id}/dashboard`,
+      location:
+        `schools/${props.params._id}/dashboard` +
+        QUERY_BUILDER(props.query),
     });
     return {
       dashboard: dashboard as TDashboard,

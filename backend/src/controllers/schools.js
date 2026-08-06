@@ -17,7 +17,6 @@ import {
   AiLibraryItem,
   AIUsageLog,
   Archive,
-  Board,
   Enrollment,
   Registration,
   RequestStat,
@@ -39,6 +38,15 @@ import {
   PROMPT_LIMITS,
   truncateText,
 } from "../services/aiPromptPolicy.js";
+import {
+  aggregateAiDaily,
+  aggregateTraffic,
+  buildFieldDeltas,
+  getDateKeys,
+  getPreviousDateKeys,
+  parseDashboardQuery,
+  toDateKey,
+} from "../services/schoolDashboard.js";
 import {
   FIELD_INVALID,
   FIELD_IN_USE,
@@ -833,12 +841,14 @@ export const remove = async (req, res) => {
  * @memberof APIs.SchoolAPI
  * @function RSchoolDashboard API
  * @description 학교 대시보드 통계 조회 API
- * @version 2.0.0
+ * @version 2.1.0
  *
  * @param {Object} req
  * @param {"GET"} req.method
  * @param {"/schools/:_id/dashboard"} req.url
  * @param {Object} req.user - "admin"|"manager"
+ * @param {7|14|30} [req.query.period=7] - traffic/AI 일별 기간
+ * @param {"school"|"academy"} [req.query.scope=school] - KPI·학기 집계 범위
  *
  * @param {Object} res
  * @param {Object} res.dashboard
@@ -847,15 +857,21 @@ export const dashboard = async (req, res) => {
   try {
     const academyId = req.user.academyId;
     const schoolId = req.params._id;
+    const { period, scope } = parseDashboardQuery(
+      req.query.period,
+      req.query.scope
+    );
 
     const school = await School(academyId).findById(schoolId);
     if (!school) {
       return res.status(404).send({ message: __NOT_FOUND("school") });
     }
 
-    // ── 1. School Stats ──
+    // ── 1. Season / registration / course stats ──
+    const seasonFilter =
+      scope === "academy" ? {} : { school: schoolId };
     const seasons = await Season(academyId)
-      .find({ school: schoolId })
+      .find(seasonFilter)
       .sort({ year: -1, term: 1 })
       .lean();
 
@@ -888,11 +904,13 @@ export const dashboard = async (req, res) => {
     const summary = {
       totalStudents: activeRegs.filter((r) => r.role === "student").length,
       totalTeachers: activeRegs.filter((r) => r.role === "teacher").length,
+      totalCourses: 0,
+      totalEnrollments: 0,
     };
 
     const syllabuses = await Syllabus(academyId)
       .find({ season: { $in: activeSeasonIds } })
-      .select("classTitle count limit")
+      .select("count")
       .lean();
 
     summary.totalCourses = syllabuses.length;
@@ -901,48 +919,50 @@ export const dashboard = async (req, res) => {
       0
     );
 
-    const courseFillRates = syllabuses
-      .map((syl) => ({
-        classTitle: syl.classTitle,
-        count: syl.count || 0,
-        limit: syl.limit || 0,
-        fillRate:
-          syl.limit > 0
-            ? Math.round(((syl.count || 0) / syl.limit) * 100)
-            : null,
-      }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
+    // Previous season comparison (seasons sorted year desc — next entry is older)
+    let previousSummary = null;
+    const comparisonBase = activeSeasons[0] || seasons[0] || null;
+    if (comparisonBase) {
+      const baseIdx = seasons.findIndex(
+        (s) => s._id.toString() === comparisonBase._id.toString()
+      );
+      const prevSeason =
+        baseIdx >= 0 && baseIdx < seasons.length - 1
+          ? seasons[baseIdx + 1]
+          : null;
 
-    // ── 2. Board Activity ──
-    let boardActivity = [];
-    try {
-      const boards = await Board(academyId)
-        .find({ school: schoolId })
-        .select("name postCount")
-        .sort({ postCount: -1 })
-        .limit(10)
-        .lean();
-      boardActivity = boards.map((b) => ({
-        name: b.name,
-        postCount: b.postCount || 0,
-      }));
-    } catch (_) {}
-
-    // ── 3. Traffic Stats (academy-wide, last 7 days) ──
-    let trafficStats = [];
-    try {
-      const today = new Date();
-      const dates = [];
-      for (let i = 6; i >= 0; i--) {
-        const d = new Date(today);
-        d.setDate(d.getDate() - i);
-        dates.push(d.toISOString().slice(0, 10));
+      if (prevSeason) {
+        const prevRegs = registrations.filter(
+          (r) => r.season.toString() === prevSeason._id.toString()
+        );
+        const prevSyllabuses = await Syllabus(academyId)
+          .find({ season: prevSeason._id })
+          .select("count")
+          .lean();
+        previousSummary = {
+          totalStudents: prevRegs.filter((r) => r.role === "student").length,
+          totalTeachers: prevRegs.filter((r) => r.role === "teacher").length,
+          totalCourses: prevSyllabuses.length,
+          totalEnrollments: prevSyllabuses.reduce(
+            (s, syl) => s + (syl.count || 0),
+            0
+          ),
+        };
       }
+    }
+
+    // ── 2. Traffic Stats (academy-wide; RequestStat has no school field) ──
+    const currentDates = getDateKeys(period);
+    const previousDates = getPreviousDateKeys(period);
+    let trafficStats = [];
+    let previousTrafficAgg = null;
+    try {
+      const allDates = [...new Set([...currentDates, ...previousDates])];
       const stats = await RequestStat(academyId)
-        .find({ date: { $in: dates } })
+        .find({ date: { $in: allDates } })
         .lean();
-      trafficStats = dates.map((date) => {
+
+      const toTrafficRow = (date) => {
         const stat = stats.find((s) => s.date === date);
         return {
           date,
@@ -955,10 +975,15 @@ export const dashboard = async (req, res) => {
           dataOut: stat?.dataOut || 0,
           uniqueUsers: stat?.uniqueUsers?.length || 0,
         };
-      });
-    } catch (_) {}
+      };
 
-    // ── 4. S3 Storage Stats (academy-wide) ──
+      trafficStats = currentDates.map(toTrafficRow);
+      previousTrafficAgg = aggregateTraffic(previousDates.map(toTrafficRow));
+    } catch (err) {
+      logger.warn(`dashboard traffic stats unavailable: ${err.message}`);
+    }
+
+    // ── 3. S3 Storage Stats (academy-wide) ──
     let storageStats = [];
     try {
       const categories = [
@@ -1022,45 +1047,66 @@ export const dashboard = async (req, res) => {
               }
               ContinuationToken = response.NextContinuationToken;
             } while (ContinuationToken);
-          } catch (_) {}
+          } catch (err) {
+            logger.warn(
+              `dashboard S3 listing failed (${cat.name}): ${err.message}`
+            );
+          }
 
           return { name: cat.name, count, totalSize };
         })
       );
-    } catch (_) {}
+    } catch (err) {
+      logger.warn(`dashboard storage stats unavailable: ${err.message}`);
+    }
 
-    // ── 5. AI Token Usage (academy-wide, last 7 days + total) ──
-    let aiUsage = { daily: [], total: { requests: 0, totalTokens: 0 } };
+    // ── 4. AI Token Usage (academy-wide; AIUsageLog has no school field) ──
+    let aiUsage = {
+      daily: [],
+      total: {
+        requests: 0,
+        totalTokens: 0,
+        promptTokens: 0,
+        candidatesTokens: 0,
+        thoughtsTokens: 0,
+      },
+    };
+    let previousAiAgg = null;
     try {
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      sevenDaysAgo.setHours(0, 0, 0, 0);
+      const windowStart = new Date();
+      windowStart.setUTCHours(0, 0, 0, 0);
+      windowStart.setUTCDate(windowStart.getUTCDate() - (period * 2 - 1));
 
       const recentLogs = await AIUsageLog(academyId)
-        .find({ createdAt: { $gte: sevenDaysAgo } })
+        .find({ createdAt: { $gte: windowStart } })
         .select("totalTokens promptTokens candidatesTokens createdAt")
         .lean();
 
-      // Group by date
-      const dailyMap = {};
-      for (let i = 6; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        const key = d.toISOString().slice(0, 10);
-        dailyMap[key] = { date: key, requests: 0, totalTokens: 0 };
+      const currentDailyMap = {};
+      for (const key of currentDates) {
+        currentDailyMap[key] = { date: key, requests: 0, totalTokens: 0 };
+      }
+      const previousDailyMap = {};
+      for (const key of previousDates) {
+        previousDailyMap[key] = { date: key, requests: 0, totalTokens: 0 };
       }
 
       for (const log of recentLogs) {
-        const key = log.createdAt.toISOString().slice(0, 10);
-        if (dailyMap[key]) {
-          dailyMap[key].requests++;
-          dailyMap[key].totalTokens += log.totalTokens || 0;
+        const key = toDateKey(new Date(log.createdAt));
+        if (currentDailyMap[key]) {
+          currentDailyMap[key].requests++;
+          currentDailyMap[key].totalTokens += log.totalTokens || 0;
+        } else if (previousDailyMap[key]) {
+          previousDailyMap[key].requests++;
+          previousDailyMap[key].totalTokens += log.totalTokens || 0;
         }
       }
 
-      aiUsage.daily = Object.values(dailyMap);
+      aiUsage.daily = currentDates.map((d) => currentDailyMap[d]);
+      previousAiAgg = aggregateAiDaily(
+        previousDates.map((d) => previousDailyMap[d])
+      );
 
-      // Total counts
       const totalCount = await AIUsageLog(academyId).countDocuments();
       const totalAgg = await AIUsageLog(academyId).aggregate([
         {
@@ -1081,17 +1127,34 @@ export const dashboard = async (req, res) => {
         candidatesTokens: totalAgg[0]?.candidatesTokens || 0,
         thoughtsTokens: totalAgg[0]?.thoughtsTokens || 0,
       };
-    } catch (_) {}
+    } catch (err) {
+      logger.warn(`dashboard AI usage unavailable: ${err.message}`);
+    }
+
+    const trafficCurrent = aggregateTraffic(trafficStats);
+    const aiPeriodCurrent = aggregateAiDaily(aiUsage.daily);
+
+    const deltas = {
+      summary: buildFieldDeltas(summary, previousSummary),
+      traffic: buildFieldDeltas(trafficCurrent, previousTrafficAgg),
+      ai: buildFieldDeltas(aiPeriodCurrent, previousAiAgg),
+    };
 
     return res.status(200).send({
       dashboard: {
         summary,
         seasonStats,
-        courseFillRates,
-        boardActivity,
         trafficStats,
         storageStats,
         aiUsage,
+        deltas,
+        meta: {
+          period,
+          scope,
+          academyOnlyMetrics: ["traffic", "storage", "ai"],
+          comparedTo: previousSummary ? "previousSeason" : null,
+          trafficComparedTo: "previousPeriod",
+        },
       },
     });
   } catch (err) {

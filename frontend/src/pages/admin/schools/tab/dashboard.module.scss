@@ -1,9 +1,9 @@
 /* ═══════════════════════════════════════════
-   Dashboard — Notion-inspired minimal design
+   Dashboard — admin school metrics
    ═══════════════════════════════════════════ */
 
 .dashboardContainer {
-  padding: 20px 0;
+  padding: 16px 0 28px;
 }
 
 .emptyMessage {
@@ -12,30 +12,151 @@
   padding: 24px 0;
 }
 
+.emptyInline {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-color-2);
+}
+
+/* ─── Toolbar ─── */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.filterGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filterLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-color-2);
+}
+
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--background-color);
+}
+
+.segmentBtn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-color-2);
+  cursor: pointer;
+  line-height: 1.2;
+
+  &:not(:last-child) {
+    border-right: 1px solid var(--border-color);
+  }
+
+  &:hover {
+    background: var(--background-hover-color);
+    color: var(--text-color-1);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--status-info);
+    outline-offset: -2px;
+    z-index: 1;
+  }
+}
+
+.segmentBtnActive {
+  background: var(--status-info-bg);
+  color: var(--status-info);
+  font-weight: 600;
+}
+
+/* ─── Layout grid ─── */
+
+.mainGrid {
+  display: grid;
+  grid-template-columns: 1.55fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
 /* ─── Summary Cards ─── */
 
 .summaryGrid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
-  margin-bottom: 32px;
+  margin-bottom: 16px;
 }
 
 .summaryCard {
-  padding: 20px;
-  border-radius: 8px;
-  background: var(--background-color-2);
+  padding: 16px 18px;
+  border-radius: 10px;
+  background: var(--background-color);
+  border: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.summaryHeader {
+  display: flex;
+  align-items: center;
   gap: 8px;
+}
+
+.summaryIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  flex-shrink: 0;
+
+  svg {
+    fill: currentColor;
+  }
+}
+
+.toneStudents .summaryIcon {
+  background: var(--status-info-bg);
+  color: var(--status-info);
+}
+
+.toneTeachers .summaryIcon {
+  background: var(--status-success-bg);
+  color: var(--status-success);
+}
+
+.toneCourses .summaryIcon {
+  background: var(--status-warning-bg);
+  color: var(--status-warning);
+}
+
+.toneEnrollments .summaryIcon {
+  background: var(--primary-background-color);
+  color: var(--primary-color);
 }
 
 .summaryLabel {
   font-size: 12px;
   font-weight: 600;
   color: var(--text-color-2);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
+  flex: 1;
+  min-width: 0;
 }
 
 .summaryValueRow {
@@ -58,19 +179,63 @@
   font-weight: 500;
 }
 
+.summaryHint {
+  font-size: 11px;
+  color: var(--text-color-2);
+}
+
+/* ─── Delta badges ─── */
+
+.deltaBadge {
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  padding: 1px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.delta_up {
+  color: var(--status-success);
+  background: var(--status-success-bg);
+}
+
+.delta_down {
+  color: var(--status-error);
+  background: var(--status-error-bg);
+}
+
+.delta_flat {
+  color: var(--text-color-2);
+  background: var(--background-color-2);
+}
+
+.delta_none {
+  display: none;
+}
+
 /* ─── Sections ─── */
 
 .section {
-  margin-bottom: 28px;
+  margin-bottom: 16px;
+  padding: 16px 18px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--background-color);
+  min-width: 0;
 }
 
 .sectionTitle {
   font-size: 15px;
   font-weight: 600;
   color: var(--text-color-1);
-  margin: 0 0 16px;
+  margin: 0 0 14px;
   padding-bottom: 10px;
   border-bottom: 1px solid var(--border-color);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 0;
 }
 
 .sectionSubLabel {
@@ -81,7 +246,75 @@
   letter-spacing: 0.02em;
 }
 
-/* ─── Bar Chart (reuses survey pattern) ─── */
+/* ─── Column chart ─── */
+
+.columnChart {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 160px;
+  padding-top: 8px;
+}
+
+.columnItem {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.columnValue {
+  font-size: 10px;
+  color: var(--text-color-2);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  min-height: 12px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.columnTrack {
+  width: 100%;
+  max-width: 36px;
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  min-height: 0;
+}
+
+.columnFill {
+  width: 100%;
+  background: var(--status-info);
+  border-radius: 4px 4px 2px 2px;
+  min-height: 0;
+  transition: height 0.45s ease;
+  opacity: 0.85;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.columnFillAi {
+  background: var(--primary-color);
+  opacity: 0.75;
+}
+
+.columnLabel {
+  font-size: 11px;
+  color: var(--text-color-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Horizontal bar chart ─── */
 
 .barChartContainer {
   display: flex;
@@ -89,16 +322,11 @@
   gap: 10px;
 }
 
-.barRow {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
 .barRowTop {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
+  gap: 8px;
 }
 
 .barLabel {
@@ -141,12 +369,7 @@
   opacity: 0.55;
 }
 
-.barFillWarning {
-  background: var(--status-warning);
-  opacity: 0.85;
-}
-
-/* ─── Season Chart (dual bar) ─── */
+/* ─── Season Chart ─── */
 
 .seasonRow {
   padding: 12px 0;
@@ -190,22 +413,23 @@
   flex-shrink: 0;
 }
 
-/* ─── Traffic Stats ─── */
+/* ─── Traffic / metric cards ─── */
 
 .trafficSummary {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 16px;
 }
 
 .trafficCard {
-  padding: 14px 16px;
-  border-radius: 6px;
+  padding: 12px 14px;
+  border-radius: 8px;
   background: var(--background-color-2);
   display: flex;
   flex-direction: column;
   gap: 4px;
+  border: 1px solid transparent;
 }
 
 .trafficCardLabel {
@@ -215,110 +439,274 @@
   letter-spacing: 0.02em;
 }
 
+.trafficCardValueRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 .trafficCardValue {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--text-color-1);
   font-variant-numeric: tabular-nums;
 }
 
-/* ─── Storage Stats ─── */
+.status_success {
+  border-color: var(--status-success-border);
+  background: var(--status-success-bg);
+
+  .trafficCardValue {
+    color: var(--status-success);
+  }
+}
+
+.status_warning {
+  border-color: var(--status-warning-border);
+  background: var(--status-warning-bg);
+
+  .trafficCardValue {
+    color: var(--status-warning);
+  }
+}
+
+.status_error {
+  border-color: var(--status-error-border);
+  background: var(--status-error-bg);
+
+  .trafficCardValue {
+    color: var(--status-error);
+  }
+}
+
+/* ─── Storage ─── */
+
+.storageHero {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.storageHeroValue {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-color-1);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.storageHeroMeta {
+  font-size: 13px;
+  color: var(--text-color-2);
+}
+
+.storageStack {
+  display: flex;
+  width: 100%;
+  height: 12px;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 14px;
+  background: var(--background-color-2);
+}
+
+.storageStackSegment {
+  height: 100%;
+  min-width: 2px;
+}
 
 .storageList {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 10px;
 }
 
 .storageRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.storageNameRow {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border-color);
+  gap: 8px;
+  min-width: 0;
+}
 
-  &:last-child {
-    border-bottom: none;
-  }
+.storageDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .storageName {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--text-color-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.storageBarWrap {
+  min-width: 0;
 }
 
 .storageInfo {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 10px;
+  justify-content: flex-end;
 }
 
 .storageCount {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-color-2);
   font-variant-numeric: tabular-nums;
 }
 
 .storageSize {
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--text-color-1);
   font-variant-numeric: tabular-nums;
-  min-width: 80px;
+  min-width: 64px;
   text-align: right;
 }
 
-.storageTotalRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 0;
-  margin-top: 4px;
-  border-top: 2px solid var(--border-color);
-}
-
-.storageTotalLabel {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-color-1);
-}
-
-.storageTotalSize {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text-color-1);
+.storagePct {
+  font-size: 11px;
+  color: var(--text-color-2);
   font-variant-numeric: tabular-nums;
+  min-width: 32px;
+  text-align: right;
+}
+
+.storageTone0 {
+  background: var(--status-info);
+}
+.storageTone1 {
+  background: var(--primary-color);
+}
+.storageTone2 {
+  background: var(--status-success);
+}
+.storageTone3 {
+  background: var(--status-warning);
+}
+.storageTone4 {
+  background: var(--accent-3);
+}
+.storageTone5 {
+  background: var(--status-error);
+}
+
+.barFill.storageTone0,
+.barFill.storageTone1,
+.barFill.storageTone2,
+.barFill.storageTone3,
+.barFill.storageTone4,
+.barFill.storageTone5 {
+  opacity: 0.85;
 }
 
 /* ─── AI Usage ─── */
 
 .aiSummary {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
   margin-bottom: 16px;
+}
+
+/* ─── Skeleton ─── */
+
+.skeletonRoot {
+  display: flex;
+  flex-direction: column;
+}
+
+.skeletonCard {
+  pointer-events: none;
+}
+
+.skeletonLine {
+  height: 12px;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--background-color-2) 0%,
+    var(--component-hover-color) 50%,
+    var(--background-color-2) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+}
+
+.skeletonChart {
+  height: 140px;
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    var(--background-color-2) 0%,
+    var(--component-hover-color) 50%,
+    var(--background-color-2) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
 }
 
 /* ─── Responsive ─── */
 
-@media (max-width: 768px) {
+@media (max-width: 960px) {
+  .mainGrid {
+    grid-template-columns: 1fr;
+  }
+
   .summaryGrid {
     grid-template-columns: repeat(2, 1fr);
   }
+}
 
+@media (max-width: 768px) {
   .summaryValue {
     font-size: 22px;
   }
 
-  .trafficSummary,
-  .aiSummary {
+  .trafficSummary {
     grid-template-columns: 1fr;
+  }
+
+  .storageRow {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .storageInfo {
+    justify-content: flex-start;
   }
 
   .barLabel {
     max-width: 50%;
     font-size: 12px;
+  }
+
+  .columnChart {
+    height: 140px;
   }
 }
 
@@ -329,18 +717,19 @@
   }
 
   .summaryCard {
-    padding: 14px;
+    padding: 12px;
   }
 
   .summaryValue {
     font-size: 20px;
   }
 
-  .storageInfo {
-    gap: 8px;
+  .toolbar {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .storageSize {
-    min-width: 60px;
+    min-width: 52px;
   }
 }

@@ -1,3 +1,6 @@
+export type TDashboardPeriod = 7 | 14 | 30;
+export type TDashboardScope = "school" | "academy";
+
 export type TDashboardSummary = {
   totalStudents: number;
   totalTeachers: number;
@@ -12,18 +15,6 @@ export type TSeasonStat = {
   isActivated: boolean;
   studentCount: number;
   teacherCount: number;
-};
-
-export type TCourseFillRate = {
-  classTitle: string;
-  count: number;
-  limit: number;
-  fillRate: number | null;
-};
-
-export type TBoardActivity = {
-  name: string;
-  postCount: number;
 };
 
 export type TTrafficStat = {
@@ -56,12 +47,44 @@ export type TAIUsage = {
   };
 };
 
+export type TDashboardDelta = {
+  absolute: number | null;
+  percent: number | null;
+};
+
+export type TDashboardDeltas = {
+  summary: {
+    totalStudents: TDashboardDelta;
+    totalTeachers: TDashboardDelta;
+    totalCourses: TDashboardDelta;
+    totalEnrollments: TDashboardDelta;
+  };
+  traffic: {
+    requests: TDashboardDelta;
+    avgResponseTime: TDashboardDelta;
+    dataOut: TDashboardDelta;
+    uniqueUsers: TDashboardDelta;
+  };
+  ai: {
+    requests: TDashboardDelta;
+    totalTokens: TDashboardDelta;
+  };
+};
+
+export type TDashboardMeta = {
+  period: TDashboardPeriod;
+  scope: TDashboardScope;
+  academyOnlyMetrics: ("traffic" | "storage" | "ai")[];
+  comparedTo: "previousSeason" | null;
+  trafficComparedTo: "previousPeriod";
+};
+
 export type TDashboard = {
   summary: TDashboardSummary;
   seasonStats: TSeasonStat[];
-  courseFillRates: TCourseFillRate[];
-  boardActivity: TBoardActivity[];
   trafficStats: TTrafficStat[];
   storageStats: TStorageStat[];
   aiUsage: TAIUsage;
+  deltas: TDashboardDeltas;
+  meta: TDashboardMeta;
 };
