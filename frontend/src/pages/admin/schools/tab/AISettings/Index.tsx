@@ -23,7 +23,7 @@ const SKILLS: Array<{ id: TAlterSkillId; label: string; hint: string }> = [
   {
     id: "syllabus-draft",
     label: "수업",
-    hint: "강의계획서 전 항목 초안 작성에 적용할 지침 라이브러리 항목을 선택합니다.",
+    hint: "강의계획서 초안 작성에 적용할 라이브러리 항목을 선택합니다.",
   },
   {
     id: "evaluation-draft",
@@ -33,27 +33,27 @@ const SKILLS: Array<{ id: TAlterSkillId; label: string; hint: string }> = [
   {
     id: "archive-draft",
     label: "기록",
-    hint: "학생 기록(행동특성 등) 초안 작성에 적용할 지침 라이브러리 항목을 선택합니다.",
+    hint: "학생 기록 초안 작성에 적용할 라이브러리 항목을 선택합니다.",
   },
   {
     id: "document-draft",
     label: "문서",
-    hint: "보드 문서(매뉴얼·공지·회의록 등) 초안 작성에 적용할 지침 라이브러리 항목을 선택합니다.",
+    hint: "보드 문서 초안 작성에 적용할 라이브러리 항목을 선택합니다.",
   },
   {
     id: "document-review",
     label: "문서 점검",
-    hint: "문서함·보드 문서를 지침에 맞게 점검할 때 적용할 라이브러리 항목을 선택합니다.",
+    hint: "문서 점검에 적용할 라이브러리 항목을 선택합니다.",
   },
   {
     id: "form-response-draft",
     label: "응답",
-    hint: "양식 응답 초안 지침입니다. 기안문은 (작성)·(본문 작성) 칸만 채우고 양식 골격을 유지하도록 안내하는 문구를 넣을 수 있습니다.",
+    hint: "양식 응답 초안에 적용할 라이브러리 항목을 선택합니다. 문서형 필드는 작성 칸만 채우도록 안내할 수 있습니다.",
   },
   {
     id: "activity-draft",
     label: "활동",
-    hint: "보드 활동(양식) 초안 작성에 적용할 지침 라이브러리 항목을 선택합니다.",
+    hint: "보드 활동(양식) 초안 작성에 적용할 라이브러리 항목을 선택합니다.",
   },
 ];
 
@@ -194,7 +194,10 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
     }
   };
 
-  const saveSkillConfig = async (patch: Partial<TSchoolAiSkillConfig>) => {
+  const saveSkillConfig = async (
+    patch: Partial<TSchoolAiSkillConfig>,
+    opts?: { silent?: boolean }
+  ) => {
     try {
       const nextSkill: TSchoolAiSkillConfig = {
         ...emptySkill(),
@@ -211,18 +214,21 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
         ...prev,
         skills: { ...prev.skills, ...saved.skills },
       }));
-      alert(SUCCESS_MESSAGE);
+      if (!opts?.silent) {
+        alert(SUCCESS_MESSAGE);
+      }
     } catch (err) {
       ALERT_ERROR(err);
     }
   };
 
   const toggleLibrarySelect = (itemId: string) => {
-    const current = skillConfig.libraryItemIds || [];
-    const next = current.includes(itemId)
-      ? current.filter((id) => id !== itemId)
-      : [...current, itemId].slice(0, 20);
-    saveSkillConfig({ libraryItemIds: next });
+    const id = String(itemId);
+    const current = (skillConfig.libraryItemIds || []).map(String);
+    const next = current.includes(id)
+      ? current.filter((x) => x !== id)
+      : [...current, id].slice(0, 20);
+    void saveSkillConfig({ libraryItemIds: next }, { silent: true });
   };
 
   const toggleNewSkillTag = (id: TAlterSkillId) => {
@@ -881,9 +887,9 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
             ) : (
               <div className={style.listPanel}>
                 {libraryForSkill.map((item) => {
-                  const checked = (skillConfig.libraryItemIds || []).includes(
-                    item._id
-                  );
+                  const checked = (skillConfig.libraryItemIds || [])
+                    .map(String)
+                    .includes(String(item._id));
                   return (
                     <label
                       key={item._id}
@@ -895,7 +901,7 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
                         type="checkbox"
                         className={style.listCheck}
                         checked={checked}
-                        onChange={() => toggleLibrarySelect(item._id)}
+                        onChange={() => toggleLibrarySelect(String(item._id))}
                       />
                       <span>
                         <span className={style.listTitle}>{item.title}</span>

@@ -274,4 +274,27 @@ describe("resolveSkillPromptPack", () => {
     expect(prep.guidelines).toBe("");
     expect(prep.references).toEqual([]);
   });
+
+  test("chat 스킬은 라이브러리가 없으면 수업형 defaultSkillGuide를 넣지 않는다", async () => {
+    mockFindLean.mockResolvedValue([]);
+    const pack = await resolveSkillPromptPack(
+      "academy1",
+      {
+        _id: "school1",
+        aiConfig: {
+          permission: { teacher: true, student: false },
+          skills: {
+            [SKILL_IDS.CHAT]: { libraryItemIds: [] },
+          },
+        },
+      },
+      { aiSettings: {} },
+      SKILL_IDS.CHAT
+    );
+
+    expect(pack.fromSchool).toBe(true);
+    expect(pack.guidelines).toBe("");
+    expect(pack.guidelines).not.toMatch(/학습목표/);
+    expect(pack.guidelines).not.toMatch(/평가 정합성/);
+  });
 });

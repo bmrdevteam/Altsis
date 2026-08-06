@@ -122,10 +122,22 @@ const ensureSkillSlot = (aiConfig, skillId) => {
 };
 
 /**
- * 라이브러리 항목을 skillTags(또는 전체 스킬)의 libraryItemIds 에 연결한다.
+ * 라이브러리 항목의 skillTags → 스킬 libraryItemIds 동기화.
+ * - skillTags 비어 있음: 노출만. libraryItemIds는 스킬 설정 체크박스가 담당 (변경 없음)
+ * - mode "create": 태그된 스킬에 자동 체크(추가)
+ * - mode "update": 태그에서 빠진 스킬만 해제, 새로 추가된 태그만 자동 체크.
+ *   기존 태그에 대해 수동 해제한 항목은 다시 넣지 않음.
+ *   태그에 없던 스킬에 체크박스로만 연결한 항목은 유지
+ * @param {"create"|"update"} [mode]
+ * @param {string[]} [previousTags] update 시 이전 skillTags
  * @returns {boolean} 변경 여부
  */
-const syncLibraryItemToSkills = (school, item) => {
+const syncLibraryItemToSkills = (
+  school,
+  item,
+  mode = "create",
+  previousTags = []
+) => {
   const aiConfig = ensureAiConfig(school);
   const itemId = String(item._id);
   const tags = Array.isArray(item.skillTags)
@@ -133,17 +145,37 @@ const syncLibraryItemToSkills = (school, item) => {
         .map(normalizeSkillTag)
         .filter((t) => VALID_SKILL_IDS.includes(t))
     : [];
-  const targetSkills = tags.length > 0 ? tags : VALID_SKILL_IDS;
+  if (tags.length === 0) {
+    // 태그를 모두 제거한 update → 기존 자동 연결은 유지(수동 체크 상태 존중)
+    return false;
+  }
+
+  const targetSkills = new Set(tags);
+  const prevSkills = new Set(
+    (Array.isArray(previousTags) ? previousTags : [])
+      .map(normalizeSkillTag)
+      .filter((t) => VALID_SKILL_IDS.includes(t))
+  );
   let changed = false;
 
   for (const skillId of VALID_SKILL_IDS) {
     const slot = ensureSkillSlot(aiConfig, skillId);
     const ids = slot.libraryItemIds.map(String);
-    const shouldHave = targetSkills.includes(skillId);
-    if (shouldHave && !ids.includes(itemId)) {
+    const shouldHave = targetSkills.has(skillId);
+    const newlyTagged = shouldHave && !prevSkills.has(skillId);
+    const shouldAdd =
+      mode === "create" ? shouldHave : newlyTagged;
+
+    if (shouldAdd && !ids.includes(itemId)) {
       slot.libraryItemIds = [...ids, itemId].slice(0, MAX_LIBRARY_ITEMS_PER_SKILL);
       changed = true;
-    } else if (!shouldHave && ids.includes(itemId)) {
+    } else if (
+      !shouldHave &&
+      ids.includes(itemId) &&
+      // update: 태그에서 빠진 스킬만 해제 (체크박스로 다른 스킬에 수동 연결한 항목은 유지)
+      // create: 태그 밖 스킬에 남지 않도록 정리
+      (mode === "create" || prevSkills.has(skillId))
+    ) {
       slot.libraryItemIds = ids.filter((id) => id !== itemId);
       changed = true;
     }
@@ -153,20 +185,6 @@ const syncLibraryItemToSkills = (school, item) => {
     school.aiConfig = aiConfig;
     school.markModified("aiConfig");
   }
-  return changed;
-};
-
-/** 기존 라이브러리 항목이 스킬에 안 묶여 있으면 연결 복구 */
-const repairLibrarySkillLinks = async (academyId, school) => {
-  const items = await AiLibraryItem(academyId)
-    .find({ school: school._id })
-    .select("_id skillTags")
-    .lean();
-  let changed = false;
-  for (const item of items) {
-    if (syncLibraryItemToSkills(school, item)) changed = true;
-  }
-  if (changed) await school.save();
   return changed;
 };
 
@@ -1090,7 +1108,7 @@ export const findAiConfig = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("school") });
     }
     ensureAiConfig(school);
-    await repairLibrarySkillLinks(req.user.academyId, school);
+    // skillTags로 libraryItemIds를 강제 복구하지 않음 — 스킬 설정 체크 해제가 유지되어야 함
     return res.status(200).send({ aiConfig: school.aiConfig });
   } catch (err) {
     logger.error(err.message);
@@ -1236,7 +1254,7 @@ export const createAiLibraryItem = async (req, res) => {
       skillTags,
     });
 
-    if (syncLibraryItemToSkills(school, item)) {
+    if (syncLibraryItemToSkills(school, item, "create")) {
       await school.save();
     }
 
@@ -1282,6 +1300,9 @@ export const updateAiLibraryItem = async (req, res) => {
         PROMPT_LIMITS.REFERENCE_CHARS * 4
       );
     }
+    const previousTags = Array.isArray(item.skillTags)
+      ? item.skillTags.map(String)
+      : [];
     if (Array.isArray(req.body.skillTags)) {
       item.skillTags = [
         ...new Set(
@@ -1293,7 +1314,7 @@ export const updateAiLibraryItem = async (req, res) => {
     }
 
     await item.save();
-    if (syncLibraryItemToSkills(school, item)) {
+    if (syncLibraryItemToSkills(school, item, "update", previousTags)) {
       await school.save();
     }
     return res.status(200).send({ item, aiConfig: school.aiConfig });
@@ -1423,7 +1444,7 @@ export const uploadAiLibraryItem = async (req, res) => {
           skillTags,
         });
 
-        if (syncLibraryItemToSkills(school, item)) {
+        if (syncLibraryItemToSkills(school, item, "create")) {
           await school.save();
         }
 

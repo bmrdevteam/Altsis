@@ -68,8 +68,13 @@ import {
   redactImagesForPrompt,
   sanitizeAiDocResponseFill,
 } from "./formResponseSlots.js";
+import {
+  buildAlterChatSystemPrompt,
+  withAlterSafety,
+} from "./alterCorePrompt.js";
 
 export { parseFormResponseDraftResponse } from "./formResponseDraft.js";
+export { buildAlterChatPageContext } from "./alterCorePrompt.js";
 
 const IMAGE_HINT =
   "첨부 이미지가 있으면 내용을 참고하세요. 이미지에서 읽은 내용이 불명확하면 추측하지 말고 표시하세요.";
@@ -134,57 +139,51 @@ export const SKILL_CATALOG = {
   [SKILL_IDS.SYLLABUS_DRAFT]: {
     id: SKILL_IDS.SYLLABUS_DRAFT,
     name: "수업",
-    description:
-      "제공된 정보·자료를 바탕으로 강의계획서 전 항목 초안을 작성합니다",
+    description: "제공된 정보·자료로 강의계획서 항목 초안을 작성합니다",
     profile: "syllabusDraft",
   },
   [SKILL_IDS.EVALUATION_DRAFT]: {
     id: SKILL_IDS.EVALUATION_DRAFT,
     name: "평가",
-    description:
-      "자기평가·기존 멘토평가 등을 종합해 선택한 항목의 초안을 새로 작성합니다",
+    description: "선택한 평가 항목의 초안을 작성합니다",
     profile: "evaluationDraft",
   },
   [SKILL_IDS.ARCHIVE_DRAFT]: {
     id: SKILL_IDS.ARCHIVE_DRAFT,
     name: "기록",
-    description:
-      "학생 기록(행동특성·종합의견 등) 항목의 초안을 작성합니다",
+    description: "학생 기록 항목의 초안을 작성합니다",
     profile: "archiveDraft",
   },
   [SKILL_IDS.DOCUMENT_DRAFT]: {
     id: SKILL_IDS.DOCUMENT_DRAFT,
     name: "문서",
-    description:
-      "보드 문서(매뉴얼·공지·회의록 등) 마크다운 초안을 작성·다듬습니다",
+    description: "보드 문서 마크다운 초안을 작성·다듬습니다",
     profile: "documentDraft",
   },
   [SKILL_IDS.DOCUMENT_REVIEW]: {
     id: SKILL_IDS.DOCUMENT_REVIEW,
     name: "문서 점검",
-    description:
-      "문서함·보드 문서 내용을 작성 지침에 맞춰 점검하고 리포트를 제공합니다",
+    description: "문서를 작성 지침에 맞춰 점검하고 리포트를 제공합니다",
     profile: "documentReview",
   },
   [SKILL_IDS.FORM_RESPONSE_DRAFT]: {
     id: SKILL_IDS.FORM_RESPONSE_DRAFT,
     name: "응답",
     description:
-      "양식 응답(기안문·선택 등) 초안을 작성하고, 기안문은 기존 양식 구조에 내용을 채웁니다",
+      "양식 응답 필드 초안을 작성하고, 문서형 필드는 템플릿의 작성 칸만 채웁니다",
     profile: "formResponseDraft",
   },
   [SKILL_IDS.ACTIVITY_DRAFT]: {
     id: SKILL_IDS.ACTIVITY_DRAFT,
     name: "활동",
-    description:
-      "보드 활동(양식) 제목·필드·설정·안내/응답 문서 초안을 작성·다듬습니다",
+    description: "보드 활동(양식) 구조·안내 초안을 작성·다듬습니다",
     profile: "activityDraft",
   },
   [SKILL_IDS.ASSESSMENT_GRADE]: {
     id: SKILL_IDS.ASSESSMENT_GRADE,
     name: "채점",
     description:
-      "평가 활동 응답을 루브릭·채점 기준에 맞춰 수준·점수·코멘트 초안을 작성합니다",
+      "평가 응답을 루브릭·채점 기준에 맞춰 수준·점수·코멘트 초안을 작성합니다",
     profile: "assessmentGrade",
   },
 };
@@ -209,6 +208,11 @@ const hasSchoolSkillConfig = (school) =>
   );
 
 const defaultSkillGuide = (skill) => {
+  // chat: 상황형 기본 지침 없음 — 공통 안전·화면 맥락만 (alterCorePrompt)
+  if (skill === SKILL_IDS.CHAT) return "";
+  if (skill === SKILL_IDS.SYLLABUS_DRAFT) {
+    return "구체성, 학습목표와 활동 연결, 평가 정합성을 중심으로 도와주세요.";
+  }
   if (skill === SKILL_IDS.EVALUATION_DRAFT) {
     return "학생을 존중하는 공손한 문어체로, 관찰 가능한 사실과 성장 포인트를 2~4문장으로 작성하세요.";
   }
@@ -230,7 +234,15 @@ const defaultSkillGuide = (skill) => {
   if (skill === SKILL_IDS.ASSESSMENT_GRADE) {
     return "학생을 존중하는 공손한 문어체로, 응답과 루브릭 설명에 근거해 수준·점수를 고르고 짧은 피드백을 작성하세요. 추측·낙인·민감정보는 피하세요.";
   }
-  return "구체성, 학습목표와 활동 연결, 평가 정합성을 중심으로 도와주세요.";
+  return "";
+};
+
+/** 라이브러리/레거시 없을 때 스킬 기본 지침 (chat은 빈 문자열) */
+const skillGuidelineFallback = (skill, legacy = "") => {
+  if (skill === SKILL_IDS.CHAT) {
+    return normalizeGuidelines(legacy || "");
+  }
+  return normalizeGuidelines(legacy || defaultSkillGuide(skill));
 };
 
 /** 스킬에 선택된 라이브러리 → 지침 블록 / 학습정보 */
@@ -285,14 +297,12 @@ export const resolveSkillPromptPack = async (
     const { instructionBlocks, learningRefs } =
       await loadSchoolSkillLibraryParts(academyId, school, skillConfig);
 
-    // 지침은 라이브러리(instruction) 선택이 우선. 없으면 기본 가이드.
-    // 레거시 skills.instructions 는 라이브러리 지침이 없을 때만 사용.
+    // 지침은 라이브러리(instruction) 선택이 우선.
+    // chat은 기본 가이드 없이 라이브러리/레거시만. 다른 스킬은 defaultSkillGuide fallback.
     const baseInstructions =
       instructionBlocks.length > 0
         ? ""
-        : normalizeGuidelines(
-            skillConfig?.instructions || defaultSkillGuide(skill)
-          );
+        : skillGuidelineFallback(skill, skillConfig?.instructions || "");
 
     const guidelines = truncateText(
       [baseInstructions, ...instructionBlocks].filter(Boolean).join("\n\n"),
@@ -317,11 +327,12 @@ export const resolveSkillPromptPack = async (
     };
   }
 
-  // fallback: 시즌 설정 (마이그레이션 전)
+  // fallback: 시즌 설정 (마이그레이션 전). chat은 시즌 지침만, 없으면 빈 지침.
   const skipRefs = skill === SKILL_IDS.SYLLABUS_DRAFT;
   return {
-    guidelines: normalizeGuidelines(
-      season?.aiSettings?.guidelines || defaultSkillGuide(skill)
+    guidelines: skillGuidelineFallback(
+      skill,
+      season?.aiSettings?.guidelines || ""
     ),
     references: skipRefs
       ? []
@@ -718,7 +729,7 @@ const runEvaluationGeneration = async ({
         provider,
         apiKey,
         model: modelName,
-        systemInstruction,
+        systemInstruction: withAlterSafety(systemInstruction),
         messages,
         temperature: profile.temperature,
         maxTokens: profile.maxTokens,
@@ -1022,10 +1033,14 @@ const draftFieldChunk = async ({
   let fullText = "";
   let tokenUsage = null;
 
+  const syllabusSystem = withAlterSafety(
+    "You are Alter, a school syllabus drafting assistant. Output a single valid JSON object only."
+  );
   const result = await generateText({
     provider,
     apiKey,
     model: modelName,
+    systemInstruction: syllabusSystem,
     messages: [{ role: "user", content: userContent }],
     temperature: profile.temperature,
     maxTokens: profile.maxTokens,
@@ -1049,6 +1064,7 @@ const draftFieldChunk = async ({
       provider,
       apiKey,
       model: modelName,
+      systemInstruction: syllabusSystem,
       messages: [
         { role: "user", content: userContent },
         ...(fullText.trim()
@@ -1300,80 +1316,13 @@ export const formatReviewAsChatText = (review) => {
   return lines.join("\n") || "문서 점검을 완료했습니다.";
 };
 
-const buildAlterChatSystem = (promptPack, context, boardTitle) => {
-  const pageType = String(context?.pageType || "general");
-  const isSyllabusContext =
-    pageType === "syllabus-edit" || pageType === "syllabus";
-  const isEvalContext = pageType === "evaluation";
-  const isArchiveContext = pageType === "archive";
-  const isDocumentContext = pageType === "document";
-  const isActivityContext = pageType === "activity";
-
-  const defaultGuide = isSyllabusContext
-    ? "구체성, 학습목표와 활동 연결, 평가 정합성을 중심으로 도와주세요."
-    : "학교 업무·학습·작성에 대해 정확하고 실용적으로 도와주세요. 사용자가 묻지 않은 특정 양식(강의계획서 등)으로 대화를 유도하지 마세요.";
-
-  const guidelines = normalizeGuidelines(
-    promptPack?.guidelines || defaultGuide
-  );
-  const refs = promptPack?.references || [];
-  let refBlock = "";
-  if (refs.length > 0) {
-    refBlock =
-      "\n## 참고 자료\n" +
-      refs.map((r) => `### ${r.title}\n${r.content}`).join("\n\n");
-  }
-
-  const subject =
-    Array.isArray(context?.subject) && context.subject.length
-      ? context.subject.join(" > ")
-      : "";
-  const classTitle = context?.classTitle || "";
-  const label = String(context?.label || context?.boardName || "").trim();
-
-  const boardLine = boardTitle
-    ? `학습 보드 「${boardTitle}」의 AI 도우미 "Alter"입니다.`
-    : `학교 정보 시스템의 AI 도우미 "Alter"입니다.`;
-
-  const pageHint = isSyllabusContext
-    ? "현재 화면은 강의계획서 작성/수정입니다. 수업 설계·계획서 관련 질문에 우선 답하세요."
-    : isEvalContext
-      ? "현재 화면은 수업 평가입니다. 평가 작성·피드백 관련 질문에 우선 답하세요."
-      : isArchiveContext
-        ? "현재 화면은 학생 기록입니다. 기록·종합의견 관련 질문에 우선 답하세요."
-        : isDocumentContext
-          ? "현재 화면은 보드 문서 작성입니다. 문서 구성·문구 다듬기에 우선 답하세요."
-          : isActivityContext
-            ? "현재 화면은 활동/양식 작성입니다. 문항·필드·설정 구성에 우선 답하세요."
-            : "현재 화면은 일반 화면입니다. 사용자가 요청한 주제만 다루고, 강의계획서·평가 등 특정 스킬로 유도하지 마세요.";
-
-  const contextBlock = isSyllabusContext
-    ? `## 현재 수업 맥락
-- 교과목: ${subject || "(미입력)"}
-- 수업명: ${classTitle || "(미입력)"}
-${
-  context?.reviewSummary
-    ? `\n## 직전 점검 총평\n${context.reviewSummary}\n`
-    : ""
-}
-요청이 강의계획서 관련이면 항목별로 짧고 실행 가능한 조언을 주세요.
-양식 전체를 한 번에 다시 쓰지 말고, 사용자가 묻는 범위만 다루세요.`
-    : `## 현재 화면
-- 유형: ${pageType || "general"}
-- 라벨: ${label || "(없음)"}
-${classTitle ? `- 관련 수업: ${classTitle}\n` : ""}사용자가 첨부·질문을 통해 요청한 범위만 다루세요. 불필요하게 강의계획서 작성으로 화제를 돌리지 마세요.`;
-
-  return `당신은 ${boardLine}
-한국어로 친절하고 구체적으로 답하세요.
-${pageHint}
-당신이 AI임을 숨기지 마세요. 유해·개인정보 요청은 거절하세요.
-
-## 학교 작성 지침
-${guidelines}
-${refBlock}
-
-${contextBlock}`;
-};
+const buildAlterChatSystem = (promptPack, context, boardTitle) =>
+  buildAlterChatSystemPrompt({
+    boardTitle,
+    pageContext: context,
+    guidelines: promptPack?.guidelines || "",
+    references: promptPack?.references || [],
+  });
 
 /** 평가 초안 레코드 구분자 (탭보다 모델이 안정적으로 출력) */
 const EVAL_DRAFT_SEP = "|||";

@@ -1,5 +1,6 @@
 import {
   ClipboardEvent,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -484,9 +485,13 @@ const AlterPanel = ({ onClose }: Props) => {
     setHasBackgroundResult,
   } = useAlter();
 
-  const suggested = pageContext?.suggestedSkills?.length
-    ? pageContext.suggestedSkills
-    : (["chat"] as TAlterSkillId[]);
+  const suggested = useMemo(
+    () =>
+      pageContext?.suggestedSkills?.length
+        ? pageContext.suggestedSkills
+        : (["chat"] as TAlterSkillId[]),
+    [pageContext?.suggestedSkills]
+  );
 
   const [selectedSkill, setSelectedSkill] = useState<TAlterSkillId>(
     suggested[0] || "chat"
@@ -677,13 +682,18 @@ const AlterPanel = ({ onClose }: Props) => {
     [archiveReferenceFields]
   );
 
-  // 화면이 바뀌어도 진행 중/저장된 대화는 유지하고 Prep 기본값만 갱신
-  useEffect(() => {
-    const next = suggested[0] || "chat";
-    setSelectedSkill(next);
-    if (!isWorking && messages.length === 0) {
-      setShowPrep(isDraftPrepSkill(next));
-    }
+  const schoolIdForAlter =
+    currentSchool?._id ||
+    currentSchool?.school ||
+    (currentSeason as { school?: string } | undefined)?.school ||
+    "";
+
+  const revokeMessagePreviews = useCallback(() => {
+    messagePreviewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    messagePreviewUrlsRef.current = [];
+  }, []);
+
+  const resetPrepDefaultsForPage = useCallback(() => {
     setEvalTargetLabels(defaultTargetLabels);
     setEvalContextLabels(allEvalLabels);
     setEvalFillEmptyOnly(false);
@@ -720,46 +730,85 @@ const AlterPanel = ({ onClose }: Props) => {
     setFormResponseFillEmptyOnly(false);
     setFormResponseTargetFieldIds([]);
     setFormResponseSelectedGuidelineIds([]);
+    setActivityWriteMode("create");
+    setActivityFormType("general");
+    setActivitySelectedGuidelineIds([]);
     setGradeFillEmptyOnly(false);
+  }, [
+    allEvalLabels,
+    defaultArchiveContextLabels,
+    defaultArchiveTargetLabels,
+    defaultTargetLabels,
+    pageContext,
+  ]);
+
+  const startNewConversation = useCallback(
+    (preferSkill?: TAlterSkillId) => {
+      if (isWorking) {
+        setError("작업이 끝난 뒤 새 대화를 시작할 수 있습니다.");
+        return;
+      }
+      setConversationId(null);
+      setConversationTitle("새 대화");
+      revokeMessagePreviews();
+      setMessages([]);
+      setError("");
+      setSteps([]);
+      setAppliedDraftIds(new Set());
+      setSourceAttachments((prev) => {
+        prev.forEach((a) => {
+          if (a.previewUrl) URL.revokeObjectURL(a.previewUrl);
+        });
+        return [];
+      });
+      setShowHistory(false);
+      setExpandedGuidelineId(null);
+      resetPrepDefaultsForPage();
+      // onClick에 그대로 넘기면 이벤트가 들어오므로 스킬 id만 허용
+      const next =
+        preferSkill && preferSkill in SKILL_LABEL
+          ? preferSkill
+          : suggested[0] || "chat";
+      setSelectedSkill(next);
+      const prep = isDraftPrepSkill(next);
+      setShowPrep(prep);
+      if (prep) setPrepCollapsed(false);
+    },
+    [isWorking, resetPrepDefaultsForPage, revokeMessagePreviews, suggested]
+  );
+
+  // Prep 기본값만 갱신 (빈 대화일 때 추천 스킬도 맞춤). page 전환 시에만 실행.
+  useEffect(() => {
+    const next = suggested[0] || "chat";
+    if (!isWorking && messages.length === 0) {
+      setSelectedSkill(next);
+      setShowPrep(isDraftPrepSkill(next));
+    }
+    resetPrepDefaultsForPage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- pageType/label 전환만 (대화 중 prep 유지)
   }, [pageContext?.pageType, pageContext?.label]);
+
+  // pageType이 바뀌면 이전 대화 맥락과 분리 (작업 중이 아닐 때)
+  const prevPageTypeRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    const pageType = pageContext?.pageType || "general";
+    const prev = prevPageTypeRef.current;
+    prevPageTypeRef.current = pageType;
+    if (prev === undefined || prev === pageType) return;
+    if (isWorking) return;
+    if (!conversationId && messages.length === 0) return;
+    startNewConversation();
+  }, [
+    pageContext?.pageType,
+    isWorking,
+    conversationId,
+    messages.length,
+    startNewConversation,
+  ]);
 
   useEffect(() => {
     setAlterWorking(isWorking);
   }, [isWorking, setAlterWorking]);
-
-  const schoolIdForAlter =
-    currentSchool?._id ||
-    currentSchool?.school ||
-    (currentSeason as { school?: string } | undefined)?.school ||
-    "";
-
-  // 새로고침·학교 전환 후에도 최근 대화를 복원 (학교 단위 목록)
-  const didRestoreRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!schoolIdForAlter || isWorking) return;
-    if (didRestoreRef.current === schoolIdForAlter) return;
-    didRestoreRef.current = schoolIdForAlter;
-    void (async () => {
-      try {
-        const res = await fetch(
-          `${alterApiBase()}/alter/conversations?school=${encodeURIComponent(
-            schoolIdForAlter
-          )}&limit=1`,
-          { credentials: "include" }
-        );
-        if (!res.ok) return;
-        const data = await res.json();
-        const latest = (data.conversations || [])[0] as
-          | TAlterConversation
-          | undefined;
-        if (!latest?._id) return;
-        setConversations(data.conversations || []);
-        await openConversation(latest._id, latest);
-      } catch {
-        // ignore restore errors
-      }
-    })();
-  }, [schoolIdForAlter]);
 
   useEffect(() => {
     if (pageContext?.pageType !== "evaluation") return;
@@ -1246,42 +1295,6 @@ const AlterPanel = ({ onClose }: Props) => {
     } finally {
       setHistoryLoading(false);
     }
-  };
-
-  const revokeMessagePreviews = () => {
-    messagePreviewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
-    messagePreviewUrlsRef.current = [];
-  };
-
-  const startNewConversation = (preferSkill?: TAlterSkillId) => {
-    if (isWorking) {
-      setError("작업이 끝난 뒤 새 대화를 시작할 수 있습니다.");
-      return;
-    }
-    setConversationId(null);
-    setConversationTitle("새 대화");
-    revokeMessagePreviews();
-    setMessages([]);
-    setError("");
-    setSteps([]);
-    setAppliedDraftIds(new Set());
-    setSourceAttachments((prev) => {
-      prev.forEach((a) => {
-        if (a.previewUrl) URL.revokeObjectURL(a.previewUrl);
-      });
-      return [];
-    });
-    setShowHistory(false);
-    setExpandedGuidelineId(null);
-    // onClick에 그대로 넘기면 이벤트가 들어오므로 스킬 id만 허용
-    const next =
-      preferSkill && preferSkill in SKILL_LABEL
-        ? preferSkill
-        : suggested[0] || "chat";
-    setSelectedSkill(next);
-    const prep = isDraftPrepSkill(next);
-    setShowPrep(prep);
-    if (prep) setPrepCollapsed(false);
   };
 
   const selectSkill = (skill: TAlterSkillId) => {
@@ -3835,7 +3848,7 @@ const AlterPanel = ({ onClose }: Props) => {
             <div className={style.prepCard}>
               <p className={style.prepLabel}>
                 작성 모드
-                <PrepHint text="기안문에는 (작성)·(본문 작성)처럼 「작성」으로 끝나는 칸만 채웁니다. 표·수신/경유·로고는 유지됩니다." />
+                <PrepHint text="문서형 필드에는 (작성)·(본문 작성)처럼 「작성」으로 끝나는 칸만 채웁니다. 표·수신/경유·로고는 유지됩니다." />
               </p>
               <div className={style.refList}>
                 <label className={style.refRow}>
@@ -3954,7 +3967,7 @@ const AlterPanel = ({ onClose }: Props) => {
               )}
             </div>
             <div className={style.prepHintRow}>
-              <PrepHint text="기안문 양식에는 (작성)·(본문 작성) 칸을 넣어 두세요. AI는 그 칸만 채우고 표·로고는 유지합니다. 미리보기 후 「응답에 반영」하세요." />
+              <PrepHint text="문서형 필드에는 (작성)·(본문 작성) 칸을 넣어 두세요. AI는 그 칸만 채우고 표·로고는 유지합니다. 미리보기 후 「응답에 반영」하세요." />
               <span className={style.prepHintRowLabel}>이용 안내</span>
             </div>
           </>
@@ -4617,8 +4630,8 @@ const AlterPanel = ({ onClose }: Props) => {
                   : "예: 수학 복습 퀴즈 5문항, 객관식+단답, 필수 응답"
                 : inFormResponsePrep
                   ? formResponseWriteMode === "refine"
-                    ? "예: 영수증 기준으로 금액·사유 채우기, 문장은 공손하게"
-                    : "예: 결제 요청 기안문, 사유·금액·일정 포함"
+                    ? "예: 문장을 공손하게, 빈 칸 위주로 채워 주세요"
+                    : "예: 목적·일정·필요 내용을 적어 주세요"
                   : inDocPrep
                     ? docWriteMode === "refine"
                       ? "예: 문장을 더 간결하게, 체크리스트를 추가해 주세요"
