@@ -20,6 +20,7 @@ const SUCCESS_MESSAGE = "취소되었습니다.";
 type Props = {
   courseList: any[];
   updateCourses?: () => Promise<void> | void;
+  evaluationBySyllabusId?: Record<string, "없음" | "대기" | "평가중" | "완료">;
 };
 
 const List = (props: Props) => {
@@ -166,6 +167,7 @@ const List = (props: Props) => {
             replace: true,
           });
         }}
+        evaluationBySyllabusId={props.evaluationBySyllabusId}
       />
     </div>
   );

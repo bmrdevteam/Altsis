@@ -19,6 +19,10 @@ import {
   getSchoolTodosCached,
   schoolTodosCacheKey,
 } from "pages/boards/schoolTodosCache";
+import {
+  courseTodosCacheKey,
+  getCourseTodosCached,
+} from "pages/courses/courseTodosCache";
 import GoalsSidebarWidget from "./GoalsSidebarWidget";
 
 type Props = {};
@@ -28,8 +32,9 @@ const Sidebar = (props: Props) => {
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const { currentUser, currentRegistration, currentSchool, currentSeason } =
     useAuth();
-  const { AltSheetRowAPI } = useAPIv2();
+  const { AltSheetRowAPI, SyllabusAPI } = useAPIv2();
   const [boardsTodoCount, setBoardsTodoCount] = useState(0);
+  const [coursesTodoCount, setCoursesTodoCount] = useState(0);
 
   useEffect(() => {
     setSidebarOpen(window.localStorage.getItem("AppSidebarStatus") === "open");
@@ -77,6 +82,33 @@ const Sidebar = (props: Props) => {
     };
   }, [currentSchool?._id, currentSeasonId]);
 
+  // 수업 할 일 뱃지 (사이드바)
+  useEffect(() => {
+    if (!currentSchool?._id || !currentSeasonId) {
+      setCoursesTodoCount(0);
+      return;
+    }
+    let cancelled = false;
+    const key = courseTodosCacheKey(currentSchool._id, currentSeasonId);
+    getCourseTodosCached(key, () =>
+      SyllabusAPI.RSyllabusCourseTodos({
+        query: {
+          school: currentSchool._id,
+          season: currentSeasonId,
+        },
+      })
+    )
+      .then(({ count }) => {
+        if (!cancelled) setCoursesTodoCount(count || 0);
+      })
+      .catch(() => {
+        if (!cancelled) setCoursesTodoCount(0);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentSchool?._id, currentSeasonId]);
+
   return (
     <Nav open={sidebarOpen}>
       <NavLogo
@@ -105,7 +137,11 @@ const Sidebar = (props: Props) => {
                     path={data.path}
                     icon={data.icon}
                     badge={
-                      data.title === "boards" ? boardsTodoCount : data.badge
+                      data.title === "boards"
+                        ? boardsTodoCount
+                        : data.title === "courses"
+                          ? coursesTodoCount
+                          : data.badge
                     }
                     active={
                       location.pathname.split("/")[3]

@@ -14,6 +14,7 @@ import Divider from "components/divider/Divider";
 import { computeCreatedSummary } from "utils/computeCourseSummaries";
 type Props = {
   courseList: any[];
+  evaluationBySyllabusId?: Record<string, "없음" | "대기" | "평가중" | "완료">;
 };
 
 const CoursesMyList = (props: Props) => {
@@ -77,6 +78,7 @@ const CoursesMyList = (props: Props) => {
             },
           ]}
           showStatus={true}
+          evaluationBySyllabusId={props.evaluationBySyllabusId}
           onClickDetail={(e: any) => {
             navigate(`/courses/created/${e._id}`, {
               replace: true,

@@ -9,6 +9,13 @@ import _ from "lodash";
 import ViewPopup from "../view/ViewPopup";
 import StatusPopup from "../view/StatusPopup";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import {
+  courseTodosCacheKey,
+  invalidateCourseTodosCache,
+} from "../courseTodosCache";
+import badgeStyle from "../courseTodoBadge.module.scss";
+
+const SUCCESS_MESSAGE = "완료되었습니다.";
 
 type Props = {
   defaultPageBy?: 0 | 10 | 50 | 100 | 200;
@@ -28,11 +35,14 @@ type Props = {
   searchPlaceholder?: string;
   /** When set, only these data column keys are shown (preHeader always kept) */
   visibleKeys?: Set<string>;
+  /** syllabusId → 「평가」 칩 라벨. 승인은 상태 열 담당 */
+  evaluationBySyllabusId?: Record<string, "없음" | "대기" | "평가중" | "완료">;
 };
 
 const CourseTable = (props: Props) => {
   const { SyllabusAPI } = useAPIv2();
-  const { currentUser } = useAuth();
+  const { currentUser, currentSchool, currentRegistration, currentSeason } =
+    useAuth();
   const [courseList, setCourseList] = useState<any[]>([]);
   const [headerList, setHeaderList] = useState<TTableHeader[]>([]);
 
@@ -40,6 +50,16 @@ const CourseTable = (props: Props) => {
   const [statusPopupActive, setStatusPopupActive] = useState<boolean>(false);
   const [viewPopupActive, setViewPopupActive] = useState<boolean>(false);
   const navigate = useAppNavigate();
+
+  const invalidateTodos = () => {
+    const seasonId =
+      currentRegistration?.season || currentSeason?._id || undefined;
+    if (currentSchool?._id) {
+      invalidateCourseTodosCache(
+        courseTodosCacheKey(currentSchool._id, seasonId)
+      );
+    }
+  };
 
   const structuring = (data: any[]) => {
     return _.sortBy(
@@ -118,6 +138,7 @@ const CourseTable = (props: Props) => {
                 SyllabusAPI.UConfirmSyllabus({ params: { _id: e._id } })
                   .then(() => {
                     alert(SUCCESS_MESSAGE);
+                    invalidateTodos();
                     if (props.setIsLoading) {
                       props.setIsLoading(true);
                     }
@@ -139,6 +160,7 @@ const CourseTable = (props: Props) => {
                   SyllabusAPI.UCancleConfirmSyllabus({ params: { _id: e._id } })
                     .then(() => {
                       alert(SUCCESS_MESSAGE);
+                      invalidateTodos();
                       if (props.setIsLoading) {
                         props.setIsLoading(true);
                       }
@@ -200,20 +222,63 @@ const CourseTable = (props: Props) => {
           },
     };
 
+    const evalMap = props.evaluationBySyllabusId;
+    const evaluationHeader: TTableHeader | null = evalMap
+      ? {
+          text: "평가",
+          key: "evaluationTodo",
+          type: "text",
+          width: "72px",
+          textAlign: "center",
+          render: (_value: any, row: any) => {
+            const syllabusKey = String(row.syllabus || row._id || "");
+            const label = evalMap[syllabusKey];
+            if (!label) return null;
+            const toneClass =
+              label === "평가중"
+                ? badgeStyle.evalChipInProgress
+                : label === "완료"
+                  ? badgeStyle.evalChipDone
+                  : label === "없음"
+                    ? badgeStyle.evalChipNone
+                    : badgeStyle.evalChipWaiting;
+            return (
+              <span
+                className={`${badgeStyle.evalChip} ${toneClass}`}
+                title={`평가 ${label}`}
+                aria-label={`평가 ${label}`}
+              >
+                {label}
+              </span>
+            );
+          },
+        }
+      : null;
+
+    const alwaysVisibleKeys = new Set(["confirmedStatus", "evaluationTodo"]);
     const dataHeaders = [
       ...subjectLabelHeaderList,
       classTitleHeader,
       ...defaultHeaderList,
+      ...(evaluationHeader ? [evaluationHeader] : []),
       ...postHeaderList,
     ].filter((h) => {
       if (!props.visibleKeys || !h.key) return true;
+      if (alwaysVisibleKeys.has(h.key)) return true;
       return props.visibleKeys.has(h.key);
     });
 
     setHeaderList([...(props.preHeaderList ?? []), ...dataHeaders]);
 
     return () => {};
-  }, [props.data, props.subjectLabels, props.visibleKeys, props.preHeaderList]);
+  }, [
+    props.data,
+    props.subjectLabels,
+    props.visibleKeys,
+    props.preHeaderList,
+    props.evaluationBySyllabusId,
+    props.showStatus,
+  ]);
 
   return (
     <>

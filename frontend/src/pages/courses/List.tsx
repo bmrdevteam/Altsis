@@ -16,6 +16,7 @@ import EnrollFilterBar from "./EnrollFilterBar";
 import { useCourseListFilter } from "./useCourseListFilter";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import useRegisterAlterCourseList from "hooks/useRegisterAlterCourseList";
+import { useCourseTodos } from "./useCourseTodos";
 
 type Props = {};
 
@@ -24,6 +25,7 @@ const Courses = (props: Props) => {
   const { SyllabusAPI } = useAPIv2();
 
   const { currentSeason, currentRegistration } = useAuth();
+  const { evaluationBySyllabusId } = useCourseTodos();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [courseList, setCourseList] = useState<any[]>([]);
@@ -118,6 +120,7 @@ const Courses = (props: Props) => {
                 },
               ]}
               showStatus={true}
+              evaluationBySyllabusId={evaluationBySyllabusId}
             />
           </>
         ) : (

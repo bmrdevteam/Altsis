@@ -189,7 +189,7 @@
                     padding: 0 5px;
                     margin-right: 8px;
                     border-radius: 9px;
-                    background-color: var(--status-error, #e53935);
+                    background-color: var(--text-color-2, #5f6368);
                     color: #fff;
                     font-size: 11px;
                     font-weight: 600;
@@ -205,7 +205,7 @@
                     width: 8px;
                     height: 8px;
                     border-radius: 50%;
-                    background-color: var(--status-error, #e53935);
+                    background-color: var(--text-color-2, #5f6368);
                     border: 1.5px solid var(--component-color);
                 }
 

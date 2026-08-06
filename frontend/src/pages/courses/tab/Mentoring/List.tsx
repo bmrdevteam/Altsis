@@ -22,6 +22,7 @@ import {
 type Props = {
   courseList: any[];
   updateCourses: () => void;
+  evaluationBySyllabusId?: Record<string, "없음" | "대기" | "평가중" | "완료">;
 };
 
 const CoursesMentoring = (props: Props) => {
@@ -132,6 +133,7 @@ const CoursesMentoring = (props: Props) => {
           showStatus={true}
           isMentor={true}
           setIsLoading={setIsLoading}
+          evaluationBySyllabusId={props.evaluationBySyllabusId}
         />
       </div>
     </>

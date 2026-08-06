@@ -8,6 +8,8 @@ import { isLoggedIn } from "../middleware/auth.js";
 //=================================
 
 router.post("/", isLoggedIn, syllabuses.create);
+// Must be before /:_id? or "course-todos" is captured as _id
+router.get("/course-todos", isLoggedIn, syllabuses.findCourseTodos);
 router.get("/:_id?", isLoggedIn, syllabuses.find);
 
 router.post("/:_id/confirmed", isLoggedIn, syllabuses.confirm);

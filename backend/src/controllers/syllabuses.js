@@ -17,7 +17,13 @@ import {
   __NOT_FOUND,
 } from "../messages/index.js";
 import { courseMulter } from "../_s3/courseMulter.js";
-import { Board, Enrollment, Registration, Syllabus } from "../models/index.js";
+import {
+  Board,
+  Enrollment,
+  Registration,
+  School,
+  Syllabus,
+} from "../models/index.js";
 import { sendAutoNotification } from "../services/notifications.js";
 import { syncBoardChatParticipants } from "../services/boardChat.js";
 import { canManageBoard } from "../services/boards.js";
@@ -25,6 +31,7 @@ import {
   importEvaluationFromBoardForm,
   importEvaluationFromCsv,
 } from "../services/evaluationImport.js";
+import { getCourseTodosForUser } from "../services/schoolCourseTodos.js";
 import _ from "lodash";
 
 const isFullyConfirmed = (syllabus) =>
@@ -157,6 +164,44 @@ export const create = async (req, res) => {
     });
 
     return res.status(200).send({ syllabus });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.SyllabusAPI
+ * @function RSyllabusCourseTodos API
+ * @description 학기 수업 할 일 뱃지용 집계 (승인 / 개설 미승인 / 평가)
+ *
+ * @param {Object} req
+ * @param {"GET"} req.method
+ * @param {"/syllabuses/course-todos"} req.url
+ * @param {Object} req.query
+ * @param {string} req.query.school
+ * @param {string?} req.query.season
+ */
+export const findCourseTodos = async (req, res) => {
+  try {
+    if (!("school" in req.query)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("school") });
+    }
+
+    const school = await School(req.user.academyId).findById(req.query.school);
+    if (!school) {
+      return res.status(404).send({ message: __NOT_FOUND("school") });
+    }
+
+    const seasonId = req.query.season || null;
+    const { items, count } = await getCourseTodosForUser(
+      req.user.academyId,
+      school,
+      req.user,
+      seasonId
+    );
+
+    return res.status(200).send({ items, count });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });

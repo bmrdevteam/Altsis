@@ -2222,6 +2222,32 @@ export default function useAPIv2() {
   }
 
   /**
+   * RSyllabusCourseTodos API
+   * @description 학기 수업 할 일 뱃지 집계
+   * @version 2.0.0
+   * @auth user
+   */
+  async function RSyllabusCourseTodos(props: {
+    query: { school: string; season?: string };
+  }) {
+    const { items, count } = await database.R({
+      location: "syllabuses/course-todos" + QUERY_BUILDER(props.query),
+    });
+    return {
+      items: (items || []) as {
+        kind: "approve" | "confirmPending" | "evaluation";
+        surface: "mentoring" | "created" | "enrolled";
+        syllabusId: string;
+        syllabusTitle: string;
+        missingEvalLabels?: string[];
+        evalStatus?: "없음" | "대기" | "평가중" | "완료";
+        periodOpen?: boolean;
+      }[],
+      count: (count || 0) as number,
+    };
+  }
+
+  /**
    * RSyllabuses API
    * @description 강의계획서 조회 API
    * @version 2.0.0
@@ -5166,6 +5192,7 @@ export default function useAPIv2() {
     SyllabusAPI: {
       CSyllabus,
       RSyllabuses,
+      RSyllabusCourseTodos,
       RSyllabus,
       UConfirmSyllabus,
       UCancleConfirmSyllabus,

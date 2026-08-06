@@ -36,6 +36,10 @@ import Popup from "components/popup/Popup";
 import Table from "components/tableV2/Table";
 import { useAuth } from "contexts/authContext";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import {
+  courseTodosCacheKey,
+  invalidateCourseTodosCache,
+} from "../courseTodosCache";
 
 type Props = {
   setPopupActive: any;
@@ -44,11 +48,24 @@ type Props = {
   setIsLoading?: (value: boolean) => void;
 };
 
+const SUCCESS_MESSAGE = "완료되었습니다.";
+
 const StatusPopup = (props: Props) => {
-  const { currentUser } = useAuth();
+  const { currentUser, currentSchool, currentRegistration, currentSeason } =
+    useAuth();
   const { SyllabusAPI } = useAPIv2();
 
   const [courseData, setCourseData] = useState<any>();
+
+  const invalidateTodos = () => {
+    const seasonId =
+      currentRegistration?.season || currentSeason?._id || undefined;
+    if (currentSchool?._id) {
+      invalidateCourseTodosCache(
+        courseTodosCacheKey(currentSchool._id, seasonId)
+      );
+    }
+  };
 
   async function getCourse(_id: string) {
     try {
@@ -113,6 +130,7 @@ const StatusPopup = (props: Props) => {
                       })
                         .then(() => {
                           alert(SUCCESS_MESSAGE);
+                          invalidateTodos();
                           if (props.setIsLoading) {
                             e.confirmed = true;
                             props.setIsLoading(true);
@@ -134,6 +152,7 @@ const StatusPopup = (props: Props) => {
                       })
                         .then(() => {
                           alert(SUCCESS_MESSAGE);
+                          invalidateTodos();
                           e.confirmed = false;
                           if (props.setIsLoading) {
                             props.setIsLoading(true);

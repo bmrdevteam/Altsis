@@ -1,0 +1,55 @@
+.evalChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.evalChipNone,
+.evalChipWaiting {
+  background-color: color-mix(
+    in srgb,
+    var(--color-text-secondary, #757575) 14%,
+    transparent
+  );
+  color: var(--color-text-secondary, #757575);
+  border-color: color-mix(
+    in srgb,
+    var(--color-text-secondary, #757575) 35%,
+    transparent
+  );
+}
+
+.evalChipInProgress {
+  background-color: color-mix(
+    in srgb,
+    var(--status-warning, #f57c00) 18%,
+    transparent
+  );
+  color: var(--status-warning, #f57c00);
+  border-color: color-mix(
+    in srgb,
+    var(--status-warning, #f57c00) 45%,
+    transparent
+  );
+}
+
+.evalChipDone {
+  background-color: color-mix(
+    in srgb,
+    var(--status-success, #2e7d32) 16%,
+    transparent
+  );
+  color: var(--status-success, #2e7d32);
+  border-color: color-mix(
+    in srgb,
+    var(--status-success, #2e7d32) 40%,
+    transparent
+  );
+}

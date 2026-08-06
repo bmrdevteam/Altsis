@@ -44,6 +44,7 @@ import CreatedCourseList from "./tab/Created/List";
 import MentoringCourseList from "./tab/Mentoring/List";
 import useAPIv2 from "hooks/useAPIv2";
 import useRegisterAlterCourseList from "hooks/useRegisterAlterCourseList";
+import { useCourseTodos } from "./useCourseTodos";
 
 type Props = {};
 
@@ -53,6 +54,10 @@ const Course = (props: Props) => {
   const { SyllabusAPI } = useAPIv2();
 
   const { currentSeason, currentUser, currentRegistration } = useAuth();
+  const {
+    evaluationBySyllabusId,
+    refresh: refreshCourseTodos,
+  } = useCourseTodos();
 
   const [enrolledCourseList, setEnrolledCourseList] = useState<any[]>([]);
   const [createdCourseList, setCreatedCourseList] = useState<any[]>([]);
@@ -93,6 +98,7 @@ const Course = (props: Props) => {
     setEnrolledCourseList(enrolled);
     setCreatedCourseList(created);
     setMentoringCourseList(mentoring);
+    refreshCourseTodos();
   };
 
   useEffect(() => {
@@ -155,13 +161,20 @@ const Course = (props: Props) => {
           <EnrolledCourseList
             courseList={enrolledCourseList}
             updateCourses={updateCourses}
+            evaluationBySyllabusId={evaluationBySyllabusId}
           />
         ),
-        "개설 수업": <CreatedCourseList courseList={createdCourseList} />,
+        "개설 수업": (
+          <CreatedCourseList
+            courseList={createdCourseList}
+            evaluationBySyllabusId={evaluationBySyllabusId}
+          />
+        ),
         "담당 수업": (
           <MentoringCourseList
             courseList={mentoringCourseList}
             updateCourses={updateCourses}
+            evaluationBySyllabusId={evaluationBySyllabusId}
           />
         ),
       };
@@ -171,11 +184,18 @@ const Course = (props: Props) => {
         <EnrolledCourseList
           courseList={enrolledCourseList}
           updateCourses={updateCourses}
+          evaluationBySyllabusId={evaluationBySyllabusId}
         />
       ),
-      "개설 수업": <CreatedCourseList courseList={createdCourseList} />,
+      "개설 수업": (
+        <CreatedCourseList
+          courseList={createdCourseList}
+          evaluationBySyllabusId={evaluationBySyllabusId}
+        />
+      ),
     };
   };
+
   return (
     <>
       <div className={style.section}>
