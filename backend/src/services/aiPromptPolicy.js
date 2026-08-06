@@ -20,12 +20,24 @@ export const PROMPT_LIMITS = {
   HISTORY: 3,
   REFERENCE_COUNT: 2,
   REFERENCE_CHARS: 800,
+  /** Alter chat: 참고 자료 개수 */
+  CHAT_REFERENCE_COUNT: 8,
+  /** Alter chat: 참고 본문/항목 */
+  CHAT_REFERENCE_CHARS: 4000,
+  /** Alter chat: 지침(instruction) 합산 */
+  CHAT_GUIDELINES_TOTAL_CHARS: 8000,
+  /** 라이브러리 항목 저장 상한 (프롬프트 주입 한도와 분리) */
+  LIBRARY_CONTENT_CHARS: 200000,
   /** Alter chat: 페이지 로드 데이터 스냅샷 전체 상한 */
   CHAT_SNAPSHOT_CHARS: 14000,
   /** Alter chat: 스냅샷 항목 수 상한 */
   CHAT_SNAPSHOT_MAX_ITEMS: 50,
   /** Alter chat: 항목 필드값 상한 */
   CHAT_SNAPSHOT_FIELD_CHARS: 500,
+  /** Alter chat retrieval: 청크 개수 */
+  CHAT_RETRIEVE_CHUNK_LIMIT: 6,
+  /** Alter chat retrieval: 문서당 최대 청크 */
+  CHAT_RETRIEVE_PER_DOC: 3,
   GUIDELINES_CHARS: 600,
   /** 라이브러리 지침(+레거시) 합산 상한 */
   GUIDELINES_TOTAL_CHARS: 2400,
@@ -193,28 +205,67 @@ export const truncateText = (text, maxChars) => {
 };
 
 /**
- * 학기 참고자료를 프롬프트/저장용으로 정규화 (개수 제한 포함)
+ * @param {"chat"|"default"} [profile]
  */
-export const normalizeReferences = (references = []) =>
-  (references || []).slice(0, PROMPT_LIMITS.REFERENCE_COUNT).map((ref) => ({
+export const getReferenceLimits = (profile = "default") => {
+  if (profile === "chat") {
+    return {
+      count: PROMPT_LIMITS.CHAT_REFERENCE_COUNT || 8,
+      chars: PROMPT_LIMITS.CHAT_REFERENCE_CHARS || 4000,
+      guidelinesTotal:
+        PROMPT_LIMITS.CHAT_GUIDELINES_TOTAL_CHARS ||
+        PROMPT_LIMITS.GUIDELINES_TOTAL_CHARS ||
+        8000,
+      instructionBlockChars: PROMPT_LIMITS.CHAT_REFERENCE_CHARS || 4000,
+    };
+  }
+  return {
+    count: PROMPT_LIMITS.REFERENCE_COUNT || 2,
+    chars: PROMPT_LIMITS.REFERENCE_CHARS || 800,
+    guidelinesTotal:
+      PROMPT_LIMITS.GUIDELINES_TOTAL_CHARS ||
+      PROMPT_LIMITS.GUIDELINES_CHARS * 4 ||
+      2400,
+    instructionBlockChars: PROMPT_LIMITS.REFERENCE_CHARS || 800,
+  };
+};
+
+/**
+ * 학기 참고자료를 프롬프트/저장용으로 정규화 (개수 제한 포함)
+ * @param {Object[]} [references]
+ * @param {{ count?: number, chars?: number }} [limits]
+ */
+export const normalizeReferences = (references = [], limits = {}) => {
+  const count = limits.count ?? PROMPT_LIMITS.REFERENCE_COUNT;
+  const chars = limits.chars ?? PROMPT_LIMITS.REFERENCE_CHARS;
+  return (references || []).slice(0, count).map((ref) => ({
     ...ref,
-    title: truncateText(ref.title || "참고자료", PROMPT_LIMITS.REFERENCE_TITLE_CHARS),
-    content: truncateText(ref.content || "", PROMPT_LIMITS.REFERENCE_CHARS),
+    title: truncateText(
+      ref.title || "참고자료",
+      PROMPT_LIMITS.REFERENCE_TITLE_CHARS
+    ),
+    content: truncateText(ref.content || "", chars),
   }));
+};
 
 /**
  * 선택한 인덱스의 참고자료를 프롬프트용으로 정규화
  * @param {Object[]} references
  * @param {number[]|undefined} indexes
+ * @param {{ count?: number, chars?: number }} [limits]
  */
-export const selectReferencesForPrompt = (references = [], indexes) => {
+export const selectReferencesForPrompt = (
+  references = [],
+  indexes,
+  limits
+) => {
   let selected = references || [];
   if (Array.isArray(indexes) && indexes.length > 0) {
     selected = indexes
       .map((i) => references[i])
       .filter((ref) => ref && (ref.content || ref.title));
   }
-  return normalizeReferences(selected);
+  return normalizeReferences(selected, limits);
 };
 
 /**

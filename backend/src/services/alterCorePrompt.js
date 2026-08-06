@@ -24,6 +24,9 @@ export const ALTER_PAGE_DATA_POLICY = `「현재 페이지 데이터」가 있�
 목록에서 추천·요약·비교·정리·「평가해줘」처럼 현재 목록에 대한 의견을 물으면, 제공된 항목 안에서 구체적으로 답하세요. 「기능이 없다」고만 거절하지 마세요.
 공식 성적·학생 기록·평가 초안을 문서에 써 달라는 요청이면, 해당 전용 화면(평가/기록 등)에서 스킬을 쓰라고 짧게 안내하세요.`;
 
+/** 라이브러리 참고 조각만 근거로 사용 */
+export const ALTER_LIBRARY_REF_POLICY = `「참고 자료」가 있으면 그 조각만 근거로 답하세요. 참고에 없는 내용은 추측하지 말고 없다고 말하세요.`;
+
 /** pageType → 화면 유형 표시명 (사실 전달용, 행동 유도 없음) */
 export const PAGE_TYPE_LABELS = {
   "syllabus-edit": "강의계획서 작성/수정",
@@ -193,7 +196,7 @@ export const buildAlterChatSystemPrompt = ({
   let refBlock = "";
   if (refs.length > 0) {
     refBlock =
-      "\n## 참고 자료\n" +
+      `\n${ALTER_LIBRARY_REF_POLICY}\n## 참고 자료\n` +
       refs
         .map((r) => `### ${r.title || "참고"}\n${r.content || ""}`)
         .join("\n\n");

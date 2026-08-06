@@ -18,7 +18,7 @@ const SKILLS: Array<{ id: TAlterSkillId; label: string; hint: string }> = [
   {
     id: "chat",
     label: "챗봇",
-    hint: "Alter 챗봇 대화에 적용할 라이브러리 항목을 선택합니다.",
+    hint: "Alter 챗봇에 적용할 라이브러리 항목을 선택합니다. 학습정보는 대화당 최대 8개·본문 일부만 직접 넣고, 긴 PDF(교육계획서 등)는 질문과 관련된 구간을 검색해 보완합니다. 체크한 항목이 매 턴 전문으로 들어가지는 않습니다.",
   },
   {
     id: "syllabus-draft",
@@ -280,7 +280,7 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
       if (newSkillTags.length) {
         form.append("skillTags", newSkillTags.join(","));
       }
-      const { item, aiConfig: nextConfig } =
+      const { item, aiConfig: nextConfig, contentLength, extractWarning } =
         await SchoolAPI.CSchoolAiLibraryUpload({
           params: { _id: schoolData._id },
           data: form,
@@ -290,8 +290,14 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
       setNewTitle("");
       setNewContent("");
       openItem(item, "view");
+      const lengthNote =
+        typeof contentLength === "number"
+          ? `\n추출된 글자 수: ${contentLength.toLocaleString()}자`
+          : "";
       alert(
-        "저장되었습니다. 선택한 적용 스킬에 자동으로 연결되었습니다."
+        extractWarning
+          ? `${extractWarning}${lengthNote}\n\n항목은 저장되었습니다. 선택한 적용 스킬에 자동으로 연결되었습니다.`
+          : `저장되었습니다. 선택한 적용 스킬에 자동으로 연결되었습니다.${lengthNote}`
       );
     } catch (err) {
       ALERT_ERROR(err);
@@ -840,7 +846,9 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
                   파일로 추가
                 </Button>
                 <p className={style.fileFormatHint}>
-                  PDF, DOCX, TXT, HWP · 최대 10MB · 텍스트 추출 후 저장
+                  PDF, DOCX, TXT, HWP · 최대 10MB · 텍스트 추출 후 저장(긴
+                  문서는 앞부분·검색용 청크로 보관). 스캔 PDF는 추출이 거의 안 될
+                  수 있습니다.
                 </p>
               </div>
               <Button type="ghost" onClick={handleCreateItem} disabled={isUploading}>

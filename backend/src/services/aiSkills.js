@@ -39,6 +39,7 @@ import {
   parseSyllabusReviewJson,
   buildReviewRetryPrompt,
   truncateText,
+  getReferenceLimits,
 } from "./aiPromptPolicy.js";
 import { maskSensitiveText } from "./aiSafety.js";
 import { logAIUsage } from "./aiUsage.js";
@@ -72,6 +73,11 @@ import {
   buildAlterChatSystemPrompt,
   withAlterSafety,
 } from "./alterCorePrompt.js";
+import {
+  ensureChunksForItems,
+  retrieveLibraryChunks,
+} from "./aiLibraryChunks.js";
+import { logger } from "../log/logger.js";
 
 export { parseFormResponseDraftResponse } from "./formResponseDraft.js";
 export {
@@ -249,9 +255,16 @@ const skillGuidelineFallback = (skill, legacy = "") => {
 };
 
 /** 스킬에 선택된 라이브러리 → 지침 블록 / 학습정보 */
-const loadSchoolSkillLibraryParts = async (academyId, school, skillConfig) => {
+const loadSchoolSkillLibraryParts = async (
+  academyId,
+  school,
+  skillConfig,
+  { isChat = false } = {}
+) => {
   let learningRefs = [];
+  const learningTitles = [];
   const instructionBlocks = [];
+  const limits = getReferenceLimits(isChat ? "chat" : "default");
   const ids = Array.isArray(skillConfig?.libraryItemIds)
     ? skillConfig.libraryItemIds.map(String).filter(Boolean)
     : [];
@@ -270,19 +283,36 @@ const loadSchoolSkillLibraryParts = async (academyId, school, skillConfig) => {
         instructionBlocks.push(
           `### ${it.title || "지침"}\n${truncateText(
             it.content || "",
-            PROMPT_LIMITS.REFERENCE_CHARS
+            limits.instructionBlockChars
           )}`
         );
       } else {
+        learningTitles.push(String(it.title || "학습정보").trim() || "학습정보");
         learningRefs.push({
           title: it.title,
           content: it.content,
+          libraryItemId: String(it._id),
         });
       }
     }
-    learningRefs = normalizeReferences(learningRefs);
   }
-  return { instructionBlocks, learningRefs };
+  return { instructionBlocks, learningRefs, learningTitles, libraryItemIds: ids };
+};
+
+/**
+ * chat: 선택된 학습정보 제목 전체 목록 (본문 한도 밖 안내)
+ * @param {string[]} titles
+ * @param {number} includedCount
+ */
+const buildChatLibraryTitleBlock = (titles = [], includedCount = 0) => {
+  const list = (titles || []).filter(Boolean);
+  if (list.length === 0) return "";
+  const lines = list.map((t, i) => `${i + 1}. ${t}`);
+  const note =
+    includedCount < list.length
+      ? `\n(이번 턴 본문 참고는 상위 ${includedCount}개까지. 나머지는 제목만 표시 — 질문 관련 검색으로 보완될 수 있음)`
+      : "";
+  return `## 적용 라이브러리\n${lines.join("\n")}${note}`;
 };
 
 export const resolveSkillPromptPack = async (
@@ -295,10 +325,14 @@ export const resolveSkillPromptPack = async (
   const skill = resolveSkillId(skillId);
   const skillConfig = school?.aiConfig?.skills?.[skill] || null;
   const useSchool = hasSchoolSkillConfig(school);
+  const isChat = skill === SKILL_IDS.CHAT;
+  const limits = getReferenceLimits(isChat ? "chat" : "default");
 
   if (useSchool) {
-    const { instructionBlocks, learningRefs } =
-      await loadSchoolSkillLibraryParts(academyId, school, skillConfig);
+    const { instructionBlocks, learningRefs, learningTitles, libraryItemIds } =
+      await loadSchoolSkillLibraryParts(academyId, school, skillConfig, {
+        isChat,
+      });
 
     // 지침은 라이브러리(instruction) 선택이 우선.
     // chat은 기본 가이드 없이 라이브러리/레거시만. 다른 스킬은 defaultSkillGuide fallback.
@@ -307,18 +341,37 @@ export const resolveSkillPromptPack = async (
         ? ""
         : skillGuidelineFallback(skill, skillConfig?.instructions || "");
 
-    const guidelines = truncateText(
+    let guidelines = truncateText(
       [baseInstructions, ...instructionBlocks].filter(Boolean).join("\n\n"),
-      PROMPT_LIMITS.GUIDELINES_TOTAL_CHARS ||
-        PROMPT_LIMITS.GUIDELINES_CHARS * 4
+      limits.guidelinesTotal
     );
 
     const skipRefs = skill === SKILL_IDS.SYLLABUS_DRAFT;
+    const references = skipRefs
+      ? []
+      : selectReferencesForPrompt(learningRefs, referenceIndexes, {
+          count: limits.count,
+          chars: limits.chars,
+        });
+
+    if (isChat && learningTitles.length > 0) {
+      const titleBlock = buildChatLibraryTitleBlock(
+        learningTitles,
+        references.length
+      );
+      guidelines = truncateText(
+        [guidelines, titleBlock].filter(Boolean).join("\n\n"),
+        limits.guidelinesTotal
+      );
+    }
+
+    const learningLibraryItemIds = learningRefs
+      .map((r) => r.libraryItemId)
+      .filter(Boolean);
+
     return {
       guidelines,
-      references: skipRefs
-        ? []
-        : selectReferencesForPrompt(learningRefs, referenceIndexes),
+      references,
       exampleSyllabusIds: skipRefs
         ? []
         : Array.isArray(skillConfig?.exampleSyllabusIds)
@@ -327,6 +380,9 @@ export const resolveSkillPromptPack = async (
       examples: {},
       schoolId: school?._id ? String(school._id) : null,
       fromSchool: true,
+      libraryItemIds,
+      learningLibraryItemIds,
+      learningTitles,
     };
   }
 
@@ -341,7 +397,8 @@ export const resolveSkillPromptPack = async (
       ? []
       : selectReferencesForPrompt(
           season?.aiSettings?.references || [],
-          referenceIndexes
+          referenceIndexes,
+          { count: limits.count, chars: limits.chars }
         ),
     exampleSyllabusIds: skipRefs
       ? []
@@ -351,6 +408,9 @@ export const resolveSkillPromptPack = async (
     examples: skipRefs ? {} : season?.aiSettings?.examples || {},
     schoolId: school?._id ? String(school._id) : null,
     fromSchool: false,
+    libraryItemIds: [],
+    learningLibraryItemIds: [],
+    learningTitles: [],
   };
 };
 
@@ -4709,8 +4769,28 @@ export const runAlterSkill = async ({
     SKILL_IDS.CHAT,
     context?.referenceIndexes
   );
+  let chatReferences = chatPromptPack.references || [];
+  let chatCitations = [];
+  const retrieveIds = chatPromptPack.learningLibraryItemIds || [];
+  if (school?._id && retrieveIds.length > 0 && message?.trim()) {
+    try {
+      await ensureChunksForItems(academyId, retrieveIds);
+      const retrieved = await retrieveLibraryChunks({
+        academyId,
+        schoolId: school._id,
+        libraryItemIds: retrieveIds,
+        query: message,
+      });
+      if (retrieved.length > 0) {
+        chatReferences = retrieved;
+        chatCitations = retrieved.map((r) => r.title).filter(Boolean);
+      }
+    } catch (retrieveErr) {
+      logger.error(`chat library retrieve: ${retrieveErr.message}`);
+    }
+  }
   const systemInstruction = buildAlterChatSystem(
-    chatPromptPack,
+    { ...chatPromptPack, references: chatReferences },
     context,
     boardTitle
   );
@@ -4779,7 +4859,14 @@ export const runAlterSkill = async ({
       err.code = AI_ERRORS.EMPTY_RESPONSE;
       throw err;
     }
-    return { skill, text: safeText, review: null, draft: null, tokenUsage };
+    return {
+      skill,
+      text: safeText,
+      review: null,
+      draft: null,
+      tokenUsage,
+      citations: chatCitations,
+    };
   } catch (err) {
     if (!err.code) err.code = mapProviderError(err);
     logAIUsage(academyId, {

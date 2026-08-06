@@ -7,6 +7,7 @@ import { Academy } from "../models/Academy.js";
 import { AIChatMessage } from "../models/AIChatMessage.js";
 import { AIChatSession } from "../models/AIChatSession.js";
 import { AIUsageLog } from "../models/AIUsageLog.js";
+import { AiLibraryChunk } from "../models/AiLibraryChunk.js";
 import { AiLibraryItem } from "../models/AiLibraryItem.js";
 import { AlterConversation } from "../models/AlterConversation.js";
 import { AlterMessage } from "../models/AlterMessage.js";
@@ -45,6 +46,7 @@ export {
   AIChatMessage,
   AIChatSession,
   AIUsageLog,
+  AiLibraryChunk,
   AiLibraryItem,
   AlterConversation,
   AlterMessage,

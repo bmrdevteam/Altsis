@@ -1277,13 +1277,15 @@ export default function useAPIv2() {
     params: { _id: string };
     data: FormData;
   }) {
-    const { item, aiConfig } = await database.C({
+    const { item, aiConfig, contentLength, extractWarning } = await database.C({
       location: `schools/${props.params._id}/ai-library/upload`,
       data: props.data,
     });
     return {
       item: item as TAiLibraryItem,
       aiConfig: aiConfig as TSchoolAiConfig | undefined,
+      contentLength: contentLength as number | undefined,
+      extractWarning: extractWarning as string | undefined,
     };
   }
 

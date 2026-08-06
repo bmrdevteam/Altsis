@@ -26,6 +26,10 @@ import {
   Syllabus,
   User,
 } from "../models/index.js";
+import {
+  deleteChunksForItem,
+  rebuildChunksForItem,
+} from "../services/aiLibraryChunks.js";
 import { profileS3, profileBucket } from "../_s3/profileBucket.js";
 import { fileS3, fileBucket, signUrl } from "../_s3/fileBucket.js";
 import { schoolAiLibraryMulter } from "../_s3/aiRefMulter.js";
@@ -1234,7 +1238,7 @@ export const createAiLibraryItem = async (req, res) => {
     );
     const content = truncateText(
       req.body.content || "",
-      PROMPT_LIMITS.REFERENCE_CHARS * 4
+      PROMPT_LIMITS.LIBRARY_CONTENT_CHARS || 200000
     );
     const skillTags = Array.isArray(req.body.skillTags)
       ? [
@@ -1256,6 +1260,12 @@ export const createAiLibraryItem = async (req, res) => {
 
     if (syncLibraryItemToSkills(school, item, "create")) {
       await school.save();
+    }
+
+    try {
+      await rebuildChunksForItem(req.user.academyId, item);
+    } catch (chunkErr) {
+      logger.error(chunkErr.message);
     }
 
     return res.status(200).send({ item, aiConfig: school.aiConfig });
@@ -1297,7 +1307,7 @@ export const updateAiLibraryItem = async (req, res) => {
     if ("content" in req.body) {
       item.content = truncateText(
         req.body.content || "",
-        PROMPT_LIMITS.REFERENCE_CHARS * 4
+        PROMPT_LIMITS.LIBRARY_CONTENT_CHARS || 200000
       );
     }
     const previousTags = Array.isArray(item.skillTags)
@@ -1316,6 +1326,13 @@ export const updateAiLibraryItem = async (req, res) => {
     await item.save();
     if (syncLibraryItemToSkills(school, item, "update", previousTags)) {
       await school.save();
+    }
+    if ("content" in req.body || "title" in req.body || "kind" in req.body) {
+      try {
+        await rebuildChunksForItem(req.user.academyId, item);
+      } catch (chunkErr) {
+        logger.error(chunkErr.message);
+      }
     }
     return res.status(200).send({ item, aiConfig: school.aiConfig });
   } catch (err) {
@@ -1369,6 +1386,11 @@ export const deleteAiLibraryItem = async (req, res) => {
       }
     }
 
+    try {
+      await deleteChunksForItem(req.user.academyId, item._id);
+    } catch (chunkErr) {
+      logger.error(chunkErr.message);
+    }
     await item.deleteOne();
     return res.status(200).send({ success: true });
   } catch (err) {
@@ -1414,6 +1436,22 @@ export const uploadAiLibraryItem = async (req, res) => {
           .getObject({ Bucket: fileBucket, Key: req.tmp.key })
           .promise();
         const extracted = await extractText(s3Object.Body, req.file.mimetype);
+        const contentLimit = PROMPT_LIMITS.LIBRARY_CONTENT_CHARS || 200000;
+        const content = truncateText(extracted || "", contentLimit);
+        const contentLength = content.length;
+        let extractWarning;
+        if (!contentLength) {
+          extractWarning =
+            "텍스트를 추출하지 못했습니다. 스캔 PDF이거나 지원되지 않는 형식일 수 있습니다.";
+        } else if (
+          req.file.mimetype === "application/pdf" &&
+          contentLength < 80
+        ) {
+          extractWarning =
+            "추출된 텍스트가 매우 짧습니다. 스캔본이면 OCR이 필요할 수 있습니다.";
+        } else if ((extracted || "").length > contentLimit) {
+          extractWarning = `본문이 저장 상한(${contentLimit}자)을 넘어 앞부분만 저장했습니다.`;
+        }
 
         const kind = VALID_LIBRARY_KINDS.includes(req.body.kind)
           ? req.body.kind
@@ -1436,7 +1474,7 @@ export const uploadAiLibraryItem = async (req, res) => {
             req.body.title || req.file.originalname,
             PROMPT_LIMITS.REFERENCE_TITLE_CHARS
           ),
-          content: truncateText(extracted, PROMPT_LIMITS.REFERENCE_CHARS * 4),
+          content,
           fileName: req.file.originalname,
           fileKey: req.tmp.key,
           fileSize: req.file.size,
@@ -1448,7 +1486,18 @@ export const uploadAiLibraryItem = async (req, res) => {
           await school.save();
         }
 
-        return res.status(200).send({ item, aiConfig: school.aiConfig });
+        try {
+          await rebuildChunksForItem(req.user.academyId, item);
+        } catch (chunkErr) {
+          logger.error(chunkErr.message);
+        }
+
+        return res.status(200).send({
+          item,
+          aiConfig: school.aiConfig,
+          contentLength,
+          extractWarning,
+        });
       } catch (innerErr) {
         logger.error(innerErr.message);
         return res.status(500).send({ message: innerErr.message });

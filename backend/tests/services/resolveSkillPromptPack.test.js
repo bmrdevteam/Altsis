@@ -87,9 +87,75 @@ describe("resolveSkillPromptPack", () => {
     expect(pack.guidelines).not.toContain("레거시 직접 지침");
     expect(pack.guidelines).toContain("세특 작성 지침");
     expect(pack.guidelines).toContain("성장 중심");
+    expect(pack.guidelines).toContain("적용 라이브러리");
+    expect(pack.guidelines).toContain("학습정보 A");
     expect(pack.references).toHaveLength(1);
     expect(pack.references[0].title).toBe("학습정보 A");
+    expect(pack.learningLibraryItemIds).toEqual(["lib1"]);
     expect(mockFind).toHaveBeenCalled();
+  });
+
+  test("chat은 학습정보 5개 선택 시 참고 본문 한도(≤8)와 제목 목록 전체를 넣는다", async () => {
+    const items = Array.from({ length: 5 }, (_, i) => ({
+      _id: `lib${i + 1}`,
+      kind: "learning",
+      title: `문서 ${i + 1}`,
+      content: `본문 ${i + 1} `.repeat(500),
+    }));
+    mockFindLean.mockResolvedValue(items);
+
+    const pack = await resolveSkillPromptPack(
+      "academy1",
+      {
+        _id: "school1",
+        aiConfig: {
+          skills: {
+            [SKILL_IDS.CHAT]: {
+              libraryItemIds: items.map((it) => it._id),
+            },
+          },
+        },
+      },
+      { aiSettings: {} },
+      SKILL_IDS.CHAT
+    );
+
+    expect(pack.references.length).toBeLessThanOrEqual(8);
+    expect(pack.references).toHaveLength(5);
+    expect(pack.learningTitles).toHaveLength(5);
+    for (const title of pack.learningTitles) {
+      expect(pack.guidelines).toContain(title);
+    }
+    expect(pack.references[0].content.length).toBeLessThanOrEqual(4001);
+    expect(pack.learningLibraryItemIds).toHaveLength(5);
+  });
+
+  test("다른 스킬은 참고 개수 2개 한도를 유지한다", async () => {
+    const items = Array.from({ length: 5 }, (_, i) => ({
+      _id: `lib${i + 1}`,
+      kind: "learning",
+      title: `문서 ${i + 1}`,
+      content: "본문",
+    }));
+    mockFindLean.mockResolvedValue(items);
+
+    const pack = await resolveSkillPromptPack(
+      "academy1",
+      {
+        _id: "school1",
+        aiConfig: {
+          skills: {
+            [SKILL_IDS.EVALUATION_DRAFT]: {
+              libraryItemIds: items.map((it) => it._id),
+            },
+          },
+        },
+      },
+      { aiSettings: {} },
+      SKILL_IDS.EVALUATION_DRAFT
+    );
+
+    expect(pack.references).toHaveLength(2);
   });
 
   test("라이브러리 지침이 없으면 레거시 skills.instructions 를 사용한다", async () => {
