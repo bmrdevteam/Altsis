@@ -18,10 +18,16 @@ export type TAlterChatSnapshot = {
 
 export const ALTER_CHAT_SNAPSHOT_LIMITS = {
   MAX_ITEMS: 50,
-  FIELD_VALUE_CHARS: 500,
+  /**
+   * 필드값 상한. 문서함·보드 문서 본문(DOCUMENT_CHARS)과 맞춰
+   * finalize 단계에서 긴 생기부 등이 500자로 재잘리지 않게 한다.
+   * 목록형 화면은 등록 훅에서 짧게 잘라 보낸다.
+   */
+  FIELD_VALUE_CHARS: 40000,
   SUMMARY_CHARS: 400,
-  DOCUMENT_CHARS: 8000,
-  TOTAL_CHARS: 14000,
+  /** 문서함/보드 문서 본문 (생기부 인쇄본 등) */
+  DOCUMENT_CHARS: 40000,
+  TOTAL_CHARS: 48000,
 };
 
 export const clipText = (value: unknown, maxChars: number): string => {

@@ -86,8 +86,8 @@ export const buildAlterChatPageData = (snapshot) => {
   if (!snapshot || typeof snapshot !== "object") return "";
 
   const maxItems = PROMPT_LIMITS.CHAT_SNAPSHOT_MAX_ITEMS || 50;
-  const fieldChars = PROMPT_LIMITS.CHAT_SNAPSHOT_FIELD_CHARS || 500;
-  const totalChars = PROMPT_LIMITS.CHAT_SNAPSHOT_CHARS || 14000;
+  const fieldChars = PROMPT_LIMITS.CHAT_SNAPSHOT_FIELD_CHARS || 40000;
+  const totalChars = PROMPT_LIMITS.CHAT_SNAPSHOT_CHARS || 48000;
 
   const summaryRaw = maskSensitiveText(String(snapshot.summary || "")).text;
   const summary = truncateText(summaryRaw, 400);

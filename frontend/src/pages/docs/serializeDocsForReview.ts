@@ -8,7 +8,8 @@ export type TDocsReviewSnapshot = {
   studentLabel?: string;
 };
 
-const MAX_CONTENT_CHARS = 14000;
+/** chat 스냅샷 DOCUMENT_CHARS와 맞춤 (생기부 등 긴 인쇄본) */
+const MAX_CONTENT_CHARS = 40000;
 const MAX_VALUE_CHARS = 800;
 const MAX_FIELD_NAMES = 40;
 

@@ -28,12 +28,12 @@ export const PROMPT_LIMITS = {
   CHAT_GUIDELINES_TOTAL_CHARS: 8000,
   /** 라이브러리 항목 저장 상한 (프롬프트 주입 한도와 분리) */
   LIBRARY_CONTENT_CHARS: 200000,
-  /** Alter chat: 페이지 로드 데이터 스냅샷 전체 상한 */
-  CHAT_SNAPSHOT_CHARS: 14000,
+  /** Alter chat: 페이지 로드 데이터 스냅샷 전체 상한 (생기부 인쇄본 등) */
+  CHAT_SNAPSHOT_CHARS: 48000,
   /** Alter chat: 스냅샷 항목 수 상한 */
   CHAT_SNAPSHOT_MAX_ITEMS: 50,
-  /** Alter chat: 항목 필드값 상한 */
-  CHAT_SNAPSHOT_FIELD_CHARS: 500,
+  /** Alter chat: 항목 필드값 상한 (문서 본문과 동일 수준) */
+  CHAT_SNAPSHOT_FIELD_CHARS: 40000,
   /** Alter chat retrieval: 청크 개수 */
   CHAT_RETRIEVE_CHUNK_LIMIT: 6,
   /** Alter chat retrieval: 문서당 최대 청크 */
@@ -99,7 +99,8 @@ export const PROMPT_LIMITS = {
   DOCUMENT_DRAFT_USER_HINT_CHARS: 2000,
   /** 문서 초안: 제목 최대 글자 */
   DOCUMENT_DRAFT_TITLE_CHARS: 120,
-  DOCUMENT_REVIEW_CONTENT_CHARS: 14000,
+  /** 문서 점검: 본문 상한 (문서함 직렬화·chat 스냅샷과 맞춤) */
+  DOCUMENT_REVIEW_CONTENT_CHARS: 40000,
   DOCUMENT_REVIEW_USER_HINT_CHARS: 2000,
   DOCUMENT_REVIEW_FIELD_COUNT: 40,
   /** 양식 응답 초안: 필드 값 합계 최대 글자 */

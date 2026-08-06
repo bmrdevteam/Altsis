@@ -55,6 +55,20 @@ describe("alterChatSnapshot", () => {
     expect(slotItem?.fields?.월1).toContain("리더십");
   });
 
+  test("긴 문서 본문은 FIELD_VALUE 상한으로 500자에서 잘리지 않는다", () => {
+    const body = `교과학습발달상황 ${"가".repeat(12000)}`;
+    expect(body.length).toBeGreaterThan(10000);
+    const snap = finalizeChatSnapshot({
+      summary: "문서함 — 생활기록부",
+      items: [{ title: "생활기록부", fields: { 내용: body } }],
+      totalCount: 1,
+      isPartial: false,
+    });
+    expect(snap.isPartial).toBe(false);
+    expect(snap.items?.[0].fields?.내용).toContain("교과학습발달상황");
+    expect((snap.items?.[0].fields?.내용 || "").length).toBeGreaterThan(10000);
+  });
+
   test("buildCourseListChatSnapshot includes enroll status", () => {
     const snap = buildCourseListChatSnapshot(
       [

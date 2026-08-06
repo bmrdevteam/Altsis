@@ -2923,7 +2923,7 @@ export const executeDocumentReviewSkill = async ({
   ).trim();
   const documentText = truncateText(
     String(context.documentText || context.currentContent || ""),
-    PROMPT_LIMITS.DOCUMENT_REVIEW_CONTENT_CHARS || 14000
+    PROMPT_LIMITS.DOCUMENT_REVIEW_CONTENT_CHARS || 40000
   );
   const sourceText = mergeContextSourceText(
     context,

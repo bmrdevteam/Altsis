@@ -79,6 +79,18 @@ describe("buildAlterChatPageData", () => {
     expect(text).toContain("항목 수: 3");
   });
 
+  test("긴 문서 필드가 500자에서 잘리지 않는다", () => {
+    const body = `교과학습발달상황 ${"가".repeat(12000)}`;
+    const text = buildAlterChatPageData({
+      summary: "문서함 — 생활기록부",
+      totalCount: 1,
+      items: [{ title: "생활기록부", fields: { 내용: body } }],
+    });
+    expect(text).toContain("교과학습발달상황");
+    expect(text.length).toBeGreaterThan(10000);
+    expect(text).not.toContain("일부만 포함");
+  });
+
   test("시스템 프롬프트에 페이지 데이터 정책과 블록이 들어간다", () => {
     const text = buildAlterChatSystemPrompt({
       pageContext: { pageType: "course-list", label: "수강 신청" },
