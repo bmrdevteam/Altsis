@@ -362,20 +362,23 @@ export const resolveSkillPrepSettings = async (
     skill === SKILL_IDS.FORM_RESPONSE_DRAFT ||
     skill === SKILL_IDS.ACTIVITY_DRAFT;
 
-  const loadInstructionChoices = async () => {
+  /** 문서 점검은 관리에서 정리한(연결·태그) 항목만 prep에 노출 */
+  const dedicatedOnly = skill === SKILL_IDS.DOCUMENT_REVIEW;
+
+  const loadLibraryChoicesByKind = async (kind, emptyTitle) => {
     if (!school?._id) {
-      return { instructionItems: [], defaultGuidelineItemIds: [] };
+      return { items: [], defaultIds: [] };
     }
     const linkedIds = Array.isArray(skillConfig?.libraryItemIds)
       ? skillConfig.libraryItemIds.map(String).filter(Boolean)
       : [];
     const linkedSet = new Set(linkedIds);
     const items = await AiLibraryItem(academyId)
-      .find({ school: school._id, kind: "instruction" })
+      .find({ school: school._id, kind })
       .select("_id title content skillTags")
       .lean();
+    const byId = new Map();
     const tagged = [];
-    const linked = [];
     const others = [];
     for (const it of items || []) {
       const id = String(it._id);
@@ -384,25 +387,54 @@ export const resolveSkillPrepSettings = async (
         : [];
       const row = {
         _id: id,
-        title: it.title || "지침",
+        title: it.title || emptyTitle,
         content: truncateText(it.content || "", 400),
       };
-      if (linkedSet.has(id)) linked.push(row);
-      else if (tags.includes(skill)) tagged.push(row);
+      byId.set(id, row);
+      if (linkedSet.has(id)) continue;
+      if (tags.includes(skill)) tagged.push(row);
       else others.push(row);
     }
-    // 스킬에 연결된/태그된 지침이 있어도 나머지 라이브러리 지침을 함께 노출한다.
-    // (스킬당 libraryItemIds 상한 때문에 연결되지 않은 항목이 prep에서 누락되던 문제 방지)
+    // 관리 화면 연결 순서 유지
+    const linked = linkedIds.map((id) => byId.get(id)).filter(Boolean);
     const dedicated = [...linked, ...tagged];
-    const instructionItems =
-      dedicated.length > 0 ? [...dedicated, ...others] : others;
-    const defaultGuidelineItemIds =
+    let list;
+    if (dedicatedOnly) {
+      list = dedicated;
+    } else {
+      list = dedicated.length > 0 ? [...dedicated, ...others] : others;
+    }
+    const defaultIds =
       linked.length > 0
         ? linked.map((r) => r._id)
         : tagged.length > 0
           ? tagged.map((r) => r._id)
-          : others.map((r) => r._id);
-    return { instructionItems, defaultGuidelineItemIds };
+          : dedicatedOnly
+            ? []
+            : others.map((r) => r._id);
+    return { items: list, defaultIds };
+  };
+
+  const loadInstructionChoices = async () => {
+    const { items, defaultIds } = await loadLibraryChoicesByKind(
+      "instruction",
+      "지침"
+    );
+    return {
+      instructionItems: items,
+      defaultGuidelineItemIds: defaultIds,
+    };
+  };
+
+  const loadLearningChoices = async () => {
+    const { items, defaultIds } = await loadLibraryChoicesByKind(
+      "learning",
+      "학습정보"
+    );
+    return {
+      learningItems: items,
+      defaultLearningItemIds: defaultIds,
+    };
   };
 
   if (useSchool) {
@@ -430,6 +462,10 @@ export const resolveSkillPrepSettings = async (
       skill === SKILL_IDS.ACTIVITY_DRAFT
     ) {
       const choices = await loadInstructionChoices();
+      if (skill === SKILL_IDS.DOCUMENT_REVIEW) {
+        const learning = await loadLearningChoices();
+        return { ...base, ...choices, ...learning };
+      }
       return { ...base, ...choices };
     }
     return base;
@@ -450,6 +486,10 @@ export const resolveSkillPrepSettings = async (
     skill === SKILL_IDS.ACTIVITY_DRAFT
   ) {
     const choices = await loadInstructionChoices();
+    if (skill === SKILL_IDS.DOCUMENT_REVIEW) {
+      const learning = await loadLearningChoices();
+      return { ...seasonBase, ...choices, ...learning };
+    }
     return { ...seasonBase, ...choices };
   }
   return seasonBase;
@@ -551,6 +591,44 @@ const resolveDocumentReviewGuidelines = async (
     SKILL_IDS.DOCUMENT_REVIEW,
     context
   );
+
+/** prep에서 고른 학습정보(+스킬 기본 연결)로 참고 블록 구성 */
+const resolveDocumentReviewLearningRefs = async (
+  academyId,
+  school,
+  context = {}
+) => {
+  const skillConfig =
+    school?.aiConfig?.skills?.[SKILL_IDS.DOCUMENT_REVIEW] || null;
+  // learningItemIds 가 배열로 오면(빈 배열 포함) prep 선택을 그대로 사용
+  const hasSelection = Array.isArray(context.learningItemIds);
+  const requested = hasSelection
+    ? context.learningItemIds.map(String).filter(Boolean)
+    : [];
+  const fallbackLinked = Array.isArray(skillConfig?.libraryItemIds)
+    ? skillConfig.libraryItemIds.map(String).filter(Boolean)
+    : [];
+  const ids = hasSelection ? requested : fallbackLinked;
+  if (!ids.length || !school?._id) return [];
+
+  const items = await AiLibraryItem(academyId)
+    .find({
+      _id: { $in: ids },
+      school: school._id,
+      kind: "learning",
+    })
+    .lean();
+  const byId = new Map(items.map((it) => [String(it._id), it]));
+  const refs = ids
+    .map((id) => byId.get(id))
+    .filter(Boolean)
+    .map((it) => ({
+      title: String(it.title || "학습정보").trim(),
+      content: String(it.content || "").trim(),
+    }))
+    .filter((r) => r.content || r.title);
+  return normalizeReferences(refs);
+};
 
 const resolveFormResponseGuidelines = async (
   academyId,
@@ -2868,6 +2946,17 @@ export const executeDocumentReviewSkill = async ({
     season,
     context
   );
+  const learningRefs = await resolveDocumentReviewLearningRefs(
+    academyId,
+    school,
+    context
+  );
+  const learningBlock =
+    learningRefs.length > 0
+      ? learningRefs
+          .map((r) => `### ${r.title || "학습정보"}\n${r.content || ""}`)
+          .join("\n\n")
+      : "(없음)";
 
   const provider = resolveProvider(academy.aiProvider);
   const modelName = resolveModel(provider, academy.aiModel);
@@ -2885,6 +2974,7 @@ export const executeDocumentReviewSkill = async ({
 ## 역할
 - 지침 충족·부분 충족·미충족·미작성을 구체 항목별로 판단합니다. 섹션 단위로만 뭉뚱그리지 마세요.
 - 근거는 문서에 실제로 있는 내용만 사용하세요. 추측하지 마세요.
+- 학습정보(참고 자료)는 점검 배경으로만 쓰고, 문서에 없는 사실을 만들어 내지 마세요.
 - 학생을 존중하는 공손한 문어체 기준을 적용하고, 낙인·민감정보·과장·비구체성을 지적하세요.
 - needs_work·fair 항목에는 문제된 원문(quote)과 변경 전·후 예시(exampleBefore/exampleAfter)를 넣으세요.
 - 예시 문장은 해당 문서 내용을 바탕으로 1~2문장만 고친 형태입니다. 긴 전문 재작성은 하지 마세요.
@@ -2892,6 +2982,9 @@ export const executeDocumentReviewSkill = async ({
 
 ## 작성 지침 (점검 기준)
 ${guidelines || defaultSkillGuide(SKILL_IDS.DOCUMENT_REVIEW)}
+
+## 학습정보 (참고)
+${learningBlock}
 
 ## 문서 정보
 - 화면: ${pageType || "(미지정)"}

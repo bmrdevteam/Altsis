@@ -560,6 +560,11 @@ const AlterPanel = ({ onClose }: Props) => {
   >([]);
   const [docReviewSelectedGuidelineIds, setDocReviewSelectedGuidelineIds] =
     useState<string[]>([]);
+  const [docReviewLearningItems, setDocReviewLearningItems] = useState<
+    Array<{ _id: string; title: string; content: string }>
+  >([]);
+  const [docReviewSelectedLearningIds, setDocReviewSelectedLearningIds] =
+    useState<string[]>([]);
 
   const [formResponseWriteMode, setFormResponseWriteMode] = useState<
     "create" | "refine"
@@ -696,6 +701,7 @@ const AlterPanel = ({ onClose }: Props) => {
     setDocType("general");
     setDocSelectedGuidelineIds([]);
     setDocReviewSelectedGuidelineIds([]);
+    setDocReviewSelectedLearningIds([]);
     const formSnap = pageContext?.getFormResponse?.();
     const hasFormTemplateOrBody = (formSnap?.fields || []).some((f) => {
       const tpl = String(f.template || "").trim();
@@ -834,14 +840,15 @@ const AlterPanel = ({ onClose }: Props) => {
             : filtered.map((it: { _id: string }) => it._id);
           const pickIds = (
             prev: string[],
-            allowedItems: Array<{ _id: string }>
+            allowedItems: Array<{ _id: string }>,
+            defaultIds: string[] = defaults
           ) => {
             if (prev.length > 0) {
               const allowed = new Set(allowedItems.map((it) => it._id));
               const kept = prev.filter((id) => allowed.has(id));
               if (kept.length > 0) return kept;
             }
-            return defaults;
+            return defaultIds;
           };
           if (selectedSkill === "archive-draft") {
             setArchiveGuidelineItems(filtered);
@@ -853,6 +860,28 @@ const AlterPanel = ({ onClose }: Props) => {
             setDocReviewGuidelineItems(filtered);
             setDocReviewSelectedGuidelineIds((prev) =>
               pickIds(prev, filtered)
+            );
+            const learning = Array.isArray(data.learningItems)
+              ? data.learningItems
+                  .map(
+                    (it: {
+                      _id?: string;
+                      title?: string;
+                      content?: string;
+                    }) => ({
+                      _id: String(it._id || ""),
+                      title: it.title || "학습정보",
+                      content: it.content || "",
+                    })
+                  )
+                  .filter((it: { _id: string }) => it._id)
+              : [];
+            const learningDefaults = Array.isArray(data.defaultLearningItemIds)
+              ? data.defaultLearningItemIds.map(String)
+              : [];
+            setDocReviewLearningItems(learning);
+            setDocReviewSelectedLearningIds((prev) =>
+              pickIds(prev, learning, learningDefaults)
             );
           } else if (selectedSkill === "form-response-draft") {
             setFormResponseGuidelineItems(filtered);
@@ -875,6 +904,8 @@ const AlterPanel = ({ onClose }: Props) => {
         }
         if (selectedSkill === "document-review") {
           setDocReviewGuidelineItems([]);
+          setDocReviewLearningItems([]);
+          setDocReviewSelectedLearningIds([]);
         }
         if (selectedSkill === "form-response-draft") {
           setFormResponseGuidelineItems([]);
@@ -1093,6 +1124,7 @@ const AlterPanel = ({ onClose }: Props) => {
         boardId: pageContext?.boardId || "",
         boardName: pageContext?.boardName || "",
         guidelineItemIds: docReviewSelectedGuidelineIds,
+        learningItemIds: docReviewSelectedLearningIds,
         documentTitle: reviewDoc.title || "",
         documentText: reviewDoc.content || "",
         fieldNames: reviewDoc.fieldNames || [],
@@ -3714,15 +3746,14 @@ const AlterPanel = ({ onClose }: Props) => {
             <div className={style.prepCard}>
               <p className={style.prepLabel}>
                 점검 지침
-                <PrepHint text="학교 AI 라이브러리의 「문서 점검」지침을 고릅니다. 선택한 지침을 기준으로 문서를 점검합니다." />
+                <PrepHint text="관리 → 학교 AI → 「문서 점검」에 연결한 지침만 표시됩니다. 선택한 지침을 기준으로 점검합니다." />
               </p>
               {skillSettingsLoading ? (
                 <p className={style.prepText}>지침을 불러오는 중...</p>
               ) : docReviewGuidelineItems.length === 0 ? (
                 <p className={style.prepText}>
-                  선택 가능한 지침이 없습니다. 관리 → 학교 AI → 라이브러리에서
-                  「문서 점검」 지침을 추가해 주세요. 기본 기준으로
-                  점검합니다.
+                  연결된 지침이 없습니다. 관리 → 학교 AI → 문서 점검에서
+                  지침을 연결해 주세요. 기본 기준으로 점검합니다.
                 </p>
               ) : (
                 <div className={`${style.refList} ${style.refListScroll}`}>
@@ -3751,8 +3782,49 @@ const AlterPanel = ({ onClose }: Props) => {
                 </div>
               )}
             </div>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>
+                학습정보
+                <PrepHint text="관리 → 학교 AI → 「문서 점검」에 연결한 학습정보를 참고 자료로 넣을 수 있습니다." />
+              </p>
+              {skillSettingsLoading ? (
+                <p className={style.prepText}>학습정보를 불러오는 중...</p>
+              ) : docReviewLearningItems.length === 0 ? (
+                <p className={style.prepText}>
+                  연결된 학습정보가 없습니다. 관리 → 학교 AI → 문서 점검에서
+                  학습정보를 연결해 주세요.
+                </p>
+              ) : (
+                <div className={`${style.refList} ${style.refListScroll}`}>
+                  {docReviewLearningItems.map((item) => (
+                    <GuidelinePickRow
+                      key={item._id}
+                      id={item._id}
+                      title={item.title}
+                      content={item.content}
+                      checked={docReviewSelectedLearningIds.includes(item._id)}
+                      expanded={expandedGuidelineId === `learning-${item._id}`}
+                      onToggleChecked={() =>
+                        toggleLabel(
+                          item._id,
+                          docReviewSelectedLearningIds,
+                          setDocReviewSelectedLearningIds
+                        )
+                      }
+                      onToggleExpanded={() =>
+                        setExpandedGuidelineId((cur) =>
+                          cur === `learning-${item._id}`
+                            ? null
+                            : `learning-${item._id}`
+                        )
+                      }
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
             <div className={style.prepHintRow}>
-              <PrepHint text="현재 화면에 열린 문서 내용을 점검합니다. 결과는 리포트로만 제공되며 문서에 자동 반영되지 않습니다. 목록이 길면 스크롤해 지침을 고를 수 있습니다." />
+              <PrepHint text="현재 화면에 열린 문서 내용을 점검합니다. 결과는 리포트로만 제공되며 문서에 자동 반영되지 않습니다." />
               <span className={style.prepHintRowLabel}>이용 안내</span>
             </div>
           </>

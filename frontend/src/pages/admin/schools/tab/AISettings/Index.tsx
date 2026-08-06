@@ -221,7 +221,7 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
     const current = skillConfig.libraryItemIds || [];
     const next = current.includes(itemId)
       ? current.filter((id) => id !== itemId)
-      : [...current, itemId].slice(0, 6);
+      : [...current, itemId].slice(0, 20);
     saveSkillConfig({ libraryItemIds: next });
   };
 

@@ -59,7 +59,7 @@ const VALID_SKILL_IDS = [
 ];
 const LEGACY_SKILL_IDS = { "syllabus-review": "syllabus-draft" };
 const VALID_LIBRARY_KINDS = ["instruction", "learning"];
-const MAX_LIBRARY_ITEMS_PER_SKILL = 6;
+const MAX_LIBRARY_ITEMS_PER_SKILL = 20;
 
 const defaultAiConfig = () => ({
   permission: { teacher: false, student: false },
