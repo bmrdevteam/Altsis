@@ -66,6 +66,9 @@ const emptySkill = (): TSchoolAiSkillConfig => ({
   libraryItemIds: [],
 });
 
+const skillLabel = (id: string) =>
+  SKILLS.find((s) => s.id === id)?.label || id;
+
 type Props = {
   schoolData: TSchool;
   setSchoolData?: (data: TSchool) => void;
@@ -96,8 +99,6 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
   const [editSkillTags, setEditSkillTags] = useState<TAlterSkillId[]>([]);
   const [editMode, setEditMode] = useState<"view" | "edit">("view");
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const schoolEnabled = schoolData.aiEnabled !== false;
 
   const applyAiConfig = (nextConfig?: TSchoolAiConfig) => {
     if (!nextConfig) return;
@@ -158,6 +159,15 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
     return library.filter((i) => i.kind === kindFilter);
   }, [library, kindFilter]);
 
+  const libraryCounts = useMemo(
+    () => ({
+      all: library.length,
+      instruction: library.filter((i) => i.kind === "instruction").length,
+      learning: library.filter((i) => i.kind === "learning").length,
+    }),
+    [library]
+  );
+
   const skillConfig = aiConfig.skills?.[activeSkill] || emptySkill();
 
   const libraryForSkill = useMemo(() => {
@@ -217,6 +227,12 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
 
   const toggleNewSkillTag = (id: TAlterSkillId) => {
     setNewSkillTags((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const toggleEditSkillTag = (id: TAlterSkillId) => {
+    setEditSkillTags((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   };
@@ -411,7 +427,7 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
             내용을 확인할 수 있습니다.
           </p>
 
-          <div className={style.filterRow}>
+          <div className={style.filterRow} role="tablist" aria-label="라이브러리 유형 필터">
             {(
               [
                 ["all", "전체"],
@@ -422,74 +438,104 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
               <button
                 key={key}
                 type="button"
+                role="tab"
+                aria-selected={kindFilter === key}
                 className={`${style.skillTab} ${
                   kindFilter === key ? style.skillTabActive : ""
                 }`}
                 onClick={() => setKindFilter(key)}
               >
                 {label}
+                <span className={style.filterCount}>{libraryCounts[key]}</span>
               </button>
             ))}
           </div>
 
           {filteredLibrary.length > 0 ? (
-            <div className={style.tableWrap}>
-              <Table
-                type="object-array"
-                data={filteredLibrary.map((item) => ({
-                  ...item,
-                  kindLabel: item.kind === "instruction" ? "지침" : "학습정보",
-                  tags:
-                    item.skillTags?.length
-                      ? item.skillTags.join(", ")
-                      : "모든 스킬",
-                  sourceType: item.fileName ? "파일" : "직접 입력",
-                }))}
-                header={[
-                  { text: "유형", key: "kindLabel", width: "80px", type: "text" },
-                  { text: "제목", key: "title", type: "text" },
-                  { text: "스킬", key: "tags", width: "140px", type: "text" },
-                  {
-                    text: "출처",
-                    key: "sourceType",
-                    width: "90px",
-                    textAlign: "center",
-                    type: "text",
-                  },
-                  {
-                    text: "보기",
-                    key: "view",
-                    width: "70px",
-                    textAlign: "center",
-                    type: "button",
-                    onClick: (e: any) => {
-                      const found = library.find((i) => i._id === e._id);
-                      if (found) openItem(found, "view");
-                    },
-                  },
-                  {
-                    text: "파일",
-                    key: "download",
-                    width: "70px",
-                    textAlign: "center",
-                    type: "button",
-                    onClick: (e: any) => {
-                      if (e.fileKey) handleDownload(e._id);
-                    },
-                  },
-                  {
-                    text: "삭제",
-                    key: "delete",
-                    width: "70px",
-                    textAlign: "center",
-                    type: "button",
-                    onClick: (e: any) => handleDeleteItem(e._id),
-                  },
-                ]}
-              />
-            </div>
+            <ul className={style.libraryList}>
+              {filteredLibrary.map((item) => {
+                const isActive = editingItem?._id === item._id;
+                const tags = item.skillTags?.length
+                  ? item.skillTags.map(skillLabel)
+                  : ["모든 스킬"];
+                return (
+                  <li key={item._id}>
+                    <article
+                      className={`${style.libraryCard} ${
+                        isActive ? style.libraryCardActive : ""
+                      }`}
+                    >
+                      <div className={style.libraryCardBody}>
+                        <div className={style.libraryCardBadges}>
+                          <span
+                            className={`${style.kindBadge} ${
+                              item.kind === "instruction"
+                                ? style.kindBadgeInstruction
+                                : style.kindBadgeLearning
+                            }`}
+                          >
+                            {item.kind === "instruction" ? "지침" : "학습정보"}
+                          </span>
+                          <span className={style.sourceBadge}>
+                            {item.fileName ? "파일" : "직접 입력"}
+                          </span>
+                          {item.fileName ? (
+                            <span className={style.fileName} title={item.fileName}>
+                              {item.fileName}
+                            </span>
+                          ) : null}
+                        </div>
+                        <h5 className={style.libraryCardTitle}>
+                          {item.title || "(제목 없음)"}
+                        </h5>
+                        <div className={style.librarySkillChips}>
+                          {tags.map((tag) => (
+                            <span key={tag} className={style.chip}>
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div className={style.libraryCardActions}>
+                        <button
+                          type="button"
+                          className={style.cardAction}
+                          onClick={() => openItem(item, "view")}
+                        >
+                          보기
+                        </button>
+                        <button
+                          type="button"
+                          className={style.cardAction}
+                          disabled={!item.fileKey}
+                          onClick={() => handleDownload(item._id)}
+                          title={
+                            item.fileKey
+                              ? "원본 파일 다운로드"
+                              : "업로드된 파일이 없습니다"
+                          }
+                        >
+                          파일
+                        </button>
+                        <button
+                          type="button"
+                          className={`${style.cardAction} ${style.cardActionDanger}`}
+                          onClick={() => handleDeleteItem(item._id)}
+                        >
+                          삭제
+                        </button>
+                      </div>
+                    </article>
+                  </li>
+                );
+              })}
+            </ul>
           ) : (
-            <p className={style.emptyNote}>등록된 라이브러리 항목이 없습니다.</p>
+            <p className={style.emptyNote}>
+              {library.length === 0
+                ? "등록된 라이브러리 항목이 없습니다. 아래에서 지침이나 학습정보를 추가해 보세요."
+                : "이 유형의 항목이 없습니다."}
+            </p>
           )}
 
           {editingItem && (
@@ -500,20 +546,32 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
               </p>
               {editMode === "view" ? (
                 <>
-                  <p className={style.sectionHint}>
-                    유형:{" "}
-                    {editingItem.kind === "instruction" ? "지침" : "학습정보"}
-                    {" · "}
-                    적용 스킬:{" "}
-                    {editingItem.skillTags?.length
-                      ? editingItem.skillTags
-                          .map(
-                            (id) =>
-                              SKILLS.find((s) => s.id === id)?.label || id
-                          )
-                          .join(", ")
-                      : "모든 스킬"}
-                  </p>
+                  <div className={style.libraryCardBadges}>
+                    <span
+                      className={`${style.kindBadge} ${
+                        editingItem.kind === "instruction"
+                          ? style.kindBadgeInstruction
+                          : style.kindBadgeLearning
+                      }`}
+                    >
+                      {editingItem.kind === "instruction"
+                        ? "지침"
+                        : "학습정보"}
+                    </span>
+                    <span className={style.sourceBadge}>
+                      {editingItem.fileName ? "파일" : "직접 입력"}
+                    </span>
+                  </div>
+                  <div className={style.librarySkillChips}>
+                    {(editingItem.skillTags?.length
+                      ? editingItem.skillTags.map(skillLabel)
+                      : ["모든 스킬"]
+                    ).map((tag) => (
+                      <span key={tag} className={style.chip}>
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
                   <pre className={style.previewBox}>
                     {editingItem.content?.trim()
                       ? editingItem.content
@@ -534,37 +592,62 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
               ) : (
                 <>
                   <div className={style.fieldBlock}>
-                    <span className={style.fieldLabel}>유형</span>
-                    <div className={style.checkboxGrid}>
-                      <label>
-                        <input
-                          type="radio"
-                          checked={editKind === "instruction"}
-                          onChange={() => setEditKind("instruction")}
-                        />
+                    <span className={style.fieldLabel} id="edit-kind-label">
+                      유형
+                    </span>
+                    <div
+                      className={style.kindToggle}
+                      role="radiogroup"
+                      aria-labelledby="edit-kind-label"
+                    >
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={editKind === "instruction"}
+                        className={`${style.kindToggleBtn} ${
+                          editKind === "instruction"
+                            ? style.kindToggleBtnInstruction
+                            : ""
+                        }`}
+                        onClick={() => setEditKind("instruction")}
+                      >
                         지침
-                      </label>
-                      <label>
-                        <input
-                          type="radio"
-                          checked={editKind === "learning"}
-                          onChange={() => setEditKind("learning")}
-                        />
+                      </button>
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={editKind === "learning"}
+                        className={`${style.kindToggleBtn} ${
+                          editKind === "learning"
+                            ? style.kindToggleBtnLearning
+                            : ""
+                        }`}
+                        onClick={() => setEditKind("learning")}
+                      >
                         학습정보
-                      </label>
+                      </button>
                     </div>
                   </div>
                   <div className={style.fieldBlock}>
-                    <label className={style.fieldLabel}>제목</label>
+                    <label className={style.fieldLabel} htmlFor="ai-lib-edit-title">
+                      제목
+                    </label>
                     <input
+                      id="ai-lib-edit-title"
                       className={style.input}
                       value={editTitle}
                       onChange={(e) => setEditTitle(e.target.value)}
                     />
                   </div>
                   <div className={style.fieldBlock}>
-                    <label className={style.fieldLabel}>내용</label>
+                    <label
+                      className={style.fieldLabel}
+                      htmlFor="ai-lib-edit-content"
+                    >
+                      내용
+                    </label>
                     <textarea
+                      id="ai-lib-edit-content"
                       className={style.fieldTextarea}
                       value={editContent}
                       onChange={(e) => setEditContent(e.target.value)}
@@ -573,23 +656,30 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
                   </div>
                   <div className={style.fieldBlock}>
                     <span className={style.fieldLabel}>적용 스킬</span>
-                    <div className={style.checkboxGrid}>
-                      {SKILLS.map((s) => (
-                        <label key={s.id}>
-                          <input
-                            type="checkbox"
-                            checked={editSkillTags.includes(s.id)}
-                            onChange={() =>
-                              setEditSkillTags((prev) =>
-                                prev.includes(s.id)
-                                  ? prev.filter((x) => x !== s.id)
-                                  : [...prev, s.id]
-                              )
-                            }
-                          />
-                          {s.label}
-                        </label>
-                      ))}
+                    <p className={style.fieldHint}>
+                      비우면 모든 스킬에 노출됩니다.
+                    </p>
+                    <div
+                      className={style.skillChipGrid}
+                      role="group"
+                      aria-label="적용 스킬"
+                    >
+                      {SKILLS.map((s) => {
+                        const active = editSkillTags.includes(s.id);
+                        return (
+                          <button
+                            key={s.id}
+                            type="button"
+                            className={`${style.skillChip} ${
+                              active ? style.skillChipActive : ""
+                            }`}
+                            aria-pressed={active}
+                            onClick={() => toggleEditSkillTag(s.id)}
+                          >
+                            {s.label}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                   <div className={style.actions}>
@@ -609,64 +699,122 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
           )}
 
           <div className={style.refForm}>
-            <div className={style.fieldBlock}>
-              <span className={style.fieldLabel}>유형</span>
-              <div className={style.checkboxGrid}>
-                <label>
-                  <input
-                    type="radio"
-                    checked={newKind === "instruction"}
-                    onChange={() => setNewKind("instruction")}
-                  />
-                  지침
-                </label>
-                <label>
-                  <input
-                    type="radio"
-                    checked={newKind === "learning"}
-                    onChange={() => setNewKind("learning")}
-                  />
-                  학습정보
-                </label>
-              </div>
+            <div className={style.refFormHeader}>
+              <h5 className={style.refFormTitle}>항목 추가</h5>
+              <p className={style.refFormHint}>
+                목록에 새 지침·학습정보를 등록합니다.
+              </p>
             </div>
+
             <div className={style.fieldBlock}>
-              <label className={style.fieldLabel}>제목</label>
+              <span className={style.fieldLabel} id="new-kind-label">
+                유형
+              </span>
+              <div
+                className={style.kindToggle}
+                role="radiogroup"
+                aria-labelledby="new-kind-label"
+              >
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={newKind === "instruction"}
+                  className={`${style.kindToggleBtn} ${
+                    newKind === "instruction"
+                      ? style.kindToggleBtnInstruction
+                      : ""
+                  }`}
+                  onClick={() => setNewKind("instruction")}
+                >
+                  지침
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={newKind === "learning"}
+                  className={`${style.kindToggleBtn} ${
+                    newKind === "learning" ? style.kindToggleBtnLearning : ""
+                  }`}
+                  onClick={() => setNewKind("learning")}
+                >
+                  학습정보
+                </button>
+              </div>
+              <p className={style.fieldHint}>
+                {newKind === "instruction"
+                  ? "작성·점검 규칙으로 AI 지침에 들어갑니다."
+                  : "배경·참고 자료로 AI 프롬프트에 붙습니다."}
+              </p>
+            </div>
+
+            <div className={style.fieldBlock}>
+              <label className={style.fieldLabel} htmlFor="ai-lib-new-title">
+                제목
+              </label>
               <input
+                id="ai-lib-new-title"
                 className={style.input}
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
-                placeholder="예: 평가 문체 가이드"
+                placeholder={
+                  newKind === "instruction"
+                    ? "예: 평가 문체 가이드"
+                    : "예: 학교 교육과정 요약"
+                }
               />
             </div>
+
             <div className={style.fieldBlock}>
-              <label className={style.fieldLabel}>내용</label>
+              <label className={style.fieldLabel} htmlFor="ai-lib-new-content">
+                내용
+              </label>
               <textarea
+                id="ai-lib-new-content"
                 className={style.fieldTextarea}
                 value={newContent}
                 onChange={(e) => setNewContent(e.target.value)}
-                placeholder="텍스트로 직접 입력하거나, 아래 파일 업로드를 사용하세요."
+                placeholder="텍스트로 직접 입력하세요. 파일로 추가하면 이 내용은 사용되지 않습니다."
+                disabled={isUploading}
               />
             </div>
+
             <div className={style.fieldBlock}>
-              <span className={style.fieldLabel}>
-                적용 스킬 (선택 시 해당 스킬에 자동 연결, 비우면 모든 스킬)
-              </span>
-              <div className={style.checkboxGrid}>
-                {SKILLS.map((s) => (
-                  <label key={s.id}>
-                    <input
-                      type="checkbox"
-                      checked={newSkillTags.includes(s.id)}
-                      onChange={() => toggleNewSkillTag(s.id)}
-                    />
-                    {s.label}
-                  </label>
-                ))}
+              <span className={style.fieldLabel}>적용 스킬</span>
+              <p className={style.fieldHint}>
+                선택 시 해당 스킬에 자동 연결됩니다. 비우면 모든 스킬에
+                노출됩니다.
+              </p>
+              <div
+                className={style.skillChipGrid}
+                role="group"
+                aria-label="적용 스킬"
+              >
+                {newSkillTags.length === 0 ? (
+                  <span className={`${style.skillChip} ${style.skillChipMuted}`}>
+                    모든 스킬
+                  </span>
+                ) : null}
+                {SKILLS.map((s) => {
+                  const active = newSkillTags.includes(s.id);
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      className={`${style.skillChip} ${
+                        active ? style.skillChipActive : ""
+                      }`}
+                      aria-pressed={active}
+                      onClick={() => toggleNewSkillTag(s.id)}
+                    >
+                      {s.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
-            <div className={style.actionsSpread}>
-              <div>
+
+            <div className={style.refFormActions}>
+              <div className={style.refFormFileSide}>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -683,10 +831,13 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
                   disabled={isUploading}
                   loading={isUploading}
                 >
-                  파일 업로드
+                  파일로 추가
                 </Button>
+                <p className={style.fileFormatHint}>
+                  PDF, DOCX, TXT, HWP · 최대 10MB · 텍스트 추출 후 저장
+                </p>
               </div>
-              <Button type="ghost" onClick={handleCreateItem}>
+              <Button type="ghost" onClick={handleCreateItem} disabled={isUploading}>
                 텍스트로 추가
               </Button>
             </div>

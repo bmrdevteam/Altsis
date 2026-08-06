@@ -154,20 +154,6 @@
   margin-top: 12px;
 }
 
-.actionsSpread {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-top: 4px;
-}
-
-.hintInline {
-  font-size: 12px;
-  color: var(--accent-3);
-}
-
 .listPanel {
   max-height: 260px;
   overflow: auto;
@@ -215,13 +201,6 @@
   color: var(--accent-3);
 }
 
-.chipRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 12px;
-}
-
 .chip {
   display: inline-flex;
   align-items: center;
@@ -246,14 +225,155 @@
 }
 
 .refForm {
-  padding: 14px 16px;
+  padding: 16px 18px;
   border-radius: 10px;
   background: var(--component-color);
   border: 1px solid var(--border-default-color);
 }
 
-.tableWrap {
+.refFormHeader {
   margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-default-color);
+}
+
+.refFormTitle {
+  margin: 0 0 4px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--accent-1);
+}
+
+.refFormHint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--accent-3);
+}
+
+.fieldHint {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--accent-3);
+}
+
+.kindToggle {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.kindToggleBtn {
+  padding: 6px 14px;
+  border: 1px solid var(--border-default-color);
+  border-radius: 999px;
+  background: var(--background-color);
+  color: var(--accent-2);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.12s ease, border-color 0.12s ease,
+    color 0.12s ease;
+
+  &:hover {
+    background: var(--component-hover-color, #ebebeb);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-2);
+    outline-offset: 2px;
+  }
+}
+
+.kindToggleBtnInstruction {
+  color: var(--status-info);
+  background: var(--status-info-bg);
+  border-color: var(--status-info-border);
+}
+
+.kindToggleBtnLearning {
+  color: var(--status-success);
+  background: var(--status-success-bg);
+  border-color: var(--status-success-border);
+}
+
+.skillChipGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.skillChip {
+  padding: 5px 11px;
+  border: 1px solid var(--border-default-color);
+  border-radius: 999px;
+  background: var(--background-color);
+  color: var(--accent-2);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.12s ease, border-color 0.12s ease,
+    color 0.12s ease;
+
+  &:hover {
+    background: var(--component-hover-color, #ebebeb);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-2);
+    outline-offset: 2px;
+  }
+}
+
+.skillChipActive {
+  background: var(--accent-1);
+  color: var(--background-color);
+  border-color: var(--accent-1);
+
+  &:hover {
+    background: var(--accent-1);
+    opacity: 0.92;
+  }
+}
+
+.skillChipMuted {
+  cursor: default;
+  opacity: 0.75;
+  border-style: dashed;
+
+  &:hover {
+    background: var(--background-color);
+  }
+}
+
+.refFormActions {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-default-color);
+}
+
+.refFormFileSide {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+
+.fileFormatHint {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--accent-3);
 }
 
 .skillTabs {
@@ -292,6 +412,186 @@
   margin-bottom: 12px;
 }
 
+.filterCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25em;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+  background: var(--background-color);
+  color: var(--accent-3);
+}
+
+.skillTabActive .filterCount {
+  background: rgba(255, 255, 255, 0.18);
+  color: inherit;
+}
+
+.libraryList {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.libraryCard {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-default-color);
+  border-radius: 10px;
+  background: var(--component-color);
+  transition: border-color 0.12s ease, background-color 0.12s ease;
+}
+
+.libraryCard:hover {
+  background: var(--background-color);
+}
+
+.libraryCardActive {
+  border-color: var(--accent-2);
+  background: var(--status-info-bg, var(--background-color));
+}
+
+.libraryCardBody {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.libraryCardBadges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.kindBadge,
+.sourceBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.kindBadgeInstruction {
+  color: var(--status-info);
+  background: var(--status-info-bg);
+  border: 1px solid var(--status-info-border);
+}
+
+.kindBadgeLearning {
+  color: var(--status-success);
+  background: var(--status-success-bg);
+  border: 1px solid var(--status-success-border);
+}
+
+.sourceBadge {
+  color: var(--accent-2);
+  background: var(--background-color);
+  border: 1px solid var(--border-default-color);
+}
+
+.fileName {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  color: var(--accent-3);
+}
+
+.libraryCardTitle {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--accent-1);
+  word-break: keep-all;
+}
+
+.librarySkillChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.librarySkillChips .chip {
+  margin-bottom: 0;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--background-color);
+}
+
+.libraryCardActions {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.cardAction {
+  padding: 5px 10px;
+  border: 1px solid var(--border-default-color);
+  border-radius: 8px;
+  background: var(--background-color);
+  color: var(--accent-1);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+
+  &:hover:not(:disabled) {
+    background: var(--component-hover-color, #ebebeb);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-2);
+    outline-offset: 2px;
+  }
+}
+
+.cardActionDanger {
+  color: var(--status-error);
+
+  &:hover:not(:disabled) {
+    background: var(--status-error-bg);
+    border-color: var(--status-error-border);
+  }
+}
+
+@media (max-width: 720px) {
+  .libraryCard {
+    flex-direction: column;
+  }
+
+  .libraryCardActions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
 .tagChip {
   display: inline-flex;
   align-items: center;
@@ -303,22 +603,6 @@
   font-weight: 600;
   background: var(--background-secondary, #f1f3f4);
   color: var(--accent-2);
-}
-
-.checkboxGrid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 14px;
-  margin: 8px 0 12px;
-  font-size: 12.5px;
-  color: var(--accent-1);
-}
-
-.checkboxGrid label {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
 }
 
 .editPanel {
