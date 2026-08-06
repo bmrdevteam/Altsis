@@ -30,7 +30,7 @@
 
 import { useAuth } from "contexts/authContext";
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import _ from "lodash";
 
 import Tab from "components/tab/Tab";
@@ -41,6 +41,7 @@ import UserInfo from "./UserInfo";
 import style from "style/pages/userSearchResult/userSearchResult.module.scss";
 import useAPIv2 from "hooks/useAPIv2";
 import { TRegistration } from "types/registrations";
+import useRegisterAlterUserSearch from "hooks/useRegisterAlterUserSearch";
 
 type Props = {};
 
@@ -55,6 +56,7 @@ type TCourseLists = {
 const UserSearchResult = (props: Props) => {
   const { currentRegistration } = useAuth();
   const { UserAPI, RegistrationAPI, SyllabusAPI } = useAPIv2();
+  const location = useLocation();
 
   const params = useParams();
   const uid = params?.uid;
@@ -215,6 +217,47 @@ const UserSearchResult = (props: Props) => {
     courseLists.created,
     courseLists.mentoring,
   ]);
+
+  const activeTab = useMemo(() => {
+    const fromHash = decodeURIComponent(
+      (location.hash || "").replace(/^#/, "")
+    ).trim();
+    if (fromHash) return fromHash;
+    return "일정";
+  }, [location.hash]);
+
+  const seasonLabel =
+    currentRegistration?.year && currentRegistration?.term
+      ? `${currentRegistration.year} ${currentRegistration.term}`
+      : "";
+
+  const coursesForAlter = useMemo(() => {
+    if (activeTab === "담당 수업") return courseLists.mentoring;
+    if (activeTab === "개설 수업") return courseLists.created;
+    // 시간표·수강 현황·기본: 수강 목록(시간표 근거)
+    return courseLists.enrolled;
+  }, [activeTab, courseLists]);
+
+  useRegisterAlterUserSearch({
+    enabled:
+      !!user &&
+      activeTab !== "일정" &&
+      (coursesLoaded || activeTab === "시간표"),
+    tabLabel: activeTab,
+    seasonLabel,
+    user: user
+      ? {
+          userName: user.userName,
+          userId: user.userId,
+          role: user.role,
+          schoolName: (user as { schoolName?: string }).schoolName,
+          teacherName: user.teacherName,
+          grade: user.grade,
+        }
+      : null,
+    getCourses: () => coursesForAlter,
+    includeTimetableSlots: activeTab === "시간표",
+  });
 
   return (
     <>

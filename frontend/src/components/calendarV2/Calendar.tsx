@@ -20,10 +20,13 @@ import SettingPopup from "./view/SettingPopup/Index";
 import EventFormPopup, {
   EventFormData,
 } from "./view/EventFormPopup/Index";
+import useRegisterAlterCalendar from "hooks/useRegisterAlterCalendar";
 
 type Props = {
   userId?: string;
   readOnly?: boolean;
+  /** Alter chat에 표시할 캘린더 라벨 (조회 대상 일정 등) */
+  alterLabel?: string;
 };
 
 type Mode = "day" | "week" | "month";
@@ -295,6 +298,18 @@ const Calender = (props: Props) => {
       return vis[categoryKey] !== false;
     });
   };
+
+  useRegisterAlterCalendar({
+    // readOnly(타인 일정 조회)여도 화면에 로드된 일정은 Alter가 참고할 수 있음
+    enabled: true,
+    label: props.alterLabel || (props.userId ? "조회 대상 일정" : "캘린더"),
+    getEvents: () => filterEventsByVisibility(rawEventsRef.current || []),
+    getRangeLabel: () => {
+      const cached = cachedRangeRef.current;
+      if (!cached?.start || !cached?.end) return "";
+      return `${String(cached.start).slice(0, 10)} ~ ${String(cached.end).slice(0, 10)}`;
+    },
+  });
 
   const getQueryRange = (
     targetDate: DateItem,

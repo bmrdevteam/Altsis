@@ -5,6 +5,10 @@ import {
   applyEvaluationCsvToEnrollments,
   buildEvaluationCsv,
 } from "utils/evaluationCsv";
+import {
+  clipText,
+  finalizeChatSnapshot,
+} from "utils/alterChatSnapshot";
 
 type Params = {
   enabled: boolean;
@@ -36,10 +40,7 @@ const useRegisterAlterEvaluation = (params: Params) => {
     .join("|");
 
   useEffect(() => {
-    if (!params.enabled || !params.syllabusId) {
-      registerPageContext(null);
-      return () => registerPageContext(null);
-    }
+    if (!params.enabled || !params.syllabusId) return;
 
     const formEvaluation = params.formEvaluation || [];
     const downloadLabels = formEvaluation
@@ -51,12 +52,36 @@ const useRegisterAlterEvaluation = (params: Params) => {
       .filter((item) => item.auth?.edit?.teacher)
       .map((item) => item.label);
 
-    registerPageContext({
+    return registerPageContext({
       pageType: "evaluation",
       label: params.label,
       classTitle: params.classTitle,
       syllabusId: params.syllabusId,
       formEvaluation: params.formEvaluation,
+      getChatSnapshot: () => {
+        const rows = getEnrollmentsRef.current() || [];
+        const labels = downloadLabels.slice(0, 8);
+        const items = rows.slice(0, 40).map((e) => {
+          const fields: Record<string, string> = {};
+          if (e.studentGrade) fields["학년"] = String(e.studentGrade);
+          if (e.studentId) fields["학번"] = String(e.studentId);
+          const evaluation = e.evaluation || {};
+          for (const label of labels) {
+            const clipped = clipText(evaluation[label], 200);
+            if (clipped) fields[label] = clipped;
+          }
+          return {
+            title: String(e.studentName || e.studentId || "학생"),
+            fields,
+          };
+        });
+        return finalizeChatSnapshot({
+          summary: `수업 평가 — ${params.classTitle || params.label} · 학생 ${rows.length}명`,
+          items,
+          totalCount: rows.length,
+          isPartial: rows.length > 40,
+        });
+      },
       getEvaluationCsv: () =>
         buildEvaluationCsv(getEnrollmentsRef.current() || [], downloadLabels),
       getEvaluationRows: () =>
@@ -84,8 +109,6 @@ const useRegisterAlterEvaluation = (params: Params) => {
       },
       suggestedSkills: ["evaluation-draft", "chat"],
     });
-
-    return () => registerPageContext(null);
   }, [
     params.enabled,
     params.label,

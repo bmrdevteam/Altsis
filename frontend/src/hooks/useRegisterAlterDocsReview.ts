@@ -4,6 +4,11 @@ import {
   serializeDocsForReview,
   TDocsReviewSnapshot,
 } from "pages/docs/serializeDocsForReview";
+import {
+  ALTER_CHAT_SNAPSHOT_LIMITS,
+  clipText,
+  finalizeChatSnapshot,
+} from "utils/alterChatSnapshot";
 
 type Params = {
   enabled?: boolean;
@@ -27,14 +32,38 @@ const useRegisterAlterDocsReview = (params: Params) => {
   getDbDataRef.current = params.getDbData;
 
   useEffect(() => {
-    if (params.enabled === false) {
-      registerPageContext(null);
-      return () => registerPageContext(null);
-    }
+    if (params.enabled === false) return;
 
-    registerPageContext({
+    return registerPageContext({
       pageType: "docs",
       label: params.label || params.formTitle || "문서 점검",
+      getChatSnapshot: () => {
+        const doc = serializeDocsForReview({
+          formTitle: params.formTitle,
+          studentLabel: params.studentLabel,
+          formData: getFormDataRef.current(),
+          dbData: getDbDataRef.current(),
+        });
+        const content = clipText(
+          doc.content,
+          ALTER_CHAT_SNAPSHOT_LIMITS.DOCUMENT_CHARS
+        );
+        return finalizeChatSnapshot({
+          summary: `문서함 — ${doc.title || params.formTitle || "문서"}${
+            params.studentLabel ? ` · ${params.studentLabel}` : ""
+          }`,
+          items: [
+            {
+              title: String(doc.title || "(제목 없음)"),
+              fields: content ? { 내용: content } : {},
+            },
+          ],
+          totalCount: 1,
+          isPartial:
+            String(doc.content || "").length >
+            ALTER_CHAT_SNAPSHOT_LIMITS.DOCUMENT_CHARS,
+        });
+      },
       getReviewDocument: (): TDocsReviewSnapshot =>
         serializeDocsForReview({
           formTitle: params.formTitle,
@@ -44,8 +73,6 @@ const useRegisterAlterDocsReview = (params: Params) => {
         }),
       suggestedSkills: ["document-review", "chat"],
     });
-
-    return () => registerPageContext(null);
   }, [
     params.enabled,
     params.label,

@@ -1,7 +1,9 @@
 import {
   ALTER_SAFETY_ETHICS,
   ALTER_NO_STEER,
+  ALTER_PAGE_DATA_POLICY,
   buildAlterChatPageContext,
+  buildAlterChatPageData,
   buildAlterChatSystemPrompt,
   buildBoardAlterSystemPrompt,
   withAlterSafety,
@@ -50,6 +52,47 @@ describe("buildAlterChatSystemPrompt", () => {
     expect(page).toContain("문서함");
     expect(page).not.toMatch(/기안/);
     expect(page).not.toMatch(/영수증/);
+  });
+});
+
+describe("buildAlterChatPageData", () => {
+  test("스냅샷이 없으면 빈 문자열", () => {
+    expect(buildAlterChatPageData(null)).toBe("");
+    expect(buildAlterChatPageData(undefined)).toBe("");
+  });
+
+  test("요약·항목을 페이지 데이터 블록으로 만든다", () => {
+    const text = buildAlterChatPageData({
+      summary: "수강 신청 — 수업 3건",
+      totalCount: 3,
+      items: [
+        {
+          title: "시 읽기",
+          fields: { 교과: "국어", 담당: "김선생" },
+        },
+      ],
+    });
+    expect(text).toContain("## 현재 페이지 데이터");
+    expect(text).toContain("수강 신청");
+    expect(text).toContain("시 읽기");
+    expect(text).toContain("국어");
+    expect(text).toContain("항목 수: 3");
+  });
+
+  test("시스템 프롬프트에 페이지 데이터 정책과 블록이 들어간다", () => {
+    const text = buildAlterChatSystemPrompt({
+      pageContext: { pageType: "course-list", label: "수강 신청" },
+      chatSnapshot: {
+        summary: "수강 신청 — 수업 2건",
+        totalCount: 2,
+        items: [{ title: "수업A", fields: { 학점: "2" } }],
+      },
+    });
+    expect(text).toContain("현재 페이지 데이터");
+    expect(text).toContain("제공된 항목 안에서");
+    expect(text).toContain("수업A");
+    expect(text).toContain("수업 목록");
+    expect(ALTER_PAGE_DATA_POLICY).toMatch(/거절하지 마세요/);
   });
 });
 

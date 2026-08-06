@@ -2,6 +2,10 @@ import { useEffect, useRef } from "react";
 import { useAlter } from "contexts/alterContext";
 import { TSchoolFormArchiveField } from "types/schools";
 import { isEmptyEval } from "utils/evaluationCsv";
+import {
+  clipText,
+  finalizeChatSnapshot,
+} from "utils/alterChatSnapshot";
 
 type Params = {
   enabled: boolean;
@@ -30,10 +34,7 @@ const useRegisterAlterArchive = (params: Params) => {
     .join("|");
 
   useEffect(() => {
-    if (!params.enabled || !params.archiveLabel) {
-      registerPageContext(null);
-      return () => registerPageContext(null);
-    }
+    if (!params.enabled || !params.archiveLabel) return;
 
     const fields = params.formArchiveFields || [];
     const editableLabels = fields
@@ -50,11 +51,33 @@ const useRegisterAlterArchive = (params: Params) => {
       )
       .map((f) => f.label);
 
-    registerPageContext({
+    return registerPageContext({
       pageType: "archive",
       label: params.archiveLabel,
       archiveLabel: params.archiveLabel,
       formArchiveFields: fields,
+      getChatSnapshot: () => {
+        const list = getArchiveListRef.current() || [];
+        const labels = referenceLabels.slice(0, 8);
+        const items = list.slice(0, 40).map((row) => {
+          const itemFields: Record<string, string> = {};
+          if (row.grade) itemFields["학년"] = String(row.grade);
+          for (const label of labels) {
+            const clipped = clipText(row?.[label], 200);
+            if (clipped) itemFields[label] = clipped;
+          }
+          return {
+            title: String(row.userName || row.user || "학생"),
+            fields: itemFields,
+          };
+        });
+        return finalizeChatSnapshot({
+          summary: `학생 기록 — ${params.archiveLabel} · ${list.length}명`,
+          items,
+          totalCount: list.length,
+          isPartial: list.length > 40,
+        });
+      },
       getArchiveRows: () =>
         (getArchiveListRef.current() || []).map((row) => {
           const values: Record<string, unknown> = {};
@@ -118,8 +141,6 @@ const useRegisterAlterArchive = (params: Params) => {
       },
       suggestedSkills: ["archive-draft", "chat"],
     });
-
-    return () => registerPageContext(null);
   }, [
     params.enabled,
     params.archiveLabel,

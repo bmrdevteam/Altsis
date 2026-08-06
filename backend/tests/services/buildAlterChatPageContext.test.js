@@ -43,13 +43,19 @@ describe("buildAlterChatPageContext", () => {
     }
   });
 
-  test("form-response·assessment-grade 유형 명칭이 나타난다", () => {
+  test("form-response·assessment-grade·course-list·calendar 유형 명칭이 나타난다", () => {
     expect(
       buildAlterChatPageContext({ pageType: "form-response" })
     ).toContain("양식 응답");
     expect(
       buildAlterChatPageContext({ pageType: "assessment-grade" })
     ).toContain("평가 채점");
+    expect(
+      buildAlterChatPageContext({ pageType: "course-list" })
+    ).toContain("수업 목록");
+    expect(buildAlterChatPageContext({ pageType: "calendar" })).toContain(
+      "캘린더"
+    );
   });
 
   test("강의계획서 화면은 교과·수업명을 사실로 포함한다", () => {

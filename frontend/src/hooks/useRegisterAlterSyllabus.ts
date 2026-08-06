@@ -1,6 +1,10 @@
 import { useEffect, useRef } from "react";
 import { useAlter } from "contexts/alterContext";
 import { extractSyllabusInputFields } from "utils/syllabusAiFields";
+import {
+  clipText,
+  finalizeChatSnapshot,
+} from "utils/alterChatSnapshot";
 
 type Params = {
   label: string;
@@ -23,12 +27,41 @@ const useRegisterAlterSyllabus = (params: Params) => {
   onApplyInfoRef.current = params.onApplyInfo;
 
   useEffect(() => {
-    registerPageContext({
+    return registerPageContext({
       pageType: "syllabus-edit",
       label: params.label,
       subject: params.subject,
       classTitle: params.classTitle,
       getCurrentInfo: () => getCurrentInfoRef.current() || {},
+      getChatSnapshot: () => {
+        const info = getCurrentInfoRef.current() || {};
+        const fields = extractSyllabusInputFields(params.formSyllabus);
+        const itemFields: Record<string, string> = {};
+        for (const f of fields) {
+          const key = f.id || f.name;
+          const val = info[key] ?? (f.name ? info[f.name] : undefined);
+          const clipped = clipText(val, 500);
+          if (clipped) itemFields[f.name || key] = clipped;
+        }
+        for (const [k, v] of Object.entries(info)) {
+          if (itemFields[k] != null) continue;
+          const clipped = clipText(v, 500);
+          if (clipped) itemFields[k] = clipped;
+        }
+        return finalizeChatSnapshot({
+          summary: `강의계획서 작성 중 — ${params.classTitle || "(수업명 미입력)"}`,
+          items: [
+            {
+              title: params.classTitle || params.label || "강의계획서",
+              fields: {
+                교과: params.subject.join(" > "),
+                ...itemFields,
+              },
+            },
+          ],
+          totalCount: 1,
+        });
+      },
       formSyllabus: params.formSyllabus,
       applyFieldSuggestion: (fieldLabel, suggestion) => {
         const fields = extractSyllabusInputFields(params.formSyllabus);
@@ -68,7 +101,6 @@ const useRegisterAlterSyllabus = (params: Params) => {
       },
       suggestedSkills: ["syllabus-draft", "chat"],
     });
-    return () => registerPageContext(null);
   }, [
     params.label,
     subjectKey,

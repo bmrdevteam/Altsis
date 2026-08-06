@@ -28,13 +28,12 @@
  * @version 1.0
  *
  */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
 
 import style from "style/pages/enrollment.module.scss";
-
-// navigation bar
 
 import _ from "lodash";
 import Tab from "components/tab/Tab";
@@ -44,11 +43,13 @@ import EnrolledCourseList from "./tab/Enrolled/List";
 import CreatedCourseList from "./tab/Created/List";
 import MentoringCourseList from "./tab/Mentoring/List";
 import useAPIv2 from "hooks/useAPIv2";
+import useRegisterAlterCourseList from "hooks/useRegisterAlterCourseList";
 
 type Props = {};
 
 const Course = (props: Props) => {
   const navigate = useAppNavigate();
+  const location = useLocation();
   const { SyllabusAPI } = useAPIv2();
 
   const { currentSeason, currentUser, currentRegistration } = useAuth();
@@ -102,6 +103,49 @@ const Course = (props: Props) => {
       updateCourses();
     }
   }, [currentRegistration]);
+
+  const activeTab = useMemo(() => {
+    const fromHash = decodeURIComponent(
+      (location.hash || "").replace(/^#/, "")
+    ).trim();
+    return fromHash || "시간표";
+  }, [location.hash]);
+
+  const seasonLabel =
+    currentRegistration?.year && currentRegistration?.term
+      ? `${currentRegistration.year} ${currentRegistration.term}`
+      : "";
+
+  /** 탭에 불러온 수업 목록 (Alter 근거) */
+  const coursesForAlter = useMemo(() => {
+    if (activeTab === "담당 수업") return mentoringCourseList;
+    if (activeTab === "개설 수업") return createdCourseList;
+    if (activeTab === "수강 현황") return enrolledCourseList;
+    return enrolledCourseList;
+  }, [
+    activeTab,
+    mentoringCourseList,
+    createdCourseList,
+    enrolledCourseList,
+  ]);
+
+  const alterLabel =
+    activeTab === "담당 수업"
+      ? "담당 수업"
+      : activeTab === "개설 수업"
+        ? "개설 수업"
+        : activeTab === "수강 현황"
+          ? "수강 현황"
+          : "시간표·수강 수업";
+
+  useRegisterAlterCourseList({
+    enabled: !!currentRegistration && !!currentSeason?.formTimetable,
+    label: alterLabel,
+    seasonLabel,
+    getCourses: () => coursesForAlter,
+    getEnrolledIds: () =>
+      enrolledCourseList.map((c) => String(c._id || "")).filter(Boolean),
+  });
 
   const items = () => {
     if (currentRegistration.role === "teacher")

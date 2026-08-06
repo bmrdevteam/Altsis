@@ -15,7 +15,6 @@ import EnrollFilterBar from "pages/courses/EnrollFilterBar";
 import { useCourseListFilter } from "pages/courses/useCourseListFilter";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import { computeEnrolledSummary } from "utils/computeCourseSummaries";
-
 const SUCCESS_MESSAGE = "취소되었습니다.";
 
 type Props = {

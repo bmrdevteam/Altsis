@@ -43,6 +43,7 @@ import Popup from "components/popup/Popup";
 import Progress from "components/progress/Progress";
 import { Socket, io } from "socket.io-client";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import useRegisterAlterCourseList from "hooks/useRegisterAlterCourseList";
 
 type Props = {};
 
@@ -330,6 +331,20 @@ const CourseEnroll = (props: Props) => {
     updatedCourseList,
     (course) => course.enrollType === "enroll"
   );
+
+  const seasonLabel =
+    currentRegistration?.year && currentRegistration?.term
+      ? `${currentRegistration.year} ${currentRegistration.term}`
+      : "";
+
+  useRegisterAlterCourseList({
+    enabled: !isLoadingCourseList && !isLoadingUpdatedCourseList,
+    label: "수강 신청",
+    seasonLabel,
+    getCourses: () => displayedCourseList,
+    getEnrolledIds: () =>
+      enrolledCourseList.map((c) => String(c._id || "")).filter(Boolean),
+  });
 
   return (
     <>

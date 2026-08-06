@@ -12,7 +12,6 @@ import { useCourseListFilter } from "pages/courses/useCourseListFilter";
 import { useAuth } from "contexts/authContext";
 import Divider from "components/divider/Divider";
 import { computeCreatedSummary } from "utils/computeCourseSummaries";
-
 type Props = {
   courseList: any[];
 };

@@ -10,6 +10,10 @@ import {
   TFormResponseFieldMeta,
   TFormResponseUserCandidate,
 } from "utils/formResponseDraft";
+import {
+  clipText,
+  finalizeChatSnapshot,
+} from "utils/alterChatSnapshot";
 
 type Params = {
   enabled?: boolean;
@@ -39,12 +43,9 @@ const useRegisterAlterFormResponse = (params: Params) => {
   candidatesRef.current = params.userCandidates || [];
 
   useEffect(() => {
-    if (params.enabled === false || !params.formId) {
-      registerPageContext(null);
-      return () => registerPageContext(null);
-    }
+    if (params.enabled === false || !params.formId) return;
 
-    registerPageContext({
+    return registerPageContext({
       pageType: "form-response",
       label:
         params.label ||
@@ -53,6 +54,27 @@ const useRegisterAlterFormResponse = (params: Params) => {
           : "양식 응답"),
       boardId: params.boardId,
       boardName: params.boardName,
+      getChatSnapshot: () => {
+        const fields = fieldsRef.current || [];
+        const data = dataRef.current || {};
+        const itemFields: Record<string, string> = {};
+        for (const f of fields) {
+          if (f.type === "content" || f.type === "approval") continue;
+          const clipped = clipText(data[f._id], 300);
+          if (clipped) itemFields[f.label || f._id] = clipped;
+          else itemFields[f.label || f._id] = "(비어 있음)";
+        }
+        return finalizeChatSnapshot({
+          summary: `양식 응답 — ${params.formTitle || params.label || "양식"}`,
+          items: [
+            {
+              title: params.formTitle || "응답",
+              fields: itemFields,
+            },
+          ],
+          totalCount: fields.length,
+        });
+      },
       getFormResponse: () => {
         const fields = fieldsRef.current || [];
         const data = dataRef.current || {};
@@ -102,8 +124,6 @@ const useRegisterAlterFormResponse = (params: Params) => {
       },
       suggestedSkills: ["form-response-draft", "chat"],
     });
-
-    return () => registerPageContext(null);
   }, [
     params.enabled,
     params.label,

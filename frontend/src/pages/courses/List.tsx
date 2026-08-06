@@ -15,6 +15,7 @@ import CourseTable from "./table/CourseTable";
 import EnrollFilterBar from "./EnrollFilterBar";
 import { useCourseListFilter } from "./useCourseListFilter";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import useRegisterAlterCourseList from "hooks/useRegisterAlterCourseList";
 
 type Props = {};
 
@@ -70,6 +71,18 @@ const Courses = (props: Props) => {
   }, [isLoading]);
 
   const displayedCourseList = filterCourses(courseList);
+
+  const seasonLabel =
+    currentRegistration?.year && currentRegistration?.term
+      ? `${currentRegistration.year} ${currentRegistration.term}`
+      : "";
+
+  useRegisterAlterCourseList({
+    enabled: !isLoading,
+    label: "전체 수업 목록",
+    seasonLabel,
+    getCourses: () => displayedCourseList,
+  });
 
   return (
     <>

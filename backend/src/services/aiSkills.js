@@ -74,7 +74,10 @@ import {
 } from "./alterCorePrompt.js";
 
 export { parseFormResponseDraftResponse } from "./formResponseDraft.js";
-export { buildAlterChatPageContext } from "./alterCorePrompt.js";
+export {
+  buildAlterChatPageContext,
+  buildAlterChatPageData,
+} from "./alterCorePrompt.js";
 
 const IMAGE_HINT =
   "첨부 이미지가 있으면 내용을 참고하세요. 이미지에서 읽은 내용이 불명확하면 추측하지 말고 표시하세요.";
@@ -1320,6 +1323,7 @@ const buildAlterChatSystem = (promptPack, context, boardTitle) =>
   buildAlterChatSystemPrompt({
     boardTitle,
     pageContext: context,
+    chatSnapshot: context?.chatSnapshot,
     guidelines: promptPack?.guidelines || "",
     references: promptPack?.references || [],
   });

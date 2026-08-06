@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useMemo,
+  useRef,
   useState,
   ReactNode,
 } from "react";
@@ -13,6 +14,12 @@ import {
 } from "types/altForm";
 import { TFormEvaluation } from "types/seasons";
 import { TSchoolFormArchiveField } from "types/schools";
+import type {
+  TAlterChatSnapshot,
+  TAlterChatSnapshotItem,
+} from "utils/alterChatSnapshot";
+
+export type { TAlterChatSnapshot, TAlterChatSnapshotItem };
 
 export type TAlterSkillId =
   | "chat"
@@ -158,10 +165,14 @@ export type TAlterPageContext = {
     | "form-response"
     | "activity"
     | "assessment-grade"
+    | "course-list"
+    | "calendar"
     | "general";
   label?: string;
   subject?: string[];
   classTitle?: string;
+  /** chat이 근거로 쓸 페이지 로드 데이터 */
+  getChatSnapshot?: () => TAlterChatSnapshot | null;
   getCurrentInfo?: () => Record<string, any>;
   formSyllabus?: any;
   applyFieldSuggestion?: (fieldLabel: string, suggestion: string) => void;
@@ -228,7 +239,11 @@ type AlterContextValue = {
   setIsWorking: (v: boolean) => void;
   setHasBackgroundResult: (v: boolean) => void;
   pageContext: TAlterPageContext | null;
-  registerPageContext: (ctx: TAlterPageContext | null) => void;
+  /**
+   * 페이지 컨텍스트 등록. 반환된 cleanup만 자신의 등록을 해제한다
+   * (다른 화면/StrictMode cleanup이 최신 등록을 지우지 않도록).
+   */
+  registerPageContext: (ctx: TAlterPageContext) => () => void;
 };
 
 const AlterContext = createContext<AlterContextValue | null>(null);
@@ -241,6 +256,7 @@ export const AlterProvider = ({ children }: { children: ReactNode }) => {
   const [pageContext, setPageContext] = useState<TAlterPageContext | null>(
     null
   );
+  const pageContextOwnerRef = useRef(0);
 
   const close = useCallback(() => {
     setIsOpen(false);
@@ -257,8 +273,14 @@ export const AlterProvider = ({ children }: { children: ReactNode }) => {
     () => setIsExpanded((v) => !v),
     []
   );
-  const registerPageContext = useCallback((ctx: TAlterPageContext | null) => {
+  const registerPageContext = useCallback((ctx: TAlterPageContext) => {
+    const ownerId = ++pageContextOwnerRef.current;
     setPageContext(ctx);
+    return () => {
+      if (pageContextOwnerRef.current === ownerId) {
+        setPageContext(null);
+      }
+    };
   }, []);
 
   const value = useMemo(

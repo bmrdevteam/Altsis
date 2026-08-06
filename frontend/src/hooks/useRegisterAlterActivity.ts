@@ -6,6 +6,10 @@ import {
   toActivitySettingsSnapshot,
   TActivityBuilderSettings,
 } from "utils/activityDraft";
+import {
+  clipText,
+  finalizeChatSnapshot,
+} from "utils/alterChatSnapshot";
 
 type Params = {
   enabled?: boolean;
@@ -49,16 +53,39 @@ const useRegisterAlterActivity = (params: Params) => {
   setRubricsRef.current = params.setRubrics;
 
   useEffect(() => {
-    if (params.enabled === false) {
-      registerPageContext(null);
-      return () => registerPageContext(null);
-    }
+    if (params.enabled === false) return;
 
-    registerPageContext({
+    return registerPageContext({
       pageType: "activity",
       label: params.label || params.boardName || "활동 작성",
       boardId: params.boardId,
       boardName: params.boardName,
+      getChatSnapshot: () => {
+        const cur = getActivityRef.current();
+        const fields = cur.fields || [];
+        const fieldLines = fields
+          .slice(0, 30)
+          .map(
+            (f, i) =>
+              `${i + 1}. ${f.label || "(라벨 없음)"} (${f.type || "?"})`
+          )
+          .join("\n");
+        return finalizeChatSnapshot({
+          summary: `활동/양식 작성 — ${cur.title || params.label || "활동"}`,
+          items: [
+            {
+              title: String(cur.title || "(제목 없음)"),
+              fields: {
+                설명: clipText(cur.description, 800),
+                필드목록: fieldLines || "(없음)",
+                필드수: String(fields.length),
+              },
+            },
+          ],
+          totalCount: 1,
+          isPartial: fields.length > 30,
+        });
+      },
       getActivity: () => {
         const cur = getActivityRef.current();
         return {
@@ -89,8 +116,6 @@ const useRegisterAlterActivity = (params: Params) => {
       },
       suggestedSkills: ["activity-draft", "chat"],
     });
-
-    return () => registerPageContext(null);
   }, [
     params.enabled,
     params.label,

@@ -19,7 +19,6 @@ import {
   appendEvaluationSummary,
   computeMentoringBaseSummary,
 } from "utils/computeCourseSummaries";
-
 type Props = {
   courseList: any[];
   updateCourses: () => void;

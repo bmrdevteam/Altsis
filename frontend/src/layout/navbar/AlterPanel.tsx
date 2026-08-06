@@ -1265,6 +1265,7 @@ const AlterPanel = ({ onClose }: Props) => {
         currentDraft: gradeCtx?.currentDraft || { byField: {}, final: {} },
       };
     }
+    const chatSnapshot = pageContext?.getChatSnapshot?.() || null;
     return {
       pageType: pageContext?.pageType || "general",
       label: pageContext?.label || "",
@@ -1272,6 +1273,7 @@ const AlterPanel = ({ onClose }: Props) => {
       classTitle: pageContext?.classTitle || "",
       currentInfo: pageContext?.getCurrentInfo?.() || {},
       formSyllabus: pageContext?.formSyllabus || currentSeason?.formSyllabus,
+      chatSnapshot,
       sourceText: attachmentText,
       attachments,
     };
@@ -2639,6 +2641,25 @@ const AlterPanel = ({ onClose }: Props) => {
     );
   };
 
+  let pageDataHint: { count: number; isPartial: boolean } | null = null;
+  if (pageContext?.getChatSnapshot) {
+    try {
+      const snap = pageContext.getChatSnapshot();
+      if (snap) {
+        const count =
+          typeof snap.totalCount === "number"
+            ? snap.totalCount
+            : snap.items?.length || 0;
+        if (count > 0) {
+          pageDataHint = { count, isPartial: !!snap.isPartial };
+        }
+      }
+    } catch {
+      // 스냅샷 생성 실패 시 패널 UI는 유지하고 힌트만 숨긴다
+      pageDataHint = null;
+    }
+  }
+
   const contextLabel =
     pageContext?.label ||
     (pageContext?.pageType === "syllabus-edit"
@@ -2657,7 +2678,11 @@ const AlterPanel = ({ onClose }: Props) => {
                   ? "활동"
                   : pageContext?.pageType === "assessment-grade"
                     ? "채점"
-                    : "일반");
+                    : pageContext?.pageType === "course-list"
+                      ? "수업 목록"
+                      : pageContext?.pageType === "calendar"
+                        ? "캘린더"
+                        : "일반");
 
   const inSyllabusPrep = showPrep && selectedSkill === "syllabus-draft";
   const inEvalPrep = showPrep && selectedSkill === "evaluation-draft";
@@ -3016,6 +3041,11 @@ const AlterPanel = ({ onClose }: Props) => {
         {currentRegistration?.role
           ? ` · ${currentRegistration.role === "teacher" ? "교사" : "학생"}`
           : ""}
+        {pageDataHint
+          ? ` · 페이지 데이터 ${pageDataHint.count}건 참고${
+              pageDataHint.isPartial ? " (일부)" : ""
+            }`
+          : ""}
       </div>
 
       <div className={style.body}>
@@ -3032,7 +3062,13 @@ const AlterPanel = ({ onClose }: Props) => {
               />
             }
             title="메시지를 보내보세요"
-            subtitle="Alter에게 질문하거나 추천 Skill로 작업을 시작할 수 있습니다. 대화는 자동 저장되며, 창을 닫아도 진행 중 작업은 이어집니다."
+            subtitle={
+              pageDataHint
+                ? `지금 연 페이지에 불러온 데이터(${pageDataHint.count}건${
+                    pageDataHint.isPartial ? ", 일부" : ""
+                  })를 기준으로 답합니다. 질문하거나 추천 Skill로 작업을 시작할 수 있습니다.`
+                : "Alter에게 질문하거나 추천 Skill로 작업을 시작할 수 있습니다. 대화는 자동 저장되며, 창을 닫아도 진행 중 작업은 이어집니다."
+            }
           />
         )}
 

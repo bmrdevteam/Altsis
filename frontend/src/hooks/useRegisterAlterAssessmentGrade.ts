@@ -9,6 +9,10 @@ import {
   normalizeAssessmentGradeDraft,
   TAssessmentGradeDraftPayload,
 } from "utils/assessmentGradeDraft";
+import {
+  clipText,
+  finalizeChatSnapshot,
+} from "utils/alterChatSnapshot";
 
 type Params = {
   enabled: boolean;
@@ -54,17 +58,11 @@ const useRegisterAlterAssessmentGrade = (params: Params) => {
       ?.final?.status === "finalized";
 
   useEffect(() => {
-    if (!params.enabled || !formId || !rowId) {
-      registerPageContext(null);
-      return () => registerPageContext(null);
-    }
+    if (!params.enabled || !formId || !rowId) return;
 
     const form = formRef.current;
     const row = rowRef.current;
-    if (!form || !row) {
-      registerPageContext(null);
-      return () => registerPageContext(null);
-    }
+    if (!form || !row) return;
 
     const respondentLabel = [
       row._respondentName,
@@ -73,10 +71,42 @@ const useRegisterAlterAssessmentGrade = (params: Params) => {
       .filter(Boolean)
       .join(" ");
 
-    registerPageContext({
+    return registerPageContext({
       pageType: "assessment-grade",
       label: `${form.title || "평가"} · ${respondentLabel || "응답"}`,
       boardName: params.boardName,
+      getChatSnapshot: () => {
+        const f = formRef.current;
+        const r = rowRef.current;
+        const draft = gradeDraftRef.current;
+        if (!f || !r) return null;
+        const gradeFields = (f.fields || []).filter(
+          (field) => field.gradingMethod && field.gradingMethod !== "none"
+        );
+        const itemFields: Record<string, string> = {
+          응답자: respondentLabel || "",
+          확정: finalized ? "예" : "아니오",
+        };
+        for (const field of gradeFields.slice(0, 20)) {
+          const resp = serializeResponseValue(r.data?.[field._id]);
+          const g = draft.byField?.[field._id];
+          const bits = [
+            resp ? `응답: ${clipText(resp, 120)}` : "",
+            g?.score != null ? `점수: ${g.score}` : "",
+            g?.comment ? `코멘트: ${clipText(g.comment, 80)}` : "",
+          ].filter(Boolean);
+          itemFields[field.label || field._id] = bits.join(" / ") || "(없음)";
+        }
+        if (draft.final?.comment) {
+          itemFields["총평"] = clipText(draft.final.comment, 200);
+        }
+        return finalizeChatSnapshot({
+          summary: `평가 채점 — ${f.title || "평가"} · ${respondentLabel}`,
+          items: [{ title: f.title || "평가", fields: itemFields }],
+          totalCount: gradeFields.length,
+          isPartial: gradeFields.length > 20,
+        });
+      },
       getAssessmentGradeContext: () => {
         const f = formRef.current;
         const r = rowRef.current;
@@ -174,8 +204,6 @@ const useRegisterAlterAssessmentGrade = (params: Params) => {
       },
       suggestedSkills: ["assessment-grade", "chat"],
     });
-
-    return () => registerPageContext(null);
   }, [
     params.enabled,
     formId,

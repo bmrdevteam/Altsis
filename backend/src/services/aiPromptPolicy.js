@@ -20,6 +20,12 @@ export const PROMPT_LIMITS = {
   HISTORY: 3,
   REFERENCE_COUNT: 2,
   REFERENCE_CHARS: 800,
+  /** Alter chat: 페이지 로드 데이터 스냅샷 전체 상한 */
+  CHAT_SNAPSHOT_CHARS: 14000,
+  /** Alter chat: 스냅샷 항목 수 상한 */
+  CHAT_SNAPSHOT_MAX_ITEMS: 50,
+  /** Alter chat: 항목 필드값 상한 */
+  CHAT_SNAPSHOT_FIELD_CHARS: 500,
   GUIDELINES_CHARS: 600,
   /** 라이브러리 지침(+레거시) 합산 상한 */
   GUIDELINES_TOTAL_CHARS: 2400,

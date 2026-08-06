@@ -1,6 +1,11 @@
 import { useEffect, useRef } from "react";
 import { useAlter } from "contexts/alterContext";
 import { normalizeDocumentDraftContent } from "utils/documentDraftMarkdown";
+import {
+  ALTER_CHAT_SNAPSHOT_LIMITS,
+  clipText,
+  finalizeChatSnapshot,
+} from "utils/alterChatSnapshot";
 
 type Params = {
   enabled?: boolean;
@@ -25,16 +30,33 @@ const useRegisterAlterDocument = (params: Params) => {
   setContentRef.current = params.setContent;
 
   useEffect(() => {
-    if (params.enabled === false) {
-      registerPageContext(null);
-      return () => registerPageContext(null);
-    }
+    if (params.enabled === false) return;
 
-    registerPageContext({
+    return registerPageContext({
       pageType: "document",
       label: params.label || params.boardName || "문서 작성",
       boardId: params.boardId,
       boardName: params.boardName,
+      getChatSnapshot: () => {
+        const doc = getDocumentRef.current() || { title: "", content: "" };
+        const content = clipText(
+          doc.content,
+          ALTER_CHAT_SNAPSHOT_LIMITS.DOCUMENT_CHARS
+        );
+        return finalizeChatSnapshot({
+          summary: `보드 문서 — ${params.boardName || params.label || "문서"}`,
+          items: [
+            {
+              title: String(doc.title || "(제목 없음)"),
+              fields: content ? { 본문: content } : {},
+            },
+          ],
+          totalCount: 1,
+          isPartial:
+            String(doc.content || "").length >
+            ALTER_CHAT_SNAPSHOT_LIMITS.DOCUMENT_CHARS,
+        });
+      },
       getDocument: () => {
         const doc = getDocumentRef.current() || { title: "", content: "" };
         return {
@@ -67,8 +89,6 @@ const useRegisterAlterDocument = (params: Params) => {
       },
       suggestedSkills: ["document-draft", "document-review", "chat"],
     });
-
-    return () => registerPageContext(null);
   }, [
     params.enabled,
     params.label,
