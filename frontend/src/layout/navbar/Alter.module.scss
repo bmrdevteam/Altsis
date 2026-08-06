@@ -20,41 +20,11 @@
   }
 }
 
-.iconBadge {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  border: 1.5px solid var(--background-color);
-}
-
-.iconBadgeWorking {
-  background: var(--primary-color);
-  animation: alterBadgePulse 1.2s ease-in-out infinite;
-}
-
-.iconBadgeDone {
-  background: #22c55e;
-}
-
-@keyframes alterBadgePulse {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.55;
-    transform: scale(0.85);
-  }
-}
-
 .panelHostHidden {
   display: none;
 }
 
+/* 패널 등에서 쓰는 mask 기반 아이콘 (단일 span) */
 .iconStar {
   display: block;
   flex-shrink: 0;
@@ -74,6 +44,36 @@
     center / contain no-repeat;
 }
 
+/* 네비 버튼용 SVG 아이콘 (별 개별 애니메이션) */
+.iconStarSvg {
+  display: block;
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+.starPart {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.iconStarWorking .starPart {
+  animation: alterStarPop 1.1s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * 0.18s);
+}
+
+@keyframes alterStarPop {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+  35% {
+    transform: scale(1.28) rotate(20deg);
+  }
+  55% {
+    transform: scale(0.88) rotate(-10deg);
+  }
+}
+
 @keyframes alterGradientShift {
   0% {
     background-position: 0% 40%;
@@ -90,6 +90,10 @@
   .iconStar {
     animation: none;
     background-position: 50% 50%;
+  }
+
+  .iconStarWorking .starPart {
+    animation: none;
   }
 }
 
