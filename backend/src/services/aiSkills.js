@@ -36,6 +36,8 @@ import {
   formatCurrentInfoForPrompt,
   parseSyllabusDraftJson,
   buildSyllabusDraftRetryPrompt,
+  parseSyllabusReviewJson,
+  buildReviewRetryPrompt,
   truncateText,
 } from "./aiPromptPolicy.js";
 import { maskSensitiveText } from "./aiSafety.js";
@@ -115,6 +117,7 @@ export const SKILL_IDS = {
   EVALUATION_DRAFT: "evaluation-draft",
   ARCHIVE_DRAFT: "archive-draft",
   DOCUMENT_DRAFT: "document-draft",
+  DOCUMENT_REVIEW: "document-review",
   FORM_RESPONSE_DRAFT: "form-response-draft",
   ACTIVITY_DRAFT: "activity-draft",
   ASSESSMENT_GRADE: "assessment-grade",
@@ -155,6 +158,13 @@ export const SKILL_CATALOG = {
     description:
       "보드 문서(매뉴얼·공지·회의록 등) 마크다운 초안을 작성·다듬습니다",
     profile: "documentDraft",
+  },
+  [SKILL_IDS.DOCUMENT_REVIEW]: {
+    id: SKILL_IDS.DOCUMENT_REVIEW,
+    name: "문서 점검",
+    description:
+      "문서함·보드 문서 내용을 작성 지침에 맞춰 점검하고 리포트를 제공합니다",
+    profile: "documentReview",
   },
   [SKILL_IDS.FORM_RESPONSE_DRAFT]: {
     id: SKILL_IDS.FORM_RESPONSE_DRAFT,
@@ -207,6 +217,9 @@ const defaultSkillGuide = (skill) => {
   }
   if (skill === SKILL_IDS.DOCUMENT_DRAFT) {
     return "학교 문서에 맞는 명확한 마크다운으로 작성하세요. 제목·목록·표·체크리스트를 문서 목적에 맞게 활용하고, 퀴즈·인터랙티브 자료는 ```html-app``` 블록을 사용하세요. 추측·민감정보는 넣지 마세요.";
+  }
+  if (skill === SKILL_IDS.DOCUMENT_REVIEW) {
+    return "작성 지침·학교 문서 작성 기준에 맞춰 누락·과장·비구체성·비일관성을 점검하세요. 학생을 존중하는 공손한 문어체를 기준으로 보고, 근거 없는 추측·낙인·민감정보 노출이 있으면 지적하세요.";
   }
   if (skill === SKILL_IDS.FORM_RESPONSE_DRAFT) {
     return "양식 안내·필드 규칙을 지키며 응답 초안을 작성하세요. docResponse는 `(작성)`·`(본문 작성)` 등 작성 칸만 채우고 표·수신/경유·로고 골격은 유지하세요. 선택형은 제시된 옵션만 쓰고, 근거 없는 사실·민감정보는 넣지 마세요.";
@@ -345,6 +358,7 @@ export const resolveSkillPrepSettings = async (
   const skipRefs =
     skill === SKILL_IDS.SYLLABUS_DRAFT ||
     skill === SKILL_IDS.DOCUMENT_DRAFT ||
+    skill === SKILL_IDS.DOCUMENT_REVIEW ||
     skill === SKILL_IDS.FORM_RESPONSE_DRAFT ||
     skill === SKILL_IDS.ACTIVITY_DRAFT;
 
@@ -377,12 +391,17 @@ export const resolveSkillPrepSettings = async (
       else if (tags.includes(skill)) tagged.push(row);
       else others.push(row);
     }
-    let instructionItems = [...linked, ...tagged];
-    if (instructionItems.length === 0) instructionItems = others;
+    // 스킬에 연결된/태그된 지침이 있어도 나머지 라이브러리 지침을 함께 노출한다.
+    // (스킬당 libraryItemIds 상한 때문에 연결되지 않은 항목이 prep에서 누락되던 문제 방지)
+    const dedicated = [...linked, ...tagged];
+    const instructionItems =
+      dedicated.length > 0 ? [...dedicated, ...others] : others;
     const defaultGuidelineItemIds =
       linked.length > 0
         ? linked.map((r) => r._id)
-        : tagged.map((r) => r._id);
+        : tagged.length > 0
+          ? tagged.map((r) => r._id)
+          : others.map((r) => r._id);
     return { instructionItems, defaultGuidelineItemIds };
   };
 
@@ -406,6 +425,7 @@ export const resolveSkillPrepSettings = async (
     if (
       skill === SKILL_IDS.ARCHIVE_DRAFT ||
       skill === SKILL_IDS.DOCUMENT_DRAFT ||
+      skill === SKILL_IDS.DOCUMENT_REVIEW ||
       skill === SKILL_IDS.FORM_RESPONSE_DRAFT ||
       skill === SKILL_IDS.ACTIVITY_DRAFT
     ) {
@@ -425,6 +445,7 @@ export const resolveSkillPrepSettings = async (
   if (
     skill === SKILL_IDS.ARCHIVE_DRAFT ||
     skill === SKILL_IDS.DOCUMENT_DRAFT ||
+    skill === SKILL_IDS.DOCUMENT_REVIEW ||
     skill === SKILL_IDS.FORM_RESPONSE_DRAFT ||
     skill === SKILL_IDS.ACTIVITY_DRAFT
   ) {
@@ -514,6 +535,20 @@ const resolveDocumentGuidelines = async (
     school,
     season,
     SKILL_IDS.DOCUMENT_DRAFT,
+    context
+  );
+
+const resolveDocumentReviewGuidelines = async (
+  academyId,
+  school,
+  season,
+  context = {}
+) =>
+  resolveLibraryGuidelines(
+    academyId,
+    school,
+    season,
+    SKILL_IDS.DOCUMENT_REVIEW,
     context
   );
 
@@ -1139,11 +1174,52 @@ export const executeSyllabusReviewSkill = async (params) => {
   };
 };
 
+const REVIEW_LEVEL_LABEL = {
+  good: "충족",
+  fair: "보통",
+  needs_work: "보완 필요",
+  empty: "미작성",
+};
+
 export const formatReviewAsChatText = (review) => {
   if (review?.items?.[0]?.value != null) {
     return formatSyllabusDraftAsChatText(review);
   }
-  return "강의계획서 초안 Skill로 전환되었습니다. 자료를 입력한 뒤 초안을 작성해 주세요.";
+  if (!review || typeof review !== "object") {
+    return "문서 점검 결과가 없습니다.";
+  }
+  const overall =
+    REVIEW_LEVEL_LABEL[review.overallLevel] || review.overallLevel || "";
+  const lines = [
+    overall ? `종합: ${overall}` : "",
+    review.summary ? String(review.summary).trim() : "",
+  ].filter(Boolean);
+  const items = Array.isArray(review.items) ? review.items : [];
+  for (const item of items.slice(0, 12)) {
+    if (!item?.field) continue;
+    const level = REVIEW_LEVEL_LABEL[item.level] || item.level || "";
+    const comment = String(item.comment || "").trim();
+    lines.push(
+      `- ${item.field}${level ? ` (${level})` : ""}${
+        comment ? `: ${comment}` : ""
+      }`
+    );
+    const quote = String(item.quote || "").trim();
+    if (quote) lines.push(`  원문: ${quote}`);
+    const before = String(item.exampleBefore || "").trim();
+    const after = String(item.exampleAfter || "").trim();
+    if (before || after) {
+      if (before) lines.push(`  변경 전: ${before}`);
+      if (after) lines.push(`  변경 후: ${after}`);
+    } else {
+      const suggestion = String(item.suggestion || "").trim();
+      if (suggestion) lines.push(`  제안: ${suggestion}`);
+    }
+  }
+  if (items.length > 12) {
+    lines.push(`…외 ${items.length - 12}개 항목`);
+  }
+  return lines.join("\n") || "문서 점검을 완료했습니다.";
 };
 
 const buildAlterChatSystem = (promptPack, context, boardTitle) => {
@@ -2733,6 +2809,231 @@ ${currentContent || "(없음)"}
 };
 
 /**
+ * document-review Skill — 문서함·보드 문서를 지침 기준으로 점검
+ */
+export const executeDocumentReviewSkill = async ({
+  academyId,
+  user,
+  academy,
+  season,
+  school,
+  context = {},
+  message = "",
+  onEvent,
+}) => {
+  const profile = FEATURE_PROFILES.documentReview;
+  const emit = typeof onEvent === "function" ? onEvent : () => {};
+
+  emit("step", { message: "문서 점검 준비 중..." });
+
+  const pageType = String(context.pageType || "").trim();
+  const documentTitle = String(
+    context.documentTitle || context.currentTitle || context.label || ""
+  ).trim();
+  const documentText = truncateText(
+    String(context.documentText || context.currentContent || ""),
+    PROMPT_LIMITS.DOCUMENT_REVIEW_CONTENT_CHARS || 14000
+  );
+  const sourceText = mergeContextSourceText(
+    context,
+    "",
+    PROMPT_LIMITS.DOCUMENT_DRAFT_SOURCE_CHARS || 12000
+  );
+  const userHint = truncateText(
+    String(message || "").trim(),
+    PROMPT_LIMITS.DOCUMENT_REVIEW_USER_HINT_CHARS || 2000
+  );
+  const attachments = Array.isArray(context.attachments)
+    ? context.attachments
+    : [];
+  const fieldNames = (
+    Array.isArray(context.fieldNames) ? context.fieldNames : []
+  )
+    .map((f) => String(f || "").trim())
+    .filter(Boolean)
+    .slice(0, PROMPT_LIMITS.DOCUMENT_REVIEW_FIELD_COUNT || 40);
+
+  if (!documentText.trim() && !sourceText && !hasImageAttachments(context)) {
+    const err = new Error(
+      "점검할 문서 내용이 없습니다. 문서함에서 학생·양식을 선택하거나 보드 문서를 열어 주세요."
+    );
+    err.status = 400;
+    err.code = AI_ERRORS.GENERATION_FAILED;
+    throw err;
+  }
+
+  const guidelines = await resolveDocumentReviewGuidelines(
+    academyId,
+    school,
+    season,
+    context
+  );
+
+  const provider = resolveProvider(academy.aiProvider);
+  const modelName = resolveModel(provider, academy.aiModel);
+  assertVisionIfNeeded(modelName, context);
+
+  const fieldFocus =
+    fieldNames.length > 0
+      ? `\nitems.field는 "섹션 · 구체 대상" 형식으로 쓰되, 가능하면 다음 섹션명을 접두로 사용하세요: ${fieldNames
+          .map((n) => JSON.stringify(n))
+          .join(", ")}`
+      : '\nitems.field는 "섹션 · 구체 대상" 형식으로 쓰세요 (예: "수상경력 · 한국사경시대회", "평가 · 국어/문학").';
+
+  const prompt = `당신은 학교 문서 점검 보조입니다. 제공된 문서와 작성 지침을 비교해 준수 여부를 점검하고 JSON 리포트만 출력합니다.
+
+## 역할
+- 지침 충족·부분 충족·미충족·미작성을 구체 항목별로 판단합니다. 섹션 단위로만 뭉뚱그리지 마세요.
+- 근거는 문서에 실제로 있는 내용만 사용하세요. 추측하지 마세요.
+- 학생을 존중하는 공손한 문어체 기준을 적용하고, 낙인·민감정보·과장·비구체성을 지적하세요.
+- needs_work·fair 항목에는 문제된 원문(quote)과 변경 전·후 예시(exampleBefore/exampleAfter)를 넣으세요.
+- 예시 문장은 해당 문서 내용을 바탕으로 1~2문장만 고친 형태입니다. 긴 전문 재작성은 하지 마세요.
+- good·empty 항목은 quote/example를 비워도 됩니다.
+
+## 작성 지침 (점검 기준)
+${guidelines || defaultSkillGuide(SKILL_IDS.DOCUMENT_REVIEW)}
+
+## 문서 정보
+- 화면: ${pageType || "(미지정)"}
+- 제목: ${documentTitle || "(없음)"}
+
+## 교사 요청
+${userHint || "(전체 점검)"}
+
+## 첨부·참고 자료
+${sourceText || "(없음)"}
+
+${IMAGE_HINT}
+
+## 점검 대상 문서
+${documentText || "(본문 없음 — 첨부·이미지만 참고)"}
+
+## 출력 형식 (필수)
+설명·마크다운·코드펜스 없이 JSON 객체 하나만 출력하세요.
+각 comment는 1문장. 항목은 최대 ${PROMPT_LIMITS.REVIEW_MAX_ITEMS || 24}개.
+{
+  "summary": "총평 2~3문장",
+  "overallLevel": "good|fair|needs_work",
+  "items": [
+    {
+      "field": "섹션 · 구체 대상",
+      "level": "good|fair|needs_work|empty",
+      "comment": "짧은 코멘트",
+      "quote": "문제된 원문 한 줄(없으면 \\"\\")",
+      "suggestion": "수정 방향 한 줄(없으면 \\"\\")",
+      "exampleBefore": "변경 전 예시(없으면 \\"\\")",
+      "exampleAfter": "변경 후 예시(없으면 \\"\\")"
+    }
+  ]
+}${fieldFocus}`;
+
+  emit("step", { message: "AI가 문서를 점검하고 있습니다..." });
+
+  let tokenUsage = null;
+  try {
+    const userContent = await buildMultimodalUserContent(prompt, attachments);
+    let generated = await runEvaluationGeneration({
+      provider,
+      apiKey: academy.aiApiKey,
+      modelName,
+      profile,
+      systemInstruction:
+        "You are Alter, a school document review assistant. Output a single valid JSON object only. No markdown fences.",
+      messages: [{ role: "user", content: userContent }],
+      onEvent: emit,
+      progressLabel: "문서 점검 중",
+    });
+    tokenUsage = mergeTokenUsage(tokenUsage, generated.tokenUsage);
+
+    const parseOpts = { openFields: true };
+    let review;
+    try {
+      review = parseSyllabusReviewJson(
+        generated.text || "",
+        fieldNames,
+        parseOpts
+      );
+    } catch (parseErr) {
+      emit("step", { message: "점검 형식을 교정하는 중..." });
+      const retry = await runEvaluationGeneration({
+        provider,
+        apiKey: academy.aiApiKey,
+        modelName,
+        profile,
+        systemInstruction:
+          "You are Alter, a school document review assistant. Output a single valid JSON object only.",
+        messages: [
+          { role: "user", content: userContent },
+          {
+            role: "assistant",
+            content: truncateText(generated.text || "", 6000),
+          },
+          {
+            role: "user",
+            content: buildReviewRetryPrompt(fieldNames, parseOpts),
+          },
+        ],
+        onEvent: emit,
+        progressLabel: "문서 점검 재시도",
+      });
+      tokenUsage = mergeTokenUsage(tokenUsage, retry.tokenUsage);
+      review = parseSyllabusReviewJson(
+        retry.text || "",
+        fieldNames,
+        parseOpts
+      );
+    }
+
+    const safeReview = {
+      summary: maskSensitiveText(review.summary || "").text,
+      overallLevel: review.overallLevel,
+      items: (review.items || []).map((item) => ({
+        field: String(item.field || "").trim(),
+        level: item.level,
+        comment: maskSensitiveText(item.comment || "").text,
+        suggestion: maskSensitiveText(item.suggestion || "").text,
+        quote: maskSensitiveText(item.quote || "").text,
+        exampleBefore: maskSensitiveText(item.exampleBefore || "").text,
+        exampleAfter: maskSensitiveText(item.exampleAfter || "").text,
+      })),
+    };
+
+    const text = formatReviewAsChatText(safeReview);
+
+    logAIUsage(academyId, {
+      user,
+      provider,
+      model: modelName,
+      feature: profile.feature,
+      success: true,
+      tokenUsage,
+    });
+
+    return {
+      skill: SKILL_IDS.DOCUMENT_REVIEW,
+      provider,
+      modelName,
+      tokenUsage,
+      text,
+      review: safeReview,
+      draft: null,
+    };
+  } catch (err) {
+    if (!err.code) err.code = mapProviderError(err);
+    logAIUsage(academyId, {
+      user,
+      provider,
+      model: modelName,
+      feature: profile.feature,
+      success: false,
+      errorCode: err.code,
+      tokenUsage,
+    });
+    throw err;
+  }
+};
+
+/**
  * form-response-draft Skill — 양식 응답 필드 초안
  */
 export const executeFormResponseDraftSkill = async ({
@@ -4270,6 +4571,26 @@ export const runAlterSkill = async ({
     };
   }
 
+  if (skill === SKILL_IDS.DOCUMENT_REVIEW) {
+    const result = await executeDocumentReviewSkill({
+      academyId,
+      user,
+      academy,
+      season,
+      school,
+      context,
+      message,
+      onEvent,
+    });
+    return {
+      skill,
+      text: result.text,
+      review: result.review,
+      draft: null,
+      tokenUsage: result.tokenUsage,
+    };
+  }
+
   if (skill === SKILL_IDS.FORM_RESPONSE_DRAFT) {
     const result = await executeFormResponseDraftSkill({
       academyId,
@@ -4454,6 +4775,14 @@ export const detectSkillFromMessage = (message = "") => {
     return SKILL_IDS.ARCHIVE_DRAFT;
   }
   if (
+    /문서.*(점검|검토|리뷰|피드백)/.test(text) ||
+    /(점검|검토|리뷰|피드백).*문서/.test(text) ||
+    /생활기록부.*(점검|검토|리뷰)/.test(text) ||
+    /\/(문서[-_]?점검|document[-_]?review)/i.test(text)
+  ) {
+    return SKILL_IDS.DOCUMENT_REVIEW;
+  }
+  if (
     /문서.*(초안|작성|다듬)/.test(text) ||
     /(초안|작성|다듬).*문서/.test(text) ||
     /매뉴얼|회의록|공지문/.test(text) ||
@@ -4481,11 +4810,15 @@ export const detectSkillFromMessage = (message = "") => {
     /계획서.*(초안|작성)/.test(text) ||
     /(초안|작성).*계획서/.test(text) ||
     /\/(계획서|syllabus[-_]?draft)/i.test(text) ||
-    /^(점검|리뷰|피드백)/.test(text) ||
-    /계획서.*(점검|리뷰|피드백)/.test(text) ||
-    /\/(점검|review)/i.test(text)
+    /계획서.*(점검|리뷰|피드백)/.test(text)
   ) {
     return SKILL_IDS.SYLLABUS_DRAFT;
+  }
+  if (
+    /^(점검|검토|리뷰|피드백)/.test(text) ||
+    /\/(점검|검토|review)/i.test(text)
+  ) {
+    return SKILL_IDS.DOCUMENT_REVIEW;
   }
   return SKILL_IDS.CHAT;
 };

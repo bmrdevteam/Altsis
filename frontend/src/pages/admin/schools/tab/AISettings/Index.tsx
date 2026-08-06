@@ -41,6 +41,11 @@ const SKILLS: Array<{ id: TAlterSkillId; label: string; hint: string }> = [
     hint: "보드 문서(매뉴얼·공지·회의록 등) 초안 작성에 적용할 지침 라이브러리 항목을 선택합니다.",
   },
   {
+    id: "document-review",
+    label: "문서 점검",
+    hint: "문서함·보드 문서를 지침에 맞게 점검할 때 적용할 라이브러리 항목을 선택합니다.",
+  },
+  {
     id: "form-response-draft",
     label: "응답",
     hint: "양식 응답 초안 지침입니다. 기안문은 (작성)·(본문 작성) 칸만 채우고 양식 골격을 유지하도록 안내하는 문구를 넣을 수 있습니다.",

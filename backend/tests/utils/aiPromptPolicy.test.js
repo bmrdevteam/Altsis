@@ -195,6 +195,35 @@ describe("aiPromptPolicy", () => {
     });
   });
 
+  test("parseSyllabusReviewJson keeps quote and change examples", () => {
+    const review = parseSyllabusReviewJson(
+      JSON.stringify({
+        summary: "수상 표기를 보완하면 좋겠습니다.",
+        overallLevel: "needs_work",
+        items: [
+          {
+            field: "수상경력 · 한국사경시대회",
+            level: "needs_work",
+            comment: "상장명 형식이 지침과 다릅니다.",
+            quote: "한국사 경시 대회 우수상",
+            suggestion: "『상장명(과목명)』 형식으로 수정",
+            exampleBefore: "한국사 경시 대회 우수상",
+            exampleAfter: "한국사경시대회 우수상(한국사)",
+          },
+        ],
+      }),
+      ["수상경력"],
+      { openFields: true }
+    );
+    expect(review.items).toHaveLength(1);
+    expect(review.items[0]).toMatchObject({
+      field: "수상경력 · 한국사경시대회",
+      quote: "한국사 경시 대회 우수상",
+      exampleBefore: "한국사 경시 대회 우수상",
+      exampleAfter: "한국사경시대회 우수상(한국사)",
+    });
+  });
+
   test("parseSyllabusReviewJson salvages truncated response", () => {
     const truncated = `{
   "summary": "목표와 활동 연결을 보강하면 좋겠습니다.",

@@ -31,8 +31,12 @@ export const PROMPT_LIMITS = {
   USER_CRITERIA_CHARS: 400,
   /** 점검 시 한 번에 요청할 항목 수 (잘림 방지용 청크) */
   REVIEW_CHUNK_FIELDS: 10,
-  REVIEW_COMMENT_CHARS: 120,
-  REVIEW_SUGGESTION_CHARS: 160,
+  REVIEW_COMMENT_CHARS: 160,
+  REVIEW_SUGGESTION_CHARS: 320,
+  REVIEW_QUOTE_CHARS: 220,
+  REVIEW_EXAMPLE_CHARS: 240,
+  /** 문서 점검 리포트 최대 항목 수 */
+  REVIEW_MAX_ITEMS: 24,
   /** 강의계획서 초안: 한 번에 작성할 항목 수 */
   SYLLABUS_DRAFT_CHUNK_FIELDS: 8,
   /** 강의계획서 초안: 필드당 최대 글자 */
@@ -77,6 +81,9 @@ export const PROMPT_LIMITS = {
   DOCUMENT_DRAFT_USER_HINT_CHARS: 2000,
   /** 문서 초안: 제목 최대 글자 */
   DOCUMENT_DRAFT_TITLE_CHARS: 120,
+  DOCUMENT_REVIEW_CONTENT_CHARS: 14000,
+  DOCUMENT_REVIEW_USER_HINT_CHARS: 2000,
+  DOCUMENT_REVIEW_FIELD_COUNT: 40,
   /** 양식 응답 초안: 필드 값 합계 최대 글자 */
   FORM_RESPONSE_DRAFT_CONTENT_CHARS: 14000,
   /** 양식 응답 초안: 현재 응답 JSON 참고 최대 글자 */
@@ -163,6 +170,11 @@ export const FEATURE_PROFILES = {
     feature: "assessment_grade",
     temperature: 0.3,
     maxTokens: 4096,
+  },
+  documentReview: {
+    feature: "document_review",
+    temperature: 0.3,
+    maxTokens: 8192,
   },
 };
 
@@ -568,6 +580,9 @@ const salvageReviewFromText = (text) => {
       level: normalizeReviewLevel(m[2]),
       comment: m[3].replace(/\\n/g, "\n").replace(/\\"/g, '"'),
       suggestion: (m[4] || "").replace(/\\n/g, "\n").replace(/\\"/g, '"'),
+      quote: "",
+      exampleBefore: "",
+      exampleAfter: "",
     });
   }
 
@@ -575,10 +590,46 @@ const salvageReviewFromText = (text) => {
   return { summary, overallLevel, items };
 };
 
+const normalizeReviewItemExtras = (item = {}) => ({
+  quote: truncateText(
+    String(item.quote || item.evidence || item.원문 || "").trim(),
+    PROMPT_LIMITS.REVIEW_QUOTE_CHARS
+  ),
+  exampleBefore: truncateText(
+    String(
+      item.exampleBefore || item.before || item.변경전 || item.from || ""
+    ).trim(),
+    PROMPT_LIMITS.REVIEW_EXAMPLE_CHARS
+  ),
+  exampleAfter: truncateText(
+    String(
+      item.exampleAfter || item.after || item.변경후 || item.to || ""
+    ).trim(),
+    PROMPT_LIMITS.REVIEW_EXAMPLE_CHARS
+  ),
+});
+
+const emptyReviewItem = (field, level = "empty", comment = "") => ({
+  field,
+  level,
+  comment,
+  suggestion: "",
+  quote: "",
+  exampleBefore: "",
+  exampleAfter: "",
+});
+
 /**
  * 점검 결과 JSON 파싱
+ * @param {string} text
+ * @param {string[]} [fieldNames]
+ * @param {{ openFields?: boolean }} [options] openFields=true 이면 fieldNames로 강제 채우지 않고 AI 항목을 그대로 유지
  */
-export const parseSyllabusReviewJson = (text, fieldNames = []) => {
+export const parseSyllabusReviewJson = (
+  text,
+  fieldNames = [],
+  options = {}
+) => {
   if (!text || !String(text).trim()) {
     const err = new Error(AI_ERRORS.EMPTY_RESPONSE);
     err.code = AI_ERRORS.EMPTY_RESPONSE;
@@ -599,6 +650,7 @@ export const parseSyllabusReviewJson = (text, fieldNames = []) => {
   const overallLevel = normalizeReviewLevel(
     parsed.overallLevel || parsed.overall || "fair"
   );
+  const openFields = options?.openFields === true;
 
   const rawItems = Array.isArray(parsed.items)
     ? parsed.items
@@ -607,14 +659,15 @@ export const parseSyllabusReviewJson = (text, fieldNames = []) => {
       : [];
 
   const byField = new Map();
+  const openItems = [];
   for (const item of rawItems) {
     if (!item || typeof item !== "object") continue;
     const resolved = resolveReviewFieldName(
       item.field || item.name || item.key,
-      fieldNames
+      openFields ? [] : fieldNames
     );
     if (!resolved) continue;
-    byField.set(resolved, {
+    const normalized = {
       field: resolved,
       level: normalizeReviewLevel(item.level || item.status),
       comment: truncateText(
@@ -625,21 +678,28 @@ export const parseSyllabusReviewJson = (text, fieldNames = []) => {
         String(item.suggestion || item.rewrite || "").trim(),
         PROMPT_LIMITS.REVIEW_SUGGESTION_CHARS
       ),
-    });
+      ...normalizeReviewItemExtras(item),
+    };
+    if (openFields) {
+      openItems.push(normalized);
+    } else {
+      byField.set(resolved, normalized);
+    }
   }
 
   const items = [];
-  if (fieldNames.length > 0) {
+  if (openFields) {
+    items.push(
+      ...openItems.slice(0, PROMPT_LIMITS.REVIEW_MAX_ITEMS || 24)
+    );
+  } else if (fieldNames.length > 0) {
     for (const field of fieldNames) {
       if (byField.has(field)) {
         items.push(byField.get(field));
       } else {
-        items.push({
-          field,
-          level: "empty",
-          comment: "점검 응답에 포함되지 않았습니다.",
-          suggestion: "",
-        });
+        items.push(
+          emptyReviewItem(field, "empty", "점검 응답에 포함되지 않았습니다.")
+        );
       }
     }
   } else if (byField.size > 0) {
@@ -660,20 +720,39 @@ export const parseSyllabusReviewJson = (text, fieldNames = []) => {
   };
 };
 
-export const buildReviewRetryPrompt = (fieldNames = []) => {
+export const buildReviewRetryPrompt = (fieldNames = [], options = {}) => {
+  const openFields = options?.openFields === true;
   const focus =
-    Array.isArray(fieldNames) && fieldNames.length > 0
+    !openFields && Array.isArray(fieldNames) && fieldNames.length > 0
       ? `\nitems.field는 다음을 빠짐없이 사용: ${fieldNames
           .map((n) => JSON.stringify(n))
           .join(", ")}`
-      : "";
+      : openFields
+        ? `\nitems.field는 "섹션 · 구체 대상" 형식으로 구체적으로 쓰세요.${
+            Array.isArray(fieldNames) && fieldNames.length > 0
+              ? ` 가능하면 다음 섹션명을 접두로 사용: ${fieldNames
+                  .slice(0, 20)
+                  .map((n) => JSON.stringify(n))
+                  .join(", ")}`
+              : ""
+          }`
+        : "";
   return `이전 응답이 유효한 JSON이 아닙니다. 설명·마크다운·코드펜스 없이 JSON 객체 하나만 출력하세요.
-각 comment는 1문장, suggestion은 필요할 때만(없으면 "").
+각 comment는 1문장.
+needs_work|fair 항목에는 quote(원문 인용)·exampleBefore·exampleAfter를 できるだけ 채우세요. 없으면 "".
 {
   "summary": "총평 2~3문장",
   "overallLevel": "good|fair|needs_work",
   "items": [
-    { "field": "필드명", "level": "good|fair|needs_work|empty", "comment": "짧은 코멘트", "suggestion": "" }
+    {
+      "field": "섹션 · 구체 대상",
+      "level": "good|fair|needs_work|empty",
+      "comment": "짧은 코멘트",
+      "quote": "문제된 원문 한 줄",
+      "suggestion": "수정 방향 한 줄",
+      "exampleBefore": "변경 전 예시",
+      "exampleAfter": "변경 후 예시"
+    }
   ]
 }${focus}`;
 };

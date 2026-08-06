@@ -6,6 +6,7 @@ import { useAuth } from "contexts/authContext";
 import EditorParser from "editor/EditorParser";
 import { zipSeasonsFormEvaluation } from "functions/docs";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import useRegisterAlterDocsReview from "hooks/useRegisterAlterDocsReview";
 import _ from "lodash";
 import React, { useEffect, useState } from "react";
 import style from "style/pages/docs/docs.module.scss";
@@ -46,6 +47,16 @@ function Docs({}: Props) {
   const [selectedFormIds, setSelectedFormIds] = useState<string[]>([]);
 
   const [evaluationData, setEvaluationData] = useState<any>();
+  const [selectedStudentLabel, setSelectedStudentLabel] = useState<string>("");
+
+  useRegisterAlterDocsReview({
+    enabled: !isStudent && !!formData && !!DBData,
+    label: formData?.title || "문서 점검",
+    formTitle: formData?.title,
+    studentLabel: selectedStudentLabel,
+    getFormData: () => formData as any,
+    getDbData: () => DBData as any,
+  });
 
   async function getDBData(rid: string, uid: string, evalDataOverride?: any) {
     const evalData = evalDataOverride || evaluationData;
@@ -242,6 +253,17 @@ function Docs({}: Props) {
                   students={users}
                   schoolId={currentSchool.schoolId}
                   onSelect={({ rid, uid }) => {
+                    const student = users.find(
+                      (u) => u._id === rid || u.user === uid
+                    );
+                    const label = [
+                      student?.userName,
+                      student?.grade && `${student.grade}학년`,
+                      student?.userId,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ");
+                    setSelectedStudentLabel(label);
                     setLoading(true);
                     getDBData(rid, uid)
                       .then((res) => {

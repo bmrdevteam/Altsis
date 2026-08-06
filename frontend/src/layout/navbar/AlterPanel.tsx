@@ -84,6 +84,22 @@ type TAlterDocumentDraftResult = {
   content: string;
 };
 
+type TAlterReviewLevel = "good" | "fair" | "needs_work" | "empty";
+
+type TAlterDocumentReviewResult = {
+  summary: string;
+  overallLevel: TAlterReviewLevel | string;
+  items: Array<{
+    field: string;
+    level: TAlterReviewLevel | string;
+    comment: string;
+    suggestion: string;
+    quote?: string;
+    exampleBefore?: string;
+    exampleAfter?: string;
+  }>;
+};
+
 type TAlterFormResponseDraftResult = {
   kind: "form-response";
   writeMode?: "create" | "refine";
@@ -163,6 +179,7 @@ type ChatMessage = {
   content: string;
   skill?: string;
   draft?: TAlterDraftResult | null;
+  review?: TAlterDocumentReviewResult | null;
   createdAt?: string;
   /** 전송 직후 말풍선에 바로 보이는 첨부(미리보기) */
   attachments?: TAlterAttachment[];
@@ -237,9 +254,24 @@ const SKILL_LABEL: Record<TAlterSkillId, string> = {
   "evaluation-draft": "평가",
   "archive-draft": "기록",
   "document-draft": "문서",
+  "document-review": "문서 점검",
   "form-response-draft": "응답",
   "activity-draft": "활동",
   "assessment-grade": "채점",
+};
+
+const REVIEW_LEVEL_LABEL: Record<string, string> = {
+  good: "충족",
+  fair: "보통",
+  needs_work: "보완 필요",
+  empty: "미작성",
+};
+
+const reviewLevelClass = (level?: string) => {
+  if (level === "good") return style.levelGood;
+  if (level === "fair") return style.levelFair;
+  if (level === "empty") return style.levelEmpty;
+  return style.levelNeeds;
 };
 
 const isDraftPrepSkill = (skill: TAlterSkillId) =>
@@ -247,6 +279,7 @@ const isDraftPrepSkill = (skill: TAlterSkillId) =>
   skill === "evaluation-draft" ||
   skill === "archive-draft" ||
   skill === "document-draft" ||
+  skill === "document-review" ||
   skill === "form-response-draft" ||
   skill === "activity-draft" ||
   skill === "assessment-grade";
@@ -421,6 +454,13 @@ const wantsDocumentDraftText = (text: string) =>
   /매뉴얼|회의록|공지문/.test(text) ||
   /\/(문서|document[-_]?draft)/i.test(text);
 
+const wantsDocumentReviewText = (text: string) =>
+  /문서.*(점검|검토|리뷰|피드백)/.test(text) ||
+  /(점검|검토|리뷰|피드백).*문서/.test(text) ||
+  /생활기록부.*(점검|검토|리뷰)/.test(text) ||
+  /^(점검|검토|리뷰|피드백)/.test(text) ||
+  /\/(문서[-_]?점검|document[-_]?review|점검|검토|review)/i.test(text);
+
 const wantsFormResponseDraftText = (text: string) =>
   /응답.*(초안|작성|다듬|기안)/.test(text) ||
   /(초안|작성|다듬).*응답/.test(text) ||
@@ -515,6 +555,11 @@ const AlterPanel = ({ onClose }: Props) => {
   const [docSelectedGuidelineIds, setDocSelectedGuidelineIds] = useState<
     string[]
   >([]);
+  const [docReviewGuidelineItems, setDocReviewGuidelineItems] = useState<
+    Array<{ _id: string; title: string; content: string }>
+  >([]);
+  const [docReviewSelectedGuidelineIds, setDocReviewSelectedGuidelineIds] =
+    useState<string[]>([]);
 
   const [formResponseWriteMode, setFormResponseWriteMode] = useState<
     "create" | "refine"
@@ -650,6 +695,7 @@ const AlterPanel = ({ onClose }: Props) => {
     setDocWriteMode(hasContent ? "refine" : "create");
     setDocType("general");
     setDocSelectedGuidelineIds([]);
+    setDocReviewSelectedGuidelineIds([]);
     const formSnap = pageContext?.getFormResponse?.();
     const hasFormTemplateOrBody = (formSnap?.fields || []).some((f) => {
       const tpl = String(f.template || "").trim();
@@ -769,6 +815,7 @@ const AlterPanel = ({ onClose }: Props) => {
         if (
           selectedSkill === "archive-draft" ||
           selectedSkill === "document-draft" ||
+          selectedSkill === "document-review" ||
           selectedSkill === "form-response-draft" ||
           selectedSkill === "activity-draft"
         ) {
@@ -802,6 +849,11 @@ const AlterPanel = ({ onClose }: Props) => {
           } else if (selectedSkill === "document-draft") {
             setDocGuidelineItems(filtered);
             setDocSelectedGuidelineIds((prev) => pickIds(prev, filtered));
+          } else if (selectedSkill === "document-review") {
+            setDocReviewGuidelineItems(filtered);
+            setDocReviewSelectedGuidelineIds((prev) =>
+              pickIds(prev, filtered)
+            );
           } else if (selectedSkill === "form-response-draft") {
             setFormResponseGuidelineItems(filtered);
             setFormResponseSelectedGuidelineIds((prev) =>
@@ -820,6 +872,9 @@ const AlterPanel = ({ onClose }: Props) => {
         }
         if (selectedSkill === "document-draft") {
           setDocGuidelineItems([]);
+        }
+        if (selectedSkill === "document-review") {
+          setDocReviewGuidelineItems([]);
         }
         if (selectedSkill === "form-response-draft") {
           setFormResponseGuidelineItems([]);
@@ -1015,6 +1070,32 @@ const AlterPanel = ({ onClose }: Props) => {
         guidelineItemIds: docSelectedGuidelineIds,
         currentTitle: current.title || "",
         currentContent: current.content || "",
+        sourceText: attachmentText,
+        attachments,
+      };
+    }
+    if (skill === "document-review") {
+      const reviewDoc =
+        pageContext?.getReviewDocument?.() ||
+        (() => {
+          const doc = pageContext?.getDocument?.();
+          return doc
+            ? {
+                title: doc.title || "",
+                content: doc.content || "",
+                fieldNames: [] as string[],
+              }
+            : { title: "", content: "", fieldNames: [] as string[] };
+        })();
+      return {
+        pageType: pageContext?.pageType || "docs",
+        label: pageContext?.label || "",
+        boardId: pageContext?.boardId || "",
+        boardName: pageContext?.boardName || "",
+        guidelineItemIds: docReviewSelectedGuidelineIds,
+        documentTitle: reviewDoc.title || "",
+        documentText: reviewDoc.content || "",
+        fieldNames: reviewDoc.fieldNames || [],
         sourceText: attachmentText,
         attachments,
       };
@@ -1358,6 +1439,7 @@ const AlterPanel = ({ onClose }: Props) => {
     onActivity?: () => void
   ): Promise<{
     draft?: TAlterDraftResult | null;
+    review?: TAlterDocumentReviewResult | null;
     message?: string;
     skill?: string;
     conversationId?: string | null;
@@ -1370,6 +1452,7 @@ const AlterPanel = ({ onClose }: Props) => {
     let buffer = "";
     let result: {
       draft?: TAlterDraftResult | null;
+      review?: TAlterDocumentReviewResult | null;
       message?: string;
       skill?: string;
       conversationId?: string | null;
@@ -1401,6 +1484,7 @@ const AlterPanel = ({ onClose }: Props) => {
             } else if (eventType === "done") {
               result = {
                 draft: data.draft || null,
+                review: data.review || null,
                 message: data.message || data.text || "",
                 skill: data.skill,
                 conversationId: data.conversationId || null,
@@ -1483,6 +1567,29 @@ const AlterPanel = ({ onClose }: Props) => {
       ) {
         setError(
           "다듬을 본문이 없습니다. 에디터에 내용을 쓰거나 요청을 입력해 주세요."
+        );
+        return;
+      }
+    }
+
+    if (skill === "document-review") {
+      const pageType = pageContext?.pageType;
+      if (pageType !== "docs" && pageType !== "document") {
+        setError("문서함 또는 보드 문서 화면에서 점검을 실행할 수 있습니다.");
+        return;
+      }
+      const reviewDoc =
+        pageContext?.getReviewDocument?.() ||
+        pageContext?.getDocument?.() ||
+        { title: "", content: "" };
+      if (
+        !(reviewDoc.content || "").trim() &&
+        sourceAttachments.length === 0
+      ) {
+        setError(
+          pageType === "docs"
+            ? "점검할 문서가 없습니다. 학생과 양식을 선택한 뒤 다시 시도해 주세요."
+            : "점검할 문서 본문이 없습니다. 에디터에 내용을 쓰거나 파일을 첨부해 주세요."
         );
         return;
       }
@@ -1785,6 +1892,7 @@ const AlterPanel = ({ onClose }: Props) => {
             content: result.message || "응답을 생성했습니다.",
             skill: result.skill || skill,
             draft: result.draft,
+            review: result.review || null,
             createdAt: new Date().toISOString(),
           },
         ]);
@@ -1809,6 +1917,7 @@ const AlterPanel = ({ onClose }: Props) => {
             content: data.message || data.text || "",
             skill: data.skill || skill,
             draft: data.draft,
+            review: data.review || null,
             createdAt: new Date().toISOString(),
           },
         ]);
@@ -1873,7 +1982,9 @@ const AlterPanel = ({ onClose }: Props) => {
     }
     if (
       selectedSkill === "document-draft" ||
-      (showPrep && pageContext?.pageType === "document")
+      (showPrep &&
+        selectedSkill !== "document-review" &&
+        pageContext?.pageType === "document")
     ) {
       const text = combinedSourceText();
       void runSkill(
@@ -1882,6 +1993,18 @@ const AlterPanel = ({ onClose }: Props) => {
           (docWriteMode === "refine"
             ? "현재 문서를 목적에 맞게 다듬어 주세요."
             : "문서 초안을 작성해 주세요.")
+      );
+      setDraft("");
+      return;
+    }
+    if (
+      selectedSkill === "document-review" ||
+      (showPrep && pageContext?.pageType === "docs")
+    ) {
+      const text = draft.trim();
+      void runSkill(
+        "document-review",
+        text || "선택한 지침에 맞게 문서를 점검해 주세요."
       );
       setDraft("");
       return;
@@ -1961,6 +2084,12 @@ const AlterPanel = ({ onClose }: Props) => {
     ) {
       skill = "archive-draft";
     } else if (
+      wantsDocumentReviewText(text) &&
+      (pageContext?.pageType === "docs" ||
+        pageContext?.pageType === "document")
+    ) {
+      skill = "document-review";
+    } else if (
       wantsDocumentDraftText(text) &&
       pageContext?.pageType === "document"
     ) {
@@ -1990,6 +2119,12 @@ const AlterPanel = ({ onClose }: Props) => {
       pageContext?.pageType === "syllabus-edit"
     ) {
       skill = "syllabus-draft";
+    } else if (
+      selectedSkill === "document-review" &&
+      (pageContext?.pageType === "docs" ||
+        pageContext?.pageType === "document")
+    ) {
+      skill = "document-review";
     } else if (
       selectedSkill === "document-draft" &&
       pageContext?.pageType === "document"
@@ -2467,20 +2602,23 @@ const AlterPanel = ({ onClose }: Props) => {
         ? "평가"
         : pageContext?.pageType === "archive"
           ? "기록"
-          : pageContext?.pageType === "document"
-            ? "문서"
-            : pageContext?.pageType === "form-response"
-              ? "응답"
-              : pageContext?.pageType === "activity"
-                ? "활동"
-                : pageContext?.pageType === "assessment-grade"
-                  ? "채점"
-                  : "일반");
+          : pageContext?.pageType === "docs"
+            ? "문서함"
+            : pageContext?.pageType === "document"
+              ? "문서"
+              : pageContext?.pageType === "form-response"
+                ? "응답"
+                : pageContext?.pageType === "activity"
+                  ? "활동"
+                  : pageContext?.pageType === "assessment-grade"
+                    ? "채점"
+                    : "일반");
 
   const inSyllabusPrep = showPrep && selectedSkill === "syllabus-draft";
   const inEvalPrep = showPrep && selectedSkill === "evaluation-draft";
   const inArchivePrep = showPrep && selectedSkill === "archive-draft";
   const inDocPrep = showPrep && selectedSkill === "document-draft";
+  const inDocReviewPrep = showPrep && selectedSkill === "document-review";
   const inFormResponsePrep =
     showPrep && selectedSkill === "form-response-draft";
   const inActivityPrep = showPrep && selectedSkill === "activity-draft";
@@ -2490,6 +2628,7 @@ const AlterPanel = ({ onClose }: Props) => {
     inEvalPrep ||
     inArchivePrep ||
     inDocPrep ||
+    inDocReviewPrep ||
     inFormResponsePrep ||
     inActivityPrep ||
     inGradePrep;
@@ -2534,14 +2673,17 @@ const AlterPanel = ({ onClose }: Props) => {
     inEvalPrep ||
     inArchivePrep ||
     inDocPrep ||
+    inDocReviewPrep ||
     inFormResponsePrep ||
     inActivityPrep ||
     inGradePrep
       ? messages.some(
           (m) =>
-            m.draft &&
-            (inGradePrep
-              ? isAssessmentGradeDraft(m.draft)
+            (m.draft || m.review) &&
+            (inDocReviewPrep
+              ? !!m.review
+              : inGradePrep
+              ? isAssessmentGradeDraft(m.draft!)
               : inActivityPrep
                 ? isActivityDraft(m.draft)
                 : inFormResponsePrep
@@ -2552,10 +2694,14 @@ const AlterPanel = ({ onClose }: Props) => {
                       ? isArchiveDraft(m.draft)
                       : isEvalDraft(m.draft))
         )
-        ? "다시 작성"
-        : inGradePrep
-          ? "채점 초안 작성"
-          : "초안 작성"
+        ? inDocReviewPrep
+          ? "다시 점검"
+          : "다시 작성"
+        : inDocReviewPrep
+          ? "문서 점검"
+          : inGradePrep
+            ? "채점 초안 작성"
+            : "초안 작성"
       : messages.some((m) => m.draft && isSyllabusDraft(m.draft))
         ? "다시 작성"
         : "초안 작성";
@@ -2849,7 +2995,7 @@ const AlterPanel = ({ onClose }: Props) => {
           <ChatMessageBubble
             key={msg.id}
             variant={msg.role === "user" ? "own" : "other"}
-            wide={!!msg.draft}
+            wide={!!msg.draft || !!msg.review}
             time={formatBubbleTime(msg.createdAt)}
             sender={
               <>
@@ -3149,6 +3295,78 @@ const AlterPanel = ({ onClose }: Props) => {
               </div>
               );
             })()}
+            {msg.review && Array.isArray(msg.review.items) && (
+              <div className={style.reviewList}>
+                <div className={style.reviewItem}>
+                  <div className={style.reviewHeader}>
+                    <span>문서 점검 리포트</span>
+                    <span
+                      className={`${style.levelChip} ${reviewLevelClass(
+                        msg.review.overallLevel
+                      )}`}
+                    >
+                      {REVIEW_LEVEL_LABEL[msg.review.overallLevel] ||
+                        msg.review.overallLevel ||
+                        "점검"}
+                    </span>
+                  </div>
+                  {msg.review.summary ? (
+                    <p className={style.reviewComment}>{msg.review.summary}</p>
+                  ) : null}
+                </div>
+                {msg.review.items.map((item, idx) => (
+                  <div
+                    key={`${item.field || "item"}-${idx}`}
+                    className={style.reviewItem}
+                  >
+                    <div className={style.reviewHeader}>
+                      <span>{item.field || "항목"}</span>
+                      <span
+                        className={`${style.levelChip} ${reviewLevelClass(
+                          item.level
+                        )}`}
+                      >
+                        {REVIEW_LEVEL_LABEL[item.level] || item.level || ""}
+                      </span>
+                    </div>
+                    {item.comment ? (
+                      <p className={style.reviewComment}>{item.comment}</p>
+                    ) : null}
+                    {item.quote ? (
+                      <p className={style.reviewQuote}>
+                        <span className={style.reviewMetaLabel}>원문</span>
+                        {item.quote}
+                      </p>
+                    ) : null}
+                    {item.exampleBefore || item.exampleAfter ? (
+                      <div className={style.reviewExampleBox}>
+                        {item.exampleBefore ? (
+                          <p className={style.reviewExampleRow}>
+                            <span className={style.reviewMetaLabel}>
+                              변경 전
+                            </span>
+                            {item.exampleBefore}
+                          </p>
+                        ) : null}
+                        {item.exampleAfter ? (
+                          <p className={style.reviewExampleRow}>
+                            <span className={style.reviewMetaLabel}>
+                              변경 후
+                            </span>
+                            {item.exampleAfter}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    {item.suggestion ? (
+                      <p className={style.suggestion}>
+                        제안: {item.suggestion}
+                      </p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            )}
             {msg.draft && isFormResponseDraft(msg.draft) && (() => {
               const frDraft = msg.draft as TAlterFormResponseDraftResult;
               const snap = pageContext?.getFormResponse?.();
@@ -3486,6 +3704,55 @@ const AlterPanel = ({ onClose }: Props) => {
             </div>
             <div className={style.prepHintRow}>
               <PrepHint text="초안은 에디터 전체를 덮어씁니다. 미리보기 확인 후 「전체에 반영」하고 저장하세요." />
+              <span className={style.prepHintRowLabel}>이용 안내</span>
+            </div>
+          </>
+        )}
+
+        {inDocReviewPrep && (
+          <>
+            <div className={style.prepCard}>
+              <p className={style.prepLabel}>
+                점검 지침
+                <PrepHint text="학교 AI 라이브러리의 「문서 점검」지침을 고릅니다. 선택한 지침을 기준으로 문서를 점검합니다." />
+              </p>
+              {skillSettingsLoading ? (
+                <p className={style.prepText}>지침을 불러오는 중...</p>
+              ) : docReviewGuidelineItems.length === 0 ? (
+                <p className={style.prepText}>
+                  선택 가능한 지침이 없습니다. 관리 → 학교 AI → 라이브러리에서
+                  「문서 점검」 지침을 추가해 주세요. 기본 기준으로
+                  점검합니다.
+                </p>
+              ) : (
+                <div className={`${style.refList} ${style.refListScroll}`}>
+                  {docReviewGuidelineItems.map((item) => (
+                    <GuidelinePickRow
+                      key={item._id}
+                      id={item._id}
+                      title={item.title}
+                      content={item.content}
+                      checked={docReviewSelectedGuidelineIds.includes(item._id)}
+                      expanded={expandedGuidelineId === item._id}
+                      onToggleChecked={() =>
+                        toggleLabel(
+                          item._id,
+                          docReviewSelectedGuidelineIds,
+                          setDocReviewSelectedGuidelineIds
+                        )
+                      }
+                      onToggleExpanded={() =>
+                        setExpandedGuidelineId((cur) =>
+                          cur === item._id ? null : item._id
+                        )
+                      }
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className={style.prepHintRow}>
+              <PrepHint text="현재 화면에 열린 문서 내용을 점검합니다. 결과는 리포트로만 제공되며 문서에 자동 반영되지 않습니다. 목록이 길면 스크롤해 지침을 고를 수 있습니다." />
               <span className={style.prepHintRowLabel}>이용 안내</span>
             </div>
           </>

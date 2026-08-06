@@ -20,9 +20,17 @@ export type TAlterSkillId =
   | "evaluation-draft"
   | "archive-draft"
   | "document-draft"
+  | "document-review"
   | "form-response-draft"
   | "activity-draft"
   | "assessment-grade";
+
+export type TAlterReviewDocument = {
+  title: string;
+  content: string;
+  fieldNames?: string[];
+  studentLabel?: string;
+};
 
 export type TAlterAssessmentGradeField = {
   fieldId: string;
@@ -146,6 +154,7 @@ export type TAlterPageContext = {
     | "evaluation"
     | "archive"
     | "document"
+    | "docs"
     | "form-response"
     | "activity"
     | "assessment-grade"
@@ -188,6 +197,8 @@ export type TAlterPageContext = {
     title?: string;
     content: string;
   }) => { applied: boolean };
+  /** 문서 점검용 스냅샷 (문서함·보드 문서) */
+  getReviewDocument?: () => TAlterReviewDocument;
   getFormResponse?: () => TAlterFormResponseSnapshot;
   applyFormResponseDraft?: (
     draft: TAlterFormResponseDraft

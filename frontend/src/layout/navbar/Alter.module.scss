@@ -367,8 +367,9 @@
 }
 
 .refListScroll {
-  max-height: 180px;
+  max-height: min(280px, 32vh);
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding-right: 2px;
 }
 
@@ -499,6 +500,47 @@
   font-size: 12px;
   color: var(--accent-1);
   white-space: pre-wrap;
+}
+
+.reviewQuote {
+  margin: 0 0 6px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--background-secondary, #f1f3f4);
+  font-size: 12px;
+  color: var(--accent-2);
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: keep-all;
+}
+
+.reviewMetaLabel {
+  display: inline-block;
+  margin-right: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent-3);
+  vertical-align: top;
+}
+
+.reviewExampleBox {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 6px;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px dashed var(--border-default-color);
+  background: var(--component-color);
+}
+
+.reviewExampleRow {
+  margin: 0;
+  font-size: 12px;
+  color: var(--accent-1);
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: keep-all;
 }
 
 .applyBtn {

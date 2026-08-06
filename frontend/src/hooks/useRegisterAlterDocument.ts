@@ -43,6 +43,14 @@ const useRegisterAlterDocument = (params: Params) => {
           boardName: params.boardName,
         };
       },
+      getReviewDocument: () => {
+        const doc = getDocumentRef.current() || { title: "", content: "" };
+        return {
+          title: String(doc.title || ""),
+          content: String(doc.content || ""),
+          fieldNames: [],
+        };
+      },
       applyDocumentDraft: (draft) => {
         const nextContent = normalizeDocumentDraftContent(
           String(draft?.content ?? "")
@@ -57,7 +65,7 @@ const useRegisterAlterDocument = (params: Params) => {
         }
         return { applied: true };
       },
-      suggestedSkills: ["document-draft", "chat"],
+      suggestedSkills: ["document-draft", "document-review", "chat"],
     });
 
     return () => registerPageContext(null);
