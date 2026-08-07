@@ -15,6 +15,15 @@ Altsis 학교 정보 시스템(School Information System)의 개발자를 위한
 | [코딩 스타일 가이드](./coding-style.md) | 명명 규칙, TypeScript 규칙, Prettier/Linter 설정, Airbnb Style Guide |
 | [테스트](./testing.md) | Jest 기반 테스트 실행, 작성 가이드, 디버깅 방법 |
 
+### 참고 설계 노트
+
+공식 가이드에 포함되기 전·밖의 설계 문서입니다.
+
+| 문서 | 설명 |
+| --- | --- |
+| [예약 기능 설계](../../docs/reservation-feature-design.md) | 예약 기능 설계 노트 |
+| [Alt Board 양식 매뉴얼](../../docs/alt-board-form-manual.md) | Alt Board 양식 사용 매뉴얼 |
+
 ---
 
 ## 기술 스택 요약
@@ -107,3 +116,14 @@ Altsis는 **멀티 테넌시(Multi-Tenancy)** 구조를 사용합니다. 각 아
 3. 담당 영역에 따라 [프론트엔드](./frontend.md) 또는 [백엔드](./backend.md) 가이드를 숙지합니다.
 4. [코딩 스타일](./coding-style.md)을 준수하여 일관된 코드를 작성합니다.
 5. [테스트](./testing.md) 가이드에 따라 변경 사항을 검증합니다.
+
+---
+
+## 문서 유지보수 체크리스트
+
+기능·API·UX를 바꿀 때 공식 문서(`documentation/`)가 코드와 어긋나지 않도록 아래를 확인합니다.
+
+- [ ] 새 `backend/src/routes/*`를 추가·변경했다면 `documentation/api-reference/`에 문서(또는 기존 문서의 절)를 추가하고 [API 개요](../api-reference/overview.md) 리소스 표·[api-reference README](../api-reference/README.md)·[INDEX](../INDEX.md)에 링크한다.
+- [ ] 사용자에게 보이는 메뉴·흐름·권한이 바뀌면 `user-guide/` 또는 `admin-guide/`를 갱신한다.
+- [ ] 문서 묶음을 의미 있게 손봤다면 [INDEX 버전 정보](../INDEX.md)의 **최종 업데이트** 날짜를 갱신한다.
+- [ ] 설계 초안만 있는 내용은 `docs/`에 두고, INDEX/개발자 가이드의「참고 설계 노트」로만 링크한다.

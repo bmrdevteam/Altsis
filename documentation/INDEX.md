@@ -57,7 +57,7 @@ Altsis를 처음 접하는 사용자를 위한 가이드입니다.
 | [학생 기록](user-guide/archive.md) | 누적 기록, 단일 기록 관리 |
 | [캘린더](user-guide/calendar.md) | 일정 관리, 이벤트, 캘린더 설정 |
 | [보드](user-guide/boards.md) | Alt Board, 게시글, 양식(Form), 시트(Sheet), 설문, 즐겨찾기 |
-| [채팅](user-guide/chat.md) | DM, 그룹채팅, 보드채팅, AI 채팅(Alter) |
+| [채팅](user-guide/chat.md) | DM, 그룹채팅, 보드채팅, Alter(전역 AI) |
 | [알림](user-guide/notifications.md) | 알림 수신, 설정, 관리 |
 | [설정](user-guide/settings.md) | 개인 설정, 테마, 보안, 기능 활성화 |
 
@@ -72,6 +72,15 @@ Altsis 개발에 참여하고자 하는 개발자를 위한 가이드입니다.
 | [백엔드 개발](developer-guide/backend.md) | Express 라우트, 컨트롤러, 모델 |
 | [코딩 스타일](developer-guide/coding-style.md) | 명명 규칙, 파일 구조, 스타일 가이드 |
 | [테스트](developer-guide/testing.md) | 테스트 작성 및 실행 |
+
+#### 참고 설계 노트
+
+INDEX에 포함되지 않은 기능 설계·매뉴얼입니다. 구현 세부와 다를 수 있으니 공식 가이드와 함께 참고하세요.
+
+| 문서 | 설명 |
+|------|------|
+| [예약 기능 설계](../docs/reservation-feature-design.md) | 예약 기능 설계 노트 |
+| [Alt Board 양식 매뉴얼](../docs/alt-board-form-manual.md) | Alt Board 양식 사용 매뉴얼 |
 
 ### 6. [API 레퍼런스](api-reference/README.md)
 백엔드 REST API의 상세 명세입니다.
@@ -88,10 +97,13 @@ Altsis 개발에 참여하고자 하는 개발자를 위한 가이드입니다.
 | [수강 API](api-reference/enrollments.md) | 수강 등록, 평가, 메모 |
 | [보드 API](api-reference/boards.md) | Alt Board, 게시글, 댓글, 즐겨찾기 |
 | [Alt Form API](api-reference/forms.md) | Alt Form CRUD, 시트 행, 설문 |
-| [캘린더 API](api-reference/calendar.md) | 일정 및 사용자 캘린더 |
-| [채팅 API](api-reference/chat.md) | DM, 그룹채팅, 보드채팅, AI 채팅 |
+| [캘린더 API](api-reference/calendar.md) | 일정, 사용자 캘린더, 등록 시간표 메모 |
+| [채팅 API](api-reference/chat.md) | DM, 그룹채팅, 보드채팅 |
 | [알림 API](api-reference/notifications.md) | 알림 및 알림 설정 |
-| [AI API](api-reference/ai.md) | AI 강의계획서 생성, AI 채팅(Alter) |
+| [리마인더 API](api-reference/reminders.md) | 독립 리마인더, upcoming 통합 조회 |
+| [Goals API](api-reference/goals.md) | 홈/목표 위젯 진행 요약 |
+| [테마 설정 API](api-reference/theme-settings.md) | 사용자 테마·커스텀 색상 |
+| [AI API](api-reference/ai.md) | Alter(전역 어시스턴트), 강의계획서 검토, 모델/키 관리 |
 | [학생 기록 API](api-reference/archives.md) | 학생 기록 조회 및 수정 |
 | [파일 API](api-reference/files.md) | 파일 업로드, 다운로드, Pre-Signed URL |
 | [데이터 모델](api-reference/data-models.md) | MongoDB 스키마 정의 |
@@ -138,7 +150,7 @@ Altsis 개발에 참여하고자 하는 개발자를 위한 가이드입니다.
 
 - **문서 버전**: 2.0
 - **대상 시스템 버전**: Altsis v2.0
-- **최종 업데이트**: 2026년 2월
+- **최종 업데이트**: 2026년 8월
 - **라이선스**: MIT
 
 ---

@@ -2,9 +2,9 @@
 
 캘린더 일정(CalendarEvent)과 사용자 캘린더(UserCalendar) API입니다. 일정의 생성/조회/수정/삭제, 반복 일정 확장, 수업 동기화, 사용자 캘린더 관리 기능을 제공합니다.
 
-> **라우트 파일**: `backend/src/routes/calendarEvents.js`, `backend/src/routes/userCalendars.js`
-> **컨트롤러 파일**: `backend/src/controllers/calendarEvents.js`, `backend/src/controllers/userCalendars.js`
-> **모델 파일**: `backend/src/models/CalendarEvent.js`, `backend/src/models/UserCalendar.js`
+> **라우트 파일**: `backend/src/routes/calendarEvents.js`, `backend/src/routes/userCalendars.js`, `backend/src/routes/memos.js`
+> **컨트롤러 파일**: `backend/src/controllers/calendarEvents.js`, `backend/src/controllers/userCalendars.js`, `backend/src/controllers/memos.js`
+> **모델 파일**: `backend/src/models/CalendarEvent.js`, `backend/src/models/UserCalendar.js` (메모는 `Registration.memos`)
 
 ---
 
@@ -28,6 +28,16 @@
 | `GET` | `/api/user-calendars` | 사용자 캘린더 목록 조회 | `isLoggedIn` |
 | `PUT` | `/api/user-calendars/:_id` | 사용자 캘린더 수정 | `isLoggedIn` (소유자 또는 `admin`\|`manager`) |
 | `DELETE` | `/api/user-calendars/:_id` | 사용자 캘린더 삭제 | `isLoggedIn` (소유자 또는 `admin`\|`manager`) |
+
+### Registration Memo (`/api/memos`)
+
+등록(registration)에 붙는 개인 시간표 메모입니다. 수강 enrollment의 `memo` 필드와는 별개이며, 캘린더 sync의 `sourceType: "memo"` 원천이 됩니다.
+
+| 메서드 | 경로 | 설명 | 권한 |
+|--------|------|------|------|
+| `POST` | `/api/memos` | 메모 추가 | `isLoggedIn` (본인 registration) |
+| `PUT` | `/api/memos/:_id` | 메모 수정 | `isLoggedIn` (본인 registration) |
+| `DELETE` | `/api/memos/:_id` | 메모 삭제 | `isLoggedIn` (본인 registration) |
 
 ---
 
@@ -661,6 +671,43 @@ DELETE /api/user-calendars/:_id
 |--------|------|
 | `user_1` | `{ user: 1 }` |
 | `user_1_school_1` | `{ user: 1, school: 1 }` |
+
+---
+
+## Registration Memo API
+
+시간표용 개인 메모를 `Registration.memos` 배열에 추가·수정·삭제합니다. 본인 등록만 수정할 수 있습니다.
+
+### 생성
+
+```
+POST /api/memos
+```
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `registration` | `string` | O | 등록 ObjectId |
+| `title` | `string` | X | 제목 |
+| `day` | `number`/`string` | X | 요일 |
+| `start` | `string` | X | 시작 시각 |
+| `end` | `string` | X | 종료 시각 |
+| `classroom` | `string` | X | 강의실 |
+| `memo` | `string` | X | 메모 본문 |
+
+### 응답 (200)
+
+```json
+{ "memos": [ { "_id": "…", "title": "자율학습", "day": 1, "start": "14:00", "end": "15:00", "memo": "" } ] }
+```
+
+### 수정 / 삭제
+
+```
+PUT    /api/memos/:_id   // body에 registration + 필드
+DELETE /api/memos/:_id?registration=
+```
+
+등록이 없거나 본인 것이 아니면 `401`/`404`입니다.
 
 ---
 

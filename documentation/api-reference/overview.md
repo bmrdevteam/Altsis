@@ -36,16 +36,17 @@ Altsis API는 REST 아키텍처 스타일을 따르며, 다음 원칙을 준수�
 | `/api/posts` | 게시글 |
 | `/api/comments` | 댓글 |
 | `/api/notifications` | 알림 |
-| `/api/reminders` | 리마인더 |
+| `/api/reminders` | 리마인더 → [reminders.md](./reminders.md) |
+| `/api/goals` | 목표/진행 요약 → [goals.md](./goals.md) |
 | `/api/calendar-events` | 캘린더 일정 |
 | `/api/user-calendars` | 사용자 캘린더 |
 | `/api/chats` | 채팅 (DM, 그룹, 보드채팅) |
 | `/api/forms` | 양식 |
 | `/api/archives` | 기록 |
 | `/api/files` | 파일 업로드/다운로드 |
-| `/api/ai` | AI 기능 |
-| `/api/theme-settings` | 테마 설정 |
-| `/api/memos` | 메모 |
+| `/api/ai` | AI / Alter → [ai.md](./ai.md) |
+| `/api/theme-settings` | 테마 설정 → [theme-settings.md](./theme-settings.md) |
+| `/api/memos` | 등록 시간표 메모 → [calendar.md](./calendar.md#registration-memo-api) |
 | `/api/alt-forms` | Alt Form (양식 빌더) |
 | `/api/alt-sheet-rows` | Alt Sheet Row (시트 행 데이터) |
 | `/api/board-favorites` | 보드 즐겨찾기 |

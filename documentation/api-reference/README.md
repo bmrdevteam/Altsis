@@ -18,10 +18,16 @@ Altsis 학교 정보 시스템의 백엔드 RESTful API에 대한 종합 문서�
 | [캘린더 API](./calendar.md) | 일정 생성/조회, 반복 일정, 사용자 캘린더 |
 | [채팅 API](./chat.md) | 채팅방, 메시지, 파일 업로드, 실시간 이벤트 |
 | [알림 API](./notifications.md) | 알림 생성/조회/확인, 알림 설정 |
+| [리마인더 API](./reminders.md) | 독립 리마인더, upcoming 통합 조회 |
+| [Goals API](./goals.md) | 홈/목표 위젯 진행 요약 |
+| [테마 설정 API](./theme-settings.md) | 사용자 테마·커스텀 색상 |
+| [AI API](./ai.md) | Alter(전역 어시스턴트), 강의계획서 검토, 모델/키 관리 |
 | [양식 API](./forms.md) | 양식 CRUD, 복사, 보관/복원, 열람 권한 |
 | [학생 기록 API](./archives.md) | 학생 기록 조회, 수정, 파일 첨부 |
 | [파일 API](./files.md) | S3 파일 업로드/다운로드, Pre-Signed URL |
 | [데이터 모델](./data-models.md) | MongoDB 스키마 전체 명세 |
+
+등록 시간표 메모(`/api/memos`)는 [캘린더 API — Registration Memo](./calendar.md#registration-memo-api)에 포함되어 있습니다.
 
 ## 시스템 구성
 

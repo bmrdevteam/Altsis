@@ -885,27 +885,26 @@ export { local2 };
 
 # 문서들은 어디에?
 > [!IMPORTANT]
-> Altsis와 관련된 문서는 [Github Page](https://github.com/bmrdevteam/Altsis)에서 확인 할 수 있습니다.
+> 공식 문서는 저장소의 [`documentation/INDEX.md`](./documentation/INDEX.md)에서 시작합니다. 설치·운영·개발·API 레퍼런스가 여기에 정리되어 있습니다.
 
 > [!TIP]
-> 문서는 아래의 섹션으로 나눠져 있습니다.
-> * [README](https://github.com/bmrdevteam/Altsis/blob/document/README.md)
-> * [WIKI](https://github.com/bmrdevteam/Altsis/wiki)
-> * [CONTRIBUTOR](https://github.com/bmrdevteam/Altsis/blob/document/CONTRIBUTOR.md)
-> * [CODE_OF_CONDUCT](https://github.com/bmrdevteam/Altsis/blob/document/CODE_OF_CONDUCT.md)
-> * [AEG](https://github.com/bmrdevteam/Altsis/blob/dev/AEG_README.md)
-> * [LICENSE](https://github.com/bmrdevteam/Altsis/blob/document/LISENCE)
-> * [SECURITY](https://github.com/bmrdevteam/Altsis/blob/document/SECURITY.md)
->   
-> 당신의 참여로 [Altsis](https://github.com/bmrdevteam/Altsis)의 시스템 문서를 발전 시킬 수 있습니다.
+> 관련 문서 바로가기:
+> * [공식 문서 인덱스](./documentation/INDEX.md) — 시작하기, 아키텍처, 관리자/사용자 가이드, 개발자 가이드, API, 배포
+> * [기여 가이드 (CONTRIBUTING)](./CONTRIBUTING.md)
+> * [행동 강령 (CODE_OF_CONDUCT)](./CODE_OF_CONDUCT.md)
+> * [보안 정책 (SECURITY)](./SECURITY.md)
+> * [AEG 안내](./AEG_README.md)
+> * [라이선스 (LICENSE)](./LICENSE)
+>
+> 당신의 참여로 [Altsis](https://github.com/bmrdevteam/Altsis)의 시스템 문서를 발전시킬 수 있습니다.
 
 # 기여하는 방법!
 > [!IMPORTANT]
 > 이 프로젝트의 주요 목적은 Altsis의 주요 기능을 더욱 발전 시키고 많은 사람들이 더욱 쉽게 사용하도록 하기 위함입니다. Altsis는 Github를 통해서 개발하게 되는데 이는 오류를 수정하고 코드를 발전시키기 위해 좋은 도구가 됩니다. 반드시 아래 문서를 자세히 읽고 프로젝트에 동참해주세요.
 
-## [Code of Conduct](https://github.com/bmrdevteam/Altsis/blob/document/CODE_OF_CONDUCT.md)
+## [Code of Conduct](./CODE_OF_CONDUCT.md)
 > [!TIP]
-> [Code of Conduct](https://github.com/bmrdevteam/Altsis/blob/document/CODE_OF_CONDUCT.md)는 우리 프로젝트에 참여할 때 지켜야 할 약속과 태도를 기술하고 있습니다.
+> [Code of Conduct](./CODE_OF_CONDUCT.md)는 우리 프로젝트에 참여할 때 지켜야 할 약속과 태도를 기술하고 있습니다.
 
 ## 라이센스
 > Altsis is [MIT licensed](./LICENSE).
