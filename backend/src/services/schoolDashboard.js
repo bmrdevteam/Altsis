@@ -1,6 +1,7 @@
 /**
  * School dashboard helpers — period ranges, deltas, query parsing.
  */
+import { tokensToAlts, TOKENS_PER_ALT } from "./aiUsageQuota.js";
 
 const ALLOWED_PERIODS = new Set([7, 14, 30]);
 const ALLOWED_SCOPES = new Set(["school", "academy"]);
@@ -135,4 +136,66 @@ export const buildFieldDeltas = (current, previous) => {
     };
   }
   return out;
+};
+
+/**
+ * Aggregate period AI logs into top users and feature breakdown (Alt units).
+ * @param {Array<{ userId?: string, userName?: string, feature?: string, totalTokens?: number }>} logs
+ * @param {number} [topN=10]
+ */
+export const aggregateAiPeriodDetails = (logs = [], topN = 10) => {
+  const byUser = new Map();
+  const byFeature = new Map();
+  let totalTokens = 0;
+
+  for (const log of logs) {
+    const tokens = log.totalTokens || 0;
+    totalTokens += tokens;
+
+    const uid = log.userId || String(log.user || "unknown");
+    const existingUser = byUser.get(uid) || {
+      userId: uid,
+      userName: log.userName || uid,
+      requests: 0,
+      totalTokens: 0,
+    };
+    existingUser.requests += 1;
+    existingUser.totalTokens += tokens;
+    if (log.userName) existingUser.userName = log.userName;
+    byUser.set(uid, existingUser);
+
+    const feature = log.feature || "unknown";
+    const existingFeature = byFeature.get(feature) || {
+      feature,
+      requests: 0,
+      totalTokens: 0,
+    };
+    existingFeature.requests += 1;
+    existingFeature.totalTokens += tokens;
+    byFeature.set(feature, existingFeature);
+  }
+
+  const withAlts = (row) => ({
+    ...row,
+    totalAlts: tokensToAlts(row.totalTokens),
+  });
+
+  const topUsers = [...byUser.values()]
+    .map(withAlts)
+    .sort(
+      (a, b) =>
+        b.totalTokens - a.totalTokens || b.requests - a.requests
+    )
+    .slice(0, topN);
+
+  const byFeatureList = [...byFeature.values()]
+    .map(withAlts)
+    .sort((a, b) => b.totalTokens - a.totalTokens);
+
+  return {
+    totalAlts: tokensToAlts(totalTokens),
+    tokensPerAlt: TOKENS_PER_ALT,
+    topUsers,
+    byFeature: byFeatureList,
+  };
 };

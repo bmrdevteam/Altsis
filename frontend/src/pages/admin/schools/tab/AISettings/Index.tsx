@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Button from "components/button/Button";
+import Input from "components/input/Input";
 import Table from "components/tableV2/Table";
 import SchoolFeatureToggle from "../FeatureSettings";
+import { useAuth } from "contexts/authContext";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import {
   TAiLibraryItem,
@@ -76,7 +78,12 @@ type Props = {
 };
 
 const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
-  const { SchoolAPI } = useAPIv2();
+  const { currentUser } = useAuth();
+  const { SchoolAPI, AcademyAPI } = useAPIv2();
+  const canEditUsageLimits =
+    currentUser?.auth === "admin" ||
+    currentUser?.auth === "manager" ||
+    currentUser?.auth === "owner";
   const [loading, setLoading] = useState(true);
   const [aiConfig, setAiConfig] = useState<TSchoolAiConfig>(defaultAiConfig());
   const [library, setLibrary] = useState<TAiLibraryItem[]>([]);
@@ -99,6 +106,9 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
   const [editSkillTags, setEditSkillTags] = useState<TAlterSkillId[]>([]);
   const [editMode, setEditMode] = useState<"view" | "edit">("view");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [limitEnabled, setLimitEnabled] = useState(false);
+  const [dailyUserAlts, setDailyUserAlts] = useState("1");
+  const [showCompliance, setShowCompliance] = useState(false);
 
   const applyAiConfig = (nextConfig?: TSchoolAiConfig) => {
     if (!nextConfig) return;
@@ -114,12 +124,51 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
   };
 
   const reload = async () => {
-    const [{ aiConfig: nextConfig }, { items }] = await Promise.all([
-      SchoolAPI.RSchoolAiConfig({ params: { _id: schoolData._id } }),
-      SchoolAPI.RSchoolAiLibrary({ params: { _id: schoolData._id } }),
-    ]);
+    const academyId = currentUser?.academyId;
+    const [{ aiConfig: nextConfig }, { items }, academyResult] =
+      await Promise.all([
+        SchoolAPI.RSchoolAiConfig({ params: { _id: schoolData._id } }),
+        SchoolAPI.RSchoolAiLibrary({ params: { _id: schoolData._id } }),
+        academyId
+          ? AcademyAPI.RAcademy({ query: { academyId } }).catch(() => null)
+          : Promise.resolve(null),
+      ]);
     applyAiConfig(nextConfig);
     setLibrary(items || []);
+    const limits = academyResult?.academy?.aiUsageLimits;
+    setLimitEnabled(!!limits?.enabled);
+    const TOKENS_PER_ALT = 10000;
+    const alts =
+      limits?.dailyUserAlts ??
+      (limits?.monthlyUserTokens != null
+        ? Number(limits.monthlyUserTokens) / TOKENS_PER_ALT
+        : 1);
+    setDailyUserAlts(String(alts > 0 ? alts : 1));
+  };
+
+  const saveUsageLimits = async () => {
+    const academyId = currentUser?.academyId;
+    if (!academyId) {
+      alert("아카데미 정보를 확인할 수 없습니다.");
+      return;
+    }
+    const alts = Math.round(Math.max(0, Number(dailyUserAlts) || 0) * 10000) / 10000;
+    if (limitEnabled && alts <= 0) {
+      alert("한도를 활성화하려면 일일 Alt를 0보다 크게 입력해주세요.");
+      return;
+    }
+    try {
+      await AcademyAPI.UAcademyAiUsageLimits({
+        params: { academyId },
+        data: {
+          enabled: limitEnabled,
+          dailyUserAlts: alts,
+        },
+      });
+      alert(SUCCESS_MESSAGE);
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
   };
 
   const openItem = (item: TAiLibraryItem, mode: "view" | "edit" = "view") => {
@@ -152,7 +201,7 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [schoolData._id]);
+  }, [schoolData._id, currentUser?.academyId]);
 
   const filteredLibrary = useMemo(() => {
     if (kindFilter === "all") return library;
@@ -430,6 +479,110 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
             ]}
           />
         </section>
+
+        {canEditUsageLimits && (
+          <section className={style.section}>
+            <h4 className={style.sectionTitle}>사용자 일일 Alt 한도</h4>
+            <p className={style.sectionHint}>
+              아카데미 전체 사용자에게 적용됩니다. 1 Alt = 10,000 토큰이며,
+              사용자마다 오늘(UTC) 사용량이 한도에 도달하면 AI 요청이
+              차단됩니다.
+            </p>
+            <label className={style.limitToggle}>
+              <input
+                type="checkbox"
+                checked={limitEnabled}
+                onChange={(e) => setLimitEnabled(e.target.checked)}
+              />
+              <span>1인 일일 Alt 한도 사용</span>
+            </label>
+            <div className={style.limitField}>
+              <Input
+                appearence="flat"
+                type="number"
+                label="일일 Alt 한도 (1인)"
+                placeholder="1"
+                value={dailyUserAlts}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  setDailyUserAlts(e.target.value);
+                }}
+                disabled={!limitEnabled}
+              />
+            </div>
+            <div className={style.limitActions}>
+              <Button type="ghost" onClick={saveUsageLimits}>
+                한도 저장
+              </Button>
+            </div>
+          </section>
+        )}
+
+        {canEditUsageLimits && (
+          <section className={style.section}>
+            <button
+              type="button"
+              className={style.complianceSummary}
+              onClick={() => setShowCompliance((v) => !v)}
+              aria-expanded={showCompliance}
+            >
+              <div>
+                <h4 className={style.sectionTitle} style={{ marginBottom: 4 }}>
+                  미성년 학생 보호를 위한 아카데미 이행사항
+                </h4>
+                <p className={style.sectionHint} style={{ marginBottom: 0 }}>
+                  API 키 계약 당사자는 아카데미입니다. 법정대리인 동의, ZDR,
+                  개인정보 처리방침 갱신 등이 필요할 수 있습니다.
+                </p>
+              </div>
+              <span className={style.chevron}>
+                {showCompliance ? "접기 ▲" : "펼치기 ▼"}
+              </span>
+            </button>
+            {showCompliance && (
+              <div className={style.complianceBody}>
+                <ul>
+                  <li>
+                    만 14세 미만 학생이 AI 기능을 사용하는 경우, 개인정보보호법에
+                    따라 법정대리인 동의를 받아야 합니다.
+                  </li>
+                  <li>
+                    OpenAI를 사용하고 만 14세 미만 학생이 있는 경우, OpenAI
+                    계정에서 Zero Data Retention(ZDR)을 신청해야 합니다.
+                  </li>
+                  <li>
+                    아카데미의 개인정보 처리방침에 사용하는 AI 제공자를 처리
+                    위탁·국외 이전 항목으로 기재해야 합니다.
+                  </li>
+                  <li>
+                    제공자의 미성년자 관련 가이드라인을 확인하세요.{" "}
+                    <a
+                      href="https://developers.openai.com/api/docs/guides/safety-checks/under-18-api-guidance"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={style.link}
+                    >
+                      OpenAI Under 18 API Guidance
+                    </a>
+                    {" · "}
+                    <a
+                      href="https://support.claude.com/en/articles/9307344-responsible-use-of-anthropic-s-models-guidelines-for-organizations-serving-minors"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={style.link}
+                    >
+                      Anthropic 미성년자 대상 조직 가이드라인
+                    </a>
+                  </li>
+                </ul>
+                <p className={style.complianceFoot}>
+                  Altsis는 AI 사용 고지, 안전 시스템 프롬프트, 교사의 학생 AI
+                  대화 모니터링 기능을 기본 제공하여 위 가이드라인의 안전조치
+                  요건 이행을 지원합니다.
+                </p>
+              </div>
+            )}
+          </section>
+        )}
 
         <section className={style.section}>
           <h4 className={style.sectionTitle}>라이브러리</h4>

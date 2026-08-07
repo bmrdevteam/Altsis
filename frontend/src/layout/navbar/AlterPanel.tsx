@@ -9,8 +9,10 @@ import {
 import { useAuth } from "contexts/authContext";
 import { TAlterSkillId, useAlter } from "contexts/alterContext";
 import { MESSAGE } from "hooks/_message";
+import useAPIv2 from "hooks/useAPIv2";
 import { isEmptyEval } from "utils/evaluationCsv";
 import { TAlterConversation } from "types/alterChat";
+import { TMyAiUsage } from "types/dashboard";
 import Button from "components/button/Button";
 import { MarkdownViewer } from "components/markdown";
 import normalizeAlterMarkdown from "utils/normalizeAlterMarkdown";
@@ -192,8 +194,31 @@ const wantsActivityDraftText = (text: string) =>
   /양식.*(초안|작성)/.test(text) ||
   /\/(활동|양식|activity[-_]?draft)/i.test(text);
 
+const formatAlt = (n: number) => {
+  if (!Number.isFinite(n)) return "0";
+  if (n === 0) return "0";
+  if (n >= 10) return n.toLocaleString(undefined, { maximumFractionDigits: 1 });
+  return n.toLocaleString(undefined, {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+  });
+};
+
+const getUsageMeter = (usage: TMyAiUsage) => {
+  const used = usage.usedAlts ?? 0;
+  const limit =
+    usage.limitEnabled && usage.limitAlts != null && usage.limitAlts > 0
+      ? usage.limitAlts
+      : null;
+  const ratio = limit != null ? Math.min(1, used / limit) : null;
+  const exceeded = limit != null && used >= limit;
+  const warn = !exceeded && ratio != null && ratio >= 0.8;
+  return { used, limit, ratio, exceeded, warn };
+};
+
 const AlterPanel = ({ onClose }: Props) => {
   const { currentSeason, currentRegistration, currentSchool } = useAuth();
+  const { AIAPI } = useAPIv2();
   const {
     pageContext,
     isExpanded,
@@ -219,6 +244,7 @@ const AlterPanel = ({ onClose }: Props) => {
   const [error, setError] = useState("");
   const [isWorking, setIsWorking] = useState(false);
   const [steps, setSteps] = useState<string[]>([]);
+  const [myUsage, setMyUsage] = useState<TMyAiUsage | null>(null);
   const [skillGuidelines, setSkillGuidelines] = useState("");
   const [skillSettingsLoading, setSkillSettingsLoading] = useState(false);
   const [sourceAttachments, setSourceAttachments] = useState<
@@ -569,6 +595,24 @@ const AlterPanel = ({ onClose }: Props) => {
     archiveTargetLabels.length,
     archiveContextLabels.length,
   ]);
+
+  const refreshMyUsage = useCallback(() => {
+    AIAPI.RMyAiUsage()
+      .then((usage) => setMyUsage(usage))
+      .catch(() => {
+        /* 사용량 조회 실패는 Alter 사용을 막지 않음 */
+      });
+    // AIAPI 객체는 렌더마다 새로 만들어지므로 deps에서 제외
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    refreshMyUsage();
+  }, [isOpen, refreshMyUsage]);
+
+  const usageMeter = myUsage ? getUsageMeter(myUsage) : null;
+  const usageLimitExceeded = !!usageMeter?.exceeded;
 
   useEffect(() => {
     if (!isOpen || !currentSeason?._id) return;
@@ -1719,6 +1763,7 @@ const AlterPanel = ({ onClose }: Props) => {
         setSelectedSkill("chat");
         setShowPrep(false);
       }
+      refreshMyUsage();
     } catch (err: any) {
       if (err.name === "AbortError") {
         if (timedOut) {
@@ -1731,6 +1776,9 @@ const AlterPanel = ({ onClose }: Props) => {
           setError("생성을 중단했습니다.");
         }
         return;
+      }
+      if (err.message === "AI_USAGE_LIMIT_EXCEEDED") {
+        refreshMyUsage();
       }
       setError(
         MESSAGE.get(err.message) || err.message || "AI 처리에 실패했습니다."
@@ -2957,18 +3005,70 @@ const AlterPanel = ({ onClose }: Props) => {
       </div>
 
       <div className={style.composerWrap}>
+        {usageMeter && (
+          <div
+            className={[
+              style.usageBar,
+              usageMeter.exceeded
+                ? style.usageBarExceeded
+                : usageMeter.warn
+                  ? style.usageBarWarn
+                  : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            aria-live="polite"
+            role="status"
+          >
+            <div className={style.usageBarMeta}>
+              <span className={style.usageBarLabel}>오늘</span>
+              <span className={style.usageBarValue}>
+                {usageMeter.limit != null
+                  ? `${formatAlt(usageMeter.used)} / ${formatAlt(
+                      usageMeter.limit
+                    )} Alt`
+                  : `${formatAlt(usageMeter.used)} Alt`}
+              </span>
+              {usageMeter.exceeded && (
+                <span className={style.usageBarHint}>한도 초과</span>
+              )}
+            </div>
+            {usageMeter.ratio != null && (
+              <div
+                className={style.usageTrack}
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(usageMeter.ratio * 100)}
+                aria-label="오늘 AI Alt 사용률"
+              >
+                <div
+                  className={style.usageFill}
+                  style={{
+                    width: `${Math.max(
+                      usageMeter.ratio * 100,
+                      usageMeter.used > 0 ? 2 : 0
+                    )}%`,
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        )}
         {attachmentChips}
         <ChatInputBar
           bare
           value={draft}
           onChange={setDraft}
           onSend={() => {
+            if (usageLimitExceeded) return;
             if (inPrep) startSuggested();
             else sendDraft();
           }}
-          disabled={isWorking || attachUploading}
+          disabled={isWorking || attachUploading || usageLimitExceeded}
           sendDisabled={
-            inSyllabusPrep ||
+            usageLimitExceeded ||
+            (inSyllabusPrep ||
             (inDocPrep && docWriteMode === "create") ||
             (inFormResponsePrep && formResponseWriteMode === "create") ||
             (inActivityPrep && activityWriteMode === "create")
@@ -2979,10 +3079,11 @@ const AlterPanel = ({ onClose }: Props) => {
                 ? isWorking || attachUploading
                 : isWorking ||
                   attachUploading ||
-                  (!draft.trim() && sourceAttachments.length === 0)
+                  (!draft.trim() && sourceAttachments.length === 0))
           }
           sendActive={
-            inSyllabusPrep ||
+            !usageLimitExceeded &&
+            (inSyllabusPrep ||
             (inDocPrep && docWriteMode === "create") ||
             (inFormResponsePrep && formResponseWriteMode === "create") ||
             (inActivityPrep && activityWriteMode === "create")
@@ -2993,7 +3094,7 @@ const AlterPanel = ({ onClose }: Props) => {
                 ? !isWorking && !attachUploading
                 : (!!draft.trim() || sourceAttachments.length > 0) &&
                   !isWorking &&
-                  !attachUploading
+                  !attachUploading)
           }
           sendTitle={inPrep ? prepPrimaryLabel : "보내기"}
           leftSlot={attachButton}
@@ -3052,7 +3153,13 @@ const AlterPanel = ({ onClose }: Props) => {
               ? (e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
-                    if (!isWorking && !attachUploading) startSuggested();
+                    if (
+                      !usageLimitExceeded &&
+                      !isWorking &&
+                      !attachUploading
+                    ) {
+                      startSuggested();
+                    }
                   }
                 }
               : undefined

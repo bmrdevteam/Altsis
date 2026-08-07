@@ -7,6 +7,9 @@ import * as ai from "../controllers/ai.js";
 //             AI / Alter
 //=================================
 
+// Current user daily AI Alt usage
+router.get("/usage/me", isLoggedIn, ai.getMyAiUsage);
+
 // Skill catalog
 router.get("/skills", isLoggedIn, ai.listAiSkills);
 

@@ -14,12 +14,14 @@ import {
   TDashboardDeltas,
 } from "types/dashboard";
 import {
+  formatAlt,
   formatBytes,
   formatDate,
   formatDeltaPercent,
   formatNumber,
   getDeltaTone,
   responseTimeStatus,
+  tokensToAlts,
 } from "./dashboardFormat";
 
 type Props = {
@@ -543,14 +545,21 @@ const AIUsageSection = ({
   deltas: TDashboardDeltas["ai"];
   period: TDashboardPeriod;
 }) => {
+  const tokensPerAlt = aiUsage.tokensPerAlt || 10000;
   const periodTokens = aiUsage.daily.reduce((s, d) => s + d.totalTokens, 0);
+  const periodAlts = aiUsage.totalAlts ?? tokensToAlts(periodTokens, tokensPerAlt);
   const periodRequests = aiUsage.daily.reduce((s, d) => s + d.requests, 0);
-  const maxTokens = Math.max(...aiUsage.daily.map((d) => d.totalTokens), 1);
+  const dailyAlts = aiUsage.daily.map((d) =>
+    tokensToAlts(d.totalTokens, tokensPerAlt)
+  );
+  const maxAlts = Math.max(...dailyAlts, 1);
+  const totalAlts = tokensToAlts(aiUsage.total.totalTokens, tokensPerAlt);
+  const topUsers = aiUsage.topUsers || [];
 
   return (
-    <section className={style.section} aria-label="AI 토큰 사용량">
+    <section className={style.section} aria-label="AI Alt 사용량">
       <h3 className={style.sectionTitle}>
-        AI 토큰 사용량
+        AI Alt 사용량
         <span className={style.sectionSubLabel}>
           아카데미 전체 · 최근 {period}일
         </span>
@@ -566,10 +575,10 @@ const AIUsageSection = ({
           </span>
         </div>
         <div className={style.trafficCard}>
-          <span className={style.trafficCardLabel}>기간 토큰</span>
+          <span className={style.trafficCardLabel}>기간 Alt</span>
           <span className={style.trafficCardValueRow}>
             <span className={style.trafficCardValue}>
-              {formatNumber(periodTokens)}
+              {formatAlt(periodAlts)}
             </span>
             <DeltaBadge delta={deltas.totalTokens} hint="직전 동일 기간 대비" />
           </span>
@@ -581,55 +590,37 @@ const AIUsageSection = ({
           </span>
         </div>
         <div className={style.trafficCard}>
-          <span className={style.trafficCardLabel}>누적 토큰</span>
-          <span className={style.trafficCardValue}>
-            {formatNumber(aiUsage.total.totalTokens)}
-          </span>
+          <span className={style.trafficCardLabel}>누적 Alt</span>
+          <span className={style.trafficCardValue}>{formatAlt(totalAlts)}</span>
         </div>
-        <div className={style.trafficCard}>
-          <span className={style.trafficCardLabel}>입력</span>
-          <span className={style.trafficCardValue}>
-            {formatNumber(aiUsage.total.promptTokens)}
-          </span>
-        </div>
-        <div className={style.trafficCard}>
-          <span className={style.trafficCardLabel}>출력</span>
-          <span className={style.trafficCardValue}>
-            {formatNumber(aiUsage.total.candidatesTokens)}
-          </span>
-        </div>
-        {aiUsage.total.thoughtsTokens > 0 && (
-          <div className={style.trafficCard}>
-            <span className={style.trafficCardLabel}>사고</span>
-            <span className={style.trafficCardValue}>
-              {formatNumber(aiUsage.total.thoughtsTokens)}
-            </span>
-          </div>
-        )}
       </div>
+      <p className={style.aiCostNote}>
+        1 Alt = {formatNumber(tokensPerAlt)} 토큰 · 한도·사용량과 동일한 단위입니다.
+      </p>
       {aiUsage.daily.some((d) => d.totalTokens > 0) ? (
         <div
           className={style.columnChart}
           role="img"
-          aria-label={`최근 ${period}일 일별 AI 토큰 사용량`}
+          aria-label={`최근 ${period}일 일별 AI Alt 사용량`}
         >
-          {aiUsage.daily.map((day) => {
+          {aiUsage.daily.map((day, i) => {
+            const alts = dailyAlts[i];
             const heightPct = Math.max(
-              (day.totalTokens / maxTokens) * 100,
-              day.totalTokens > 0 ? 4 : 0
+              (alts / maxAlts) * 100,
+              alts > 0 ? 4 : 0
             );
             return (
               <div key={day.date} className={style.columnItem}>
                 <div className={style.columnValue}>
-                  {day.totalTokens > 0 ? formatNumber(day.totalTokens) : ""}
+                  {alts > 0 ? formatAlt(alts) : ""}
                 </div>
                 <div className={style.columnTrack}>
                   <div
                     className={`${style.columnFill} ${style.columnFillAi}`}
                     style={{ height: `${heightPct}%` }}
-                    title={`${formatDate(day.date)}: ${formatNumber(
-                      day.totalTokens
-                    )} 토큰 · ${day.requests}회`}
+                    title={`${formatDate(day.date)}: ${formatAlt(alts)} Alt · ${
+                      day.requests
+                    }회`}
                   />
                 </div>
                 <span className={style.columnLabel}>
@@ -641,6 +632,36 @@ const AIUsageSection = ({
         </div>
       ) : (
         <p className={style.emptyInline}>기간 내 AI 사용 기록이 없습니다.</p>
+      )}
+      {topUsers.length > 0 && (
+        <div className={style.aiTopUsers}>
+          <h4 className={style.aiTopUsersTitle}>사용자 Top (기간)</h4>
+          <table className={style.aiTopTable}>
+            <thead>
+              <tr>
+                <th scope="col">사용자</th>
+                <th scope="col">요청</th>
+                <th scope="col">Alt</th>
+              </tr>
+            </thead>
+            <tbody>
+              {topUsers.map((u) => (
+                <tr key={u.userId}>
+                  <td>
+                    <span className={style.aiTopName}>{u.userName}</span>
+                    <span className={style.aiTopId}>{u.userId}</span>
+                  </td>
+                  <td>{formatNumber(u.requests)}</td>
+                  <td>
+                    {formatAlt(
+                      u.totalAlts ?? tokensToAlts(u.totalTokens, tokensPerAlt)
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
   );

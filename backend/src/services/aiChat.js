@@ -13,6 +13,7 @@ import {
 import { FEATURE_PROFILES, AI_ERRORS } from "./aiPromptPolicy.js";
 import { maskSensitiveText } from "./aiSafety.js";
 import { logAIUsage } from "./aiUsage.js";
+import { assertAiUserQuota } from "./aiUsageQuota.js";
 import { buildBoardAlterSystemPrompt } from "./alterCorePrompt.js";
 
 /**
@@ -65,6 +66,8 @@ export const callAI = async (academyId, systemInstruction, messages, user) => {
   if (!academy || !academy.aiEnabled || !academy.aiApiKey) {
     throw new Error(AI_ERRORS.NOT_AVAILABLE);
   }
+
+  await assertAiUserQuota(academyId, user, academy);
 
   const provider = resolveProvider(academy.aiProvider);
   const modelName = resolveModel(provider, academy.aiModel);

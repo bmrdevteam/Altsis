@@ -43,6 +43,7 @@ import {
   listProviderModels,
   pickPreferredModel,
 } from "../services/aiProvider.js";
+import { TOKENS_PER_ALT } from "../services/aiUsageQuota.js";
 
 /**
  * @memberof APIs.AcademyAPI
@@ -208,6 +209,20 @@ export const find = async (req, res) => {
 
       const academies = await Academy.find({ academyId: { $ne: "root" } });
       return res.status(200).send({ academies });
+    }
+
+    /* manager: 본인 아카데미만 조회 (AI 한도 등) */
+    if (req.user.auth === "manager" && req.query.academyId) {
+      if (req.query.academyId !== req.user.academyId) {
+        return res.status(403).send({ message: PERMISSION_DENIED });
+      }
+      const academy = await Academy.findOne({
+        academyId: req.query.academyId,
+      });
+      if (!academy) {
+        return res.status(404).send({ message: __NOT_FOUND("academy") });
+      }
+      return res.status(200).send({ academy });
     }
 
     return res.status(403).send({ message: PERMISSION_DENIED });
@@ -675,6 +690,65 @@ export const updateAiModel = async (req, res) => {
     await academy.save();
 
     return res.status(200).send({ success: true });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.AcademyAPI
+ * @function UAcademyAiUsageLimits API
+ * @description 아카데미 사용자별 월 AI 토큰 한도 설정
+ * @version 1.0.0
+ * @auth owner | admin | manager (admin/manager는 본인 아카데미만)
+ *
+ * @param {Object} req.body
+ * @param {boolean} req.body.enabled
+ * @param {number} req.body.dailyUserAlts - 1인당 일일 Alt 한도 (1 Alt = 10,000 토큰)
+ */
+export const updateAiUsageLimits = async (req, res) => {
+  try {
+    if (
+      (req.user.auth === "admin" || req.user.auth === "manager") &&
+      req.user.academyId !== req.params.academyId
+    ) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    const academy = await Academy.findOne({
+      academyId: req.params.academyId,
+    });
+    if (!academy)
+      return res.status(404).send({ message: __NOT_FOUND("academy") });
+
+    const enabled = !!req.body.enabled;
+    const rawAlts =
+      req.body.dailyUserAlts ??
+      (req.body.monthlyUserTokens != null
+        ? Number(req.body.monthlyUserTokens) / TOKENS_PER_ALT
+        : 0);
+    const dailyUserAlts = Math.round(Math.max(0, Number(rawAlts) || 0) * 10000) / 10000;
+
+    if (enabled && dailyUserAlts <= 0) {
+      return res.status(400).send({
+        message: FIELD_REQUIRED("dailyUserAlts"),
+      });
+    }
+
+    academy.aiUsageLimits = {
+      enabled,
+      dailyUserAlts: enabled ? dailyUserAlts : dailyUserAlts || 0,
+      monthlyUserTokens: 0,
+    };
+    await academy.save();
+
+    return res.status(200).send({
+      academy: {
+        ...academy.toObject(),
+        aiUsageLimits: academy.aiUsageLimits,
+      },
+    });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });

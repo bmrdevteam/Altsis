@@ -1,6 +1,7 @@
 import {
   absoluteDelta,
   aggregateAiDaily,
+  aggregateAiPeriodDetails,
   aggregateTraffic,
   buildFieldDeltas,
   getDateKeys,
@@ -90,3 +91,41 @@ describe("deltas", () => {
     expect(deltas.dataOut.percent).toBe(-50);
   });
 });
+
+describe("aggregateAiPeriodDetails", () => {
+  test("builds Alt totals, top users, and byFeature", () => {
+    const details = aggregateAiPeriodDetails(
+      [
+        {
+          userId: "a",
+          userName: "Alice",
+          feature: "chat",
+          totalTokens: 10000,
+        },
+        {
+          userId: "b",
+          userName: "Bob",
+          feature: "syllabus",
+          totalTokens: 5000,
+        },
+        {
+          userId: "a",
+          userName: "Alice",
+          feature: "chat",
+          totalTokens: 10,
+        },
+      ],
+      10
+    );
+
+    expect(details.tokensPerAlt).toBe(10000);
+    expect(details.totalAlts).toBe(1.501);
+    expect(details.topUsers[0].userId).toBe("a");
+    expect(details.topUsers[0].requests).toBe(2);
+    expect(details.topUsers[0].totalAlts).toBe(1.001);
+    expect(details.byFeature.find((f) => f.feature === "chat").requests).toBe(
+      2
+    );
+  });
+});
+

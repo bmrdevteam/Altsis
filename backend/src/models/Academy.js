@@ -32,8 +32,20 @@ import { validate } from "../utils/validate.js";
  * @prop {boolean} aiEnabled=false - AI 기능 활성화 상태
  * @prop {string} aiApiKey - AI API 키; API를 통해 조회할 수 없다
  * @prop {string} aiProvider="gemini" - AI 제공자; openai | anthropic | gemini(테스트용)
+ * @prop {Object} [aiUsageLimits] - 사용자별 AI 일일 Alt 한도 (1 Alt = 10,000 토큰)
  *
  */
+const aiUsageLimitsSchema = mongoose.Schema(
+  {
+    enabled: { type: Boolean, default: false },
+    /** 1인당 일(UTC) Alt 한도. 1 Alt = 10,000 토큰 */
+    dailyUserAlts: { type: Number, default: 0 },
+    /** @deprecated use dailyUserAlts */
+    monthlyUserTokens: { type: Number, default: 0 },
+  },
+  { _id: false }
+);
+
 const academySchema = mongoose.Schema(
   {
     academyId: {
@@ -76,6 +88,10 @@ const academySchema = mongoose.Schema(
       default: "gemini",
     },
     aiModel: { type: String, default: "gemini-3.6-flash" },
+    aiUsageLimits: {
+      type: aiUsageLimitsSchema,
+      default: () => ({ enabled: false, dailyUserAlts: 0 }),
+    },
   },
   { timestamps: true }
 );

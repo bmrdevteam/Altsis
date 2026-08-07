@@ -64,6 +64,7 @@ const aiUsageLogSchema = mongoose.Schema(
 aiUsageLogSchema.index({ createdAt: 1 });
 aiUsageLogSchema.index({ feature: 1, createdAt: -1 });
 aiUsageLogSchema.index({ success: 1, createdAt: -1 });
+aiUsageLogSchema.index({ user: 1, createdAt: -1 });
 
 export const AIUsageLog = (dbName) => {
   return conn[dbName].model("AIUsageLog", aiUsageLogSchema);

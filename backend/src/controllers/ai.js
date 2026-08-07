@@ -28,6 +28,10 @@ import {
 import { maskSensitiveText } from "../services/aiSafety.js";
 import { logAIUsage } from "../services/aiUsage.js";
 import {
+  assertAiUserQuota,
+  getMyAiUsage as getMyAiUsageSvc,
+} from "../services/aiUsageQuota.js";
+import {
   SKILL_IDS,
   listSkills,
   assertSeasonAiAccess,
@@ -68,6 +72,32 @@ const AI_ERROR_MESSAGES = {
     "AI API 키가 유효하지 않습니다. 설정을 확인해주세요.",
   [AI_ERRORS.GENERATION_FAILED]:
     "AI 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+  [AI_ERRORS.USAGE_LIMIT_EXCEEDED]:
+    "오늘 AI 사용량(Alt) 한도를 초과했습니다. 관리자에게 문의해 주세요.",
+};
+
+/**
+ * @memberof APIs.AIAPI
+ * @function RMyAiUsage API
+ * @route GET /ai/usage/me
+ * @description 로그인 사용자의 오늘 AI Alt 사용량·한도 (1 Alt = 10,000 토큰)
+ */
+export const getMyAiUsage = async (req, res) => {
+  try {
+    const academy = await Academy.findOne({ academyId: req.user.academyId });
+    if (!academy) {
+      return res.status(404).send({ message: __NOT_FOUND("academy") });
+    }
+    const usage = await getMyAiUsageSvc(
+      req.user.academyId,
+      req.user,
+      academy
+    );
+    return res.status(200).send(usage);
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
 };
 
 /**
@@ -586,6 +616,14 @@ export const generateGuidelinesTemplate = async (req, res) => {
         return res.status(403).send({ message: AI_ERRORS.NOT_ENABLED });
       }
       schoolName = school?.schoolName || "";
+    }
+
+    try {
+      await assertAiUserQuota(req.user.academyId, req.user, academy);
+    } catch (quotaErr) {
+      return res.status(quotaErr.status || 403).send({
+        message: quotaErr.code || quotaErr.message,
+      });
     }
 
     const fields = extractSyllabusInputFields(season.formSyllabus);

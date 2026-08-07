@@ -371,6 +371,21 @@ PUT /api/academies/:academyId/ai/model
 |------|------|------|------|
 | `aiModel` | `string` | O | 사용할 AI 모델명 (예: `gemini-3.6-flash`) |
 
+### AI 사용량 한도 설정
+
+```
+PUT /api/academies/:academyId/ai/usage-limits
+```
+
+**권한**: `owner`, `admin`, `manager` (`admin`/`manager`는 본인 아카데미만)
+
+#### 요청 본문
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `enabled` | `boolean` | O | 1인 일일 Alt 한도 사용 여부 |
+| `dailyUserAlts` | `number` | 조건부 | 1인당 일(UTC) Alt 한도. `1 Alt = 10,000` 토큰. `enabled=true`이면 0보다 커야 함 |
+
 ---
 
 ## 백업 관리

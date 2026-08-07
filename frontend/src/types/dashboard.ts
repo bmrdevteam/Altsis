@@ -32,6 +32,21 @@ export type TStorageStat = {
   totalSize: number;
 };
 
+export type TAIUsageTopUser = {
+  userId: string;
+  userName: string;
+  requests: number;
+  totalTokens: number;
+  totalAlts: number;
+};
+
+export type TAIUsageByFeature = {
+  feature: string;
+  requests: number;
+  totalTokens: number;
+  totalAlts: number;
+};
+
 export type TAIUsage = {
   daily: {
     date: string;
@@ -45,6 +60,25 @@ export type TAIUsage = {
     candidatesTokens: number;
     thoughtsTokens: number;
   };
+  totalAlts?: number;
+  tokensPerAlt?: number;
+  topUsers?: TAIUsageTopUser[];
+  byFeature?: TAIUsageByFeature[];
+};
+
+export type TMyAiUsage = {
+  period: "day";
+  usedTokens: number;
+  usedAlts: number;
+  requests: number;
+  limitEnabled: boolean;
+  limitAlts: number | null;
+  remainingAlts: number | null;
+  tokensPerAlt: number;
+  /** @deprecated use limitAlts */
+  limitTokens?: number | null;
+  /** @deprecated use remainingAlts */
+  remainingTokens?: number | null;
 };
 
 export type TDashboardDelta = {

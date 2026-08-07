@@ -103,6 +103,7 @@
       align-items: center;
 
       .icon {
+        position: relative;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -123,16 +124,19 @@
       .icon.active::after {
         cursor: pointer;
         content: attr(data-count);
-        font-size: 8px;
-        font-weight: 600;
+        font-size: 9px;
+        font-weight: 700;
         text-align: center;
-        line-height: 10px;
+        line-height: 14px;
         position: absolute;
-        top: -2px;
-        left: 10px;
-        border-radius: 8px;
-        width: 10px;
-        height: 10px;
+        top: -4px;
+        right: -6px;
+        left: auto;
+        min-width: 14px;
+        height: 14px;
+        padding: 0 3px;
+        border-radius: 999px;
+        box-sizing: border-box;
         background-color: var(--color-r3);
         color: var(--accent-6);
       }

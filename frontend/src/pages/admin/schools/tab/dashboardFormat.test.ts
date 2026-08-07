@@ -1,10 +1,12 @@
 import {
+  formatAlt,
   formatBytes,
   formatDate,
   formatDeltaPercent,
   formatNumber,
   getDeltaTone,
   responseTimeStatus,
+  tokensToAlts,
 } from "./dashboardFormat";
 
 describe("dashboardFormat", () => {
@@ -12,6 +14,13 @@ describe("dashboardFormat", () => {
     expect(formatBytes(0)).toBe("0 B");
     expect(formatBytes(1024)).toBe("1 KB");
     expect(formatNumber(1773)).toBe((1773).toLocaleString());
+  });
+
+  test("formatAlt and tokensToAlts", () => {
+    expect(formatAlt(0)).toBe("0");
+    expect(formatAlt(1.23)).toBe("1.23");
+    expect(tokensToAlts(10000)).toBe(1);
+    expect(tokensToAlts(5000)).toBe(0.5);
   });
 
   test("formatDate", () => {

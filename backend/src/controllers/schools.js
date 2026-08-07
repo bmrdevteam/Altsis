@@ -40,6 +40,7 @@ import {
 } from "../services/aiPromptPolicy.js";
 import {
   aggregateAiDaily,
+  aggregateAiPeriodDetails,
   aggregateTraffic,
   buildFieldDeltas,
   getDateKeys,
@@ -47,6 +48,7 @@ import {
   parseDashboardQuery,
   toDateKey,
 } from "../services/schoolDashboard.js";
+import { TOKENS_PER_ALT } from "../services/aiUsageQuota.js";
 import {
   FIELD_INVALID,
   FIELD_IN_USE,
@@ -1070,6 +1072,10 @@ export const dashboard = async (req, res) => {
         candidatesTokens: 0,
         thoughtsTokens: 0,
       },
+      totalAlts: 0,
+      tokensPerAlt: TOKENS_PER_ALT,
+      topUsers: [],
+      byFeature: [],
     };
     let previousAiAgg = null;
     try {
@@ -1079,7 +1085,9 @@ export const dashboard = async (req, res) => {
 
       const recentLogs = await AIUsageLog(academyId)
         .find({ createdAt: { $gte: windowStart } })
-        .select("totalTokens promptTokens candidatesTokens createdAt")
+        .select(
+          "user userId userName feature model provider totalTokens promptTokens candidatesTokens thoughtsTokens createdAt"
+        )
         .lean();
 
       const currentDailyMap = {};
@@ -1091,11 +1099,13 @@ export const dashboard = async (req, res) => {
         previousDailyMap[key] = { date: key, requests: 0, totalTokens: 0 };
       }
 
+      const periodLogs = [];
       for (const log of recentLogs) {
         const key = toDateKey(new Date(log.createdAt));
         if (currentDailyMap[key]) {
           currentDailyMap[key].requests++;
           currentDailyMap[key].totalTokens += log.totalTokens || 0;
+          periodLogs.push(log);
         } else if (previousDailyMap[key]) {
           previousDailyMap[key].requests++;
           previousDailyMap[key].totalTokens += log.totalTokens || 0;
@@ -1106,6 +1116,12 @@ export const dashboard = async (req, res) => {
       previousAiAgg = aggregateAiDaily(
         previousDates.map((d) => previousDailyMap[d])
       );
+
+      const details = aggregateAiPeriodDetails(periodLogs, 10);
+      aiUsage.totalAlts = details.totalAlts;
+      aiUsage.tokensPerAlt = details.tokensPerAlt;
+      aiUsage.topUsers = details.topUsers;
+      aiUsage.byFeature = details.byFeature;
 
       const totalCount = await AIUsageLog(academyId).countDocuments();
       const totalAgg = await AIUsageLog(academyId).aggregate([

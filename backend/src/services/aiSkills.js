@@ -43,6 +43,7 @@ import {
 } from "./aiPromptPolicy.js";
 import { maskSensitiveText } from "./aiSafety.js";
 import { logAIUsage } from "./aiUsage.js";
+import { assertAiUserQuota } from "./aiUsageQuota.js";
 import {
   parseEvaluationCsv,
   buildEvaluationCsv,
@@ -916,6 +917,8 @@ export const assertSeasonAiAccess = async (academyId, user, seasonId) => {
     err.code = PERMISSION_DENIED;
     throw err;
   }
+
+  await assertAiUserQuota(academyId, user, academy);
 
   return { academy, season, school, registration };
 };

@@ -1,6 +1,6 @@
 import express from "express";
 const router = express.Router();
-import { isOwner, ownerToAdmin, isOwAdmin } from "../middleware/auth.js";
+import { isOwner, isOwAdmin, isOwAdManager } from "../middleware/auth.js";
 import * as academies from "../controllers/academies.js";
 import * as users from "../controllers/users.js";
 import * as schools from "../controllers/schools.js";
@@ -27,6 +27,11 @@ router.put("/:academyId/ai", isOwner, academies.updateAiEnabled);
 router.put("/:academyId/ai/apikey", isOwner, academies.updateAiApiKey);
 router.get("/:academyId/ai/apikey", isOwner, academies.checkAiApiKey);
 router.put("/:academyId/ai/model", isOwner, academies.updateAiModel);
+router.put(
+  "/:academyId/ai/usage-limits",
+  isOwAdManager,
+  academies.updateAiUsageLimits
+);
 
 /* backup */
 router.post("/:academyId/backup", isOwAdmin, academies.createBackup);

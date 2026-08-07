@@ -74,4 +74,8 @@ export const MESSAGE = new Map<string, string>([
   ["AI_GENERATION_FAILED", "AI 생성 중 오류가 발생했습니다."],
   ["AI_CONTENT_BLOCKED", "안전 정책에 의해 응답이 차단되었습니다."],
   ["AI_PERMISSION_DENIED", "AI 사용 권한이 없습니다."],
+  [
+    "AI_USAGE_LIMIT_EXCEEDED",
+    "오늘 AI 사용량(Alt) 한도를 초과했습니다. 관리자에게 문의해 주세요.",
+  ],
 ]);

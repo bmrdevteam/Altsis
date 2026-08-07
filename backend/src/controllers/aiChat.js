@@ -28,6 +28,7 @@ import {
   detectSkillFromMessage,
   runAlterSkill,
 } from "../services/aiSkills.js";
+import { AI_ERRORS } from "../services/aiPromptPolicy.js";
 import { getIoChat } from "../utils/webSocket.js";
 import {
   FIELD_REQUIRED,
@@ -430,6 +431,9 @@ export const sendAIChatMessage = async (req, res) => {
       }
     } catch (aiErr) {
       logger.error(`AI chat error: ${aiErr.message}`);
+      const quotaExceeded =
+        aiErr.code === AI_ERRORS.USAGE_LIMIT_EXCEEDED ||
+        aiErr.message === AI_ERRORS.USAGE_LIMIT_EXCEEDED;
       // AI 실패 시에도 학생 메시지는 저장됨, 에러 메시지를 AI 응답으로 저장
       aiMsg = await AIChatMessage(req.user.academyId).create({
         session: session._id,
@@ -438,8 +442,9 @@ export const sendAIChatMessage = async (req, res) => {
         sender: null,
         senderId: null,
         senderName: "Alter",
-        content:
-          "죄송합니다. 일시적인 오류로 응답을 생성하지 못했습니다. 잠시 후 다시 시도해주세요.",
+        content: quotaExceeded
+          ? "오늘 AI 사용량(Alt) 한도를 초과했습니다. 관리자에게 문의해 주세요."
+          : "죄송합니다. 일시적인 오류로 응답을 생성하지 못했습니다. 잠시 후 다시 시도해주세요.",
       });
 
       // 세션 메타 업데이트

@@ -557,6 +557,27 @@ export default function useAPIv2() {
   }
 
   /**
+   * UAcademyAiUsageLimits API
+   * @description 아카데미 사용자별 일일 Alt 한도 설정 (1 Alt = 10,000 토큰)
+   * @auth owner|admin|manager
+   */
+  async function UAcademyAiUsageLimits(props: {
+    params: {
+      academyId: string;
+    };
+    data: {
+      enabled: boolean;
+      dailyUserAlts: number;
+    };
+  }) {
+    const { academy } = await database.U({
+      location: `academies/${props.params.academyId}/ai/usage-limits`,
+      data: props.data,
+    });
+    return { academy: academy as TAcademy };
+  }
+
+  /**
    * ##########################################################################
    * User API
    * ##########################################################################
@@ -4641,6 +4662,29 @@ export default function useAPIv2() {
    */
 
   /**
+   * RMyAiUsage API
+   * @description 로그인 사용자의 오늘 AI Alt 사용량·한도 (1 Alt = 10,000 토큰)
+   * @auth user
+   */
+  async function RMyAiUsage() {
+    const result = await database.R({
+      location: `ai/usage/me`,
+    });
+    return result as {
+      period: "day";
+      usedTokens: number;
+      usedAlts: number;
+      requests: number;
+      limitEnabled: boolean;
+      limitAlts: number | null;
+      remainingAlts: number | null;
+      tokensPerAlt: number;
+      limitTokens?: number | null;
+      remainingTokens?: number | null;
+    };
+  }
+
+  /**
    * GenerateGuidelinesTemplate API
    * @description 학기 AI 기본 지침 추천 템플릿을 AI로 생성
    * @auth admin|manager
@@ -5096,6 +5140,7 @@ export default function useAPIv2() {
       UAcademyAiApiKey,
       RAcademyAiApiKey,
       UAcademyAiModel,
+      UAcademyAiUsageLimits,
       UActivateAcademy,
       UInactivateAcademy,
       CAcademyBackup,
@@ -5372,6 +5417,7 @@ export default function useAPIv2() {
       CAIChatMessage,
     },
     AIAPI: {
+      RMyAiUsage,
       GenerateGuidelinesTemplate,
       TestAiApiKey,
       ListAiModels,

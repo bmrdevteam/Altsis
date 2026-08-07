@@ -111,6 +111,22 @@ Altsis는 OpenAI, Anthropic, Google Gemini(테스트용) API를 활용한 AI 기
 | `aiProvider` | AI 제공자 (`openai` / `anthropic` / `gemini`) | `gemini` |
 | `aiApiKey` | 선택한 제공자의 API 키 | 없음 |
 | `aiModel` | 사용할 AI 모델 | 제공자별 기본 모델 |
+| `aiUsageLimits.enabled` | 사용자별 일일 Alt 한도 사용 | `false` |
+| `aiUsageLimits.dailyUserAlts` | 1인당 일(UTC) Alt 한도 | `0` |
+
+> **Alt 단위**: `1 Alt = 10,000 토큰`. 한도와 사용량 표시는 Alt로 합니다.
+
+#### 사용자 일일 Alt 한도 · 이행사항
+
+아카데미 **admin / manager**(**학교 관리 → AI 설정**)에서 설정·확인합니다. Owner 화면의 API 키·모델 설정과는 분리됩니다.
+
+1. **1인 일일 Alt 한도 사용**을 켭니다.
+2. 일일 Alt 한도(예: `1`)를 입력하고 **한도 저장**합니다. (아카데미 전체 사용자에 적용)
+3. 사용자 오늘(UTC) 누적 토큰을 Alt로 환산한 값이 한도에 도달하면 AI 요청이 `AI_USAGE_LIMIT_EXCEEDED`로 차단됩니다.
+4. 같은 화면의 **미성년 학생 보호를 위한 아카데미 이행사항**에서 법정대리인 동의·ZDR 등 체크리스트를 확인합니다.
+5. 일반 사용자는 Alter 패널 하단에서 본인 사용량(예: `오늘 0.12 / 1 Alt`)을 확인할 수 있습니다.
+
+학교 관리 **대시보드**의 AI 섹션에서는 기간 **Alt**·요청·**사용자 Top**을 볼 수 있습니다. (`1 Alt = 10,000` 토큰)
 
 #### API 키 설정 절차
 

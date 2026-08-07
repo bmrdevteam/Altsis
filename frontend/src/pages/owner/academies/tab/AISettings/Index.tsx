@@ -21,6 +21,8 @@ type TModelInfo = {
 
 type TProvider = "openai" | "anthropic" | "gemini";
 
+const SUCCESS_MESSAGE = "저장되었습니다.";
+
 const PROVIDER_INFO: Record<
   TProvider,
   {
@@ -79,7 +81,6 @@ const AISettings = (props: Props) => {
   const [availableModels, setAvailableModels] = useState<TModelInfo[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState<boolean>(false);
   const [useCustomModel, setUseCustomModel] = useState<boolean>(false);
-  const [showCompliance, setShowCompliance] = useState<boolean>(false);
   const [modelNotice, setModelNotice] = useState<string | null>(null);
 
   const applyModels = (
@@ -638,74 +639,6 @@ const AISettings = (props: Props) => {
               모델 저장
             </Button>
           </div>
-        </div>
-      </section>
-
-      <section>
-        <div className={style.card}>
-          <button
-            type="button"
-            className={style.complianceSummary}
-            onClick={() => setShowCompliance((v) => !v)}
-            aria-expanded={showCompliance}
-          >
-            <div>
-              <h3 className={style.sectionTitle} style={{ marginBottom: 4 }}>
-                미성년 학생 보호를 위한 아카데미 이행사항
-              </h3>
-              <p className={style.sectionDesc} style={{ marginBottom: 0 }}>
-                API 키 계약 당사자는 아카데미입니다. 법정대리인 동의, ZDR,
-                개인정보 처리방침 갱신 등이 필요할 수 있습니다.
-              </p>
-            </div>
-            <span className={style.chevron}>
-              {showCompliance ? "접기 ▲" : "펼치기 ▼"}
-            </span>
-          </button>
-
-          {showCompliance && (
-            <div className={style.complianceBody}>
-              <ul>
-                <li>
-                  만 14세 미만 학생이 AI 기능을 사용하는 경우, 개인정보보호법에
-                  따라 법정대리인 동의를 받아야 합니다.
-                </li>
-                <li>
-                  OpenAI를 사용하고 만 14세 미만 학생이 있는 경우, OpenAI
-                  계정에서 Zero Data Retention(ZDR)을 신청해야 합니다.
-                </li>
-                <li>
-                  아카데미의 개인정보 처리방침에 사용하는 AI 제공자를 처리
-                  위탁·국외 이전 항목으로 기재해야 합니다.
-                </li>
-                <li>
-                  제공자의 미성년자 관련 가이드라인을 확인하세요.{" "}
-                  <a
-                    href="https://developers.openai.com/api/docs/guides/safety-checks/under-18-api-guidance"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={style.link}
-                  >
-                    OpenAI Under 18 API Guidance
-                  </a>
-                  {" · "}
-                  <a
-                    href="https://support.claude.com/en/articles/9307344-responsible-use-of-anthropic-s-models-guidelines-for-organizations-serving-minors"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={style.link}
-                  >
-                    Anthropic 미성년자 대상 조직 가이드라인
-                  </a>
-                </li>
-              </ul>
-              <p className={style.complianceFoot}>
-                Altsis는 AI 사용 고지, 안전 시스템 프롬프트, 교사의 학생 AI
-                대화 모니터링 기능을 기본 제공하여 위 가이드라인의 안전조치
-                요건 이행을 지원합니다.
-              </p>
-            </div>
-          )}
         </div>
       </section>
     </div>

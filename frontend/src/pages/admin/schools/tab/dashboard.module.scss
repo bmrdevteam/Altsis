@@ -621,7 +621,65 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   gap: 10px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
+}
+
+.aiCostNote {
+  margin: 0 0 16px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-color-2);
+}
+
+.aiTopUsers {
+  margin-top: 20px;
+}
+
+.aiTopUsersTitle {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-color-1);
+}
+
+.aiTopTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  th,
+  td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border-color);
+    text-align: left;
+  }
+
+  th {
+    font-weight: 600;
+    color: var(--text-color-2);
+    font-size: 12px;
+  }
+
+  td:nth-child(2),
+  td:nth-child(3),
+  th:nth-child(2),
+  th:nth-child(3) {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.aiTopName {
+  display: block;
+  color: var(--text-color-1);
+  font-weight: 500;
+}
+
+.aiTopId {
+  display: block;
+  font-size: 11px;
+  color: var(--text-color-2);
+  margin-top: 2px;
 }
 
 /* ─── Skeleton ─── */
