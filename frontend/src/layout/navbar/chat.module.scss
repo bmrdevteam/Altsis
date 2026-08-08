@@ -53,8 +53,9 @@
   }
 
   .unread_badge {
-    background-color: var(--chat-send-color, #1a73e8);
-    color: #ffffff;
+    background-color: var(--status-error-bg, #fff2f0);
+    color: var(--status-error, #ff4d4f);
+    border: 1px solid var(--status-error-border, #ffccc7);
     border-radius: 10px;
     padding: 1px 6px;
     font-size: 10px;
@@ -63,6 +64,7 @@
     min-width: 18px;
     text-align: center;
     line-height: 16px;
+    box-sizing: border-box;
   }
 }
 
@@ -494,8 +496,9 @@
       }
 
       .unread_badge {
-        background-color: var(--chat-send-color, #1a73e8);
-        color: #ffffff;
+        background-color: var(--status-error-bg, #fff2f0);
+        color: var(--status-error, #ff4d4f);
+        border: 1px solid var(--status-error-border, #ffccc7);
         border-radius: 10px;
         padding: 1px 6px;
         font-size: 10px;
@@ -504,6 +507,7 @@
         min-width: 18px;
         text-align: center;
         line-height: 16px;
+        box-sizing: border-box;
       }
     }
   }

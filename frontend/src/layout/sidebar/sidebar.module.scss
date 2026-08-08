@@ -180,33 +180,17 @@
 
                 }
 
-                .nav_badge {
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    min-width: 18px;
-                    height: 18px;
-                    padding: 0 5px;
-                    margin-right: 8px;
-                    border-radius: 9px;
-                    background-color: var(--text-color-2, #5f6368);
-                    color: #fff;
-                    font-size: 11px;
-                    font-weight: 600;
-                    line-height: 1;
-                    flex-shrink: 0;
-                }
-
+                /* 수업·보드 할 일 — 숫자 칩 대신 아이콘 코너 점 */
                 .nav_badge_dot {
-                    display: none;
                     position: absolute;
                     top: -2px;
                     right: -2px;
                     width: 8px;
                     height: 8px;
                     border-radius: 50%;
-                    background-color: var(--text-color-2, #5f6368);
+                    background-color: var(--status-error, #ff4d4f);
                     border: 1.5px solid var(--component-color);
+                    box-sizing: border-box;
                 }
 
                 .name {
@@ -534,10 +518,13 @@
         justify-content: center;
         font-size: 10px;
         font-weight: 700;
-        color: #cf1322;
-        background: #fff1f0;
+        /* 진행 잔여 — info 파랑 (할 일 soft-error와 구분) */
+        color: var(--status-info, #1677ff);
+        background: var(--status-info-bg, #e6f4ff);
+        border: 1px solid var(--status-info-border, #91caff);
         font-variant-numeric: tabular-nums;
         flex-shrink: 0;
+        box-sizing: border-box;
     }
 
     .goals_widget_count_muted {
@@ -741,16 +728,6 @@
             .name {
                 display: none;
             }
-
-            .nav_badge {
-                display: none;
-            }
-
-            .icon {
-                .nav_badge_dot {
-                    display: block;
-                }
-            }
         }
 
         .sub_links {
@@ -864,9 +841,10 @@
             height: 16px;
             padding: 0 4px;
             border-radius: 999px;
-            background: #fff1f0;
-            color: #cf1322;
-            border: 1px solid #ffccc7;
+            /* 진행 잔여 — info 파랑 */
+            background: var(--status-info-bg, #e6f4ff);
+            color: var(--status-info, #1677ff);
+            border: 1px solid var(--status-info-border, #91caff);
             font-size: 9px;
             font-weight: 700;
             display: inline-flex;
@@ -874,6 +852,7 @@
             justify-content: center;
             line-height: 1;
             font-variant-numeric: tabular-nums;
+            box-sizing: border-box;
         }
     }
 }

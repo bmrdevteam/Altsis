@@ -137,8 +137,9 @@
         padding: 0 3px;
         border-radius: 999px;
         box-sizing: border-box;
-        background-color: var(--color-r3);
-        color: var(--accent-6);
+        /* 알림·미읽음 — 테마 status-error (사이드바 soft보다 진한 solid) */
+        background-color: var(--status-error, var(--color-r3, #ff4d4f));
+        color: var(--accent-6, #fff);
       }
     }
 

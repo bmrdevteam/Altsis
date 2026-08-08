@@ -112,14 +112,16 @@
   height: 18px;
   padding: 0 5px;
   border-radius: 9px;
-  background-color: var(--status-error, #d32f2f);
-  color: #fff;
+  background-color: var(--status-error-bg, #fff2f0);
+  color: var(--status-error, #ff4d4f);
+  border: 1px solid var(--status-error-border, #ffccc7);
   font-size: 10px;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .sidebar_item {

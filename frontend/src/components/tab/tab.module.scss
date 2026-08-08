@@ -116,11 +116,14 @@
         padding: 0 5px;
         margin-left: 6px;
         border-radius: 9px;
-        background-color: var(--text-color-2, #5f6368);
-        color: #fff;
+        /* 할 일·미확인 — soft 빨강 (테마 status-error) */
+        background-color: var(--status-error-bg, #fff2f0);
+        color: var(--status-error, #ff4d4f);
+        border: 1px solid var(--status-error-border, #ffccc7);
         font-size: 11px;
         font-weight: 600;
         line-height: 1;
+        box-sizing: border-box;
     }
 
 }

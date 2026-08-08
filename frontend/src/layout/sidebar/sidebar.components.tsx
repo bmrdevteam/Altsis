@@ -133,12 +133,16 @@ const NavLink = ({
     setExpanded(null);
   }, [active]);
 
-  const badgeEl =
-    badge != null && badge > 0 ? (
-      <span className={style.nav_badge} title={`할 일 ${badge}건`}>
-        {badge > 99 ? "99+" : badge}
-      </span>
-    ) : null;
+  const hasTodo = badge != null && badge > 0;
+  const todoLabel = hasTodo ? `할 일 ${badge}건` : undefined;
+  const todoDot = hasTodo ? (
+    <span
+      className={style.nav_badge_dot}
+      title={todoLabel}
+      aria-label={todoLabel}
+      role="status"
+    />
+  ) : null;
 
   return type === "default" ? (
     <div
@@ -157,10 +161,9 @@ const NavLink = ({
       >
         <span className={style.icon}>
           {icon}
-          {badgeEl && <span className={style.nav_badge_dot} aria-hidden />}
+          {todoDot}
         </span>
         <span className={style.name}>{children}</span>
-        {badgeEl}
         {subLink && (
           <span
             className={`${style.chevron} ${isExpanded ? style.chevron_open : ""}`}
@@ -180,9 +183,11 @@ const NavLink = ({
         }}
         title={path}
       >
-        <span className={style.icon}>{icon}</span>
+        <span className={style.icon}>
+          {icon}
+          {todoDot}
+        </span>
         <span className={style.name}>{children}</span>
-        {badgeEl}
       </div>
     </div>
   );

@@ -9,7 +9,7 @@ export interface INavLink {
   subLink?: INavSubLink[];
   type?: "default" | "link";
   matchPaths?: string[];
-  /** 사이드바 뱃지 숫자 (0 이하면 숨김) */
+  /** 할 일 있음 표시용 카운트 (0 이하면 숨김; UI는 점만 표시) */
   badge?: number;
 }
 

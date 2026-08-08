@@ -44,6 +44,7 @@ import CreatedCourseList from "./tab/Created/List";
 import MentoringCourseList from "./tab/Mentoring/List";
 import useAPIv2 from "hooks/useAPIv2";
 import useRegisterAlterCourseList from "hooks/useRegisterAlterCourseList";
+import { countAttentionCourseTodos } from "./groupCourseTodos";
 import { useCourseTodos } from "./useCourseTodos";
 
 type Props = {};
@@ -55,9 +56,23 @@ const Course = (props: Props) => {
 
   const { currentSeason, currentUser, currentRegistration } = useAuth();
   const {
+    items: courseTodoItems,
     evaluationBySyllabusId,
     refresh: refreshCourseTodos,
   } = useCourseTodos();
+
+  /** 사이드바 course-todos count와 동일 규칙(평가중·승인만) */
+  const tabBadges = useMemo(() => {
+    const mentoring = countAttentionCourseTodos(
+      courseTodoItems,
+      "mentoring"
+    );
+    const created = countAttentionCourseTodos(courseTodoItems, "created");
+    const badges: Record<string, number> = {};
+    if (mentoring > 0) badges["담당 수업"] = mentoring;
+    if (created > 0) badges["개설 수업"] = created;
+    return badges;
+  }, [courseTodoItems]);
 
   const [enrolledCourseList, setEnrolledCourseList] = useState<any[]>([]);
   const [createdCourseList, setCreatedCourseList] = useState<any[]>([]);
@@ -199,7 +214,11 @@ const Course = (props: Props) => {
   return (
     <>
       <div className={style.section}>
-        {currentSeason?.formTimetable ? <Tab items={items()} /> : <></>}
+        {currentSeason?.formTimetable ? (
+          <Tab items={items()} badges={tabBadges} />
+        ) : (
+          <></>
+        )}
       </div>
     </>
   );
