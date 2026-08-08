@@ -180,6 +180,38 @@
   }
 }
 
+.listRowSelected {
+  background-color: color-mix(
+    in srgb,
+    var(--primary-color, #4a90d9) 10%,
+    var(--background-color)
+  );
+
+  &:hover {
+    background-color: color-mix(
+      in srgb,
+      var(--primary-color, #4a90d9) 14%,
+      var(--background-color)
+    );
+  }
+}
+
+.listCheck {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+
+  input {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--primary-color, #4a90d9);
+    cursor: pointer;
+  }
+}
+
 .listLeading {
   flex-shrink: 0;
   display: flex;

@@ -84,11 +84,11 @@ const AlterIcon = ({
               />
             </>
           )}
-          <stop offset="0%" stopColor="#c4b5fd" />
-          <stop offset="25%" stopColor="#60a5fa" />
-          <stop offset="50%" stopColor="#2dd4bf" />
-          <stop offset="75%" stopColor="#818cf8" />
-          <stop offset="100%" stopColor="#c4b5fd" />
+          <stop offset="0%" stopColor="var(--alter-brand-1, #c4b5fd)" />
+          <stop offset="25%" stopColor="var(--alter-brand-2, #60a5fa)" />
+          <stop offset="50%" stopColor="var(--alter-brand-3, #2dd4bf)" />
+          <stop offset="75%" stopColor="var(--alter-brand-4, #818cf8)" />
+          <stop offset="100%" stopColor="var(--alter-brand-1, #c4b5fd)" />
         </linearGradient>
       </defs>
       {/* 큰 별 → 작은 위 → 작은 아래 */}
@@ -136,7 +136,8 @@ const Alter = () => {
 
   return (
     <div className={style.alterRoot}>
-      <div
+      <button
+        type="button"
         className={style.iconBtn}
         onClick={toggle}
         title={
@@ -146,17 +147,17 @@ const Alter = () => {
               ? "Alter (새 결과)"
               : "Alter"
         }
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            toggle();
-          }
-        }}
+        aria-label={
+          isWorking
+            ? "Alter 열기 (작업 진행 중)"
+            : hasBackgroundResult
+              ? "Alter 열기 (새 결과)"
+              : "Alter 열기"
+        }
+        aria-expanded={isOpen}
       >
         <AlterIcon size={20} working={isWorking} />
-      </div>
+      </button>
       {/* 닫아도 언마운트하지 않아 진행 중 fetch/SSE가 끊기지 않음 */}
       <div
         className={isOpen ? undefined : style.panelHostHidden}

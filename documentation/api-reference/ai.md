@@ -20,6 +20,7 @@ UI에서의 Alter 사용법은 [사용자 가이드 — Alter](../user-guide/cha
 | `GET` | `/api/ai/alter/skill-settings` | Skill별 준비 설정(지침·참고자료) | `isLoggedIn` (+ 학기 AI 접근) |
 | `GET` | `/api/ai/alter/conversations` | Alter 대화 목록 | `isLoggedIn` |
 | `POST` | `/api/ai/alter/conversations` | Alter 대화 생성 | `isLoggedIn` |
+| `POST` | `/api/ai/alter/conversations/bulk-delete` | 대화 일괄 삭제(소프트) | `isLoggedIn` (본인) |
 | `GET` | `/api/ai/alter/conversations/:id/messages` | 대화 메시지 목록 | `isLoggedIn` (본인) |
 | `PATCH` | `/api/ai/alter/conversations/:id` | 대화 제목 변경 | `isLoggedIn` (본인) |
 | `DELETE` | `/api/ai/alter/conversations/:id` | 대화 삭제(소프트) | `isLoggedIn` (본인) |
@@ -177,7 +178,12 @@ POST /api/ai/alter/conversations
 GET    /api/ai/alter/conversations/:id/messages?limit=
 PATCH  /api/ai/alter/conversations/:id   // body: { "title": "…" }
 DELETE /api/ai/alter/conversations/:id   // 소프트 삭제 → { "ok": true }
+POST   /api/ai/alter/conversations/bulk-delete
+  // body: { "ids": ["…"] }
+  // → { "deleted": ["…"], "skipped": [{ "id": "…", "reason": "working"|"not_found" }] }
 ```
+
+진행 중인(`status=working`) 대화는 단건·일괄 모두 삭제되지 않습니다.
 
 ---
 

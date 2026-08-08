@@ -189,3 +189,116 @@ export const docTypeLabel = (docType?: string) =>
 
 export const activityFormTypeLabel = (formType?: string) =>
   ACTIVITY_FORM_TYPES.find((t) => t.id === formType)?.label || formType || "";
+
+export const SKILL_CHIP_HINT: Record<TAlterSkillId, string> = {
+  chat: "페이지 데이터를 참고해 질문·설명에 답합니다",
+  "syllabus-draft": "학습 계획서 항목 초안을 만듭니다",
+  "evaluation-draft": "수업 평가(멘토평가 등) 초안을 만듭니다",
+  "archive-draft": "학생 기록(행동특성·종합의견 등) 초안을 만듭니다",
+  "document-draft": "보드 문서 초안을 작성·다듬습니다",
+  "document-review": "문서 내용을 지침 기준으로 점검합니다",
+  "form-response-draft": "양식 응답·기안문 초안을 채웁니다",
+  "activity-draft": "활동 양식(필드·설정) 초안을 만듭니다",
+  "assessment-grade": "평가 활동 응답을 채점 초안으로 채웁니다",
+};
+
+/**
+ * Alter.module.scss skillTone* — 보드 BoardListFilterBar filterChipTone* 매핑
+ * @see frontend/src/pages/boards/boards.module.scss
+ */
+export type SkillToneKey =
+  | "skillToneChat"
+  | "skillToneSyllabus"
+  | "skillToneEvaluation"
+  | "skillToneArchive"
+  | "skillToneDocument"
+  | "skillToneDocumentReview"
+  | "skillToneFormResponse"
+  | "skillToneActivity"
+  | "skillToneAssessmentGrade";
+
+export const SKILL_TONE_KEY: Record<TAlterSkillId, SkillToneKey> = {
+  chat: "skillToneChat", // Optional · 일반
+  "syllabus-draft": "skillToneSyllabus", // Pending · 수업
+  "evaluation-draft": "skillToneEvaluation", // Approval · 할 일
+  "archive-draft": "skillToneArchive", // Draft
+  "document-draft": "skillToneDocument", // Scheduled
+  "document-review": "skillToneDocumentReview", // Closed
+  "form-response-draft": "skillToneFormResponse", // Submitted
+  "activity-draft": "skillToneActivity", // Direct
+  "assessment-grade": "skillToneAssessmentGrade", // Approval
+};
+
+export const alterModeLabel = (inPrep: boolean): "질문" | "작성·점검" =>
+  inPrep ? "작성·점검" : "질문";
+
+/** 접힌 prep dock에 보여줄 짧은 요약 조각 */
+export const buildPrepSummaryParts = (input: {
+  prepKind: PrepKind;
+  evalTargetCount?: number;
+  evalStudentCount?: number;
+  evalFillEmptyOnly?: boolean;
+  archiveTargetCount?: number;
+  archiveStudentCount?: number;
+  archiveFillEmptyOnly?: boolean;
+  archiveWriteMode?: "perStudent" | "sameText";
+  docWriteMode?: "create" | "refine";
+  docTypeLabel?: string;
+  formResponseFieldCount?: number;
+  formResponseFillEmptyOnly?: boolean;
+  activityFormTypeLabel?: string;
+  activityWriteMode?: "create" | "refine";
+  gradeFillEmptyOnly?: boolean;
+  gradeLabel?: string;
+  guidelineCount?: number;
+}): string[] => {
+  const parts: string[] = [];
+  const { prepKind } = input;
+  if (!prepKind) return parts;
+
+  if (prepKind === "evaluation") {
+    if (input.evalTargetCount != null) {
+      parts.push(`항목 ${input.evalTargetCount}`);
+    }
+    if (input.evalStudentCount != null) {
+      parts.push(`학생 ${input.evalStudentCount}`);
+    }
+    parts.push(input.evalFillEmptyOnly ? "빈 칸만" : "종합 재작성");
+  } else if (prepKind === "archive") {
+    if (input.archiveTargetCount != null) {
+      parts.push(`항목 ${input.archiveTargetCount}`);
+    }
+    if (input.archiveStudentCount != null) {
+      parts.push(`학생 ${input.archiveStudentCount}`);
+    }
+    if (input.archiveWriteMode === "sameText") parts.push("동일 문구");
+    parts.push(input.archiveFillEmptyOnly ? "빈 칸만" : "덮어쓰기 가능");
+  } else if (prepKind === "document") {
+    parts.push(input.docWriteMode === "refine" ? "다듬기" : "새 작성");
+    if (input.docTypeLabel) parts.push(input.docTypeLabel);
+  } else if (prepKind === "document-review") {
+    if (input.guidelineCount != null) {
+      parts.push(`지침 ${input.guidelineCount}`);
+    }
+  } else if (prepKind === "form-response") {
+    if (input.formResponseFieldCount != null) {
+      parts.push(`필드 ${input.formResponseFieldCount}`);
+    }
+    if (input.formResponseFillEmptyOnly) parts.push("빈 칸만");
+  } else if (prepKind === "activity") {
+    parts.push(input.activityWriteMode === "refine" ? "다듬기" : "새 작성");
+    if (input.activityFormTypeLabel) parts.push(input.activityFormTypeLabel);
+  } else if (prepKind === "assessment-grade") {
+    if (input.gradeLabel) parts.push(input.gradeLabel);
+    parts.push(input.gradeFillEmptyOnly ? "빈 칸만" : "덮어쓰기");
+  } else if (prepKind === "syllabus") {
+    if (input.guidelineCount != null) {
+      parts.push(`지침 ${input.guidelineCount}`);
+    }
+  }
+  return parts;
+};
+
+/** dense prep(평가·기록)은 기본 접기 */
+export const shouldDefaultCollapsePrep = (skill: TAlterSkillId): boolean =>
+  skill === "evaluation-draft" || skill === "archive-draft";

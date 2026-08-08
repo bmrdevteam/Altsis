@@ -418,7 +418,7 @@ export const resolveSkillPromptPack = async (
 /**
  * Alter prep UI용 — 저장된 지침/참고자료 (기본 가이드 문구는 넣지 않음).
  * references 는 선택 전 전체 목록(인덱스는 프롬프트와 동일 순서).
- * syllabus/archive/document/form-response/activity(-review) 는
+ * syllabus/evaluation/archive/document/form-response/activity(-review) 는
  * instructionItems + defaultGuidelineItemIds 도 함께 반환.
  */
 export const resolveSkillPrepSettings = async (
@@ -433,6 +433,16 @@ export const resolveSkillPrepSettings = async (
 
   const skipRefs =
     skill === SKILL_IDS.SYLLABUS_DRAFT ||
+    skill === SKILL_IDS.EVALUATION_DRAFT ||
+    skill === SKILL_IDS.DOCUMENT_DRAFT ||
+    skill === SKILL_IDS.DOCUMENT_REVIEW ||
+    skill === SKILL_IDS.FORM_RESPONSE_DRAFT ||
+    skill === SKILL_IDS.ACTIVITY_DRAFT;
+
+  const hasInstructionPicker =
+    skill === SKILL_IDS.SYLLABUS_DRAFT ||
+    skill === SKILL_IDS.EVALUATION_DRAFT ||
+    skill === SKILL_IDS.ARCHIVE_DRAFT ||
     skill === SKILL_IDS.DOCUMENT_DRAFT ||
     skill === SKILL_IDS.DOCUMENT_REVIEW ||
     skill === SKILL_IDS.FORM_RESPONSE_DRAFT ||
@@ -530,14 +540,7 @@ export const resolveSkillPrepSettings = async (
       references: skipRefs ? [] : learningRefs,
       fromSchool: true,
     };
-    if (
-      skill === SKILL_IDS.SYLLABUS_DRAFT ||
-      skill === SKILL_IDS.ARCHIVE_DRAFT ||
-      skill === SKILL_IDS.DOCUMENT_DRAFT ||
-      skill === SKILL_IDS.DOCUMENT_REVIEW ||
-      skill === SKILL_IDS.FORM_RESPONSE_DRAFT ||
-      skill === SKILL_IDS.ACTIVITY_DRAFT
-    ) {
+    if (hasInstructionPicker) {
       const choices = await loadInstructionChoices();
       if (skill === SKILL_IDS.DOCUMENT_REVIEW) {
         const learning = await loadLearningChoices();
@@ -555,14 +558,7 @@ export const resolveSkillPrepSettings = async (
       : normalizeReferences(season?.aiSettings?.references || []),
     fromSchool: false,
   };
-  if (
-    skill === SKILL_IDS.SYLLABUS_DRAFT ||
-    skill === SKILL_IDS.ARCHIVE_DRAFT ||
-    skill === SKILL_IDS.DOCUMENT_DRAFT ||
-    skill === SKILL_IDS.DOCUMENT_REVIEW ||
-    skill === SKILL_IDS.FORM_RESPONSE_DRAFT ||
-    skill === SKILL_IDS.ACTIVITY_DRAFT
-  ) {
+  if (hasInstructionPicker) {
     const choices = await loadInstructionChoices();
     if (skill === SKILL_IDS.DOCUMENT_REVIEW) {
       const learning = await loadLearningChoices();
@@ -639,6 +635,20 @@ const resolveSyllabusGuidelines = async (
     school,
     season,
     SKILL_IDS.SYLLABUS_DRAFT,
+    context
+  );
+
+const resolveEvaluationGuidelines = async (
+  academyId,
+  school,
+  season,
+  context = {}
+) =>
+  resolveLibraryGuidelines(
+    academyId,
+    school,
+    season,
+    SKILL_IDS.EVALUATION_DRAFT,
     context
   );
 
@@ -1760,14 +1770,12 @@ export const executeEvaluationDraftSkill = async ({
 
   const classTitle =
     context.classTitle || syllabus.classTitle || "수업";
-  const promptPack = await resolveSkillPromptPack(
+  const guidelines = await resolveEvaluationGuidelines(
     academyId,
     school,
     season,
-    SKILL_IDS.EVALUATION_DRAFT,
-    context?.referenceIndexes
+    context
   );
-  const guidelines = promptPack.guidelines;
 
   const schemaLines = targetLabels.map((label) => {
     const meta = resolveEvaluationFieldMeta(formEvaluation, label);

@@ -27,6 +27,11 @@ type Props = {
   menuItems?: TChatListMenuItem[];
   titleEdit?: TChatListTitleEdit;
   onClick: () => void;
+  /** 선택 모드: 체크박스로 다중 선택 */
+  selectable?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
+  selectDisabled?: boolean;
 };
 
 const ChatListRow = ({
@@ -39,6 +44,10 @@ const ChatListRow = ({
   menuItems,
   titleEdit,
   onClick,
+  selectable = false,
+  selected = false,
+  onToggleSelect,
+  selectDisabled = false,
 }: Props) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -69,11 +78,38 @@ const ChatListRow = ({
     // 편집 모드 진입 시에만 전체 선택 — value 변경마다 select 하면 한 글자만 남음
   }, [isEditingTitle]);
 
+  const handleRowClick = () => {
+    if (titleEdit) return;
+    if (selectable) {
+      if (!selectDisabled) onToggleSelect?.();
+      return;
+    }
+    onClick();
+  };
+
   return (
     <div
-      className={`${style.listRow} ${active ? style.listRowActive : ""}`}
-      onClick={titleEdit ? undefined : onClick}
+      className={`${style.listRow} ${active ? style.listRowActive : ""} ${
+        selectable && selected ? style.listRowSelected : ""
+      }`}
+      onClick={handleRowClick}
+      role={selectable ? "option" : undefined}
+      aria-selected={selectable ? selected : undefined}
     >
+      {selectable ? (
+        <label
+          className={style.listCheck}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <input
+            type="checkbox"
+            checked={selected}
+            disabled={selectDisabled}
+            onChange={() => onToggleSelect?.()}
+            aria-label={`${title} 선택`}
+          />
+        </label>
+      ) : null}
       {leading ? <div className={style.listLeading}>{leading}</div> : null}
       <div className={style.listInfo}>
         <div className={style.listHeaderRow}>
@@ -113,7 +149,7 @@ const ChatListRow = ({
           <div className={style.listPreview}>{preview}</div>
         ) : null}
       </div>
-      {!titleEdit && menuItems && menuItems.length > 0 && (
+      {!titleEdit && !selectable && menuItems && menuItems.length > 0 && (
         <div
           className={style.listMenu}
           ref={menuRef}

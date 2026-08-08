@@ -19,6 +19,11 @@ router.get("/alter/skill-settings", isLoggedIn, ai.getAlterSkillSettings);
 // Alter conversation persistence
 router.get("/alter/conversations", isLoggedIn, ai.listAlterConversations);
 router.post("/alter/conversations", isLoggedIn, ai.createAlterConversation);
+router.post(
+  "/alter/conversations/bulk-delete",
+  isLoggedIn,
+  ai.bulkDeleteAlterConversations
+);
 router.get(
   "/alter/conversations/:id/messages",
   isLoggedIn,

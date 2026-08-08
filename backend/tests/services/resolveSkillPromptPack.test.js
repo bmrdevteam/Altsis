@@ -287,6 +287,43 @@ describe("resolveSkillPromptPack", () => {
     expect(pack.guidelines).toContain("평가 문체는 존댓말로");
   });
 
+  test("evaluation-draft prep도 instructionItems를 반환한다", async () => {
+    mockFindLean.mockResolvedValue([
+      {
+        _id: "eval-lib",
+        kind: "instruction",
+        title: "평가 문체",
+        content: "존중하는 문어체",
+        skillTags: ["evaluation-draft"],
+      },
+    ]);
+
+    const prep = await resolveSkillPrepSettings(
+      "academy1",
+      {
+        _id: "school1",
+        aiConfig: {
+          skills: {
+            [SKILL_IDS.EVALUATION_DRAFT]: {
+              instructions: "",
+              libraryItemIds: ["eval-lib"],
+            },
+          },
+        },
+      },
+      { aiSettings: {} },
+      SKILL_IDS.EVALUATION_DRAFT
+    );
+
+    expect(prep.instructionItems?.map((it) => it._id)).toEqual(
+      expect.arrayContaining(["eval-lib"])
+    );
+    expect(prep.defaultGuidelineItemIds).toEqual(
+      expect.arrayContaining(["eval-lib"])
+    );
+    expect(prep.references).toEqual([]);
+  });
+
   test("prep 설정은 기본 가이드 없이 라이브러리 지침만 보여 준다", async () => {
     mockFindLean.mockResolvedValue([
       {

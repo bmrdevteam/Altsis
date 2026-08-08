@@ -1,10 +1,13 @@
 import {
+  alterModeLabel,
   applyLabelForDraft,
   applyPolicyForDraft,
+  buildPrepSummaryParts,
   isApplyDisabled,
   prepKindFromSkill,
   prepPrimaryLabel,
   reviewLevelToVariant,
+  shouldDefaultCollapsePrep,
 } from "./draftUi";
 import {
   TAlterActivityDraftResult,
@@ -126,5 +129,39 @@ describe("reviewLevelToVariant", () => {
     expect(reviewLevelToVariant("fair")).toBe("fair");
     expect(reviewLevelToVariant("empty")).toBe("empty");
     expect(reviewLevelToVariant("needs_work")).toBe("needs");
+  });
+});
+
+describe("alterModeLabel / prep summary", () => {
+  test("mode labels", () => {
+    expect(alterModeLabel(false)).toBe("질문");
+    expect(alterModeLabel(true)).toBe("작성·점검");
+  });
+
+  test("default collapse for dense prep skills", () => {
+    expect(shouldDefaultCollapsePrep("evaluation-draft")).toBe(true);
+    expect(shouldDefaultCollapsePrep("archive-draft")).toBe(true);
+    expect(shouldDefaultCollapsePrep("document-draft")).toBe(false);
+    expect(shouldDefaultCollapsePrep("chat")).toBe(false);
+  });
+
+  test("buildPrepSummaryParts for evaluation and archive", () => {
+    expect(
+      buildPrepSummaryParts({
+        prepKind: "evaluation",
+        evalTargetCount: 2,
+        evalStudentCount: 8,
+        evalFillEmptyOnly: false,
+      })
+    ).toEqual(["항목 2", "학생 8", "종합 재작성"]);
+    expect(
+      buildPrepSummaryParts({
+        prepKind: "archive",
+        archiveTargetCount: 1,
+        archiveStudentCount: 5,
+        archiveFillEmptyOnly: true,
+        archiveWriteMode: "sameText",
+      })
+    ).toEqual(["항목 1", "학생 5", "동일 문구", "빈 칸만"]);
   });
 });

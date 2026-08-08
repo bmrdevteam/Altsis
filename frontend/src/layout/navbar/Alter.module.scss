@@ -1,3 +1,11 @@
+/* Alter AI brand (theme-aware overrides welcome) */
+:root {
+  --alter-brand-1: #c4b5fd;
+  --alter-brand-2: #60a5fa;
+  --alter-brand-3: #2dd4bf;
+  --alter-brand-4: #818cf8;
+}
+
 .alterRoot {
   position: relative;
   display: inline-flex;
@@ -11,12 +19,23 @@
   justify-content: center;
   width: 28px;
   height: 28px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
   cursor: pointer;
   line-height: 0;
   border-radius: 6px;
 
   &:hover {
     background: var(--component-hover-color);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color, var(--alter-brand-2));
+    outline-offset: 2px;
   }
 }
 
@@ -30,11 +49,11 @@
   flex-shrink: 0;
   background: linear-gradient(
     125deg,
-    #c4b5fd 0%,
-    #60a5fa 25%,
-    #2dd4bf 50%,
-    #818cf8 75%,
-    #c4b5fd 100%
+    var(--alter-brand-1) 0%,
+    var(--alter-brand-2) 25%,
+    var(--alter-brand-3) 50%,
+    var(--alter-brand-4) 75%,
+    var(--alter-brand-1) 100%
   );
   background-size: 220% 220%;
   animation: alterGradientShift 3.6s ease-in-out infinite;
@@ -104,12 +123,30 @@
 }
 
 .contextBar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
   padding: 6px 16px;
   font-size: 11px;
   color: var(--accent-3);
   background: var(--background-color);
   border-bottom: var(--border-default, 1px solid #e0e0e0);
   flex-shrink: 0;
+}
+
+.modeBadge {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: var(--accent-1);
+  background: color-mix(
+    in srgb,
+    var(--primary-color, var(--alter-brand-2)) 14%,
+    var(--component-color)
+  );
 }
 
 .skillDock {
@@ -214,30 +251,29 @@
 }
 
 .skillChip {
-  border: none;
-  background: var(--background-secondary, #f1f3f4);
-  color: var(--accent-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  background: var(--background-color);
+  color: var(--text-color-2, var(--accent-2));
   border-radius: 999px;
   padding: 5px 12px;
   font-size: 12px;
   font-weight: 500;
+  line-height: 1.2;
   cursor: pointer;
   font-family: inherit;
-  transition: background-color 0.15s, color 0.15s;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease,
+    box-shadow 0.15s ease;
 
   &:hover {
-    background: var(--component-hover-color, #ebebeb);
-    color: var(--accent-1);
+    filter: brightness(0.97);
   }
 
   &.active {
-    background: color-mix(
-      in srgb,
-      var(--primary-color) 16%,
-      var(--component-color)
-    );
-    color: var(--accent-1);
     font-weight: 600;
+    box-shadow: inset 0 0 0 1px currentColor;
   }
 
   &:disabled {
@@ -261,8 +297,8 @@
 .skillTag {
   font-size: 10px;
   font-weight: 600;
-  padding: 0 6px;
-  border-radius: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
   background: var(--component-color);
   color: var(--accent-3);
   white-space: nowrap;
@@ -426,9 +462,226 @@
 .steps {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
   font-size: 12px;
   color: var(--accent-2);
+}
+
+.stepItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.4;
+}
+
+.stepMark {
+  flex-shrink: 0;
+  width: 1.1em;
+  font-weight: 700;
+  color: var(--accent-3);
+}
+
+.stepDone {
+  color: var(--accent-3);
+
+  .stepMark {
+    color: var(--status-success, #2e7d32);
+  }
+}
+
+.stepActive {
+  color: var(--accent-1);
+  font-weight: 500;
+
+  .stepMark {
+    color: var(--primary-color, var(--alter-brand-2));
+  }
+}
+
+.prepSummaryRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 16px 10px;
+}
+
+.historyFilterRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 12px 6px;
+  flex-shrink: 0;
+  border-bottom: var(--border-default, 1px solid #e0e0e0);
+}
+
+.historyFilterChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid transparent;
+  background: var(--background-color);
+  color: var(--text-color-2, var(--accent-2));
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease,
+    box-shadow 0.15s ease;
+
+  &:hover {
+    filter: brightness(0.97);
+  }
+
+  &.active {
+    font-weight: 600;
+    box-shadow: inset 0 0 0 1px currentColor;
+  }
+}
+
+.historyFilterToneAll {
+  /* filterChipToneAll — 보드 「전체」 */
+  background: color-mix(in srgb, var(--accent-1) 12%, var(--background-color));
+  color: var(--accent-1);
+}
+
+/*
+ * 스킬 톤 = 보드 filterChipTone* (boards.module.scss)
+ * .historyFilterChip / .skillChip 기본 background를 이기도록 복합 선택자 사용
+ */
+.historyFilterChip.skillToneChat,
+.skillChip.skillToneChat,
+.skillTag.skillToneChat {
+  /* Optional · 일반 */
+  background: var(--status-info-bg);
+  color: var(--status-info);
+}
+
+.historyFilterChip.skillToneSyllabus,
+.skillChip.skillToneSyllabus,
+.skillTag.skillToneSyllabus {
+  /* Pending · 수업 */
+  background: var(--status-error-bg);
+  color: var(--status-error);
+}
+
+.historyFilterChip.skillToneEvaluation,
+.skillChip.skillToneEvaluation,
+.skillTag.skillToneEvaluation {
+  /* Approval · 할 일 */
+  background: var(--status-warning-bg);
+  color: var(--status-warning);
+}
+
+.historyFilterChip.skillToneArchive,
+.skillChip.skillToneArchive,
+.skillTag.skillToneArchive {
+  /* Draft */
+  background: color-mix(in srgb, #7c6a9a 18%, var(--background-color));
+  color: #5b4d75;
+}
+
+.historyFilterChip.skillToneDocument,
+.skillChip.skillToneDocument,
+.skillTag.skillToneDocument {
+  /* Scheduled */
+  background: color-mix(in srgb, #0d9488 16%, var(--background-color));
+  color: #0f766e;
+}
+
+.historyFilterChip.skillToneDocumentReview,
+.skillChip.skillToneDocumentReview,
+.skillTag.skillToneDocumentReview {
+  /* Closed */
+  background: color-mix(in srgb, #5b6b8c 20%, var(--background-color));
+  color: #3f4f6c;
+}
+
+.historyFilterChip.skillToneFormResponse,
+.skillChip.skillToneFormResponse,
+.skillTag.skillToneFormResponse {
+  /* Submitted */
+  background: var(--status-success-bg);
+  color: var(--status-success);
+}
+
+.historyFilterChip.skillToneActivity,
+.skillChip.skillToneActivity,
+.skillTag.skillToneActivity {
+  /* Direct (= Approval) */
+  background: var(--status-warning-bg);
+  color: var(--status-warning);
+}
+
+.historyFilterChip.skillToneAssessmentGrade,
+.skillChip.skillToneAssessmentGrade,
+.skillTag.skillToneAssessmentGrade {
+  /* Approval */
+  background: var(--status-warning-bg);
+  color: var(--status-warning);
+}
+
+.historySelectBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  flex-shrink: 0;
+  border-bottom: var(--border-default, 1px solid #e0e0e0);
+  background: var(--background-color);
+}
+
+.historySelectAll {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--accent-1);
+  cursor: pointer;
+  min-width: 0;
+
+  input {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--primary-color, #4a90d9);
+  }
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.historySelectCount {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-3);
+}
+
+.prepSummaryChip {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  color: var(--accent-2);
+  background: var(--background-secondary, #f1f3f4);
+}
+
+.draftModeChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0 0 8px;
 }
 
 .error {

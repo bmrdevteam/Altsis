@@ -1,6 +1,7 @@
 /**
  * Navbar Alter 대화 저장 서비스
  */
+import mongoose from "mongoose";
 import { AlterConversation } from "../models/AlterConversation.js";
 import { AlterMessage } from "../models/AlterMessage.js";
 import { Season } from "../models/index.js";
@@ -314,10 +315,93 @@ export const deleteAlterConversation = async ({
     userId,
     conversationId,
   });
+  if (doc.status === "working") {
+    const err = new Error("진행 중인 대화는 삭제할 수 없습니다.");
+    err.status = 409;
+    throw err;
+  }
   doc.isDeleted = true;
   doc.status = "idle";
   await doc.save();
   return { ok: true };
+};
+
+const BULK_DELETE_MAX = 100;
+
+/**
+ * 소유 대화 일괄 소프트 삭제. working 상태는 건너뛴다.
+ * @returns {{ deleted: string[], skipped: Array<{ id: string, reason: string }> }}
+ */
+export const bulkDeleteAlterConversations = async ({
+  academyId,
+  userId,
+  conversationIds = [],
+}) => {
+  const ids = [
+    ...new Set(
+      (Array.isArray(conversationIds) ? conversationIds : [])
+        .map((id) => String(id || "").trim())
+        .filter(Boolean)
+    ),
+  ].slice(0, BULK_DELETE_MAX);
+
+  if (ids.length === 0) {
+    const err = new Error(FIELD_REQUIRED("ids"));
+    err.status = 400;
+    throw err;
+  }
+
+  const skipped = [];
+  const queryIds = [];
+  for (const id of ids) {
+    if (!mongoose.isValidObjectId(id)) {
+      skipped.push({ id, reason: "not_found" });
+      continue;
+    }
+    queryIds.push(id);
+  }
+
+  const rows =
+    queryIds.length > 0
+      ? await AlterConversation(academyId)
+          .find({
+            _id: { $in: queryIds },
+            user: userId,
+            isDeleted: false,
+          })
+          .select("_id status")
+          .lean()
+      : [];
+
+  const found = new Map(rows.map((r) => [String(r._id), r]));
+  const deleted = [];
+
+  for (const id of queryIds) {
+    const row = found.get(id);
+    if (!row) {
+      skipped.push({ id, reason: "not_found" });
+      continue;
+    }
+    if (row.status === "working") {
+      skipped.push({ id, reason: "working" });
+      continue;
+    }
+    deleted.push(id);
+  }
+
+  if (deleted.length > 0) {
+    await AlterConversation(academyId).updateMany(
+      {
+        _id: { $in: deleted },
+        user: userId,
+        isDeleted: false,
+        status: { $ne: "working" },
+      },
+      { $set: { isDeleted: true, status: "idle" } }
+    );
+  }
+
+  return { deleted, skipped };
 };
 
 export const setAlterConversationStatus = async ({

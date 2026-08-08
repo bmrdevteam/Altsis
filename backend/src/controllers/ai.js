@@ -48,6 +48,7 @@ import {
   listAlterMessages as listAlterMessagesSvc,
   renameAlterConversation as renameAlterConversationSvc,
   deleteAlterConversation as deleteAlterConversationSvc,
+  bulkDeleteAlterConversations as bulkDeleteAlterConversationsSvc,
   appendAlterTurn,
   setAlterConversationStatus,
 } from "../services/alterConversations.js";
@@ -310,6 +311,24 @@ export const deleteAlterConversation = async (req, res) => {
       conversationId: req.params.id,
     });
     return res.status(200).send({ ok: true });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
+/**
+ * Alter 대화 일괄 삭제(소프트)
+ * @route POST /ai/alter/conversations/bulk-delete
+ */
+export const bulkDeleteAlterConversations = async (req, res) => {
+  try {
+    const result = await bulkDeleteAlterConversationsSvc({
+      academyId: req.user.academyId,
+      userId: req.user._id,
+      conversationIds: req.body?.ids,
+    });
+    return res.status(200).send(result);
   } catch (err) {
     logger.error(err.message);
     return res.status(err.status || 500).send({ message: err.message });

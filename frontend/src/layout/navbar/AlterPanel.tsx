@@ -41,6 +41,14 @@ import {
   isSyllabusDraft,
   prepKindFromSkill,
   prepPrimaryLabel as prepPrimaryLabelFor,
+  SKILL_CHIP_HINT,
+  SKILL_TONE_KEY,
+  alterModeLabel,
+  buildPrepSummaryParts,
+  shouldDefaultCollapsePrep,
+  docTypeLabel,
+  activityFormTypeLabel,
+  useAlterGuidelineLibrary,
   type TAlterDraftResult,
   type TAlterDocumentReviewResult,
 } from "./alterUi";
@@ -133,6 +141,9 @@ const normalizeSkillId = (skill?: string): TAlterSkillId => {
   if (skill && skill in SKILL_LABEL) return skill as TAlterSkillId;
   return "chat";
 };
+
+const skillToneClass = (skill?: string) =>
+  style[SKILL_TONE_KEY[normalizeSkillId(skill)]];
 
 const conversationListTitle = (c: {
   contextLabel?: string;
@@ -245,8 +256,6 @@ const AlterPanel = ({ onClose }: Props) => {
   const [isWorking, setIsWorking] = useState(false);
   const [steps, setSteps] = useState<string[]>([]);
   const [myUsage, setMyUsage] = useState<TMyAiUsage | null>(null);
-  const [skillGuidelines, setSkillGuidelines] = useState("");
-  const [skillSettingsLoading, setSkillSettingsLoading] = useState(false);
   const [sourceAttachments, setSourceAttachments] = useState<
     TAlterAttachment[]
   >([]);
@@ -288,38 +297,11 @@ const AlterPanel = ({ onClose }: Props) => {
   const [archiveSelectedStudentIds, setArchiveSelectedStudentIds] = useState<
     string[]
   >([]);
-  const [archiveGuidelineItems, setArchiveGuidelineItems] = useState<
-    Array<{ _id: string; title: string; content: string }>
-  >([]);
-  const [archiveSelectedGuidelineIds, setArchiveSelectedGuidelineIds] =
-    useState<string[]>([]);
-
-  const [syllabusGuidelineItems, setSyllabusGuidelineItems] = useState<
-    Array<{ _id: string; title: string; content: string }>
-  >([]);
-  const [syllabusSelectedGuidelineIds, setSyllabusSelectedGuidelineIds] =
-    useState<string[]>([]);
 
   const [docWriteMode, setDocWriteMode] = useState<"create" | "refine">(
     "create"
   );
   const [docType, setDocType] = useState("general");
-  const [docGuidelineItems, setDocGuidelineItems] = useState<
-    Array<{ _id: string; title: string; content: string }>
-  >([]);
-  const [docSelectedGuidelineIds, setDocSelectedGuidelineIds] = useState<
-    string[]
-  >([]);
-  const [docReviewGuidelineItems, setDocReviewGuidelineItems] = useState<
-    Array<{ _id: string; title: string; content: string }>
-  >([]);
-  const [docReviewSelectedGuidelineIds, setDocReviewSelectedGuidelineIds] =
-    useState<string[]>([]);
-  const [docReviewLearningItems, setDocReviewLearningItems] = useState<
-    Array<{ _id: string; title: string; content: string }>
-  >([]);
-  const [docReviewSelectedLearningIds, setDocReviewSelectedLearningIds] =
-    useState<string[]>([]);
 
   const [formResponseWriteMode, setFormResponseWriteMode] = useState<
     "create" | "refine"
@@ -329,33 +311,30 @@ const AlterPanel = ({ onClose }: Props) => {
   const [formResponseTargetFieldIds, setFormResponseTargetFieldIds] = useState<
     string[]
   >([]);
-  const [formResponseGuidelineItems, setFormResponseGuidelineItems] = useState<
-    Array<{ _id: string; title: string; content: string }>
-  >([]);
-  const [formResponseSelectedGuidelineIds, setFormResponseSelectedGuidelineIds] =
-    useState<string[]>([]);
 
   const [activityWriteMode, setActivityWriteMode] = useState<
     "create" | "refine"
   >("create");
   const [activityFormType, setActivityFormType] = useState("general");
-  const [activityGuidelineItems, setActivityGuidelineItems] = useState<
-    Array<{ _id: string; title: string; content: string }>
-  >([]);
-  const [activitySelectedGuidelineIds, setActivitySelectedGuidelineIds] =
-    useState<string[]>([]);
 
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [conversationTitle, setConversationTitle] = useState("새 대화");
   const [conversations, setConversations] = useState<TAlterConversation[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [historySkillFilter, setHistorySkillFilter] = useState<
+    "all" | TAlterSkillId
+  >("all");
+  const [historySelectMode, setHistorySelectMode] = useState(false);
+  const [selectedHistoryIds, setSelectedHistoryIds] = useState<Set<string>>(
+    () => new Set()
+  );
+  const [historyDeleting, setHistoryDeleting] = useState(false);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
   const renameCancelledRef = useRef(false);
-  const [prepCollapsed, setPrepCollapsed] = useState(false);
-  const [expandedGuidelineId, setExpandedGuidelineId] = useState<string | null>(
-    null
+  const [prepCollapsed, setPrepCollapsed] = useState(() =>
+    shouldDefaultCollapsePrep(suggested[0] || "chat")
   );
   const abortRef = useRef<AbortController | null>(null);
   const cancelledByUserRef = useRef(false);
@@ -389,7 +368,39 @@ const AlterPanel = ({ onClose }: Props) => {
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, [attachMenuOpen]);
 
-  const guidelines = skillGuidelines.trim();
+  const {
+    skillSettingsLoading,
+    expandedGuidelineId,
+    setExpandedGuidelineId,
+    syllabusGuidelineItems,
+    syllabusSelectedGuidelineIds,
+    setSyllabusSelectedGuidelineIds,
+    evalGuidelineItems,
+    evalSelectedGuidelineIds,
+    setEvalSelectedGuidelineIds,
+    archiveGuidelineItems,
+    archiveSelectedGuidelineIds,
+    setArchiveSelectedGuidelineIds,
+    docGuidelineItems,
+    docSelectedGuidelineIds,
+    setDocSelectedGuidelineIds,
+    docReviewGuidelineItems,
+    docReviewSelectedGuidelineIds,
+    setDocReviewSelectedGuidelineIds,
+    docReviewLearningItems,
+    docReviewSelectedLearningIds,
+    setDocReviewSelectedLearningIds,
+    formResponseGuidelineItems,
+    formResponseSelectedGuidelineIds,
+    setFormResponseSelectedGuidelineIds,
+    activityGuidelineItems,
+    activitySelectedGuidelineIds,
+    setActivitySelectedGuidelineIds,
+  } = useAlterGuidelineLibrary({
+    isOpen,
+    seasonId: currentSeason?._id,
+    selectedSkill,
+  });
 
   const formEvaluation = pageContext?.formEvaluation || [];
   const teacherEditableFields = useMemo(
@@ -456,6 +467,7 @@ const AlterPanel = ({ onClose }: Props) => {
     setArchiveWriteMode("perStudent");
     setArchiveSelectedStudentIds([]);
     setArchiveSelectedGuidelineIds([]);
+    setEvalSelectedGuidelineIds([]);
     setSyllabusSelectedGuidelineIds([]);
     const hasContent = !!(pageContext?.getDocument?.()?.content || "").trim();
     setDocWriteMode(hasContent ? "refine" : "create");
@@ -523,7 +535,7 @@ const AlterPanel = ({ onClose }: Props) => {
       setSelectedSkill(next);
       const prep = isDraftPrepSkill(next);
       setShowPrep(prep);
-      if (prep) setPrepCollapsed(false);
+      if (prep) setPrepCollapsed(shouldDefaultCollapsePrep(next));
     },
     [isWorking, resetPrepDefaultsForPage, revokeMessagePreviews, suggested]
   );
@@ -613,140 +625,6 @@ const AlterPanel = ({ onClose }: Props) => {
 
   const usageMeter = myUsage ? getUsageMeter(myUsage) : null;
   const usageLimitExceeded = !!usageMeter?.exceeded;
-
-  useEffect(() => {
-    if (!isOpen || !currentSeason?._id) return;
-    if (!isDraftPrepSkill(selectedSkill)) {
-      return;
-    }
-
-    let cancelled = false;
-    (async () => {
-      try {
-        setSkillSettingsLoading(true);
-        const res = await fetch(
-          `${alterApiBase()}/alter/skill-settings?season=${encodeURIComponent(
-            currentSeason._id
-          )}&skill=${encodeURIComponent(selectedSkill)}`,
-          { credentials: "include" }
-        );
-        if (!res.ok) {
-          throw new Error("스킬 설정을 불러오지 못했습니다.");
-        }
-        const data = await res.json();
-        if (cancelled) return;
-        setSkillGuidelines((data.guidelines || "").trim());
-        if (
-          selectedSkill === "syllabus-draft" ||
-          selectedSkill === "archive-draft" ||
-          selectedSkill === "document-draft" ||
-          selectedSkill === "document-review" ||
-          selectedSkill === "form-response-draft" ||
-          selectedSkill === "activity-draft"
-        ) {
-          const items = Array.isArray(data.instructionItems)
-            ? data.instructionItems.map(
-                (it: { _id?: string; title?: string; content?: string }) => ({
-                  _id: String(it._id || ""),
-                  title: it.title || "지침",
-                  content: it.content || "",
-                })
-              )
-            : [];
-          const filtered = items.filter((it: { _id: string }) => it._id);
-          const defaults = Array.isArray(data.defaultGuidelineItemIds)
-            ? data.defaultGuidelineItemIds.map(String)
-            : filtered.map((it: { _id: string }) => it._id);
-          const pickIds = (
-            prev: string[],
-            allowedItems: Array<{ _id: string }>,
-            defaultIds: string[] = defaults
-          ) => {
-            if (prev.length > 0) {
-              const allowed = new Set(allowedItems.map((it) => it._id));
-              const kept = prev.filter((id) => allowed.has(id));
-              if (kept.length > 0) return kept;
-            }
-            return defaultIds;
-          };
-          if (selectedSkill === "syllabus-draft") {
-            setSyllabusGuidelineItems(filtered);
-            setSyllabusSelectedGuidelineIds((prev) => pickIds(prev, filtered));
-          } else if (selectedSkill === "archive-draft") {
-            setArchiveGuidelineItems(filtered);
-            setArchiveSelectedGuidelineIds((prev) => pickIds(prev, filtered));
-          } else if (selectedSkill === "document-draft") {
-            setDocGuidelineItems(filtered);
-            setDocSelectedGuidelineIds((prev) => pickIds(prev, filtered));
-          } else if (selectedSkill === "document-review") {
-            setDocReviewGuidelineItems(filtered);
-            setDocReviewSelectedGuidelineIds((prev) =>
-              pickIds(prev, filtered)
-            );
-            const learning = Array.isArray(data.learningItems)
-              ? data.learningItems
-                  .map(
-                    (it: {
-                      _id?: string;
-                      title?: string;
-                      content?: string;
-                    }) => ({
-                      _id: String(it._id || ""),
-                      title: it.title || "학습정보",
-                      content: it.content || "",
-                    })
-                  )
-                  .filter((it: { _id: string }) => it._id)
-              : [];
-            const learningDefaults = Array.isArray(data.defaultLearningItemIds)
-              ? data.defaultLearningItemIds.map(String)
-              : [];
-            setDocReviewLearningItems(learning);
-            setDocReviewSelectedLearningIds((prev) =>
-              pickIds(prev, learning, learningDefaults)
-            );
-          } else if (selectedSkill === "form-response-draft") {
-            setFormResponseGuidelineItems(filtered);
-            setFormResponseSelectedGuidelineIds((prev) =>
-              pickIds(prev, filtered)
-            );
-          } else {
-            setActivityGuidelineItems(filtered);
-            setActivitySelectedGuidelineIds((prev) => pickIds(prev, filtered));
-          }
-        }
-      } catch {
-        if (cancelled) return;
-        setSkillGuidelines("");
-        if (selectedSkill === "syllabus-draft") {
-          setSyllabusGuidelineItems([]);
-        }
-        if (selectedSkill === "archive-draft") {
-          setArchiveGuidelineItems([]);
-        }
-        if (selectedSkill === "document-draft") {
-          setDocGuidelineItems([]);
-        }
-        if (selectedSkill === "document-review") {
-          setDocReviewGuidelineItems([]);
-          setDocReviewLearningItems([]);
-          setDocReviewSelectedLearningIds([]);
-        }
-        if (selectedSkill === "form-response-draft") {
-          setFormResponseGuidelineItems([]);
-        }
-        if (selectedSkill === "activity-draft") {
-          setActivityGuidelineItems([]);
-        }
-      } finally {
-        if (!cancelled) setSkillSettingsLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isOpen, currentSeason?._id, selectedSkill]);
 
   useEffect(() => {
     const behavior = skipSmoothScrollRef.current ? "auto" : "smooth";
@@ -869,6 +747,7 @@ const AlterPanel = ({ onClose }: Props) => {
         contextLabels: evalContextLabels,
         fillEmptyOnly: evalFillEmptyOnly,
         studentIds: evalSelectedIds,
+        guidelineItemIds: evalSelectedGuidelineIds,
         csv: pageContext?.getEvaluationCsv?.() || "",
       };
     }
@@ -1099,11 +978,13 @@ const AlterPanel = ({ onClose }: Props) => {
     setExpandedGuidelineId(null);
     const prep = isDraftPrepSkill(skill);
     setShowPrep(prep);
-    if (prep) setPrepCollapsed(false);
+    if (prep) setPrepCollapsed(shouldDefaultCollapsePrep(skill));
   };
 
   const openHistoryList = () => {
     setShowHistory(true);
+    setHistorySkillFilter("all");
+    exitHistorySelectMode();
     void loadConversations();
   };
 
@@ -1182,13 +1063,22 @@ const AlterPanel = ({ onClose }: Props) => {
       setSelectedSkill(restored);
       const prep = isDraftPrepSkill(restored);
       setShowPrep(prep);
-      if (prep) setPrepCollapsed(false);
+      if (prep) setPrepCollapsed(shouldDefaultCollapsePrep(restored));
     } catch (err: any) {
       setError(err.message || "대화를 불러오지 못했습니다.");
     } finally {
       setHistoryLoading(false);
     }
   };
+
+  const clearHistorySelection = useCallback(() => {
+    setSelectedHistoryIds(new Set());
+  }, []);
+
+  const exitHistorySelectMode = useCallback(() => {
+    setHistorySelectMode(false);
+    setSelectedHistoryIds(new Set());
+  }, []);
 
   const deleteConversation = async (id: string) => {
     if (isWorking && conversationId === id) return;
@@ -1197,8 +1087,17 @@ const AlterPanel = ({ onClose }: Props) => {
         method: "DELETE",
         credentials: "include",
       });
-      if (!res.ok) throw new Error("대화를 삭제하지 못했습니다.");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || "대화를 삭제하지 못했습니다.");
+      }
       setConversations((prev) => prev.filter((c) => c._id !== id));
+      setSelectedHistoryIds((prev) => {
+        if (!prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
       if (renamingId === id) {
         setRenamingId(null);
         setRenameDraft("");
@@ -1206,6 +1105,65 @@ const AlterPanel = ({ onClose }: Props) => {
       if (conversationId === id) startNewConversation();
     } catch (err: any) {
       setError(err.message || "대화를 삭제하지 못했습니다.");
+    }
+  };
+
+  const bulkDeleteConversations = async (ids: string[]) => {
+    const unique = Array.from(new Set(ids.filter(Boolean)));
+    if (unique.length === 0) return;
+    const blocked = unique.filter((id) => isWorking && conversationId === id);
+    const targets = unique.filter((id) => !(isWorking && conversationId === id));
+    if (targets.length === 0) {
+      setError("진행 중인 대화는 삭제할 수 없습니다.");
+      return;
+    }
+    const confirmed = window.confirm(
+      targets.length === 1
+        ? "이 대화를 삭제할까요?"
+        : `선택한 ${targets.length}개 대화를 삭제할까요?`
+    );
+    if (!confirmed) return;
+
+    setHistoryDeleting(true);
+    setError("");
+    try {
+      const res = await fetch(
+        `${alterApiBase()}/alter/conversations/bulk-delete`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids: targets }),
+        }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || "대화를 삭제하지 못했습니다.");
+      }
+      const deleted: string[] = Array.isArray(data.deleted) ? data.deleted : [];
+      const skippedWorking = (
+        Array.isArray(data.skipped) ? data.skipped : []
+      ).filter((s: { reason?: string }) => s.reason === "working").length;
+      setConversations((prev) =>
+        prev.filter((c) => !deleted.includes(c._id))
+      );
+      clearHistorySelection();
+      if (conversationId && deleted.includes(conversationId)) {
+        startNewConversation();
+      }
+      if (renamingId && deleted.includes(renamingId)) {
+        setRenamingId(null);
+        setRenameDraft("");
+      }
+      if (blocked.length > 0 || skippedWorking > 0) {
+        setError("일부 대화는 진행 중이라 삭제하지 않았습니다.");
+      } else if (deleted.length === 0) {
+        setError("삭제할 수 있는 대화가 없습니다.");
+      }
+    } catch (err: any) {
+      setError(err.message || "대화를 삭제하지 못했습니다.");
+    } finally {
+      setHistoryDeleting(false);
     }
   };
 
@@ -2536,6 +2494,44 @@ const AlterPanel = ({ onClose }: Props) => {
 
   const prepPrimaryLabel = prepPrimaryLabelFor(prepKind, messages);
 
+  const prepSummaryParts = buildPrepSummaryParts({
+    prepKind,
+    evalTargetCount:
+      evalTargetLabels.length > 0
+        ? evalTargetLabels.length
+        : defaultTargetLabels.length,
+    evalStudentCount: evalSelectedIds.length,
+    evalFillEmptyOnly,
+    archiveTargetCount:
+      archiveTargetLabels.length > 0
+        ? archiveTargetLabels.length
+        : defaultArchiveTargetLabels.length,
+    archiveStudentCount: archiveSelectedIds.length,
+    archiveFillEmptyOnly,
+    archiveWriteMode,
+    docWriteMode,
+    docTypeLabel: docTypeLabel(docType),
+    formResponseFieldCount:
+      formResponseTargetFieldIds.length > 0
+        ? formResponseTargetFieldIds.length
+        : formResponseWritableFields.length,
+    formResponseFillEmptyOnly,
+    activityFormTypeLabel: activityFormTypeLabel(activityFormType),
+    activityWriteMode,
+    gradeFillEmptyOnly,
+    gradeLabel: pageContext?.label,
+    guidelineCount:
+      prepKind === "syllabus"
+        ? syllabusSelectedGuidelineIds.length
+        : prepKind === "document-review"
+          ? docReviewSelectedGuidelineIds.length
+          : prepKind === "evaluation"
+            ? evalSelectedGuidelineIds.length
+            : undefined,
+  });
+
+  const modeLabel = alterModeLabel(inPrep);
+
   const attachDisabled =
     isWorking || attachUploading || sourceAttachments.length >= 3;
 
@@ -2643,6 +2639,70 @@ const AlterPanel = ({ onClose }: Props) => {
       </div>
     ) : null;
 
+  const historySkillCounts = useMemo(() => {
+    const counts = new Map<TAlterSkillId, number>();
+    for (const c of conversations) {
+      const skill = normalizeSkillId(c.lastSkill);
+      counts.set(skill, (counts.get(skill) || 0) + 1);
+    }
+    return counts;
+  }, [conversations]);
+
+  const historySkillChips = useMemo(() => {
+    const order = Object.keys(SKILL_LABEL) as TAlterSkillId[];
+    return order
+      .filter((id) => (historySkillCounts.get(id) || 0) > 0)
+      .map((id) => ({
+        id,
+        label: SKILL_LABEL[id],
+        count: historySkillCounts.get(id) || 0,
+      }));
+  }, [historySkillCounts]);
+
+  const filteredConversations = useMemo(() => {
+    if (historySkillFilter === "all") return conversations;
+    return conversations.filter(
+      (c) => normalizeSkillId(c.lastSkill) === historySkillFilter
+    );
+  }, [conversations, historySkillFilter]);
+
+  const selectableFilteredIds = useMemo(
+    () =>
+      filteredConversations
+        .filter((c) => !(isWorking && conversationId === c._id))
+        .map((c) => c._id),
+    [filteredConversations, isWorking, conversationId]
+  );
+
+  const allFilteredSelected =
+    selectableFilteredIds.length > 0 &&
+    selectableFilteredIds.every((id) => selectedHistoryIds.has(id));
+
+  const toggleHistorySelect = (id: string) => {
+    setSelectedHistoryIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAllFiltered = () => {
+    if (allFilteredSelected) {
+      setSelectedHistoryIds((prev) => {
+        const next = new Set(prev);
+        selectableFilteredIds.forEach((id) => next.delete(id));
+        return next;
+      });
+      return;
+    }
+    setSelectedHistoryIds((prev) => {
+      const next = new Set(prev);
+      selectableFilteredIds.forEach((id) => next.add(id));
+      return next;
+    });
+  };
+
   const historyListView = (
     <>
       <ChatPanelHeader
@@ -2653,11 +2713,95 @@ const AlterPanel = ({ onClose }: Props) => {
             aria-hidden
           />
         }
-        actions={expandToggleBtn}
+        actions={
+          <>
+            {conversations.length > 0 ? (
+              <button
+                type="button"
+                className={style.actionBtn}
+                onClick={() => {
+                  if (historySelectMode) exitHistorySelectMode();
+                  else {
+                    setHistorySelectMode(true);
+                    clearHistorySelection();
+                    setRenamingId(null);
+                  }
+                }}
+                disabled={historyDeleting}
+                aria-pressed={historySelectMode}
+              >
+                {historySelectMode ? "선택 취소" : "선택"}
+              </button>
+            ) : null}
+            {expandToggleBtn}
+          </>
+        }
         onClose={onClose}
         closeTitle="창만 닫기 (진행 중 작업은 계속됩니다)"
       />
       <div className={chatUiStyle.listShell}>
+        {conversations.length > 0 && historySkillChips.length > 0 ? (
+          <div
+            className={style.historyFilterRow}
+            role="tablist"
+            aria-label="스킬별 대화 필터"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={historySkillFilter === "all"}
+              className={`${style.historyFilterChip} ${
+                style.historyFilterToneAll
+              } ${historySkillFilter === "all" ? style.active : ""}`}
+              onClick={() => {
+                setHistorySkillFilter("all");
+                clearHistorySelection();
+              }}
+            >
+              전체 {conversations.length}
+            </button>
+            {historySkillChips.map((chip) => (
+              <button
+                key={chip.id}
+                type="button"
+                role="tab"
+                aria-selected={historySkillFilter === chip.id}
+                className={`${style.historyFilterChip} ${
+                  skillToneClass(chip.id)
+                } ${historySkillFilter === chip.id ? style.active : ""}`}
+                onClick={() => {
+                  setHistorySkillFilter(chip.id);
+                  clearHistorySelection();
+                }}
+                title={SKILL_CHIP_HINT[chip.id]}
+              >
+                {chip.label} {chip.count}
+              </button>
+            ))}
+          </div>
+        ) : null}
+        {historySelectMode && filteredConversations.length > 0 ? (
+          <div className={style.historySelectBar}>
+            <label className={style.historySelectAll}>
+              <input
+                type="checkbox"
+                checked={allFilteredSelected}
+                disabled={
+                  selectableFilteredIds.length === 0 || historyDeleting
+                }
+                onChange={toggleSelectAllFiltered}
+              />
+              <span>
+                {allFilteredSelected
+                  ? "선택 해제"
+                  : `표시 중 ${selectableFilteredIds.length}개 전체 선택`}
+              </span>
+            </label>
+            <span className={style.historySelectCount}>
+              {selectedHistoryIds.size}개 선택
+            </span>
+          </div>
+        ) : null}
         <div className={chatUiStyle.listItems}>
           {error && <div className={style.error}>{error}</div>}
           {historyLoading ? (
@@ -2683,10 +2827,23 @@ const AlterPanel = ({ onClose }: Props) => {
                 </Button>
               }
             />
+          ) : filteredConversations.length === 0 ? (
+            <ChatEmptyState
+              icon={
+                <span
+                  className={style.iconStar}
+                  style={{ width: 40, height: 40 }}
+                  aria-hidden
+                />
+              }
+              title="이 스킬의 대화가 없습니다"
+              subtitle="다른 뱃지를 고르거나 전체를 확인해 보세요."
+            />
           ) : (
-            conversations.map((c) => {
+            filteredConversations.map((c) => {
               const skillName = skillLabel(c.lastSkill);
               const isRenaming = renamingId === c._id;
+              const rowWorking = isWorking && conversationId === c._id;
               return (
                 <ChatListRow
                   key={c._id}
@@ -2711,10 +2868,16 @@ const AlterPanel = ({ onClose }: Props) => {
                     ) : undefined
                   }
                   active={conversationId === c._id}
+                  selectable={historySelectMode}
+                  selected={selectedHistoryIds.has(c._id)}
+                  selectDisabled={rowWorking || historyDeleting}
+                  onToggleSelect={() => toggleHistorySelect(c._id)}
                   leading={
                     skillName ? (
                       <span
-                        className={style.skillTag}
+                        className={`${style.skillTag} ${skillToneClass(
+                          c.lastSkill
+                        )}`}
                         aria-label={`스킬 ${skillName}`}
                       >
                         {skillName}
@@ -2729,7 +2892,7 @@ const AlterPanel = ({ onClose }: Props) => {
                   }
                   onClick={() => void openConversation(c._id, c)}
                   titleEdit={
-                    isRenaming
+                    !historySelectMode && isRenaming
                       ? {
                           value: renameDraft,
                           onChange: setRenameDraft,
@@ -2738,35 +2901,79 @@ const AlterPanel = ({ onClose }: Props) => {
                         }
                       : undefined
                   }
-                  menuItems={[
-                    {
-                      key: "rename",
-                      label: "이름 변경",
-                      icon: <Svg type="edit" width="16px" height="16px" />,
-                      onClick: () => beginRenameConversation(c),
-                    },
-                    {
-                      key: "delete",
-                      label: "삭제",
-                      danger: true,
-                      icon: <Svg type="trash" width="16px" height="16px" />,
-                      onClick: () => void deleteConversation(c._id),
-                    },
-                  ]}
+                  menuItems={
+                    historySelectMode
+                      ? undefined
+                      : [
+                          {
+                            key: "rename",
+                            label: "이름 변경",
+                            icon: (
+                              <Svg type="edit" width="16px" height="16px" />
+                            ),
+                            onClick: () => beginRenameConversation(c),
+                          },
+                          {
+                            key: "delete",
+                            label: "삭제",
+                            danger: true,
+                            icon: (
+                              <Svg type="trash" width="16px" height="16px" />
+                            ),
+                            onClick: () => void deleteConversation(c._id),
+                          },
+                        ]
+                  }
                 />
               );
             })
           )}
         </div>
         <div className={chatUiStyle.listFooter}>
-          <Button
-            type="ghost"
-            onClick={startNewConversation}
-            disabled={isWorking}
-            style={{ width: "100%" }}
-          >
-            새 대화
-          </Button>
+          {historySelectMode ? (
+            <>
+              <Button
+                type="ghost"
+                onClick={() =>
+                  void bulkDeleteConversations(
+                    Array.from(selectedHistoryIds)
+                  )
+                }
+                disabled={
+                  historyDeleting || selectedHistoryIds.size === 0
+                }
+                style={{ width: "100%" }}
+              >
+                {historyDeleting
+                  ? "삭제 중…"
+                  : `선택 ${selectedHistoryIds.size}개 삭제`}
+              </Button>
+              {historySkillFilter !== "all" &&
+              filteredConversations.length > 0 ? (
+                <Button
+                  type="ghost"
+                  onClick={() =>
+                    void bulkDeleteConversations(
+                      filteredConversations.map((c) => c._id)
+                    )
+                  }
+                  disabled={historyDeleting}
+                  style={{ width: "100%" }}
+                >
+                  이 뱃지 전체 삭제
+                </Button>
+              ) : null}
+            </>
+          ) : (
+            <Button
+              type="ghost"
+              onClick={startNewConversation}
+              disabled={isWorking}
+              style={{ width: "100%" }}
+            >
+              새 대화
+            </Button>
+          )}
         </div>
       </div>
     </>
@@ -2797,15 +3004,20 @@ const AlterPanel = ({ onClose }: Props) => {
       />
 
       <div className={style.contextBar}>
-        현재 화면: {contextLabel}
-        {currentRegistration?.role
-          ? ` · ${currentRegistration.role === "teacher" ? "교사" : "학생"}`
-          : ""}
-        {pageDataHint
-          ? ` · 페이지 데이터 ${pageDataHint.count}건 참고${
-              pageDataHint.isPartial ? " (일부)" : ""
-            }`
-          : ""}
+        <span className={style.modeBadge} title={modeLabel}>
+          {modeLabel}
+        </span>
+        <span>
+          현재 화면: {contextLabel}
+          {currentRegistration?.role
+            ? ` · ${currentRegistration.role === "teacher" ? "교사" : "학생"}`
+            : ""}
+          {pageDataHint
+            ? ` · 페이지 데이터 ${pageDataHint.count}건 참고${
+                pageDataHint.isPartial ? " (일부)" : ""
+              }`
+            : ""}
+        </span>
       </div>
 
       <div className={style.body}>
@@ -2821,13 +3033,31 @@ const AlterPanel = ({ onClose }: Props) => {
                 style={{ fill: "var(--accent-4, #ccc)" }}
               />
             }
-            title="메시지를 보내보세요"
+            title="질문해 보세요"
             subtitle={
               pageDataHint
                 ? `지금 연 페이지에 불러온 데이터(${pageDataHint.count}건${
                     pageDataHint.isPartial ? ", 일부" : ""
-                  })를 기준으로 답합니다. 질문하거나 추천 Skill로 작업을 시작할 수 있습니다.`
-                : "Alter에게 질문하거나 추천 Skill로 작업을 시작할 수 있습니다. 대화는 자동 저장되며, 창을 닫아도 진행 중 작업은 이어집니다."
+                  })를 기준으로 답합니다. 아래 Skill로 작성·점검 모드로 전환할 수 있습니다.`
+                : "Alter에게 질문하세요. 추천 Skill을 고르면 초안·점검 모드로 전환됩니다. 대화는 자동 저장됩니다."
+            }
+          />
+        )}
+        {messages.length === 0 && inPrep && (
+          <ChatEmptyState
+            icon={
+              <Svg
+                type="send"
+                width="40px"
+                height="40px"
+                style={{ fill: "var(--accent-4, #ccc)" }}
+              />
+            }
+            title={`${SKILL_LABEL[selectedSkill]} 준비`}
+            subtitle={
+              prepCollapsed
+                ? "설정이 접혀 있습니다. 요약이 맞으면 「초안 작성」을 누르거나, 「설정 펼치기」로 옵션을 조정하세요."
+                : "아래 설정을 확인한 뒤 「초안 작성」또는 「문서 점검」으로 시작하세요. 결과는 미리보기로 확인 후 반영합니다."
             }
           />
         )}
@@ -2842,7 +3072,11 @@ const AlterPanel = ({ onClose }: Props) => {
               <>
                 {msg.role === "user" ? "나" : "Alter"}
                 {msg.skill ? (
-                  <span className={style.skillTag}>{skillLabel(msg.skill)}</span>
+                  <span
+                    className={`${style.skillTag} ${skillToneClass(msg.skill)}`}
+                  >
+                    {skillLabel(msg.skill)}
+                  </span>
                 ) : null}
               </>
             }
@@ -2873,11 +3107,24 @@ const AlterPanel = ({ onClose }: Props) => {
 
         {isWorking && steps.length > 0 && (
           <ChatMessageBubble variant="other" sender="Alter">
-            <div className={style.steps}>
-              {steps.map((s, i) => (
-                <div key={`${s}-${i}`}>• {s}</div>
-              ))}
-            </div>
+            <ol className={style.steps} aria-live="polite">
+              {steps.map((s, i) => {
+                const done = i < steps.length - 1;
+                return (
+                  <li
+                    key={`${s}-${i}`}
+                    className={`${style.stepItem} ${
+                      done ? style.stepDone : style.stepActive
+                    }`}
+                  >
+                    <span className={style.stepMark} aria-hidden>
+                      {done ? "✓" : "…"}
+                    </span>
+                    <span>{s}</span>
+                  </li>
+                );
+              })}
+            </ol>
           </ChatMessageBubble>
         )}
         <div ref={endRef} />
@@ -2890,7 +3137,7 @@ const AlterPanel = ({ onClose }: Props) => {
               <button
                 key={skill}
                 type="button"
-                className={`${style.skillChip} ${
+                className={`${style.skillChip} ${skillToneClass(skill)} ${
                   (
                     isDraftPrepSkill(skill)
                       ? showPrep && selectedSkill === skill
@@ -2901,6 +3148,7 @@ const AlterPanel = ({ onClose }: Props) => {
                 }`}
                 onClick={() => selectSkill(skill)}
                 disabled={isWorking}
+                title={SKILL_CHIP_HINT[skill]}
               >
                 {SKILL_LABEL[skill]}
               </button>
@@ -2917,12 +3165,20 @@ const AlterPanel = ({ onClose }: Props) => {
             </button>
           )}
         </div>
+        {inPrep && prepCollapsed && prepSummaryParts.length > 0 && (
+          <div className={style.prepSummaryRow} aria-live="polite">
+            {prepSummaryParts.map((part) => (
+              <span key={part} className={style.prepSummaryChip}>
+                {part}
+              </span>
+            ))}
+          </div>
+        )}
         {inPrep && !prepCollapsed && (
           <div className={style.prepScroll}>
             <SkillPrepDock
               prepKind={prepKind}
               skillSettingsLoading={skillSettingsLoading}
-              guidelines={guidelines}
               pageContext={pageContext}
               expandedGuidelineId={expandedGuidelineId}
               setExpandedGuidelineId={setExpandedGuidelineId}
@@ -2943,6 +3199,9 @@ const AlterPanel = ({ onClose }: Props) => {
               selectDefaultStudentBatch={selectDefaultStudentBatch}
               selectAllCandidateStudents={selectAllCandidateStudents}
               clearEvalStudents={() => setEvalSelectedStudentIds([])}
+              evalGuidelineItems={evalGuidelineItems}
+              evalSelectedGuidelineIds={evalSelectedGuidelineIds}
+              setEvalSelectedGuidelineIds={setEvalSelectedGuidelineIds}
               archiveInputFields={archiveInputFields}
               archiveReferenceFields={archiveReferenceFields}
               archiveWriteMode={archiveWriteMode}
@@ -3104,48 +3363,38 @@ const AlterPanel = ({ onClose }: Props) => {
             inSyllabusPrep ||
             inArchivePrep ||
             inDocPrep ||
+            inDocReviewPrep ||
             inFormResponsePrep ||
             inActivityPrep ||
             inGradePrep
           }
-          centerHint={
-            inPrep &&
-            !(
-              inEvalPrep ||
-              inSyllabusPrep ||
-              inArchivePrep ||
-              inDocPrep ||
-              inFormResponsePrep ||
-              inActivityPrep ||
-              inGradePrep
-            )
-              ? "옵션을 고른 뒤 시작하세요"
-              : undefined
-          }
+          centerHint={undefined}
           placeholder={
-            inGradePrep
-              ? "예: 감상문의 구체성을 중심으로, 피드백은 2문장"
-              : inActivityPrep
-                ? activityWriteMode === "refine"
-                  ? "예: 객관식 3문항 추가, 서술형 필드 하나 더"
-                  : "예: 수학 복습 퀴즈 5문항, 객관식+단답, 필수 응답"
-                : inFormResponsePrep
-                  ? formResponseWriteMode === "refine"
-                    ? "예: 문장을 공손하게, 빈 칸 위주로 채워 주세요"
-                    : "예: 목적·일정·필요 내용을 적어 주세요"
-                  : inDocPrep
-                    ? docWriteMode === "refine"
-                      ? "예: 문장을 더 간결하게, 체크리스트를 추가해 주세요"
-                      : "예: 저녁활동 이용 안내 매뉴얼, 공간·수칙·신청 방법 포함"
-                    : inArchivePrep
-                      ? archiveWriteMode === "sameText"
-                        ? "예: 공동체 의식과 배려를 중심으로 2~3문장"
-                        : "예: 관찰된 성장과 관계 특성을 학생별로 2~4문장"
-                      : inEvalPrep
-                        ? "예: 멘토 의견은 2~3문장, 성장 포인트를 중심으로"
-                        : inSyllabusPrep
-                          ? "예: 주제, 목표, 주차별 활동, 평가 방식을 적어 주세요"
-                          : "메시지를 입력하세요 (이미지·파일 붙여넣기 가능)"
+            inDocReviewPrep
+              ? "예: 총평·구체성 위주, 낙인 표현이 있는지 봐 주세요 (비워도 점검 가능)"
+              : inGradePrep
+                ? "예: 감상문의 구체성을 중심으로, 피드백은 2문장"
+                : inActivityPrep
+                  ? activityWriteMode === "refine"
+                    ? "예: 객관식 3문항 추가, 서술형 필드 하나 더"
+                    : "예: 수학 복습 퀴즈 5문항, 객관식+단답, 필수 응답"
+                  : inFormResponsePrep
+                    ? formResponseWriteMode === "refine"
+                      ? "예: 문장을 공손하게, 빈 칸 위주로 채워 주세요"
+                      : "예: 목적·일정·필요 내용을 적어 주세요"
+                    : inDocPrep
+                      ? docWriteMode === "refine"
+                        ? "예: 문장을 더 간결하게, 체크리스트를 추가해 주세요"
+                        : "예: 저녁활동 이용 안내 매뉴얼, 공간·수칙·신청 방법 포함"
+                      : inArchivePrep
+                        ? archiveWriteMode === "sameText"
+                          ? "예: 공동체 의식과 배려를 중심으로 2~3문장"
+                          : "예: 관찰된 성장과 관계 특성을 학생별로 2~4문장"
+                        : inEvalPrep
+                          ? "예: 멘토 의견은 2~3문장, 성장 포인트를 중심으로"
+                          : inSyllabusPrep
+                            ? "예: 주제, 목표, 주차별 활동, 평가 방식을 적어 주세요"
+                            : "메시지를 입력하세요 (이미지·파일 붙여넣기 가능)"
           }
           onPaste={handlePasteAttach}
           onKeyDown={

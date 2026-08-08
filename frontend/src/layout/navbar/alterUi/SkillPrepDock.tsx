@@ -25,7 +25,6 @@ type StudentCandidate = {
 export type SkillPrepDockProps = {
   prepKind: PrepKind;
   skillSettingsLoading: boolean;
-  guidelines: string;
   pageContext: TAlterPageContext | null;
   expandedGuidelineId: string | null;
   setExpandedGuidelineId: Dispatch<SetStateAction<string | null>>;
@@ -52,6 +51,9 @@ export type SkillPrepDockProps = {
   selectDefaultStudentBatch: () => void;
   selectAllCandidateStudents: () => void;
   clearEvalStudents: () => void;
+  evalGuidelineItems: TGuidelineItem[];
+  evalSelectedGuidelineIds: string[];
+  setEvalSelectedGuidelineIds: (next: string[]) => void;
 
   // archive
   archiveInputFields: TSchoolFormArchiveField[];
@@ -673,15 +675,28 @@ const SkillPrepDock = (p: SkillPrepDockProps) => {
             onClear={p.clearEvalStudents}
           />
         </PrepSection>
-        {(p.skillSettingsLoading || p.guidelines) && (
-          <PrepSection label="학교 작성 지침">
-            <p className={style.prepText}>
-              {p.skillSettingsLoading
-                ? "지침을 불러오는 중..."
-                : p.guidelines}
-            </p>
-          </PrepSection>
-        )}
+        <PrepSection
+          label="작성 지침"
+          hint="학교 AI 라이브러리의 지침 중 이번 평가 초안에 쓸 항목을 고릅니다. 제목을 누르면 내용을 확인할 수 있습니다."
+        >
+          <GuidelinePicker
+            items={p.evalGuidelineItems}
+            selectedIds={p.evalSelectedGuidelineIds}
+            expandedId={p.expandedGuidelineId}
+            loading={p.skillSettingsLoading}
+            emptyText="선택 가능한 지침이 없습니다. 관리 → 학교 AI → 라이브러리에서 「평가」 지침을 추가해 주세요. 기본 기준으로 작성합니다."
+            onToggleChecked={(id) =>
+              p.toggleLabel(
+                id,
+                p.evalSelectedGuidelineIds,
+                p.setEvalSelectedGuidelineIds
+              )
+            }
+            onToggleExpanded={(key) =>
+              p.setExpandedGuidelineId((cur) => (cur === key ? null : key))
+            }
+          />
+        </PrepSection>
         <PrepHintRow text="참고(자기평가·기존 멘토평가) → 작성(멘토평가)로 종합 초안을 만듭니다. 학생을 고른 뒤 「초안 작성」을 누르세요. 반영 후에도 행별 저장이 필요합니다." />
       </>
     );

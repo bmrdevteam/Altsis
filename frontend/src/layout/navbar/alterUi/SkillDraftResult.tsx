@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { TAlterPageContext } from "contexts/alterContext";
+import { isEmptyEval } from "utils/evaluationCsv";
 import { redactImagesForPreview } from "utils/formResponseSlots";
 import ApplyDraftButton from "./ApplyDraftButton";
 import DraftResultCard, { draftMetaVariantClass } from "./DraftResultCard";
@@ -30,6 +32,9 @@ type Props = {
   onApply: (msgId: string, draft: TAlterDraftResult) => void;
 };
 
+const PREVIEW_LIMIT = 900;
+const DOC_PREVIEW_LIMIT = 1200;
+
 const FieldBlocks = ({
   entries,
 }: {
@@ -44,6 +49,36 @@ const FieldBlocks = ({
     ))}
   </div>
 );
+
+const ExpandableText = ({
+  label,
+  text,
+  limit = PREVIEW_LIMIT,
+}: {
+  label: string;
+  text: string;
+  limit?: number;
+}) => {
+  const [expanded, setExpanded] = useState(false);
+  const long = text.length > limit;
+  const shown =
+    expanded || !long ? text : text.slice(0, limit) + (long ? "…" : "");
+  return (
+    <div className={style.draftFieldBlock}>
+      <p className={style.draftFieldLabel}>{label}</p>
+      <p className={style.draftFieldValue}>{shown}</p>
+      {long ? (
+        <button
+          type="button"
+          className={style.prepActionBtn}
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {expanded ? "접기" : "본문 더보기"}
+        </button>
+      ) : null}
+    </div>
+  );
+};
 
 const StudentRowsPreview = ({
   msgId,
@@ -104,6 +139,29 @@ const StudentRowsPreview = ({
   </div>
 );
 
+const countStudentDraftCells = (
+  rows: Array<{ studentId: string; values: Record<string, string> }>,
+  targetLabels: string[],
+  resolveCurrent: (studentId: string, label: string) => unknown,
+  fillEmptyOnly: boolean
+) => {
+  let fill = 0;
+  let skip = 0;
+  for (const row of rows) {
+    const labels =
+      targetLabels.length > 0 ? targetLabels : Object.keys(row.values || {});
+    for (const label of labels) {
+      const next = row.values?.[label];
+      if (next == null || String(next).trim() === "") continue;
+      const cur = resolveCurrent(row.studentId, label);
+      const empty = isEmptyEval(cur);
+      if (fillEmptyOnly && !empty) skip += 1;
+      else fill += 1;
+    }
+  }
+  return { fill, skip };
+};
+
 const SkillDraftResult = ({
   msgId,
   draft,
@@ -114,6 +172,14 @@ const SkillDraftResult = ({
 }: Props) => {
   if (draft && isSyllabusDraft(draft)) {
     const filled = (draft.items || []).filter((it) => it.value);
+    const current = pageContext?.getCurrentInfo?.() || {};
+    let skip = 0;
+    let fill = 0;
+    for (const item of filled) {
+      const cur = current[item.field];
+      if (cur != null && String(cur).trim() !== "") skip += 1;
+      else fill += 1;
+    }
     return (
       <DraftResultCard
         title="수업 초안 미리보기"
@@ -121,6 +187,14 @@ const SkillDraftResult = ({
           label: `${filled.length}/${(draft.items || []).length}항목`,
           variant: "neutral",
         }}
+        summary={
+          <>
+            {fill > 0 ? `채울 칸 ${fill}` : null}
+            {fill > 0 && skip > 0 ? " · " : null}
+            {skip > 0 ? `이미 있는 칸 ${skip}` : null}
+            {fill === 0 && skip === 0 ? "미리보기 확인 후 반영하세요" : null}
+          </>
+        }
         actions={
           <ApplyDraftButton
             draft={draft}
@@ -142,6 +216,18 @@ const SkillDraftResult = ({
   }
 
   if (draft && isEvalDraft(draft)) {
+    const fillEmptyOnly = draft.fillEmptyOnly !== false;
+    const { fill, skip } = countStudentDraftCells(
+      draft.rows || [],
+      draft.targetLabels || [],
+      (studentId, label) => {
+        const row = (pageContext?.getEvaluationRows?.() || []).find(
+          (r) => r.studentId === studentId
+        );
+        return row?.evaluation?.[label];
+      },
+      fillEmptyOnly
+    );
     return (
       <DraftResultCard
         title="평가 초안 미리보기"
@@ -152,9 +238,10 @@ const SkillDraftResult = ({
         summary={
           <>
             항목: {(draft.targetLabels || []).join(", ") || "-"}
-            {draft.fillEmptyOnly !== false
-              ? " · 빈 칸만 반영"
-              : " · 덮어쓰기 가능"}
+            {fillEmptyOnly ? " · 빈 칸만 반영" : " · 덮어쓰기 가능"}
+            {fill > 0 || skip > 0
+              ? ` · 반영 예정 ${fill}${skip > 0 ? ` · 건너뜀 ${skip}` : ""}`
+              : ""}
           </>
         }
         actions={
@@ -206,6 +293,18 @@ const SkillDraftResult = ({
   }
 
   if (draft && isArchiveDraft(draft)) {
+    const fillEmptyOnly = draft.fillEmptyOnly !== false;
+    const { fill, skip } = countStudentDraftCells(
+      draft.rows || [],
+      draft.targetLabels || [],
+      (studentId, label) => {
+        const row = (pageContext?.getArchiveRows?.() || []).find(
+          (r) => r.studentId === studentId
+        );
+        return row?.values?.[label];
+      },
+      fillEmptyOnly
+    );
     return (
       <DraftResultCard
         title="기록 초안 미리보기"
@@ -217,9 +316,10 @@ const SkillDraftResult = ({
           <>
             항목: {(draft.targetLabels || []).join(", ") || "-"}
             {draft.writeMode === "sameText" ? " · 동일 문구" : " · 학생별"}
-            {draft.fillEmptyOnly !== false
-              ? " · 빈 칸만 반영"
-              : " · 덮어쓰기 가능"}
+            {fillEmptyOnly ? " · 빈 칸만 반영" : " · 덮어쓰기 가능"}
+            {fill > 0 || skip > 0
+              ? ` · 반영 예정 ${fill}${skip > 0 ? ` · 건너뜀 ${skip}` : ""}`
+              : ""}
           </>
         }
         actions={
@@ -274,17 +374,13 @@ const SkillDraftResult = ({
           />
         }
       >
-        <FieldBlocks
-          entries={[
-            {
-              key: `${msgId}-content`,
-              label: "본문",
-              value:
-                (draft.content || "").slice(0, 2500) +
-                ((draft.content || "").length > 2500 ? "…" : ""),
-            },
-          ]}
-        />
+        <div className={style.draftPreviewList}>
+          <ExpandableText
+            label="본문"
+            text={draft.content || ""}
+            limit={DOC_PREVIEW_LIMIT}
+          />
+        </div>
       </DraftResultCard>
     );
   }
@@ -359,6 +455,20 @@ const SkillDraftResult = ({
       (snap?.fields || []).map((f) => [f.fieldId, f.label || f.fieldId])
     );
     const entries = Object.entries(draft.byField || {});
+    let fill = 0;
+    let skip = 0;
+    for (const [fid, val] of entries) {
+      const next =
+        typeof val === "string" ? val : val == null ? "" : JSON.stringify(val);
+      if (!String(next).trim()) continue;
+      const cur = snap?.responses?.[fid];
+      const empty =
+        cur == null ||
+        (typeof cur === "string" && cur.trim() === "") ||
+        (Array.isArray(cur) && cur.length === 0);
+      if (draft.fillEmptyOnly && !empty) skip += 1;
+      else fill += 1;
+    }
     return (
       <DraftResultCard
         title="응답 초안 미리보기"
@@ -370,6 +480,9 @@ const SkillDraftResult = ({
           <>
             {entries.length}개 필드
             {draft.fillEmptyOnly ? " · 빈 칸만" : ""}
+            {fill > 0 || skip > 0
+              ? ` · 반영 예정 ${fill}${skip > 0 ? ` · 건너뜀 ${skip}` : ""}`
+              : ""}
           </>
         }
         actions={
@@ -381,18 +494,24 @@ const SkillDraftResult = ({
           />
         }
       >
-        <FieldBlocks
-          entries={entries.slice(0, 12).map(([fid, val]) => {
+        <div className={style.draftPreviewList}>
+          {entries.slice(0, 12).map(([fid, val]) => {
             const raw =
               typeof val === "string" ? val : JSON.stringify(val, null, 2);
             const text = redactImagesForPreview(raw || "");
-            return {
-              key: fid,
-              label: labelById.get(fid) || fid,
-              value: text.slice(0, 800) + (text.length > 800 ? "…" : ""),
-            };
+            return (
+              <ExpandableText
+                key={fid}
+                label={labelById.get(fid) || fid}
+                text={text}
+                limit={PREVIEW_LIMIT}
+              />
+            );
           })}
-        />
+          {entries.length > 12 ? (
+            <p className={style.prepMuted}>외 {entries.length - 12}개 필드</p>
+          ) : null}
+        </div>
       </DraftResultCard>
     );
   }
@@ -406,11 +525,7 @@ const SkillDraftResult = ({
       settings.requiredMode ? "필수 응답" : null,
       settings.allowMultipleResponses ? "복수 응답" : null,
     ].filter(Boolean);
-    const fieldPreview = (draft.fields || []).slice(0, 12).map((f) => {
-      const t = String(f.type || "");
-      const label = String(f.label || "(제목 없음)");
-      return `${label} · ${t}`;
-    });
+    const fields = draft.fields || [];
     return (
       <DraftResultCard
         title="활동 초안 미리보기"
@@ -423,7 +538,7 @@ const SkillDraftResult = ({
             제목: {draft.title || "-"}
             {formTypeLabel ? ` · ${formTypeLabel}` : ""}
             {" · 필드 "}
-            {(draft.fields || []).length}개
+            {fields.length}개
             {(draft.rubrics || []).length > 0
               ? ` · 루브릭 ${(draft.rubrics || []).length}개`
               : ""}
@@ -443,17 +558,34 @@ const SkillDraftResult = ({
         {draft.description ? (
           <p className={style.reviewComment}>{draft.description}</p>
         ) : null}
+        {modeBits.length > 0 ? (
+          <div className={style.draftModeChips}>
+            {modeBits.map((bit) => (
+              <span key={String(bit)} className={style.skillTag}>
+                {bit}
+              </span>
+            ))}
+          </div>
+        ) : null}
         <FieldBlocks
-          entries={[
-            {
-              key: `${msgId}-fields`,
-              label: "필드",
-              value:
-                (fieldPreview.join("\n") || "(없음)") +
-                ((draft.fields || []).length > 12 ? "\n…" : ""),
-            },
-          ]}
+          entries={fields.slice(0, 12).map((f, i) => ({
+            key: `${msgId}-f-${i}`,
+            label: String(f.label || "(제목 없음)"),
+            value: [
+              f.type ? `유형: ${f.type}` : null,
+              f.required ? "필수" : null,
+              Array.isArray(f.options) && f.options.length
+                ? `옵션 ${f.options.length}개`
+                : null,
+              f.gradingMethod ? `채점: ${f.gradingMethod}` : null,
+            ]
+              .filter(Boolean)
+              .join(" · "),
+          }))}
         />
+        {fields.length > 12 ? (
+          <p className={style.prepMuted}>외 {fields.length - 12}개 필드</p>
+        ) : null}
       </DraftResultCard>
     );
   }
@@ -462,6 +594,23 @@ const SkillDraftResult = ({
     const fieldEntries = Object.entries(draft.byField || {});
     const gradeFields =
       pageContext?.getAssessmentGradeContext?.()?.fields || [];
+    const current = pageContext?.getAssessmentGradeContext?.()?.currentDraft;
+    let fill = 0;
+    let skip = 0;
+    for (const [fid, g] of fieldEntries) {
+      const hasDraft =
+        g.score != null ||
+        !!String(g.comment || "").trim() ||
+        Object.keys(g.byRubric || {}).length > 0;
+      if (!hasDraft) continue;
+      const cur = current?.byField?.[fid];
+      const occupied =
+        cur?.score != null ||
+        !!String(cur?.comment || "").trim() ||
+        Object.keys(cur?.byRubric || {}).length > 0;
+      if (draft.fillEmptyOnly && occupied) skip += 1;
+      else fill += 1;
+    }
     const blocks = fieldEntries.slice(0, 12).map(([fid, g]) => {
       const fieldMeta = gradeFields.find((f) => f.fieldId === fid);
       const label = fieldMeta?.label || fid.slice(0, 8);
@@ -492,6 +641,9 @@ const SkillDraftResult = ({
         summary={
           <>
             항목 {fieldEntries.length}개
+            {fill > 0 || skip > 0
+              ? ` · 반영 예정 ${fill}${skip > 0 ? ` · 건너뜀 ${skip}` : ""}`
+              : ""}
             {draft.final?.comment
               ? ` · 총평 ${String(draft.final.comment).slice(0, 40)}`
               : ""}
@@ -507,6 +659,12 @@ const SkillDraftResult = ({
           />
         }
       >
+        {draft.final?.comment ? (
+          <div className={style.draftFieldBlock}>
+            <p className={style.draftFieldLabel}>총평</p>
+            <p className={style.draftFieldValue}>{draft.final.comment}</p>
+          </div>
+        ) : null}
         <FieldBlocks entries={blocks} />
       </DraftResultCard>
     );

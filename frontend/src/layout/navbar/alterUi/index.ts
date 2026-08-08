@@ -8,13 +8,21 @@ export type { SkillPrepDockProps } from "./SkillPrepDock";
 export {
   ACTIVITY_FORM_TYPES,
   DOCUMENT_DOC_TYPES,
+  SKILL_CHIP_HINT,
+  SKILL_TONE_KEY,
+  alterModeLabel,
   applyLabelForDraft,
   applyPolicyForDraft,
+  activityFormTypeLabel,
+  buildPrepSummaryParts,
+  docTypeLabel,
   isApplyDisabled,
   prepKindFromSkill,
   prepPrimaryLabel,
+  shouldDefaultCollapsePrep,
 } from "./draftUi";
 export type { PrepKind } from "./draftUi";
+export { default as useAlterGuidelineLibrary } from "./useAlterGuidelineLibrary";
 export {
   isActivityDraft,
   isArchiveDraft,
