@@ -9,10 +9,12 @@ const config = () => {
   });
 
   passport.deserializeUser(({ _id, academyId }, done) => {
+    // 세션에 남은 유저가 DB에 없으면 user가 null → 속성 세팅 시 서버 크래시
     User(academyId).findOne({ _id }, (err, user) => {
-      if (err) done(err);
-      user["academyId"] = academyId;
-      done(null, user);
+      if (err) return done(err);
+      if (!user) return done(null, false);
+      user.academyId = academyId;
+      return done(null, user);
     });
   });
 
