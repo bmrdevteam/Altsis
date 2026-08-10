@@ -105,6 +105,17 @@ const notificationSettingGroups: NotificationSettingGroup[] = [
       },
     ],
   },
+  {
+    category: "채팅",
+    items: [
+      {
+        key: "chatMessage",
+        label: "채팅 메시지 알림",
+        description:
+          "새 채팅 메시지가 오면 잠금화면 알림을 받습니다 (잠금화면 알림 ON 필요)",
+      },
+    ],
+  },
 ];
 
 const Notifications = () => {

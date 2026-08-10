@@ -12,10 +12,10 @@ describe("WEB_PUSH_ELIGIBLE_TYPES", () => {
     expect(WEB_PUSH_ELIGIBLE_TYPES.has("boardInvitation")).toBe(true);
     expect(WEB_PUSH_ELIGIBLE_TYPES.has("altFormApprovalRequest")).toBe(true);
     expect(WEB_PUSH_ELIGIBLE_TYPES.has("altFormApprovalResult")).toBe(true);
+    expect(WEB_PUSH_ELIGIBLE_TYPES.has("chatMessage")).toBe(true);
   });
 
   test("excludes non-auto / unused types", () => {
     expect(WEB_PUSH_ELIGIBLE_TYPES.has("direct")).toBe(false);
-    expect(WEB_PUSH_ELIGIBLE_TYPES.has("chatMessage")).toBe(false);
   });
 });

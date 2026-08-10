@@ -16,6 +16,7 @@ import {
 import { getIoChat } from "../utils/webSocket.js";
 import { chatMulter, isImageFile } from "../_s3/chatMulter.js";
 import { signUrl, signUrlForView } from "../_s3/fileBucket.js";
+import { sendChatWebPushes } from "../services/webPush.js";
 import {
   FIELD_REQUIRED,
   FIELD_INVALID,
@@ -735,19 +736,40 @@ export const sendMessage = async (req, res) => {
       messageObj.attachment.url = signUrlForView(messageObj.attachment.key, 3600);
     }
 
-    // Emit via Socket.io to all participants
+    // Emit via Socket.io + collect Web Push recipients (sender 제외)
     const ioChat = getIoChat();
-    if (ioChat) {
-      room.participants.forEach((participant) => {
-        if (participant.user.toString() !== req.user._id.toString()) {
-          ioChat
-            .to(`chat:${req.user.academyId}:${participant.userId}`)
-            .emit("new_message", {
-              room: room._id,
-              roomType: room.type,
-              message: messageObj,
-            });
-        }
+    const pushRecipients = [];
+    room.participants.forEach((participant) => {
+      if (participant.user.toString() === req.user._id.toString()) return;
+      if (ioChat) {
+        ioChat
+          .to(`chat:${req.user.academyId}:${participant.userId}`)
+          .emit("new_message", {
+            room: room._id,
+            roomType: room.type,
+            message: messageObj,
+          });
+      }
+      pushRecipients.push({
+        user: participant.user,
+        userId: participant.userId,
+      });
+    });
+
+    // 잠금화면 Web Push (설정 ON인 수신자) — 채팅 응답 지연 방지를 위해 비동기
+    if (pushRecipients.length > 0) {
+      const pushTitle =
+        room.type === "direct"
+          ? req.user.userName || "새 메시지"
+          : room.name || req.user.userName || "그룹 채팅";
+      sendChatWebPushes({
+        academyId: req.user.academyId,
+        recipients: pushRecipients,
+        title: pushTitle,
+        body: lastMessageContent,
+        roomId: String(room._id),
+      }).catch((err) => {
+        logger.warn(`Chat Web Push failed: ${err.message}`);
       });
     }
 
