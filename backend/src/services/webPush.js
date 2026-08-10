@@ -4,7 +4,13 @@
  */
 import webpush from "web-push";
 import {
+  AltSheetRow,
+  ChatMessage,
+  ChatRoom,
+  Enrollment,
+  Notification,
   NotificationSetting,
+  Post,
   PushSubscription,
   User,
 } from "../models/index.js";
@@ -53,31 +59,10 @@ export const getVapidPublicKey = () => {
   return process.env["VAPID_PUBLIC_KEY"]?.trim() || null;
 };
 
-/**
- * relatedEntity → 앱 내 경로 (academy/school prefix 제외)
- */
-const pathForNotification = (notification) => {
-  const entity = notification.relatedEntity;
-  if (!entity?.type) return "/";
-
-  switch (entity.type) {
-    case "enrollment":
-      return "/courses";
-    case "syllabus":
-      return `/courses/${entity.id}`;
-    case "post":
-      return "/boards";
-    case "board":
-      return `/boards/${entity.id}`;
-    case "altSheetRow":
-    case "altForm":
-      return "/boards";
-    case "calendarEvent":
-    case "reminder":
-      return "/";
-    default:
-      return "/";
-  }
+const clientOrigin = () => {
+  const url = process.env["URL"]?.trim();
+  if (!url) return null;
+  return url.replace(/\/$/, "");
 };
 
 const resolveSchoolId = async (academyId, userObjectId) => {
@@ -88,20 +73,158 @@ const resolveSchoolId = async (academyId, userObjectId) => {
   return user?.schools?.[0]?.schoolId || null;
 };
 
-const clientOrigin = () => {
-  const url = process.env["URL"]?.trim();
-  if (!url) return null;
-  return url.replace(/\/$/, "");
+/**
+ * relatedEntity → 앱 내 경로 (academy/school prefix 제외)
+ * 인앱 벨 알림 클릭 경로와 최대한 동일하게 맞춘다.
+ */
+export const resolveNotificationPath = async (academyId, notification) => {
+  const entity = notification?.relatedEntity;
+  const type = notification?.notificationType;
+  if (!entity?.type || !entity?.id) {
+    return "/";
+  }
+
+  try {
+    switch (entity.type) {
+      case "enrollment": {
+        const enrollment = await Enrollment(academyId)
+          .findById(entity.id)
+          .select("syllabus")
+          .lean();
+        if (enrollment?.syllabus) {
+          return `/courses/enrolled/${enrollment.syllabus}`;
+        }
+        return "/courses";
+      }
+      case "syllabus": {
+        if (type === "classCancellation") return "/courses";
+        if (type === "classApproval" || type === "classApprovalCancel") {
+          return `/courses/created/${entity.id}`;
+        }
+        return `/courses/${entity.id}`;
+      }
+      case "post": {
+        const post = await Post(academyId)
+          .findById(entity.id)
+          .select("board")
+          .lean();
+        if (post?.board) {
+          return `/boards/${post.board}/post/${entity.id}`;
+        }
+        return "/boards";
+      }
+      case "board":
+        return `/boards/${entity.id}`;
+      case "altSheetRow": {
+        const row = await AltSheetRow(academyId)
+          .findById(entity.id)
+          .select("board")
+          .lean();
+        if (row?.board) {
+          return `/boards/${row.board}?approval=${encodeURIComponent(
+            String(entity.id)
+          )}#활동`;
+        }
+        return "/boards";
+      }
+      case "altForm":
+        return "/boards";
+      case "calendarEvent":
+      case "reminder":
+        return "/";
+      default:
+        return "/";
+    }
+  } catch (err) {
+    logger.warn(`resolveNotificationPath failed: ${err.message}`);
+    return "/";
+  }
 };
 
-const buildClickUrl = (academyId, schoolId, notification) => {
+/**
+ * 알림 리스트가 과도하게 쌓이지 않도록 엔티티/유형 단위로 tag 통일
+ */
+export const tagForNotification = (notification) => {
+  const type = notification?.notificationType || "notification";
+  const entity = notification?.relatedEntity;
+  if (entity?.type && entity?.id) {
+    return `${type}:${entity.type}:${entity.id}`;
+  }
+  return `${type}:${notification?._id || "unknown"}`;
+};
+
+const appendQuery = (path, key, value) => {
+  if (!value) return path;
+  const hashIndex = path.indexOf("#");
+  const hash = hashIndex >= 0 ? path.slice(hashIndex) : "";
+  const withoutHash = hashIndex >= 0 ? path.slice(0, hashIndex) : path;
+  const sep = withoutHash.includes("?") ? "&" : "?";
+  return `${withoutHash}${sep}${key}=${encodeURIComponent(String(value))}${hash}`;
+};
+
+const buildClickUrl = async (academyId, schoolId, notification) => {
   const origin = clientOrigin();
   if (!origin) return null;
-  const path = pathForNotification(notification);
+  if (!schoolId) return `${origin}/`;
+
+  let path = await resolveNotificationPath(academyId, notification);
+  path = appendQuery(path, "openNotification", notification?._id);
+  return `${origin}/${academyId}/${schoolId}${path}`;
+};
+
+const buildChatClickUrl = (academyId, schoolId, roomId) => {
+  const origin = clientOrigin();
+  if (!origin) return null;
   if (!schoolId) {
-    return `${origin}/`;
+    return `${origin}/?chatRoom=${encodeURIComponent(String(roomId))}`;
   }
-  return `${origin}/${academyId}/${schoolId}${path === "/" ? "/" : path}`;
+  return `${origin}/${academyId}/${schoolId}/?chatRoom=${encodeURIComponent(
+    String(roomId)
+  )}`;
+};
+
+/**
+ * 홈 화면 뱃지용: 미확인 알림 + 채팅 미읽음 합
+ */
+export const getAppBadgeCount = async (academyId, userObjectId) => {
+  const userId = String(userObjectId);
+  const [notificationCount, rooms] = await Promise.all([
+    Notification(academyId).countDocuments({
+      user: userObjectId,
+      type: "received",
+      checked: false,
+      notificationType: { $ne: "direct" },
+    }),
+    ChatRoom(academyId)
+      .find({
+        "participants.user": userObjectId,
+        isActive: true,
+        type: { $ne: "board" },
+      })
+      .select("participants")
+      .lean(),
+  ]);
+
+  const chatCounts = await Promise.all(
+    rooms.map(async (room) => {
+      const participant = room.participants?.find(
+        (p) => String(p.user) === userId
+      );
+      if (participant?.isArchived) return 0;
+      const query = {
+        room: room._id,
+        sender: { $ne: userObjectId },
+        isDeleted: false,
+      };
+      if (participant?.lastReadAt) {
+        query.createdAt = { $gt: participant.lastReadAt };
+      }
+      return ChatMessage(academyId).countDocuments(query);
+    })
+  );
+
+  const chatUnread = chatCounts.reduce((sum, n) => sum + n, 0);
+  return notificationCount + chatUnread;
 };
 
 const sendToSubscriptions = async (academyId, subs, payload, userId) => {
@@ -176,6 +299,7 @@ export const sendWebPushesForNotifications = async ({
     settingsByUserObjectId[String(doc.user)] = doc.settings || {};
   }
 
+  // 사용자별로 발송 대상 알림을 모은다 (배치 내 동일 사용자는 첫 알림 기준 URL)
   const byUserKey = new Map();
   for (const n of eligible) {
     const userKey = String(n.user);
@@ -203,7 +327,7 @@ export const sendWebPushesForNotifications = async ({
   for (const [userKey, notification] of byUserKey) {
     try {
       const schoolId = await resolveSchoolId(academyId, notification.user);
-      const url = buildClickUrl(academyId, schoolId, notification);
+      const url = await buildClickUrl(academyId, schoolId, notification);
       if (!url) continue;
 
       const subs = await PushSubscription(academyId).find({
@@ -216,6 +340,7 @@ export const sendWebPushesForNotifications = async ({
         continue;
       }
 
+      const badgeCount = await getAppBadgeCount(academyId, notification.user);
       const body =
         (notification.description && String(notification.description).trim()) ||
         "알림을 확인하려면 탭하세요.";
@@ -223,8 +348,9 @@ export const sendWebPushesForNotifications = async ({
         title: notification.title || "Altsis",
         body,
         url,
-        tag: `${notification.notificationType}:${notification._id}`,
+        tag: tagForNotification(notification),
         notificationType: notification.notificationType,
+        badgeCount,
       });
 
       const sent = await sendToSubscriptions(
@@ -296,21 +422,22 @@ export const sendChatWebPushes = async ({
 
     try {
       const schoolId = await resolveSchoolId(academyId, userKey);
-      const url = schoolId
-        ? `${origin}/${academyId}/${schoolId}/`
-        : `${origin}/`;
+      const url = buildChatClickUrl(academyId, schoolId, roomId);
+      if (!url) continue;
 
       const subs = await PushSubscription(academyId).find({
         user: userKey,
       });
       if (subs.length === 0) continue;
 
+      const badgeCount = await getAppBadgeCount(academyId, userKey);
       const payload = JSON.stringify({
         title: title || "새 메시지",
         body: (body && String(body).trim()) || "새 채팅 메시지가 있습니다.",
         url,
         tag: `chatMessage:${roomId || userKey}`,
         notificationType: "chatMessage",
+        badgeCount,
       });
 
       const sent = await sendToSubscriptions(
@@ -362,12 +489,14 @@ export const sendTestWebPush = async (academyId, user) => {
     ? `${origin}/${academyId}/${schoolId}/`
     : `${origin}/`;
 
+  const badgeCount = await getAppBadgeCount(academyId, user._id);
   const payload = JSON.stringify({
     title: "Altsis 테스트 알림",
     body: "잠금화면 알림이 정상적으로 설정되었습니다.",
     url,
     tag: `test:${Date.now()}`,
     notificationType: "reminder",
+    badgeCount: Math.max(badgeCount, 1),
   });
 
   const sent = await sendToSubscriptions(

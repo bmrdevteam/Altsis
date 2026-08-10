@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import { io } from "socket.io-client";
 import style from "./navbar.module.scss";
@@ -14,6 +15,7 @@ import audioURL from "assets/audio/notification-a.mp3";
 import { TNotificationReceived } from "types/notification";
 import { TUpcomingReminder, TReminder, TEventReminder } from "types/reminder";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import { updateNotificationAppBadge } from "utils/appBadge";
 
 function formatNotificationTime(date: Date | string): string {
   const now = new Date();
@@ -75,6 +77,8 @@ const Notification = () => {
     useAPIv2();
 
   const navigate = useAppNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const openNotificationHandledRef = useRef<string | null>(null);
 
   const [notifications, setNotifications] = useState<TNotificationReceived[]>(
     []
@@ -132,7 +136,9 @@ const Notification = () => {
         const { notifications } = await NotificationAPI.RNotifications({
           query: { type: "received", checked: false },
         });
-        setNotifications(notifications as TNotificationReceived[]);
+        const list = notifications as TNotificationReceived[];
+        setNotifications(list);
+        updateNotificationAppBadge(list.length);
       } catch (err) {
         ALERT_ERROR(err);
       }
@@ -258,11 +264,111 @@ const Notification = () => {
       await NotificationAPI.UCheckNotification({
         params: { _id: notificationId },
       });
-      setNotifications((prev) => prev.filter((n) => n._id !== notificationId));
+      setNotifications((prev) => {
+        const next = prev.filter((n) => n._id !== notificationId);
+        updateNotificationAppBadge(next.length);
+        return next;
+      });
     } catch (err) {
       ALERT_ERROR(err);
     }
   };
+
+  const navigateFromNotification = async (
+    notification: TNotificationReceived
+  ) => {
+    if (notification.relatedEntity?.type === "post") {
+      try {
+        const { post } = await PostAPI.RPost({
+          params: { _id: notification.relatedEntity.id },
+        });
+        navigate(`/boards/${post.board}/post/${post._id}`);
+      } catch {
+        navigate("/boards");
+      }
+    } else if (notification.relatedEntity?.type === "enrollment") {
+      try {
+        const { enrollment } = await EnrollmentAPI.REnrollment({
+          params: { _id: notification.relatedEntity.id },
+        });
+        navigate(`/courses/enrolled/${enrollment.syllabus}`);
+      } catch {
+        navigate("/courses");
+      }
+    } else if (notification.relatedEntity?.type === "syllabus") {
+      if (notification.notificationType === "classCancellation") {
+        navigate("/courses");
+      } else if (
+        notification.notificationType === "classApproval" ||
+        notification.notificationType === "classApprovalCancel"
+      ) {
+        navigate(`/courses/created/${notification.relatedEntity.id}`);
+      } else {
+        navigate(`/courses/${notification.relatedEntity.id}`);
+      }
+    } else if (
+      notification.relatedEntity?.type === "calendarEvent" ||
+      notification.relatedEntity?.type === "reminder"
+    ) {
+      navigate("/");
+    } else if (notification.relatedEntity?.type === "board") {
+      navigate(`/boards/${notification.relatedEntity.id}`);
+    } else if (notification.relatedEntity?.type === "altForm") {
+      navigate("/boards");
+    } else if (notification.relatedEntity?.type === "altSheetRow") {
+      try {
+        const { boardId, row } = await AltSheetRowAPI.RAltSheetRow({
+          params: { _id: notification.relatedEntity.id },
+        });
+        const rowId = row?._id || notification.relatedEntity.id;
+        navigate(
+          `/boards/${boardId}?approval=${encodeURIComponent(String(rowId))}#활동`
+        );
+      } catch {
+        navigate("/boards");
+      }
+    }
+  };
+
+  // Web Push 클릭 → ?openNotification= 딥링크
+  useEffect(() => {
+    const openId = searchParams.get("openNotification");
+    if (!openId || !currentUser?._id) return;
+    if (openNotificationHandledRef.current === openId) return;
+    openNotificationHandledRef.current = openId;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const { notification } = await NotificationAPI.RNotification({
+          params: { _id: openId },
+        });
+        if (cancelled || !notification) return;
+
+        const next = new URLSearchParams(searchParams);
+        next.delete("openNotification");
+        setSearchParams(next, { replace: true });
+
+        if (isNavigableNotification(notification as TNotificationReceived)) {
+          await navigateFromNotification(
+            notification as TNotificationReceived
+          );
+          await markNotificationChecked(openId);
+        } else {
+          setNotificationContentActive(true);
+          setActiveTab("notifications");
+        }
+      } catch {
+        const next = new URLSearchParams(searchParams);
+        next.delete("openNotification");
+        setSearchParams(next, { replace: true });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams, currentUser?._id]);
 
   const handleNotificationClick = async (
     notification: TNotificationReceived
@@ -270,59 +376,7 @@ const Notification = () => {
     // navigable 알림: 이동 후 확인(삭제) — 이동 실패 시 알림이 사라지지 않도록
     if (isNavigableNotification(notification)) {
       setNotificationContentActive(false);
-
-      if (notification.relatedEntity?.type === "post") {
-        try {
-          const { post } = await PostAPI.RPost({
-            params: { _id: notification.relatedEntity.id },
-          });
-          navigate(`/boards/${post.board}/post/${post._id}`);
-        } catch {
-          navigate("/boards");
-        }
-      } else if (notification.relatedEntity?.type === "enrollment") {
-        try {
-          const { enrollment } = await EnrollmentAPI.REnrollment({
-            params: { _id: notification.relatedEntity.id },
-          });
-          navigate(`/courses/enrolled/${enrollment.syllabus}`);
-        } catch {
-          navigate("/courses");
-        }
-      } else if (notification.relatedEntity?.type === "syllabus") {
-        if (notification.notificationType === "classCancellation") {
-          navigate("/courses");
-        } else if (
-          notification.notificationType === "classApproval" ||
-          notification.notificationType === "classApprovalCancel"
-        ) {
-          navigate(`/courses/created/${notification.relatedEntity.id}`);
-        } else {
-          navigate(`/courses/${notification.relatedEntity.id}`);
-        }
-      } else if (
-        notification.relatedEntity?.type === "calendarEvent" ||
-        notification.relatedEntity?.type === "reminder"
-      ) {
-        navigate("/");
-      } else if (notification.relatedEntity?.type === "board") {
-        navigate(`/boards/${notification.relatedEntity.id}`);
-      } else if (notification.relatedEntity?.type === "altForm") {
-        navigate("/boards");
-      } else if (notification.relatedEntity?.type === "altSheetRow") {
-        try {
-          const { boardId, row } = await AltSheetRowAPI.RAltSheetRow({
-            params: { _id: notification.relatedEntity.id },
-          });
-          const rowId = row?._id || notification.relatedEntity.id;
-          navigate(
-            `/boards/${boardId}?approval=${encodeURIComponent(String(rowId))}#활동`
-          );
-        } catch {
-          navigate("/boards");
-        }
-      }
-
+      await navigateFromNotification(notification);
       await markNotificationChecked(notification._id);
       return;
     }
@@ -359,9 +413,11 @@ const Notification = () => {
       await NotificationAPI.UCheckNotification({
         params: { _id: notification._id },
       });
-      setNotifications((prev) =>
-        prev.filter((n) => n._id !== notification._id)
-      );
+      setNotifications((prev) => {
+        const next = prev.filter((n) => n._id !== notification._id);
+        updateNotificationAppBadge(next.length);
+        return next;
+      });
     } catch (err) {
       ALERT_ERROR(err);
     }
@@ -698,6 +754,7 @@ const Notification = () => {
                       try {
                         await NotificationAPI.UBulkCheckNotifications();
                         setNotifications([]);
+                        updateNotificationAppBadge(0);
                       } catch (err) {
                         ALERT_ERROR(err);
                       }
