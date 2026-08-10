@@ -63,11 +63,14 @@ import {
   parseFormResponseDraftResponse,
 } from "./formResponseDraft.js";
 import {
-  formatSlotsForPrompt,
+  describeDocResponseSlotsForPrompt,
   isAcceptableMergedDocResponse,
   isBrokenDocResponseImageDump,
+  looksLikeFullDocRewrite,
   mergeDocResponseTemplate,
+  parseDocResponseSlotFills,
   redactImagesForPrompt,
+  resolveDocResponseSlots,
   sanitizeAiDocResponseFill,
 } from "./formResponseSlots.js";
 import {
@@ -3358,6 +3361,7 @@ export const executeFormResponseDraftSkill = async ({
   /** @type {Record<string, string>} fieldId → baseDocument for merge */
   const docResponseBases = {};
   let anyDocSlots = false;
+  let anyInferredSlots = false;
 
   const fieldBlocks = writableFields
     .map((f) => {
@@ -3374,8 +3378,11 @@ export const executeFormResponseDraftSkill = async ({
               : JSON.stringify(cur);
         const baseDocument = currentStr.trim() || template || "";
         docResponseBases[String(f.fieldId)] = baseDocument;
-        const slotList = formatSlotsForPrompt(baseDocument);
-        if (slotList) anyDocSlots = true;
+        const slotDesc = describeDocResponseSlotsForPrompt(baseDocument);
+        if (slotDesc.list) {
+          anyDocSlots = true;
+          if (slotDesc.inferred) anyInferredSlots = true;
+        }
         // base64 로고 등은 프롬프트에서 자리만 남기고, 병합은 원본 base 사용
         const promptTemplate = redactImagesForPrompt(template);
         const promptBase = redactImagesForPrompt(baseDocument);
@@ -3389,7 +3396,7 @@ ${truncateText(promptTemplate, templateLimit) || "(없음)"}
 ${truncateText(promptBase, templateLimit) || "(없음)"}
 >>>
   writeSlots=
-${slotList || "(작성 칸 없음 — 골격 유지하며 빈칸만 채우기)"}
+${slotDesc.list || "(작성 칸 없음 — 골격 유지하며 빈칸만 채우기)"}
   imageNote=본문의 <<KEEP_IMAGE_n>> 은 기존 로고/이미지 자리입니다. 절대 data:image나 base64로 다시 쓰지 마세요.`;
       }
       return `- id=${f.fieldId} | type=${f.type} | label=${f.label || ""}
@@ -3424,29 +3431,35 @@ ${slotList || "(작성 칸 없음 — 골격 유지하며 빈칸만 채우기)"}
 - approval: JSON {"steps":[{"order":0,"label":"...","approver":{"user","userId","userName"}}]} (pick 단계만, 후보에서만)
 - file 필드는 출력하지 마세요.`;
 
-  const docFillRules = hasDocTemplate
-    ? `## docResponse(기안문) 작성 칸 채우기 (필수)
+  const inferredSlotNote = anyInferredSlots
+    ? `- writeSlots에 \`(추론)\`이 붙은 항목은 빈칸 추정입니다. 해당 위치만 채우고 표·양식 골격을 다시 쓰지 마세요. 원하는 칸만 쓰려면 양식에 \`(작성)\`을 넣으세요.\n`
+    : "";
+
+  const docFillRules =
+    hasDocTemplate || anyDocSlots
+      ? `## docResponse(기안문) 작성 칸 채우기 (필수)
 - 양식의 표·제목란·수신/경유/결재란·로고/이미지 골격은 절대 새로 쓰지 마세요.
-- 채울 자리는 관용구만입니다: \`(작성)\`, \`(본문 작성)\`, \`(금액 작성)\`처럼 괄호 안이 「작성」으로 끝나는 칸, 그리고 \`(이곳에 입력하세요.)\`.
-- **권장 출력**: FIELD 본문에 슬롯 값만 순서대로 넣으세요. 문서 전체를 다시 쓰지 마세요.
+- \`<table>\`·HTML·마크다운 표 전체를 FIELD에 넣지 마세요.
+- 채울 자리: \`(작성)\`/\`(본문 작성)\`/\`(금액 작성)\`/\`(기입)\`/\`(입력)\`/\`(내용)\`/\`(이곳에 입력하세요.)\`, 또는 writeSlots의 추론 빈칸.
+- **필수 출력**: writeSlots가 있으면 FIELD 본문에 <<<SLOT …>>>/<<<END_SLOT>>> 만 넣으세요.
 <<<SLOT (작성)>>>
 채운 짧은 문구
 <<<END_SLOT>>>
 <<<SLOT (본문 작성)>>>
 채운 본문 마크다운
 <<<END_SLOT>>>
-- writeSlots에 적힌 칸을 빠짐없이, 양식에 나온 순서·표기 그대로 사용하세요.
-- <<KEEP_IMAGE_n>>·로고·기존 이미지를 data:image/base64로 출력하지 마세요. 첨부 사진은 참고만 하고 본문에 붙이지 마세요.
+- writeSlots에 적힌 칸을 빠짐없이, 양식에 나온 순서·표기(또는 라벨) 그대로 사용하세요.
+${inferredSlotNote}- <<KEEP_IMAGE_n>>·로고·기존 이미지를 data:image/base64로 출력하지 마세요. 첨부 사진은 참고만 하고 본문에 붙이지 마세요.
 - 첨부 이미지·요청은 칸에 넣을 글의 근거로만 사용하세요.`
-    : "";
+      : "";
 
   const taskRules =
     writeMode === "refine"
       ? anyDocSlots
-        ? `역할: 양식의 \`(작성)\` 칸만 채워 완성본을 만듭니다. 지정 필드만 출력하세요.`
+        ? `역할: 양식의 작성 칸(또는 추론 빈칸)만 채워 완성본을 만듭니다. 지정 필드만 출력하세요.`
         : `역할: 기존 응답(또는 양식 템플릿)을 요청에 맞게 다듬어/채워 완성본을 만듭니다. 지정 필드만 출력하세요.`
-      : hasDocTemplate
-        ? `역할: 요청·자료를 바탕으로 지정 필드 초안을 만듭니다. docResponse는 \`(작성)\` 칸만 채우세요.`
+      : hasDocTemplate || anyDocSlots
+        ? `역할: 요청·자료를 바탕으로 지정 필드 초안을 만듭니다. docResponse는 작성 칸/추론 빈칸만 <<<SLOT>>>으로 채우세요.`
         : `역할: 요청·자료를 바탕으로 지정 필드의 응답 초안을 만듭니다.`;
 
   const prompt = `당신은 학교 양식 응답 작성 보조입니다. 응답자가 바로 검토·수정할 필드 값만 작성합니다.
@@ -3490,57 +3503,36 @@ ${currentJson || "{}"}
 <<<FIELD fieldId type=타입>>>
 본문또는JSON
 <<<END_FIELD>>>
-- FIELD id는 위 작성 대상의 id와 일치해야 합니다.
-- docResponse에 작성 칸이 있으면 FIELD 안에 <<<SLOT …>>>/<<<END_SLOT>>> 만 넣는 것을 권장합니다.
+- FIELD 바로 다음에 작성 대상의 id를 그대로 쓰세요. 예: <<<FIELD 19cf85ff-7393-4416-8799-d40d1630e07b type=text>>>
+- \`id=\` 접두사·한국어 라벨을 FIELD 키로 쓰지 마세요.
+- docResponse에 writeSlots가 있으면 FIELD 안에 <<<SLOT …>>>/<<<END_SLOT>>> 만 넣는 것이 필수입니다. 표·양식 HTML 전체를 쓰지 마세요.
 - 본문에 <<<FIELD / <<<END_FIELD>>> 마커를 넣지 마세요.`;
 
   emit("step", {
     message:
       writeMode === "refine"
-        ? hasDocTemplate
+        ? hasDocTemplate || anyDocSlots
           ? "AI가 양식 작성 칸을 채우고 있습니다..."
           : "AI가 응답을 다듬고 있습니다..."
         : "AI가 응답 초안을 작성하고 있습니다...",
   });
 
-  let tokenUsage = null;
-  try {
-    const userContent = await buildMultimodalUserContent(prompt, attachments);
-    const generated = await runEvaluationGeneration({
-      provider,
-      apiKey: academy.aiApiKey,
-      modelName,
-      profile,
-      systemInstruction: `You are Alter, a school form-response drafting assistant. Output ONLY <<<FIELD id type=...>>> / <<<END_FIELD>>> blocks — no preamble. The id MUST be the exact field id from the prompt (not the Korean label). Follow field types and options strictly. For docResponse with writeSlots like (작성)/(본문 작성), prefer <<<SLOT …>>> fills inside the FIELD and do NOT rewrite the whole template. Never output data:image or base64. Never drop logos/tables/수신·경유.`,
-      messages: [{ role: "user", content: userContent }],
-      onEvent: emit,
-      progressLabel:
-        writeMode === "refine"
-          ? hasDocTemplate
-            ? "작성 칸 채우는 중"
-            : "응답 다듬는 중"
-          : "응답 초안 작성 중",
-    });
-    tokenUsage = mergeTokenUsage(tokenUsage, generated.tokenUsage);
+  const fieldMetaForParse = writableFields.map((f) => ({
+    fieldId: String(f.fieldId),
+    type: f.type,
+    label: f.label,
+    options: f.options,
+    validation: f.validation,
+  }));
+  const targetFieldIds = writableFields.map((f) => String(f.fieldId));
+  const contentLimit =
+    PROMPT_LIMITS.FORM_RESPONSE_DRAFT_CONTENT_CHARS || 14000;
 
-    const parsed = parseFormResponseDraftResponse(
-      generated.text || "",
-      writableFields.map((f) => ({
-        fieldId: String(f.fieldId),
-        type: f.type,
-        label: f.label,
-        options: f.options,
-        validation: f.validation,
-      })),
-      userCandidates
-    );
-
+  const applyParsedFields = (parsedByField) => {
     const byField = {};
-    const contentLimit =
-      PROMPT_LIMITS.FORM_RESPONSE_DRAFT_CONTENT_CHARS || 14000;
-    for (const [fid, val] of Object.entries(parsed.byField || {})) {
+    const slotViolations = [];
+    for (const [fid, val] of Object.entries(parsedByField || {})) {
       if (typeof val === "string") {
-        // AI fill만 길이 제한. 병합된 기안문(로고 data URI 포함)은 자르지 않는다.
         const aiFill = truncateText(
           maskSensitiveText(val).text,
           contentLimit
@@ -3548,8 +3540,24 @@ ${currentJson || "{}"}
         if (Object.prototype.hasOwnProperty.call(docResponseBases, fid)) {
           const base = String(docResponseBases[fid] || "");
           if (base.trim()) {
+            const hasSlots = resolveDocResponseSlots(base).length > 0;
+            const hasSlotFills =
+              parseDocResponseSlotFills(aiFill).length > 0;
+            if (
+              hasSlots &&
+              !hasSlotFills &&
+              looksLikeFullDocRewrite(aiFill)
+            ) {
+              slotViolations.push(fid);
+              continue;
+            }
             const merged = mergeDocResponseTemplate(base, aiFill);
-            if (merged.trim() === base.trim()) continue;
+            if (merged.trim() === base.trim()) {
+              if (hasSlots && !hasSlotFills) {
+                slotViolations.push(fid);
+              }
+              continue;
+            }
             if (!isAcceptableMergedDocResponse(base, merged)) continue;
             byField[fid] = merged;
           } else {
@@ -3565,6 +3573,75 @@ ${currentJson || "{}"}
       } else if (val != null) {
         byField[fid] = val;
       }
+    }
+    const missing = targetFieldIds.filter((id) => !(id in byField));
+    return { byField, slotViolations, missing };
+  };
+
+  const systemInstruction = `You are Alter, a school form-response drafting assistant. Output ONLY <<<FIELD <fieldId> type=...>>> / <<<END_FIELD>>> blocks — no preamble. Put the exact field id from the prompt right after FIELD (e.g. <<<FIELD 19cf85ff-... type=text>>>). Do NOT write id= before the field id. Do not use Korean labels as ids. Follow field types and options strictly. For docResponse with writeSlots, you MUST use <<<SLOT …>>> fills inside the FIELD and MUST NOT rewrite the whole template or emit <table>/full HTML. Never output data:image or base64. Never drop logos/tables/수신·경유.`;
+
+  let tokenUsage = null;
+  try {
+    const userContent = await buildMultimodalUserContent(prompt, attachments);
+    const generated = await runEvaluationGeneration({
+      provider,
+      apiKey: academy.aiApiKey,
+      modelName,
+      profile,
+      systemInstruction,
+      messages: [{ role: "user", content: userContent }],
+      onEvent: emit,
+      progressLabel:
+        writeMode === "refine"
+          ? hasDocTemplate || anyDocSlots
+            ? "작성 칸 채우는 중"
+            : "응답 다듬는 중"
+          : "응답 초안 작성 중",
+    });
+    tokenUsage = mergeTokenUsage(tokenUsage, generated.tokenUsage);
+
+    const parsed = parseFormResponseDraftResponse(
+      generated.text || "",
+      fieldMetaForParse,
+      userCandidates
+    );
+
+    let { byField, slotViolations, missing } = applyParsedFields(
+      parsed.byField
+    );
+
+    if (missing.length > 0 || slotViolations.length > 0) {
+      emit("step", { message: "누락·형식 오류 필드를 다시 작성하는 중..." });
+      const retryIds = [...new Set([...missing, ...slotViolations])];
+      const retryPrompt = `이전 출력이 불완전합니다. 아래 필드만 <<<FIELD <fieldId> type=...>>> / <<<END_FIELD>>> 블록으로 다시 출력하세요 (id= 접두사 금지). 다른 설명은 금지합니다.
+- 누락 필드 id: ${missing.length ? missing.join(", ") : "(없음)"}
+- 슬롯 위반 필드 id (표·양식 전체 재작성 금지, <<<SLOT …>>>/<<<END_SLOT>>> 만): ${
+        slotViolations.length ? slotViolations.join(", ") : "(없음)"
+      }
+- 대상: ${retryIds.join(", ")}
+- writeSlots가 있는 docResponse는 SLOT 블록만 넣으세요.`;
+      const retried = await runEvaluationGeneration({
+        provider,
+        apiKey: academy.aiApiKey,
+        modelName,
+        profile,
+        systemInstruction,
+        messages: [
+          { role: "user", content: userContent },
+          { role: "assistant", content: String(generated.text || "") },
+          { role: "user", content: retryPrompt },
+        ],
+        onEvent: emit,
+        progressLabel: "누락 필드 재작성 중",
+      });
+      tokenUsage = mergeTokenUsage(tokenUsage, retried.tokenUsage);
+      const parsedRetry = parseFormResponseDraftResponse(
+        retried.text || "",
+        fieldMetaForParse,
+        userCandidates
+      );
+      const second = applyParsedFields(parsedRetry.byField);
+      byField = { ...byField, ...second.byField };
     }
 
     if (Object.keys(byField).length === 0) {
@@ -3582,12 +3659,18 @@ ${currentJson || "{}"}
       throw err;
     }
 
+    const filledCount = Object.keys(byField).length;
+    const totalCount = targetFieldIds.length;
+    const partialNote =
+      filledCount < totalCount
+        ? ` (${filledCount}/${totalCount}개 필드만 반영)`
+        : "";
     const summary =
       writeMode === "refine"
-        ? hasDocTemplate
-          ? `${Object.keys(byField).length}개 필드에 양식 내용을 채웠습니다.`
-          : `${Object.keys(byField).length}개 필드 응답을 다듬었습니다.`
-        : `${Object.keys(byField).length}개 필드 응답 초안을 만들었습니다.`;
+        ? hasDocTemplate || anyDocSlots
+          ? `${filledCount}개 필드에 양식 내용을 채웠습니다.${partialNote}`
+          : `${filledCount}개 필드 응답을 다듬었습니다.${partialNote}`
+        : `${filledCount}개 필드 응답 초안을 만들었습니다.${partialNote}`;
 
     logAIUsage(academyId, {
       user,
@@ -5022,11 +5105,12 @@ export const detectSkillFromMessage = (message = "") => {
   ) {
     return SKILL_IDS.DOCUMENT_DRAFT;
   }
+  // 「작성한 응답에 대해…」같은 피드백 질문은 chat으로 둔다
   if (
-    /응답.*(초안|작성|다듬|기안)/.test(text) ||
-    /(초안|작성|다듬).*응답/.test(text) ||
+    /\/(응답|form[-_]?response[-_]?draft)/i.test(text) ||
     /기안문.*(초안|작성|다듬)/.test(text) ||
-    /\/(응답|form[-_]?response[-_]?draft)/i.test(text)
+    /응답\s*(을|를)?\s*(초안|작성|다듬|채우|채워)/.test(text) ||
+    /(초안|다듬)\s*.*응답/.test(text)
   ) {
     return SKILL_IDS.FORM_RESPONSE_DRAFT;
   }

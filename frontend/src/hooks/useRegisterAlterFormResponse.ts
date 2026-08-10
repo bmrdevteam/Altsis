@@ -74,7 +74,8 @@ const useRegisterAlterFormResponse = (params: Params) => {
                 fields: itemFields,
               },
             ],
-            totalCount: fields.length,
+            // 응답 문서 1건 — totalCount는 필드 수가 아님
+            totalCount: 1,
           },
           { dataExpand: opts?.dataExpand }
         );

@@ -70,21 +70,6 @@ const titleFromContext = (contextLabel, fallbackMessage = "") => {
   return titleFromMessage(fallbackMessage);
 };
 
-const SKILL_DISPLAY = {
-  chat: "챗봇",
-  "syllabus-draft": "수업",
-  "syllabus-review": "수업",
-  "evaluation-draft": "평가",
-  "archive-draft": "기록",
-  "document-draft": "문서",
-  "form-response-draft": "응답",
-  "activity-draft": "활동",
-  "assessment-grade": "채점",
-};
-
-const skillDisplayName = (skill) =>
-  SKILL_DISPLAY[skill] || skill || "챗봇";
-
 /** AlterConversation.pageType enum — 미등록 값은 저장 실패를 피하기 위해 general로 떨어뜨린다 */
 const ALLOWED_PAGE_TYPES = new Set([
   "syllabus-edit",
@@ -463,20 +448,7 @@ export const appendAlterTurn = async ({
     } else if (schoolId) {
       conversation.school = schoolId;
     }
-    // 챗방 = 스킬 1개: 메시지가 있는 대화는 lastSkill 고정
-    if (
-      (conversation.messageCount || 0) > 0 &&
-      conversation.lastSkill &&
-      skill &&
-      skill !== conversation.lastSkill
-    ) {
-      const err = new Error(
-        `이 대화는 ${skillDisplayName(conversation.lastSkill)} 스킬 전용입니다. 새 대화를 시작해 주세요.`
-      );
-      err.status = 400;
-      err.code = "ALTER_SKILL_LOCKED";
-      throw err;
-    }
+    // 한 대화에서 여러 Skill 허용 — lastSkill은 최근 실행 스킬 메타로만 갱신
   } else {
     conversation = await AlterConversation(academyId).create({
       user: userId,
@@ -530,10 +502,8 @@ export const appendAlterTurn = async ({
   ) {
     conversation.lastMessagePreview = previewOf(assistantMessage);
   }
-  // 첫 턴에만 lastSkill 설정 — 이후 고정
-  if (!(conversation.messageCount > 0 && conversation.lastSkill)) {
-    conversation.lastSkill = skill || conversation.lastSkill || "chat";
-  }
+  // 최근 실행 Skill (목록 표시용) — 한 대화에서 스킬 전환 가능
+  conversation.lastSkill = skill || conversation.lastSkill || "chat";
   conversation.messageCount = (conversation.messageCount || 0) + created.length;
   conversation.status = markWorking ? "working" : "idle";
   if (pageType) conversation.pageType = normalizePageType(pageType);

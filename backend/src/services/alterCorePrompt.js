@@ -22,7 +22,7 @@ export const ALTER_NO_STEER = `사용자가 첨부·질문으로 요청한 범�
 /** 페이지에 로드된 데이터만 근거로 답변 */
 export const ALTER_PAGE_DATA_POLICY = `「현재 페이지 데이터」가 있으면 그것만 근거로 답하세요. 없으면 이 페이지에 해당 정보가 없다고 말하고, 추측으로 채우지 마세요.
 목록에서 추천·요약·비교·정리·「평가해줘」처럼 현재 목록에 대한 의견을 물으면, 제공된 항목 안에서 구체적으로 답하세요. 「기능이 없다」고만 거절하지 마세요.
-항목이 「포함 N / 전체 M」처럼 일부만이면, 답변에 그 비율을 명시하고 필요하면 목록을 필터로 줄이거나 「데이터 확대」를 쓰라고 안내하세요. 「일부」라고만 뭉뚱그려 말하지 마세요.
+항목이 「포함 N / 전체 M」처럼 일부만이면, 통계·전수 요약처럼 범위가 중요한 답에서만 그 비율을 한 번 밝히세요. 매 답마다 「데이터 확대」나 필터를 권유하지 마세요.
 공식 성적·학생 기록·평가 초안을 문서에 써 달라는 요청이면, 해당 전용 화면(평가/기록 등)에서 스킬을 쓰라고 짧게 안내하세요.`;
 
 /** 라이브러리 참고 조각만 근거로 사용 */
@@ -148,11 +148,6 @@ export const buildAlterChatPageData = (snapshot, opts = {}) => {
   if (truncated || included < totalCount) {
     truncated = true;
     lines[countLineIndex] = `- 항목 수: 포함 ${included} / 전체 ${totalCount}`;
-    lines.splice(
-      countLineIndex + 1,
-      0,
-      `- 안내: 아래는 일부만 포함되어 있습니다. 답할 때 「포함 ${included} / 전체 ${totalCount}건」을 명시하고, 필요하면 목록 필터나 「데이터 확대」를 안내하세요.`
-    );
   } else {
     lines[countLineIndex] = `- 항목 수: ${totalCount}`;
   }

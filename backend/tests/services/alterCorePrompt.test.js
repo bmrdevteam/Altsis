@@ -127,7 +127,8 @@ describe("buildAlterChatPageData", () => {
       isPartial: true,
     });
     expect(text).toContain("포함 50 / 전체 532");
-    expect(text).toContain("데이터 확대");
+    // 매 턴 「데이터 확대」권유 문구는 넣지 않는다
+    expect(text).not.toContain("데이터 확대");
   });
 
   test("시스템 프롬프트에 페이지 데이터 정책과 블록이 들어간다", () => {

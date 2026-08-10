@@ -230,8 +230,18 @@ export const coerceFormResponseValue = (
   return null;
 };
 
+/** FIELD 키 정규화 — 모델이 `id=<fieldId>`로 쓰는 경우 허용 */
+const normalizeFieldKey = (key) => {
+  let k = String(key || "").trim();
+  if (!k) return "";
+  // <<<FIELD id=uuid type=text>>> → uuid
+  const idEq = k.match(/^id=(.+)$/i);
+  if (idEq) k = String(idEq[1] || "").trim();
+  return k;
+};
+
 const resolveFieldMeta = (key, metaById, metaByLabel) => {
-  const k = String(key || "").trim();
+  const k = normalizeFieldKey(key);
   if (!k) return null;
   if (metaById.has(k)) return metaById.get(k);
   const byLabel = metaByLabel.get(k) || metaByLabel.get(k.toLowerCase());
@@ -348,7 +358,8 @@ export const parseFormResponseDraftResponse = (
   }
 
   // 3) 자유 서술 / 잘못된 FIELD id 폴백: 대표 텍스트·기안문 필드에 본문 넣기
-  if (Object.keys(byField).length === 0) {
+  // 다중 대상일 때는 dump 금지(한 필드에 몰아넣기 방지) — 스킬 재시도/에러로 넘긴다.
+  if (Object.keys(byField).length === 0 && (fieldMeta || []).length === 1) {
     const primary = pickPrimaryTextField(fieldMeta);
     if (primary) {
       // 마커 id가 틀려도 블록 본문은 살린다
