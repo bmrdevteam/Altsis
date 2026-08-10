@@ -10,6 +10,11 @@ const STYLE_ATTR_KEYS = [
   "borderWidth",
 ] as const;
 
+const hasColWidth = (colwidth: unknown): boolean =>
+  Array.isArray(colwidth) &&
+  colwidth.some((w) => typeof w === "number" && Number.isFinite(w) && w > 0);
+
+/** 셀 스타일·열 너비처럼 GFM 파이프 표로 표현할 수 없는 속성이 있는지 */
 export const tableHasCellStyles = (node: PMNode): boolean => {
   let styled = false;
   node.descendants((n) => {
@@ -17,7 +22,7 @@ export const tableHasCellStyles = (node: PMNode): boolean => {
       return;
     }
     const a = n.attrs || {};
-    if (STYLE_ATTR_KEYS.some((k) => !!a[k])) {
+    if (STYLE_ATTR_KEYS.some((k) => !!a[k]) || hasColWidth(a.colwidth)) {
       styled = true;
       return false;
     }

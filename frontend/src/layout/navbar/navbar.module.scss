@@ -6,7 +6,8 @@
 
 @media (max-width: 800px) {
   .navbar_container {
-    padding: 0 12px 0 52px !important;
+    /* 접힌 사이드바(56px) + 여백 — 검색창 왼쪽 라운드가 가려지지 않게 */
+    padding: 0 12px 0 68px !important;
     gap: 8px;
 
     .search_trigger {

@@ -1,5 +1,6 @@
-import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import style from "./markdown.module.scss";
+import { useToolbarFixedPopup } from "./useToolbarFixedPopup";
 
 type Props = {
   onClose: () => void;
@@ -22,35 +23,36 @@ const ROWS: Array<{ keys: string; desc: string }> = [
 ];
 
 const MarkdownShortcutsHelp = ({ onClose }: Props) => {
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        onClose();
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [onClose]);
+  const { menuRef, anchorRef, coords } = useToolbarFixedPopup({
+    onClose,
+    fallbackWidth: 280,
+  });
 
   return (
-    <div
-      className={style.shortcutsHelp}
-      ref={ref}
-      data-editor-popup
-      onMouseDown={(e) => e.preventDefault()}
-    >
-      <div className={style.shortcutsHelpTitle}>타이핑 단축 문법</div>
-      <ul className={style.shortcutsHelpList}>
-        {ROWS.map((row) => (
-          <li key={row.keys} className={style.shortcutsHelpRow}>
-            <code className={style.shortcutsHelpKeys}>{row.keys}</code>
-            <span className={style.shortcutsHelpDesc}>{row.desc}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <>
+      <span ref={anchorRef} className={style.toolbarPopupAnchor} aria-hidden />
+      {coords &&
+        createPortal(
+          <div
+            className={style.shortcutsHelp}
+            ref={menuRef}
+            data-editor-popup
+            style={{ top: coords.top, left: coords.left }}
+            onMouseDown={(e) => e.preventDefault()}
+          >
+            <div className={style.shortcutsHelpTitle}>타이핑 단축 문법</div>
+            <ul className={style.shortcutsHelpList}>
+              {ROWS.map((row) => (
+                <li key={row.keys} className={style.shortcutsHelpRow}>
+                  <code className={style.shortcutsHelpKeys}>{row.keys}</code>
+                  <span className={style.shortcutsHelpDesc}>{row.desc}</span>
+                </li>
+              ))}
+            </ul>
+          </div>,
+          document.body
+        )}
+    </>
   );
 };
 
