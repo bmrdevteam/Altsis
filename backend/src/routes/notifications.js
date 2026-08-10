@@ -8,6 +8,11 @@ import * as notifications from "../controllers/notifications.js";
 router.get("/settings", isLoggedIn, notifications.getSettings);
 router.put("/settings", isLoggedIn, notifications.updateSettings);
 
+// Web Push
+router.get("/push/vapid-public-key", isLoggedIn, notifications.getVapidKey);
+router.post("/push/subscribe", isLoggedIn, notifications.subscribePush);
+router.delete("/push/subscribe", isLoggedIn, notifications.unsubscribePush);
+
 // 알림 일괄 확인
 router.put("/bulk-check", isLoggedIn, notifications.bulkCheck);
 

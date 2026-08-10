@@ -6,6 +6,11 @@
 import { logger } from "../log/logger.js";
 import { Notification } from "../models/index.js";
 import { getOrCreateNotificationSetting } from "../services/notifications.js";
+import {
+  getVapidPublicKey,
+  upsertPushSubscription,
+  removePushSubscription,
+} from "../services/webPush.js";
 
 import {
   FIELD_REQUIRED,
@@ -97,9 +102,7 @@ export const find = async (req, res) => {
       query["checked"] = req.query.checked === "true";
     }
 
-    const notifications = await Notification(req.user.academyId)
-      .find(query)
-      .select("-description");
+    const notifications = await Notification(req.user.academyId).find(query);
 
     return res.status(200).send({ notifications });
   } catch (err) {
@@ -312,10 +315,26 @@ export const updateSettings = async (req, res) => {
       "scheduleStart",
       "newPost",
       "chatMessage",
+      "soundEnabled",
+      "reminder",
+      "boardInvitation",
+      "eventReminderDefault",
+      "webPushEnabled",
     ];
 
     for (let key of validSettings) {
-      if (key in req.body) {
+      if (!(key in req.body) || req.body[key] === undefined || req.body[key] === null) {
+        continue;
+      }
+      if (key === "eventReminderDefault") {
+        const minutes = Number(req.body[key]);
+        if (!Number.isFinite(minutes) || minutes < 0) {
+          return res.status(400).send({ message: "INVALID_EVENT_REMINDER_DEFAULT" });
+        }
+        setting.settings[key] = minutes;
+      } else if (typeof req.body[key] !== "boolean") {
+        return res.status(400).send({ message: "INVALID_SETTING_VALUE" });
+      } else {
         setting.settings[key] = req.body[key];
       }
     }
@@ -323,6 +342,84 @@ export const updateSettings = async (req, res) => {
     await setting.save();
 
     return res.status(200).send({ settings: setting.settings });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.NotificationAPI
+ * @function RVapidPublicKey API
+ * @description Web Push VAPID 공개키 조회
+ */
+export const getVapidKey = async (req, res) => {
+  try {
+    const publicKey = getVapidPublicKey();
+    if (!publicKey) {
+      return res.status(503).send({ message: "WEB_PUSH_NOT_CONFIGURED" });
+    }
+    return res.status(200).send({ publicKey });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.NotificationAPI
+ * @function CPushSubscription API
+ * @description Web Push 구독 등록
+ */
+export const subscribePush = async (req, res) => {
+  try {
+    if (!req.body?.endpoint || !req.body?.keys) {
+      return res.status(400).send({ message: FIELD_REQUIRED("subscription") });
+    }
+    if (
+      typeof req.body.endpoint !== "string" ||
+      typeof req.body.keys?.p256dh !== "string" ||
+      typeof req.body.keys?.auth !== "string"
+    ) {
+      return res.status(400).send({ message: "INVALID_SUBSCRIPTION" });
+    }
+
+    await upsertPushSubscription(
+      req.user.academyId,
+      req.user,
+      {
+        endpoint: req.body.endpoint,
+        keys: req.body.keys,
+        expirationTime: req.body.expirationTime ?? null,
+      },
+      typeof req.headers["user-agent"] === "string"
+        ? req.headers["user-agent"].slice(0, 512)
+        : ""
+    );
+
+    return res.status(200).send({ success: true });
+  } catch (err) {
+    if (err.message === "INVALID_SUBSCRIPTION") {
+      return res.status(400).send({ message: "INVALID_SUBSCRIPTION" });
+    }
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.NotificationAPI
+ * @function DPushSubscription API
+ * @description Web Push 구독 해제
+ */
+export const unsubscribePush = async (req, res) => {
+  try {
+    await removePushSubscription(
+      req.user.academyId,
+      req.user,
+      req.query?.endpoint || req.body?.endpoint
+    );
+    return res.status(200).send({ success: true });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });

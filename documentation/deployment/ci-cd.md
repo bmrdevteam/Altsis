@@ -107,6 +107,9 @@ Repository Settings > Secrets and variables > Actions > New repository secret
 | `S3_ACCESSKEYID2` / `S3_SECRETACCESSKEY2` | S3 접근 키 (파일/로그) |
 | `S3_REGION` | S3 리전 |
 | `S3_BUCKET` / `S3_BUCKET2` / `S3_BUCKET3` | S3 버킷 이름 |
+| `VAPID_PUBLIC_KEY` | Web Push VAPID 공개키 |
+| `VAPID_PRIVATE_KEY` | Web Push VAPID 비공개키 |
+| `VAPID_SUBJECT` | Web Push VAPID subject (`mailto:...`) |
 | `SLACK_WEBHOOK_URL` | Slack 알림 Webhook URL |
 
 **클라이언트 관련 Secrets:**
@@ -274,7 +277,7 @@ backend 브랜치 push
                               ▼
 ┌─ 5. Set .env File ─────────────────────────────────────────────┐
 │  GitHub Secrets에서 환경 변수를 읽어 backend/.env 파일 생성       │
-│  - DB_URL, REDIS_URL, S3 관련, 암호화 키 등 전체                 │
+│  - DB_URL, REDIS_URL, S3 관련, 암호화 키, VAPID 등 전체          │
 └────────────────────────────────────────────────────────────────┘
                               │
                               ▼

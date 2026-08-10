@@ -25,3 +25,12 @@ root.render(
   </CookiesProvider>
   // </React.StrictMode>
 );
+
+// Web Push용 Service Worker (구독은 설정에서 옵트인)
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {
+      // SW 미지원/등록 실패는 무시 (인앱 알림은 동작)
+    });
+  });
+}

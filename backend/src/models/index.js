@@ -28,6 +28,7 @@ import { Enrollment } from "../models/Enrollment.js";
 import { Form } from "../models/Form.js";
 import { Notification } from "../models/Notification.js";
 import { NotificationSetting } from "../models/NotificationSetting.js";
+import { PushSubscription } from "../models/PushSubscription.js";
 import { Post } from "../models/Post.js";
 import { PostRead } from "../models/PostRead.js";
 import { Reminder } from "../models/Reminder.js";
@@ -67,6 +68,7 @@ export {
   Form,
   Notification,
   NotificationSetting,
+  PushSubscription,
   Post,
   PostRead,
   Reminder,

@@ -112,6 +112,15 @@ session_key=your-session-secret-key-here
 # Google Cloud Console > API 및 서비스 > 사용자 인증 정보에서 생성합니다.
 GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 
+# ──────────────────────────────────────────────
+# Web Push (VAPID) — 잠금화면 알림 (옵트인)
+# ──────────────────────────────────────────────
+# 키 생성: npx web-push generate-vapid-keys
+# 미설정 시 인앱 알림만 동작하고 Web Push는 비활성입니다.
+VAPID_PUBLIC_KEY=your-vapid-public-key
+VAPID_PRIVATE_KEY=your-vapid-private-key
+VAPID_SUBJECT=mailto:admin@example.com
+
 # 비밀번호 해싱 라운드 (bcrypt salt rounds)
 # 값이 높을수록 보안은 강화되지만 처리 시간이 증가합니다.
 # 개발 환경: 10 권장 / 운영 환경: 12 이상 권장

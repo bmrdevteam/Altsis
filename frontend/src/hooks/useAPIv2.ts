@@ -3182,6 +3182,47 @@ export default function useAPIv2() {
     return { settings: settings as TNotificationSettings };
   }
 
+  /**
+   * RVapidPublicKey API
+   * @description Web Push VAPID 공개키 조회
+   */
+  async function RVapidPublicKey() {
+    const { publicKey } = await database.R({
+      location: "notifications/push/vapid-public-key",
+    });
+    return { publicKey: publicKey as string };
+  }
+
+  /**
+   * CPushSubscription API
+   * @description Web Push 구독 등록
+   */
+  async function CPushSubscription(props: {
+    data: {
+      endpoint: string;
+      keys: { p256dh: string; auth: string };
+      expirationTime?: number | null;
+    };
+  }) {
+    return await database.C({
+      location: "notifications/push/subscribe",
+      data: props.data,
+    });
+  }
+
+  /**
+   * DPushSubscription API
+   * @description Web Push 구독 해제
+   */
+  async function DPushSubscription(props: {
+    query?: { endpoint?: string };
+  }) {
+    return await database.D({
+      location:
+        "notifications/push/subscribe" + QUERY_BUILDER(props.query || {}),
+    });
+  }
+
   // ============================================================
   // CalendarSettings API
   // ============================================================
@@ -5307,6 +5348,9 @@ export default function useAPIv2() {
       RNotificationSettings,
       UNotificationSettings,
       UBulkCheckNotifications,
+      RVapidPublicKey,
+      CPushSubscription,
+      DPushSubscription,
     },
     ReminderAPI: {
       CReminder,

@@ -39,7 +39,16 @@ const relatedEntitySchema = mongoose.Schema(
   {
     type: {
       type: String,
-      enum: ["enrollment", "syllabus", "calendarEvent", "post", "reminder", "board", "altSheetRow"],
+      enum: [
+        "enrollment",
+        "syllabus",
+        "calendarEvent",
+        "post",
+        "reminder",
+        "board",
+        "altSheetRow",
+        "altForm",
+      ],
     },
     id: mongoose.Types.ObjectId,
   },

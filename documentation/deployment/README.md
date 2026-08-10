@@ -133,6 +133,9 @@ Altsis는 AWS 클라우드 인프라를 기반으로 운영되며, GitHub Action
 | `s3_secretAccessKey2` | S3 Secret Key (파일/로그) | AWS Secret Key |
 | `s3_bucket2` | S3 버킷 (파일) | `altsis-files` |
 | `s3_bucket3` | S3 버킷 (로그) | `altsis-logs` |
+| `VAPID_PUBLIC_KEY` | Web Push VAPID 공개키 | `npx web-push generate-vapid-keys` |
+| `VAPID_PRIVATE_KEY` | Web Push VAPID 비공개키 | `npx web-push generate-vapid-keys` |
+| `VAPID_SUBJECT` | Web Push contact URI | `mailto:admin@example.com` |
 
 ### 클라이언트 환경 변수
 

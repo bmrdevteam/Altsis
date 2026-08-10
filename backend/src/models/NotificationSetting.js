@@ -24,6 +24,7 @@ import { conn } from "../_database/mongodb/index.js";
  * @prop {boolean} newPost - 새 게시글 알림
  * @prop {boolean} chatMessage - 직접 메시지 알림
  * @prop {boolean} soundEnabled - 알림음 활성화
+ * @prop {boolean} webPushEnabled - 잠금화면 Web Push (기본 OFF)
  */
 const settingsSchema = mongoose.Schema(
   {
@@ -38,6 +39,7 @@ const settingsSchema = mongoose.Schema(
     reminder: { type: Boolean, default: true },
     boardInvitation: { type: Boolean, default: true },
     eventReminderDefault: { type: Number, default: 15 },
+    webPushEnabled: { type: Boolean, default: false },
   },
   { _id: false }
 );
@@ -54,6 +56,7 @@ const settingsDefault = {
   reminder: true,
   boardInvitation: true,
   eventReminderDefault: 15,
+  webPushEnabled: false,
 };
 
 /**

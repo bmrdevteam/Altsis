@@ -61,5 +61,8 @@ export type TNotificationSettings = {
   chatMessage: boolean;
   soundEnabled: boolean;
   reminder: boolean;
+  boardInvitation?: boolean;
   eventReminderDefault: number;
+  /** 잠금화면 Web Push (기본 false, 옵트인) */
+  webPushEnabled?: boolean;
 };

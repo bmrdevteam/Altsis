@@ -1187,7 +1187,20 @@ export const sendReminder = async (req, res) => {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
-    const toUserList = req.body.userIds.map((userId) => ({ userId }));
+    const users = await User(req.user.academyId)
+      .find({ userId: { $in: req.body.userIds } })
+      .select("_id userId userName")
+      .lean();
+
+    const toUserList = users.map((u) => ({
+      user: u._id,
+      userId: u.userId,
+      userName: u.userName,
+    }));
+
+    if (toUserList.length === 0) {
+      return res.status(200).send({ sent: 0 });
+    }
 
     await sendAutoNotification({
       academyId: req.user.academyId,

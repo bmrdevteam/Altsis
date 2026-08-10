@@ -85,8 +85,13 @@ const Chat = () => {
 
     newSocket.on("new_message", () => {
       loadRooms();
-      // Play sound when chat window is not active
-      if (soundEnabledRef.current && !chatWindowActiveRef.current) {
+      // 포그라운드에서만 재생 (백그라운드 play는 Chrome 빈 미디어 알림 유발)
+      if (
+        soundEnabledRef.current &&
+        !chatWindowActiveRef.current &&
+        typeof document !== "undefined" &&
+        document.visibilityState === "visible"
+      ) {
         audioRef.current.play().catch(() => {
           // 자동 재생 정책에 의해 재생이 차단될 수 있음
         });

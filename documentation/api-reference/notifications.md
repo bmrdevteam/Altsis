@@ -20,6 +20,9 @@
 | `PUT` | `/api/notifications/bulk-check` | 알림 일괄 확인 | `isLoggedIn` |
 | `GET` | `/api/notifications/settings` | 알림 설정 조회 | `isLoggedIn` |
 | `PUT` | `/api/notifications/settings` | 알림 설정 수정 | `isLoggedIn` |
+| `GET` | `/api/notifications/push/vapid-public-key` | Web Push VAPID 공개키 | `isLoggedIn` |
+| `POST` | `/api/notifications/push/subscribe` | Web Push 구독 등록 | `isLoggedIn` |
+| `DELETE` | `/api/notifications/push/subscribe` | Web Push 구독 해제 | `isLoggedIn` |
 
 ---
 

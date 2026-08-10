@@ -5,6 +5,7 @@
 
 import { Notification, NotificationSetting, School } from "../models/index.js";
 import { getIoNotification } from "../utils/webSocket.js";
+import { sendWebPushesForNotifications } from "./webPush.js";
 import { logger } from "../log/logger.js";
 
 /**
@@ -123,6 +124,15 @@ export const sendAutoNotification = async ({
       logger.info(`WebSocket events sent to ${notifiedRooms.size} room(s)`);
     }
 
+    // Web Push (옵트인 사용자, 중요 유형만) — 실패해도 인앱 알림은 유지
+    sendWebPushesForNotifications({
+      academyId,
+      notifications: createdNotifications,
+      settingsByUserId: settingsMap,
+    }).catch((err) => {
+      logger.warn(`sendWebPushesForNotifications failed: ${err.message}`);
+    });
+
     return createdNotifications;
   } catch (err) {
     logger.error(`sendAutoNotification failed: ${err.message}`);
@@ -160,6 +170,7 @@ export const getOrCreateNotificationSetting = async (academyId, user) => {
         reminder: true,
         boardInvitation: true,
         eventReminderDefault: 15,
+        webPushEnabled: false,
       },
     });
   }

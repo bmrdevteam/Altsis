@@ -199,7 +199,12 @@ const Notification = () => {
     // listen 이벤트 수신 시 직접 알림 갱신
     newSocket.on("listen", () => {
       updateNotificationsRef.current();
-      if (soundEnabledRef.current) {
+      // 백그라운드 audio.play()는 Android Chrome에 빈 미디어 알림을 만듦
+      if (
+        soundEnabledRef.current &&
+        typeof document !== "undefined" &&
+        document.visibilityState === "visible"
+      ) {
         audioRef.current.play().catch(() => {
           // 자동 재생 정책에 의해 재생이 차단될 수 있음
         });
@@ -241,35 +246,37 @@ const Notification = () => {
       "calendarEvent",
       "reminder",
       "altSheetRow",
+      "board",
+      "altForm",
     ];
     return navigableTypes.includes(notification.relatedEntity.type);
+  };
+
+  const markNotificationChecked = async (notificationId: string) => {
+    try {
+      await NotificationAPI.UCheckNotification({
+        params: { _id: notificationId },
+      });
+      setNotifications((prev) => prev.filter((n) => n._id !== notificationId));
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
   };
 
   const handleNotificationClick = async (
     notification: TNotificationReceived
   ) => {
-    // navigable 알림: 기존 동작 (확인 처리 + 페이지 이동)
+    // navigable 알림: 이동 후 확인(삭제) — 이동 실패 시 알림이 사라지지 않도록
     if (isNavigableNotification(notification)) {
-      try {
-        await NotificationAPI.UCheckNotification({
-          params: { _id: notification._id },
-        });
-        setNotifications((prev) =>
-          prev.filter((n) => n._id !== notification._id)
-        );
-      } catch (err) {
-        ALERT_ERROR(err);
-      }
+      setNotificationContentActive(false);
 
       if (notification.relatedEntity?.type === "post") {
         try {
           const { post } = await PostAPI.RPost({
             params: { _id: notification.relatedEntity.id },
           });
-          setNotificationContentActive(false);
           navigate(`/boards/${post.board}/post/${post._id}`);
-        } catch (err) {
-          setNotificationContentActive(false);
+        } catch {
           navigate("/boards");
         }
       } else if (notification.relatedEntity?.type === "enrollment") {
@@ -277,14 +284,11 @@ const Notification = () => {
           const { enrollment } = await EnrollmentAPI.REnrollment({
             params: { _id: notification.relatedEntity.id },
           });
-          setNotificationContentActive(false);
           navigate(`/courses/enrolled/${enrollment.syllabus}`);
-        } catch (err) {
-          setNotificationContentActive(false);
+        } catch {
           navigate("/courses");
         }
       } else if (notification.relatedEntity?.type === "syllabus") {
-        setNotificationContentActive(false);
         if (notification.notificationType === "classCancellation") {
           navigate("/courses");
         } else if (
@@ -299,23 +303,26 @@ const Notification = () => {
         notification.relatedEntity?.type === "calendarEvent" ||
         notification.relatedEntity?.type === "reminder"
       ) {
-        setNotificationContentActive(false);
         navigate("/");
+      } else if (notification.relatedEntity?.type === "board") {
+        navigate(`/boards/${notification.relatedEntity.id}`);
+      } else if (notification.relatedEntity?.type === "altForm") {
+        navigate("/boards");
       } else if (notification.relatedEntity?.type === "altSheetRow") {
         try {
           const { boardId, row } = await AltSheetRowAPI.RAltSheetRow({
             params: { _id: notification.relatedEntity.id },
           });
-          setNotificationContentActive(false);
           const rowId = row?._id || notification.relatedEntity.id;
           navigate(
             `/boards/${boardId}?approval=${encodeURIComponent(String(rowId))}#활동`
           );
-        } catch (err) {
-          setNotificationContentActive(false);
+        } catch {
           navigate("/boards");
         }
       }
+
+      await markNotificationChecked(notification._id);
       return;
     }
 
@@ -435,6 +442,9 @@ const Notification = () => {
                   <span className={style.type}>[{notification.category}]</span>
                 )}
                 {notification.title}
+                {notification.description && (
+                  <div className={style.preview}>{notification.description}</div>
+                )}
               </div>
               <div className={style.time}>
                 {formatNotificationTime(notification.date)}
