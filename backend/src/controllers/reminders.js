@@ -13,7 +13,6 @@ import {
   FIELD_REQUIRED,
   __NOT_FOUND,
 } from "../messages/index.js";
-import { sendAutoNotification } from "../services/notifications.js";
 import {
   registerStandaloneReminder,
   removeStandaloneReminder,
@@ -159,39 +158,10 @@ export const create = async (req, res) => {
       reminderTime,
     });
 
-    // 리마인더 시간이 이미 지났거나 1분 이내이면 즉시 알림 발송
-    const now = new Date();
-    if (reminderTime.getTime() <= now.getTime() + 60 * 1000) {
-      try {
-        await sendAutoNotification({
-          academyId: req.user.academyId,
-          toUserList: [
-            {
-              user: req.user._id,
-              userId: req.user.userId,
-              userName: req.user.userName,
-            },
-          ],
-          notificationType: "reminder",
-          category: "리마인더",
-          title: reminder.title,
-          description: reminder.memo || "",
-          relatedEntity: {
-            type: "reminder",
-            id: reminder._id,
-          },
-        });
-        reminder.notified = true;
-        await reminder.save();
-      } catch (notifErr) {
-        logger.error(`Immediate reminder notification failed: ${notifErr.message}`);
-      }
-    } else {
-      // 미래 리마인더는 스케줄러 큐에 등록
-      registerStandaloneReminder(req.user.academyId, reminder).catch((err) =>
-        logger.error(`Failed to register standalone reminder: ${err.message}`)
-      );
-    }
+    // 등록 시점에는 알림을 보내지 않음. 스케줄러가 리마인더 시각에 1회만 발송.
+    registerStandaloneReminder(req.user.academyId, reminder).catch((err) =>
+      logger.error(`Failed to register standalone reminder: ${err.message}`)
+    );
 
     return res.status(200).send({ reminder });
   } catch (err) {

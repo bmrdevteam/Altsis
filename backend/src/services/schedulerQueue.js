@@ -335,7 +335,8 @@ export async function registerStandaloneReminder(academyId, reminder) {
   try {
     if (reminder.completed || reminder.notified) return;
     const reminderTime = new Date(reminder.reminderTime).getTime();
-    if (reminderTime <= Date.now()) return;
+    // 이미 도래했거나 직전이면 다음 cron 틱에서 처리되도록 현재 시각으로 등록
+    const score = Math.max(reminderTime, Date.now());
 
     const member = buildMember({
       academyId,
@@ -347,7 +348,7 @@ export async function registerStandaloneReminder(academyId, reminder) {
       academyId,
       `reminder:${String(reminder._id)}`,
       member,
-      reminderTime
+      score
     );
   } catch (err) {
     logger.error(`registerStandaloneReminder failed: ${err.message}`);

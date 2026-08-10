@@ -60,6 +60,9 @@ jobs:
           echo "s3_secretAccessKey2= ${{secrets.S3_SECRETACCESSKEY2}}" >> .env
           echo "s3_bucket2=${{secrets.S3_BUCKET2}}" >> .env
           echo "s3_bucket3=${{secrets.S3_BUCKET3}}" >> .env
+          echo "VAPID_PUBLIC_KEY=${{secrets.VAPID_PUBLIC_KEY}}" >> .env
+          echo "VAPID_PRIVATE_KEY=${{secrets.VAPID_PRIVATE_KEY}}" >> .env
+          echo "VAPID_SUBJECT=${{secrets.VAPID_SUBJECT}}" >> .env
 
       # 빌드 후 푸쉬
       - name: Build and push
