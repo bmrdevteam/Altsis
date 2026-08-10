@@ -180,11 +180,9 @@ const MarkdownEditor = ({
       TextStyle.configure({}),
       Color,
       Highlight.configure({ multicolor: true }),
-      // resizable:true 시 TableView가 트랜잭션마다 DOM을 갈아끼워
-      // CellSelection(드래그 다중 선택)이 유지되지 않는 TipTap 이슈가 있음.
-      // 열 너비 조절보다 셀 병합 선택을 우선한다.
       // StyledTable: 셀 스타일이 있으면 HTML로 직렬화해 저장 시 스타일 유지
-      StyledTable.configure({ resizable: false }),
+      // TipTap ≥3.6: TableView.ignoreMutation 수정으로 resizable과 CellSelection 병행 가능
+      StyledTable.configure({ resizable: true }),
       TableRow,
       TableCell.extend({
         addAttributes() {

@@ -1,12 +1,15 @@
 import {
   extractDocResponseSlots,
   fillDocResponseSlotsInOrder,
+  inferDocResponseSlots,
   isAcceptableMergedDocResponse,
   isBrokenDocResponseImageDump,
+  looksLikeFullDocRewrite,
   mergeDocResponseTemplate,
   parseDocResponseSlotFills,
   preservesDocResponseSkeleton,
   redactImagesForPrompt,
+  resolveDocResponseSlots,
   sanitizeAiDocResponseFill,
 } from "../../src/services/formResponseSlots.js";
 import { truncateText } from "../../src/services/aiPromptPolicy.js";
@@ -27,12 +30,13 @@ describe("formResponseSlots", () => {
 금액: (금액 작성)
 `;
 
-  it("extracts standard and legacy slots in order", () => {
-    const md = "A (작성) B (본문 작성) C (이곳에 입력하세요.) D";
+  it("extracts standard, idiom, and legacy slots in order", () => {
+    const md = "A (작성) B (본문 작성) C (기입) D (이곳에 입력하세요.) E";
     const slots = extractDocResponseSlots(md);
     expect(slots.map((s) => s.raw)).toEqual([
       "(작성)",
       "(본문 작성)",
+      "(기입)",
       "(이곳에 입력하세요.)",
     ]);
   });
@@ -77,15 +81,95 @@ describe("formResponseSlots", () => {
     expect(out).not.toContain("(본문 작성)");
   });
 
-  it("keeps AI output when skeleton is preserved", () => {
+  it("rejects full-document rewrite without SLOT markers (keeps base)", () => {
     const filled = template
       .replace("(작성)", "구입 계획")
       .replace("(본문 작성)", "본문")
       .replace("(금액 작성)", "1원");
     expect(preservesDocResponseSkeleton(template, filled)).toBe(true);
+    expect(looksLikeFullDocRewrite(filled)).toBe(true);
     expect(mergeDocResponseTemplate(template, filled).trim()).toBe(
-      filled.trim()
+      template.trim()
     );
+  });
+
+  it("infers empty table cells and label blanks when no explicit slots", () => {
+    const md = `| 수신 | 제목 |
+| :--- | :--- |
+| 교장 |  |
+
+제목:
+
+본문 ____
+`;
+    const inferred = inferDocResponseSlots(md);
+    expect(inferred.length).toBeGreaterThanOrEqual(2);
+    expect(inferred.some((s) => s.label === "제목")).toBe(true);
+    expect(inferred.some((s) => /본문/.test(s.label))).toBe(true);
+    // 빈 표 셀(제목 열)도 추론
+    expect(
+      inferred.some((s) => s.label === "교장" || s.label === "제목")
+    ).toBe(true);
+    expect(resolveDocResponseSlots(md).length).toBe(inferred.length);
+
+    const ai = `<<<SLOT 제목>>>
+교재 구입
+<<<END_SLOT>>>
+<<<SLOT 본문>>>
+보고합니다.
+<<<END_SLOT>>>`;
+    const out = mergeDocResponseTemplate(md, ai);
+    expect(out).toContain("| 수신 | 제목 |");
+    expect(out).toContain("교장");
+    expect(out).toContain("교재 구입");
+    expect(out).toContain("보고합니다.");
+    expect(out).not.toContain("____");
+  });
+
+  it("ignores inference when explicit (작성) slots exist", () => {
+    const md = `| 수신 | 제목 |
+| :--- | :--- |
+| 교장 |  |
+
+제목: (작성)
+`;
+    const explicit = extractDocResponseSlots(md);
+    expect(explicit.map((s) => s.raw)).toEqual(["(작성)"]);
+    expect(resolveDocResponseSlots(md)).toEqual(explicit);
+  });
+
+  it("infers empty HTML table cells (TipTap draft) and fills via SLOT", () => {
+    const html = `<table>
+<tr><td>수신</td><td>내부결재</td><td>경유</td><td><p><br></p></td></tr>
+<tr><td>제목</td><td colspan="3"></td></tr>
+<tr><td>담당자</td><td>&nbsp;</td><td>협조자</td><td>교육지원실장</td></tr>
+</table>
+<p>본문</p>`;
+    const inferred = inferDocResponseSlots(html);
+    expect(inferred.length).toBeGreaterThanOrEqual(2);
+    expect(inferred.some((s) => s.label === "경유")).toBe(true);
+    expect(inferred.some((s) => s.label === "제목")).toBe(true);
+    expect(inferred.some((s) => s.label === "담당자")).toBe(true);
+
+    const ai = `<<<SLOT 경유>>>
+행정실
+<<<END_SLOT>>>
+<<<SLOT 제목>>>
+물품 구입 기안
+<<<END_SLOT>>>
+<<<SLOT 담당자>>>
+조은길
+<<<END_SLOT>>>`;
+    const out = mergeDocResponseTemplate(html, ai);
+    expect(out).toContain("<table>");
+    expect(out).toContain("내부결재");
+    expect(out).toContain("행정실");
+    expect(out).toContain("물품 구입 기안");
+    expect(out).toContain("조은길");
+    expect(out).toContain("교육지원실장");
+    // 전체 HTML 재작성은 거부
+    const rewrite = `<table><tr><td>수신</td><td>새값</td></tr></table>`;
+    expect(mergeDocResponseTemplate(html, rewrite).trim()).toBe(html.trim());
   });
 
   it("parses slot fill blocks", () => {

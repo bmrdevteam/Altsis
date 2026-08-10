@@ -82,7 +82,26 @@ nope
     expect(byField.f5).toBe("본문입니다");
   });
 
-  it("falls back free-form text into docResponse", () => {
+  it("resolves FIELD key with id= prefix (model quirk)", () => {
+    const uuid = "19cf85ff-7393-4416-8799-d40d1630e07b";
+    const meta = [
+      { fieldId: uuid, type: "text", label: "제목" },
+      { fieldId: "f5", type: "docResponse", label: "기안문" },
+    ];
+    const text = `<<<FIELD id=${uuid} type=text>>>
+별무리학교 물품 구입 기안
+<<<END_FIELD>>>
+<<<FIELD id=f5 type=docResponse>>>
+<<<SLOT (본문 작성)>>>
+보고합니다.
+<<<END_SLOT>>>
+<<<END_FIELD>>>`;
+    const { byField } = parseFormResponseDraftResponse(text, meta);
+    expect(byField[uuid]).toBe("별무리학교 물품 구입 기안");
+    expect(byField.f5).toContain("SLOT");
+  });
+
+  it("falls back free-form text into docResponse only when a single target field", () => {
     const text = `네, 요청하신 기안문입니다.
 
 # 결제 요청
@@ -90,18 +109,31 @@ nope
 수신: 교장
 경유: 행정실
 내용: 첨부 양식을 참고하여 작성했습니다.`;
-    const { byField } = parseFormResponseDraftResponse(text, fields);
+    const single = [{ fieldId: "f5", type: "docResponse", label: "기안문" }];
+    const { byField } = parseFormResponseDraftResponse(text, single);
     expect(byField.f5).toContain("결제 요청");
     expect(byField.f5).toContain("행정실");
   });
 
-  it("recovers content when FIELD id is wrong", () => {
+  it("does not dump free-form text when multiple target fields", () => {
+    const text = `네, 요청하신 기안문입니다.
+
+# 결제 요청
+
+수신: 교장`;
+    const { byField } = parseFormResponseDraftResponse(text, fields);
+    expect(byField.f5).toBeUndefined();
+    expect(Object.keys(byField)).toHaveLength(0);
+  });
+
+  it("recovers content when FIELD id is wrong and only one target field", () => {
     const text = `<<<FIELD draft type=docResponse>>>
 # 결제 기안
 
 수신: 교장
 <<<END_FIELD>>>`;
-    const { byField } = parseFormResponseDraftResponse(text, fields);
+    const single = [{ fieldId: "f5", type: "docResponse", label: "기안문" }];
+    const { byField } = parseFormResponseDraftResponse(text, single);
     expect(byField.f5).toContain("결제 기안");
     expect(byField.f5).toContain("교장");
   });

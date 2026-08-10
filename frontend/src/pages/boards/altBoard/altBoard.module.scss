@@ -2270,7 +2270,8 @@
 .docResponseField {
   width: 100%;
   max-width: 100%;
-  overflow-x: auto;
+  /* 툴바 드롭다운이 잘리지 않도록. 가로 스크롤은 에디터 본문(.tiptapContent)에서 처리 */
+  overflow: visible;
   box-sizing: border-box;
   padding: 12px 14px;
   border: 1px solid var(--border-default-color, var(--border-color));

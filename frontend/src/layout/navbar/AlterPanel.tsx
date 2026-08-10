@@ -52,7 +52,12 @@ import {
   type TAlterDraftResult,
   type TAlterDocumentReviewResult,
 } from "./alterUi";
+import { ALTER_CHAT_SNAPSHOT_PROFILES } from "utils/alterChatSnapshot";
 import style from "./Alter.module.scss";
+
+/** 기본 스냅샷 한도(50)를 넘길 때만 「데이터 확대」뱃지를 노출 */
+const DATA_EXPAND_BADGE_MIN_TOTAL =
+  ALTER_CHAT_SNAPSHOT_PROFILES.default.MAX_ITEMS;
 
 const formatAlterListTime = (dateString?: string) => {
   if (!dateString) return "";
@@ -193,17 +198,60 @@ const wantsDocumentReviewText = (text: string) =>
   /^(점검|검토|리뷰|피드백)/.test(text) ||
   /\/(문서[-_]?점검|document[-_]?review|점검|검토|review)/i.test(text);
 
+/** 응답「초안 작성」의도만. 「작성한 응답에 대해…」피드백은 제외 */
 const wantsFormResponseDraftText = (text: string) =>
-  /응답.*(초안|작성|다듬|기안)/.test(text) ||
-  /(초안|작성|다듬).*응답/.test(text) ||
+  /\/(응답|form[-_]?response[-_]?draft)/i.test(text) ||
   /기안문.*(초안|작성|다듬)/.test(text) ||
-  /\/(응답|form[-_]?response[-_]?draft)/i.test(text);
+  /응답\s*(을|를)?\s*(초안|작성|다듬|채우|채워)/.test(text) ||
+  /(초안|다듬)\s*.*응답/.test(text);
 
 const wantsActivityDraftText = (text: string) =>
   /활동.*(초안|작성|다듬|양식)/.test(text) ||
   /(초안|작성|다듬).*활동/.test(text) ||
   /양식.*(초안|작성)/.test(text) ||
   /\/(활동|양식|activity[-_]?draft)/i.test(text);
+
+/** 요청 Skill에 맞게 history를 줄여 문맥 오염을 막는다 */
+const buildHistoryForSkill = (
+  msgs: ChatMessage[],
+  skill: TAlterSkillId
+): Array<{ role: string; content: string }> => {
+  const clip = (s: string, max: number) =>
+    s.length <= max ? s : `${s.slice(0, Math.max(0, max - 1))}…`;
+
+  const rows = msgs
+    .filter((m) => m.role === "user" || m.role === "assistant")
+    .map((m) => {
+      let content =
+        m.content ||
+        (m.attachments?.length
+          ? m.attachments.map((a) => `[첨부: ${a.name}]`).join(" ")
+          : "");
+      const msgSkill = (m.skill || "chat") as TAlterSkillId;
+      if (
+        skill === "chat" &&
+        m.role === "assistant" &&
+        (m.draft || m.review || (msgSkill !== "chat" && isDraftPrepSkill(msgSkill)))
+      ) {
+        const label = SKILL_LABEL[msgSkill] || msgSkill;
+        const brief = content ? clip(content, 200) : "";
+        content = brief
+          ? `[이전 ${label} 결과] ${brief}`
+          : `[이전 ${label} 결과]`;
+      }
+      return { role: m.role, content, skill: msgSkill };
+    });
+
+  if (skill === "chat") {
+    return rows.slice(-12).map(({ role, content }) => ({ role, content }));
+  }
+
+  // draft/채점: 동일 skill + chat 위주, 짧게
+  const filtered = rows.filter(
+    (m) => m.skill === skill || m.skill === "chat" || !m.skill
+  );
+  return filtered.slice(-8).map(({ role, content }) => ({ role, content }));
+};
 
 const formatAlt = (n: number) => {
   if (!Number.isFinite(n)) return "0";
@@ -973,11 +1021,7 @@ const AlterPanel = ({ onClose }: Props) => {
 
   const selectSkill = (skill: TAlterSkillId) => {
     if (isWorking) return;
-    // 챗방 = 스킬 1개: 기존 대화에서 다른 스킬이면 새 대화로
-    if (conversationId && selectedSkill !== skill) {
-      startNewConversation(skill);
-      return;
-    }
+    // 한 대화에서 여러 Skill 허용 — 칩만 전환
     setSelectedSkill(skill);
     setExpandedGuidelineId(null);
     const prep = isDraftPrepSkill(skill);
@@ -1559,6 +1603,7 @@ const AlterPanel = ({ onClose }: Props) => {
     setIsWorking(true);
     setError("");
     setSteps([]);
+    setSelectedSkill(skill);
     setShowPrep(false);
     setShowHistory(false);
     setAttachMenuOpen(false);
@@ -1592,16 +1637,7 @@ const AlterPanel = ({ onClose }: Props) => {
     // 말풍선에 바로 올린 뒤 입력창 첨부는 비움 (URL은 말풍선용이므로 revoke 하지 않음)
     setSourceAttachments([]);
 
-    const history = [...messages, userMsg]
-      .filter((m) => m.role === "user" || m.role === "assistant")
-      .map((m) => ({
-        role: m.role,
-        content:
-          m.content ||
-          (m.attachments?.length
-            ? m.attachments.map((a) => `[첨부: ${a.name}]`).join(" ")
-            : ""),
-      }));
+    const history = buildHistoryForSkill([...messages, userMsg], skill);
 
     setMessages((prev) => [...prev, userMsg]);
     if (!conversationId || conversationTitle === "새 대화") {
@@ -1865,6 +1901,90 @@ const AlterPanel = ({ onClose }: Props) => {
     setShowPrep(false);
   };
 
+  const resolveSendSkill = (text: string): TAlterSkillId => {
+    const pageType = pageContext?.pageType;
+    const explicitDraft = (): TAlterSkillId | null => {
+      if (wantsEvalDraftText(text) && pageType === "evaluation") {
+        return "evaluation-draft";
+      }
+      if (wantsArchiveDraftText(text) && pageType === "archive") {
+        return "archive-draft";
+      }
+      if (
+        wantsDocumentReviewText(text) &&
+        (pageType === "docs" || pageType === "document")
+      ) {
+        return "document-review";
+      }
+      if (wantsDocumentDraftText(text) && pageType === "document") {
+        return "document-draft";
+      }
+      if (wantsFormResponseDraftText(text) && pageType === "form-response") {
+        return "form-response-draft";
+      }
+      if (wantsActivityDraftText(text) && pageType === "activity") {
+        return "activity-draft";
+      }
+      if (/채점/.test(text) && pageType === "assessment-grade") {
+        return "assessment-grade";
+      }
+      if (
+        (wantsSyllabusDraftText(text) || sourceAttachments.length > 0) &&
+        pageType === "syllabus-edit"
+      ) {
+        return "syllabus-draft";
+      }
+      return null;
+    };
+
+    // 챗봇을 고른 상태: 명시적 작성 의도만 Skill로 승격
+    if (selectedSkill === "chat") {
+      return explicitDraft() || "chat";
+    }
+
+    const upgraded = explicitDraft();
+    if (upgraded) return upgraded;
+
+    // 선택한 draft Skill은 페이지가 맞을 때만 유지
+    if (
+      selectedSkill === "syllabus-draft" &&
+      pageType === "syllabus-edit"
+    ) {
+      return "syllabus-draft";
+    }
+    if (
+      selectedSkill === "document-review" &&
+      (pageType === "docs" || pageType === "document")
+    ) {
+      return "document-review";
+    }
+    if (selectedSkill === "document-draft" && pageType === "document") {
+      return "document-draft";
+    }
+    if (
+      selectedSkill === "form-response-draft" &&
+      pageType === "form-response"
+    ) {
+      return "form-response-draft";
+    }
+    if (selectedSkill === "activity-draft" && pageType === "activity") {
+      return "activity-draft";
+    }
+    if (
+      selectedSkill === "assessment-grade" &&
+      pageType === "assessment-grade"
+    ) {
+      return "assessment-grade";
+    }
+    if (selectedSkill === "evaluation-draft" && pageType === "evaluation") {
+      return "evaluation-draft";
+    }
+    if (selectedSkill === "archive-draft" && pageType === "archive") {
+      return "archive-draft";
+    }
+    return "chat";
+  };
+
   const sendDraft = () => {
     const text = draft.trim();
     if (
@@ -1874,76 +1994,7 @@ const AlterPanel = ({ onClose }: Props) => {
     )
       return;
     setDraft("");
-    let skill: TAlterSkillId = "chat";
-    if (
-      wantsEvalDraftText(text) &&
-      pageContext?.pageType === "evaluation"
-    ) {
-      skill = "evaluation-draft";
-    } else if (
-      wantsArchiveDraftText(text) &&
-      pageContext?.pageType === "archive"
-    ) {
-      skill = "archive-draft";
-    } else if (
-      wantsDocumentReviewText(text) &&
-      (pageContext?.pageType === "docs" ||
-        pageContext?.pageType === "document")
-    ) {
-      skill = "document-review";
-    } else if (
-      wantsDocumentDraftText(text) &&
-      pageContext?.pageType === "document"
-    ) {
-      skill = "document-draft";
-    } else if (
-      wantsFormResponseDraftText(text) &&
-      pageContext?.pageType === "form-response"
-    ) {
-      skill = "form-response-draft";
-    } else if (
-      wantsActivityDraftText(text) &&
-      pageContext?.pageType === "activity"
-    ) {
-      skill = "activity-draft";
-    } else if (
-      (/채점/.test(text) || selectedSkill === "assessment-grade") &&
-      pageContext?.pageType === "assessment-grade"
-    ) {
-      skill = "assessment-grade";
-    } else if (
-      (wantsSyllabusDraftText(text) || sourceAttachments.length > 0) &&
-      pageContext?.pageType === "syllabus-edit"
-    ) {
-      skill = "syllabus-draft";
-    } else if (
-      selectedSkill === "syllabus-draft" &&
-      pageContext?.pageType === "syllabus-edit"
-    ) {
-      skill = "syllabus-draft";
-    } else if (
-      selectedSkill === "document-review" &&
-      (pageContext?.pageType === "docs" ||
-        pageContext?.pageType === "document")
-    ) {
-      skill = "document-review";
-    } else if (
-      selectedSkill === "document-draft" &&
-      pageContext?.pageType === "document"
-    ) {
-      skill = "document-draft";
-    } else if (
-      selectedSkill === "form-response-draft" &&
-      pageContext?.pageType === "form-response"
-    ) {
-      skill = "form-response-draft";
-    } else if (
-      selectedSkill === "activity-draft" &&
-      pageContext?.pageType === "activity"
-    ) {
-      skill = "activity-draft";
-    }
-    void runSkill(skill, text);
+    void runSkill(resolveSendSkill(text), text);
   };
 
   const guessAttachKind = (file: File): "image" | "file" => {
@@ -2422,11 +2473,48 @@ const AlterPanel = ({ onClose }: Props) => {
     }
   }
 
-  const pageDataHintText = pageDataHint
-    ? pageDataHint.isPartial
-      ? `페이지 데이터 ${pageDataHint.included}/${pageDataHint.total}건 참고`
-      : `페이지 데이터 ${pageDataHint.total}건 참고`
-    : "";
+  const pageDataHintText = (() => {
+    if (!pageDataHint) return "";
+    const { included, total, isPartial } = pageDataHint;
+    // 목록형: 포함된 행/전체 행. 문서형(1건·필드만 잘림): 건수만.
+    if (isPartial && included < total) {
+      return `페이지 데이터 ${included}/${total}건 참고`;
+    }
+    if (isPartial) {
+      return `페이지 데이터 ${total}건 참고 (일부 내용)`;
+    }
+    return `페이지 데이터 ${total}건 참고`;
+  })();
+
+  const showDataExpandBadge =
+    !!pageContext?.getChatSnapshot &&
+    !!pageDataHint &&
+    pageDataHint.total > DATA_EXPAND_BADGE_MIN_TOTAL;
+
+  // 50건 이하로 줄면 확대 모드·뱃지 모두 정리
+  useEffect(() => {
+    if (dataExpand && !showDataExpandBadge) {
+      setDataExpand(false);
+    }
+  }, [dataExpand, showDataExpandBadge]);
+
+  const pageDataEmptySubtitle = (() => {
+    if (!pageDataHint) {
+      return "Alter에게 질문하세요. 추천 Skill을 고르면 초안·점검 모드로 전환됩니다. 대화는 자동 저장됩니다.";
+    }
+    const { included, total, isPartial } = pageDataHint;
+    if (isPartial && included < total) {
+      return dataExpand
+        ? `지금 연 페이지 데이터 중 ${included}/${total}건만 참고합니다. 더 정확한 답이 필요하면 목록을 필터로 줄여 주세요.`
+        : showDataExpandBadge
+          ? `지금 연 페이지 데이터 중 ${included}/${total}건만 참고합니다. 목록을 필터로 줄이거나 「데이터 확대」를 켤 수 있습니다.`
+          : `지금 연 페이지 데이터 중 ${included}/${total}건만 참고합니다. 목록을 필터로 줄여 주세요.`;
+    }
+    if (isPartial) {
+      return `지금 연 페이지 데이터를 기준으로 답합니다. 긴 내용은 일부만 포함될 수 있습니다.`;
+    }
+    return `지금 연 페이지에 불러온 데이터(${total}건)를 기준으로 답합니다. 아래 Skill로 작성·점검 모드로 전환할 수 있습니다.`;
+  })();
 
   const contextLabel =
     pageContext?.label ||
@@ -3035,22 +3123,22 @@ const AlterPanel = ({ onClose }: Props) => {
             : ""}
           {pageDataHintText ? ` · ${pageDataHintText}` : ""}
         </span>
-        {pageContext?.getChatSnapshot ? (
-          <label
-            className={style.dataExpandToggle}
+        {showDataExpandBadge ? (
+          <button
+            type="button"
+            className={`${style.dataExpandBadge}${
+              dataExpand ? ` ${style.dataExpandBadgeActive}` : ""
+            }`}
+            aria-pressed={dataExpand}
             title={
               dataExpand
                 ? "데이터 확대 적용 중(최대 150건). 목록이 더 많으면 필터로 줄인 뒤 질문하세요."
                 : "더 많은 페이지 데이터를 참고합니다(최대 150건). Alt 사용량이 늘어날 수 있습니다."
             }
+            onClick={() => setDataExpand((v) => !v)}
           >
-            <input
-              type="checkbox"
-              checked={dataExpand}
-              onChange={(e) => setDataExpand(e.target.checked)}
-            />
-            <span>데이터 확대</span>
-          </label>
+            데이터 확대
+          </button>
         ) : null}
       </div>
 
@@ -3068,13 +3156,7 @@ const AlterPanel = ({ onClose }: Props) => {
               />
             }
             title="질문해 보세요"
-            subtitle={
-              pageDataHint
-                ? pageDataHint.isPartial
-                  ? `지금 연 페이지 데이터 중 ${pageDataHint.included}/${pageDataHint.total}건만 참고합니다. 목록을 필터로 줄이거나 「데이터 확대」를 켠 뒤 질문하세요.`
-                  : `지금 연 페이지에 불러온 데이터(${pageDataHint.total}건)를 기준으로 답합니다. 아래 Skill로 작성·점검 모드로 전환할 수 있습니다.`
-                : "Alter에게 질문하세요. 추천 Skill을 고르면 초안·점검 모드로 전환됩니다. 대화는 자동 저장됩니다."
-            }
+            subtitle={pageDataEmptySubtitle}
           />
         )}
         {messages.length === 0 && inPrep && (

@@ -107,7 +107,8 @@ const useRegisterAlterAssessmentGrade = (params: Params) => {
           {
             summary: `평가 채점 — ${f.title || "평가"} · ${respondentLabel}`,
             items: [{ title: f.title || "평가", fields: itemFields }],
-            totalCount: gradeFields.length,
+            // 문서 1건 스냅샷 — totalCount는 행/문서 수(필드 수가 아님)
+            totalCount: 1,
             isPartial: gradeFields.length > fieldCap,
           },
           { dataExpand: opts?.dataExpand }

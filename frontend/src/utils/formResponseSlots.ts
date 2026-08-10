@@ -4,7 +4,10 @@
  */
 
 const STANDARD_SLOT_RE = /\((?:작성|[^\n()]{1,40}?작성)\)/g;
+const FILL_IDIOM_RE = /\((?:기입|입력|내용)\)/g;
 const LEGACY_SLOT_RE = /\(이곳에\s*입력하세요\.?\)/g;
+
+const MAX_INFERRED_SLOTS = 20;
 
 /** 미리보기용: data URI·초장 이미지를 짧은 표기로 치환 */
 export const redactImagesForPreview = (text: string) => {
@@ -38,7 +41,7 @@ export const isBrokenDocResponseImageDump = (text: string) => {
   return false;
 };
 
-export type TDocResponseSlot = {
+type TDocResponseSlot = {
   raw: string;
   label: string;
   start: number;
@@ -46,7 +49,21 @@ export type TDocResponseSlot = {
   index: number;
 };
 
-export const extractDocResponseSlots = (text: string): TDocResponseSlot[] => {
+const dedupeSlotsByRange = (
+  found: Array<Omit<TDocResponseSlot, "index">>
+): TDocResponseSlot[] => {
+  found.sort((a, b) => a.start - b.start || a.end - b.end);
+  const slots: TDocResponseSlot[] = [];
+  let lastEnd = -1;
+  for (const s of found) {
+    if (s.start < lastEnd) continue;
+    slots.push({ ...s, index: slots.length });
+    lastEnd = s.end;
+  }
+  return slots;
+};
+
+const extractDocResponseSlots = (text: string): TDocResponseSlot[] => {
   const src = String(text || "");
   const found: Array<Omit<TDocResponseSlot, "index">> = [];
   const pushMatches = (re: RegExp) => {
@@ -62,19 +79,216 @@ export const extractDocResponseSlots = (text: string): TDocResponseSlot[] => {
     }
   };
   pushMatches(STANDARD_SLOT_RE);
+  pushMatches(FILL_IDIOM_RE);
   pushMatches(LEGACY_SLOT_RE);
-  found.sort((a, b) => a.start - b.start || a.end - b.end);
-  const slots: TDocResponseSlot[] = [];
-  let lastEnd = -1;
-  for (const s of found) {
-    if (s.start < lastEnd) continue;
-    slots.push({ ...s, index: slots.length });
-    lastEnd = s.end;
-  }
-  return slots;
+  return dedupeSlotsByRange(found);
 };
 
-export const preservesDocResponseSkeleton = (base: string, aiText: string) => {
+const isMdTableSeparatorLine = (line: string) => {
+  const t = String(line || "").trim();
+  if (!t.includes("|") || !/-{3,}/.test(t)) return false;
+  return /^[\s|:\-]+$/.test(t);
+};
+
+const parseMdRowCells = (line: string, lineStart: number) => {
+  const cells: Array<{
+    inner: string;
+    text: string;
+    start: number;
+    end: number;
+  }> = [];
+  const cellRe = /\|([^|]*)/g;
+  let m: RegExpExecArray | null;
+  while ((m = cellRe.exec(line)) !== null) {
+    const inner = m[1];
+    const start = lineStart + m.index + 1;
+    const end = start + inner.length;
+    cells.push({
+      inner,
+      text: inner.trim(),
+      start,
+      end,
+    });
+  }
+  return cells;
+};
+
+/** HTML 셀 안이 시각적으로 비어 있는지 (에디터 빈 td / &nbsp; / 빈 p) */
+const isBlankHtmlCellInner = (inner: string) => {
+  let t = String(inner || "");
+  if (/data:image|<img\b|!\[[\s\S]*\]\(/i.test(t)) return false;
+  if (/<<KEEP_IMAGE_/.test(t)) return false;
+  t = t
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&#160;/g, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/<br\s*\/?>/gi, "")
+    .replace(/<\/?(?:p|div|span|strong|em|b|i|u)\b[^>]*>/gi, "")
+    .replace(/<[^>]+>/g, "")
+    .replace(/\s+/g, "")
+    .trim();
+  return t.length === 0;
+};
+
+const stripHtmlToText = (html: string) =>
+  String(html || "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&#160;/g, " ")
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const inferHtmlTableEmptyCells = (
+  src: string
+): Array<Omit<TDocResponseSlot, "index">> => {
+  const found: Array<Omit<TDocResponseSlot, "index">> = [];
+  if (!/<table[\s>]/i.test(src) || !/<(?:td|th)\b/i.test(src)) return found;
+
+  const cellRe = /<(td|th)\b([^>]*)>([\s\S]*?)<\/\1>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = cellRe.exec(src)) !== null) {
+    const tag = String(m[1] || "").toLowerCase();
+    const inner = m[3] ?? "";
+    const openEnd = m[0].indexOf(">");
+    if (openEnd < 0) continue;
+    const innerStart = m.index + openEnd + 1;
+    if (tag === "th") continue;
+    if (!isBlankHtmlCellInner(inner)) continue;
+
+    const before = src.slice(0, m.index);
+    const trOpen = before.toLowerCase().lastIndexOf("<tr");
+    let label = "";
+    if (trOpen >= 0) {
+      const rowSlice = src.slice(trOpen, m.index);
+      const priorCells = Array.from(
+        rowSlice.matchAll(/<(td|th)\b[^>]*>([\s\S]*?)<\/\1>/gi)
+      );
+      for (let i = priorCells.length - 1; i >= 0; i -= 1) {
+        const text = stripHtmlToText(priorCells[i][2]);
+        if (text) {
+          label = text.slice(0, 40);
+          break;
+        }
+      }
+    }
+    if (!label) label = "빈칸";
+
+    found.push({
+      raw: inner,
+      label,
+      start: innerStart,
+      end: innerStart + inner.length,
+    });
+  }
+  return found;
+};
+
+/** 명시 작성 칸이 없을 때 빈칸처럼 보이는 위치를 추론 */
+const inferDocResponseSlots = (text: string): TDocResponseSlot[] => {
+  const src = String(text || "");
+  if (!src.trim()) return [];
+  const found: Array<Omit<TDocResponseSlot, "index">> = [];
+
+  const lines = src.split("\n");
+  let offset = 0;
+  let inTable = false;
+  let headerLabels: string[] = [];
+  for (let li = 0; li < lines.length; li += 1) {
+    const line = lines[li];
+    const lineStart = offset;
+    offset += line.length + 1;
+
+    if (!line.includes("|")) {
+      inTable = false;
+      headerLabels = [];
+      continue;
+    }
+
+    if (isMdTableSeparatorLine(line)) {
+      inTable = true;
+      if (li > 0 && lines[li - 1].includes("|")) {
+        headerLabels = parseMdRowCells(
+          lines[li - 1],
+          lineStart - lines[li - 1].length - 1
+        ).map((c) => c.text || "");
+      }
+      continue;
+    }
+
+    if (!inTable) continue;
+
+    const cells = parseMdRowCells(line, lineStart);
+    for (let ci = 0; ci < cells.length; ci += 1) {
+      const cell = cells[ci];
+      if (cell.text) continue;
+      if (/!\[/.test(cell.inner) || /data:image/i.test(cell.inner)) continue;
+      if (/<<KEEP_IMAGE_/.test(cell.inner)) continue;
+      let label = "";
+      for (let left = ci - 1; left >= 0; left -= 1) {
+        if (cells[left].text) {
+          label = cells[left].text;
+          break;
+        }
+      }
+      if (!label && headerLabels[ci]) label = headerLabels[ci];
+      if (!label) label = `빈칸${ci + 1}`;
+      found.push({
+        raw: cell.inner,
+        label,
+        start: cell.start,
+        end: cell.end,
+      });
+    }
+  }
+
+  for (const slot of inferHtmlTableEmptyCells(src)) {
+    found.push(slot);
+  }
+
+  {
+    const re = /^([^\n|:]{1,20})\s*[:：]\s*$/gm;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(src)) !== null) {
+      const label = String(m[1] || "").trim();
+      if (!label) continue;
+      const insertAt = m.index + m[0].length;
+      found.push({
+        raw: "",
+        label,
+        start: insertAt,
+        end: insertAt,
+      });
+    }
+  }
+
+  {
+    const blankRe = /_{3,}|[.·]{3,}/g;
+    let m: RegExpExecArray | null;
+    while ((m = blankRe.exec(src)) !== null) {
+      const lineStart = src.lastIndexOf("\n", m.index) + 1;
+      const prefix = src.slice(lineStart, m.index).replace(/\s+$/u, "");
+      const label =
+        prefix.replace(/^[\s|*#-]+/, "").trim().slice(-20) || "빈칸";
+      found.push({
+        raw: m[0],
+        label,
+        start: m.index,
+        end: m.index + m[0].length,
+      });
+    }
+  }
+
+  return dedupeSlotsByRange(found).slice(0, MAX_INFERRED_SLOTS);
+};
+
+const resolveDocResponseSlots = (text: string): TDocResponseSlot[] => {
+  const explicit = extractDocResponseSlots(text);
+  if (explicit.length) return explicit;
+  return inferDocResponseSlots(text);
+};
+
+const preservesDocResponseSkeleton = (base: string, aiText: string) => {
   const baseMd = String(base || "");
   const ai = String(aiText || "");
   if (!baseMd.trim() || !ai.trim()) return false;
@@ -130,7 +344,7 @@ export const isAcceptableMergedDocResponse = (
   }
 
   const baseHasSkeleton =
-    extractDocResponseSlots(b).length > 0 ||
+    resolveDocResponseSlots(b).length > 0 ||
     /수신/.test(b) ||
     /경유/.test(b) ||
     /\|\s*:?-{3,}/.test(b) ||
