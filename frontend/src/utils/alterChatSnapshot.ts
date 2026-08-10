@@ -16,20 +16,58 @@ export type TAlterChatSnapshot = {
   /** 항목·길이 상한으로 일부만 포함된 경우 */
   isPartial?: boolean;
   totalCount?: number;
+  /** 데이터 확대 모드로 생성된 경우 (서버 재절단용) */
+  dataExpand?: boolean;
 };
 
-export const ALTER_CHAT_SNAPSHOT_LIMITS = {
-  MAX_ITEMS: 50,
-  /**
-   * 필드값 상한. 문서함·보드 문서 본문(DOCUMENT_CHARS)과 맞춰
-   * finalize 단계에서 긴 생기부 등이 500자로 재잘리지 않게 한다.
-   * 목록형 화면은 등록 훅에서 짧게 잘라 보낸다.
-   */
-  FIELD_VALUE_CHARS: 40000,
-  SUMMARY_CHARS: 400,
-  /** 문서함/보드 문서 본문 (생기부 인쇄본 등) */
-  DOCUMENT_CHARS: 40000,
-  TOTAL_CHARS: 48000,
+export type TAlterChatSnapshotProfile = "default" | "expanded";
+
+export type TAlterChatSnapshotLimits = {
+  MAX_ITEMS: number;
+  FIELD_VALUE_CHARS: number;
+  SUMMARY_CHARS: number;
+  DOCUMENT_CHARS: number;
+  TOTAL_CHARS: number;
+};
+
+/**
+ * 기본 / 데이터 확대 한도. 백엔드 PROMPT_LIMITS.CHAT_SNAPSHOT_* 와 동기화.
+ */
+export const ALTER_CHAT_SNAPSHOT_PROFILES: Record<
+  TAlterChatSnapshotProfile,
+  TAlterChatSnapshotLimits
+> = {
+  default: {
+    MAX_ITEMS: 50,
+    /**
+     * 필드값 상한. 문서함·보드 문서 본문(DOCUMENT_CHARS)과 맞춰
+     * finalize 단계에서 긴 생기부 등이 500자로 재잘리지 않게 한다.
+     * 목록형 화면은 등록 훅에서 짧게 잘라 보낸다.
+     */
+    FIELD_VALUE_CHARS: 40000,
+    SUMMARY_CHARS: 400,
+    DOCUMENT_CHARS: 40000,
+    TOTAL_CHARS: 48000,
+  },
+  expanded: {
+    MAX_ITEMS: 150,
+    FIELD_VALUE_CHARS: 40000,
+    SUMMARY_CHARS: 400,
+    DOCUMENT_CHARS: 40000,
+    TOTAL_CHARS: 120000,
+  },
+};
+
+/** @deprecated 호환용 — ALTER_CHAT_SNAPSHOT_PROFILES.default 와 동일 */
+export const ALTER_CHAT_SNAPSHOT_LIMITS = ALTER_CHAT_SNAPSHOT_PROFILES.default;
+
+export const snapshotProfileFromExpand = (
+  dataExpand?: boolean
+): TAlterChatSnapshotProfile => (dataExpand ? "expanded" : "default");
+
+export type TAlterChatSnapshotOpts = {
+  dataExpand?: boolean;
+  profile?: TAlterChatSnapshotProfile;
 };
 
 export const clipText = (value: unknown, maxChars: number): string => {
@@ -51,9 +89,13 @@ const fieldBudget = (fields: Record<string, string>): number =>
  * 항목·문자수 상한을 적용한다.
  */
 export const finalizeChatSnapshot = (
-  snap: TAlterChatSnapshot
+  snap: TAlterChatSnapshot,
+  opts?: TAlterChatSnapshotOpts
 ): TAlterChatSnapshot => {
-  const limits = ALTER_CHAT_SNAPSHOT_LIMITS;
+  const profile =
+    opts?.profile || snapshotProfileFromExpand(opts?.dataExpand);
+  const limits = ALTER_CHAT_SNAPSHOT_PROFILES[profile];
+  const dataExpand = profile === "expanded";
   let isPartial = !!snap.isPartial;
   const totalCount =
     typeof snap.totalCount === "number"
@@ -94,6 +136,7 @@ export const finalizeChatSnapshot = (
     items,
     isPartial: !!isPartial,
     totalCount,
+    dataExpand: dataExpand || undefined,
   };
 };
 
@@ -170,6 +213,7 @@ export const buildCourseListChatSnapshot = (
     label: string;
     seasonLabel?: string;
     enrolledIds?: Set<string> | string[];
+    dataExpand?: boolean;
   }
 ): TAlterChatSnapshot => {
   const list = Array.isArray(courses) ? courses : [];
@@ -182,11 +226,14 @@ export const buildCourseListChatSnapshot = (
   const items = list.map((c) => courseToSnapshotItem(c, enrolled));
 
   const seasonBit = opts.seasonLabel ? ` (${opts.seasonLabel})` : "";
-  return finalizeChatSnapshot({
-    summary: `${opts.label}${seasonBit} — 불러온 수업 ${list.length}건`,
-    items,
-    totalCount: list.length,
-  });
+  return finalizeChatSnapshot(
+    {
+      summary: `${opts.label}${seasonBit} — 불러온 수업 ${list.length}건`,
+      items,
+      totalCount: list.length,
+    },
+    { dataExpand: opts.dataExpand }
+  );
 };
 
 export type TAlterSubjectUser = {
@@ -215,6 +262,7 @@ export const buildUserSearchChatSnapshot = (opts: {
   courses: any[];
   /** 시간표 탭이면 칸별 배치도 포함 */
   includeTimetableSlots?: boolean;
+  dataExpand?: boolean;
 }): TAlterChatSnapshot => {
   const list = Array.isArray(opts.courses) ? opts.courses : [];
   const u = opts.user || {};
@@ -249,11 +297,14 @@ export const buildUserSearchChatSnapshot = (opts: {
 
   const seasonBit = opts.seasonLabel ? ` (${opts.seasonLabel})` : "";
   const name = u.userName || "사용자";
-  return finalizeChatSnapshot({
-    summary: `학생/사용자 조회 — ${name} · ${opts.tabLabel}${seasonBit} — 수업 ${list.length}건`,
-    items,
-    totalCount: items.length,
-  });
+  return finalizeChatSnapshot(
+    {
+      summary: `학생/사용자 조회 — ${name} · ${opts.tabLabel}${seasonBit} — 수업 ${list.length}건`,
+      items,
+      totalCount: items.length,
+    },
+    { dataExpand: opts.dataExpand }
+  );
 };
 
 const eventStartMs = (e: any): number => {
@@ -305,6 +356,7 @@ export const buildCalendarEventsChatSnapshot = (
     rangeLabel?: string;
     visibleStart?: string;
     visibleEnd?: string;
+    dataExpand?: boolean;
   } = {}
 ): TAlterChatSnapshot => {
   const list = Array.isArray(events) ? events : [];
@@ -335,11 +387,14 @@ export const buildCalendarEventsChatSnapshot = (
     };
   });
   const range = opts.rangeLabel ? ` · ${opts.rangeLabel}` : "";
-  return finalizeChatSnapshot({
-    summary: `${opts.label || "캘린더"}${range} — 가시 일정 ${visible.length}건`,
-    items,
-    totalCount: visible.length,
-  });
+  return finalizeChatSnapshot(
+    {
+      summary: `${opts.label || "캘린더"}${range} — 가시 일정 ${visible.length}건`,
+      items,
+      totalCount: visible.length,
+    },
+    { dataExpand: opts.dataExpand }
+  );
 };
 
 /**
@@ -347,7 +402,8 @@ export const buildCalendarEventsChatSnapshot = (
  */
 export const buildSyllabusViewChatSnapshot = (
   course: any,
-  formSyllabus?: any
+  formSyllabus?: any,
+  opts?: TAlterChatSnapshotOpts
 ): TAlterChatSnapshot => {
   const c = course || {};
   const classTitle = String(c.classTitle || "(수업명 없음)");
@@ -383,9 +439,114 @@ export const buildSyllabusViewChatSnapshot = (
     }
   }
 
-  return finalizeChatSnapshot({
-    summary: `강의계획서 — ${classTitle}`,
-    items: [{ title: classTitle, fields }],
-    totalCount: 1,
+  return finalizeChatSnapshot(
+    {
+      summary: `강의계획서 — ${classTitle}`,
+      items: [{ title: classTitle, fields }],
+      totalCount: 1,
+    },
+    opts
+  );
+};
+
+const VIEW_MODE_KO: Record<string, string> = {
+  table: "표",
+  timetable: "시간표",
+  doc: "문서",
+};
+
+/** 시트 셀 값을 스냅샷용 짧은 텍스트로 (approval/content 필드는 호출 전에 제외) */
+const formatSheetCellValue = (value: unknown, fieldType?: string): string => {
+  if (value == null || value === "") return "";
+  if (fieldType === "userSelect" && typeof value === "object") {
+    const v = value as { userName?: string; userId?: string };
+    return v.userName ? `${v.userName}(${v.userId || ""})` : "";
+  }
+  if (fieldType === "file" && Array.isArray(value)) {
+    return value
+      .map((f: { originalName?: string; key?: string }) => f.originalName || f.key || "")
+      .filter(Boolean)
+      .join(", ");
+  }
+  if (fieldType === "link" && typeof value === "object") {
+    const v = value as { title?: string; ogTitle?: string; url?: string };
+    return v.title || v.ogTitle || v.url || "";
+  }
+  if (Array.isArray(value)) return value.map(String).join(", ");
+  if (typeof value === "boolean") return value ? "Y" : "N";
+  return String(value);
+};
+
+export type TSheetSnapshotField = {
+  _id: string;
+  label?: string;
+  type?: string;
+};
+
+export type TSheetSnapshotRow = {
+  _id?: string;
+  _respondentName?: string;
+  _respondentId?: string;
+  _submittedAt?: string;
+  data?: Record<string, unknown>;
+};
+
+/**
+ * 양식 응답 시트(표·시간표·문서) → chat 스냅샷
+ * @description 이미 로드·필터된 행만 포함. 추가 fetch 없음.
+ * 행은 MAX_ITEMS까지 먼저 자른 뒤 직렬화한다(대량 시트 렌더 비용 방지).
+ */
+export const buildSheetChatSnapshot = (opts: {
+  formTitle?: string;
+  viewMode?: string;
+  fields: TSheetSnapshotField[];
+  rows: TSheetSnapshotRow[];
+  /** 필터 전 전체 행 수 (표시용) */
+  totalRowCount?: number;
+  dataExpand?: boolean;
+}): TAlterChatSnapshot => {
+  const fields = Array.isArray(opts.fields) ? opts.fields : [];
+  const rows = Array.isArray(opts.rows) ? opts.rows : [];
+  const viewKo = VIEW_MODE_KO[String(opts.viewMode || "")] || "보기";
+  const total =
+    typeof opts.totalRowCount === "number" ? opts.totalRowCount : rows.length;
+  const profile = snapshotProfileFromExpand(opts.dataExpand);
+  const maxItems = ALTER_CHAT_SNAPSHOT_PROFILES[profile].MAX_ITEMS;
+  const cellCap = opts.dataExpand ? 500 : 200;
+  const rowsForItems = rows.slice(0, maxItems);
+
+  const items: TAlterChatSnapshotItem[] = rowsForItems.map((row, idx) => {
+    const name =
+      row._respondentName ||
+      row._respondentId ||
+      `응답 ${idx + 1}`;
+    const itemFields: Record<string, string> = {};
+    if (row._respondentId) itemFields["ID"] = String(row._respondentId);
+    if (row._submittedAt) {
+      itemFields["제출"] = String(row._submittedAt).slice(0, 19);
+    }
+    for (const f of fields) {
+      if (f.type === "content" || f.type === "approval") continue;
+      const raw = row.data?.[f._id];
+      const text = clipText(formatSheetCellValue(raw, f.type), cellCap);
+      if (text) itemFields[f.label || f._id] = text;
+    }
+    return { title: String(name), fields: itemFields };
   });
+
+  const title = opts.formTitle || "양식";
+  const countBit =
+    total !== rows.length
+      ? `필터 후 ${rows.length}/${total}건`
+      : `${rows.length}건`;
+
+  return finalizeChatSnapshot(
+    {
+      summary: `${title} · ${viewKo} · ${countBit}`,
+      items,
+      totalCount: rows.length,
+      isPartial: rows.length > rowsForItems.length,
+    },
+    { dataExpand: opts.dataExpand }
+  );
 };

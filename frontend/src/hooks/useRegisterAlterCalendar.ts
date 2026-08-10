@@ -29,7 +29,7 @@ const useRegisterAlterCalendar = (params: Params) => {
     return registerPageContext({
       pageType: "calendar",
       label: params.label || "캘린더",
-      getChatSnapshot: () => {
+      getChatSnapshot: (opts) => {
         const visible = getVisibleRangeRef.current?.() || {};
         const rangeLabel =
           visible.start && visible.end
@@ -40,6 +40,7 @@ const useRegisterAlterCalendar = (params: Params) => {
           rangeLabel,
           visibleStart: visible.start,
           visibleEnd: visible.end,
+          dataExpand: opts?.dataExpand,
         });
       },
       suggestedSkills: ["chat"],

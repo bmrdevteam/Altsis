@@ -36,13 +36,14 @@ const useRegisterAlterUserSearch = (params: Params) => {
     return registerPageContext({
       pageType: "course-list",
       label: `${params.user.userName || "사용자"} · ${params.tabLabel}`,
-      getChatSnapshot: () =>
+      getChatSnapshot: (opts) =>
         buildUserSearchChatSnapshot({
           tabLabel: params.tabLabel,
           seasonLabel: params.seasonLabel,
           user: userRef.current || {},
           courses: getCoursesRef.current() || [],
           includeTimetableSlots: !!params.includeTimetableSlots,
+          dataExpand: opts?.dataExpand,
         }),
       suggestedSkills: ["chat"],
     });

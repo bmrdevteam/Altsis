@@ -56,10 +56,11 @@ const useRegisterAlterArchive = (params: Params) => {
       label: params.archiveLabel,
       archiveLabel: params.archiveLabel,
       formArchiveFields: fields,
-      getChatSnapshot: () => {
+      getChatSnapshot: (opts) => {
         const list = getArchiveListRef.current() || [];
-        const labels = referenceLabels.slice(0, 8);
-        const items = list.slice(0, 40).map((row) => {
+        const rowCap = opts?.dataExpand ? 150 : 40;
+        const labels = referenceLabels.slice(0, opts?.dataExpand ? 16 : 8);
+        const items = list.slice(0, rowCap).map((row) => {
           const itemFields: Record<string, string> = {};
           if (row.grade) itemFields["학년"] = String(row.grade);
           for (const label of labels) {
@@ -71,12 +72,15 @@ const useRegisterAlterArchive = (params: Params) => {
             fields: itemFields,
           };
         });
-        return finalizeChatSnapshot({
-          summary: `학생 기록 — ${params.archiveLabel} · ${list.length}명`,
-          items,
-          totalCount: list.length,
-          isPartial: list.length > 40,
-        });
+        return finalizeChatSnapshot(
+          {
+            summary: `학생 기록 — ${params.archiveLabel} · ${list.length}명`,
+            items,
+            totalCount: list.length,
+            isPartial: list.length > rowCap,
+          },
+          { dataExpand: opts?.dataExpand }
+        );
       },
       getArchiveRows: () =>
         (getArchiveListRef.current() || []).map((row) => {

@@ -63,8 +63,8 @@ describe("buildAlterChatPageData", () => {
 
   test("요약·항목을 페이지 데이터 블록으로 만든다", () => {
     const text = buildAlterChatPageData({
-      summary: "수강 신청 — 수업 3건",
-      totalCount: 3,
+      summary: "수강 신청 — 수업 1건",
+      totalCount: 1,
       items: [
         {
           title: "시 읽기",
@@ -76,7 +76,8 @@ describe("buildAlterChatPageData", () => {
     expect(text).toContain("수강 신청");
     expect(text).toContain("시 읽기");
     expect(text).toContain("국어");
-    expect(text).toContain("항목 수: 3");
+    expect(text).toContain("항목 수: 1");
+    expect(text).not.toMatch(/포함 \d+ \/ 전체/);
   });
 
   test("긴 문서 필드가 500자에서 잘리지 않는다", () => {
@@ -89,6 +90,44 @@ describe("buildAlterChatPageData", () => {
     expect(text).toContain("교과학습발달상황");
     expect(text.length).toBeGreaterThan(10000);
     expect(text).not.toContain("일부만 포함");
+  });
+
+  test("데이터 확대면 기본 50건을 넘어 더 많은 항목을 남긴다", () => {
+    const items = Array.from({ length: 80 }, (_, i) => ({
+      title: `응답 ${i}`,
+      fields: { 칸: "x" },
+    }));
+    const defaultText = buildAlterChatPageData({
+      summary: "시트",
+      totalCount: 80,
+      items,
+    });
+    expect(defaultText).toContain("포함 50 / 전체 80");
+    expect(defaultText).toContain("### 응답 0");
+    expect(defaultText).not.toContain("### 응답 60");
+
+    const expandedText = buildAlterChatPageData(
+      { summary: "시트", totalCount: 80, items, dataExpand: true },
+      { dataExpand: true }
+    );
+    expect(expandedText).toContain("### 응답 60");
+    expect(expandedText).toContain("항목 수: 80");
+    expect(expandedText).not.toMatch(/포함 \d+ \/ 전체/);
+  });
+
+  test("일부만 포함되면 포함/전체 건수를 명시한다", () => {
+    const items = Array.from({ length: 60 }, (_, i) => ({
+      title: `수업 ${i}`,
+      fields: { 학점: "1" },
+    }));
+    const text = buildAlterChatPageData({
+      summary: "수업 목록",
+      totalCount: 532,
+      items,
+      isPartial: true,
+    });
+    expect(text).toContain("포함 50 / 전체 532");
+    expect(text).toContain("데이터 확대");
   });
 
   test("시스템 프롬프트에 페이지 데이터 정책과 블록이 들어간다", () => {
