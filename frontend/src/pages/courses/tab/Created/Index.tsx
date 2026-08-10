@@ -47,6 +47,7 @@ import Svg from "assets/svg/Svg";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import CourseMetaInfo, { ConfirmedStatus } from "pages/courses/view/CourseMetaInfo";
 import CourseCoverImage from "pages/courses/view/CourseCoverImage";
+import useRegisterAlterSyllabusView from "hooks/useRegisterAlterSyllabusView";
 
 type Props = {};
 
@@ -58,6 +59,12 @@ const CoursePid = (props: Props) => {
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [syllabus, setSyllabus] = useState<any>();
+
+  useRegisterAlterSyllabusView({
+    enabled: !!syllabus && !isLoading,
+    course: syllabus,
+    formSyllabus: currentSeason?.formSyllabus,
+  });
 
   const [confirmStatusPopupActive, setConfirmStatusPopupActive] =
     useState<boolean>(false);

@@ -25,6 +25,7 @@ export const WEB_PUSH_ELIGIBLE_TYPES = new Set([
   "boardInvitation",
   "altFormApprovalRequest",
   "altFormApprovalResult",
+  "chatMessage",
 ]);
 
 let configured = false;
@@ -239,6 +240,97 @@ export const sendWebPushesForNotifications = async ({
       logger.warn(`Web Push batch failed for ${userKey}: ${err.message}`);
     }
   }
+};
+
+/**
+ * 채팅 메시지 Web Push (Notification DB 없이 구독자에게 직접 발송)
+ * @param {Object} params
+ * @param {string} params.academyId
+ * @param {Array<{user: *, userId: string}>} params.recipients
+ * @param {string} params.title
+ * @param {string} params.body
+ * @param {string} [params.roomId]
+ */
+export const sendChatWebPushes = async ({
+  academyId,
+  recipients,
+  title,
+  body,
+  roomId,
+}) => {
+  if (!ensureConfigured()) {
+    return { sent: 0 };
+  }
+
+  const origin = clientOrigin();
+  if (!origin || !recipients?.length) {
+    return { sent: 0 };
+  }
+
+  const userObjectIds = [
+    ...new Set(
+      recipients
+        .map((r) => (r.user?._id ? String(r.user._id) : String(r.user)))
+        .filter((id) => id && id !== "undefined")
+    ),
+  ];
+  if (userObjectIds.length === 0) return { sent: 0 };
+
+  const settingDocs = await NotificationSetting(academyId)
+    .find({ user: { $in: userObjectIds } })
+    .select("user userId settings")
+    .lean();
+  const settingsByUser = {};
+  for (const doc of settingDocs) {
+    settingsByUser[String(doc.user)] = doc.settings || {};
+  }
+
+  let totalSent = 0;
+  for (const recipient of recipients) {
+    const userKey = recipient.user?._id
+      ? String(recipient.user._id)
+      : String(recipient.user);
+    const settings = settingsByUser[userKey] || {};
+    if (!settings.webPushEnabled) continue;
+    if (settings.chatMessage === false) continue;
+
+    try {
+      const schoolId = await resolveSchoolId(academyId, userKey);
+      const url = schoolId
+        ? `${origin}/${academyId}/${schoolId}/`
+        : `${origin}/`;
+
+      const subs = await PushSubscription(academyId).find({
+        user: userKey,
+      });
+      if (subs.length === 0) continue;
+
+      const payload = JSON.stringify({
+        title: title || "새 메시지",
+        body: (body && String(body).trim()) || "새 채팅 메시지가 있습니다.",
+        url,
+        tag: `chatMessage:${roomId || userKey}`,
+        notificationType: "chatMessage",
+      });
+
+      const sent = await sendToSubscriptions(
+        academyId,
+        subs,
+        payload,
+        recipient.userId || userKey
+      );
+      totalSent += sent;
+    } catch (err) {
+      logger.warn(
+        `Chat Web Push failed for ${recipient.userId || userKey}: ${err.message}`
+      );
+    }
+  }
+
+  if (totalSent > 0) {
+    logger.info(`Chat Web Push sent ${totalSent} notification(s)`);
+  }
+  return { sent: totalSent };
 };
 
 /**

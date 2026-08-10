@@ -7,6 +7,8 @@ type Params = {
   label?: string;
   getEvents: () => any[];
   getRangeLabel?: () => string;
+  /** 현재 뷰에 보이는 기간 (fetch 버퍼와 분리) */
+  getVisibleRange?: () => { start?: string; end?: string };
 };
 
 /**
@@ -16,8 +18,10 @@ const useRegisterAlterCalendar = (params: Params) => {
   const { registerPageContext } = useAlter();
   const getEventsRef = useRef(params.getEvents);
   const getRangeLabelRef = useRef(params.getRangeLabel);
+  const getVisibleRangeRef = useRef(params.getVisibleRange);
   getEventsRef.current = params.getEvents;
   getRangeLabelRef.current = params.getRangeLabel;
+  getVisibleRangeRef.current = params.getVisibleRange;
 
   useEffect(() => {
     if (params.enabled === false) return;
@@ -25,11 +29,19 @@ const useRegisterAlterCalendar = (params: Params) => {
     return registerPageContext({
       pageType: "calendar",
       label: params.label || "캘린더",
-      getChatSnapshot: () =>
-        buildCalendarEventsChatSnapshot(getEventsRef.current() || [], {
+      getChatSnapshot: () => {
+        const visible = getVisibleRangeRef.current?.() || {};
+        const rangeLabel =
+          visible.start && visible.end
+            ? `${String(visible.start).slice(0, 10)} ~ ${String(visible.end).slice(0, 10)}`
+            : getRangeLabelRef.current?.() || "";
+        return buildCalendarEventsChatSnapshot(getEventsRef.current() || [], {
           label: params.label || "캘린더",
-          rangeLabel: getRangeLabelRef.current?.() || "",
-        }),
+          rangeLabel,
+          visibleStart: visible.start,
+          visibleEnd: visible.end,
+        });
+      },
       suggestedSkills: ["chat"],
     });
   }, [params.enabled, params.label, registerPageContext]);

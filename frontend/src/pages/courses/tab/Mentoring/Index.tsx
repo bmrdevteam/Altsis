@@ -61,6 +61,7 @@ import CourseCoverImage from "pages/courses/view/CourseCoverImage";
 import { TFormEvaluation } from "types/seasons";
 import { buildEvaluationCsv } from "utils/evaluationCsv";
 import useRegisterAlterEvaluation from "hooks/useRegisterAlterEvaluation";
+import useRegisterAlterSyllabusView from "hooks/useRegisterAlterSyllabusView";
 
 const evalColumnsStorageKey = (syllabusId: string) =>
   `courseEval.columns.${syllabusId}`;
@@ -285,12 +286,23 @@ const CoursePid = (props: Props) => {
     currentSeason?.formEvaluation ||
     [];
 
+  const isSyllabusPlanTab =
+    !activeCourseTab || activeCourseTab === "계획서";
+  const isEvaluationTab = activeCourseTab === "평가";
+
+  useRegisterAlterSyllabusView({
+    enabled: !!syllabus?._id && !isLoadingSyllabus && isSyllabusPlanTab,
+    course: syllabus,
+    formSyllabus: currentSeason?.formSyllabus,
+  });
+
   useRegisterAlterEvaluation({
     enabled:
       !!isMentor &&
       !!currentRegistration?.permissionEvaluationV2 &&
       !!syllabus?._id &&
-      !isLoadingSyllabus,
+      !isLoadingSyllabus &&
+      isEvaluationTab,
     label: syllabus?.classTitle
       ? `${syllabus.classTitle} · 평가`
       : "평가",
