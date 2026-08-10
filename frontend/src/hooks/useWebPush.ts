@@ -46,23 +46,35 @@ export function useWebPush() {
     const { publicKey } = await NotificationAPI.RVapidPublicKey();
     const registration = await ensureServiceWorker();
 
-    let subscription = await registration.pushManager.getSubscription();
-    if (!subscription) {
-      subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(
-          publicKey
-        ) as BufferSource,
+    // VAPID 키가 바뀌었거나 이전 구독이 깨진 경우를 위해 항상 재구독
+    const existing = await registration.pushManager.getSubscription();
+    if (existing) {
+      await NotificationAPI.DPushSubscription({
+        query: { endpoint: existing.endpoint },
+      }).catch(() => {
+        // best-effort: server row may already be gone
+      });
+      await existing.unsubscribe().catch(() => {
+        // best-effort: local subscription may already be gone
       });
     }
 
+    const subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey) as BufferSource,
+    });
+
     const json = subscription.toJSON();
+    if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) {
+      throw new Error("INVALID_SUBSCRIPTION");
+    }
+
     await NotificationAPI.CPushSubscription({
       data: {
-        endpoint: json.endpoint!,
+        endpoint: json.endpoint,
         keys: {
-          p256dh: json.keys!.p256dh!,
-          auth: json.keys!.auth!,
+          p256dh: json.keys.p256dh,
+          auth: json.keys.auth,
         },
         expirationTime: json.expirationTime ?? null,
       },
@@ -84,16 +96,16 @@ export function useWebPush() {
       if (subscription) {
         const endpoint = subscription.endpoint;
         await subscription.unsubscribe().catch(() => {
-          // best-effort: local unsubscribe may already be gone
+          // best-effort
         });
         await NotificationAPI.DPushSubscription({
           query: { endpoint },
         }).catch(() => {
-          // best-effort: server row may already be removed
+          // best-effort
         });
       } else {
         await NotificationAPI.DPushSubscription({}).catch(() => {
-          // best-effort: clear any remaining server subscriptions
+          // best-effort
         });
       }
     }
@@ -105,10 +117,15 @@ export function useWebPush() {
     return true;
   }, [NotificationAPI]);
 
+  const sendTestPush = useCallback(async () => {
+    return NotificationAPI.CTestPush();
+  }, [NotificationAPI]);
+
   return {
     isWebPushSupported: isWebPushSupported(),
     enableWebPush,
     disableWebPush,
     ensureServiceWorker,
+    sendTestPush,
   };
 }

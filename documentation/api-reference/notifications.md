@@ -23,6 +23,7 @@
 | `GET` | `/api/notifications/push/vapid-public-key` | Web Push VAPID 공개키 | `isLoggedIn` |
 | `POST` | `/api/notifications/push/subscribe` | Web Push 구독 등록 | `isLoggedIn` |
 | `DELETE` | `/api/notifications/push/subscribe` | Web Push 구독 해제 | `isLoggedIn` |
+| `POST` | `/api/notifications/push/test` | Web Push 테스트 발송 | `isLoggedIn` |
 
 ---
 

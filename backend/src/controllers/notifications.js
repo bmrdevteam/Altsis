@@ -10,6 +10,7 @@ import {
   getVapidPublicKey,
   upsertPushSubscription,
   removePushSubscription,
+  sendTestWebPush,
 } from "../services/webPush.js";
 
 import {
@@ -421,6 +422,34 @@ export const unsubscribePush = async (req, res) => {
     );
     return res.status(200).send({ success: true });
   } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.NotificationAPI
+ * @function CTestPush API
+ * @description Web Push 테스트 발송 (현재 기기 구독으로 즉시 1건)
+ */
+export const testPush = async (req, res) => {
+  try {
+    const result = await sendTestWebPush(req.user.academyId, req.user);
+    return res.status(200).send(result);
+  } catch (err) {
+    const code = err.message;
+    if (
+      [
+        "WEB_PUSH_NOT_CONFIGURED",
+        "WEB_PUSH_DISABLED",
+        "NO_PUSH_SUBSCRIPTION",
+        "CLIENT_URL_MISSING",
+        "WEB_PUSH_SEND_FAILED",
+      ].includes(code)
+    ) {
+      const status = code === "WEB_PUSH_NOT_CONFIGURED" ? 503 : 400;
+      return res.status(status).send({ message: code });
+    }
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
