@@ -299,16 +299,69 @@ const Calender = (props: Props) => {
     });
   };
 
+  const getVisibleViewRange = (
+    targetDate: DateItem,
+    viewMode: Mode
+  ): { start: string; end: string } => {
+    switch (viewMode) {
+      case "day": {
+        const dayStart = new Date(
+          targetDate.yyyy,
+          targetDate.mm - 1,
+          targetDate.dd,
+          0,
+          0,
+          0,
+          0
+        );
+        const dayEnd = new Date(
+          targetDate.yyyy,
+          targetDate.mm - 1,
+          targetDate.dd,
+          23,
+          59,
+          59,
+          999
+        );
+        return { start: dayStart.toISOString(), end: dayEnd.toISOString() };
+      }
+      case "week": {
+        const weekEnd = targetDate.getDateItemAfter(6);
+        const start = new Date(
+          targetDate.yyyy,
+          targetDate.mm - 1,
+          targetDate.dd,
+          0,
+          0,
+          0,
+          0
+        );
+        const end = new Date(
+          weekEnd.yyyy,
+          weekEnd.mm - 1,
+          weekEnd.dd,
+          23,
+          59,
+          59,
+          999
+        );
+        return { start: start.toISOString(), end: end.toISOString() };
+      }
+      case "month": {
+        const start = new Date(targetDate.yyyy, targetDate.mm - 1, 1, 0, 0, 0, 0);
+        const end = new Date(targetDate.yyyy, targetDate.mm, 0, 23, 59, 59, 999);
+        return { start: start.toISOString(), end: end.toISOString() };
+      }
+    }
+  };
+
   useRegisterAlterCalendar({
     // readOnly(타인 일정 조회)여도 화면에 로드된 일정은 Alter가 참고할 수 있음
     enabled: true,
     label: props.alterLabel || (props.userId ? "조회 대상 일정" : "캘린더"),
     getEvents: () => filterEventsByVisibility(rawEventsRef.current || []),
-    getRangeLabel: () => {
-      const cached = cachedRangeRef.current;
-      if (!cached?.start || !cached?.end) return "";
-      return `${String(cached.start).slice(0, 10)} ~ ${String(cached.end).slice(0, 10)}`;
-    },
+    getVisibleRange: () =>
+      getVisibleViewRange(currentDateRef.current, currentModeRef.current),
   });
 
   const getQueryRange = (

@@ -158,6 +158,7 @@ export type TAlterFormResponseDraft = {
 export type TAlterPageContext = {
   pageType:
     | "syllabus-edit"
+    | "syllabus"
     | "evaluation"
     | "archive"
     | "document"
