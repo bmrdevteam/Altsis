@@ -3,6 +3,8 @@
  * @description 페이지에 이미 로드된 데이터만 요약·길이 제한해 서버로 보낸다.
  */
 
+import { extractSyllabusInputFields } from "./syllabusAiFields";
+
 export type TAlterChatSnapshotItem = {
   title: string;
   fields?: Record<string, string>;
@@ -254,15 +256,70 @@ export const buildUserSearchChatSnapshot = (opts: {
   });
 };
 
+const eventStartMs = (e: any): number => {
+  const raw = e?.startDate || e?.start || e?.endDate || e?.end;
+  if (!raw) return Number.POSITIVE_INFINITY;
+  const ms = new Date(raw).getTime();
+  return Number.isFinite(ms) ? ms : Number.POSITIVE_INFINITY;
+};
+
+const eventEndMs = (e: any): number => {
+  const raw = e?.endDate || e?.end || e?.startDate || e?.start;
+  if (!raw) return Number.NEGATIVE_INFINITY;
+  const ms = new Date(raw).getTime();
+  return Number.isFinite(ms) ? ms : Number.NEGATIVE_INFINITY;
+};
+
+const isClassSourceType = (sourceType: unknown): boolean => {
+  const t = String(sourceType || "");
+  return t === "enrollment" || t === "syllabus";
+};
+
+const eventOverlapsRange = (
+  e: any,
+  visibleStart?: string,
+  visibleEnd?: string
+): boolean => {
+  if (!visibleStart && !visibleEnd) return true;
+  const startBound = visibleStart
+    ? new Date(visibleStart).getTime()
+    : Number.NEGATIVE_INFINITY;
+  const endBound = visibleEnd
+    ? new Date(visibleEnd).getTime()
+    : Number.POSITIVE_INFINITY;
+  if (!Number.isFinite(startBound) && !Number.isFinite(endBound)) return true;
+  const eStart = eventStartMs(e);
+  const eEnd = eventEndMs(e);
+  if (!Number.isFinite(eStart) && !Number.isFinite(eEnd)) return true;
+  return eStart <= endBound && eEnd >= startBound;
+};
+
 /**
  * 캘린더 이벤트 목록 → chat 스냅샷
+ * @description 가시 기간으로 거른 뒤 수업(enrollment/syllabus)을 앞에 두고 상한을 적용한다.
  */
 export const buildCalendarEventsChatSnapshot = (
   events: any[],
-  opts: { label?: string; rangeLabel?: string } = {}
+  opts: {
+    label?: string;
+    rangeLabel?: string;
+    visibleStart?: string;
+    visibleEnd?: string;
+  } = {}
 ): TAlterChatSnapshot => {
   const list = Array.isArray(events) ? events : [];
-  const items = list.map((e) => {
+  const visible = list.filter((e) =>
+    eventOverlapsRange(e, opts.visibleStart, opts.visibleEnd)
+  );
+  visible.sort((a, b) => {
+    const classDiff =
+      Number(isClassSourceType(b?.sourceType)) -
+      Number(isClassSourceType(a?.sourceType));
+    if (classDiff !== 0) return classDiff;
+    return eventStartMs(a) - eventStartMs(b);
+  });
+
+  const items = visible.map((e) => {
     const fields: Record<string, string> = {};
     if (e?.startDate || e?.start)
       fields["시작"] = String(e.startDate || e.start).slice(0, 32);
@@ -279,8 +336,56 @@ export const buildCalendarEventsChatSnapshot = (
   });
   const range = opts.rangeLabel ? ` · ${opts.rangeLabel}` : "";
   return finalizeChatSnapshot({
-    summary: `${opts.label || "캘린더"}${range} — 불러온 일정 ${list.length}건`,
+    summary: `${opts.label || "캘린더"}${range} — 가시 일정 ${visible.length}건`,
     items,
-    totalCount: list.length,
+    totalCount: visible.length,
+  });
+};
+
+/**
+ * 강의계획서 상세(읽기) → chat 스냅샷
+ */
+export const buildSyllabusViewChatSnapshot = (
+  course: any,
+  formSyllabus?: any
+): TAlterChatSnapshot => {
+  const c = course || {};
+  const classTitle = String(c.classTitle || "(수업명 없음)");
+  const subject = Array.isArray(c.subject) ? c.subject.join(" > ") : "";
+  const fields: Record<string, string> = {};
+  if (subject) fields["교과"] = subject;
+  const time = formatTime(c.time);
+  if (time) fields["시간"] = time;
+  if (c.classroom) fields["강의실"] = String(c.classroom);
+  if (c.point != null && c.point !== "") fields["학점"] = String(c.point);
+  const limit = Number(c.limit) || 0;
+  const count = Number(c.count);
+  if (limit > 0) {
+    fields["정원"] = Number.isFinite(count) ? `${count}/${limit}` : String(limit);
+  }
+  if (c.userName) fields["개설자"] = String(c.userName);
+  const teachers = formatTeachers(c.teachers);
+  if (teachers) fields["담당"] = teachers;
+
+  const info = c.info && typeof c.info === "object" ? c.info : {};
+  const inputFields = extractSyllabusInputFields(formSyllabus);
+  if (inputFields.length > 0) {
+    for (const f of inputFields) {
+      const key = f.id || f.name;
+      const val = info[key] ?? (f.name ? info[f.name] : undefined);
+      const clipped = clipText(val, 500);
+      if (clipped) fields[f.name || key] = clipped;
+    }
+  } else {
+    for (const [k, v] of Object.entries(info)) {
+      const clipped = clipText(v, 500);
+      if (clipped) fields[k] = clipped;
+    }
+  }
+
+  return finalizeChatSnapshot({
+    summary: `강의계획서 — ${classTitle}`,
+    items: [{ title: classTitle, fields }],
+    totalCount: 1,
   });
 };

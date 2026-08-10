@@ -44,6 +44,7 @@ import EditorParser from "editor/EditorParser";
 import _ from "lodash";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import useRegisterAlterSyllabusView from "hooks/useRegisterAlterSyllabusView";
 
 type Props = {
   setPopupActive: any;
@@ -65,6 +66,12 @@ const CourseView = (props: Props) => {
     useState<string>("notConfirmed");
 
   const [enrollments, setEnrollments] = useState<any[]>();
+
+  useRegisterAlterSyllabusView({
+    enabled: !!courseData,
+    course: courseData,
+    formSyllabus: currentSeason?.formSyllabus,
+  });
 
   const categories = () => {
     return (

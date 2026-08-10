@@ -54,6 +54,7 @@ import Svg from "assets/svg/Svg";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import CourseMetaInfo, { ConfirmedStatus } from "pages/courses/view/CourseMetaInfo";
 import CourseCoverImage from "pages/courses/view/CourseCoverImage";
+import useRegisterAlterSyllabusView from "hooks/useRegisterAlterSyllabusView";
 
 type Props = {};
 
@@ -99,6 +100,18 @@ const CourseEnrollment = (props: Props) => {
     altBoard.chatEnabled !== false;
 
   const activeCourseTab = decodeURI(location.hash || "").replace("#", "");
+  const isSyllabusPlanTab =
+    !activeCourseTab || activeCourseTab === "계획서";
+  const courseForAlter = syllabusData
+    ? { ...enrollmentData, ...syllabusData }
+    : enrollmentData;
+
+  useRegisterAlterSyllabusView({
+    enabled: !!courseForAlter && isSyllabusPlanTab,
+    course: courseForAlter,
+    formSyllabus: currentSeason?.formSyllabus,
+  });
+
   const { badges: boardTabBadges, markChatRead, refresh: refreshBoardBadges } =
     useAltBoardBadges(altBoard, {
       chatEnabled: isChatEnabled,
