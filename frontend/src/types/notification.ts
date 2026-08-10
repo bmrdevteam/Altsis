@@ -62,6 +62,8 @@ export type TNotificationSettings = {
   soundEnabled: boolean;
   reminder: boolean;
   boardInvitation?: boolean;
+  altFormApprovalRequest?: boolean;
+  altFormApprovalResult?: boolean;
   eventReminderDefault: number;
   /** 잠금화면 Web Push (기본 false, 옵트인) */
   webPushEnabled?: boolean;

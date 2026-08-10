@@ -55,6 +55,7 @@ const Reminders = () => {
   const [reminderMemo, setReminderMemo] = useState("");
   const [reminderDate, setReminderDate] = useState("");
   const [reminderTime, setReminderTime] = useState("");
+  const [isCreatingReminder, setIsCreatingReminder] = useState(false);
 
   const loadReminders = async () => {
     try {
@@ -114,8 +115,16 @@ const Reminders = () => {
   };
 
   const handleCreateReminder = async () => {
-    if (!reminderTitle.trim() || !reminderDate || !reminderTime) return;
+    if (
+      isCreatingReminder ||
+      !reminderTitle.trim() ||
+      !reminderDate ||
+      !reminderTime
+    ) {
+      return;
+    }
 
+    setIsCreatingReminder(true);
     try {
       await ReminderAPI.CReminder({
         data: {
@@ -134,6 +143,8 @@ const Reminders = () => {
       loadReminders();
     } catch (err) {
       ALERT_ERROR(err);
+    } finally {
+      setIsCreatingReminder(false);
     }
   };
 
@@ -208,9 +219,11 @@ const Reminders = () => {
             <button
               className={`${style.btn} ${style.btnPrimary}`}
               onClick={handleCreateReminder}
-              disabled={!reminderTitle.trim() || !reminderTime}
+              disabled={
+                isCreatingReminder || !reminderTitle.trim() || !reminderTime
+              }
             >
-              저장
+              {isCreatingReminder ? "저장 중…" : "저장"}
             </button>
           </div>
         </div>

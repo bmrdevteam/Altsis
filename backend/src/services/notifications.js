@@ -169,6 +169,8 @@ export const getOrCreateNotificationSetting = async (academyId, user) => {
         soundEnabled: true,
         reminder: true,
         boardInvitation: true,
+        altFormApprovalRequest: true,
+        altFormApprovalResult: true,
         eventReminderDefault: 15,
         webPushEnabled: false,
       },

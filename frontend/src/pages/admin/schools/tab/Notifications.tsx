@@ -74,19 +74,34 @@ const notificationSettingGroups: NotificationSettingGroup[] = [
         description: "일정이 시작될 때 알림을 받습니다",
       },
       {
+        key: "reminder",
+        label: "리마인더 알림",
+        description: "리마인더 시간이 되면 알림을 받습니다",
+      },
+      {
         key: "newPost",
         label: "새 게시글 알림",
         description: "새 게시글이 등록되었을 때 알림을 받습니다",
       },
+      {
+        key: "boardInvitation",
+        label: "보드 초대 알림",
+        description: "보드에 초대되었을 때 알림을 받습니다",
+      },
     ],
   },
   {
-    category: "채팅",
+    category: "Alt 폼",
     items: [
       {
-        key: "chatMessage",
-        label: "채팅 메시지 알림",
-        description: "채팅에서 새 메시지가 도착했을 때 알림을 받습니다",
+        key: "altFormApprovalRequest",
+        label: "승인 요청 알림",
+        description: "승인이 필요할 때 알림을 받습니다",
+      },
+      {
+        key: "altFormApprovalResult",
+        label: "승인 결과 알림",
+        description: "승인·반려 결과가 나왔을 때 알림을 받습니다",
       },
     ],
   },

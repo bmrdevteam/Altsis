@@ -10,11 +10,21 @@ import {
 } from "../models/index.js";
 import { logger } from "../log/logger.js";
 
-/** MVP에서 잠금화면 푸시를 허용하는 알림 유형 (옵트인 후) */
+/**
+ * 잠금화면 Web Push 대상 = 인앱 자동 알림과 동일한 유형.
+ * webPushEnabled + 유형별 설정이 ON인 경우에만 발송한다.
+ */
 export const WEB_PUSH_ELIGIBLE_TYPES = new Set([
   "classInvitation",
-  "altFormApprovalRequest",
+  "classCancellation",
+  "classApproval",
+  "classApprovalCancel",
+  "scheduleStart",
+  "newPost",
   "reminder",
+  "boardInvitation",
+  "altFormApprovalRequest",
+  "altFormApprovalResult",
 ]);
 
 let configured = false;

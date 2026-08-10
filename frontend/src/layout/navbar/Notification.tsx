@@ -101,6 +101,7 @@ const Notification = () => {
   const [reminderMemo, setReminderMemo] = useState("");
   const [reminderDate, setReminderDate] = useState("");
   const [reminderTime, setReminderTime] = useState("");
+  const [isCreatingReminder, setIsCreatingReminder] = useState(false);
 
   // 알림 상세 보기 상태
   const [expandedNotificationId, setExpandedNotificationId] = useState<
@@ -401,8 +402,16 @@ const Notification = () => {
   };
 
   const handleCreateReminder = async () => {
-    if (!reminderTitle.trim() || !reminderDate || !reminderTime) return;
+    if (
+      isCreatingReminder ||
+      !reminderTitle.trim() ||
+      !reminderDate ||
+      !reminderTime
+    ) {
+      return;
+    }
 
+    setIsCreatingReminder(true);
     try {
       await ReminderAPI.CReminder({
         data: {
@@ -421,6 +430,8 @@ const Notification = () => {
       loadReminders();
     } catch (err) {
       ALERT_ERROR(err);
+    } finally {
+      setIsCreatingReminder(false);
     }
   };
 
@@ -629,9 +640,11 @@ const Notification = () => {
           <button
             className={`${style.reminderBtn} ${style.reminderBtnPrimary}`}
             onClick={handleCreateReminder}
-            disabled={!reminderTitle.trim() || !reminderTime}
+            disabled={
+              isCreatingReminder || !reminderTitle.trim() || !reminderTime
+            }
           >
-            저장
+            {isCreatingReminder ? "저장 중…" : "저장"}
           </button>
         </div>
       </div>

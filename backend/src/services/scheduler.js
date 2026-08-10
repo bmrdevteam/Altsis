@@ -32,31 +32,34 @@ const DEDUP_TTL = 24 * 60 * 60; // 24시간 (초)
 // ========== Redis 기반 중복 방지 (Stage 2) ==========
 
 /**
- * 이미 처리된 항목인지 확인
- * @param {string} key - 중복 방지 키
- * @returns {Promise<boolean>}
+ * 원자적 처리 클레임 (SET NX).
+ * @param {string} key
+ * @returns {Promise<boolean|null>} true=클레임 성공, false=이미 처리됨, null=Redis 오류(큐 유지)
  */
-async function isDuplicate(key) {
+async function tryClaimProcessed(key) {
   try {
-    const val = await client.v4.get(key);
-    return val !== null;
+    const result = await client.v4.set(key, "1", {
+      NX: true,
+      EX: DEDUP_TTL,
+    });
+    return result === "OK";
   } catch (err) {
-    logger.error(`Redis isDuplicate failed: ${err.message}`);
-    return false;
+    logger.error(`Redis tryClaimProcessed failed: ${err.message}`);
+    return null;
   }
 }
 
-/**
- * 처리 완료 표시 (24시간 TTL)
- * @param {string} key - 중복 방지 키
- */
-async function markProcessed(key) {
+/** 발송 실패 시 재시도를 위해 dedup 클레임을 해제한다. */
+async function releaseClaim(key) {
   try {
-    await client.v4.set(key, "1", { EX: DEDUP_TTL });
+    await client.v4.del(key);
   } catch (err) {
-    logger.error(`Redis markProcessed failed: ${err.message}`);
+    logger.error(`Redis releaseClaim failed: ${err.message}`);
   }
 }
+
+/** cron 틱 중복 실행 방지 */
+let schedulerTickRunning = false;
 
 // ========== 알림 수신자 목록 구성 ==========
 
@@ -140,9 +143,13 @@ const processNotifications = async () => {
         ? `scheduler:dedup:notif:${academyId}:${eventId}:${instanceDate}`
         : `scheduler:dedup:notif:${academyId}:${eventId}`;
 
-      if (await isDuplicate(dedupKey)) {
+      const claimed = await tryClaimProcessed(dedupKey);
+      if (claimed === false) {
         await client.v4.zRem(NOTIFICATIONS_KEY, memberStr);
         continue;
+      }
+      if (claimed === null) {
+        continue; // Redis 오류 — 큐에 남겨 다음 틱에서 재시도
       }
 
       try {
@@ -172,7 +179,6 @@ const processNotifications = async () => {
           },
         });
 
-        await markProcessed(dedupKey);
         await client.v4.zRem(NOTIFICATIONS_KEY, memberStr);
 
         // 반복 일정이면 다음 인스턴스 등록
@@ -187,6 +193,7 @@ const processNotifications = async () => {
         logger.error(
           `Error processing notification ${eventId} in ${academyId}: ${err.message}`
         );
+        await releaseClaim(dedupKey);
       }
     }
   } catch (err) {
@@ -259,44 +266,78 @@ const processReminders = async () => {
  * 독립 리마인더 처리
  */
 async function processStandaloneReminder(academyId, reminderId, memberStr) {
-  const reminder = await Reminder(academyId).findById(reminderId);
-  if (!reminder || reminder.completed || reminder.notified) {
+  const dedupKey = `scheduler:dedup:standalone:${academyId}:${reminderId}`;
+  const claimed = await tryClaimProcessed(dedupKey);
+  if (claimed === false) {
     await client.v4.zRem(REMINDERS_KEY, memberStr);
     return;
   }
-
-  const user = await User(academyId).findById(reminder.user);
-  if (!user) {
-    await client.v4.zRem(REMINDERS_KEY, memberStr);
-    return;
+  if (claimed === null) {
+    return; // Redis 오류 — 큐에 남겨 재시도
   }
 
-  await sendAutoNotification({
-    academyId,
-    toUserList: [
+  try {
+    // Mongo에서 원자적으로 claim (동시 처리 시 1회만 발송)
+    const reminder = await Reminder(academyId).findOneAndUpdate(
       {
-        user: user._id,
-        userId: user.userId,
-        userName: user.userName,
+        _id: reminderId,
+        completed: { $ne: true },
+        notified: { $ne: true },
       },
-    ],
-    notificationType: "reminder",
-    category: "리마인더",
-    title: reminder.title,
-    description: reminder.memo || "",
-    relatedEntity: {
-      type: "reminder",
-      id: reminder._id,
-    },
-  });
+      { $set: { notified: true } },
+      { new: true }
+    );
 
-  reminder.notified = true;
-  await reminder.save();
+    if (!reminder) {
+      await client.v4.zRem(REMINDERS_KEY, memberStr);
+      return;
+    }
 
-  await client.v4.zRem(REMINDERS_KEY, memberStr);
-  logger.info(
-    `Standalone reminder sent: ${reminder.title} (${reminderId}) in ${academyId}`
-  );
+    const user = await User(academyId).findById(reminder.user);
+    if (!user) {
+      await client.v4.zRem(REMINDERS_KEY, memberStr);
+      return;
+    }
+
+    await sendAutoNotification({
+      academyId,
+      toUserList: [
+        {
+          user: user._id,
+          userId: user.userId,
+          userName: user.userName,
+        },
+      ],
+      notificationType: "reminder",
+      category: "리마인더",
+      title: reminder.title,
+      description: reminder.memo || "",
+      relatedEntity: {
+        type: "reminder",
+        id: reminder._id,
+      },
+    });
+    await client.v4.zRem(REMINDERS_KEY, memberStr);
+    logger.info(
+      `Standalone reminder sent: ${reminder.title} (${reminderId}) in ${academyId}`
+    );
+  } catch (err) {
+    logger.error(
+      `Standalone reminder notify failed ${reminderId}: ${err.message}`
+    );
+    // 발송 실패 시 재시도 가능하도록 claim 롤백
+    try {
+      await Reminder(academyId).updateOne(
+        { _id: reminderId },
+        { $set: { notified: false } }
+      );
+    } catch (rollbackErr) {
+      logger.error(
+        `Standalone reminder rollback failed ${reminderId}: ${rollbackErr.message}`
+      );
+    }
+    await releaseClaim(dedupKey);
+  }
 }
 
 /**
@@ -313,56 +354,66 @@ async function processEventReminder(
     ? `scheduler:dedup:reminder:${academyId}:${eventId}:${instanceDate}`
     : `scheduler:dedup:reminder:${academyId}:${eventId}`;
 
-  if (await isDuplicate(dedupKey)) {
+  const claimed = await tryClaimProcessed(dedupKey);
+  if (claimed === false) {
     await client.v4.zRem(REMINDERS_KEY, memberStr);
     return;
   }
-
-  const event = await CalendarEvent(academyId).findById(eventId);
-  if (!event || !event.reminder?.enabled) {
-    await client.v4.zRem(REMINDERS_KEY, memberStr);
+  if (claimed === null) {
     return;
   }
 
-  // 리마인더 시간 계산
-  const setting = await NotificationSetting(academyId).findOne({
-    user: event.user,
-  });
-  const minutesBefore = event.reminder.useDefault
-    ? setting?.settings?.eventReminderDefault || 15
-    : event.reminder.minutesBefore || 15;
+  try {
+    const event = await CalendarEvent(academyId).findById(eventId);
+    if (!event || !event.reminder?.enabled) {
+      await client.v4.zRem(REMINDERS_KEY, memberStr);
+      return;
+    }
 
-  const toUserList = await buildRecipientList(academyId, event);
-  if (!toUserList) {
+    // 리마인더 시간 계산
+    const setting = await NotificationSetting(academyId).findOne({
+      user: event.user,
+    });
+    const minutesBefore = event.reminder.useDefault
+      ? setting?.settings?.eventReminderDefault || 15
+      : event.reminder.minutesBefore || 15;
+
+    const toUserList = await buildRecipientList(academyId, event);
+    if (!toUserList) {
+      await client.v4.zRem(REMINDERS_KEY, memberStr);
+      return;
+    }
+
+    await sendAutoNotification({
+      academyId,
+      toUserList,
+      notificationType: "reminder",
+      category: "리마인더",
+      title: `[${minutesBefore}분 전] ${event.title}`,
+      description: event.description || "",
+      relatedEntity: {
+        type: "calendarEvent",
+        id: event._id,
+      },
+    });
+
     await client.v4.zRem(REMINDERS_KEY, memberStr);
-    return;
+
+    // 반복 일정이면 다음 인스턴스의 리마인더 등록
+    if (event.recurrence?.type && event.recurrence.type !== "none") {
+      const defaultMin = setting?.settings?.eventReminderDefault || 15;
+      await registerEventReminder(academyId, event, defaultMin);
+    }
+
+    logger.info(
+      `Event reminder sent: ${event.title} (${eventId}) in ${academyId}`
+    );
+  } catch (err) {
+    logger.error(
+      `Error processing event reminder ${eventId} in ${academyId}: ${err.message}`
+    );
+    await releaseClaim(dedupKey);
   }
-
-  await sendAutoNotification({
-    academyId,
-    toUserList,
-    notificationType: "reminder",
-    category: "리마인더",
-    title: `[${minutesBefore}분 전] ${event.title}`,
-    description: event.description || "",
-    relatedEntity: {
-      type: "calendarEvent",
-      id: event._id,
-    },
-  });
-
-  await markProcessed(dedupKey);
-  await client.v4.zRem(REMINDERS_KEY, memberStr);
-
-  // 반복 일정이면 다음 인스턴스의 리마인더 등록
-  if (event.recurrence?.type && event.recurrence.type !== "none") {
-    const defaultMin = setting?.settings?.eventReminderDefault || 15;
-    await registerEventReminder(academyId, event, defaultMin);
-  }
-
-  logger.info(
-    `Event reminder sent: ${event.title} (${eventId}) in ${academyId}`
-  );
 }
 
 // ========== 스케줄러 초기화 ==========
@@ -385,7 +436,16 @@ export const initializeScheduler = async () => {
 
   // 매분 실행: Redis Sorted Set에서 도래한 항목만 처리
   cron.schedule("* * * * *", async () => {
-    await Promise.all([processNotifications(), processReminders()]);
+    if (schedulerTickRunning) {
+      logger.warn("Scheduler tick skipped: previous tick still running");
+      return;
+    }
+    schedulerTickRunning = true;
+    try {
+      await Promise.all([processNotifications(), processReminders()]);
+    } finally {
+      schedulerTickRunning = false;
+    }
   });
 
   logger.info(

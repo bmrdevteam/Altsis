@@ -25,6 +25,8 @@ import { conn } from "../_database/mongodb/index.js";
  * @prop {boolean} chatMessage - 직접 메시지 알림
  * @prop {boolean} soundEnabled - 알림음 활성화
  * @prop {boolean} webPushEnabled - 잠금화면 Web Push (기본 OFF)
+ * @prop {boolean} altFormApprovalRequest - Alt 폼 승인 요청 알림
+ * @prop {boolean} altFormApprovalResult - Alt 폼 승인 결과 알림
  */
 const settingsSchema = mongoose.Schema(
   {
@@ -38,6 +40,8 @@ const settingsSchema = mongoose.Schema(
     soundEnabled: { type: Boolean, default: true },
     reminder: { type: Boolean, default: true },
     boardInvitation: { type: Boolean, default: true },
+    altFormApprovalRequest: { type: Boolean, default: true },
+    altFormApprovalResult: { type: Boolean, default: true },
     eventReminderDefault: { type: Number, default: 15 },
     webPushEnabled: { type: Boolean, default: false },
   },
@@ -55,6 +59,8 @@ const settingsDefault = {
   soundEnabled: true,
   reminder: true,
   boardInvitation: true,
+  altFormApprovalRequest: true,
+  altFormApprovalResult: true,
   eventReminderDefault: 15,
   webPushEnabled: false,
 };

@@ -1,31 +1,22 @@
 /**
  * @file Settings Page tab - NotificationSettings
  *
- * @author
- *
- * -------------------------------------------------------
- *
- * IN PRODUCTION
- * - NotificationSettings Page
- *
- * -------------------------------------------------------
+ * 인앱 알림 유형별 ON/OFF와 잠금화면 Web Push(마스터)를 함께 관리한다.
+ * 유형 토글 OFF → 인앱·Web Push 모두 차단.
+ * 잠금화면 ON → 위에서 허용한 유형이 인앱과 동일하게 잠금화면에도 표시.
  */
 
 import { useEffect, useState } from "react";
 import style from "style/pages/settings/settings.module.scss";
 
-// hooks
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import { useWebPush, isWebPushSupported } from "hooks/useWebPush";
 
-// components
 import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 import Divider from "components/divider/Divider";
 import Select from "components/select/Select";
 
 import { TNotificationSettings } from "types/notification";
-
-type Props = {};
 
 const REMINDER_TIME_OPTIONS = [
   { text: "15분 전", value: "15" },
@@ -45,15 +36,102 @@ const DEFAULT_SETTINGS: TNotificationSettings = {
   soundEnabled: true,
   reminder: true,
   boardInvitation: true,
+  altFormApprovalRequest: true,
+  altFormApprovalResult: true,
   eventReminderDefault: 15,
   webPushEnabled: false,
 };
 
-const NotificationSettings = (props: Props) => {
+type SettingItem = {
+  key: keyof TNotificationSettings;
+  label: string;
+  description: string;
+};
+
+type SettingGroup = {
+  title: string;
+  items: SettingItem[];
+};
+
+const TYPE_GROUPS: SettingGroup[] = [
+  {
+    title: "수업",
+    items: [
+      {
+        key: "classInvitation",
+        label: "수업 초대",
+        description: "수업에 초대되었을 때 알림을 받습니다",
+      },
+      {
+        key: "classCancellation",
+        label: "수업 초대 취소",
+        description: "수업 초대가 취소되었을 때 알림을 받습니다",
+      },
+      {
+        key: "classApproval",
+        label: "수업 승인",
+        description: "수업이 승인되었을 때 알림을 받습니다",
+      },
+      {
+        key: "classApprovalCancel",
+        label: "수업 승인 취소",
+        description: "수업 승인이 취소되었을 때 알림을 받습니다",
+      },
+    ],
+  },
+  {
+    title: "일정 · 리마인더",
+    items: [
+      {
+        key: "scheduleStart",
+        label: "일정 시작",
+        description: "캘린더 일정이 시작될 때 알림을 받습니다",
+      },
+      {
+        key: "reminder",
+        label: "리마인더",
+        description: "리마인더 시간이 되면 알림을 받습니다",
+      },
+    ],
+  },
+  {
+    title: "보드 · 게시글",
+    items: [
+      {
+        key: "newPost",
+        label: "새 게시글",
+        description: "보드에 새 게시글이 등록되었을 때 알림을 받습니다",
+      },
+      {
+        key: "boardInvitation",
+        label: "보드 초대",
+        description: "보드에 초대되었을 때 알림을 받습니다",
+      },
+    ],
+  },
+  {
+    title: "Alt 폼",
+    items: [
+      {
+        key: "altFormApprovalRequest",
+        label: "승인 요청",
+        description: "승인이 필요할 때 알림을 받습니다",
+      },
+      {
+        key: "altFormApprovalResult",
+        label: "승인 결과",
+        description: "승인·반려 결과가 나왔을 때 알림을 받습니다",
+      },
+    ],
+  },
+];
+
+const NotificationSettings = () => {
   const { NotificationAPI } = useAPIv2();
   const { enableWebPush, disableWebPush, sendTestPush } = useWebPush();
 
-  const [settings, setSettings] = useState<TNotificationSettings>(DEFAULT_SETTINGS);
+  const [settings, setSettings] =
+    useState<TNotificationSettings>(DEFAULT_SETTINGS);
   const [isLoading, setIsLoading] = useState(true);
   const [pushBusy, setPushBusy] = useState(false);
   const [testBusy, setTestBusy] = useState(false);
@@ -102,11 +180,20 @@ const NotificationSettings = (props: Props) => {
     } catch (err: any) {
       const code = err?.message || err?.response?.data?.message;
       if (code === "PERMISSION_DENIED") {
-        alert("브라우저 알림 권한이 거부되었습니다. 사이트 설정에서 허용해 주세요.");
-      } else if (code === "WEB_PUSH_UNSUPPORTED" || code === "SERVICE_WORKER_UNSUPPORTED") {
-        alert("이 브라우저에서는 잠금화면 알림을 지원하지 않습니다. iOS는 홈 화면에 추가한 뒤 사용해 주세요.");
+        alert(
+          "브라우저 알림 권한이 거부되었습니다. 사이트 설정에서 허용해 주세요."
+        );
+      } else if (
+        code === "WEB_PUSH_UNSUPPORTED" ||
+        code === "SERVICE_WORKER_UNSUPPORTED"
+      ) {
+        alert(
+          "이 브라우저에서는 잠금화면 알림을 지원하지 않습니다. iOS는 홈 화면에 추가한 뒤 사용해 주세요."
+        );
       } else if (code === "WEB_PUSH_NOT_CONFIGURED") {
-        alert("서버에 Web Push가 아직 설정되지 않았습니다.");
+        alert(
+          "서버에 Web Push가 아직 설정되지 않았습니다. test-backend 배포와 VAPID Secrets를 확인해 주세요."
+        );
       } else {
         ALERT_ERROR(err);
       }
@@ -130,7 +217,9 @@ const NotificationSettings = (props: Props) => {
       } else if (code === "WEB_PUSH_DISABLED") {
         alert("잠금화면 알림을 먼저 켜 주세요.");
       } else if (code === "NO_PUSH_SUBSCRIPTION") {
-        alert("이 기기의 푸시 구독이 없습니다. 잠금화면 알림을 껐다가 다시 켜 주세요.");
+        alert(
+          "이 기기의 푸시 구독이 없습니다. 잠금화면 알림을 껐다가 다시 켜 주세요."
+        );
       } else {
         ALERT_ERROR(err);
       }
@@ -139,48 +228,72 @@ const NotificationSettings = (props: Props) => {
     }
   };
 
-  const settingItems: {
-    key: keyof TNotificationSettings;
-    label: string;
-    description: string;
-  }[] = [
-    {
-      key: "soundEnabled",
-      label: "알림음",
-      description: "앱이 열려 있을 때 알림이 도착하면 소리로 알려줍니다",
-    },
-    {
-      key: "reminder",
-      label: "리마인더 알림",
-      description: "리마인더 시간이 되면 알림을 보냅니다",
-    },
-  ];
+  const renderToggleRow = (item: SettingItem) => (
+    <div key={item.key} className={style.setting_item}>
+      <div className={style.info}>
+        <label className={style.label}>{item.label}</label>
+        <span className={style.description}>{item.description}</span>
+      </div>
+      <div className={style.controls}>
+        <ToggleSwitch
+          key={`${item.key}-${settings[item.key]}`}
+          defaultChecked={Boolean(settings[item.key])}
+          onChange={(checked: boolean) => {
+            updateSetting(item.key, checked);
+          }}
+        />
+      </div>
+    </div>
+  );
+
+  if (isLoading) {
+    return (
+      <div className={style.settings_container}>
+        <div className={style.container_title}>알림 설정</div>
+        <div className={style.description}>불러오는 중…</div>
+      </div>
+    );
+  }
 
   return (
     <>
       <div className={style.settings_container}>
         <div className={style.container_title}>알림 설정</div>
-        {settingItems.map((item, idx) => (
-          <div key={item.key}>
-            <div className={style.setting_item}>
-              <div className={style.info}>
-                <label className={style.label}>{item.label}</label>
-                <span className={style.description}>{item.description}</span>
+        <p
+          style={{
+            fontSize: 13,
+            color: "var(--accent-3)",
+            margin: "0 0 20px",
+            lineHeight: 1.5,
+          }}
+        >
+          유형별 설정은 앱 안 알림과 잠금화면 알림에 동일하게 적용됩니다. 잠금화면
+          알림을 켜면, 아래에서 허용한 유형이 벨 알림과 같이 잠금화면에도
+          표시됩니다.
+        </p>
+
+        <div className={style.container_subtitle}>일반</div>
+        {renderToggleRow({
+          key: "soundEnabled",
+          label: "알림음",
+          description: "앱이 열려 있을 때 알림이 도착하면 소리로 알려줍니다",
+        })}
+        <Divider />
+
+        {TYPE_GROUPS.map((group) => (
+          <div key={group.title}>
+            <div className={style.container_subtitle}>{group.title}</div>
+            {group.items.map((item, idx) => (
+              <div key={item.key}>
+                {renderToggleRow(item)}
+                {idx < group.items.length - 1 && <Divider />}
               </div>
-              <div className={style.controls}>
-                <ToggleSwitch
-                  key={`${item.key}-${settings[item.key]}`}
-                  defaultChecked={Boolean(settings[item.key])}
-                  onChange={(checked: boolean) => {
-                    updateSetting(item.key, checked);
-                  }}
-                />
-              </div>
-            </div>
-            {idx < settingItems.length - 1 && <Divider />}
+            ))}
+            <Divider />
           </div>
         ))}
-        <Divider />
+
+        <div className={style.container_subtitle}>리마인더 기본값</div>
         <div className={style.setting_item}>
           <div className={style.info}>
             <label className={style.label}>기본 리마인더 시간</label>
@@ -200,12 +313,14 @@ const NotificationSettings = (props: Props) => {
           </div>
         </div>
         <Divider />
+
+        <div className={style.container_subtitle}>잠금화면 (Web Push)</div>
         <div className={style.setting_item}>
           <div className={style.info}>
-            <label className={style.label}>잠금화면 알림 (Web Push)</label>
+            <label className={style.label}>잠금화면 알림</label>
             <span className={style.description}>
-              수업 초대, 승인 요청, 리마인더만 잠금화면에 표시합니다. 기본은
-              꺼져 있으며, 허용 시에만 동작합니다.
+              켠 경우, 위에서 허용한 알림 유형이 앱 안과 동일하게 잠금화면에도
+              표시됩니다.
               {!pushSupported &&
                 " (이 브라우저는 미지원이거나, iOS는 홈 화면 추가가 필요합니다.)"}
             </span>

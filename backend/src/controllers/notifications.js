@@ -319,6 +319,8 @@ export const updateSettings = async (req, res) => {
       "soundEnabled",
       "reminder",
       "boardInvitation",
+      "altFormApprovalRequest",
+      "altFormApprovalResult",
       "eventReminderDefault",
       "webPushEnabled",
     ];
