@@ -28,6 +28,8 @@ import FieldAssessmentInline, {
   TGradeDraft,
 } from "./FieldAssessmentInline";
 import useRegisterAlterAssessmentGrade from "hooks/useRegisterAlterAssessmentGrade";
+import useRegisterAlterSnapshot from "hooks/useRegisterAlterSnapshot";
+import { buildSheetChatSnapshot } from "utils/alterChatSnapshot";
 
 type Props = {
   forms: TAltForm[];
@@ -639,13 +641,39 @@ const AltSheetView = ({
 
   const currentDocRow = filteredRows[docIndex] ?? null;
 
+  const inAssessmentGradeMode =
+    !!canManage &&
+    !!isAssessment &&
+    viewMode === "doc" &&
+    !!selectedForm &&
+    !!currentDocRow;
+
+  useRegisterAlterSnapshot({
+    enabled: !!selectedForm && !inAssessmentGradeMode,
+    pageType: "sheet",
+    label: selectedForm
+      ? `${boardName ? `${boardName} · ` : ""}${selectedForm.title || "응답 기록"}`
+      : "응답 기록",
+    boardName,
+    getChatSnapshot: (opts) => {
+      if (!selectedForm) return null;
+      return buildSheetChatSnapshot({
+        formTitle: selectedForm.title,
+        viewMode,
+        fields: visibleFields.map((f) => ({
+          _id: f._id,
+          label: f.label,
+          type: f.type,
+        })),
+        rows: filteredRows,
+        totalRowCount: rows.length,
+        dataExpand: opts?.dataExpand,
+      });
+    },
+  });
+
   useRegisterAlterAssessmentGrade({
-    enabled:
-      !!canManage &&
-      !!isAssessment &&
-      viewMode === "doc" &&
-      !!selectedForm &&
-      !!currentDocRow,
+    enabled: inAssessmentGradeMode,
     form: selectedForm,
     row: currentDocRow,
     gradeDraft,

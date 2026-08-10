@@ -58,10 +58,11 @@ const useRegisterAlterEvaluation = (params: Params) => {
       classTitle: params.classTitle,
       syllabusId: params.syllabusId,
       formEvaluation: params.formEvaluation,
-      getChatSnapshot: () => {
+      getChatSnapshot: (opts) => {
         const rows = getEnrollmentsRef.current() || [];
-        const labels = downloadLabels.slice(0, 8);
-        const items = rows.slice(0, 40).map((e) => {
+        const rowCap = opts?.dataExpand ? 150 : 40;
+        const labels = downloadLabels.slice(0, opts?.dataExpand ? 16 : 8);
+        const items = rows.slice(0, rowCap).map((e) => {
           const fields: Record<string, string> = {};
           if (e.studentGrade) fields["학년"] = String(e.studentGrade);
           if (e.studentId) fields["학번"] = String(e.studentId);
@@ -75,12 +76,15 @@ const useRegisterAlterEvaluation = (params: Params) => {
             fields,
           };
         });
-        return finalizeChatSnapshot({
-          summary: `수업 평가 — ${params.classTitle || params.label} · 학생 ${rows.length}명`,
-          items,
-          totalCount: rows.length,
-          isPartial: rows.length > 40,
-        });
+        return finalizeChatSnapshot(
+          {
+            summary: `수업 평가 — ${params.classTitle || params.label} · 학생 ${rows.length}명`,
+            items,
+            totalCount: rows.length,
+            isPartial: rows.length > rowCap,
+          },
+          { dataExpand: opts?.dataExpand }
+        );
       },
       getEvaluationCsv: () =>
         buildEvaluationCsv(getEnrollmentsRef.current() || [], downloadLabels),

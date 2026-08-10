@@ -168,12 +168,15 @@ export type TAlterPageContext = {
     | "assessment-grade"
     | "course-list"
     | "calendar"
+    | "sheet"
     | "general";
   label?: string;
   subject?: string[];
   classTitle?: string;
-  /** chat이 근거로 쓸 페이지 로드 데이터 */
-  getChatSnapshot?: () => TAlterChatSnapshot | null;
+  /** chat이 근거로 쓸 페이지 로드 데이터 (`dataExpand`: 데이터 확대) */
+  getChatSnapshot?: (opts?: {
+    dataExpand?: boolean;
+  }) => TAlterChatSnapshot | null;
   getCurrentInfo?: () => Record<string, any>;
   formSyllabus?: any;
   applyFieldSuggestion?: (fieldLabel: string, suggestion: string) => void;

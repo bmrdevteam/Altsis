@@ -54,26 +54,30 @@ const useRegisterAlterFormResponse = (params: Params) => {
           : "양식 응답"),
       boardId: params.boardId,
       boardName: params.boardName,
-      getChatSnapshot: () => {
+      getChatSnapshot: (opts) => {
         const fields = fieldsRef.current || [];
         const data = dataRef.current || {};
         const itemFields: Record<string, string> = {};
+        const cellCap = opts?.dataExpand ? 800 : 300;
         for (const f of fields) {
           if (f.type === "content" || f.type === "approval") continue;
-          const clipped = clipText(data[f._id], 300);
+          const clipped = clipText(data[f._id], cellCap);
           if (clipped) itemFields[f.label || f._id] = clipped;
           else itemFields[f.label || f._id] = "(비어 있음)";
         }
-        return finalizeChatSnapshot({
-          summary: `양식 응답 — ${params.formTitle || params.label || "양식"}`,
-          items: [
-            {
-              title: params.formTitle || "응답",
-              fields: itemFields,
-            },
-          ],
-          totalCount: fields.length,
-        });
+        return finalizeChatSnapshot(
+          {
+            summary: `양식 응답 — ${params.formTitle || params.label || "양식"}`,
+            items: [
+              {
+                title: params.formTitle || "응답",
+                fields: itemFields,
+              },
+            ],
+            totalCount: fields.length,
+          },
+          { dataExpand: opts?.dataExpand }
+        );
       },
       getFormResponse: () => {
         const fields = fieldsRef.current || [];

@@ -37,7 +37,7 @@ const useRegisterAlterDocsReview = (params: Params) => {
     return registerPageContext({
       pageType: "docs",
       label: params.label || params.formTitle || "문서 점검",
-      getChatSnapshot: () => {
+      getChatSnapshot: (opts) => {
         const doc = serializeDocsForReview({
           formTitle: params.formTitle,
           studentLabel: params.studentLabel,
@@ -48,21 +48,24 @@ const useRegisterAlterDocsReview = (params: Params) => {
           doc.content,
           ALTER_CHAT_SNAPSHOT_LIMITS.DOCUMENT_CHARS
         );
-        return finalizeChatSnapshot({
-          summary: `문서함 — ${doc.title || params.formTitle || "문서"}${
-            params.studentLabel ? ` · ${params.studentLabel}` : ""
-          }`,
-          items: [
-            {
-              title: String(doc.title || "(제목 없음)"),
-              fields: content ? { 내용: content } : {},
-            },
-          ],
-          totalCount: 1,
-          isPartial:
-            String(doc.content || "").length >
-            ALTER_CHAT_SNAPSHOT_LIMITS.DOCUMENT_CHARS,
-        });
+        return finalizeChatSnapshot(
+          {
+            summary: `문서함 — ${doc.title || params.formTitle || "문서"}${
+              params.studentLabel ? ` · ${params.studentLabel}` : ""
+            }`,
+            items: [
+              {
+                title: String(doc.title || "(제목 없음)"),
+                fields: content ? { 내용: content } : {},
+              },
+            ],
+            totalCount: 1,
+            isPartial:
+              String(doc.content || "").length >
+              ALTER_CHAT_SNAPSHOT_LIMITS.DOCUMENT_CHARS,
+          },
+          { dataExpand: opts?.dataExpand }
+        );
       },
       getReviewDocument: (): TDocsReviewSnapshot =>
         serializeDocsForReview({

@@ -273,6 +273,8 @@ const AlterPanel = ({ onClose }: Props) => {
     const first = suggested[0] || "chat";
     return isDraftPrepSkill(first);
   });
+  /** 데이터 확대 — 패널 세션 동안만 유지 (localStorage 없음) */
+  const [dataExpand, setDataExpand] = useState(false);
 
   const [evalTargetLabels, setEvalTargetLabels] = useState<string[]>([]);
   const [evalContextLabels, setEvalContextLabels] = useState<string[]>([]);
@@ -933,7 +935,8 @@ const AlterPanel = ({ onClose }: Props) => {
         attachments,
       };
     }
-    const chatSnapshot = pageContext?.getChatSnapshot?.() || null;
+    const chatSnapshot =
+      pageContext?.getChatSnapshot?.({ dataExpand }) || null;
     return {
       pageType: pageContext?.pageType || "general",
       label: pageContext?.label || "",
@@ -942,6 +945,7 @@ const AlterPanel = ({ onClose }: Props) => {
       currentInfo: pageContext?.getCurrentInfo?.() || {},
       formSyllabus: pageContext?.formSyllabus || currentSeason?.formSyllabus,
       chatSnapshot,
+      dataExpand,
       sourceText: attachmentText,
       attachments,
     };
@@ -2392,17 +2396,24 @@ const AlterPanel = ({ onClose }: Props) => {
     );
   };
 
-  let pageDataHint: { count: number; isPartial: boolean } | null = null;
+  let pageDataHint: {
+    included: number;
+    total: number;
+    isPartial: boolean;
+  } | null = null;
   if (pageContext?.getChatSnapshot) {
     try {
-      const snap = pageContext.getChatSnapshot();
+      const snap = pageContext.getChatSnapshot({ dataExpand });
       if (snap) {
-        const count =
-          typeof snap.totalCount === "number"
-            ? snap.totalCount
-            : snap.items?.length || 0;
-        if (count > 0) {
-          pageDataHint = { count, isPartial: !!snap.isPartial };
+        const included = Array.isArray(snap.items) ? snap.items.length : 0;
+        const total =
+          typeof snap.totalCount === "number" ? snap.totalCount : included;
+        if (total > 0 || included > 0) {
+          pageDataHint = {
+            included,
+            total: Math.max(total, included),
+            isPartial: !!snap.isPartial || included < total,
+          };
         }
       }
     } catch {
@@ -2410,6 +2421,12 @@ const AlterPanel = ({ onClose }: Props) => {
       pageDataHint = null;
     }
   }
+
+  const pageDataHintText = pageDataHint
+    ? pageDataHint.isPartial
+      ? `페이지 데이터 ${pageDataHint.included}/${pageDataHint.total}건 참고`
+      : `페이지 데이터 ${pageDataHint.total}건 참고`
+    : "";
 
   const contextLabel =
     pageContext?.label ||
@@ -2435,7 +2452,9 @@ const AlterPanel = ({ onClose }: Props) => {
                         ? "수업 목록"
                         : pageContext?.pageType === "calendar"
                           ? "캘린더"
-                          : "일반");
+                          : pageContext?.pageType === "sheet"
+                            ? "응답 기록"
+                            : "일반");
 
   const inSyllabusPrep = showPrep && selectedSkill === "syllabus-draft";
   const inEvalPrep = showPrep && selectedSkill === "evaluation-draft";
@@ -3014,12 +3033,25 @@ const AlterPanel = ({ onClose }: Props) => {
           {currentRegistration?.role
             ? ` · ${currentRegistration.role === "teacher" ? "교사" : "학생"}`
             : ""}
-          {pageDataHint
-            ? ` · 페이지 데이터 ${pageDataHint.count}건 참고${
-                pageDataHint.isPartial ? " (일부)" : ""
-              }`
-            : ""}
+          {pageDataHintText ? ` · ${pageDataHintText}` : ""}
         </span>
+        {pageContext?.getChatSnapshot ? (
+          <label
+            className={style.dataExpandToggle}
+            title={
+              dataExpand
+                ? "데이터 확대 적용 중(최대 150건). 목록이 더 많으면 필터로 줄인 뒤 질문하세요."
+                : "더 많은 페이지 데이터를 참고합니다(최대 150건). Alt 사용량이 늘어날 수 있습니다."
+            }
+          >
+            <input
+              type="checkbox"
+              checked={dataExpand}
+              onChange={(e) => setDataExpand(e.target.checked)}
+            />
+            <span>데이터 확대</span>
+          </label>
+        ) : null}
       </div>
 
       <div className={style.body}>
@@ -3038,9 +3070,9 @@ const AlterPanel = ({ onClose }: Props) => {
             title="질문해 보세요"
             subtitle={
               pageDataHint
-                ? `지금 연 페이지에 불러온 데이터(${pageDataHint.count}건${
-                    pageDataHint.isPartial ? ", 일부" : ""
-                  })를 기준으로 답합니다. 아래 Skill로 작성·점검 모드로 전환할 수 있습니다.`
+                ? pageDataHint.isPartial
+                  ? `지금 연 페이지 데이터 중 ${pageDataHint.included}/${pageDataHint.total}건만 참고합니다. 목록을 필터로 줄이거나 「데이터 확대」를 켠 뒤 질문하세요.`
+                  : `지금 연 페이지에 불러온 데이터(${pageDataHint.total}건)를 기준으로 답합니다. 아래 Skill로 작성·점검 모드로 전환할 수 있습니다.`
                 : "Alter에게 질문하세요. 추천 Skill을 고르면 초안·점검 모드로 전환됩니다. 대화는 자동 저장됩니다."
             }
           />

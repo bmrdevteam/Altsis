@@ -35,6 +35,10 @@ export const PROMPT_LIMITS = {
   CHAT_SNAPSHOT_MAX_ITEMS: 50,
   /** Alter chat: 항목 필드값 상한 (문서 본문과 동일 수준) */
   CHAT_SNAPSHOT_FIELD_CHARS: 40000,
+  /** Alter chat 「데이터 확대」: 스냅샷 전체 상한 */
+  CHAT_SNAPSHOT_CHARS_EXPANDED: 120000,
+  /** Alter chat 「데이터 확대」: 항목 수 상한 */
+  CHAT_SNAPSHOT_MAX_ITEMS_EXPANDED: 150,
   /** Alter chat retrieval: 청크 개수 */
   CHAT_RETRIEVE_CHUNK_LIMIT: 6,
   /** Alter chat retrieval: 문서당 최대 청크 */

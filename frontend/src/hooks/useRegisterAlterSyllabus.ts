@@ -33,7 +33,7 @@ const useRegisterAlterSyllabus = (params: Params) => {
       subject: params.subject,
       classTitle: params.classTitle,
       getCurrentInfo: () => getCurrentInfoRef.current() || {},
-      getChatSnapshot: () => {
+      getChatSnapshot: (opts) => {
         const info = getCurrentInfoRef.current() || {};
         const fields = extractSyllabusInputFields(params.formSyllabus);
         const itemFields: Record<string, string> = {};
@@ -48,19 +48,22 @@ const useRegisterAlterSyllabus = (params: Params) => {
           const clipped = clipText(v, 500);
           if (clipped) itemFields[k] = clipped;
         }
-        return finalizeChatSnapshot({
-          summary: `강의계획서 작성 중 — ${params.classTitle || "(수업명 미입력)"}`,
-          items: [
-            {
-              title: params.classTitle || params.label || "강의계획서",
-              fields: {
-                교과: params.subject.join(" > "),
-                ...itemFields,
+        return finalizeChatSnapshot(
+          {
+            summary: `강의계획서 작성 중 — ${params.classTitle || "(수업명 미입력)"}`,
+            items: [
+              {
+                title: params.classTitle || params.label || "강의계획서",
+                fields: {
+                  교과: params.subject.join(" > "),
+                  ...itemFields,
+                },
               },
-            },
-          ],
-          totalCount: 1,
-        });
+            ],
+            totalCount: 1,
+          },
+          { dataExpand: opts?.dataExpand }
+        );
       },
       formSyllabus: params.formSyllabus,
       applyFieldSuggestion: (fieldLabel, suggestion) => {

@@ -60,31 +60,35 @@ const useRegisterAlterActivity = (params: Params) => {
       label: params.label || params.boardName || "활동 작성",
       boardId: params.boardId,
       boardName: params.boardName,
-      getChatSnapshot: () => {
+      getChatSnapshot: (opts) => {
         const cur = getActivityRef.current();
         const fields = cur.fields || [];
+        const fieldCap = opts?.dataExpand ? 80 : 30;
         const fieldLines = fields
-          .slice(0, 30)
+          .slice(0, fieldCap)
           .map(
             (f, i) =>
               `${i + 1}. ${f.label || "(라벨 없음)"} (${f.type || "?"})`
           )
           .join("\n");
-        return finalizeChatSnapshot({
-          summary: `활동/양식 작성 — ${cur.title || params.label || "활동"}`,
-          items: [
-            {
-              title: String(cur.title || "(제목 없음)"),
-              fields: {
-                설명: clipText(cur.description, 800),
-                필드목록: fieldLines || "(없음)",
-                필드수: String(fields.length),
+        return finalizeChatSnapshot(
+          {
+            summary: `활동/양식 작성 — ${cur.title || params.label || "활동"}`,
+            items: [
+              {
+                title: String(cur.title || "(제목 없음)"),
+                fields: {
+                  설명: clipText(cur.description, 800),
+                  필드목록: fieldLines || "(없음)",
+                  필드수: String(fields.length),
+                },
               },
-            },
-          ],
-          totalCount: 1,
-          isPartial: fields.length > 30,
-        });
+            ],
+            totalCount: 1,
+            isPartial: fields.length > fieldCap,
+          },
+          { dataExpand: opts?.dataExpand }
+        );
       },
       getActivity: () => {
         const cur = getActivityRef.current();

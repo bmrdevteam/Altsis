@@ -126,6 +126,27 @@ POST /api/ai/alter
 }
 ```
 
+### 페이지 스냅샷 · 데이터 확대
+
+프론트는 데이터 화면에서 `registerPageContext`로 `getChatSnapshot`을 등록합니다. chat Skill 요청 시 `context.chatSnapshot`과 `context.dataExpand`가 함께 전달됩니다.
+
+| 규칙 | 설명 |
+|------|------|
+| 읽기 문맥 | 페이지에 **이미 로드·표시된(권한 통과) 데이터**만 스냅샷에 넣습니다. 추가 fetch 없음 |
+| `pageType: "sheet"` | 양식 응답 시트(표·시간표·문서). UI 라벨「응답 기록」 |
+| Skill 쓰기 | 초안 반영·채점 등은 별도 훅(`apply*Draft`). 스냅샷만으로는 쓰지 않음 |
+
+**데이터 확대** (`context.dataExpand: true` 또는 `chatSnapshot.dataExpand: true`): 사용자가 Alter 패널에서 켠 opt-in입니다. 프론트·백엔드 한도를 함께 올립니다.
+
+| 한도 | 기본 | 데이터 확대 |
+|------|------|-------------|
+| 항목 수 | 50 | 150 |
+| 스냅샷 전체 글자 | 48,000 | 120,000 |
+| 필드값 글자 | 40,000 | 40,000 |
+
+서버는 `buildAlterChatPageData`에서 동일 한도로 다시 자릅니다. 클라이언트만 키워도 서버 한도가 낮으면 잘립니다.  
+전체보다 적게 포함되면 UI·프롬프트에 `포함 N / 전체 M`으로 표시하며, 「일부」만 쓰지 않습니다. 목록이 한도보다 크면 필터로 범위를 줄이는 것이 정확합니다.
+
 ### 응답 (SSE, draft Skill)
 
 이벤트가 순차로 전송됩니다.

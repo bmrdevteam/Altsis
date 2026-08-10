@@ -1,7 +1,9 @@
 import {
   ALTER_CHAT_SNAPSHOT_LIMITS,
+  ALTER_CHAT_SNAPSHOT_PROFILES,
   buildCalendarEventsChatSnapshot,
   buildCourseListChatSnapshot,
+  buildSheetChatSnapshot,
   buildSyllabusViewChatSnapshot,
   buildUserSearchChatSnapshot,
   finalizeChatSnapshot,
@@ -27,6 +29,78 @@ describe("alterChatSnapshot", () => {
       })
     );
     expect(snap.items?.length).toBe(50);
+  });
+
+  test("데이터 확대 프로파일은 items 150까지 허용한다", () => {
+    expect(ALTER_CHAT_SNAPSHOT_PROFILES.expanded.MAX_ITEMS).toBe(150);
+    expect(ALTER_CHAT_SNAPSHOT_PROFILES.expanded.TOTAL_CHARS).toBe(120000);
+    const items = Array.from({ length: 120 }, (_, i) => ({
+      title: `응답 ${i}`,
+      fields: { 칸: "값" },
+    }));
+    const defaultSnap = finalizeChatSnapshot({
+      summary: "시트",
+      items,
+      totalCount: 120,
+    });
+    expect(defaultSnap.items?.length).toBe(50);
+    expect(defaultSnap.isPartial).toBe(true);
+
+    const expandedSnap = finalizeChatSnapshot(
+      { summary: "시트", items, totalCount: 120 },
+      { dataExpand: true }
+    );
+    expect(expandedSnap.items?.length).toBe(120);
+    expect(expandedSnap.isPartial).toBe(false);
+    expect(expandedSnap.dataExpand).toBe(true);
+  });
+
+  test("buildSheetChatSnapshot summarizes filtered rows", () => {
+    const snap = buildSheetChatSnapshot({
+      formTitle: "강의실 신청",
+      viewMode: "timetable",
+      fields: [
+        { _id: "f1", label: "항목", type: "text" },
+        { _id: "f2", label: "장소", type: "text" },
+      ],
+      rows: [
+        {
+          _respondentName: "김학생",
+          _respondentId: "s1",
+          data: { f1: "프로젝트", f2: "204" },
+        },
+        {
+          _respondentName: "이학생",
+          data: { f1: "회의", f2: "101" },
+        },
+      ],
+      totalRowCount: 57,
+    });
+    expect(snap.summary).toContain("강의실 신청");
+    expect(snap.summary).toContain("시간표");
+    expect(snap.summary).toContain("2/57");
+    expect(snap.totalCount).toBe(2);
+    expect(snap.items?.[0].title).toBe("김학생");
+    expect(snap.items?.[0].fields?.항목).toContain("프로젝트");
+  });
+
+  test("buildSheetChatSnapshot caps rows before serializing", () => {
+    const rows = Array.from({ length: 80 }, (_, i) => ({
+      _respondentName: `학생 ${i}`,
+      data: { f1: `값 ${i}` },
+    }));
+    const snap = buildSheetChatSnapshot({
+      formTitle: "대량",
+      viewMode: "table",
+      fields: [{ _id: "f1", label: "항목", type: "text" }],
+      rows,
+      totalRowCount: 80,
+    });
+    expect(snap.items?.length).toBe(50);
+    expect(snap.totalCount).toBe(80);
+    expect(snap.isPartial).toBe(true);
+    expect(snap.items?.[0].title).toBe("학생 0");
+    expect(snap.items?.some((it) => it.title === "학생 60")).toBe(false);
   });
 
   test("buildUserSearchChatSnapshot includes profile and timetable slots", () => {

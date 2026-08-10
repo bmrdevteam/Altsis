@@ -28,13 +28,14 @@ const useRegisterAlterCourseList = (params: Params) => {
     return registerPageContext({
       pageType: "course-list",
       label: params.label,
-      getChatSnapshot: () => {
+      getChatSnapshot: (opts) => {
         const courses = getCoursesRef.current() || [];
         const enrolledIds = getEnrolledIdsRef.current?.() || [];
         return buildCourseListChatSnapshot(courses, {
           label: params.label,
           seasonLabel: params.seasonLabel,
           enrolledIds,
+          dataExpand: opts?.dataExpand,
         });
       },
       suggestedSkills: ["chat"],

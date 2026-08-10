@@ -36,10 +36,11 @@ const useRegisterAlterSyllabusView = (params: Params) => {
       label: title ? `강의계획서 · ${title}` : "강의계획서",
       subject,
       classTitle: title,
-      getChatSnapshot: () =>
+      getChatSnapshot: (opts) =>
         buildSyllabusViewChatSnapshot(
           courseRef.current || params.course,
-          params.formSyllabus
+          params.formSyllabus,
+          { dataExpand: opts?.dataExpand }
         ),
       suggestedSkills: ["chat"],
     });

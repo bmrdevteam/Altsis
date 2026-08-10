@@ -75,7 +75,7 @@ const useRegisterAlterAssessmentGrade = (params: Params) => {
       pageType: "assessment-grade",
       label: `${form.title || "평가"} · ${respondentLabel || "응답"}`,
       boardName: params.boardName,
-      getChatSnapshot: () => {
+      getChatSnapshot: (opts) => {
         const f = formRef.current;
         const r = rowRef.current;
         const draft = gradeDraftRef.current;
@@ -83,29 +83,35 @@ const useRegisterAlterAssessmentGrade = (params: Params) => {
         const gradeFields = (f.fields || []).filter(
           (field) => field.gradingMethod && field.gradingMethod !== "none"
         );
+        const fieldCap = opts?.dataExpand ? 60 : 20;
         const itemFields: Record<string, string> = {
           응답자: respondentLabel || "",
           확정: finalized ? "예" : "아니오",
         };
-        for (const field of gradeFields.slice(0, 20)) {
+        for (const field of gradeFields.slice(0, fieldCap)) {
           const resp = serializeResponseValue(r.data?.[field._id]);
           const g = draft.byField?.[field._id];
           const bits = [
-            resp ? `응답: ${clipText(resp, 120)}` : "",
+            resp ? `응답: ${clipText(resp, opts?.dataExpand ? 300 : 120)}` : "",
             g?.score != null ? `점수: ${g.score}` : "",
-            g?.comment ? `코멘트: ${clipText(g.comment, 80)}` : "",
+            g?.comment
+              ? `코멘트: ${clipText(g.comment, opts?.dataExpand ? 200 : 80)}`
+              : "",
           ].filter(Boolean);
           itemFields[field.label || field._id] = bits.join(" / ") || "(없음)";
         }
         if (draft.final?.comment) {
           itemFields["총평"] = clipText(draft.final.comment, 200);
         }
-        return finalizeChatSnapshot({
-          summary: `평가 채점 — ${f.title || "평가"} · ${respondentLabel}`,
-          items: [{ title: f.title || "평가", fields: itemFields }],
-          totalCount: gradeFields.length,
-          isPartial: gradeFields.length > 20,
-        });
+        return finalizeChatSnapshot(
+          {
+            summary: `평가 채점 — ${f.title || "평가"} · ${respondentLabel}`,
+            items: [{ title: f.title || "평가", fields: itemFields }],
+            totalCount: gradeFields.length,
+            isPartial: gradeFields.length > fieldCap,
+          },
+          { dataExpand: opts?.dataExpand }
+        );
       },
       getAssessmentGradeContext: () => {
         const f = formRef.current;
