@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Socket, io } from "socket.io-client";
 import style from "./navbar.module.scss";
 
@@ -8,10 +9,12 @@ import useAPIv2 from "hooks/useAPIv2";
 import { TChatRoom } from "types/chat";
 import ChatWindow from "./ChatWindow";
 import audioURL from "assets/audio/notification-a.mp3";
+import { updateChatAppBadge } from "utils/appBadge";
 
 const Chat = () => {
   const { currentUser, currentSchool } = useAuth();
   const { ChatAPI, NotificationAPI } = useAPIv2();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [socket, setSocket] = useState<Socket>();
   const [rooms, setRooms] = useState<TChatRoom[]>([]);
@@ -25,6 +28,7 @@ const Chat = () => {
   const audioRef = useRef(new Audio(audioURL));
   const soundEnabledRef = useRef(true);
   const chatWindowActiveRef = useRef(false);
+  const chatRoomDeepLinkHandledRef = useRef<string | null>(null);
 
   // Keep refs in sync with state
   chatWindowActiveRef.current = chatWindowActive;
@@ -53,6 +57,7 @@ const Chat = () => {
         0
       );
       setUnreadCount(count);
+      updateChatAppBadge(count);
 
       // Load archived rooms
       const { rooms: archived } = await ChatAPI.RChatRooms({
@@ -63,6 +68,7 @@ const Chat = () => {
       // Chat may not be enabled
       if (err?.response?.data?.message === "CHAT_NOT_ENABLED") {
         setChatEnabled(false);
+        updateChatAppBadge(0);
       }
     }
   };
@@ -118,6 +124,28 @@ const Chat = () => {
       loadRooms();
     }
   }, [currentUser?._id]);
+
+  // Web Push 클릭 → ?chatRoom= 딥링크
+  useEffect(() => {
+    const chatRoomId = searchParams.get("chatRoom");
+    if (!chatRoomId || chatEnabled === false) return;
+    if (chatRoomDeepLinkHandledRef.current === chatRoomId) return;
+    if (rooms.length === 0 && archivedRooms.length === 0) return;
+
+    const target =
+      rooms.find((r) => r._id === chatRoomId) ||
+      archivedRooms.find((r) => r._id === chatRoomId);
+
+    chatRoomDeepLinkHandledRef.current = chatRoomId;
+    const next = new URLSearchParams(searchParams);
+    next.delete("chatRoom");
+    setSearchParams(next, { replace: true });
+
+    if (target) {
+      setSelectedRoom(target);
+      setChatWindowActive(true);
+    }
+  }, [searchParams, rooms, archivedRooms, chatEnabled]);
 
   const handleRoomSelect = (room: TChatRoom | null): void => {
     setSelectedRoom(room);

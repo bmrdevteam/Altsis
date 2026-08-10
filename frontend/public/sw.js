@@ -8,6 +8,19 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
 
+async function setBadgeFromPayload(badgeCount) {
+  if (typeof badgeCount !== "number" || Number.isNaN(badgeCount)) return;
+  try {
+    if (badgeCount > 0 && self.registration.setAppBadge) {
+      await self.registration.setAppBadge(badgeCount);
+    } else if (badgeCount <= 0 && self.registration.clearAppBadge) {
+      await self.registration.clearAppBadge();
+    }
+  } catch {
+    // Badging API 미지원 환경은 무시
+  }
+}
+
 self.addEventListener("push", (event) => {
   let data = {};
   try {
@@ -34,12 +47,23 @@ self.addEventListener("push", (event) => {
     },
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(
+    (async () => {
+      await setBadgeFromPayload(data.badgeCount);
+      await self.registration.showNotification(title, options);
+    })()
+  );
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const targetUrl = event.notification.data?.url || "/";
+  const rawUrl = event.notification.data?.url || "/";
+  let absoluteUrl;
+  try {
+    absoluteUrl = new URL(rawUrl, self.location.origin).href;
+  } catch {
+    absoluteUrl = self.location.origin + "/";
+  }
 
   event.waitUntil(
     (async () => {
@@ -49,22 +73,18 @@ self.addEventListener("notificationclick", (event) => {
       });
 
       for (const client of allClients) {
-        if ("focus" in client) {
+        if (client.url.startsWith(self.location.origin) && "focus" in client) {
           await client.focus();
-          if ("navigate" in client && targetUrl) {
-            try {
-              await client.navigate(targetUrl);
-              return;
-            } catch {
-              // navigate may fail on some browsers; open new window below
-            }
-          }
+          client.postMessage({
+            type: "NOTIFICATION_CLICK",
+            url: absoluteUrl,
+          });
           return;
         }
       }
 
       if (self.clients.openWindow) {
-        await self.clients.openWindow(targetUrl);
+        await self.clients.openWindow(absoluteUrl);
       }
     })()
   );

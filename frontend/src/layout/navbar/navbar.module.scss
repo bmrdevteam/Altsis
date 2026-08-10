@@ -92,10 +92,10 @@
 
   .controls {
     display: flex;
-    gap: 16px;
+    gap: 8px;
     align-items: center;
     flex-shrink: 0;
-    margin-left: 16px;
+    margin-left: 12px;
 
     .notification {
       position: relative;
@@ -146,11 +146,13 @@
     .contents {
       z-index: 1100;
       box-shadow: var(--component-box-shadow);
-      right: -16px;
-      top: 46px;
-      width: 320px;
-      max-height: min(500px, calc(100vh - 100px));
-      position: absolute;
+      /* 벨 아이콘 기준이 아니라 화면 오른쪽에 고정 (Alter/채팅과 동일).
+         상단바에 딱 붙지 않도록 여유를 둔다. */
+      position: fixed;
+      right: 8px;
+      top: 64px;
+      width: min(360px, calc(100vw - 16px));
+      max-height: min(500px, calc(100vh - 80px));
       border-radius: 8px;
       background-color: var(--background-color);
       border: var(--border-default);

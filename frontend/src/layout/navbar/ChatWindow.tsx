@@ -57,6 +57,7 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
   const [showNewChat, setShowNewChat] = useState(false);
   const [showStorage, setShowStorage] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   // File upload states
   const [isDragging, setIsDragging] = useState(false);
   const [previewFile, setPreviewFile] = useState<{
@@ -788,10 +789,18 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
     </div>
   );
 
+  const handleClose = () => {
+    setIsExpanded(false);
+    onClose();
+  };
+
   // === Modal (navbar panel) layout ===
   return (
     <>
-      <ChatPanelShell onOverlayClick={onClose}>
+      <ChatPanelShell
+        variant={isExpanded ? "expanded" : "default"}
+        onOverlayClick={handleClose}
+      >
         <ChatPanelHeader
           title={
             !showChatList && room ? getRoomDisplayName() : "메시지"
@@ -893,7 +902,9 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
               </div>
             ) : undefined
           }
-          onClose={onClose}
+          isExpanded={isExpanded}
+          onToggleExpand={() => setIsExpanded((prev) => !prev)}
+          onClose={handleClose}
         />
         {chatContent}
       </ChatPanelShell>

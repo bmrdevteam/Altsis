@@ -15,11 +15,13 @@
 .panel {
   z-index: 1100;
   box-shadow: var(--component-box-shadow);
-  right: -16px;
-  top: 46px;
-  width: min(400px, calc(100vw - 24px));
-  max-height: min(700px, calc(100vh - 100px));
-  position: absolute;
+  /* 아이콘 위치가 달라도 뷰포트 오른쪽에 붙여 Alter와 동일하게 맞춤.
+     상단바에 딱 붙지 않도록 여유를 둔다. */
+  position: fixed;
+  right: 8px;
+  top: 64px;
+  width: min(400px, calc(100vw - 16px));
+  max-height: min(700px, calc(100vh - 80px));
   border-radius: 8px;
   background-color: var(--background-color);
   border: var(--border-default);
