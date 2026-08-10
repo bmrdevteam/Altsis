@@ -20,11 +20,15 @@ self.addEventListener("push", (event) => {
   }
 
   const title = data.title || "Altsis";
+  const body =
+    (data.body && String(data.body).trim()) ||
+    "알림을 확인하려면 탭하세요.";
   const options = {
-    body: data.body || "",
+    body,
     icon: "/favicon.ico",
     badge: "/favicon.ico",
     tag: data.tag || "altsis-notification",
+    renotify: true,
     data: {
       url: data.url || "/",
     },

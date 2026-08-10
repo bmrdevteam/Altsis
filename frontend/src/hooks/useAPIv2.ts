@@ -3223,6 +3223,17 @@ export default function useAPIv2() {
     });
   }
 
+  /**
+   * CTestPush API
+   * @description Web Push 테스트 발송
+   */
+  async function CTestPush() {
+    return await database.C({
+      location: "notifications/push/test",
+      data: {},
+    });
+  }
+
   // ============================================================
   // CalendarSettings API
   // ============================================================
@@ -5351,6 +5362,7 @@ export default function useAPIv2() {
       RVapidPublicKey,
       CPushSubscription,
       DPushSubscription,
+      CTestPush,
     },
     ReminderAPI: {
       CReminder,

@@ -265,6 +265,21 @@
   }
 }
 
+.test_push_button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--component-color);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-color);
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.7;
+  }
+}
+
 // --- Form Layout Utilities ---
 .form_row {
   display: flex;

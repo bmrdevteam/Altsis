@@ -12,6 +12,7 @@ router.put("/settings", isLoggedIn, notifications.updateSettings);
 router.get("/push/vapid-public-key", isLoggedIn, notifications.getVapidKey);
 router.post("/push/subscribe", isLoggedIn, notifications.subscribePush);
 router.delete("/push/subscribe", isLoggedIn, notifications.unsubscribePush);
+router.post("/push/test", isLoggedIn, notifications.testPush);
 
 // 알림 일괄 확인
 router.put("/bulk-check", isLoggedIn, notifications.bulkCheck);

@@ -51,11 +51,12 @@ const DEFAULT_SETTINGS: TNotificationSettings = {
 
 const NotificationSettings = (props: Props) => {
   const { NotificationAPI } = useAPIv2();
-  const { enableWebPush, disableWebPush } = useWebPush();
+  const { enableWebPush, disableWebPush, sendTestPush } = useWebPush();
 
   const [settings, setSettings] = useState<TNotificationSettings>(DEFAULT_SETTINGS);
   const [isLoading, setIsLoading] = useState(true);
   const [pushBusy, setPushBusy] = useState(false);
+  const [testBusy, setTestBusy] = useState(false);
   const pushSupported = isWebPushSupported();
 
   useEffect(() => {
@@ -111,6 +112,30 @@ const NotificationSettings = (props: Props) => {
       }
     } finally {
       setPushBusy(false);
+    }
+  };
+
+  const handleTestPush = async () => {
+    if (testBusy) return;
+    setTestBusy(true);
+    try {
+      await sendTestPush();
+      alert(
+        "테스트 알림을 보냈습니다. 잠시 후 잠금화면/알림창을 확인해 주세요. 앱을 백그라운드로 두면 확인하기 쉽습니다."
+      );
+    } catch (err: any) {
+      const code = err?.response?.data?.message || err?.message;
+      if (code === "WEB_PUSH_NOT_CONFIGURED") {
+        alert("서버에 Web Push가 아직 설정되지 않았습니다.");
+      } else if (code === "WEB_PUSH_DISABLED") {
+        alert("잠금화면 알림을 먼저 켜 주세요.");
+      } else if (code === "NO_PUSH_SUBSCRIPTION") {
+        alert("이 기기의 푸시 구독이 없습니다. 잠금화면 알림을 껐다가 다시 켜 주세요.");
+      } else {
+        ALERT_ERROR(err);
+      }
+    } finally {
+      setTestBusy(false);
     }
   };
 
@@ -194,6 +219,30 @@ const NotificationSettings = (props: Props) => {
             />
           </div>
         </div>
+        {settings.webPushEnabled && pushSupported && (
+          <>
+            <Divider />
+            <div className={style.setting_item}>
+              <div className={style.info}>
+                <label className={style.label}>테스트 알림</label>
+                <span className={style.description}>
+                  이 기기로 잠금화면 알림이 오는지 바로 확인할 수 있습니다.
+                </span>
+              </div>
+              <div className={style.controls}>
+                <button
+                  type="button"
+                  disabled={testBusy}
+                  aria-busy={testBusy}
+                  onClick={handleTestPush}
+                  className={style.test_push_button}
+                >
+                  {testBusy ? "전송 중…" : "테스트 보내기"}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </>
   );

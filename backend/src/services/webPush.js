@@ -3,7 +3,11 @@
  * @namespace Services.WebPushService
  */
 import webpush from "web-push";
-import { PushSubscription, User } from "../models/index.js";
+import {
+  NotificationSetting,
+  PushSubscription,
+  User,
+} from "../models/index.js";
 import { logger } from "../log/logger.js";
 
 /** MVP에서 잠금화면 푸시를 허용하는 알림 유형 (옵트인 후) */
@@ -79,24 +83,66 @@ const clientOrigin = () => {
   return url.replace(/\/$/, "");
 };
 
+const buildClickUrl = (academyId, schoolId, notification) => {
+  const origin = clientOrigin();
+  if (!origin) return null;
+  const path = pathForNotification(notification);
+  if (!schoolId) {
+    return `${origin}/`;
+  }
+  return `${origin}/${academyId}/${schoolId}${path === "/" ? "/" : path}`;
+};
+
+const sendToSubscriptions = async (academyId, subs, payload, userId) => {
+  let sent = 0;
+  await Promise.all(
+    subs.map(async (sub) => {
+      try {
+        await webpush.sendNotification(
+          {
+            endpoint: sub.endpoint,
+            keys: {
+              p256dh: sub.keys.p256dh,
+              auth: sub.keys.auth,
+            },
+          },
+          payload
+        );
+        sent += 1;
+      } catch (err) {
+        const status = err?.statusCode;
+        if (status === 404 || status === 410) {
+          await PushSubscription(academyId).deleteOne({ _id: sub._id });
+          logger.info(`Removed stale push subscription ${sub._id}`);
+        } else {
+          logger.warn(
+            `Web Push failed for ${userId}: ${err?.message || err}`
+          );
+        }
+      }
+    })
+  );
+  return sent;
+};
+
 /**
  * 생성된 알림들에 대해 Web Push 발송
  * @param {Object} params
  * @param {string} params.academyId
  * @param {Array} params.notifications - insertMany 결과
- * @param {Object} params.settingsByUserId - userId → settings
+ * @param {Object} params.settingsByUserId - userId → settings (보조)
  */
 export const sendWebPushesForNotifications = async ({
   academyId,
   notifications,
-  settingsByUserId,
+  settingsByUserId = {},
 }) => {
   if (!ensureConfigured()) {
+    logger.warn("Web Push skipped: VAPID is not configured");
     return;
   }
 
-  const origin = clientOrigin();
-  if (!origin) {
+  if (!clientOrigin()) {
     logger.warn("Web Push skipped: URL env is not set");
     return;
   }
@@ -106,68 +152,132 @@ export const sendWebPushesForNotifications = async ({
   );
   if (eligible.length === 0) return;
 
-  // userId별 대표 알림 (동일 사용자 다건이면 첫 건)
-  const byUserId = new Map();
+  // user ObjectId 기준으로 설정을 다시 조회 (webPushEnabled 누락 방지)
+  const userObjectIds = [
+    ...new Set(eligible.map((n) => String(n.user)).filter(Boolean)),
+  ];
+  const settingDocs = await NotificationSetting(academyId)
+    .find({ user: { $in: userObjectIds } })
+    .select("user userId settings")
+    .lean();
+  const settingsByUserObjectId = {};
+  for (const doc of settingDocs) {
+    settingsByUserObjectId[String(doc.user)] = doc.settings || {};
+  }
+
+  const byUserKey = new Map();
   for (const n of eligible) {
-    const settings = settingsByUserId[n.userId];
-    if (!settings?.webPushEnabled) continue;
-    // 유형별 인앱 옵트아웃과 동일 기준
-    if (settings[n.notificationType] === false) continue;
-    if (!byUserId.has(n.userId)) {
-      byUserId.set(n.userId, n);
+    const userKey = String(n.user);
+    const settings =
+      settingsByUserObjectId[userKey] ||
+      settingsByUserId[n.userId] ||
+      {};
+    if (!settings.webPushEnabled) {
+      logger.info(
+        `Web Push skipped for ${n.userId}: webPushEnabled is off`
+      );
+      continue;
+    }
+    if (settings[n.notificationType] === false) {
+      logger.info(
+        `Web Push skipped for ${n.userId}: ${n.notificationType} opted out`
+      );
+      continue;
+    }
+    if (!byUserKey.has(userKey)) {
+      byUserKey.set(userKey, n);
     }
   }
 
-  for (const [userId, notification] of byUserId) {
+  for (const [userKey, notification] of byUserKey) {
     try {
       const schoolId = await resolveSchoolId(academyId, notification.user);
-      if (!schoolId) continue;
+      const url = buildClickUrl(academyId, schoolId, notification);
+      if (!url) continue;
 
       const subs = await PushSubscription(academyId).find({
         user: notification.user,
       });
-      if (subs.length === 0) continue;
+      if (subs.length === 0) {
+        logger.warn(
+          `Web Push skipped for ${notification.userId}: no PushSubscription`
+        );
+        continue;
+      }
 
-      const path = pathForNotification(notification);
-      const url = `${origin}/${academyId}/${schoolId}${path === "/" ? "/" : path}`;
+      const body =
+        (notification.description && String(notification.description).trim()) ||
+        "알림을 확인하려면 탭하세요.";
       const payload = JSON.stringify({
         title: notification.title || "Altsis",
-        body: notification.description || "",
+        body,
         url,
         tag: `${notification.notificationType}:${notification._id}`,
         notificationType: notification.notificationType,
       });
 
-      await Promise.all(
-        subs.map(async (sub) => {
-          try {
-            await webpush.sendNotification(
-              {
-                endpoint: sub.endpoint,
-                keys: {
-                  p256dh: sub.keys.p256dh,
-                  auth: sub.keys.auth,
-                },
-              },
-              payload
-            );
-          } catch (err) {
-            const status = err?.statusCode;
-            if (status === 404 || status === 410) {
-              await PushSubscription(academyId).deleteOne({ _id: sub._id });
-              logger.info(`Removed stale push subscription ${sub._id}`);
-            } else {
-              logger.warn(
-                `Web Push failed for ${userId}: ${err?.message || err}`
-              );
-            }
-          }
-        })
+      const sent = await sendToSubscriptions(
+        academyId,
+        subs,
+        payload,
+        notification.userId
+      );
+      logger.info(
+        `Web Push sent ${sent}/${subs.length} for ${notification.userId} (${notification.notificationType})`
       );
     } catch (err) {
-      logger.warn(`Web Push batch failed for ${userId}: ${err.message}`);
+      logger.warn(`Web Push batch failed for ${userKey}: ${err.message}`);
     }
   }
+};
+
+/**
+ * 현재 사용자에게 테스트 푸시 1건 발송
+ */
+export const sendTestWebPush = async (academyId, user) => {
+  if (!ensureConfigured()) {
+    throw new Error("WEB_PUSH_NOT_CONFIGURED");
+  }
+
+  const setting = await NotificationSetting(academyId)
+    .findOne({ user: user._id })
+    .lean();
+  if (!setting?.settings?.webPushEnabled) {
+    throw new Error("WEB_PUSH_DISABLED");
+  }
+
+  const subs = await PushSubscription(academyId).find({ user: user._id });
+  if (subs.length === 0) {
+    throw new Error("NO_PUSH_SUBSCRIPTION");
+  }
+
+  const schoolId = await resolveSchoolId(academyId, user._id);
+  const origin = clientOrigin();
+  if (!origin) {
+    throw new Error("CLIENT_URL_MISSING");
+  }
+  const url = schoolId
+    ? `${origin}/${academyId}/${schoolId}/`
+    : `${origin}/`;
+
+  const payload = JSON.stringify({
+    title: "Altsis 테스트 알림",
+    body: "잠금화면 알림이 정상적으로 설정되었습니다.",
+    url,
+    tag: `test:${Date.now()}`,
+    notificationType: "reminder",
+  });
+
+  const sent = await sendToSubscriptions(
+    academyId,
+    subs,
+    payload,
+    user.userId
+  );
+  if (sent === 0) {
+    throw new Error("WEB_PUSH_SEND_FAILED");
+  }
+  return { sent, subscriptionCount: subs.length };
 };
 
 /**
