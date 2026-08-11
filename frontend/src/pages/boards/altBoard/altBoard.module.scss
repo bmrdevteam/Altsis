@@ -2691,14 +2691,20 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-height: 0;
+}
 
-  > .builderHeader {
-    max-width: none;
-    margin-left: 0;
-    margin-right: 0;
-    padding: 0;
-    margin-bottom: 4px;
-  }
+/* 테이블·문서 컨텐츠와 같은 가로 기준 (builderHeader 880px 중앙 정렬 사용 안 함) */
+.sheetHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  max-width: none;
+  margin: 0 0 4px;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 .sheetHeaderTitleWrap {
@@ -2743,11 +2749,12 @@
 
 .sheetTableWrap {
   overflow: auto;
-  max-height: calc(100vh - 180px);
+  flex: 1 1 auto;
+  min-height: 200px;
+  max-height: 70dvh;
   border: 1px solid var(--border-color);
   border-radius: 4px;
   background: var(--background-color);
-  min-height: 200px;
 }
 
 .colRowNum {
@@ -4153,7 +4160,8 @@ tbody tr:hover .actionCell {
     justify-content: flex-end;
   }
 
-  .builderHeader {
+  .builderHeader,
+  .sheetHeader {
     flex-direction: column;
     align-items: stretch;
     gap: 8px;

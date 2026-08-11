@@ -1746,7 +1746,7 @@ const AltSheetView = ({
   return (
     <div className={style.sheetContainer}>
       {/* 헤더: 양식 관리와 동일한 서식 */}
-      <div className={style.builderHeader}>
+      <div className={style.sheetHeader}>
         <div className={style.builderHeaderLeft}>
           <button
             type="button"

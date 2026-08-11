@@ -1,4 +1,10 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  type ReactNode,
+} from "react";
 import { useSearchParams, useLocation } from "react-router-dom";
 import { io, Socket } from "socket.io-client";
 import { TBoard, TAltBoardRole } from "types/board";
@@ -326,21 +332,53 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
     }
   }, [location.hash, location.search, embedded, board._id, navigate]);
 
-  // 탭 전환 시 관련 없는 파라미터 정리 (standalone only)
-  // 시트는 #활동에서만 유지 — #기록 리다이렉트 이후에 동작
+  // form/sheet/approval 딥링크는 활동 탭에서만 유효 — 해시가 비면 #활동으로 맞춤
+  useEffect(() => {
+    if (embedded) return;
+    const hasActivityDeepLink =
+      searchParams.has("form") ||
+      searchParams.has("sheet") ||
+      searchParams.has("approval");
+    if (!hasActivityDeepLink) return;
+    const hash = decodeURIComponent(location.hash.replace("#", ""));
+    if (hash) return;
+    navigate(`${location.pathname}${location.search}#활동`, { replace: true });
+  }, [
+    embedded,
+    searchParams,
+    location.hash,
+    location.pathname,
+    location.search,
+    navigate,
+  ]);
+
+  // 탭 전환 시 활동 전용 파라미터·로컬 상태 정리 (standalone only)
+  // 시트/양식은 #활동에서만 유지 — #기록 리다이렉트 이후에 동작
   useEffect(() => {
     if (embedded) return;
     const hash = decodeURIComponent(location.hash.replace("#", ""));
     if (hash === "기록") return; // 호환 redirect 대기
-    if (hash && hash !== "활동" && searchParams.has("sheet")) {
+    if (!hash || hash === "활동") return;
+    const hasActivityParams =
+      searchParams.has("sheet") ||
+      searchParams.has("form") ||
+      searchParams.has("mode") ||
+      searchParams.has("approval");
+    if (hasActivityParams) {
       setSearchParams(
         (prev) => {
           prev.delete("sheet");
+          prev.delete("form");
+          prev.delete("mode");
+          prev.delete("approval");
           return prev;
         },
         { replace: true }
       );
     }
+    setBuilderFormId((prev) => (prev == null ? prev : null));
+    setRendererFormId((prev) => (prev == null ? prev : null));
+    setEmbeddedSheetFormId((prev) => (prev == null ? prev : null));
   }, [location.hash, embedded, searchParams, setSearchParams]);
 
   // Form builder 열기
@@ -348,8 +386,11 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
     const id = formId || "new";
     setBuilderFormId(id);
     setRendererFormId(null);
+    setEmbeddedSheetFormId(null);
     if (!embedded) {
-      navigate(`/boards/${board._id}?form=${id}&mode=edit`, { replace: true });
+      navigate(`/boards/${board._id}?form=${id}&mode=edit#활동`, {
+        replace: true,
+      });
     }
   };
 
@@ -357,9 +398,10 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
   const handleOpenRenderer = (formId: string) => {
     setRendererFormId(formId);
     setBuilderFormId(null);
+    setEmbeddedSheetFormId(null);
     setEmbeddedRendererMode("compose");
     if (!embedded) {
-      navigate(`/boards/${board._id}?form=${formId}&mode=respond`, {
+      navigate(`/boards/${board._id}?form=${formId}&mode=respond#활동`, {
         replace: true,
       });
     }
@@ -369,9 +411,10 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
   const handleOpenMyResponses = (formId: string) => {
     setRendererFormId(formId);
     setBuilderFormId(null);
+    setEmbeddedSheetFormId(null);
     setEmbeddedRendererMode("review");
     if (!embedded) {
-      navigate(`/boards/${board._id}?form=${formId}&mode=responses`, {
+      navigate(`/boards/${board._id}?form=${formId}&mode=responses#활동`, {
         replace: true,
       });
     }
@@ -383,7 +426,7 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
     navigate(
       `/boards/${board._id}?form=${rendererFormId}&mode=${
         mode === "review" ? "responses" : "respond"
-      }`,
+      }#활동`,
       { replace: true }
     );
   };
@@ -469,10 +512,17 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
     </Popup>
   ) : null;
 
-  // 빌더 모드
-  if (builderFormId) {
-    return (
-      <>
+  const rendererMode = embedded
+    ? embeddedRendererMode
+    : urlMode === "responses"
+      ? "review"
+      : "compose";
+
+  const renderActivityPanel = () => {
+    let content: ReactNode;
+
+    if (builderFormId) {
+      content = (
         <AltFormBuilder
           board={board}
           formId={builderFormId === "new" ? undefined : builderFormId}
@@ -483,47 +533,30 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
             setBuilderFormId(id);
             loadForms();
             if (!embedded) {
-              navigate(`/boards/${board._id}?form=${id}&mode=edit`, {
+              navigate(`/boards/${board._id}?form=${id}&mode=edit#활동`, {
                 replace: true,
               });
             }
           }}
         />
-        {linkCopiedPopup}
-      </>
-    );
-  }
-
-  // 렌더러 모드
-  if (rendererFormId) {
-    const rendererMode = embedded
-      ? embeddedRendererMode
-      : urlMode === "responses"
-        ? "review"
-        : "compose";
-    return (
-      <AltFormRenderer
-        key={`${rendererFormId}-${rendererMode}`}
-        board={board}
-        formId={rendererFormId}
-        onBack={handleBackToList}
-        initialViewMode={rendererMode}
-        onViewModeChange={handleRendererViewModeChange}
-      />
-    );
-  }
-
-  // 시트 상세 모드 (양식 관리와 같이 탭 밖 전체 화면)
-  if (activeSheetFormId) {
-    if (!myRole) {
-      return (
+      );
+    } else if (rendererFormId) {
+      content = (
+        <AltFormRenderer
+          key={`${rendererFormId}-${rendererMode}`}
+          board={board}
+          formId={rendererFormId}
+          onBack={handleBackToList}
+          initialViewMode={rendererMode}
+          onViewModeChange={handleRendererViewModeChange}
+        />
+      );
+    } else if (activeSheetFormId) {
+      content = !myRole ? (
         <div className={style.emptyState}>
           이 보드의 기록에 접근할 권한이 없습니다.
         </div>
-      );
-    }
-    return (
-      <>
+      ) : (
         <AltSheetView
           forms={forms}
           canManage={canManage}
@@ -534,14 +567,9 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
           onCopySheetLink={handleCopySheetLink}
           boardName={board.name}
         />
-        {linkCopiedPopup}
-      </>
-    );
-  }
-
-  const tabItems: Record<string, React.ReactNode> = {
-    "활동": (
-      <div style={{ paddingTop: 20 }}>
+      );
+    } else {
+      content = (
         <AltFormList
           board={board}
           forms={forms}
@@ -563,9 +591,16 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
           onPendingApprovalCountChange={setPendingApprovalCount}
           onGradeTodoCountChange={setGradeTodoCount}
         />
-      </div>
-    ),
-    "문서": (
+      );
+    }
+
+    // 문서 탭과 동일한 상단 여백
+    return <div style={{ paddingTop: 20 }}>{content}</div>;
+  };
+
+  const tabItems: Record<string, React.ReactNode> = {
+    활동: renderActivityPanel(),
+    문서: (
       <div style={{ paddingTop: 20 }}>
         <AltDocsView board={board} onPostsChanged={loadDocsUnread} />
       </div>
@@ -583,11 +618,14 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
           flexDirection: "column",
         }}
       >
-        <BoardChatContainer board={board} onNewMessage={() => {
-          if (activeTabRef.current !== "채팅") {
-            setChatUnreadCount((prev) => prev + 1);
-          }
-        }} />
+        <BoardChatContainer
+          board={board}
+          onNewMessage={() => {
+            if (activeTabRef.current !== "채팅") {
+              setChatUnreadCount((prev) => prev + 1);
+            }
+          }}
+        />
       </div>
     );
   }
