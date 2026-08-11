@@ -21,10 +21,19 @@ type Props = {
   partnerName: string;
   socket: Socket | null;
   onBack: () => void;
+  onOpenNav?: () => void;
   onRoomCreated: (roomId: string) => void;
 };
 
-const BoardDMPanel = ({ roomId, partner, partnerName, socket, onBack, onRoomCreated }: Props) => {
+const BoardDMPanel = ({
+  roomId,
+  partner,
+  partnerName,
+  socket,
+  onBack,
+  onOpenNav,
+  onRoomCreated,
+}: Props) => {
   const { currentUser } = useAuth();
   const { ChatAPI } = useAPIv2();
 
@@ -468,10 +477,27 @@ const BoardDMPanel = ({ roomId, partner, partnerName, socket, onBack, onRoomCrea
 
       {/* Header */}
       <div className={style.dm_header}>
-        <button className={style.dm_back_btn} onClick={onBack}>
+        <button
+          type="button"
+          className={style.dm_back_btn}
+          onClick={onBack}
+          aria-label="그룹 채팅으로"
+          title="그룹 채팅으로"
+        >
           ←
         </button>
         <span className={style.dm_partner_name}>{partnerName}</span>
+        {onOpenNav && (
+          <button
+            type="button"
+            className={style.nav_btn}
+            onClick={onOpenNav}
+            aria-label="채팅 목록"
+            title="채팅 목록"
+          >
+            <Svg type="menu" width="18px" height="18px" />
+          </button>
+        )}
       </div>
 
       {/* Messages */}
@@ -542,6 +568,12 @@ const BoardDMPanel = ({ roomId, partner, partnerName, socket, onBack, onRoomCrea
                         <div
                           className={`${style.bubble} ${
                             msg.isDeleted ? style.deleted : ""
+                          } ${
+                            !msg.isDeleted &&
+                            (msg.messageType === "file" ||
+                              msg.messageType === "image")
+                              ? style.bubble_media
+                              : ""
                           }`}
                         >
                           {msg.isDeleted ? (
@@ -553,6 +585,8 @@ const BoardDMPanel = ({ roomId, partner, partnerName, socket, onBack, onRoomCrea
                               message={msg}
                               onImageClick={(url) => setLightboxUrl(url)}
                               onFileDownload={handleFileDownload}
+                              inBubble
+                              tone={isMine ? "own" : "other"}
                             />
                           )}
                         </div>

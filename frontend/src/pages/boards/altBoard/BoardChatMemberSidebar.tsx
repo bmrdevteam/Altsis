@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { TBoard } from "types/board";
 import { TChatRoom } from "types/chat";
+import Svg from "assets/svg/Svg";
 import defaultProfilePic from "assets/img/default_profile.png";
 import style from "./boardChatContainer.module.scss";
 
@@ -22,6 +23,7 @@ type Props = {
   onSelectRoom: (roomId: string) => void;
   onCreateRoom: () => void;
   onDMClick: (member: Member) => void;
+  onClose?: () => void;
 };
 
 const membersCollapsedKey = (boardId: string) =>
@@ -38,6 +40,7 @@ const BoardChatMemberSidebar = ({
   onSelectRoom,
   onCreateRoom,
   onDMClick,
+  onClose,
 }: Props) => {
   const [membersCollapsed, setMembersCollapsed] = useState(true);
 
@@ -81,7 +84,27 @@ const BoardChatMemberSidebar = ({
   const teamRooms = rooms.filter((r) => !r.isGeneral);
 
   return (
-    <div className={style.sidebar}>
+    <div
+      className={style.nav_panel}
+      role="dialog"
+      aria-label="채팅 목록"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className={style.nav_panel_header}>
+        <span className={style.nav_panel_title}>채팅 목록</span>
+        {onClose && (
+          <button
+            type="button"
+            className={style.nav_close_btn}
+            onClick={onClose}
+            aria-label="닫기"
+            title="닫기"
+          >
+            <Svg type="x" width="16px" height="16px" />
+          </button>
+        )}
+      </div>
+
       <div className={style.sidebar_section}>
         <div className={style.sidebar_header_row}>
           <div className={style.sidebar_header}>보드 채팅</div>
@@ -106,6 +129,14 @@ const BoardChatMemberSidebar = ({
                 : ""
             }`}
             onClick={() => onSelectRoom(generalRoom._id)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onSelectRoom(generalRoom._id);
+              }
+            }}
           >
             <div className={style.sidebar_avatar}>전</div>
             <span className={style.sidebar_name}>전체 채팅</span>
@@ -131,6 +162,14 @@ const BoardChatMemberSidebar = ({
             }`}
             onClick={() => onSelectRoom(room._id)}
             title={room.description || room.name}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onSelectRoom(room._id);
+              }
+            }}
           >
             <div
               className={`${style.sidebar_avatar} ${style.sidebar_avatar_topic}`}
@@ -153,9 +192,7 @@ const BoardChatMemberSidebar = ({
           onClick={toggleMembersCollapsed}
           aria-expanded={!membersCollapsed}
         >
-          <span>
-            멤버 ({members.length})
-          </span>
+          <span>멤버 ({members.length})</span>
           <span className={style.sidebar_chevron}>
             {membersCollapsed ? "▸" : "▾"}
           </span>
@@ -173,6 +210,14 @@ const BoardChatMemberSidebar = ({
                 }`}
                 onClick={() => onDMClick(member)}
                 title={`${member.userName}에게 메시지`}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onDMClick(member);
+                  }
+                }}
               >
                 <div className={style.sidebar_avatar}>
                   <img
