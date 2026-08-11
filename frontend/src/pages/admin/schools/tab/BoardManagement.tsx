@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import { useAppNavigate } from "hooks/useAppNavigate";
 
 import Table from "components/tableV2/Table";
 import Button from "components/button/Button";
@@ -9,10 +10,33 @@ import Textarea from "components/textarea/Textarea";
 import Svg from "assets/svg/Svg";
 import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 
-import { TBoard, TBoardContentViewMode, TBoardNotificationEvents } from "types/board";
+import {
+  TBoard,
+  TBoardContentViewMode,
+  TBoardNotificationEvents,
+  TBoardType,
+} from "types/board";
 import { TSchool } from "types/schools";
+import {
+  isSchoolOnlyBoard,
+  isSeasonLinkedBoard,
+} from "utils/boardLabels";
 import SchoolFeatureToggle from "./FeatureSettings";
 import bStyle from "pages/boards/boards.module.scss";
+
+type TManageBoardTypeFilter = "" | TBoardType;
+type TManageViewModeFilter = "" | TBoardContentViewMode;
+type TManageScopeFilter = "" | "school" | "season";
+type TManageLinkFilter = "" | "syllabus" | "general";
+
+const CHIP_TONE_CLASS: Record<string, string> = {
+  All: bStyle.filterChipToneAll,
+  Optional: bStyle.filterChipToneOptional,
+  Submitted: bStyle.filterChipToneSubmitted,
+  Scheduled: bStyle.filterChipToneScheduled,
+  Direct: bStyle.filterChipToneDirect,
+  Pending: bStyle.filterChipTonePending,
+};
 
 const NOTIFICATION_EVENT_LABELS: Record<
   keyof TBoardNotificationEvents,
@@ -46,15 +70,100 @@ type Props = {
 };
 
 const BoardManagement = ({ schoolData, setSchoolData }: Props) => {
+  const navigate = useAppNavigate();
   const { BoardAPI, SchoolAPI } = useAPIv2();
 
   const [boards, setBoards] = useState<TBoard[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [boardSearch, setBoardSearch] = useState("");
+  const [boardTypeFilter, setBoardTypeFilter] =
+    useState<TManageBoardTypeFilter>("");
+  const [viewModeFilter, setViewModeFilter] =
+    useState<TManageViewModeFilter>("");
+  const [scopeFilter, setScopeFilter] = useState<TManageScopeFilter>("");
+  const [linkFilter, setLinkFilter] = useState<TManageLinkFilter>("");
   const [showCreatePopup, setShowCreatePopup] = useState(false);
   const [showManagePopup, setShowManagePopup] = useState(false);
   const [selectedBoard, setSelectedBoard] = useState<TBoard | null>(null);
 
   const boardEnabled = schoolData.boardEnabled !== false;
+
+  const filterCounts = useMemo(() => {
+    let school = 0;
+    let season = 0;
+    let official = 0;
+    let user = 0;
+    let table = 0;
+    let blog = 0;
+    let syllabus = 0;
+    let general = 0;
+    for (const b of boards) {
+      if (isSchoolOnlyBoard(b)) school += 1;
+      if (isSeasonLinkedBoard(b)) season += 1;
+      if (b.boardType === "official") official += 1;
+      if (b.boardType === "user") user += 1;
+      if (b.contentViewMode === "blog") blog += 1;
+      else table += 1;
+      if (b.syllabus || b.syllabusMeta) syllabus += 1;
+      else general += 1;
+    }
+    return { school, season, official, user, table, blog, syllabus, general };
+  }, [boards]);
+
+  const filteredBoards = useMemo(() => {
+    let result = boards;
+    const kw = boardSearch.trim().toLowerCase();
+    if (kw) {
+      result = result.filter(
+        (b) =>
+          (b.name || "").toLowerCase().includes(kw) ||
+          (b.description || "").toLowerCase().includes(kw) ||
+          (b.creatorName || "").toLowerCase().includes(kw)
+      );
+    }
+    if (boardTypeFilter) {
+      result = result.filter((b) => b.boardType === boardTypeFilter);
+    }
+    if (viewModeFilter) {
+      result = result.filter((b) => b.contentViewMode === viewModeFilter);
+    }
+    if (scopeFilter === "school") {
+      result = result.filter((b) => isSchoolOnlyBoard(b));
+    } else if (scopeFilter === "season") {
+      result = result.filter((b) => isSeasonLinkedBoard(b));
+    }
+    if (linkFilter === "syllabus") {
+      result = result.filter((b) => !!(b.syllabus || b.syllabusMeta));
+    } else if (linkFilter === "general") {
+      result = result.filter((b) => !(b.syllabus || b.syllabusMeta));
+    }
+    return result;
+  }, [
+    boards,
+    boardSearch,
+    boardTypeFilter,
+    viewModeFilter,
+    scopeFilter,
+    linkFilter,
+  ]);
+
+  const hasActiveFilters =
+    !!boardSearch.trim() ||
+    !!boardTypeFilter ||
+    !!viewModeFilter ||
+    !!scopeFilter ||
+    !!linkFilter;
+
+  const isAllFilterActive =
+    !boardTypeFilter && !viewModeFilter && !scopeFilter && !linkFilter;
+
+  const clearFilters = () => {
+    setBoardSearch("");
+    setBoardTypeFilter("");
+    setViewModeFilter("");
+    setScopeFilter("");
+    setLinkFilter("");
+  };
 
   useEffect(() => {
     if (isLoading && schoolData?._id && boardEnabled) {
@@ -70,12 +179,23 @@ const BoardManagement = ({ schoolData, setSchoolData }: Props) => {
     }
   }, [isLoading, schoolData, boardEnabled]);
 
-  const handleManageClick = (tableBoard: TBoard) => {
-    const board = boards.find((b) => b._id === tableBoard._id);
-    if (board) {
-      setSelectedBoard(board);
-      setShowManagePopup(true);
+  const resolveBoard = (tableBoard: TBoard) =>
+    boards.find((b) => b._id === tableBoard._id) || tableBoard;
+
+  const handleOpenBoard = (tableBoard: TBoard) => {
+    const board = resolveBoard(tableBoard);
+    const coursePath = board.syllabusMeta?.coursePath;
+    if (coursePath) {
+      navigate(`${coursePath}#활동`);
+      return;
     }
+    navigate(`/boards/${board._id}`);
+  };
+
+  const handleManageClick = (tableBoard: TBoard) => {
+    const board = resolveBoard(tableBoard);
+    setSelectedBoard(board);
+    setShowManagePopup(true);
   };
 
   const handleBoardCreationPermissionToggle = async (
@@ -281,10 +401,18 @@ const BoardManagement = ({ schoolData, setSchoolData }: Props) => {
       <div
         style={{
           display: "flex",
-          justifyContent: "flex-end",
-          marginBottom: "16px",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 12,
+          marginBottom: "12px",
         }}
       >
+        <div style={{ fontSize: 13, color: "var(--text-color-2)" }}>
+          전체 {boards.length}개
+          {hasActiveFilters
+            ? ` · 필터 결과 ${filteredBoards.length}개`
+            : ""}
+        </div>
         <Button type="ghost" onClick={() => setShowCreatePopup(true)}>
           <>
             <Svg type="plus" width="16px" height="16px" />
@@ -293,9 +421,159 @@ const BoardManagement = ({ schoolData, setSchoolData }: Props) => {
         </Button>
       </div>
 
+      <div
+        className={bStyle.filterChipRow}
+        role="group"
+        aria-label="보드 필터"
+        style={{ marginBottom: 12 }}
+      >
+        <button
+          type="button"
+          className={`${bStyle.filterChip} ${CHIP_TONE_CLASS.All} ${
+            isAllFilterActive ? bStyle.filterChipActive : ""
+          }`}
+          aria-pressed={isAllFilterActive}
+          onClick={() => {
+            setBoardTypeFilter("");
+            setViewModeFilter("");
+            setScopeFilter("");
+            setLinkFilter("");
+          }}
+        >
+          전체
+        </button>
+        {filterCounts.official > 0 && (
+          <button
+            type="button"
+            className={`${bStyle.filterChip} ${CHIP_TONE_CLASS.Submitted} ${
+              boardTypeFilter === "official" ? bStyle.filterChipActive : ""
+            }`}
+            aria-pressed={boardTypeFilter === "official"}
+            onClick={() =>
+              setBoardTypeFilter(
+                boardTypeFilter === "official" ? "" : "official"
+              )
+            }
+          >
+            공식 {filterCounts.official}
+          </button>
+        )}
+        {filterCounts.user > 0 && (
+          <button
+            type="button"
+            className={`${bStyle.filterChip} ${CHIP_TONE_CLASS.Direct} ${
+              boardTypeFilter === "user" ? bStyle.filterChipActive : ""
+            }`}
+            aria-pressed={boardTypeFilter === "user"}
+            onClick={() =>
+              setBoardTypeFilter(boardTypeFilter === "user" ? "" : "user")
+            }
+          >
+            사용자 {filterCounts.user}
+          </button>
+        )}
+        {filterCounts.table > 0 && (
+          <button
+            type="button"
+            className={`${bStyle.filterChip} ${CHIP_TONE_CLASS.Optional} ${
+              viewModeFilter === "table" ? bStyle.filterChipActive : ""
+            }`}
+            aria-pressed={viewModeFilter === "table"}
+            onClick={() =>
+              setViewModeFilter(viewModeFilter === "table" ? "" : "table")
+            }
+          >
+            테이블 {filterCounts.table}
+          </button>
+        )}
+        {filterCounts.blog > 0 && (
+          <button
+            type="button"
+            className={`${bStyle.filterChip} ${CHIP_TONE_CLASS.Optional} ${
+              viewModeFilter === "blog" ? bStyle.filterChipActive : ""
+            }`}
+            aria-pressed={viewModeFilter === "blog"}
+            onClick={() =>
+              setViewModeFilter(viewModeFilter === "blog" ? "" : "blog")
+            }
+          >
+            블로그 {filterCounts.blog}
+          </button>
+        )}
+        {filterCounts.school > 0 && (
+          <button
+            type="button"
+            className={`${bStyle.filterChip} ${CHIP_TONE_CLASS.Optional} ${
+              scopeFilter === "school" ? bStyle.filterChipActive : ""
+            }`}
+            aria-pressed={scopeFilter === "school"}
+            onClick={() =>
+              setScopeFilter(scopeFilter === "school" ? "" : "school")
+            }
+          >
+            학교 {filterCounts.school}
+          </button>
+        )}
+        {filterCounts.season > 0 && (
+          <button
+            type="button"
+            className={`${bStyle.filterChip} ${CHIP_TONE_CLASS.Scheduled} ${
+              scopeFilter === "season" ? bStyle.filterChipActive : ""
+            }`}
+            aria-pressed={scopeFilter === "season"}
+            onClick={() =>
+              setScopeFilter(scopeFilter === "season" ? "" : "season")
+            }
+          >
+            시즌 {filterCounts.season}
+          </button>
+        )}
+        {filterCounts.syllabus > 0 && (
+          <button
+            type="button"
+            className={`${bStyle.filterChip} ${CHIP_TONE_CLASS.Pending} ${
+              linkFilter === "syllabus" ? bStyle.filterChipActive : ""
+            }`}
+            aria-pressed={linkFilter === "syllabus"}
+            onClick={() =>
+              setLinkFilter(linkFilter === "syllabus" ? "" : "syllabus")
+            }
+          >
+            수업 {filterCounts.syllabus}
+          </button>
+        )}
+        {filterCounts.general > 0 && filterCounts.syllabus > 0 && (
+          <button
+            type="button"
+            className={`${bStyle.filterChip} ${CHIP_TONE_CLASS.Optional} ${
+              linkFilter === "general" ? bStyle.filterChipActive : ""
+            }`}
+            aria-pressed={linkFilter === "general"}
+            onClick={() =>
+              setLinkFilter(linkFilter === "general" ? "" : "general")
+            }
+          >
+            일반 {filterCounts.general}
+          </button>
+        )}
+        {hasActiveFilters && (
+          <button
+            type="button"
+            className={bStyle.filterChipReset}
+            onClick={clearFilters}
+          >
+            초기화
+          </button>
+        )}
+      </div>
+
       <Table
         type="object-array"
-        data={boards.map((board) => ({
+        control
+        searchValue={boardSearch}
+        onSearchChange={setBoardSearch}
+        searchPlaceholder="이름, 설명, 생성자 검색"
+        data={filteredBoards.map((board) => ({
           ...board,
           postCountDisplay: board.postCount || 0,
           boardTypeDisplay: board.boardType === "user" ? "사용자" : "공식",
@@ -311,7 +589,7 @@ const BoardManagement = ({ schoolData, setSchoolData }: Props) => {
             ? `${board.writers.users.length}명`
             : "-",
         }))}
-        defaultPageBy={10}
+        defaultPageBy={50}
         header={[
           {
             text: "이름",
@@ -349,20 +627,34 @@ const BoardManagement = ({ schoolData, setSchoolData }: Props) => {
             text: "멤버",
             key: "membersDisplay",
             type: "text",
-            width: "150px",
+            width: "120px",
           },
           {
             text: "작성 권한",
             key: "writersDisplay",
             type: "text",
-            width: "150px",
+            width: "100px",
+          },
+          {
+            text: "접속",
+            key: "_id",
+            type: "button",
+            onClick: (row: TBoard) => handleOpenBoard(row),
+            width: "70px",
+            textAlign: "center",
+            btnStyle: {
+              border: true,
+              color: "var(--accent-1)",
+              padding: "4px",
+              round: true,
+            },
           },
           {
             text: "관리",
             key: "_id",
             type: "button",
-            onClick: (e: TBoard) => handleManageClick(e),
-            width: "80px",
+            onClick: (row: TBoard) => handleManageClick(row),
+            width: "70px",
             textAlign: "center",
             btnStyle: {
               border: true,

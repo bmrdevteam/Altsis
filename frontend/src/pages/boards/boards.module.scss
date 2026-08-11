@@ -69,18 +69,56 @@
   &:hover {
     background: var(--background-color-2);
   }
+}
 
-  &.iconBtnActive {
-    color: var(--accent-1);
+.sortSelectWrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.sortSelectLabel {
+  font-size: 12px;
+  color: var(--text-color-2);
+  white-space: nowrap;
+}
+
+.sortSelect {
+  height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--background-color);
+  color: var(--text-color);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent-1);
   }
 }
 
-.starIcon {
-  font-size: 16px;
-  line-height: 1;
+.pinIconActive {
+  color: var(--status-error) !important;
+
+  svg {
+    fill: var(--status-error) !important;
+  }
+
+  &:hover {
+    color: var(--status-error) !important;
+    background: var(--status-error-bg);
+
+    svg {
+      fill: var(--status-error) !important;
+    }
+  }
 }
 
-/* Text + icon button (즐겨찾기, 멤버) */
+/* Text + icon button (멤버 등) */
 .textBtn {
   display: flex;
   align-items: center;
@@ -106,10 +144,46 @@
   }
 }
 
+.boardListSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.boardListSection + .boardListSection {
+  margin-top: 16px;
+  padding-top: 4px;
+}
+
+.boardListSectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 2px 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-color-2);
+  letter-spacing: 0.01em;
+}
+
+.boardListSectionHeaderPin {
+  color: var(--status-error);
+  display: inline-flex;
+  align-items: center;
+
+  svg {
+    fill: currentColor;
+  }
+}
+
 /* Color bar inside formCard-style board rows */
 .boardFormCard {
   padding-left: 12px;
   gap: 4px;
+}
+
+.boardFormCard.boardFormCardPinned {
+  border-width: 2px;
 }
 
 /* formCard 모바일 column보다 우선해 색 바·액션을 한 줄로 유지 */
@@ -167,10 +241,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.favoriteIconActive {
-  color: var(--accent-1) !important;
 }
 
 /* ─── Board list (legacy table view styles kept for gallery/other) ─── */

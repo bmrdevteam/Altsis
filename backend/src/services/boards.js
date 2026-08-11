@@ -186,14 +186,27 @@ const resolveBoardWriters = (board) => {
 };
 
 /**
- * 보드 멤버십 공통 판정 (목록·상세 동일 기준)
+ * 보드 멤버십 공통 판정
  * @param {Object} board
  * @param {Object} user
  * @param {string|null} role - 현재 시즌에서의 역할
+ * @param {{ staffBypass?: boolean }} [options]
+ *   staffBypass: admin/manager 전체 통과 (상세·API 접근용).
+ *   목록에는 false로 두어 실제 멤버십만 노출한다.
  * @returns {boolean}
  */
-const matchesBoardMembership = (board, user, role) => {
-  if (user.auth === "admin" || user.auth === "manager") return true;
+const matchesBoardMembership = (
+  board,
+  user,
+  role,
+  { staffBypass = false } = {}
+) => {
+  if (
+    staffBypass &&
+    (user.auth === "admin" || user.auth === "manager")
+  ) {
+    return true;
+  }
 
   if (
     board.creator &&
@@ -227,6 +240,7 @@ const matchesBoardMembership = (board, user, role) => {
 
 /**
  * 사용자가 보드 멤버인지 확인 (목록 필터용)
+ * admin/manager도 실제 멤버십·생성·기본 보드 기준으로만 목록에 포함한다.
  * @memberof Services.BoardService
  * @function isBoardMemberAsUser
  *
@@ -237,11 +251,12 @@ const matchesBoardMembership = (board, user, role) => {
  * @returns {boolean}
  */
 export const isBoardMemberAsUser = (board, user, role) => {
-  return matchesBoardMembership(board, user, role);
+  return matchesBoardMembership(board, user, role, { staffBypass: false });
 };
 
 /**
  * 사용자가 보드 멤버인지 확인 (상세·API 접근용)
+ * admin/manager는 상세 URL·API로 모든 보드에 접근 가능하다.
  * @memberof Services.BoardService
  * @function isBoardMember
  *
@@ -252,7 +267,7 @@ export const isBoardMemberAsUser = (board, user, role) => {
  * @returns {boolean}
  */
 export const isBoardMember = (board, user, role) => {
-  return matchesBoardMembership(board, user, role);
+  return matchesBoardMembership(board, user, role, { staffBypass: true });
 };
 
 /**

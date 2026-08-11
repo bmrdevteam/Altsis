@@ -63,10 +63,24 @@ describe("board permission helpers", () => {
     expect(isBoardMemberAsUser(schoolBoard, user, null)).toBe(true);
   });
 
-  test("admin is member in both list and detail checks", () => {
+  test("admin can access detail but list requires real membership", () => {
     const user = { _id: oid("admin1"), userId: "admin", auth: "admin" };
     expect(isBoardMember(schoolBoard, user, null)).toBe(true);
-    expect(isBoardMemberAsUser(schoolBoard, user, null)).toBe(true);
+    expect(isBoardMemberAsUser(schoolBoard, user, null)).toBe(false);
+  });
+
+  test("manager appears in list when manager group is enabled", () => {
+    const board = {
+      ...schoolBoard,
+      members: {
+        groups: { manager: true, teacher: false, student: false },
+        users: [],
+      },
+      altBoardRole: {},
+    };
+    const user = { _id: oid("mgr1"), userId: "mgr1", auth: "manager" };
+    expect(isBoardMemberAsUser(board, user, null)).toBe(true);
+    expect(isBoardMember(board, user, null)).toBe(true);
   });
 
   test("outsider without invite/group is not a member", () => {
