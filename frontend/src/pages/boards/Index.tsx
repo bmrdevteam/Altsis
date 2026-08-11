@@ -246,7 +246,7 @@ const Boards = () => {
       return;
     }
     if (item.kind === "grade") {
-      navigate(`/boards/${item.boardId}?sheet=${item.formId}#활동`);
+      navigate(`/boards/${item.boardId}?sheet=${item.formId}#기록`);
       return;
     }
     // unsubmitted → 해당 양식 응답 화면

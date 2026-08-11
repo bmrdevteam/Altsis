@@ -29,9 +29,6 @@ export type TChatRoom = {
   isGeneral?: boolean;
   isPrivate?: boolean;
   board?: string;
-  boardName?: string;
-  /** 수업 연결 보드면 수업 상세 경로 (예: /courses/mentoring/:id) */
-  coursePath?: string | null;
   creator?: string;
   creatorId?: string;
   creatorName?: string;

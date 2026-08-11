@@ -26,7 +26,7 @@ const SyllabusBoardCreatePanel = ({ isCreating, onCreate }: Props) => {
       >
         이 수업에 연결된 보드가 없습니다.
         <br />
-        보드를 만들면 활동·문서·채팅 탭이 추가됩니다.
+        보드를 만들면 활동·기록·문서·채팅 탭이 추가됩니다.
       </p>
       <Button type="ghost" onClick={onCreate} disabled={isCreating}>
         {isCreating ? "생성 중..." : "수업 보드 만들기"}

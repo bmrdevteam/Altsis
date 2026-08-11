@@ -12,13 +12,12 @@ import audioURL from "assets/audio/notification-a.mp3";
 import { updateChatAppBadge } from "utils/appBadge";
 
 const Chat = () => {
-  const { currentUser, currentSchool, currentSeason } = useAuth();
+  const { currentUser, currentSchool } = useAuth();
   const { ChatAPI, NotificationAPI } = useAPIv2();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [socket, setSocket] = useState<Socket>();
   const [rooms, setRooms] = useState<TChatRoom[]>([]);
-  const [boardRooms, setBoardRooms] = useState<TChatRoom[]>([]);
   const [archivedRooms, setArchivedRooms] = useState<TChatRoom[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [selectedRoom, setSelectedRoom] = useState<TChatRoom | null>(null);
@@ -48,26 +47,19 @@ const Chat = () => {
   const loadRooms = async () => {
     if (!currentUser?._id) return;
     try {
-      const boardQuery: { season?: string; school?: string } = {};
-      if (currentSeason?._id) boardQuery.season = currentSeason._id;
-      if (currentSchool?._id) boardQuery.school = currentSchool._id;
-
-      const [{ rooms }, { rooms: board }] = await Promise.all([
-        ChatAPI.RChatRooms(),
-        ChatAPI.RChatBoardRooms({ query: boardQuery }).catch(() => ({
-          rooms: [] as TChatRoom[],
-        })),
-      ]);
+      const { rooms } = await ChatAPI.RChatRooms();
       setRooms(rooms);
-      setBoardRooms(board);
       setChatEnabled(true);
 
-      const count =
-        rooms.reduce((sum, room) => sum + (room.unreadCount ?? 0), 0) +
-        board.reduce((sum, room) => sum + (room.unreadCount ?? 0), 0);
+      // Calculate total unread count from backend-provided unreadCount
+      const count = rooms.reduce(
+        (sum, room) => sum + (room.unreadCount ?? 0),
+        0
+      );
       setUnreadCount(count);
       updateChatAppBadge(count);
 
+      // Load archived rooms
       const { rooms: archived } = await ChatAPI.RChatRooms({
         query: { archived: "true" },
       });
@@ -131,7 +123,7 @@ const Chat = () => {
     if (currentUser?._id) {
       loadRooms();
     }
-  }, [currentUser?._id, currentSeason?._id, currentSchool?._id]);
+  }, [currentUser?._id]);
 
   // Web Push 클릭 → ?chatRoom= 딥링크
   useEffect(() => {
@@ -195,7 +187,6 @@ const Chat = () => {
         <ChatWindow
           room={selectedRoom}
           rooms={rooms}
-          boardRooms={boardRooms}
           archivedRooms={archivedRooms}
           socket={socket}
           onClose={() => {
