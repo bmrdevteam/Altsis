@@ -4,14 +4,10 @@ import { TAltForm, TAltFormField, TAssessmentData } from "types/altForm";
 import { TAltSheetRow } from "types/altSheet";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import { useAuth } from "contexts/authContext";
+import useOutsideClick from "hooks/useOutsideClick";
 import Button from "components/button/Button";
 import Popup from "components/popup/Popup";
 import Svg from "assets/svg/Svg";
-import SheetColHeader from "./SheetColHeader";
-import DateRangeFilterDropdown, {
-  DateRange,
-} from "components/dateRangeFilter/DateRangeFilterDropdown";
-import MergeStyleFilterBar from "components/mergeFilter/MergeStyleFilterBar";
 import { MarkdownEditor, MarkdownViewer } from "components/markdown";
 import { isCurrentApprover, normalizeApprovalValue } from "utils/approvalLine";
 import { NO_PRINT_CLASS, printArea } from "utils/printArea";
@@ -19,6 +15,9 @@ import RecordsListFilterBar, {
   TRecordsViewCounts,
   TRecordsViewFilter,
 } from "./RecordsListFilterBar";
+import SheetDetailFilterBar, {
+  TSheetColumnChip,
+} from "./SheetDetailFilterBar";
 import SheetTimetableView, {
   getTimetableAxisFields,
 } from "./SheetTimetableView";
@@ -151,12 +150,9 @@ const AltSheetView = ({
   } | null>(null);
   const [editValue, setEditValue] = useState("");
 
-  // 필터, 정렬, 컬럼 숨기기
-  const [filters, setFilters] = useState<Record<string, string>>({});
-  const [dateFilters, setDateFilters] = useState<Record<string, DateRange>>({});
+  // 검색·정렬·표시 항목
   const [sortConfig, setSortConfig] = useState<SortConfig>(null);
   const [hiddenColumns, setHiddenColumns] = useState<Set<string>>(new Set());
-  const [showColumnSettings, setShowColumnSettings] = useState(false);
 
   // 승인 사유 입력
   const [approvalReason, setApprovalReason] = useState<
@@ -170,6 +166,9 @@ const AltSheetView = ({
     return resolveViewMode(initialFormId, form);
   });
 
+  const viewModeMenu = useOutsideClick();
+  const moreMenu = useOutsideClick();
+  const csvFileRef = useRef<HTMLInputElement>(null);
   const applyViewMode = (formId: string, mode: TSheetViewMode) => {
     setViewMode(mode);
     writeStoredViewMode(formId, mode);
@@ -238,7 +237,6 @@ const AltSheetView = ({
       ).filter((f) => f.type !== "content")
     : [];
 
-  // 숨김 컬럼 적용
   const visibleFields = allVisibleFields.filter(
     (f) => !hiddenColumns.has(f._id)
   );
@@ -268,7 +266,7 @@ const AltSheetView = ({
   });
   const [isSavingGrade, setIsSavingGrade] = useState(false);
 
-  // localStorage에서 숨김 컬럼 복원
+  // 양식 전환 시 검색·정렬·표시 항목 복원/초기화
   useEffect(() => {
     if (!selectedFormId) return;
     const stored = localStorage.getItem(
@@ -278,18 +276,15 @@ const AltSheetView = ({
       try {
         setHiddenColumns(new Set(JSON.parse(stored)));
       } catch {
-        /* ignore */
+        setHiddenColumns(new Set());
       }
     } else {
       setHiddenColumns(new Set());
     }
-    setFilters({});
-    setDateFilters({});
     setSortConfig(null);
     setDocKeyword("");
   }, [selectedFormId]);
 
-  // 숨김 컬럼 저장
   useEffect(() => {
     if (!selectedFormId) return;
     localStorage.setItem(
@@ -470,117 +465,81 @@ const AltSheetView = ({
     return formatted;
   };
 
-  const docFilterFields = useMemo(
-    () =>
-      allVisibleFields.map((f) => ({
-        key: f._id,
-        label: f.label,
-        type: f.type,
-      })),
-    [allVisibleFields]
-  );
-
   const docKeywordPlaceholder = useMemo(() => {
     const labels = allVisibleFields.slice(0, 3).map((f) => f.label);
-    if (labels.length === 0) return "키워드 검색";
+    if (labels.length === 0) return "키워드 검색 (응답자, 내용)";
     return `키워드 검색 (${labels.join(", ")} 등)`;
   }, [allVisibleFields]);
 
-  const clearDocFilters = () => {
+  const clearSearchAndSort = () => {
     setDocKeyword("");
-    setFilters({});
-    setDateFilters({});
+    setSortConfig(null);
   };
 
-  // 필터링된 행
-  const filteredRows = useMemo(() => {
-    let result = rows;
+  const toggleColumnVisibility = (fieldId: string) => {
+    setHiddenColumns((prev) => {
+      const next = new Set(prev);
+      if (next.has(fieldId)) next.delete(fieldId);
+      else next.add(fieldId);
+      return next;
+    });
+  };
 
-    // 키워드 검색 (응답자 + 모든 필드)
+  const showAllColumns = () => setHiddenColumns(new Set());
+
+  const showRespondentCol = !hiddenColumns.has("_respondent");
+  const showSubmittedAtCol = !hiddenColumns.has("_submittedAt");
+
+  const columnChips: TSheetColumnChip[] = useMemo(
+    () => [
+      { fieldId: "_respondent", label: "응답자" },
+      ...allVisibleFields.map((f) => ({
+        fieldId: f._id,
+        label: f.label,
+      })),
+      { fieldId: "_submittedAt", label: "제출일" },
+    ],
+    [allVisibleFields]
+  );
+
+  const sortFieldOptions = useMemo(() => {
+    const options: { fieldId: string; label: string }[] = [
+      { fieldId: "_respondent", label: "응답자" },
+      ...allVisibleFields.map((f) => ({ fieldId: f._id, label: f.label })),
+    ];
+    if (isQuiz) {
+      options.push({ fieldId: "_quiz_score", label: "점수" });
+    }
+    options.push({ fieldId: "_submittedAt", label: "제출일" });
+    return options;
+  }, [allVisibleFields, isQuiz]);
+
+  /** 키워드 검색 적용 */
+  const keywordRows = useMemo(() => {
     const kw = docKeyword.trim().toLowerCase();
-    if (kw) {
-      result = result.filter((row) => {
-        if ((row._respondentName || "").toLowerCase().includes(kw)) return true;
-        if ((row._respondentId || "").toLowerCase().includes(kw)) return true;
-        for (const field of allVisibleFields) {
-          const cellValue = row.data[field._id];
-          if (cellValue === null || cellValue === undefined) continue;
-          if (
-            String(formatCellValue(cellValue, field))
-              .toLowerCase()
-              .includes(kw)
-          ) {
-            return true;
-          }
-        }
-        return false;
-      });
-    }
-
-    // 텍스트 필터 적용
-    for (const [fieldId, filterValue] of Object.entries(filters)) {
-      if (!filterValue) continue;
-
-      result = result.filter((row) => {
-        const lower = filterValue.toLowerCase();
-
-        if (fieldId === "_respondent") {
-          return (
-            (row._respondentName || "").toLowerCase().includes(lower) ||
-            (row._respondentId || "").toLowerCase().includes(lower)
-          );
-        }
-
-        const field = allVisibleFields.find((f) => f._id === fieldId);
-        if (!field) return true;
-
-        const cellValue = row.data[fieldId];
-        if (cellValue === null || cellValue === undefined) return false;
-        return String(formatCellValue(cellValue, field))
-          .toLowerCase()
-          .includes(lower);
-      });
-    }
-
-    // 날짜 범위 필터 적용
-    for (const [fieldId, range] of Object.entries(dateFilters)) {
-      if (!range.from && !range.to) continue;
-
-      result = result.filter((row) => {
-        if (fieldId === "_submittedAt") {
-          if (!row._submittedAt) return false;
-          const d = new Date(row._submittedAt);
-          const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-          if (range.from && dateStr < range.from) return false;
-          if (range.to && dateStr > range.to) return false;
+    if (!kw) return rows;
+    return rows.filter((row) => {
+      if ((row._respondentName || "").toLowerCase().includes(kw)) return true;
+      if ((row._respondentId || "").toLowerCase().includes(kw)) return true;
+      for (const field of allVisibleFields) {
+        const cellValue = row.data[field._id];
+        if (cellValue === null || cellValue === undefined) continue;
+        if (
+          String(formatCellValue(cellValue, field))
+            .toLowerCase()
+            .includes(kw)
+        ) {
           return true;
         }
+      }
+      return false;
+    });
+  }, [rows, docKeyword, allVisibleFields]);
 
-        const field = allVisibleFields.find((f) => f._id === fieldId);
-        if (!field) return true;
+  // 검색·정렬된 행 (표시 칩은 컬럼만 제어)
+  const filteredRows = useMemo(() => {
+    let result = keywordRows;
 
-        const cellValue = row.data[fieldId];
-        if (cellValue === null || cellValue === undefined) return false;
-
-        if (field.type === "multiDate" && Array.isArray(cellValue)) {
-          return cellValue.some((v: string) => {
-            if (!v) return false;
-            if (range.from && v < range.from) return false;
-            if (range.to && v > range.to) return false;
-            return true;
-          });
-        }
-
-        // date 타입
-        const dateVal = String(cellValue);
-        if (!dateVal) return false;
-        if (range.from && dateVal < range.from) return false;
-        if (range.to && dateVal > range.to) return false;
-        return true;
-      });
-    }
-
-    // 정렬 적용
     if (sortConfig) {
       const { fieldId, direction } = sortConfig;
       result = [...result].sort((a, b) => {
@@ -594,26 +553,33 @@ const AltSheetView = ({
           aVal = a._submittedAt || "";
           bVal = b._submittedAt || "";
         } else if (fieldId === "_quiz_score") {
-          aVal = a.data?._quiz_score ?? 0;
-          bVal = b.data?._quiz_score ?? 0;
+          aVal = a.data?._quiz_score ?? -1;
+          bVal = b.data?._quiz_score ?? -1;
         } else {
-          aVal = a.data[fieldId] ?? "";
-          bVal = b.data[fieldId] ?? "";
+          const field = allVisibleFields.find((f) => f._id === fieldId);
+          aVal = a.data[fieldId];
+          bVal = b.data[fieldId];
+          if (field?.type === "approval") {
+            aVal = normalizeApprovalValue(aVal, field)?.overallStatus || "";
+            bVal = normalizeApprovalValue(bVal, field)?.overallStatus || "";
+          } else {
+            if (Array.isArray(aVal)) aVal = aVal.join(",");
+            if (Array.isArray(bVal)) bVal = bVal.join(",");
+          }
+          aVal = aVal ?? "";
+          bVal = bVal ?? "";
         }
 
         if (typeof aVal === "number" && typeof bVal === "number") {
           return direction === "asc" ? aVal - bVal : bVal - aVal;
         }
-        const strA = String(aVal);
-        const strB = String(bVal);
-        return direction === "asc"
-          ? strA.localeCompare(strB)
-          : strB.localeCompare(strA);
+        const cmp = String(aVal).localeCompare(String(bVal), "ko");
+        return direction === "asc" ? cmp : -cmp;
       });
     }
 
     return result;
-  }, [rows, docKeyword, filters, dateFilters, sortConfig, allVisibleFields]);
+  }, [keywordRows, sortConfig, allVisibleFields]);
 
   // 문서 보기 index를 필터 결과에 맞게 유지
   useEffect(() => {
@@ -622,7 +588,7 @@ const AltSheetView = ({
       return;
     }
     setDocIndex((prev) => Math.min(Math.max(0, prev), filteredRows.length - 1));
-  }, [filteredRows.length, rows.length, filters, dateFilters, sortConfig]);
+  }, [filteredRows.length, rows.length, sortConfig, docKeyword]);
 
   // 폼 변경 시 문서 index 초기화
   useEffect(() => {
@@ -753,20 +719,26 @@ const AltSheetView = ({
     return "";
   };
 
-  const handleColumnSort = (fieldId: string) => {
-    setSortConfig((prev) => {
-      if (prev?.fieldId === fieldId) {
-        if (prev.direction === "asc") return { fieldId, direction: "desc" };
-        return null;
-      }
-      return { fieldId, direction: "asc" };
-    });
+  const handleSortFieldChange = (fieldId: string) => {
+    if (!fieldId) {
+      setSortConfig(null);
+      return;
+    }
+    setSortConfig((prev) => ({
+      fieldId,
+      direction: prev?.fieldId === fieldId ? prev.direction : "asc",
+    }));
   };
 
-  const isFilterActive = (fieldId: string) => {
-    if (filters[fieldId]) return true;
-    const range = dateFilters[fieldId];
-    return !!(range?.from || range?.to);
+  const toggleSortDirection = () => {
+    setSortConfig((prev) =>
+      prev
+        ? {
+            fieldId: prev.fieldId,
+            direction: prev.direction === "asc" ? "desc" : "asc",
+          }
+        : null
+    );
   };
 
   /** 잘린 셀 전체 내용 미리보기 */
@@ -930,8 +902,6 @@ const AltSheetView = ({
       setIsDeletingRow(false);
     }
   };
-
-  const csvFileRef = useRef<HTMLInputElement>(null);
 
   // CSV 다운로드 (BOM 포함으로 한글 Excel 호환)
   const handleCsvDownload = () => {
@@ -1755,8 +1725,7 @@ const AltSheetView = ({
             onClick={() => {
               setSelectedFormId("");
               setRows([]);
-              setFilters({});
-              setDateFilters({});
+              setHiddenColumns(new Set());
               setSortConfig(null);
               setDocKeyword("");
               onFormDeselect?.();
@@ -1774,135 +1743,235 @@ const AltSheetView = ({
         <div
           className={`${style.builderHeaderActions} ${style.noPrint} ${NO_PRINT_CLASS}`}
         >
-          <button
-            type="button"
-            className={style.formCardIconBtn}
-            onClick={() => {
-              const next = viewMode === "table" ? "doc" : "table";
-              applyViewMode(selectedFormId, next);
-            }}
-            title={
-              viewMode === "table" ? "문서 보기로 전환" : "테이블 보기로 전환"
-            }
-            aria-label={
-              viewMode === "table" ? "문서 보기로 전환" : "테이블 보기로 전환"
-            }
-          >
-            <Svg
-              type={viewMode === "table" ? "article" : "table"}
-              width="20px"
-              height="20px"
-            />
-          </button>
-          {supportsTimetable && (
+          <div className={style.sheetMenuWrap} ref={viewModeMenu.RefObject}>
             <button
               type="button"
               className={`${style.formCardIconBtn} ${
-                viewMode === "timetable" ? style.formCardIconBtnActive : ""
+                viewModeMenu.active ? style.formCardIconBtnActive : ""
               }`}
-              onClick={() => applyViewMode(selectedFormId, "timetable")}
-              title="시간표 보기"
-              aria-label="시간표 보기"
-              aria-pressed={viewMode === "timetable"}
+              title="보기 모드"
+              aria-label="보기 모드"
+              aria-expanded={viewModeMenu.active}
+              aria-haspopup="menu"
+              onClick={() => {
+                moreMenu.setActive(false);
+                viewModeMenu.setActive(!viewModeMenu.active);
+              }}
             >
-              <Svg type="calender" width="20px" height="20px" />
-            </button>
-          )}
-          <button
-            type="button"
-            className={style.formCardIconBtn}
-            title="인쇄"
-            aria-label="인쇄"
-            onClick={handleSheetPrint}
-          >
-            <Svg type="print" width="20px" height="20px" />
-          </button>
-          {onCopySheetLink && (
-            <button
-              type="button"
-              className={style.formCardIconBtn}
-              title="링크 복사"
-              onClick={() => onCopySheetLink(selectedFormId)}
-            >
-              <Svg type="link" width="20px" height="20px" />
-            </button>
-          )}
-          {canManage && viewMode !== "timetable" && (
-            <button
-              type="button"
-              className={style.formCardIconBtn}
-              title="행 추가"
-              onClick={handleAddRow}
-            >
-              <Svg type="plus" width="20px" height="20px" />
-            </button>
-          )}
-          {viewMode === "table" && (
-            <div style={{ position: "relative" }}>
-              <button
-                type="button"
-                className={`${style.formCardIconBtn} ${
-                  showColumnSettings ? style.formCardIconBtnActive : ""
-                }`}
-                title="컬럼 설정"
-                onClick={() => setShowColumnSettings(!showColumnSettings)}
-              >
-                <Svg type="list_check" width="20px" height="20px" />
-              </button>
-              {showColumnSettings && (
-                <div className={style.columnSettingsDropdown}>
-                  {allVisibleFields.map((f) => (
-                    <label key={f._id} className={style.columnSettingsItem}>
-                      <input
-                        type="checkbox"
-                        checked={!hiddenColumns.has(f._id)}
-                        onChange={(e) => {
-                          setHiddenColumns((prev) => {
-                            const next = new Set(prev);
-                            if (e.target.checked) {
-                              next.delete(f._id);
-                            } else {
-                              next.add(f._id);
-                            }
-                            return next;
-                          });
-                        }}
-                      />
-                      {f.label}
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-          {canManage && viewMode !== "timetable" && (
-            <>
-              <button
-                type="button"
-                className={style.formCardIconBtn}
-                title="CSV 다운로드"
-                onClick={handleCsvDownload}
-              >
-                <Svg type="download" width="20px" height="20px" />
-              </button>
-              <button
-                type="button"
-                className={style.formCardIconBtn}
-                title="CSV 업로드"
-                onClick={() => csvFileRef.current?.click()}
-              >
-                <Svg type="upload" width="20px" height="20px" />
-              </button>
-              <input
-                ref={csvFileRef}
-                type="file"
-                accept=".csv"
-                style={{ display: "none" }}
-                onChange={handleCsvUpload}
+              <Svg
+                type={
+                  viewMode === "table"
+                    ? "table"
+                    : viewMode === "timetable"
+                      ? "calender"
+                      : "article"
+                }
+                width="20px"
+                height="20px"
               />
-            </>
-          )}
+            </button>
+            {viewModeMenu.active && (
+              <div className={style.formActionMenu} role="menu">
+                <button
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={viewMode === "doc"}
+                  className={`${style.formActionItem} ${
+                    viewMode === "doc" ? style.formActionItemActive : ""
+                  }`}
+                  onClick={() => {
+                    applyViewMode(selectedFormId, "doc");
+                    viewModeMenu.setActive(false);
+                  }}
+                >
+                  <Svg type="article" width="16px" height="16px" />
+                  문서 보기
+                </button>
+                <button
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={viewMode === "table"}
+                  className={`${style.formActionItem} ${
+                    viewMode === "table" ? style.formActionItemActive : ""
+                  }`}
+                  onClick={() => {
+                    applyViewMode(selectedFormId, "table");
+                    viewModeMenu.setActive(false);
+                  }}
+                >
+                  <Svg type="table" width="16px" height="16px" />
+                  테이블 보기
+                </button>
+                {supportsTimetable && (
+                  <button
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={viewMode === "timetable"}
+                    className={`${style.formActionItem} ${
+                      viewMode === "timetable"
+                        ? style.formActionItemActive
+                        : ""
+                    }`}
+                    onClick={() => {
+                      applyViewMode(selectedFormId, "timetable");
+                      viewModeMenu.setActive(false);
+                    }}
+                  >
+                    <Svg type="calender" width="16px" height="16px" />
+                    시간표 보기
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className={style.sheetMenuWrap} ref={moreMenu.RefObject}>
+            <button
+              type="button"
+              className={`${style.formCardIconBtn} ${
+                moreMenu.active ? style.formCardIconBtnActive : ""
+              }`}
+              title="더보기"
+              aria-label="더보기"
+              aria-expanded={moreMenu.active}
+              aria-haspopup="menu"
+              onClick={() => {
+                viewModeMenu.setActive(false);
+                moreMenu.setActive(!moreMenu.active);
+              }}
+            >
+              <Svg type="verticalDots" width="18px" height="18px" />
+            </button>
+            {moreMenu.active && (
+              <div className={style.formActionMenu} role="menu">
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={style.formActionItem}
+                  onClick={() => {
+                    handleSheetPrint();
+                    moreMenu.setActive(false);
+                  }}
+                >
+                  <Svg type="print" width="16px" height="16px" />
+                  인쇄
+                </button>
+                {onCopySheetLink && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={style.formActionItem}
+                    onClick={() => {
+                      onCopySheetLink(selectedFormId);
+                      moreMenu.setActive(false);
+                    }}
+                  >
+                    <Svg type="link" width="16px" height="16px" />
+                    링크 복사
+                  </button>
+                )}
+                {canManage && viewMode !== "timetable" && (
+                  <>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className={style.formActionItem}
+                      onClick={() => {
+                        handleAddRow();
+                        moreMenu.setActive(false);
+                      }}
+                    >
+                      <Svg type="plus" width="16px" height="16px" />
+                      행 추가
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className={style.formActionItem}
+                      onClick={() => {
+                        handleCsvDownload();
+                        moreMenu.setActive(false);
+                      }}
+                    >
+                      <Svg type="download" width="16px" height="16px" />
+                      CSV 다운로드
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className={style.formActionItem}
+                      onClick={() => {
+                        csvFileRef.current?.click();
+                        moreMenu.setActive(false);
+                      }}
+                    >
+                      <Svg type="upload" width="16px" height="16px" />
+                      CSV 업로드
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+          <input
+            ref={csvFileRef}
+            type="file"
+            accept=".csv"
+            style={{ display: "none" }}
+            onChange={handleCsvUpload}
+          />
         </div>
+      </div>
+
+      {/* 공통 검색·표시 항목·정렬 (모든 뷰모드) */}
+      <div
+        className={`${style.sheetFilterToolbar} ${style.noPrint} ${NO_PRINT_CLASS}`}
+      >
+        <SheetDetailFilterBar
+          keyword={docKeyword}
+          onKeywordChange={setDocKeyword}
+          keywordPlaceholder={docKeywordPlaceholder}
+          columns={columnChips}
+          hiddenColumns={hiddenColumns}
+          onToggleColumn={toggleColumnVisibility}
+          onShowAllColumns={showAllColumns}
+          onClearSearchAndSort={clearSearchAndSort}
+          hasSearchOrSort={!!docKeyword.trim() || !!sortConfig}
+          sortSlot={
+            <div className={style.sheetSortControls}>
+              <label className={style.sheetSortLabel} htmlFor="sheet-sort-field">
+                정렬
+              </label>
+              <select
+                id="sheet-sort-field"
+                className={style.sheetSortSelect}
+                value={sortConfig?.fieldId || ""}
+                onChange={(e) => handleSortFieldChange(e.target.value)}
+              >
+                <option value="">없음</option>
+                {sortFieldOptions.map((opt) => (
+                  <option key={opt.fieldId} value={opt.fieldId}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className={style.sheetSortDirBtn}
+                title={
+                  sortConfig?.direction === "desc" ? "내림차순" : "오름차순"
+                }
+                aria-label={
+                  sortConfig?.direction === "desc" ? "내림차순" : "오름차순"
+                }
+                disabled={!sortConfig}
+                onClick={toggleSortDirection}
+              >
+                {sortConfig?.direction === "desc" ? "↓" : "↑"}
+              </button>
+            </div>
+          }
+        />
       </div>
 
       {/* 콘텐츠 */}
@@ -1912,7 +1981,13 @@ const AltSheetView = ({
         <SheetTimetableView
           formId={selectedFormId}
           rows={filteredRows}
-          fields={selectedForm.fields}
+          fields={
+            hiddenColumns.size === 0
+              ? selectedForm.fields
+              : selectedForm.fields.filter(
+                  (f) => f.type === "content" || !hiddenColumns.has(f._id)
+                )
+          }
           printRootRef={timetablePrintRootRef}
           printTitle={selectedForm?.title || "기록"}
           onOpenRow={(rowId) => {
@@ -1926,27 +2001,6 @@ const AltSheetView = ({
       ) : !isLoading && viewMode === "doc" ? (
         /* ── 문서 뷰 (양식형 개별 보기) ── */
         <div className={style.docViewSingle}>
-          <div
-            className={`${style.docViewSearch} ${style.noPrint} ${NO_PRINT_CLASS}`}
-          >
-            <MergeStyleFilterBar
-              keyword={docKeyword}
-              onKeywordChange={setDocKeyword}
-              keywordPlaceholder={docKeywordPlaceholder}
-              textFilters={filters}
-              onTextFilterChange={(key, value) =>
-                setFilters((p) => ({ ...p, [key]: value }))
-              }
-              dateFilters={dateFilters}
-              onDateFilterChange={(key, range) =>
-                setDateFilters((p) => ({ ...p, [key]: range }))
-              }
-              fields={docFilterFields}
-              respondentFilterKey="_respondent"
-              onClear={clearDocFilters}
-            />
-          </div>
-
           {filteredRows.length === 0 || !currentDocRow ? (
             <div className={style.sheetEmpty}>표시할 응답이 없습니다.</div>
           ) : (
@@ -1987,19 +2041,25 @@ const AltSheetView = ({
                 </div>
                 <div className={style.docViewCardHeader}>
                   <div>
-                    <span style={{ fontWeight: 600 }}>
-                      {currentDocRow._respondentName || "응답자"}
-                    </span>
-                    {currentDocRow._respondentId && (
-                      <span
-                        style={{
-                          fontSize: "12px",
-                          color: "var(--text-color-2)",
-                          marginLeft: "4px",
-                        }}
-                      >
-                        ({currentDocRow._respondentId})
-                      </span>
+                    {showRespondentCol ? (
+                      <>
+                        <span style={{ fontWeight: 600 }}>
+                          {currentDocRow._respondentName || "응답자"}
+                        </span>
+                        {currentDocRow._respondentId && (
+                          <span
+                            style={{
+                              fontSize: "12px",
+                              color: "var(--text-color-2)",
+                              marginLeft: "4px",
+                            }}
+                          >
+                            ({currentDocRow._respondentId})
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <span style={{ fontWeight: 600 }}>응답</span>
                     )}
                   </div>
                   <div
@@ -2009,26 +2069,28 @@ const AltSheetView = ({
                       alignItems: "center",
                     }}
                   >
-                    <span
-                      style={{
-                        fontSize: "12px",
-                        color: "var(--text-color-2)",
-                      }}
-                    >
-                      {currentDocRow._submittedAt
-                        ? new Date(currentDocRow._submittedAt).toLocaleString(
-                            "ko-KR",
-                            {
-                              year: "numeric",
-                              month: "2-digit",
-                              day: "2-digit",
-                              weekday: "short",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            }
-                          )
-                        : "-"}
-                    </span>
+                    {showSubmittedAtCol && (
+                      <span
+                        style={{
+                          fontSize: "12px",
+                          color: "var(--text-color-2)",
+                        }}
+                      >
+                        {currentDocRow._submittedAt
+                          ? new Date(currentDocRow._submittedAt).toLocaleString(
+                              "ko-KR",
+                              {
+                                year: "numeric",
+                                month: "2-digit",
+                                day: "2-digit",
+                                weekday: "short",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              }
+                            )
+                          : "-"}
+                      </span>
+                    )}
                     <span className={`${style.noPrint} ${NO_PRINT_CLASS}`}>
                       {canEditRowDoc(currentDocRow) &&
                         editingRowId !== currentDocRow._id && (
@@ -2184,7 +2246,7 @@ const AltSheetView = ({
           <table className={style.sheetTable}>
             <colgroup>
               <col className={style.colRowNum} />
-              <col className={style.colRespondent} />
+              {showRespondentCol && <col className={style.colRespondent} />}
               {visibleFields.map((f) => (
                 <col
                   key={f._id}
@@ -2199,161 +2261,26 @@ const AltSheetView = ({
               ))}
               {isQuiz && <col className={style.colQuiz} />}
               {isAssessment && <col className={style.colQuiz} />}
-              <col className={style.colSubmitted} />
+              {showSubmittedAtCol && <col className={style.colSubmitted} />}
               <col className={style.colAction} />
             </colgroup>
             <thead>
               <tr>
                 <th className={style.rowNumCell}>#</th>
-                    <SheetColHeader
-                      fieldId="_respondent"
-                      label="응답자"
-                      sortConfig={sortConfig}
-                      onSortCycle={handleColumnSort}
-                      hasActiveFilter={isFilterActive("_respondent")}
-                    >
-                      <input
-                        className={style.filterInput}
-                        placeholder="검색..."
-                        value={filters["_respondent"] || ""}
-                        onChange={(e) =>
-                          setFilters((p) => ({
-                            ...p,
-                            _respondent: e.target.value,
-                          }))
-                        }
-                      />
-                    </SheetColHeader>
-                    {visibleFields.map((f) => (
-                      <SheetColHeader
-                        key={f._id}
-                        fieldId={f._id}
-                        label={
-                          <>
-                            {f.label}
-                            {f.permission === "owner" && (
-                              <span className={style.sheetColOwnerBadge}>
-                                (관리자)
-                              </span>
-                            )}
-                          </>
-                        }
-                        sortConfig={sortConfig}
-                        onSortCycle={handleColumnSort}
-                        hasActiveFilter={isFilterActive(f._id)}
-                      >
-                        {f.type === "select" || f.type === "radio" ? (
-                          <select
-                            className={style.filterInput}
-                            value={filters[f._id] || ""}
-                            onChange={(e) =>
-                              setFilters((p) => ({
-                                ...p,
-                                [f._id]: e.target.value,
-                              }))
-                            }
-                          >
-                            <option value="">전체</option>
-                            {f.options?.map((opt, i) => (
-                              <option key={i} value={opt}>
-                                {opt}
-                              </option>
-                            ))}
-                          </select>
-                        ) : f.type === "checkbox" ? (
-                          <select
-                            className={style.filterInput}
-                            value={filters[f._id] || ""}
-                            onChange={(e) =>
-                              setFilters((p) => ({
-                                ...p,
-                                [f._id]: e.target.value,
-                              }))
-                            }
-                          >
-                            <option value="">전체</option>
-                            <option value="Y">Y</option>
-                            <option value="N">N</option>
-                          </select>
-                        ) : f.type === "approval" ? (
-                          <select
-                            className={style.filterInput}
-                            value={filters[f._id] || ""}
-                            onChange={(e) =>
-                              setFilters((p) => ({
-                                ...p,
-                                [f._id]: e.target.value,
-                              }))
-                            }
-                          >
-                            <option value="">전체</option>
-                            <option value="대기">대기</option>
-                            <option value="승인">승인</option>
-                            <option value="반려">반려</option>
-                          </select>
-                        ) : f.type === "date" || f.type === "multiDate" ? (
-                          <DateRangeFilterDropdown
-                            compact
-                            value={dateFilters[f._id] || { from: "", to: "" }}
-                            onChange={(range) =>
-                              setDateFilters((p) => ({ ...p, [f._id]: range }))
-                            }
-                            placeholder="날짜 필터"
-                          />
-                        ) : (
-                          <input
-                            className={style.filterInput}
-                            placeholder="검색..."
-                            value={filters[f._id] || ""}
-                            onChange={(e) =>
-                              setFilters((p) => ({
-                                ...p,
-                                [f._id]: e.target.value,
-                              }))
-                            }
-                          />
-                        )}
-                      </SheetColHeader>
-                    ))}
-                    {isQuiz && (
-                      <SheetColHeader
-                        fieldId="_quiz_score"
-                        label="점수"
-                        sortConfig={sortConfig}
-                        onSortCycle={handleColumnSort}
-                        hasActiveFilter={false}
-                      >
-                        <span className={style.sheetColMenuHint}>
-                          점수 열은 필터를 지원하지 않습니다.
-                        </span>
-                      </SheetColHeader>
+                {showRespondentCol && <th>응답자</th>}
+                {visibleFields.map((f) => (
+                  <th key={f._id}>
+                    {f.label}
+                    {f.permission === "owner" && (
+                      <span className={style.sheetColOwnerBadge}>
+                        (관리자)
+                      </span>
                     )}
-                    {isAssessment && (
-                      <th>
-                        평가
-                      </th>
-                    )}
-                    <SheetColHeader
-                      fieldId="_submittedAt"
-                      label="제출일"
-                      sortConfig={sortConfig}
-                      onSortCycle={handleColumnSort}
-                      hasActiveFilter={isFilterActive("_submittedAt")}
-                    >
-                      <DateRangeFilterDropdown
-                        compact
-                        value={
-                          dateFilters["_submittedAt"] || { from: "", to: "" }
-                        }
-                        onChange={(range) =>
-                          setDateFilters((p) => ({
-                            ...p,
-                            _submittedAt: range,
-                          }))
-                        }
-                        placeholder="날짜 필터"
-                      />
-                    </SheetColHeader>
+                  </th>
+                ))}
+                {isQuiz && <th>점수</th>}
+                {isAssessment && <th>평가</th>}
+                {showSubmittedAtCol && <th>제출일</th>}
                 <th className={style.actionCell} />
               </tr>
             </thead>
@@ -2361,6 +2288,7 @@ const AltSheetView = ({
             {filteredRows.map((row, index) => (
               <tr key={row._id}>
                 <td className={style.rowNumCell}>{index + 1}</td>
+                {showRespondentCol && (
                 <td
                   className={style.cellPreviewable}
                   onClick={(e) => {
@@ -2387,6 +2315,7 @@ const AltSheetView = ({
                     </span>
                   )}
                 </td>
+                )}
                 {visibleFields.map((field) => {
                   // 파일 필드 특별 렌더링
                   if (
@@ -2543,6 +2472,7 @@ const AltSheetView = ({
                 {isAssessment && (
                   <td>{assessmentStatusOf(row) || "-"}</td>
                 )}
+                {showSubmittedAtCol && (
                 <td>
                   {row._submittedAt
                     ? new Date(row._submittedAt).toLocaleString("ko-KR", {
@@ -2551,6 +2481,7 @@ const AltSheetView = ({
                       })
                     : "-"}
                 </td>
+                )}
                 <td className={style.actionCell}>
                   {(canDeleteAnyRow ||
                     (row._respondent === currentUser?._id &&
