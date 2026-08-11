@@ -21,6 +21,7 @@ import SheetDetailFilterBar, {
 import SheetTimetableView, {
   getTimetableAxisFields,
 } from "./SheetTimetableView";
+import SheetSummaryView from "./SheetSummaryView";
 import SheetApprovalDocSection from "./SheetApprovalDocSection";
 import SheetAssessmentSection from "./SheetAssessmentSection";
 import FieldAssessmentInline, {
@@ -46,9 +47,14 @@ type SortConfig = {
   direction: "asc" | "desc";
 } | null;
 
-type TSheetViewMode = "table" | "doc" | "timetable";
+type TSheetViewMode = "table" | "doc" | "timetable" | "summary";
 
-const SHEET_VIEW_MODES: TSheetViewMode[] = ["table", "doc", "timetable"];
+const SHEET_VIEW_MODES: TSheetViewMode[] = [
+  "table",
+  "doc",
+  "timetable",
+  "summary",
+];
 
 const formSupportsTimetable = (form: TAltForm | undefined) => {
   if (!form) return false;
@@ -204,6 +210,7 @@ const AltSheetView = ({
   const docPrintRootRef = useRef<HTMLDivElement>(null);
   const tablePrintRootRef = useRef<HTMLDivElement>(null);
   const timetablePrintRootRef = useRef<HTMLDivElement>(null);
+  const summaryPrintRootRef = useRef<HTMLDivElement>(null);
   const docBatchPrintRootRef = useRef<HTMLDivElement>(null);
   /** 문서 보기 일괄 인쇄: DOM 마운트 후 print */
   const [docBatchPrintActive, setDocBatchPrintActive] = useState(false);
@@ -221,6 +228,10 @@ const AltSheetView = ({
     }
     if (viewMode === "timetable") {
       printArea(timetablePrintRootRef.current);
+      return;
+    }
+    if (viewMode === "summary") {
+      printArea(summaryPrintRootRef.current);
       return;
     }
     // 테이블: 조회된(필터·정렬) 전체
@@ -1809,7 +1820,9 @@ const AltSheetView = ({
                     ? "table"
                     : viewMode === "timetable"
                       ? "calender"
-                      : "article"
+                      : viewMode === "summary"
+                        ? "analyze"
+                        : "article"
                 }
                 width="20px"
                 height="20px"
@@ -1846,6 +1859,21 @@ const AltSheetView = ({
                 >
                   <Svg type="table" width="16px" height="16px" />
                   테이블 보기
+                </button>
+                <button
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={viewMode === "summary"}
+                  className={`${style.formActionItem} ${
+                    viewMode === "summary" ? style.formActionItemActive : ""
+                  }`}
+                  onClick={() => {
+                    applyViewMode(selectedFormId, "summary");
+                    viewModeMenu.setActive(false);
+                  }}
+                >
+                  <Svg type="analyze" width="16px" height="16px" />
+                  요약 보기
                 </button>
                 {supportsTimetable && (
                   <button
@@ -2058,6 +2086,15 @@ const AltSheetView = ({
               applyViewMode(selectedFormId, "doc");
             }
           }}
+        />
+      ) : !isLoading && viewMode === "summary" && selectedForm ? (
+        <SheetSummaryView
+          form={selectedForm}
+          rows={filteredRows}
+          visibleFields={visibleFields}
+          canManage={canManage}
+          printRootRef={summaryPrintRootRef}
+          printTitle={selectedForm.title || "요약"}
         />
       ) : !isLoading && viewMode === "doc" ? (
         /* ── 문서 뷰 (양식형 개별 보기) ── */
