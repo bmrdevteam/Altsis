@@ -125,6 +125,13 @@
       background-color: var(--highlight-color);
       color: #fff;
       border-radius: 12px 4px 12px 12px;
+
+      // Browser default selection is blue — invisible on highlight-color bubbles.
+      &::selection,
+      *::selection {
+        background-color: rgba(255, 255, 255, 0.35);
+        color: #fff;
+      }
     }
 
     .sender_name {
