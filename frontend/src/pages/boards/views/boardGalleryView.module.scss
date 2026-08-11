@@ -1,8 +1,40 @@
+.sections {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 12px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-color-2);
+}
+
+.sectionHeaderPin {
+  color: var(--status-error);
+  display: inline-flex;
+  align-items: center;
+
+  svg {
+    fill: currentColor;
+  }
+}
+
 .container {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 8px;
-  padding-top: 12px;
 }
 
 .card {
@@ -33,6 +65,10 @@
   &.selected {
     border-color: var(--accent-1);
   }
+
+  &.cardPinned {
+    border-width: 2px;
+  }
 }
 
 .cardCover {
@@ -51,7 +87,7 @@
   padding: 14px 12px 14px 16px;
 }
 
-.favoriteBtn {
+.pinBtn {
   position: absolute;
   top: 8px;
   right: 8px;
@@ -65,7 +101,6 @@
   border-radius: 6px;
   cursor: pointer;
   padding: 0;
-  font-size: 14px;
   color: var(--text-color-2);
   opacity: 0;
   transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
@@ -77,13 +112,22 @@
     opacity: 1;
   }
 
-  &:hover {
+  svg {
+    fill: currentColor;
+  }
+
+  &:hover:not(.active) {
     background: var(--background-hover-color, var(--background-color-2));
     color: var(--accent-1);
   }
 
   &.active {
-    color: var(--accent-1);
+    color: var(--status-error);
+
+    &:hover {
+      background: var(--status-error-bg);
+      color: var(--status-error);
+    }
   }
 }
 

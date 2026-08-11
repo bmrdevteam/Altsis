@@ -30,9 +30,11 @@ import BoardManagePopup from "./popup/BoardManage";
 import BoardDuplicateFlow from "./popup/BoardDuplicateFlow";
 import BoardGalleryView from "./views/BoardGalleryView";
 import BoardListFilterBar, {
+  TBoardListSort,
   TBoardScopeFilter,
   TBoardTypeFilter,
 } from "./BoardListFilterBar";
+import { sortBoardsForList } from "./boardListSort";
 import BoardsActivityTodos, {
   TSchoolTodoItem,
 } from "./BoardsActivityTodos";
@@ -40,6 +42,25 @@ import {
   getSchoolTodosCached,
   schoolTodosCacheKey,
 } from "./schoolTodosCache";
+
+const BOARD_LIST_SORT_KEY = "boardListSort";
+const VALID_BOARD_LIST_SORTS: TBoardListSort[] = [
+  "default",
+  "name",
+  "updatedAt",
+  "createdAt",
+  "postCount",
+  "creatorName",
+];
+
+const readStoredBoardListSort = (): TBoardListSort => {
+  try {
+    const stored = localStorage.getItem(BOARD_LIST_SORT_KEY) as TBoardListSort;
+    return VALID_BOARD_LIST_SORTS.includes(stored) ? stored : "default";
+  } catch {
+    return "default";
+  }
+};
 
 const Boards = () => {
   const navigate = useAppNavigate();
@@ -56,8 +77,10 @@ const Boards = () => {
   const [todosLoading, setTodosLoading] = useState(true);
   const [todosReady, setTodosReady] = useState(false);
 
-  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [boardKeyword, setBoardKeyword] = useState("");
+  const [boardListSort, setBoardListSort] = useState<TBoardListSort>(
+    readStoredBoardListSort
+  );
   const [hasTodosOnly, setHasTodosOnly] = useState(false);
   const [scopeFilter, setScopeFilter] = useState<TBoardScopeFilter>("");
   const [boardTypeFilter, setBoardTypeFilter] =
@@ -174,7 +197,12 @@ const Boards = () => {
     localStorage.setItem("boardListViewMode", mode);
   };
 
-  const handleToggleFavorite = async (board: TBoard) => {
+  const handleBoardListSortChange = (value: TBoardListSort) => {
+    setBoardListSort(value);
+    localStorage.setItem(BOARD_LIST_SORT_KEY, value);
+  };
+
+  const handleTogglePin = async (board: TBoard) => {
     if (!currentSchool) return;
 
     try {
@@ -248,22 +276,17 @@ const Boards = () => {
     return counts;
   }, [todos]);
 
-  /** 칩 카운트용: 즐겨찾기·키워드만 반영 (칩 필터 전) */
+  /** 칩 카운트용: 키워드만 반영 (칩 필터 전) */
   const boardsForChipCounts = useMemo(() => {
-    let result = boards;
-    if (showFavoritesOnly) {
-      result = result.filter((b) => b.isFavorited);
-    }
     const kw = boardKeyword.trim().toLowerCase();
-    if (kw) {
-      result = result.filter(
-        (b) =>
-          (b.name || "").toLowerCase().includes(kw) ||
-          (b.description || "").toLowerCase().includes(kw)
-      );
-    }
-    return result;
-  }, [boards, showFavoritesOnly, boardKeyword]);
+    if (!kw) return boards;
+    return boards.filter(
+      (b) =>
+        (b.name || "").toLowerCase().includes(kw) ||
+        (b.description || "").toLowerCase().includes(kw) ||
+        (b.creatorName || "").toLowerCase().includes(kw)
+    );
+  }, [boards, boardKeyword]);
 
   const boardFilterCounts = useMemo(() => {
     let todos = 0;
@@ -310,7 +333,7 @@ const Boards = () => {
     } else if (linkFilter === "general") {
       result = result.filter((b) => !(b.syllabus || b.syllabusMeta));
     }
-    return result;
+    return sortBoardsForList(result, boardListSort);
   }, [
     boardsForChipCounts,
     hasTodosOnly,
@@ -318,7 +341,17 @@ const Boards = () => {
     boardTypeFilter,
     linkFilter,
     todoCountByBoard,
+    boardListSort,
   ]);
+
+  const pinnedBoards = useMemo(
+    () => displayBoards.filter((b) => b.isFavorited),
+    [displayBoards]
+  );
+  const unpinnedBoards = useMemo(
+    () => displayBoards.filter((b) => !b.isFavorited),
+    [displayBoards]
+  );
 
   const clearBoardListFilters = () => {
     setBoardKeyword("");
@@ -330,9 +363,7 @@ const Boards = () => {
 
   const emptyBoardMessage = hasBoardListFilters
     ? "조건에 맞는 보드가 없습니다."
-    : showFavoritesOnly
-      ? "즐겨찾기한 보드가 없습니다."
-      : "보드가 없습니다.";
+    : "보드가 없습니다.";
 
   const boardTabKey = "보드";
   const todoTabKey = "할 일";
@@ -357,6 +388,135 @@ const Boards = () => {
     );
   }
 
+  const renderBoardListCard = (board: TBoard, pinned: boolean) => {
+    const todoCount = todoCountByBoard[board._id] || 0;
+    return (
+      <div
+        key={board._id}
+        className={`${aStyle.formCard} ${bStyle.boardFormCard} ${
+          pinned ? bStyle.boardFormCardPinned : ""
+        }`}
+        onClick={() => handleBoardClick(board)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleBoardClick(board);
+          }
+        }}
+      >
+        <div className={bStyle.boardFormCardMain}>
+          <div
+            className={bStyle.boardItemColorBar}
+            style={{
+              backgroundColor: resolveBoardCoverColor(
+                board.coverColor,
+                board._id || board.name
+              ),
+            }}
+          />
+          <div className={aStyle.formCardLeft}>
+            <div
+              className={`${aStyle.formCardTitle} ${bStyle.boardTitleRow}`}
+            >
+              {board.isDefault && "📢 "}
+              {board.name}
+              {todoCount > 0 && (
+                <span
+                  className={bStyle.todoBadge}
+                  title={`할 일 ${todoCount}건`}
+                  aria-label={`할 일 ${todoCount}건`}
+                >
+                  {todoCount > 99 ? "99+" : todoCount}
+                </span>
+              )}
+            </div>
+            <div className={aStyle.formCardMeta}>
+              {(board.syllabus || board.syllabusMeta) && (
+                <span
+                  className={`${aStyle.formCardBadge} ${aStyle.badgePending}`}
+                  title={
+                    board.syllabusMeta?.classTitle
+                      ? `수업: ${board.syllabusMeta.classTitle}`
+                      : "수업 연결 보드"
+                  }
+                >
+                  수업
+                  {board.syllabusMeta?.classTitle
+                    ? ` · ${board.syllabusMeta.classTitle}`
+                    : ""}
+                </span>
+              )}
+              <span
+                className={`${aStyle.formCardBadge} ${aStyle.badgeOptional}`}
+              >
+                {getBoardScopeLabel(board)}
+              </span>
+              {board.boardType === "user" && (
+                <span
+                  className={`${aStyle.formCardBadge} ${aStyle.badgeOptional}`}
+                >
+                  사용자
+                </span>
+              )}
+              {board.description && (
+                <span className={bStyle.boardMetaDesc}>
+                  {board.description}
+                </span>
+              )}
+              <span>생성자 {board.creatorName?.trim() || "-"}</span>
+              <span>게시글 {board.postCount ?? 0}개</span>
+            </div>
+          </div>
+        </div>
+        <div className={aStyle.formCardRight}>
+          <button
+            type="button"
+            className={`${aStyle.formCardIconBtn} ${
+              board.isFavorited ? bStyle.pinIconActive : ""
+            }`}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleTogglePin(board);
+            }}
+            title={board.isFavorited ? "고정 해제" : "상단에 고정"}
+            aria-label={board.isFavorited ? "고정 해제" : "상단에 고정"}
+            aria-pressed={!!board.isFavorited}
+          >
+            <Svg type="pin" width="16px" height="16px" />
+          </button>
+          {canManageBoard(board) && (
+            <>
+              <button
+                type="button"
+                className={aStyle.formCardIconBtn}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDuplicateBoard(board);
+                }}
+                title="보드 복제"
+              >
+                <Svg type="copy" width="16px" height="16px" />
+              </button>
+              <button
+                type="button"
+                className={aStyle.formCardIconBtn}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleManageBoard(board);
+                }}
+                title="보드 관리"
+              >
+                <Svg type="settings" width="16px" height="16px" />
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const boardListContent = (
     <div style={{ paddingTop: 20 }}>
       <section className={aStyle.formSectionPanel}>
@@ -378,18 +538,6 @@ const Boards = () => {
                 <Svg type="plus" width="18px" height="18px" />
               </button>
             )}
-            <button
-              type="button"
-              className={`${bStyle.iconBtn} ${
-                showFavoritesOnly ? bStyle.iconBtnActive : ""
-              }`}
-              onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-              title="즐겨찾기만 보기"
-            >
-              <span className={bStyle.starIcon}>
-                {showFavoritesOnly ? "★" : "☆"}
-              </span>
-            </button>
             <button
               type="button"
               className={bStyle.iconBtn}
@@ -415,6 +563,8 @@ const Boards = () => {
           <BoardListFilterBar
             keyword={boardKeyword}
             onKeywordChange={setBoardKeyword}
+            sortBy={boardListSort}
+            onSortByChange={handleBoardListSortChange}
             hasTodosOnly={hasTodosOnly}
             onHasTodosOnlyChange={setHasTodosOnly}
             scopeFilter={scopeFilter}
@@ -429,135 +579,42 @@ const Boards = () => {
           {boardListViewMode === "table" ? (
             displayBoards.length > 0 ? (
               <div className={aStyle.formCardList}>
-                {displayBoards.map((board) => {
-                  const todoCount = todoCountByBoard[board._id] || 0;
-                  return (
-                  <div
-                    key={board._id}
-                    className={`${aStyle.formCard} ${bStyle.boardFormCard}`}
-                    onClick={() => handleBoardClick(board)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        handleBoardClick(board);
-                      }
-                    }}
-                  >
-                    <div className={bStyle.boardFormCardMain}>
-                      <div
-                        className={bStyle.boardItemColorBar}
-                        style={{
-                          backgroundColor: resolveBoardCoverColor(
-                            board.coverColor,
-                            board._id || board.name
-                          ),
-                        }}
-                      />
-                      <div className={aStyle.formCardLeft}>
-                        <div
-                          className={`${aStyle.formCardTitle} ${bStyle.boardTitleRow}`}
-                        >
-                          {board.isDefault && "📢 "}
-                          {board.name}
-                          {todoCount > 0 && (
-                            <span
-                              className={bStyle.todoBadge}
-                              title={`할 일 ${todoCount}건`}
-                              aria-label={`할 일 ${todoCount}건`}
-                            >
-                              {todoCount > 99 ? "99+" : todoCount}
-                            </span>
-                          )}
-                        </div>
-                        <div className={aStyle.formCardMeta}>
-                          {(board.syllabus || board.syllabusMeta) && (
-                            <span
-                              className={`${aStyle.formCardBadge} ${aStyle.badgePending}`}
-                              title={
-                                board.syllabusMeta?.classTitle
-                                  ? `수업: ${board.syllabusMeta.classTitle}`
-                                  : "수업 연결 보드"
-                              }
-                            >
-                              수업
-                              {board.syllabusMeta?.classTitle
-                                ? ` · ${board.syllabusMeta.classTitle}`
-                                : ""}
-                            </span>
-                          )}
-                          <span
-                            className={`${aStyle.formCardBadge} ${aStyle.badgeOptional}`}
-                          >
-                            {getBoardScopeLabel(board)}
-                          </span>
-                          {board.boardType === "user" && (
-                            <span
-                              className={`${aStyle.formCardBadge} ${aStyle.badgeOptional}`}
-                            >
-                              사용자
-                            </span>
-                          )}
-                          {board.description && (
-                            <span className={bStyle.boardMetaDesc}>
-                              {board.description}
-                            </span>
-                          )}
-                          <span>게시글 {board.postCount ?? 0}개</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className={aStyle.formCardRight}>
-                      <button
-                        type="button"
-                        className={`${aStyle.formCardIconBtn} ${
-                          board.isFavorited ? bStyle.favoriteIconActive : ""
-                        }`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleFavorite(board);
-                        }}
-                        title={
-                          board.isFavorited
-                            ? "즐겨찾기 해제"
-                            : "즐겨찾기 추가"
-                        }
+                {pinnedBoards.length > 0 && (
+                  <div className={bStyle.boardListSection}>
+                    <div
+                      className={bStyle.boardListSectionHeader}
+                      role="heading"
+                      aria-level={4}
+                    >
+                      <span
+                        className={bStyle.boardListSectionHeaderPin}
+                        aria-hidden
                       >
-                        <span className={bStyle.starIcon}>
-                          {board.isFavorited ? "★" : "☆"}
-                        </span>
-                      </button>
-                      {canManageBoard(board) && (
-                        <>
-                          <button
-                            type="button"
-                            className={aStyle.formCardIconBtn}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDuplicateBoard(board);
-                            }}
-                            title="보드 복제"
-                          >
-                            <Svg type="copy" width="16px" height="16px" />
-                          </button>
-                          <button
-                            type="button"
-                            className={aStyle.formCardIconBtn}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleManageBoard(board);
-                            }}
-                            title="보드 관리"
-                          >
-                            <Svg type="settings" width="16px" height="16px" />
-                          </button>
-                        </>
-                      )}
+                        <Svg type="pin" width="12px" height="12px" />
+                      </span>
+                      고정 · {pinnedBoards.length}
                     </div>
+                    {pinnedBoards.map((board) =>
+                      renderBoardListCard(board, true)
+                    )}
                   </div>
-                  );
-                })}
+                )}
+                {unpinnedBoards.length > 0 && (
+                  <div className={bStyle.boardListSection}>
+                    {pinnedBoards.length > 0 && (
+                      <div
+                        className={bStyle.boardListSectionHeader}
+                        role="heading"
+                        aria-level={4}
+                      >
+                        전체 · {unpinnedBoards.length}
+                      </div>
+                    )}
+                    {unpinnedBoards.map((board) =>
+                      renderBoardListCard(board, false)
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <div className={aStyle.emptyState}>{emptyBoardMessage}</div>
@@ -567,7 +624,7 @@ const Boards = () => {
               boards={displayBoards}
               selectedBoard={null}
               onSelect={handleBoardClick}
-              onToggleFavorite={handleToggleFavorite}
+              onTogglePin={handleTogglePin}
               onDuplicate={handleDuplicateBoard}
               onManage={handleManageBoard}
               canManageBoard={canManageBoard}

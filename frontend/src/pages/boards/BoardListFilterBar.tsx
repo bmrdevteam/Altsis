@@ -6,6 +6,14 @@ import bStyle from "./boards.module.scss";
 export type TBoardScopeFilter = "" | TBoardScope;
 export type TBoardTypeFilter = "" | TBoardType;
 
+export type TBoardListSort =
+  | "default"
+  | "name"
+  | "updatedAt"
+  | "createdAt"
+  | "postCount"
+  | "creatorName";
+
 export type TBoardListFilterCounts = {
   todos: number;
   school: number;
@@ -16,9 +24,20 @@ export type TBoardListFilterCounts = {
   general: number;
 };
 
+const SORT_OPTIONS: { value: TBoardListSort; label: string }[] = [
+  { value: "default", label: "기본 정렬" },
+  { value: "name", label: "이름순" },
+  { value: "updatedAt", label: "최근 활동순" },
+  { value: "createdAt", label: "생성일순" },
+  { value: "postCount", label: "게시글 많은순" },
+  { value: "creatorName", label: "생성자순" },
+];
+
 type Props = {
   keyword: string;
   onKeywordChange: (value: string) => void;
+  sortBy: TBoardListSort;
+  onSortByChange: (value: TBoardListSort) => void;
   hasTodosOnly: boolean;
   onHasTodosOnlyChange: (value: boolean) => void;
   scopeFilter: TBoardScopeFilter;
@@ -50,6 +69,8 @@ const ChipIcon = ({ type }: { type: string }) => (
 const BoardListFilterBar = ({
   keyword,
   onKeywordChange,
+  sortBy,
+  onSortByChange,
   hasTodosOnly,
   onHasTodosOnlyChange,
   scopeFilter,
@@ -81,11 +102,26 @@ const BoardListFilterBar = ({
           <input
             className={mergeStyle.mergeSearchInput}
             type="search"
-            placeholder="키워드 검색 (이름, 설명)"
+            placeholder="키워드 검색 (이름, 설명, 생성자)"
             value={keyword}
             onChange={(e) => onKeywordChange(e.target.value)}
           />
         </div>
+        <label className={bStyle.sortSelectWrap}>
+          <span className={bStyle.sortSelectLabel}>정렬</span>
+          <select
+            className={bStyle.sortSelect}
+            value={sortBy}
+            onChange={(e) => onSortByChange(e.target.value as TBoardListSort)}
+            aria-label="보드 정렬"
+          >
+            {SORT_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       <div
