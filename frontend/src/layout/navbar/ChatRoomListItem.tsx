@@ -10,6 +10,7 @@ type Props = {
   currentUserId: string;
   currentUserObjId: string;
   isArchived?: boolean;
+  hideMenu?: boolean;
   onClick: (room: TChatRoom) => void;
   onPin?: (room: TChatRoom) => void;
   onShowStorage?: (room: TChatRoom) => void;
@@ -22,6 +23,7 @@ const ChatRoomListItem = ({
   isActive,
   currentUserId,
   isArchived = false,
+  hideMenu = false,
   onClick,
   onPin,
   onShowStorage,
@@ -29,6 +31,13 @@ const ChatRoomListItem = ({
   onLeave,
 }: Props) => {
   const displayName = (() => {
+    if (room.type === "board") {
+      if (room.isGeneral) {
+        return room.boardName || room.name || "전체 채팅";
+      }
+      const boardLabel = room.boardName || "보드";
+      return `${boardLabel} · ${room.name || "팀방"}`;
+    }
     if (room.name) return room.name;
     const others = room.participants.filter((p) => p.userId !== currentUserId);
     if (others.length === 0) return "채팅";
@@ -139,50 +148,54 @@ const ChatRoomListItem = ({
       leading={renderAvatar()}
       active={isActive}
       onClick={() => onClick(room)}
-      menuItems={[
-        ...(!isArchived
-          ? [
+      menuItems={
+        hideMenu
+          ? undefined
+          : [
+              ...(!isArchived
+                ? [
+                    {
+                      key: "pin",
+                      label: room.isPinned ? "고정 해제" : "고정",
+                      icon: (
+                        <Svg
+                          type={room.isPinned ? "pinOff" : "pin"}
+                          width="16px"
+                          height="16px"
+                        />
+                      ),
+                      onClick: () => onPin?.(room),
+                    },
+                  ]
+                : []),
               {
-                key: "pin",
-                label: room.isPinned ? "고정 해제" : "고정",
+                key: "files",
+                label: "내 파일",
+                icon: <Svg type="file" width="16px" height="16px" />,
+                onClick: () => onShowStorage?.(room),
+              },
+              {
+                key: "archive",
+                label: isArchived ? "보관 해제" : "보관",
                 icon: (
                   <Svg
-                    type={room.isPinned ? "pinOff" : "pin"}
+                    type={isArchived ? "unarchive" : "archive"}
                     width="16px"
                     height="16px"
+                    style={{ fill: "var(--accent-2)" }}
                   />
                 ),
-                onClick: () => onPin?.(room),
+                onClick: () => onArchive?.(room),
+              },
+              {
+                key: "leave",
+                label: "채팅방 나가기",
+                danger: true,
+                icon: <Svg type="logout" width="16px" height="16px" />,
+                onClick: () => onLeave?.(room),
               },
             ]
-          : []),
-        {
-          key: "files",
-          label: "내 파일",
-          icon: <Svg type="file" width="16px" height="16px" />,
-          onClick: () => onShowStorage?.(room),
-        },
-        {
-          key: "archive",
-          label: isArchived ? "보관 해제" : "보관",
-          icon: (
-            <Svg
-              type={isArchived ? "unarchive" : "archive"}
-              width="16px"
-              height="16px"
-              style={{ fill: "var(--accent-2)" }}
-            />
-          ),
-          onClick: () => onArchive?.(room),
-        },
-        {
-          key: "leave",
-          label: "채팅방 나가기",
-          danger: true,
-          icon: <Svg type="logout" width="16px" height="16px" />,
-          onClick: () => onLeave?.(room),
-        },
-      ]}
+      }
     />
   );
 };

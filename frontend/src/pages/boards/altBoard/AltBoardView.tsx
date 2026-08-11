@@ -19,7 +19,7 @@ import AltDocsView from "./AltDocsView";
 import BoardChatContainer from "./BoardChatContainer";
 import style from "./altBoard.module.scss";
 
-export type TAltBoardSurface = "활동" | "기록" | "문서" | "채팅";
+export type TAltBoardSurface = "활동" | "문서" | "채팅";
 
 type Props = {
   board: TBoard;
@@ -102,12 +102,17 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
   const [embeddedRendererMode, setEmbeddedRendererMode] = useState<
     "compose" | "review"
   >("compose");
+  /** embedded일 때 URL 없이 시트(응답 기록) 열기 */
+  const [embeddedSheetFormId, setEmbeddedSheetFormId] = useState<string | null>(
+    null
+  );
 
   // URL search params (only used in standalone mode)
   const urlFormId = embedded ? null : searchParams.get("form");
   const urlSheetId = embedded ? null : searchParams.get("sheet");
   const urlMode = embedded ? null : searchParams.get("mode");
   const urlApprovalRowId = embedded ? null : searchParams.get("approval");
+  const activeSheetFormId = embedded ? embeddedSheetFormId : urlSheetId;
 
   const loadForms = () => {
     setIsLoading(true);
@@ -158,8 +163,6 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
             )
           )
           .catch(() => {});
-      } else if (surface === "기록") {
-        loadForms();
       }
       return;
     }
@@ -299,11 +302,11 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
     }
   }, [isLoading, urlFormId, urlMode, forms, canManage, builderFormId]);
 
-  // 구 해시 #양식 → #활동 호환
+  // 구 해시 #양식·#기록 → #활동 호환 (?sheet= 등 search 유지)
   useEffect(() => {
     if (embedded) return;
     const hash = decodeURIComponent(location.hash.replace("#", ""));
-    if (hash === "양식") {
+    if (hash === "양식" || hash === "기록") {
       navigate(`/boards/${board._id}${location.search}#활동`, {
         replace: true,
       });
@@ -311,10 +314,12 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
   }, [location.hash, location.search, embedded, board._id, navigate]);
 
   // 탭 전환 시 관련 없는 파라미터 정리 (standalone only)
+  // 시트는 #활동에서만 유지 — #기록 리다이렉트 이후에 동작
   useEffect(() => {
     if (embedded) return;
     const hash = decodeURIComponent(location.hash.replace("#", ""));
-    if (hash && hash !== "기록" && searchParams.has("sheet")) {
+    if (hash === "기록") return; // 호환 redirect 대기
+    if (hash && hash !== "활동" && searchParams.has("sheet")) {
       setSearchParams(
         (prev) => {
           prev.delete("sheet");
@@ -323,7 +328,7 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
         { replace: true }
       );
     }
-  }, [location.hash, embedded]);
+  }, [location.hash, embedded, searchParams, setSearchParams]);
 
   // Form builder 열기
   const handleOpenBuilder = (formId?: string) => {
@@ -380,18 +385,23 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
     loadForms();
   };
 
-  // 기록 상세에서 기록 탭으로 복귀
+  // 시트 상세에서 활동 탭으로 복귀
   const handleBackToSheetList = () => {
+    setEmbeddedSheetFormId(null);
     if (!embedded) {
-      navigate(`/boards/${board._id}#기록`, { replace: true });
+      navigate(`/boards/${board._id}#활동`, { replace: true });
     }
   };
 
-  // 기록 상세 열기
+  // 시트(응답 기록) 열기 — 활동에서 진입
   const handleOpenSheet = (formId: string) => {
-    if (!embedded) {
-      navigate(`/boards/${board._id}?sheet=${formId}#기록`, { replace: true });
+    if (embedded) {
+      setEmbeddedSheetFormId(formId);
+      setBuilderFormId(null);
+      setRendererFormId(null);
+      return;
     }
+    navigate(`/boards/${board._id}?sheet=${formId}#활동`, { replace: true });
   };
 
   // Form 클릭 핸들러
@@ -416,7 +426,7 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
   };
 
   const handleCopySheetLink = (formId: string) => {
-    const url = `${window.location.origin}${prefix}/boards/${board._id}?sheet=${formId}#기록`;
+    const url = `${window.location.origin}${prefix}/boards/${board._id}?sheet=${formId}#활동`;
     copyClipBoard(url).then((result) => {
       setLinkCopiedMessage(
         typeof result === "string"
@@ -490,8 +500,8 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
     );
   }
 
-  // 기록 상세 모드 (양식 관리와 같이 탭 밖 전체 화면)
-  if (urlSheetId) {
+  // 시트 상세 모드 (양식 관리와 같이 탭 밖 전체 화면)
+  if (activeSheetFormId) {
     if (!myRole) {
       return (
         <div className={style.emptyState}>
@@ -505,7 +515,7 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
           forms={forms}
           canManage={canManage}
           canDeleteAnyRow={canDeleteAnyRow}
-          initialFormId={urlSheetId}
+          initialFormId={activeSheetFormId}
           onFormSelect={handleOpenSheet}
           onFormDeselect={handleBackToSheetList}
           onCopySheetLink={handleCopySheetLink}
@@ -529,7 +539,7 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
           onFormClick={handleFormClick}
           onRespondForm={handleOpenRenderer}
           onViewMyResponses={handleOpenMyResponses}
-          onOpenSheet={embedded ? undefined : handleOpenSheet}
+          onOpenSheet={handleOpenSheet}
           onCreateForm={() => handleOpenBuilder()}
           onRefresh={() => {
             loadForms();
@@ -542,26 +552,6 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
         />
       </div>
     ),
-    "기록": (
-      <div style={{ paddingTop: 20 }}>
-        {!myRole ? (
-          <div className={style.emptyState}>
-            이 보드의 기록에 접근할 권한이 없습니다.
-          </div>
-        ) : (
-          <AltSheetView
-            forms={forms}
-            canManage={canManage}
-            canDeleteAnyRow={canDeleteAnyRow}
-            initialFormId={undefined}
-            onFormSelect={handleOpenSheet}
-            onFormDeselect={handleBackToSheetList}
-            onCopySheetLink={handleCopySheetLink}
-            boardName={board.name}
-          />
-        )}
-      </div>
-    ),
     "문서": (
       <div style={{ paddingTop: 20 }}>
         <AltDocsView board={board} onPostsChanged={loadDocsUnread} />
@@ -571,7 +561,15 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
 
   if (isChatEnabled) {
     tabItems["채팅"] = (
-      <div style={{ paddingTop: 20 }}>
+      <div
+        style={{
+          paddingTop: 20,
+          height: "calc(100dvh - 200px)",
+          minHeight: 0,
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
         <BoardChatContainer board={board} onNewMessage={() => {
           if (activeTabRef.current !== "채팅") {
             setChatUnreadCount((prev) => prev + 1);

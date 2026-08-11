@@ -150,11 +150,11 @@ const CoursePid = (props: Props) => {
       activeTab: activeCourseTab,
     });
 
-  // 구 해시 #보드 → 연결 여부에 따라 활동 또는 보드(생성)
+  // 구 해시 #보드·#기록 → 연결 여부에 따라 활동 또는 보드(생성)
   useEffect(() => {
-    if (activeCourseTab !== "보드") return;
+    if (activeCourseTab !== "보드" && activeCourseTab !== "기록") return;
     if (isAltBoardLoading) return;
-    if (altBoard) {
+    if (altBoard || activeCourseTab === "기록") {
       navigate(`${location.pathname}${location.search}#활동`, { replace: true });
     }
   }, [
@@ -789,15 +789,6 @@ const CoursePid = (props: Props) => {
                               board={altBoard}
                               embedded
                               surface="활동"
-                            />
-                          </div>
-                        ),
-                        기록: (
-                          <div style={{ marginTop: "8px" }}>
-                            <AltBoardView
-                              board={altBoard}
-                              embedded
-                              surface="기록"
                             />
                           </div>
                         ),

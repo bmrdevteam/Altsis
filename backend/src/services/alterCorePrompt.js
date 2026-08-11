@@ -42,6 +42,7 @@ export const PAGE_TYPE_LABELS = {
   "course-list": "수업 목록",
   calendar: "캘린더",
   sheet: "응답 기록",
+  "board-chat": "보드 채팅",
   general: "일반",
 };
 
