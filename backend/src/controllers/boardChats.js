@@ -32,6 +32,7 @@ import {
   removeBoardTeamParticipant,
 } from "../services/boardChat.js";
 import { getIoChat } from "../utils/webSocket.js";
+import { sendChatWebPushes } from "../services/webPush.js";
 import { chatMulter, isImageFile } from "../_s3/chatMulter.js";
 import { signUrlForView } from "../_s3/fileBucket.js";
 import {
@@ -539,18 +540,39 @@ const createMessageInRoom = async (req, board, room) => {
   }
 
   const ioChat = getIoChat();
-  if (ioChat) {
-    room.participants.forEach((participant) => {
-      if (participant.user.toString() !== req.user._id.toString()) {
-        ioChat
-          .to(`chat:${req.user.academyId}:${participant.userId}`)
-          .emit("new_message", {
-            room: room._id,
-            roomType: room.type,
-            boardId: board._id,
-            message: messageObj,
-          });
-      }
+  const pushRecipients = [];
+  room.participants.forEach((participant) => {
+    if (participant.user.toString() === req.user._id.toString()) return;
+    if (ioChat) {
+      ioChat
+        .to(`chat:${req.user.academyId}:${participant.userId}`)
+        .emit("new_message", {
+          room: room._id,
+          roomType: room.type,
+          boardId: board._id,
+          message: messageObj,
+        });
+    }
+    pushRecipients.push({
+      user: participant.user,
+      userId: participant.userId,
+    });
+  });
+
+  if (pushRecipients.length > 0) {
+    const roomLabel = room.isGeneral
+      ? board.name || "보드 채팅"
+      : `${board.name || "보드"} · ${room.name || "팀방"}`;
+    sendChatWebPushes({
+      academyId: req.user.academyId,
+      recipients: pushRecipients,
+      title: roomLabel,
+      body: lastMessageContent,
+      roomId: String(room._id),
+      boardId: String(board._id),
+      schoolId: board.schoolId ? String(board.schoolId) : undefined,
+    }).catch((err) => {
+      logger.warn(`Board chat Web Push failed: ${err.message}`);
     });
   }
 

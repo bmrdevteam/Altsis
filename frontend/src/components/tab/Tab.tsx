@@ -93,18 +93,53 @@ const Tab = (props: {
    */
   useEffect(() => {
     if (!props.dontUsePaths) {
-      if (location.hash === "") {
+      const raw = location.hash.replace(/^#/, "");
+      let key = "";
+      try {
+        key = decodeURIComponent(raw);
+      } catch {
+        key = decodeURI(raw);
+      }
+      if (!key) {
         const keys = Object.keys(props.items);
-        const defaultKey =
-          props.defaultTab && keys.includes(props.defaultTab)
+        const hasBoardChatDeepLink = new URLSearchParams(
+          location.search
+        ).has("boardChatRoom");
+        // 보드 채팅 딥링크인데 해시가 비면 기본 탭(계획서/활동)으로 가지 않음
+        const defaultKey = hasBoardChatDeepLink
+          ? "채팅"
+          : props.defaultTab && keys.includes(props.defaultTab)
             ? props.defaultTab
             : keys[0];
-        navigate(`${location.search}#${defaultKey}`, { replace: true });
+        setActiveKey(defaultKey);
+        navigate(
+          {
+            pathname: location.pathname,
+            search: location.search,
+            hash: defaultKey,
+          },
+          { replace: true }
+        );
       } else {
-        setActiveKey(decodeURI(location.hash).replace("#", ""));
+        setActiveKey(key);
       }
     }
-  }, [location.hash]);
+  }, [location.hash, location.pathname, location.search]);
+
+  // 해시 탭이 나중에 items에 생기면(예: 보드 로드 후 채팅) 다시 맞춤
+  useEffect(() => {
+    if (props.dontUsePaths) return;
+    const raw = location.hash.replace(/^#/, "");
+    let key = "";
+    try {
+      key = decodeURIComponent(raw);
+    } catch {
+      key = decodeURI(raw);
+    }
+    if (key && Object.keys(props.items).includes(key) && activeKey !== key) {
+      setActiveKey(key);
+    }
+  }, [props.items, location.hash, props.dontUsePaths, activeKey]);
 
   /**
    * Tab Header
@@ -144,7 +179,14 @@ const Tab = (props: {
                     setActiveKey(value);
                     props.onTabChange?.(value);
                     !props.dontUsePaths &&
-                      navigate(`${location.search}#${value}`, { replace: true });
+                      navigate(
+                        {
+                          pathname: location.pathname,
+                          search: location.search,
+                          hash: value,
+                        },
+                        { replace: true }
+                      );
                   }}
                 >
                   {value}

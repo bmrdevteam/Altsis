@@ -250,12 +250,16 @@ const AltFormList = ({
     [todoUnsubmitted]
   );
 
-  /** 활동 목록: 할 일(미제출) 제외. 제출 권한만 있으면 마감도 제외 */
+  /** 활동 목록: 할 일(미제출) 제외. 제출 권한만 있으면 마감도 제외(열람 가능한 기록은 유지) */
   const activityForms = useMemo(() => {
     if (!myRole) return [];
     const list = (canManage ? forms : submitForms).filter((f) => {
       if (todoUnsubmittedIds.has(f._id)) return false;
-      if (!canManage && getActivityPeriodKind(f) === "closed") return false;
+      if (!canManage && getActivityPeriodKind(f) === "closed") {
+        const canViewSheet =
+          !!f.settings.shareResponses || !!f.settings.showOwnResponse;
+        if (!canViewSheet) return false;
+      }
       return true;
     });
     return list.sort((a, b) => {
@@ -462,24 +466,12 @@ const AltFormList = ({
     );
   };
 
-  const handleCardActivate = (form: TAltForm) => {
-    if (form.isDraft) {
-      if (canModifyForm(form)) onFormClick(form);
-      return;
-    }
-    if (form.settings.directInputMode) {
-      if (onOpenSheet) onOpenSheet(form._id);
-      else if (canModifyForm(form)) onFormClick(form);
-      return;
-    }
-    onRespondForm(form._id);
-  };
-
   const renderActivityCard = (form: TAltForm) => {
     const deadlineHint = getDeadlineHint(form);
     const period = getActivityPeriodKind(form);
     const isDirect = !!form.settings.directInputMode;
     const canEditForm = canModifyForm(form);
+    const showRespond = !form.isDraft && !isDirect;
     const showMyResponses =
       !isDirect &&
       !!form.mySubmitted &&
@@ -493,19 +485,6 @@ const AltFormList = ({
       ? `응답 ${count}건`
       : `제출 ${count}명`;
 
-    const cardTitle = (() => {
-      if (form.isDraft) {
-        if (!canEditForm) return undefined;
-        return "양식 수정";
-      }
-      if (isDirect) {
-        if (onOpenSheet) return "기록 보기";
-        if (canEditForm) return "양식 수정";
-        return undefined;
-      }
-      return "응답 작성";
-    })();
-
     const statusVisual = getActivityStatusVisual(form);
 
     return (
@@ -514,16 +493,6 @@ const AltFormList = ({
         className={`${style.formCard} ${
           actionMenu === form._id ? style.formCardMenuOpen : ""
         }`}
-        title={cardTitle}
-        onClick={() => handleCardActivate(form)}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            handleCardActivate(form);
-          }
-        }}
       >
         <div className={style.formCardMain}>
           <div
@@ -581,15 +550,22 @@ const AltFormList = ({
           </div>
         </div>
         <div className={style.formCardRight} style={{ position: "relative" }}>
+          {showRespond && (
+            <button
+              type="button"
+              className={style.formCardIconBtn}
+              title="응답 작성"
+              onClick={() => onRespondForm(form._id)}
+            >
+              <Svg type="write" width="20px" height="20px" />
+            </button>
+          )}
           {showMyResponses && (
             <button
               type="button"
               className={style.formCardIconBtn}
               title="내 응답 보기"
-              onClick={(e) => {
-                e.stopPropagation();
-                onViewMyResponses!(form._id);
-              }}
+              onClick={() => onViewMyResponses!(form._id)}
             >
               <Svg type="menuBook" width="20px" height="20px" />
             </button>
@@ -599,10 +575,7 @@ const AltFormList = ({
               type="button"
               className={style.formCardIconBtn}
               title="양식 수정"
-              onClick={(e) => {
-                e.stopPropagation();
-                onFormClick(form);
-              }}
+              onClick={() => onFormClick(form)}
             >
               <Svg type="settings" width="20px" height="20px" />
             </button>
@@ -612,10 +585,7 @@ const AltFormList = ({
               type="button"
               className={style.formCardIconBtn}
               title="기록 보기"
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpenSheet!(form._id);
-              }}
+              onClick={() => onOpenSheet!(form._id)}
             >
               <Svg type="table" width="20px" height="20px" />
             </button>
@@ -626,8 +596,7 @@ const AltFormList = ({
                 type="button"
                 className={style.formCardIconBtn}
                 title="더보기"
-                onClick={(e) => {
-                  e.stopPropagation();
+                onClick={() => {
                   setActionMenu(actionMenu === form._id ? null : form._id);
                 }}
               >
@@ -770,7 +739,7 @@ const AltFormList = ({
           return (
             <div
               key={`grade_${item.formId}`}
-              className={style.formCard}
+              className={`${style.formCard} ${style.formCardInteractive}`}
               title="채점하기"
               onClick={() => onOpenSheet?.(item.formId)}
               role="button"

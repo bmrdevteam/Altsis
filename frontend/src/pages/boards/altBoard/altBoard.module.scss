@@ -186,7 +186,6 @@
   background: transparent;
   border: 1px solid var(--border-default-color, var(--border-color));
   border-radius: 8px;
-  cursor: pointer;
   transition: border-color 0.15s ease;
   isolation: isolate;
   /* overflow: hidden 제거 — ⋯ 액션 메뉴가 카드 밖으로 나와야 함 */
@@ -209,6 +208,10 @@
   &:hover {
     border-color: var(--border-default-color, var(--border-color));
   }
+}
+
+.formCardInteractive {
+  cursor: pointer;
 }
 
 .formCardMenuOpen {

@@ -169,6 +169,7 @@ export type TAlterPageContext = {
     | "course-list"
     | "calendar"
     | "sheet"
+    | "board-chat"
     | "general";
   label?: string;
   subject?: string[];

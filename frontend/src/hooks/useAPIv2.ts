@@ -4156,6 +4156,21 @@ export default function useAPIv2() {
   }
 
   /**
+   * RChatBoardRooms API
+   * @description 내가 참여한 보드 채팅방 목록
+   * @version 1.0.0
+   * @auth user
+   */
+  async function RChatBoardRooms(props?: {
+    query?: { season?: string; school?: string };
+  }) {
+    const { rooms } = await database.R({
+      location: "chats/board-rooms" + QUERY_BUILDER(props?.query),
+    });
+    return { rooms: rooms as TChatRoom[] };
+  }
+
+  /**
    * RChatRoom API
    * @description 채팅방 상세 조회 API
    * @version 1.0.0
@@ -5434,6 +5449,7 @@ export default function useAPIv2() {
     },
     ChatAPI: {
       RChatRooms,
+      RChatBoardRooms,
       RChatRoom,
       CChatRoom,
       UChatRoom,
