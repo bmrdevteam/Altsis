@@ -104,8 +104,9 @@ function hslToHex(h: number, s: number, l: number): string {
  *
  * Color harmony strategy:
  * - Background/Component: primary hue tint (warm/cool feel)
- * - Text: near-neutral with a slight primary hue lean
- * - Accent: split-complementary (+150°) for strong yet harmonious contrast
+ * - Text: near-neutral with a slight primary hue lean (maps to --accent-1…6)
+ * - Accent/highlight: follows primary so brand color shows on links, selection,
+ *   checkboxes, progress (maps to --highlight-color, --color-b*, etc.)
  * - Success: standard green (hue 145) shifted 10% toward primary hue
  * - Error: standard red (hue 5) shifted 10% toward primary hue
  */
@@ -123,6 +124,13 @@ export function generateColorsFromPrimary(
   const toward = (target: number, ratio: number) =>
     target + ((((h - target + 540) % 360) - 180) * ratio);
 
+  // Keep highlight readable on both light and dark backgrounds
+  const accentColor = hslToHex(
+    h,
+    Math.max(s, 0.4),
+    isDark ? Math.min(Math.max(l, 0.55), 0.7) : Math.min(Math.max(l, 0.35), 0.55)
+  );
+
   return {
     primaryColor: primaryHex,
 
@@ -136,17 +144,13 @@ export function generateColorsFromPrimary(
       ? hslToHex(h, tint * 0.45, 0.15)
       : hslToHex(h, tint * 0.5, 0.89),
 
-    // Text: tinted but still highly readable
+    // Text: tinted but still highly readable (feeds --accent-1)
     textColor: isDark
       ? hslToHex(h, tint * 0.15, 0.88)
       : hslToHex(h, tint * 0.2, 0.15),
 
-    // Accent: split-complementary (+150°) – distinct but harmonious
-    accentColor: hslToHex(
-      (h + 150) % 360,
-      Math.max(s * 0.85, 0.45),
-      isDark ? 0.55 : 0.48
-    ),
+    // Highlight: brand-aligned with primary (not complementary)
+    accentColor,
 
     // Success: green shifted slightly toward primary
     successColor: hslToHex(
