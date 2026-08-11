@@ -40,6 +40,7 @@ const BoardChatContainer = ({ board, onNewMessage }: Props) => {
   // DM state
   const [dmRoomId, setDmRoomId] = useState<string | null>(null);
   const [dmPartner, setDmPartner] = useState<Member | null>(null);
+  const [navOpen, setNavOpen] = useState(false);
 
   const myRole: TAltBoardRole | null = (() => {
     if (!currentUser) return null;
@@ -130,11 +131,23 @@ const BoardChatContainer = ({ board, onNewMessage }: Props) => {
     };
   }, [socket, board._id, chatMode, selectedRoomId, loadRooms]);
 
+  const closeNav = useCallback(() => setNavOpen(false), []);
+
+  useEffect(() => {
+    if (!navOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setNavOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [navOpen]);
+
   const handleSelectRoom = (roomId: string) => {
     setSelectedRoomId(roomId);
     setChatMode("group");
     setDmRoomId(null);
     setDmPartner(null);
+    setNavOpen(false);
     setRooms((prev) =>
       prev.map((r) => (r._id === roomId ? { ...r, unreadCount: 0 } : r))
     );
@@ -145,6 +158,7 @@ const BoardChatContainer = ({ board, onNewMessage }: Props) => {
     setDmRoomId(null);
     setDmPartner(member);
     setChatMode("dm");
+    setNavOpen(false);
   };
 
   const handleDMBack = () => {
@@ -157,6 +171,7 @@ const BoardChatContainer = ({ board, onNewMessage }: Props) => {
     setNewRoomName("");
     setNewRoomDescription("");
     setSelectedMemberIds([]);
+    setNavOpen(false);
     setShowCreateModal(true);
   };
 
@@ -204,18 +219,6 @@ const BoardChatContainer = ({ board, onNewMessage }: Props) => {
 
   return (
     <div className={style.container}>
-      <BoardChatMemberSidebar
-        members={members}
-        board={board}
-        rooms={rooms}
-        selectedRoomId={selectedRoomId}
-        chatMode={chatMode}
-        selectedDMUserId={dmPartner?.user}
-        canManageRooms={canManageRooms}
-        onSelectRoom={handleSelectRoom}
-        onCreateRoom={openCreateModal}
-        onDMClick={handleDMClick}
-      />
       <div className={style.chat_area}>
         {chatMode === "dm" && dmPartner ? (
           <BoardDMPanel
@@ -224,6 +227,7 @@ const BoardChatContainer = ({ board, onNewMessage }: Props) => {
             partnerName={dmPartner.userName}
             socket={socket}
             onBack={handleDMBack}
+            onOpenNav={() => setNavOpen(true)}
             onRoomCreated={(roomId) => setDmRoomId(roomId)}
           />
         ) : selectedRoomId && selectedRoom ? (
@@ -240,6 +244,7 @@ const BoardChatContainer = ({ board, onNewMessage }: Props) => {
             boardMembers={members}
             canManageMembers={canManageRooms}
             socket={socket}
+            onOpenNav={() => setNavOpen(true)}
             onNewMessage={onNewMessage}
             onRoomUpdated={handleRoomUpdated}
             onRoomRead={() =>
@@ -263,6 +268,28 @@ const BoardChatContainer = ({ board, onNewMessage }: Props) => {
           <div className={style.chat_placeholder}>채팅방을 불러오는 중...</div>
         )}
       </div>
+
+      {navOpen && (
+        <div
+          className={style.nav_backdrop}
+          onClick={closeNav}
+          role="presentation"
+        >
+          <BoardChatMemberSidebar
+            members={members}
+            board={board}
+            rooms={rooms}
+            selectedRoomId={selectedRoomId}
+            chatMode={chatMode}
+            selectedDMUserId={dmPartner?.user}
+            canManageRooms={canManageRooms}
+            onSelectRoom={handleSelectRoom}
+            onCreateRoom={openCreateModal}
+            onDMClick={handleDMClick}
+            onClose={closeNav}
+          />
+        </div>
+      )}
 
       {showCreateModal && (
         <div

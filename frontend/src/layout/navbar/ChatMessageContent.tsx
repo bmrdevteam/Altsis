@@ -6,6 +6,10 @@ type Props = {
   message: TChatMessage;
   onImageClick?: (url: string) => void;
   onFileDownload?: (message: TChatMessage) => void;
+  /** When rendered inside a chat bubble, drop nested surface styles. */
+  inBubble?: boolean;
+  /** Own-message tone for contrast on colored bubbles. */
+  tone?: "own" | "other";
 };
 
 const formatFileSize = (bytes: number): string => {
@@ -40,7 +44,13 @@ const TextContent = ({ content }: { content: string }) => {
   );
 };
 
-const ChatMessageContent = ({ message, onImageClick, onFileDownload }: Props) => {
+const ChatMessageContent = ({
+  message,
+  onImageClick,
+  onFileDownload,
+  inBubble = false,
+  tone = "other",
+}: Props) => {
   // Text message - detect and render URLs
   if (message.messageType === "text") {
     return <TextContent content={message.content} />;
@@ -49,7 +59,11 @@ const ChatMessageContent = ({ message, onImageClick, onFileDownload }: Props) =>
   // Image message
   if (message.messageType === "image" && message.attachment) {
     return (
-      <div className={style.image_message}>
+      <div
+        className={`${style.image_message} ${
+          inBubble ? style.image_message_in_bubble : ""
+        }`}
+      >
         <img
           src={message.attachment.url}
           alt={message.attachment.fileName}
@@ -63,8 +77,22 @@ const ChatMessageContent = ({ message, onImageClick, onFileDownload }: Props) =>
   if (message.messageType === "file" && message.attachment) {
     return (
       <div
-        className={style.file_message}
+        className={[
+          style.file_message,
+          inBubble ? style.file_message_in_bubble : "",
+          inBubble && tone === "own" ? style.file_message_own : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
         onClick={() => onFileDownload?.(message)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onFileDownload?.(message);
+          }
+        }}
       >
         <div className={style.file_icon}>
           <Svg type="file" width="24px" height="24px" />

@@ -28,6 +28,7 @@ type Props = {
   boardMembers?: BoardMember[];
   canManageMembers?: boolean;
   socket: Socket | null;
+  onOpenNav?: () => void;
   onNewMessage?: () => void;
   onRoomRead?: () => void;
   onRoomUpdated?: (room: TChatRoom) => void;
@@ -43,6 +44,7 @@ const BoardChatTab = ({
   boardMembers = [],
   canManageMembers,
   socket,
+  onOpenNav,
   onNewMessage,
   onRoomRead,
   onRoomUpdated,
@@ -496,18 +498,31 @@ const BoardChatTab = ({
             <span className={style.room_private_badge}>비공개</span>
           )}
         </span>
-        {!isGeneral && (
-          <button
-            type="button"
-            className={style.room_header_btn}
-            onClick={() => {
-              setAddMemberIds([]);
-              setShowMembersModal(true);
-            }}
-          >
-            멤버 {participants.length}
-          </button>
-        )}
+        <div className={style.room_header_actions}>
+          {!isGeneral && (
+            <button
+              type="button"
+              className={style.room_header_btn}
+              onClick={() => {
+                setAddMemberIds([]);
+                setShowMembersModal(true);
+              }}
+            >
+              멤버 {participants.length}
+            </button>
+          )}
+          {onOpenNav && (
+            <button
+              type="button"
+              className={style.nav_btn}
+              onClick={onOpenNav}
+              aria-label="채팅 목록"
+              title="채팅 목록"
+            >
+              <Svg type="menu" width="18px" height="18px" />
+            </button>
+          )}
+        </div>
       </div>
 
       {isDragging && (
@@ -583,6 +598,12 @@ const BoardChatTab = ({
                         <div
                           className={`${style.bubble} ${
                             msg.isDeleted ? style.deleted : ""
+                          } ${
+                            !msg.isDeleted &&
+                            (msg.messageType === "file" ||
+                              msg.messageType === "image")
+                              ? style.bubble_media
+                              : ""
                           }`}
                         >
                           {msg.isDeleted ? (
@@ -594,6 +615,8 @@ const BoardChatTab = ({
                               message={msg}
                               onImageClick={(url) => setLightboxUrl(url)}
                               onFileDownload={handleFileDownload}
+                              inBubble
+                              tone={isMine ? "own" : "other"}
                             />
                           )}
                         </div>
