@@ -7,6 +7,7 @@ import RouterPage from "./routes/RouterPage";
 import { AuthProvider } from "./contexts/authContext";
 import { CookiesProvider } from "react-cookie";
 import { ThemeProvider } from "./contexts/themeContext";
+import ErrorBoundary from "./components/error/ErrorBoundary";
 
 /* config */
 globalThis.SUCCESS_MESSAGE = "성공적으로 처리되었습니다🚀";
@@ -16,13 +17,15 @@ const root = ReactDOM.createRoot(
 );
 root.render(
   // <React.StrictMode>
-  <CookiesProvider>
-    <AuthProvider>
-      <ThemeProvider>
-        <RouterPage />
-      </ThemeProvider>
-    </AuthProvider>
-  </CookiesProvider>
+  <ErrorBoundary>
+    <CookiesProvider>
+      <AuthProvider>
+        <ThemeProvider>
+          <RouterPage />
+        </ThemeProvider>
+      </AuthProvider>
+    </CookiesProvider>
+  </ErrorBoundary>
   // </React.StrictMode>
 );
 

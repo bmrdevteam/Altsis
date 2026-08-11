@@ -287,7 +287,8 @@ const NotificationSettings = () => {
         {renderToggleRow({
           key: "soundEnabled",
           label: "알림음",
-          description: "앱이 열려 있을 때 알림이 도착하면 소리로 알려줍니다",
+          description:
+            "브라우저 탭이 앞에 있을 때만 소리로 알려줍니다. 홈 화면에 설치한 앱에서는 재생하지 않으며, 백그라운드는 잠금화면 알림을 사용하세요.",
         })}
         <Divider />
 

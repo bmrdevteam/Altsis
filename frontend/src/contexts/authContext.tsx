@@ -4,6 +4,8 @@ import React, {
   useContext,
   useState,
   useEffect,
+  useRef,
+  useCallback,
 } from "react";
 
 import _ from "lodash";
@@ -12,7 +14,8 @@ import { useCookies } from "react-cookie";
 import { TCurrentUser, TCurrentRegistration, TCurrentSeason } from "types/auth";
 import useAPIv2 from "hooks/useAPIv2";
 import { TSchool } from "types/schools";
-import { SESSION_COOKIE_OPTS } from "utils/authCookies";
+import { SESSION_COOKIE_OPTS, clearAuthClientCookies } from "utils/authCookies";
+import { isSessionAuthFailure, loginPathForAcademy } from "utils/sessionAuth";
 
 const AuthContext = createContext<any>(null);
 
@@ -39,15 +42,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     "currentSchool",
     "currentRegistration",
   ]);
-  const [current, setCurrent] = useState<{
-    user: any;
-    school: any;
-    loading: boolean;
-  }>({
-    user: {},
-    school: {},
-    loading: true,
-  });
   const [currentUser, setCurrentUser] = useState<TCurrentUser>();
   const [currentSchool, setCurrentSchool] = useState<TSchool>();
   const [currentRegistration, setCurrentRegistration] =
@@ -55,6 +49,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [currentSeason, setCurrentSeason] = useState<TCurrentSeason>();
 
   const [loading, setLoading] = useState<boolean>(true);
+
+  const currentUserRef = useRef(currentUser);
+  currentUserRef.current = currentUser;
+  const loadingRef = useRef(loading);
+  loadingRef.current = loading;
+  const resumeCheckInFlightRef = useRef(false);
+  const rMySelfRef = useRef(UserAPI.RMySelf);
+  rMySelfRef.current = UserAPI.RMySelf;
+
+  const clearSessionAndGoToLogin = useCallback(
+    (academyId?: string | null) => {
+      clearAuthClientCookies(removeCookie);
+      setCurrentUser(undefined);
+      setCurrentSchool(undefined);
+      setCurrentRegistration(undefined);
+      setCurrentSeason(undefined);
+
+      const loginPath = loginPathForAcademy(academyId);
+      if (
+        typeof window !== "undefined" &&
+        !window.location.pathname.includes("/login")
+      ) {
+        window.location.replace(loginPath);
+      }
+    },
+    [removeCookie]
+  );
 
   async function getLoggedInUser() {
     const { user } = await UserAPI.RMySelf();
@@ -120,10 +141,53 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .then(() => {
           setLoading(false);
         })
-        .catch((err) => {
+        .catch(() => {
           setLoading(false);
         });
   }, [loading]);
+
+  // 백그라운드에서 오래 둔 뒤 복귀 시 세션 재검증 (만료 시 로그인으로)
+  useEffect(() => {
+    const verifySessionOnResume = async () => {
+      if (loadingRef.current || resumeCheckInFlightRef.current) return;
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") {
+        return;
+      }
+      const user = currentUserRef.current;
+      if (!user?._id) return;
+
+      resumeCheckInFlightRef.current = true;
+      try {
+        await rMySelfRef.current();
+      } catch (err) {
+        if (isSessionAuthFailure(err)) {
+          clearSessionAndGoToLogin(user.academyId);
+        }
+        // 네트워크 일시 실패는 무시 (오탐으로 로그아웃하지 않음)
+      } finally {
+        resumeCheckInFlightRef.current = false;
+      }
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void verifySessionOnResume();
+      }
+    };
+
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        void verifySessionOnResume();
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("pageshow", onPageShow);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("pageshow", onPageShow);
+    };
+  }, [clearSessionAndGoToLogin]);
 
   async function changeSchool(to: string) {
     const { school, academyFeatures } = await SchoolAPI.RSchool({ params: { _id: to } });
