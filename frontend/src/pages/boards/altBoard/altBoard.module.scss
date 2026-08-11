@@ -539,9 +539,14 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  width: 100%;
   padding: 8px 14px;
+  border: none;
+  background: none;
   font-size: 13px;
+  font-family: inherit;
   color: var(--text-color-1);
+  text-align: left;
   cursor: pointer;
   transition: background 0.1s;
 
@@ -557,6 +562,11 @@
   & + & {
     border-top: 1px solid var(--border-color);
   }
+}
+
+.formActionItemActive {
+  background: var(--background-color-2);
+  font-weight: 600;
 }
 
 .formActionItemDanger {
@@ -2691,14 +2701,20 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-height: 0;
+}
 
-  > .builderHeader {
-    max-width: none;
-    margin-left: 0;
-    margin-right: 0;
-    padding: 0;
-    margin-bottom: 4px;
-  }
+/* 테이블·문서 컨텐츠와 같은 가로 기준 (builderHeader 880px 중앙 정렬 사용 안 함) */
+.sheetHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  max-width: none;
+  margin: 0 0 4px;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 .sheetHeaderTitleWrap {
@@ -2715,6 +2731,89 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.sheetMenuWrap {
+  position: relative;
+}
+
+.sheetFilterToolbar {
+  margin-bottom: 8px;
+}
+
+.sheetFilterChipRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+/* 표시 꺼진 항목 칩 — 톤은 유지하되 흐리게 */
+.sheetColumnChipOff {
+  opacity: 0.45;
+  font-weight: 500;
+  box-shadow: none;
+}
+
+.sheetSortControls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: auto;
+  min-height: 34px;
+}
+
+.sheetSortLabel {
+  font-size: 12px;
+  color: var(--text-color-2);
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.sheetSortSelect {
+  min-width: 120px;
+  max-width: 180px;
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--background-color);
+  color: var(--text-color-1);
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.sheetSortDirBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--background-color);
+  color: var(--text-color-1);
+  cursor: pointer;
+
+  svg {
+    display: block;
+    fill: currentColor;
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  &:not(:disabled):hover {
+    background: var(--background-color-2);
+  }
+}
+
+.sheetSortDirAsc {
+  transform: rotate(180deg);
 }
 
 .sheetFormSelector {
@@ -2743,11 +2842,12 @@
 
 .sheetTableWrap {
   overflow: auto;
-  max-height: calc(100vh - 180px);
+  flex: 1 1 auto;
+  min-height: 200px;
+  max-height: 70dvh;
   border: 1px solid var(--border-color);
   border-radius: 4px;
   background: var(--background-color);
-  min-height: 200px;
 }
 
 .colRowNum {
@@ -2847,137 +2947,11 @@
   }
 }
 
-.sheetColHeader {
-  min-width: 96px;
-}
-
-.sheetColHeaderInner {
-  display: flex;
-  align-items: stretch;
-  height: 36px;
-  width: 100%;
-}
-
-.sheetColLabel {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0 6px 0 8px;
-  border: none;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-  text-align: left;
-
-  &:hover {
-    background: color-mix(in srgb, var(--accent-1) 8%, transparent);
-  }
-}
-
-.sheetColLabelText {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.sheetColSortMark {
-  flex-shrink: 0;
-  font-size: 11px;
-  color: var(--accent-1);
-  font-weight: 700;
-}
-
 .sheetColOwnerBadge {
   font-size: 10px;
   color: var(--accent-1);
   margin-left: 2px;
   font-weight: 500;
-}
-
-.sheetColMenuBtn {
-  flex-shrink: 0;
-  width: 22px;
-  border: none;
-  outline: none;
-  background: transparent;
-  color: var(--text-color-2);
-  font-size: 11px;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0;
-  box-shadow: none;
-
-  &:hover,
-  &.sheetColMenuBtnActive {
-    background: color-mix(in srgb, var(--accent-1) 12%, transparent);
-    color: var(--accent-1);
-  }
-
-  &:focus,
-  &:focus-visible {
-    outline: none;
-    box-shadow: none;
-  }
-}
-
-.sheetColMenu {
-  position: fixed;
-  z-index: 1200;
-  width: 240px;
-  padding: 6px 0;
-  background: var(--background-color);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-}
-
-.sheetColMenuItem {
-  display: block;
-  width: 100%;
-  padding: 8px 12px;
-  border: none;
-  background: transparent;
-  color: var(--text-color-1);
-  font-size: 13px;
-  text-align: left;
-  cursor: pointer;
-
-  &:hover {
-    background: var(--background-hover-color, var(--background-color-2));
-  }
-}
-
-.sheetColMenuItemActive {
-  color: var(--accent-1);
-  font-weight: 600;
-  background: color-mix(in srgb, var(--accent-1) 8%, transparent);
-}
-
-.sheetColMenuDivider {
-  height: 1px;
-  margin: 4px 0;
-  background: var(--border-color);
-}
-
-.sheetColMenuFilterLabel {
-  padding: 6px 12px 2px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-color-2);
-}
-
-.sheetColMenuFilter {
-  padding: 4px 12px 8px;
-}
-
-.sheetColMenuHint {
-  font-size: 12px;
-  color: var(--text-color-2);
-  line-height: 1.4;
 }
 
 .cellPreviewable {
@@ -3174,40 +3148,6 @@ tbody tr:hover .actionCell {
   padding: 60px 20px;
   color: var(--text-color-2);
   font-size: 13px;
-}
-
-.columnSettingsDropdown {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  z-index: 20;
-  background-color: var(--background-color);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  padding: 8px;
-  min-width: 160px;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.columnSettingsItem {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 6px;
-  font-size: 12px;
-  color: var(--text-color-1);
-  cursor: pointer;
-  border-radius: 4px;
-
-  &:hover {
-    background: var(--background-color-2);
-  }
-
-  input[type="checkbox"] {
-    accent-color: var(--accent-1);
-  }
 }
 
 .approvalActionBtn {
@@ -4153,7 +4093,8 @@ tbody tr:hover .actionCell {
     justify-content: flex-end;
   }
 
-  .builderHeader {
+  .builderHeader,
+  .sheetHeader {
     flex-direction: column;
     align-items: stretch;
     gap: 8px;
@@ -4224,11 +4165,6 @@ tbody tr:hover .actionCell {
   margin: 0 auto;
   width: 100%;
   box-sizing: border-box;
-}
-
-.docViewSearch {
-  margin-bottom: 16px;
-  width: 100%;
 }
 
 .docViewCardHeader {
@@ -5100,9 +5036,7 @@ tbody tr:hover .actionCell {
   }
 
   .approvalActionBtn,
-  .removeBtn,
-  .sheetColMenuBtn,
-  .sheetColSortMark {
+  .removeBtn {
     display: none !important;
   }
 
@@ -5120,5 +5054,359 @@ tbody tr:hover .actionCell {
   .docViewCardHeader {
     border-bottom-color: #ccc !important;
   }
+
+  .docBatchPrintPage {
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .docBatchPrintPage:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
 }
 
+/* 일괄 인쇄: 화면에서는 숨기고 인쇄 시에만 사용 */
+.docBatchPrintRoot {
+  position: absolute;
+  left: -10000px;
+  top: 0;
+  width: 800px;
+  pointer-events: none;
+}
+
+/* ─── Sheet summary view (Google Forms–like) ─── */
+
+.sheetSummary {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 8px 0 32px;
+
+  /* 선명한 차트 팔레트 (구글 설문 계열) */
+  --sheet-chart-1: #4285f4;
+  --sheet-chart-2: #fbbc04;
+  --sheet-chart-3: #34a853;
+  --sheet-chart-4: #ea4335;
+  --sheet-chart-5: #ab47bc;
+  --sheet-chart-6: #00acc1;
+  --sheet-chart-7: #ff7043;
+  --sheet-chart-8: #7cb342;
+}
+
+.sheetSummaryMeta {
+  font-size: 13px;
+  color: var(--text-color-2);
+  padding: 0 4px;
+}
+
+.sheetSummaryCard {
+  background: var(--background-color-1);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 18px 20px 20px;
+  break-inside: avoid;
+}
+
+.sheetSummaryCardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.sheetSummaryCardHeaderRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.sheetSummaryCardTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-color-1);
+  line-height: 1.4;
+}
+
+.sheetSummaryCardCount {
+  font-size: 12px;
+  color: var(--text-color-2);
+}
+
+.sheetSummaryChartToggle {
+  display: inline-flex;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--background-color-2);
+}
+
+.sheetSummaryChartToggleBtn {
+  border: none;
+  background: transparent;
+  color: var(--text-color-2);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  cursor: pointer;
+  line-height: 1.3;
+
+  &:hover {
+    color: var(--text-color-1);
+  }
+}
+
+.sheetSummaryChartToggleBtnActive {
+  background: var(--background-color-1);
+  color: var(--text-color-1);
+  box-shadow: inset 0 0 0 1px var(--border-color);
+}
+
+.sheetSummarySubChartHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.sheetSummaryStatusRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  font-size: 13px;
+  color: var(--text-color-1);
+  margin-bottom: 12px;
+}
+
+.sheetSummaryAverage {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  background: var(--background-color-2);
+  border-radius: 8px;
+}
+
+.sheetSummaryAverageNumber {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-color-1);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.sheetSummaryAverageLabel {
+  font-size: 13px;
+  color: var(--text-color-2);
+}
+
+.sheetSummaryBarChart {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sheetSummaryBarRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sheetSummaryBarRowTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sheetSummaryBarLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-color-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sheetSummaryBarSwatch {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.sheetSummaryBarValue {
+  font-size: 13px;
+  color: var(--text-color-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.sheetSummaryBarTrack {
+  width: 100%;
+  height: 8px;
+  background: var(--background-color-2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.sheetSummaryBarFill {
+  height: 100%;
+  border-radius: 4px;
+  min-width: 0;
+}
+
+.sheetSummaryPieWrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px 28px;
+}
+
+.sheetSummaryPie {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--border-color) 60%, transparent);
+}
+
+.sheetSummaryPieLegend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 160px;
+  flex: 1;
+}
+
+.sheetSummaryPieLegendItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.sheetSummaryPieSwatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sheetSummaryPieLegendLabel {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-color-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sheetSummaryPieLegendValue {
+  flex-shrink: 0;
+  color: var(--text-color-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.sheetSummaryEmptyHint {
+  font-size: 13px;
+  color: var(--text-color-2);
+  font-style: italic;
+}
+
+.sheetSummaryTextBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sheetSummaryTextToggle {
+  align-self: flex-start;
+  border: none;
+  background: transparent;
+  color: var(--accent-1);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+}
+
+.sheetSummaryTextList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 360px;
+  overflow: auto;
+}
+
+.sheetSummaryTextItem {
+  font-size: 14px;
+  color: var(--text-color-1);
+  line-height: 1.5;
+  padding: 10px 12px;
+  background: var(--background-color-2);
+  border-radius: 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.sheetSummaryTextMore {
+  font-size: 12px;
+  color: var(--text-color-2);
+  padding: 4px 4px 0;
+}
+
+.sheetSummaryAssessmentBlock {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-color);
+}
+
+.sheetSummaryAssessmentTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-color-2);
+  margin-bottom: 10px;
+}
+
+.sheetSummaryRubricGroup {
+  margin-bottom: 12px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.sheetSummaryRubricTitle {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-color-1);
+  margin-bottom: 8px;
+}
+
+@media print {
+  .sheetSummaryCard {
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+}

@@ -2339,7 +2339,9 @@ const AltFormBuilder = ({
           <button className={style.backBtn} onClick={onBack}>
             <Svg type="chevronLeft" width="20px" height="20px" />
           </button>
-          <span style={{ fontSize: "16px", fontWeight: 600 }}>활동</span>
+          <span className={style.rendererHeaderTitle}>
+            {title.trim() || "제목 없는 양식"}
+          </span>
           <span
             className={`${style.formCardBadge} ${
               isDraft ? style.badgePending : style.badgeOpen

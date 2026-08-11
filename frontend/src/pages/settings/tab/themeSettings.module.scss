@@ -192,6 +192,101 @@
   }
 }
 
+.roleHint {
+  margin: 0 0 14px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--accent-3);
+}
+
+// --- Semantic mockup (uses draft customColors, not live CSS vars) ---
+.mockup {
+  display: flex;
+  height: 112px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border-default-color);
+  margin-bottom: 16px;
+}
+
+.mockupSidebar {
+  width: 56px;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.mockupNavItem {
+  height: 10px;
+  border-radius: 3px;
+  opacity: 0.35;
+}
+
+.mockupNavActive {
+  opacity: 1;
+}
+
+.mockupMain {
+  flex: 1;
+  padding: 10px 12px;
+  min-width: 0;
+}
+
+.mockupCard {
+  height: 100%;
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-sizing: border-box;
+}
+
+.mockupTitle {
+  height: 10px;
+  width: 42%;
+  border-radius: 3px;
+  opacity: 0.9;
+}
+
+.mockupBody {
+  height: 8px;
+  width: 72%;
+  border-radius: 3px;
+}
+
+.mockupRow {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mockupLink {
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.mockupChip {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  line-height: 1.4;
+}
+
+.mockupDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 .primaryOnly {
   display: flex;
   flex-direction: column;
@@ -204,14 +299,14 @@
 
 .generatedPreview {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .generatedItem {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
 }
 
 .generatedSwatch {
@@ -222,14 +317,27 @@
   flex-shrink: 0;
 }
 
+.generatedMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
 .generatedLabel {
   font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-2);
+}
+
+.generatedHint {
+  font-size: 11px;
   color: var(--accent-3);
 }
 
 .colorGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 12px;
 }
 
