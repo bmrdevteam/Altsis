@@ -12,6 +12,9 @@ import {
   ChatFile,
   User,
   Registration,
+  Board,
+  Syllabus,
+  Enrollment,
 } from "../models/index.js";
 import { getIoChat } from "../utils/webSocket.js";
 import { chatMulter, isImageFile } from "../_s3/chatMulter.js";
@@ -204,6 +207,152 @@ export const findRooms = async (req, res) => {
     });
 
     return res.status(200).send({ rooms: filtered });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.ChatAPI
+ * @function RChatBoardRooms API
+ * @description 내가 참여한 보드 채팅방 목록 (상단바용)
+ * @version 1.0.0
+ */
+export const findBoardRooms = async (req, res) => {
+  try {
+    const currentSeasonId = req.query.season
+      ? String(req.query.season)
+      : null;
+    const schoolId = req.query.school ? String(req.query.school) : null;
+
+    const rooms = await ChatRoom(req.user.academyId)
+      .find({
+        "participants.user": req.user._id,
+        isActive: true,
+        type: "board",
+      })
+      .sort({ "lastMessage.sentAt": -1, updatedAt: -1 })
+      .lean();
+
+    const boardIds = [
+      ...new Set(
+        rooms.map((r) => (r.board ? String(r.board) : "")).filter(Boolean)
+      ),
+    ];
+    const boardQuery = {
+      _id: { $in: boardIds },
+      isActive: { $ne: false },
+    };
+    if (schoolId) {
+      boardQuery.school = schoolId;
+    }
+    const boards = await Board(req.user.academyId)
+      .find(boardQuery)
+      .select("_id name chatEnabled syllabus scope season school")
+      .lean();
+    const boardById = Object.fromEntries(
+      boards.map((b) => [String(b._id), b])
+    );
+
+    const syllabusIds = [
+      ...new Set(
+        boards
+          .map((b) => (b.syllabus ? String(b.syllabus) : ""))
+          .filter(Boolean)
+      ),
+    ];
+    const syllabuses =
+      syllabusIds.length > 0
+        ? await Syllabus(req.user.academyId)
+            .find({ _id: { $in: syllabusIds } })
+            .select("teachers user season")
+            .lean()
+        : [];
+    const sylMap = new Map(syllabuses.map((s) => [String(s._id), s]));
+    const enrollments =
+      syllabusIds.length > 0
+        ? await Enrollment(req.user.academyId)
+            .find({
+              student: req.user._id,
+              syllabus: { $in: syllabusIds },
+            })
+            .select("_id syllabus")
+            .lean()
+        : [];
+    const enrollBySyl = new Map(
+      enrollments.map((e) => [String(e.syllabus), String(e._id)])
+    );
+    const isManager =
+      req.user.auth === "admin" || req.user.auth === "manager";
+    const userOid = String(req.user._id);
+
+    const resolveCoursePath = (boardDoc) => {
+      if (!boardDoc?.syllabus) return null;
+      const sylId = String(boardDoc.syllabus);
+      const syl = sylMap.get(sylId);
+      const isMentor =
+        !!syl &&
+        (String(syl.user) === userOid ||
+          (syl.teachers || []).some(
+            (t) => String(t._id || t) === userOid
+          ));
+      if (isMentor || isManager) return `/courses/mentoring/${sylId}`;
+      if (enrollBySyl.has(sylId)) {
+        return `/courses/enrolled/${enrollBySyl.get(sylId)}`;
+      }
+      return null;
+    };
+
+    const isBoardInCurrentSeason = (boardDoc) => {
+      if (!currentSeasonId) return true;
+      if (boardDoc.scope === "season") {
+        return String(boardDoc.season) === currentSeasonId;
+      }
+      if (boardDoc.syllabus) {
+        const syl = sylMap.get(String(boardDoc.syllabus));
+        const syllabusSeason = syl?.season ? String(syl.season) : null;
+        return syllabusSeason === currentSeasonId;
+      }
+      return true;
+    };
+
+    const roomsWithUnread = await Promise.all(
+      rooms
+        .filter((room) => {
+          const b = boardById[String(room.board)];
+          if (!b || b.chatEnabled === false) return false;
+          return isBoardInCurrentSeason(b);
+        })
+        .map(async (room) => {
+          const participant = room.participants.find(
+            (p) => p.user.toString() === req.user._id.toString()
+          );
+          const query = {
+            room: room._id,
+            sender: { $ne: req.user._id },
+            isDeleted: false,
+          };
+          if (participant?.lastReadAt) {
+            query.createdAt = { $gt: participant.lastReadAt };
+          }
+          const unreadCount = await ChatMessage(
+            req.user.academyId
+          ).countDocuments(query);
+          const boardDoc = boardById[String(room.board)];
+          return {
+            ...room,
+            board: room.board ? String(room.board) : undefined,
+            boardName: boardDoc?.name,
+            coursePath: resolveCoursePath(boardDoc),
+            unreadCount,
+            isPinned: false,
+            isArchived: false,
+          };
+        })
+    );
+
+    return res.status(200).send({ rooms: roomsWithUnread });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });

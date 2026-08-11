@@ -58,6 +58,11 @@ const BoardDMPanel = ({
   // Image lightbox
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
+  // Touch: show delete only for the active message
+  const [activeDeleteId, setActiveDeleteId] = useState<string | null>(null);
+  const longPressTimerRef = useRef<number | null>(null);
+  const longPressTriggeredRef = useRef(false);
+
   // Scroll
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesAreaRef = useRef<HTMLDivElement>(null);
@@ -336,7 +341,46 @@ const BoardDMPanel = ({
           m._id === messageId ? { ...m, isDeleted: true } : m
         )
       );
-    } catch {}
+      setActiveDeleteId(null);
+    } catch {
+      window.alert("메시지 삭제에 실패했습니다.");
+    }
+  };
+
+  const clearLongPressTimer = () => {
+    if (longPressTimerRef.current != null) {
+      window.clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  useEffect(() => () => clearLongPressTimer(), []);
+
+  const handleOwnBubblePointerDown = (messageId: string) => {
+    longPressTriggeredRef.current = false;
+    clearLongPressTimer();
+    longPressTimerRef.current = window.setTimeout(() => {
+      longPressTriggeredRef.current = true;
+      setActiveDeleteId(messageId);
+    }, 450);
+  };
+
+  const handleOwnBubblePointerUp = () => {
+    clearLongPressTimer();
+  };
+
+  const handleOwnBubbleClick = (messageId: string) => {
+    if (longPressTriggeredRef.current) {
+      longPressTriggeredRef.current = false;
+      return;
+    }
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(hover: hover)").matches
+    ) {
+      return;
+    }
+    setActiveDeleteId((prev) => (prev === messageId ? null : messageId));
   };
 
   // Typing
@@ -505,6 +549,7 @@ const BoardDMPanel = ({
         className={style.messages_area}
         ref={messagesAreaRef}
         onScroll={handleScroll}
+        onClick={() => setActiveDeleteId(null)}
       >
         {messages.length === 0 ? (
           <div className={style.empty_state}>
@@ -532,7 +577,12 @@ const BoardDMPanel = ({
                   <div
                     className={`${style.message_group} ${
                       isMine ? style.mine : ""
-                    } ${!groupStart ? style.consecutive : ""}`}
+                    } ${!groupStart ? style.consecutive : ""} ${
+                      activeDeleteId === msg._id ? style.delete_visible : ""
+                    }`}
+                    onClick={(e) => {
+                      if (isMine) e.stopPropagation();
+                    }}
                   >
                     {!isMine &&
                       (groupStart ? (
@@ -559,7 +609,10 @@ const BoardDMPanel = ({
                         {isMine && !msg.isDeleted && (
                           <button
                             className={style.delete_btn}
-                            onClick={() => handleDeleteMessage(msg._id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteMessage(msg._id);
+                            }}
                             title="삭제"
                           >
                             <Svg type="trash" width="14px" height="14px" />
@@ -575,6 +628,19 @@ const BoardDMPanel = ({
                               ? style.bubble_media
                               : ""
                           }`}
+                          onPointerDown={() => {
+                            if (isMine && !msg.isDeleted) {
+                              handleOwnBubblePointerDown(msg._id);
+                            }
+                          }}
+                          onPointerUp={handleOwnBubblePointerUp}
+                          onPointerLeave={handleOwnBubblePointerUp}
+                          onPointerCancel={handleOwnBubblePointerUp}
+                          onClick={() => {
+                            if (isMine && !msg.isDeleted) {
+                              handleOwnBubbleClick(msg._id);
+                            }
+                          }}
                         >
                           {msg.isDeleted ? (
                             <span className={style.deleted_text}>
