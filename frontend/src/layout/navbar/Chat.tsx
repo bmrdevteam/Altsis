@@ -10,6 +10,7 @@ import { TChatRoom } from "types/chat";
 import ChatWindow from "./ChatWindow";
 import audioURL from "assets/audio/notification-a.mp3";
 import { updateChatAppBadge } from "utils/appBadge";
+import { subscribeChatRoomsReload } from "utils/chatRoomsReload";
 
 const Chat = () => {
   const { currentUser, currentSchool, currentSeason } = useAuth();
@@ -30,9 +31,19 @@ const Chat = () => {
   const soundEnabledRef = useRef(true);
   const chatWindowActiveRef = useRef(false);
   const chatRoomDeepLinkHandledRef = useRef<string | null>(null);
+  const boardRoomsRef = useRef<TChatRoom[]>([]);
 
   // Keep refs in sync with state
   chatWindowActiveRef.current = chatWindowActive;
+  boardRoomsRef.current = boardRooms;
+
+  const applyUnreadTotal = (dmRooms: TChatRoom[], board: TChatRoom[]) => {
+    const count =
+      dmRooms.reduce((sum, room) => sum + (room.unreadCount ?? 0), 0) +
+      board.reduce((sum, room) => sum + (room.unreadCount ?? 0), 0);
+    setUnreadCount(count);
+    updateChatAppBadge(count);
+  };
 
   // Load sound preference
   useEffect(() => {
@@ -48,25 +59,21 @@ const Chat = () => {
   const loadRooms = async () => {
     if (!currentUser?._id) return;
     try {
+      // DM 먼저 반영 — 보드방 API 지연/실패가 채팅 아이콘을 막지 않게
+      const { rooms: dmRooms } = await ChatAPI.RChatRooms();
+      setRooms(dmRooms);
+      setChatEnabled(true);
+      applyUnreadTotal(dmRooms, boardRoomsRef.current);
+
       const boardQuery: { season?: string; school?: string } = {};
       if (currentSeason?._id) boardQuery.season = currentSeason._id;
       if (currentSchool?._id) boardQuery.school = currentSchool._id;
 
-      const [{ rooms }, { rooms: board }] = await Promise.all([
-        ChatAPI.RChatRooms(),
-        ChatAPI.RChatBoardRooms({ query: boardQuery }).catch(() => ({
-          rooms: [] as TChatRoom[],
-        })),
-      ]);
-      setRooms(rooms);
+      const { rooms: board } = await ChatAPI.RChatBoardRooms({
+        query: boardQuery,
+      }).catch(() => ({ rooms: [] as TChatRoom[] }));
       setBoardRooms(board);
-      setChatEnabled(true);
-
-      const count =
-        rooms.reduce((sum, room) => sum + (room.unreadCount ?? 0), 0) +
-        board.reduce((sum, room) => sum + (room.unreadCount ?? 0), 0);
-      setUnreadCount(count);
-      updateChatAppBadge(count);
+      applyUnreadTotal(dmRooms, board);
 
       const { rooms: archived } = await ChatAPI.RChatRooms({
         query: { archived: "true" },
@@ -131,6 +138,13 @@ const Chat = () => {
     if (currentUser?._id) {
       loadRooms();
     }
+  }, [currentUser?._id, currentSeason?._id, currentSchool?._id]);
+
+  // 보드 채팅 읽음 완료 후 목록만 재조회 (소켓/사운드 경로는 그대로)
+  useEffect(() => {
+    return subscribeChatRoomsReload(() => {
+      void loadRooms();
+    });
   }, [currentUser?._id, currentSeason?._id, currentSchool?._id]);
 
   // Web Push 클릭 → ?chatRoom= 딥링크

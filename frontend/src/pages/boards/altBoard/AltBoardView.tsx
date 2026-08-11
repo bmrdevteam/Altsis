@@ -18,6 +18,7 @@ import AltSheetView from "./AltSheetView";
 import AltDocsView from "./AltDocsView";
 import BoardChatContainer from "./BoardChatContainer";
 import style from "./altBoard.module.scss";
+import { markAllBoardChatRoomsRead } from "utils/markAllBoardChatRoomsRead";
 
 export type TAltBoardSurface = "활동" | "문서" | "채팅";
 
@@ -48,6 +49,8 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
   const [pendingApprovalCount, setPendingApprovalCount] = useState(0);
   const [gradeTodoCount, setGradeTodoCount] = useState(0);
   const activeTabRef = useRef<string>("");
+  /** 채팅 탭 읽음 후, 늦은 rooms 응답이 뱃지를 다시 올리지 못하게 */
+  const chatReadEpochRef = useRef(0);
 
   // 현재 유저의 Alt Board 역할
   const myRole: TAltBoardRole | null = (() => {
@@ -151,18 +154,18 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
       } else if (surface === "문서") {
         loadDocsUnread();
       } else if (surface === "채팅") {
+        chatReadEpochRef.current += 1;
         setChatUnreadCount(0);
-        BoardChatAPI.RBoardChatRooms({ params: { boardId: board._id } })
-          .then(({ rooms }) =>
-            Promise.all(
-              rooms.map((room) =>
-                BoardChatAPI.UBoardChatRead({
-                  params: { boardId: board._id, roomId: room._id },
-                }).catch(() => {})
-              )
-            )
-          )
-          .catch(() => {});
+        markAllBoardChatRoomsRead({
+          listRooms: () =>
+            BoardChatAPI.RBoardChatRooms({
+              params: { boardId: board._id },
+            }),
+          markRoomRead: (roomId) =>
+            BoardChatAPI.UBoardChatRead({
+              params: { boardId: board._id, roomId },
+            }),
+        }).catch(() => {});
       }
       return;
     }
@@ -192,9 +195,18 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
     // 수업 탭에서 뱃지는 useAltBoardBadges가 담당 → surface 모드에선 소켓 생략
     if (surface) return;
 
+    let cancelled = false;
+    const epochAtStart = chatReadEpochRef.current;
+
     // 초기 unread count (전체 + 주제방 합산)
     BoardChatAPI.RBoardChatRooms({ params: { boardId: board._id } })
       .then(({ rooms }) => {
+        if (cancelled) return;
+        if (chatReadEpochRef.current !== epochAtStart) return;
+        if (activeTabRef.current === "채팅") {
+          setChatUnreadCount(0);
+          return;
+        }
         const total = rooms.reduce(
           (sum, room) => sum + (room.unreadCount || 0),
           0
@@ -223,6 +235,7 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
     });
 
     return () => {
+      cancelled = true;
       socket.disconnect();
     };
   }, [
@@ -236,18 +249,18 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
   const handleTabChange = useCallback((tabKey: string) => {
     activeTabRef.current = tabKey;
     if (tabKey === "채팅") {
+      chatReadEpochRef.current += 1;
       setChatUnreadCount(0);
-      BoardChatAPI.RBoardChatRooms({ params: { boardId: board._id } })
-        .then(({ rooms }) =>
-          Promise.all(
-            rooms.map((room) =>
-              BoardChatAPI.UBoardChatRead({
-                params: { boardId: board._id, roomId: room._id },
-              }).catch(() => {})
-            )
-          )
-        )
-        .catch(() => {});
+      markAllBoardChatRoomsRead({
+        listRooms: () =>
+          BoardChatAPI.RBoardChatRooms({
+            params: { boardId: board._id },
+          }),
+        markRoomRead: (roomId) =>
+          BoardChatAPI.UBoardChatRead({
+            params: { boardId: board._id, roomId },
+          }),
+      }).catch(() => {});
     }
     if (tabKey === "문서") {
       loadDocsUnread();

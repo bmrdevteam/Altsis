@@ -208,6 +208,8 @@ export const getAppBadgeCount = async (academyId, userObjectId) => {
       .find({
         "participants.user": userObjectId,
         isActive: true,
+        // 보드 방은 개수가 많아 뱃지 집계·푸시 지연을 유발할 수 있어 제외
+        type: { $ne: "board" },
       })
       .select("participants")
       .lean(),
@@ -348,7 +350,14 @@ export const sendWebPushesForNotifications = async ({
         continue;
       }
 
-      const badgeCount = await getAppBadgeCount(academyId, notification.user);
+      let badgeCount;
+      try {
+        badgeCount = await getAppBadgeCount(academyId, notification.user);
+      } catch (badgeErr) {
+        logger.warn(
+          `App badge count failed for ${notification.userId}: ${badgeErr.message}`
+        );
+      }
       const body =
         (notification.description && String(notification.description).trim()) ||
         "알림을 확인하려면 탭하세요.";
@@ -358,7 +367,7 @@ export const sendWebPushesForNotifications = async ({
         url,
         tag: tagForNotification(notification),
         notificationType: notification.notificationType,
-        badgeCount,
+        ...(badgeCount != null ? { badgeCount } : {}),
       });
 
       const sent = await sendToSubscriptions(
@@ -435,8 +444,10 @@ export const sendChatWebPushes = async ({
     try {
       const schoolId =
         boardSchoolId || (await resolveSchoolId(academyId, userKey));
+      // 보드 딥링크 실패 시에도 푸시는 보내도록 DM 클릭 URL로 폴백
       const url = boardId
-        ? buildBoardChatClickUrl(academyId, schoolId, boardId, roomId)
+        ? buildBoardChatClickUrl(academyId, schoolId, boardId, roomId) ||
+          buildChatClickUrl(academyId, schoolId, roomId)
         : buildChatClickUrl(academyId, schoolId, roomId);
       if (!url) continue;
 
@@ -445,7 +456,14 @@ export const sendChatWebPushes = async ({
       });
       if (subs.length === 0) continue;
 
-      const badgeCount = await getAppBadgeCount(academyId, userKey);
+      let badgeCount;
+      try {
+        badgeCount = await getAppBadgeCount(academyId, userKey);
+      } catch (badgeErr) {
+        logger.warn(
+          `App badge count failed for ${recipient.userId || userKey}: ${badgeErr.message}`
+        );
+      }
       const payload = JSON.stringify({
         title: title || "새 메시지",
         body: (body && String(body).trim()) || "새 채팅 메시지가 있습니다.",
@@ -454,7 +472,7 @@ export const sendChatWebPushes = async ({
           roomId || userKey
         }`,
         notificationType: "chatMessage",
-        badgeCount,
+        ...(badgeCount != null ? { badgeCount } : {}),
       });
 
       const sent = await sendToSubscriptions(
