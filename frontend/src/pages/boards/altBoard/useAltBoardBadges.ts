@@ -8,6 +8,7 @@ import {
   getSchoolTodosCached,
   schoolTodosCacheKey,
 } from "../schoolTodosCache";
+import { markAllBoardChatRoomsRead } from "utils/markAllBoardChatRoomsRead";
 
 /**
  * 수업 탭 등 외부 Tab에 넘길 보드 뱃지(활동/문서/채팅)
@@ -94,16 +95,14 @@ export const useAltBoardBadges = (
     if (!boardId) return;
     const epoch = ++chatReadEpochRef.current;
     setChatUnreadCount(0);
-    BoardChatAPI.RBoardChatRooms({ params: { boardId } })
-      .then(({ rooms }) =>
-        Promise.all(
-          rooms.map((room) =>
-            BoardChatAPI.UBoardChatRead({
-              params: { boardId, roomId: room._id },
-            }).catch(() => {})
-          )
-        )
-      )
+    markAllBoardChatRoomsRead({
+      listRooms: () =>
+        BoardChatAPI.RBoardChatRooms({ params: { boardId } }),
+      markRoomRead: (roomId) =>
+        BoardChatAPI.UBoardChatRead({
+          params: { boardId, roomId },
+        }),
+    })
       .then(() => {
         if (chatReadEpochRef.current !== epoch) return;
         setChatUnreadCount(0);

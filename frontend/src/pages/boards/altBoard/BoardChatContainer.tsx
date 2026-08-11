@@ -31,6 +31,8 @@ const BoardChatContainer = ({ board, onNewMessage }: Props) => {
   const location = useLocation();
   const navigate = useAppNavigate();
   const deepLinkHandledRef = useRef<string | null>(null);
+  /** 채팅 탭 진입 직후 서버 unread가 사이드바에 다시 뜨지 않게 (첫 load만) */
+  const suppressEnterUnreadRef = useRef(true);
 
   const [socket, setSocket] = useState<Socket | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
@@ -74,21 +76,33 @@ const BoardChatContainer = ({ board, onNewMessage }: Props) => {
     myRole === "admin" ||
     myRole === "writer";
 
+  const clearLocalUnreads = useCallback(() => {
+    setRooms((prev) => prev.map((r) => ({ ...r, unreadCount: 0 })));
+  }, []);
+
   const loadRooms = useCallback(async () => {
     if (!board._id) return;
     try {
+      const suppress = suppressEnterUnreadRef.current;
       const { rooms: loaded } = await BoardChatAPI.RBoardChatRooms({
         params: { boardId: board._id },
       });
-      setRooms(loaded);
+      const next = suppress
+        ? loaded.map((r) => ({ ...r, unreadCount: 0 }))
+        : loaded;
+      if (suppress) {
+        suppressEnterUnreadRef.current = false;
+      }
+      setRooms(next);
       setSelectedRoomId((prev) => {
-        if (prev && loaded.some((r) => r._id === prev)) return prev;
-        const general = loaded.find((r) => r.isGeneral);
-        return general?._id || loaded[0]?._id || null;
+        if (prev && next.some((r) => r._id === prev)) return prev;
+        const general = next.find((r) => r.isGeneral);
+        return general?._id || next[0]?._id || null;
       });
     } catch {
       // error handled by useAPIv2
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- useAPIv2 refs are unstable
   }, [board._id]);
 
   // Web Push / 상단바 → ?boardChatRoom= 딥링크
@@ -151,9 +165,12 @@ const BoardChatContainer = ({ board, onNewMessage }: Props) => {
       .catch(() => {});
   }, [board._id]);
 
+  // 채팅 탭에 들어올 때마다 사이드바 stale unread 제거 후 목록 로드
   useEffect(() => {
+    suppressEnterUnreadRef.current = true;
+    clearLocalUnreads();
     loadRooms();
-  }, [loadRooms]);
+  }, [loadRooms, clearLocalUnreads]);
 
   useEffect(() => {
     if (!socket) return;

@@ -6,6 +6,7 @@ import { useAuth } from "contexts/authContext";
 import useAPIv2 from "hooks/useAPIv2";
 import useRegisterAlterSnapshot from "hooks/useRegisterAlterSnapshot";
 import { buildBoardChatSnapshot } from "utils/alterChatSnapshot";
+import { requestChatRoomsReload } from "utils/chatRoomsReload";
 import ChatMessageContent from "layout/navbar/ChatMessageContent";
 import ImageLightbox from "layout/navbar/ImageLightbox";
 import Svg from "assets/svg/Svg";
@@ -158,7 +159,10 @@ const BoardChatTab = ({
         BoardChatAPI.UBoardChatRead({
           params: { boardId: board._id, roomId },
         })
-          .then(() => onRoomRead?.())
+          .then(() => {
+            onRoomRead?.();
+            requestChatRoomsReload();
+          })
           .catch(() => {});
       }
     };
@@ -233,7 +237,10 @@ const BoardChatTab = ({
     BoardChatAPI.UBoardChatRead({
       params: { boardId: board._id, roomId },
     })
-      .then(() => onRoomRead?.())
+      .then(() => {
+        onRoomRead?.();
+        requestChatRoomsReload();
+      })
       .catch(() => {});
   }, [board._id, roomId]);
 
