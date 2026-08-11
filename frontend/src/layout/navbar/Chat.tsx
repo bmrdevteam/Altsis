@@ -10,6 +10,7 @@ import { TChatRoom } from "types/chat";
 import ChatWindow from "./ChatWindow";
 import audioURL from "assets/audio/notification-a.mp3";
 import { updateChatAppBadge } from "utils/appBadge";
+import { playNotificationSound } from "utils/canPlayNotificationSound";
 
 const Chat = () => {
   const { currentUser, currentSchool } = useAuth();
@@ -91,16 +92,10 @@ const Chat = () => {
 
     newSocket.on("new_message", () => {
       loadRooms();
-      // 포그라운드에서만 재생 (백그라운드 play는 Chrome 빈 미디어 알림 유발)
-      if (
-        soundEnabledRef.current &&
-        !chatWindowActiveRef.current &&
-        typeof document !== "undefined" &&
-        document.visibilityState === "visible"
-      ) {
-        audioRef.current.play().catch(() => {
-          // 자동 재생 정책에 의해 재생이 차단될 수 있음
-        });
+      // 채팅창이 열려 있지 않고, 브라우저 탭 포그라운드일 때만
+      // (PWA/백그라운드 play는 Chrome 빈 미디어 알림 유발)
+      if (!chatWindowActiveRef.current) {
+        playNotificationSound(audioRef.current, soundEnabledRef.current);
       }
     });
 

@@ -16,6 +16,7 @@ import { TNotificationReceived } from "types/notification";
 import { TUpcomingReminder, TReminder, TEventReminder } from "types/reminder";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import { updateNotificationAppBadge } from "utils/appBadge";
+import { playNotificationSound } from "utils/canPlayNotificationSound";
 
 function formatNotificationTime(date: Date | string): string {
   const now = new Date();
@@ -206,16 +207,8 @@ const Notification = () => {
     // listen 이벤트 수신 시 직접 알림 갱신
     newSocket.on("listen", () => {
       updateNotificationsRef.current();
-      // 백그라운드 audio.play()는 Android Chrome에 빈 미디어 알림을 만듦
-      if (
-        soundEnabledRef.current &&
-        typeof document !== "undefined" &&
-        document.visibilityState === "visible"
-      ) {
-        audioRef.current.play().catch(() => {
-          // 자동 재생 정책에 의해 재생이 차단될 수 있음
-        });
-      }
+      // PWA/백그라운드 play는 Android Chrome 빈 미디어 알림을 만듦
+      playNotificationSound(audioRef.current, soundEnabledRef.current);
       loadRemindersRef.current();
     });
 
