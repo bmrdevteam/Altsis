@@ -10,7 +10,7 @@
  * -------------------------------------------------------
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useParams, useSearchParams } from "react-router-dom";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
@@ -52,6 +52,8 @@ const BoardPid = () => {
   const [showManagePopup, setShowManagePopup] = useState(false);
   const [showMemberListPopup, setShowMemberListPopup] = useState(false);
   const [showDuplicateFlow, setShowDuplicateFlow] = useState(false);
+  const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
+  const headerMenuRef = useRef<HTMLDivElement | null>(null);
 
   // 양식 응답/편집·기록 상세 화면에서는 보드 상단바 숨김
   const hideBoardHeader =
@@ -137,6 +139,20 @@ const BoardPid = () => {
     }
   };
 
+  useEffect(() => {
+    if (!headerMenuOpen) return;
+    const onPointerDown = (e: MouseEvent) => {
+      if (
+        headerMenuRef.current &&
+        !headerMenuRef.current.contains(e.target as Node)
+      ) {
+        setHeaderMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [headerMenuOpen]);
+
   const shouldStayOnBoard =
     searchParams.has("form") ||
     searchParams.has("sheet") ||
@@ -215,32 +231,63 @@ const BoardPid = () => {
             </div>
 
             <div className={bStyle.detailHeaderRight}>
-              <button
-                className={bStyle.iconBtn}
-                onClick={() => setShowMemberListPopup(true)}
-                title="멤버 보기"
-              >
-                <Svg type="users" width="18px" height="18px" />
-              </button>
-              {canManageBoard(board) && (
+              <div className={bStyle.headerMenu} ref={headerMenuRef}>
                 <button
+                  type="button"
                   className={bStyle.iconBtn}
-                  onClick={() => setShowManagePopup(true)}
-                  title="보드 관리"
+                  title="더보기"
+                  aria-label="더보기"
+                  aria-expanded={headerMenuOpen}
+                  aria-haspopup="menu"
+                  onClick={() => setHeaderMenuOpen((v) => !v)}
                 >
-                  <Svg type="settings" width="18px" height="18px" />
+                  <Svg type="verticalDots" width="18px" height="18px" />
                 </button>
-              )}
-              {!canManageBoard(board) && !board.isDefault && (
-                <button
-                  className={bStyle.textBtn}
-                  onClick={handleLeaveBoard}
-                  title="보드 나가기"
-                >
-                  <Svg type="logout" width="16px" height="16px" />
-                  나가기
-                </button>
-              )}
+                {headerMenuOpen && (
+                  <div className={bStyle.headerActionMenu} role="menu">
+                    <button
+                      type="button"
+                      className={bStyle.headerActionItem}
+                      role="menuitem"
+                      onClick={() => {
+                        setHeaderMenuOpen(false);
+                        setShowMemberListPopup(true);
+                      }}
+                    >
+                      <Svg type="users" width="16px" height="16px" />
+                      보드 멤버
+                    </button>
+                    {canManageBoard(board) && (
+                      <button
+                        type="button"
+                        className={bStyle.headerActionItem}
+                        role="menuitem"
+                        onClick={() => {
+                          setHeaderMenuOpen(false);
+                          setShowManagePopup(true);
+                        }}
+                      >
+                        <Svg type="settings" width="16px" height="16px" />
+                        보드 관리
+                      </button>
+                    )}
+                    {!canManageBoard(board) && !board.isDefault && (
+                      <button
+                        type="button"
+                        className={`${bStyle.headerActionItem} ${bStyle.headerActionItemDanger}`}
+                        role="menuitem"
+                        onClick={() => {
+                          setHeaderMenuOpen(false);
+                          handleLeaveBoard();
+                        }}
+                      >
+                        <Svg type="logout" width="16px" height="16px" />
+                        나가기
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
