@@ -550,3 +550,65 @@ export const buildSheetChatSnapshot = (opts: {
     { dataExpand: opts.dataExpand }
   );
 };
+
+type TBoardChatSnapshotMessage = {
+  senderName?: string;
+  content?: string;
+  messageType?: string;
+  isDeleted?: boolean;
+  createdAt?: string;
+  attachment?: { fileName?: string };
+};
+
+/**
+ * 보드 채팅 탭에 이미 로드된 메시지 → chat 스냅샷 (읽기 전용)
+ */
+export const buildBoardChatSnapshot = (opts: {
+  messages: TBoardChatSnapshotMessage[];
+  roomName?: string;
+  isGeneral?: boolean;
+  boardName?: string;
+  dataExpand?: boolean;
+}): TAlterChatSnapshot => {
+  const messages = Array.isArray(opts.messages) ? opts.messages : [];
+  const usable = messages.filter(
+    (m) => m && !m.isDeleted && m.messageType !== "system"
+  );
+  const profile = snapshotProfileFromExpand(opts.dataExpand);
+  const maxItems = ALTER_CHAT_SNAPSHOT_PROFILES[profile].MAX_ITEMS;
+  const cellCap = opts.dataExpand ? 500 : 200;
+  const recent = usable.slice(-maxItems);
+
+  const items: TAlterChatSnapshotItem[] = recent.map((m) => {
+    let body = "";
+    if (m.messageType === "image") {
+      body = "[이미지]";
+    } else if (m.messageType === "file") {
+      body = `[파일] ${m.attachment?.fileName || ""}`.trim();
+    } else {
+      body = clipText(String(m.content || ""), cellCap);
+    }
+    const time = m.createdAt
+      ? String(m.createdAt).replace("T", " ").slice(0, 16)
+      : "";
+    const title = [m.senderName || "참여자", time].filter(Boolean).join(" · ");
+    return {
+      title,
+      fields: { 내용: body },
+    };
+  });
+
+  const roomLabel = opts.roomName || (opts.isGeneral ? "전체 채팅" : "채팅");
+  const boardBit = opts.boardName ? `${opts.boardName} · ` : "";
+  const scopeBit = opts.isGeneral === false ? "비공개 팀방 · " : "";
+
+  return finalizeChatSnapshot(
+    {
+      summary: `보드 채팅 — ${boardBit}${roomLabel} · ${scopeBit}최근 ${recent.length}건`,
+      items,
+      totalCount: usable.length,
+      isPartial: usable.length > recent.length,
+    },
+    { dataExpand: opts.dataExpand }
+  );
+};

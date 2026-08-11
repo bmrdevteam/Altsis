@@ -28,6 +28,8 @@ type Props = {
   bare?: boolean;
 };
 
+const TEXTAREA_MAX_HEIGHT_PX = 240;
+
 const ChatInputBar = ({
   value,
   onChange,
@@ -51,7 +53,7 @@ const ChatInputBar = ({
     const el = inputRef.current;
     if (!el) return;
     el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 100)}px`;
+    el.style.height = `${Math.min(el.scrollHeight, TEXTAREA_MAX_HEIGHT_PX)}px`;
   };
 
   useEffect(() => {

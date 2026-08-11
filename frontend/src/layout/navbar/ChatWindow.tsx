@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, DragEvent, ClipboardEvent } from "react";
 import { Socket } from "socket.io-client";
 import { useAuth } from "contexts/authContext";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import { useAppNavigate } from "hooks/useAppNavigate";
 import { TChatRoom, TChatMessage } from "types/chat";
 import Button from "components/button/Button";
 import Svg from "assets/svg/Svg";
@@ -30,6 +31,7 @@ const formatFileSize = (bytes: number): string => {
 type Props = {
   room: TChatRoom | null;
   rooms: TChatRoom[];
+  boardRooms?: TChatRoom[];
   archivedRooms?: TChatRoom[];
   socket?: Socket;
   onClose: () => void;
@@ -39,9 +41,10 @@ type Props = {
   onRoomLeft: () => void;
 };
 
-const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onClose, onRoomSelect, onRoomUpdated, onNewChatCreated, onRoomLeft }: Props) => {
+const ChatWindow = ({ room: initialRoom, rooms, boardRooms = [], archivedRooms = [], socket, onClose, onRoomSelect, onRoomUpdated, onNewChatCreated, onRoomLeft }: Props) => {
   const { currentUser } = useAuth();
   const { ChatAPI } = useAPIv2();
+  const navigate = useAppNavigate();
 
   const [room, setRoom] = useState<TChatRoom | null>(initialRoom);
   const [messages, setMessages] = useState<TChatMessage[]>([]);
@@ -58,6 +61,7 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
   const [showStorage, setShowStorage] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [listTab, setListTab] = useState<"direct" | "board">("direct");
   // File upload states
   const [isDragging, setIsDragging] = useState(false);
   const [previewFile, setPreviewFile] = useState<{
@@ -405,9 +409,25 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
   };
 
   const handleRoomClick = (selectedRoom: TChatRoom) => {
+    // DM/그룹: 패널 안에서 바로 채팅방 대화로 진입
+    setShowNewChat(false);
+    setShowStorage(false);
+    setShowArchived(false);
     onRoomSelect(selectedRoom);
     setRoom(selectedRoom);
     setShowChatList(false);
+  };
+
+  const handleBoardRoomClick = (selectedRoom: TChatRoom) => {
+    if (!selectedRoom.board) return;
+    onClose();
+    const basePath =
+      selectedRoom.coursePath || `/boards/${selectedRoom.board}`;
+    navigate({
+      pathname: basePath,
+      search: `?boardChatRoom=${encodeURIComponent(selectedRoom._id)}`,
+      hash: "채팅",
+    });
   };
 
   const handleListPinRoom = async (targetRoom: TChatRoom) => {
@@ -514,8 +534,72 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
   // Chat list view
   const chatListContent = (
     <div className={chatUiStyle.listShell}>
+      <div className={style.list_tabs} role="tablist" aria-label="채팅 목록">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={listTab === "direct"}
+          className={`${style.list_tab} ${
+            listTab === "direct" ? style.list_tab_active : ""
+          }`}
+          onClick={() => setListTab("direct")}
+        >
+          메시지
+          {rooms.some((r) => (r.unreadCount ?? 0) > 0) ? (
+            <span className={style.list_tab_dot} aria-hidden />
+          ) : null}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={listTab === "board"}
+          className={`${style.list_tab} ${
+            listTab === "board" ? style.list_tab_active : ""
+          }`}
+          onClick={() => setListTab("board")}
+        >
+          보드
+          {boardRooms.some((r) => (r.unreadCount ?? 0) > 0) ? (
+            <span className={style.list_tab_dot} aria-hidden />
+          ) : null}
+        </button>
+      </div>
       <div className={chatUiStyle.listItems}>
-        {rooms.length === 0 ? (
+        {listTab === "direct" ? (
+          rooms.length === 0 ? (
+            <ChatEmptyState
+              icon={
+                <Svg
+                  type="chatBubble"
+                  width="48px"
+                  height="48px"
+                  style={{ fill: "var(--accent-4, #ccc)" }}
+                />
+              }
+              title="채팅방이 없습니다"
+              action={
+                <Button type="ghost" onClick={() => setShowNewChat(true)}>
+                  새 채팅 시작하기
+                </Button>
+              }
+            />
+          ) : (
+            rooms.map((r) => (
+              <ChatRoomListItem
+                key={r._id}
+                room={r}
+                isActive={room?._id === r._id}
+                currentUserId={currentUser?.userId ?? ""}
+                currentUserObjId={currentUser?._id ?? ""}
+                onClick={handleRoomClick}
+                onPin={handleListPinRoom}
+                onShowStorage={handleListShowStorage}
+                onArchive={handleListArchiveRoom}
+                onLeave={handleListLeaveRoom}
+              />
+            ))
+          )
+        ) : boardRooms.length === 0 ? (
           <ChatEmptyState
             icon={
               <Svg
@@ -525,30 +609,23 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
                 style={{ fill: "var(--accent-4, #ccc)" }}
               />
             }
-            title="채팅방이 없습니다"
-            action={
-              <Button type="ghost" onClick={() => setShowNewChat(true)}>
-                새 채팅 시작하기
-              </Button>
-            }
+            title="보드 채팅이 없습니다"
+            subtitle="보드 채팅 탭에서 대화를 시작해 보세요"
           />
         ) : (
-          rooms.map((r) => (
+          boardRooms.map((r) => (
             <ChatRoomListItem
               key={r._id}
               room={r}
-              isActive={room?._id === r._id}
+              isActive={false}
               currentUserId={currentUser?.userId ?? ""}
               currentUserObjId={currentUser?._id ?? ""}
-              onClick={handleRoomClick}
-              onPin={handleListPinRoom}
-              onShowStorage={handleListShowStorage}
-              onArchive={handleListArchiveRoom}
-              onLeave={handleListLeaveRoom}
+              onClick={handleBoardRoomClick}
+              hideMenu
             />
           ))
         )}
-        {showArchived && archivedRooms.length > 0 && (
+        {listTab === "direct" && showArchived && archivedRooms.length > 0 && (
           <div className={style.archived_list}>
             {archivedRooms.map((r) => (
               <ChatRoomListItem
@@ -567,38 +644,44 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
           </div>
         )}
       </div>
-      <div className={chatUiStyle.listFooter}>
-        <Button type="ghost" onClick={() => setShowNewChat(true)} style={{ width: "100%" }}>
-          새 채팅
-        </Button>
-        {archivedRooms.length > 0 && (
+      {listTab === "direct" && (
+        <div className={chatUiStyle.listFooter}>
           <Button
             type="ghost"
-            onClick={() => setShowArchived(!showArchived)}
+            onClick={() => setShowNewChat(true)}
             style={{ width: "100%" }}
           >
-            <span className={style.archived_toggle}>
-              <Svg
-                type="archive"
-                width="14px"
-                height="14px"
-                style={{ fill: "var(--accent-1)" }}
-              />
-              보관함 ({archivedRooms.length})
-              <Svg
-                type="chevronDown"
-                width="14px"
-                height="14px"
-                style={{
-                  fill: "var(--accent-1)",
-                  transform: showArchived ? "rotate(180deg)" : "rotate(0deg)",
-                  transition: "transform 0.2s",
-                }}
-              />
-            </span>
+            새 채팅
           </Button>
-        )}
-      </div>
+          {archivedRooms.length > 0 && (
+            <Button
+              type="ghost"
+              onClick={() => setShowArchived(!showArchived)}
+              style={{ width: "100%" }}
+            >
+              <span className={style.archived_toggle}>
+                <Svg
+                  type="archive"
+                  width="14px"
+                  height="14px"
+                  style={{ fill: "var(--accent-1)" }}
+                />
+                보관함 ({archivedRooms.length})
+                <Svg
+                  type="chevronDown"
+                  width="14px"
+                  height="14px"
+                  style={{
+                    fill: "var(--accent-1)",
+                    transform: showArchived ? "rotate(180deg)" : "rotate(0deg)",
+                    transition: "transform 0.2s",
+                  }}
+                />
+              </span>
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
 
