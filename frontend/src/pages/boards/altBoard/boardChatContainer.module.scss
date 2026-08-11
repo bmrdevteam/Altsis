@@ -2,8 +2,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  flex: 1;
-  height: 100%;
+  height: calc(100vh - 280px);
   min-height: 400px;
   border: var(--border-default);
   border-radius: 8px;
@@ -45,7 +44,7 @@
 .nav_panel_title {
   font-size: 14px;
   font-weight: 700;
-  color: var(--accent-1);
+  color: var(--primary-text-color);
 }
 
 .nav_close_btn {
@@ -63,7 +62,7 @@
 
   &:hover {
     background-color: var(--component-color);
-    color: var(--accent-1);
+    color: var(--primary-text-color);
   }
 }
 
@@ -113,7 +112,7 @@
   text-align: left;
 
   &:hover {
-    color: var(--accent-1);
+    color: var(--primary-text-color);
   }
 }
 
@@ -146,7 +145,7 @@
 
   &:hover {
     background-color: var(--component-color);
-    color: var(--accent-1);
+    color: var(--primary-text-color);
   }
 }
 
@@ -185,7 +184,7 @@
   }
 
   &.active {
-    background-color: var(--background-hover-color, var(--component-color));
+    background-color: var(--chat-active-bg, var(--component-color));
   }
 }
 
@@ -213,7 +212,7 @@
 .sidebar_name {
   font-size: 13px;
   font-weight: 500;
-  color: var(--accent-1);
+  color: var(--primary-text-color);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -275,7 +274,7 @@
   margin: 0;
   font-size: 16px;
   font-weight: 700;
-  color: var(--accent-1);
+  color: var(--primary-text-color);
 }
 
 .modal_label {
@@ -293,7 +292,7 @@
   padding: 8px 10px;
   font-size: 14px;
   background-color: var(--background-color, #ffffff);
-  color: var(--accent-1);
+  color: var(--primary-text-color);
 
   &:focus {
     outline: 2px solid var(--btn-color-1, #1976d2);
@@ -325,7 +324,7 @@
 
 .modal_btn_secondary {
   background-color: var(--background-hover-color, #f5f5f5);
-  color: var(--accent-1);
+  color: var(--primary-text-color);
 }
 
 .modal_btn_primary {
@@ -352,7 +351,7 @@
   padding: 8px 10px;
   font-size: 13px;
   background-color: var(--background-color, #ffffff);
-  color: var(--accent-1);
+  color: var(--primary-text-color);
 
   &:focus {
     outline: 2px solid var(--btn-color-1, #1976d2);
@@ -403,7 +402,7 @@
   padding: 6px 12px;
   font-size: 13px;
   font-weight: 500;
-  color: var(--accent-1);
+  color: var(--primary-text-color);
   cursor: pointer;
 
   &:hover {
@@ -422,7 +421,7 @@
   gap: 8px;
   padding: 8px 12px;
   font-size: 13px;
-  color: var(--accent-1);
+  color: var(--primary-text-color);
 }
 
 .member_row_action {
@@ -442,12 +441,12 @@
 
 @media (max-width: 768px) {
   .container {
-    height: 100%;
-    min-height: 0;
+    height: auto;
+    min-height: 500px;
   }
 
   .chat_area {
-    min-height: 0;
+    min-height: 360px;
   }
 
   .nav_panel {

@@ -38,7 +38,7 @@ const CHIP_TONES = [
 ];
 
 /**
- * 평가 탭: 검색·필터 → 활동/문서와 동일한 섹션 헤더 → 본문
+ * 평가 탭: 검색·필터 → 활동/기록/문서와 동일한 섹션 헤더 → 본문
  */
 const EvaluationToolbar = ({
   title = "평가",

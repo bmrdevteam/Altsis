@@ -10,7 +10,6 @@ import * as chats from "../controllers/chats.js";
 
 router.post("/rooms", isLoggedIn, isChatEnabled, chats.createRoom);
 router.get("/rooms", isLoggedIn, isChatEnabled, chats.findRooms);
-router.get("/board-rooms", isLoggedIn, isChatEnabled, chats.findBoardRooms);
 router.get("/rooms/:roomId", isLoggedIn, isChatEnabled, chats.findRoom);
 router.put("/rooms/:roomId", isLoggedIn, isChatEnabled, chats.updateRoom);
 router.delete("/rooms/:roomId", isLoggedIn, isChatEnabled, chats.deleteRoom);

@@ -119,8 +119,8 @@ const CourseEnrollment = (props: Props) => {
     });
 
   useEffect(() => {
-    if (activeCourseTab !== "보드" && activeCourseTab !== "기록") return;
-    if (altBoard || activeCourseTab === "기록") {
+    if (activeCourseTab !== "보드") return;
+    if (altBoard) {
       navigate(`${location.pathname}${location.search}#활동`, { replace: true });
     }
   }, [
@@ -357,6 +357,11 @@ const CourseEnrollment = (props: Props) => {
                   활동: (
                     <div style={{ marginTop: "8px" }}>
                       <AltBoardView board={altBoard} embedded surface="활동" />
+                    </div>
+                  ),
+                  기록: (
+                    <div style={{ marginTop: "8px" }}>
+                      <AltBoardView board={altBoard} embedded surface="기록" />
                     </div>
                   ),
                   문서: (

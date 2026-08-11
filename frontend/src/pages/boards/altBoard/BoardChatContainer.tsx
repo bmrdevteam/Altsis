@@ -1,11 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useSearchParams, useLocation } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 import { TBoard, TAltBoardRole } from "types/board";
 import { TChatRoom } from "types/chat";
 import { useAuth } from "contexts/authContext";
 import useAPIv2 from "hooks/useAPIv2";
-import { useAppNavigate } from "hooks/useAppNavigate";
 import BoardChatTab from "./BoardChatTab";
 import BoardChatMemberSidebar from "./BoardChatMemberSidebar";
 import BoardDMPanel from "./BoardDMPanel";
@@ -27,10 +25,6 @@ type Props = {
 const BoardChatContainer = ({ board, onNewMessage }: Props) => {
   const { currentUser } = useAuth();
   const { BoardAPI, BoardChatAPI } = useAPIv2();
-  const [searchParams] = useSearchParams();
-  const location = useLocation();
-  const navigate = useAppNavigate();
-  const deepLinkHandledRef = useRef<string | null>(null);
 
   const [socket, setSocket] = useState<Socket | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
@@ -90,37 +84,6 @@ const BoardChatContainer = ({ board, onNewMessage }: Props) => {
       // error handled by useAPIv2
     }
   }, [board._id]);
-
-  // Web Push / 상단바 → ?boardChatRoom= 딥링크
-  // setSearchParams는 hash를 지움. 쿼리만 지울 때도 hash는 반드시 #채팅으로 유지.
-  useEffect(() => {
-    const targetRoomId = searchParams.get("boardChatRoom");
-    if (!targetRoomId || rooms.length === 0) return;
-    if (deepLinkHandledRef.current === targetRoomId) return;
-
-    const exists = rooms.some((r) => r._id === targetRoomId);
-    deepLinkHandledRef.current = targetRoomId;
-
-    if (exists) {
-      setSelectedRoomId(targetRoomId);
-      setChatMode("group");
-      setDmRoomId(null);
-      setDmPartner(null);
-    }
-
-    const next = new URLSearchParams(searchParams);
-    next.delete("boardChatRoom");
-    const search = next.toString();
-    navigate(
-      {
-        pathname: location.pathname,
-        search: search ? `?${search}` : "",
-        // 딥링크는 채팅 탭 전용 — 해시 유실 시 Tab이 계획서/활동으로 가는 것 방지
-        hash: "채팅",
-      },
-      { replace: true }
-    );
-  }, [searchParams, rooms, navigate, location.pathname]);
 
   useEffect(() => {
     if (!currentUser) return;

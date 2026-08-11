@@ -183,15 +183,6 @@ const buildChatClickUrl = (academyId, schoolId, roomId) => {
   )}`;
 };
 
-const buildBoardChatClickUrl = (academyId, schoolId, boardId, roomId) => {
-  const origin = clientOrigin();
-  if (!origin || !schoolId || !boardId) return null;
-  const tab = encodeURIComponent("채팅");
-  return `${origin}/${academyId}/${schoolId}/boards/${boardId}?boardChatRoom=${encodeURIComponent(
-    String(roomId)
-  )}#${tab}`;
-};
-
 /**
  * 홈 화면 뱃지용: 미확인 알림 + 채팅 미읽음 합
  */
@@ -208,6 +199,7 @@ export const getAppBadgeCount = async (academyId, userObjectId) => {
       .find({
         "participants.user": userObjectId,
         isActive: true,
+        type: { $ne: "board" },
       })
       .select("participants")
       .lean(),
@@ -384,8 +376,6 @@ export const sendWebPushesForNotifications = async ({
  * @param {string} params.title
  * @param {string} params.body
  * @param {string} [params.roomId]
- * @param {string} [params.boardId] - 보드 채팅이면 보드 딥링크 사용
- * @param {string} [params.schoolId] - 보드의 schoolId (있으면 수신자 school 조회 생략)
  */
 export const sendChatWebPushes = async ({
   academyId,
@@ -393,8 +383,6 @@ export const sendChatWebPushes = async ({
   title,
   body,
   roomId,
-  boardId,
-  schoolId: boardSchoolId,
 }) => {
   if (!ensureConfigured()) {
     return { sent: 0 };
@@ -433,11 +421,8 @@ export const sendChatWebPushes = async ({
     if (settings.chatMessage === false) continue;
 
     try {
-      const schoolId =
-        boardSchoolId || (await resolveSchoolId(academyId, userKey));
-      const url = boardId
-        ? buildBoardChatClickUrl(academyId, schoolId, boardId, roomId)
-        : buildChatClickUrl(academyId, schoolId, roomId);
+      const schoolId = await resolveSchoolId(academyId, userKey);
+      const url = buildChatClickUrl(academyId, schoolId, roomId);
       if (!url) continue;
 
       const subs = await PushSubscription(academyId).find({
@@ -450,9 +435,7 @@ export const sendChatWebPushes = async ({
         title: title || "새 메시지",
         body: (body && String(body).trim()) || "새 채팅 메시지가 있습니다.",
         url,
-        tag: `chatMessage:${boardId ? `board:${boardId}:` : ""}${
-          roomId || userKey
-        }`,
+        tag: `chatMessage:${roomId || userKey}`,
         notificationType: "chatMessage",
         badgeCount,
       });

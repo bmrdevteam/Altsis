@@ -30,14 +30,7 @@ import BoardDuplicateFlow from "./popup/BoardDuplicateFlow";
 import UserListPopup from "./popup/UserListPopup";
 import AltBoardView from "./altBoard/AltBoardView";
 
-const COURSE_SURFACES = new Set(["활동", "문서", "채팅"]);
-
-/** 레거시 #기록 → 활동 (기록 탭 제거 호환) */
-const normalizeCourseSurface = (hash: string): string | null => {
-  if (hash === "기록") return "활동";
-  if (COURSE_SURFACES.has(hash)) return hash;
-  return null;
-};
+const COURSE_SURFACES = new Set(["활동", "기록", "문서", "채팅"]);
 
 const BoardPid = () => {
   const navigate = useAppNavigate();
@@ -89,8 +82,7 @@ const BoardPid = () => {
       });
   }, [boardId]);
 
-  // 수업 연결 보드의 정식 화면은 수업 상세 — query(boardChatRoom 등)·해시 보존
-  // boardChatRoom이 있어도 보드 UI를 띄우지 않고 바로 수업으로 보낸다(채팅→계획서 경합 방지).
+  // 수업 연결 보드의 정식 화면은 수업 상세 — 딥링크(form/sheet/approval)만 보드 URL 유지
   useEffect(() => {
     if (!board) return;
     if (
@@ -100,28 +92,11 @@ const BoardPid = () => {
     ) {
       return;
     }
-    let hash = "";
-    try {
-      hash = decodeURIComponent(location.hash.replace(/^#/, ""));
-    } catch {
-      hash = location.hash.replace(/^#/, "");
-    }
-    const surface =
-      normalizeCourseSurface(hash) ??
-      (searchParams.has("boardChatRoom") ? "채팅" : "활동");
+    const hash = decodeURIComponent(location.hash.replace("#", ""));
+    const surface = COURSE_SURFACES.has(hash) ? hash : "활동";
     const coursePath = getBoardCourseSurfacePath(board, surface);
     if (coursePath) {
-      const [pathOnly, hashPart] = coursePath.split("#");
-      navigate(
-        {
-          pathname: pathOnly,
-          search: searchParams.toString()
-            ? `?${searchParams.toString()}`
-            : "",
-          hash: hashPart || surface,
-        },
-        { replace: true }
-      );
+      navigate(coursePath, { replace: true });
     }
   }, [board, searchParams, location.hash, navigate]);
 
@@ -137,24 +112,16 @@ const BoardPid = () => {
     }
   };
 
-  const shouldStayOnBoard =
+  const hasBoardDeepLink =
     searchParams.has("form") ||
     searchParams.has("sheet") ||
     searchParams.has("approval");
   const courseRedirectSurface = (() => {
-    let hash = "";
-    try {
-      hash = decodeURIComponent(location.hash.replace(/^#/, ""));
-    } catch {
-      hash = location.hash.replace(/^#/, "");
-    }
-    const normalized = normalizeCourseSurface(hash);
-    if (normalized) return normalized;
-    if (searchParams.has("boardChatRoom")) return "채팅";
-    return "활동";
+    const hash = decodeURIComponent(location.hash.replace("#", ""));
+    return COURSE_SURFACES.has(hash) ? hash : "활동";
   })();
   const courseRedirectPath =
-    board && !shouldStayOnBoard
+    board && !hasBoardDeepLink
       ? getBoardCourseSurfacePath(board, courseRedirectSurface)
       : null;
 
