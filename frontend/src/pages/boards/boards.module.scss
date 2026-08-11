@@ -411,6 +411,64 @@
   gap: 4px;
 }
 
+.headerMenu {
+  position: relative;
+}
+
+.headerActionMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 30;
+  background: var(--background-color);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  min-width: 148px;
+  overflow: hidden;
+}
+
+.headerActionItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 14px;
+  border: none;
+  background: none;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text-color-1);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.1s;
+
+  svg {
+    flex-shrink: 0;
+    fill: var(--text-color-2);
+  }
+
+  &:hover {
+    background: var(--background-color-2);
+  }
+
+  & + & {
+    border-top: 1px solid var(--border-color);
+  }
+}
+
+.headerActionItemDanger {
+  color: var(--status-error);
+
+  svg {
+    fill: var(--status-error);
+  }
+
+  &:hover {
+    background: var(--status-error-bg, var(--background-color-2));
+  }
+}
+
 /* ─── Board detail toolbar ─── */
 .detailToolbar {
   display: flex;

@@ -32,6 +32,8 @@ const Chat = () => {
   const chatWindowActiveRef = useRef(false);
   const chatRoomDeepLinkHandledRef = useRef<string | null>(null);
   const boardRoomsRef = useRef<TChatRoom[]>([]);
+  /** 늦게 도착한 loadRooms 응답이 최신 합산을 덮지 못하게 */
+  const loadRoomsEpochRef = useRef(0);
 
   // Keep refs in sync with state
   chatWindowActiveRef.current = chatWindowActive;
@@ -58,9 +60,11 @@ const Chat = () => {
 
   const loadRooms = async () => {
     if (!currentUser?._id) return;
+    const epoch = ++loadRoomsEpochRef.current;
     try {
       // DM 먼저 반영 — 보드방 API 지연/실패가 채팅 아이콘을 막지 않게
       const { rooms: dmRooms } = await ChatAPI.RChatRooms();
+      if (epoch !== loadRoomsEpochRef.current) return;
       setRooms(dmRooms);
       setChatEnabled(true);
       applyUnreadTotal(dmRooms, boardRoomsRef.current);
@@ -72,14 +76,17 @@ const Chat = () => {
       const { rooms: board } = await ChatAPI.RChatBoardRooms({
         query: boardQuery,
       }).catch(() => ({ rooms: [] as TChatRoom[] }));
+      if (epoch !== loadRoomsEpochRef.current) return;
       setBoardRooms(board);
       applyUnreadTotal(dmRooms, board);
 
       const { rooms: archived } = await ChatAPI.RChatRooms({
         query: { archived: "true" },
       });
+      if (epoch !== loadRoomsEpochRef.current) return;
       setArchivedRooms(archived);
     } catch (err: any) {
+      if (epoch !== loadRoomsEpochRef.current) return;
       // Chat may not be enabled
       if (err?.response?.data?.message === "CHAT_NOT_ENABLED") {
         setChatEnabled(false);
@@ -212,9 +219,11 @@ const Chat = () => {
           boardRooms={boardRooms}
           archivedRooms={archivedRooms}
           socket={socket}
-          onClose={() => {
+          onClose={(options) => {
             setChatWindowActive(false);
-            loadRooms();
+            if (!options?.skipReload) {
+              loadRooms();
+            }
           }}
           onRoomSelect={handleRoomSelect}
           onRoomUpdated={(updatedRoom) => {

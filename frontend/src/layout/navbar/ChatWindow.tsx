@@ -28,13 +28,18 @@ const formatFileSize = (bytes: number): string => {
   return (bytes / (1024 * 1024)).toFixed(1) + " MB";
 };
 
+export type TChatWindowCloseOptions = {
+  /** 보드 채팅으로 이동할 때: 읽음 전 loadRooms가 뱃지를 다시 올리지 않게 */
+  skipReload?: boolean;
+};
+
 type Props = {
   room: TChatRoom | null;
   rooms: TChatRoom[];
   boardRooms?: TChatRoom[];
   archivedRooms?: TChatRoom[];
   socket?: Socket;
-  onClose: () => void;
+  onClose: (options?: TChatWindowCloseOptions) => void;
   onRoomSelect: (room: TChatRoom | null) => void;
   onRoomUpdated?: (room: TChatRoom) => void;
   onNewChatCreated: (room: TChatRoom) => void;
@@ -420,7 +425,9 @@ const ChatWindow = ({ room: initialRoom, rooms, boardRooms = [], archivedRooms =
 
   const handleBoardRoomClick = (selectedRoom: TChatRoom) => {
     if (!selectedRoom.board) return;
-    onClose();
+    // 읽음 전에 loadRooms 하면 옛 unread로 뱃지가 다시 올라감 → 창만 닫고
+    // 보드 쪽 읽음 + requestChatRoomsReload에 맡긴다.
+    onClose({ skipReload: true });
     const basePath =
       selectedRoom.coursePath || `/boards/${selectedRoom.board}`;
     navigate({
