@@ -2743,7 +2743,7 @@
 
 .sheetFilterChipRow {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px 12px;
@@ -2762,12 +2762,14 @@
   gap: 6px;
   flex-shrink: 0;
   margin-left: auto;
+  min-height: 34px;
 }
 
 .sheetSortLabel {
   font-size: 12px;
   color: var(--text-color-2);
   white-space: nowrap;
+  line-height: 1;
 }
 
 .sheetSortSelect {
@@ -2793,8 +2795,12 @@
   border-radius: 6px;
   background: var(--background-color);
   color: var(--text-color-1);
-  font-size: 14px;
   cursor: pointer;
+
+  svg {
+    display: block;
+    fill: currentColor;
+  }
 
   &:disabled {
     opacity: 0.45;
@@ -2804,6 +2810,10 @@
   &:not(:disabled):hover {
     background: var(--background-color-2);
   }
+}
+
+.sheetSortDirAsc {
+  transform: rotate(180deg);
 }
 
 .sheetFormSelector {
@@ -5044,5 +5054,23 @@ tbody tr:hover .actionCell {
   .docViewCardHeader {
     border-bottom-color: #ccc !important;
   }
+
+  .docBatchPrintPage {
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .docBatchPrintPage:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
 }
 
+/* 일괄 인쇄: 화면에서는 숨기고 인쇄 시에만 사용 */
+.docBatchPrintRoot {
+  position: absolute;
+  left: -10000px;
+  top: 0;
+  width: 800px;
+  pointer-events: none;
+}

@@ -204,6 +204,9 @@ const AltSheetView = ({
   const docPrintRootRef = useRef<HTMLDivElement>(null);
   const tablePrintRootRef = useRef<HTMLDivElement>(null);
   const timetablePrintRootRef = useRef<HTMLDivElement>(null);
+  const docBatchPrintRootRef = useRef<HTMLDivElement>(null);
+  /** 문서 보기 일괄 인쇄: DOM 마운트 후 print */
+  const [docBatchPrintActive, setDocBatchPrintActive] = useState(false);
 
   const selectedForm = forms.find((f) => f._id === selectedFormId);
 
@@ -521,6 +524,21 @@ const AltSheetView = ({
     return rows.filter((row) => {
       if ((row._respondentName || "").toLowerCase().includes(kw)) return true;
       if ((row._respondentId || "").toLowerCase().includes(kw)) return true;
+      if (row._submittedAt) {
+        const submittedRaw = String(row._submittedAt).toLowerCase();
+        if (submittedRaw.includes(kw)) return true;
+        const submittedLabel = new Date(row._submittedAt)
+          .toLocaleString("ko-KR", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            weekday: "short",
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+          .toLowerCase();
+        if (submittedLabel.includes(kw)) return true;
+      }
       for (const field of allVisibleFields) {
         const cellValue = row.data[field._id];
         if (cellValue === null || cellValue === undefined) continue;
@@ -580,6 +598,33 @@ const AltSheetView = ({
 
     return result;
   }, [keywordRows, sortConfig, allVisibleFields]);
+
+  const handleDocBatchPrint = () => {
+    if (filteredRows.length === 0) {
+      window.alert("인쇄할 응답이 없습니다.");
+      return;
+    }
+    if (
+      filteredRows.length > 30 &&
+      !window.confirm(
+        `필터된 응답 ${filteredRows.length}건을 일괄 인쇄합니다. 계속할까요?`
+      )
+    ) {
+      return;
+    }
+    setDocBatchPrintActive(true);
+  };
+
+  // 문서 보기 일괄 인쇄: 필터된 응답 DOM 마운트 후 printArea
+  useEffect(() => {
+    if (!docBatchPrintActive) return;
+    const frame = requestAnimationFrame(() => {
+      printArea(docBatchPrintRootRef.current, {
+        onComplete: () => setDocBatchPrintActive(false),
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [docBatchPrintActive]);
 
   // 문서 보기 index를 필터 결과에 맞게 유지
   useEffect(() => {
@@ -1856,6 +1901,20 @@ const AltSheetView = ({
                   <Svg type="print" width="16px" height="16px" />
                   인쇄
                 </button>
+                {viewMode === "doc" && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={style.formActionItem}
+                    onClick={() => {
+                      handleDocBatchPrint();
+                      moreMenu.setActive(false);
+                    }}
+                  >
+                    <Svg type="print" width="16px" height="16px" />
+                    일괄 인쇄
+                  </button>
+                )}
                 {onCopySheetLink && (
                   <button
                     type="button"
@@ -1957,7 +2016,9 @@ const AltSheetView = ({
               </select>
               <button
                 type="button"
-                className={style.sheetSortDirBtn}
+                className={`${style.sheetSortDirBtn} ${
+                  sortConfig?.direction !== "desc" ? style.sheetSortDirAsc : ""
+                }`}
                 title={
                   sortConfig?.direction === "desc" ? "내림차순" : "오름차순"
                 }
@@ -1967,7 +2028,7 @@ const AltSheetView = ({
                 disabled={!sortConfig}
                 onClick={toggleSortDirection}
               >
-                {sortConfig?.direction === "desc" ? "↓" : "↑"}
+                <Svg type="caretDown" width="16px" height="16px" />
               </button>
             </div>
           }
@@ -2570,6 +2631,124 @@ const AltSheetView = ({
             이 작업은 되돌릴 수 없습니다.
           </div>
         </Popup>
+      )}
+
+      {/* 문서 보기 일괄 인쇄용 (화면 밖 마운트 → printArea) */}
+      {docBatchPrintActive && (
+        <div
+          ref={docBatchPrintRootRef}
+          className={style.docBatchPrintRoot}
+          aria-hidden
+        >
+          {filteredRows.map((row, pageIndex) => (
+            <div key={row._id} className={style.docBatchPrintPage}>
+              <div className={style.printTitle}>
+                {selectedForm?.title || "기록"}
+                {filteredRows.length > 1
+                  ? ` (${pageIndex + 1}/${filteredRows.length})`
+                  : ""}
+              </div>
+              <div className={style.docViewCardHeader}>
+                <div>
+                  {showRespondentCol ? (
+                    <>
+                      <span style={{ fontWeight: 600 }}>
+                        {row._respondentName || "응답자"}
+                      </span>
+                      {row._respondentId && (
+                        <span
+                          style={{
+                            fontSize: "12px",
+                            color: "var(--text-color-2)",
+                            marginLeft: "4px",
+                          }}
+                        >
+                          ({row._respondentId})
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <span style={{ fontWeight: 600 }}>응답</span>
+                  )}
+                </div>
+                {showSubmittedAtCol && (
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      color: "var(--text-color-2)",
+                    }}
+                  >
+                    {row._submittedAt
+                      ? new Date(row._submittedAt).toLocaleString("ko-KR", {
+                          year: "numeric",
+                          month: "2-digit",
+                          day: "2-digit",
+                          weekday: "short",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : "-"}
+                  </span>
+                )}
+              </div>
+
+              {isQuiz && row.data?._quiz_score != null && (
+                <div className={style.quizScoreBanner}>
+                  <div className={style.quizScoreText}>
+                    <strong>
+                      점수: {row.data._quiz_score} /{" "}
+                      {row.data._quiz_total || 0}점
+                    </strong>
+                  </div>
+                </div>
+              )}
+
+              {contentFields.map((field) => (
+                <div key={field._id} className={style.questionItem}>
+                  <div className={style.questionLabel}>
+                    <span className={style.questionLabelText}>
+                      {field.label}
+                    </span>
+                    {field.required && (
+                      <span className={style.requiredMark}>*</span>
+                    )}
+                    {field.permission === "owner" && (
+                      <span className={style.docViewOwnerBadge}>(관리자)</span>
+                    )}
+                  </div>
+                  <div className={style.docViewValue}>
+                    {renderDocFieldValue(row, field, false)}
+                  </div>
+                </div>
+              ))}
+
+              {approvalFields.map((field) => (
+                <SheetApprovalDocSection
+                  key={field._id}
+                  field={field}
+                  row={row}
+                  currentUserId={currentUser?.userId}
+                  reason=""
+                  onReasonChange={() => {}}
+                  onApprove={() => {}}
+                  onReject={() => {}}
+                />
+              ))}
+
+              {isAssessment && selectedForm && (
+                <SheetAssessmentSection
+                  form={selectedForm}
+                  row={row}
+                  canManage={false}
+                  gradeDraft={{ byField: {}, final: {} }}
+                  setGradeDraft={() => {}}
+                  isSavingGrade={false}
+                  onSave={() => {}}
+                />
+              )}
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
