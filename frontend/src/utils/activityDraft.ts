@@ -71,6 +71,24 @@ const defaultAssessmentSettings = (): TAssessmentSettings => ({
   finalEvaluation: { mode: "both" },
 });
 
+/** 빌더 datetime-local 입력용 (로컬 YYYY-MM-DDTHH:mm) */
+export const toLocalDatetimeString = (date: Date): string => {
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+    date.getDate()
+  )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
+/** ISO 등 → datetime-local. 이미 local 형이면 그대로. 파싱 실패 시 빈 문자열 */
+export const toBuilderDatetimeLocal = (raw: unknown): string => {
+  const str = String(raw ?? "").trim();
+  if (!str) return "";
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(str)) return str;
+  const d = new Date(str);
+  if (Number.isNaN(d.getTime())) return "";
+  return toLocalDatetimeString(d);
+};
+
 export const defaultActivitySettings = (): TActivityBuilderSettings => ({
   allowResubmit: false,
   allowMultipleResponses: false,
@@ -144,8 +162,12 @@ export const normalizeActivityDraftSettings = (
       Number.isFinite(s.requiredResponseCount)
         ? Math.max(1, Math.floor(s.requiredResponseCount))
         : base.requiredResponseCount,
-    openAt: s.openAt != null ? String(s.openAt) : base.openAt,
-    closeAt: s.closeAt != null ? String(s.closeAt) : base.closeAt,
+    openAt: toBuilderDatetimeLocal(
+      s.openAt != null ? s.openAt : base.openAt
+    ),
+    closeAt: toBuilderDatetimeLocal(
+      s.closeAt != null ? s.closeAt : base.closeAt
+    ),
     weekdaySchedule: (() => {
       const ws = s.weekdaySchedule;
       const fallback = base.weekdaySchedule || {

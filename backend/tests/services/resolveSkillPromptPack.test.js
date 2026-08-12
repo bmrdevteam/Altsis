@@ -390,6 +390,103 @@ describe("resolveSkillPromptPack", () => {
     expect(prep.references).toEqual([]);
   });
 
+  test("activity-draft prep은 연결·태그 없는 지침을 노출하지 않는다", async () => {
+    mockFindLean.mockResolvedValue([
+      {
+        _id: "seoteuk",
+        kind: "instruction",
+        title: "세특 작성 지침",
+        content: "성장 중심",
+        skillTags: ["archive-draft"],
+      },
+      {
+        _id: "syllabus-guide",
+        kind: "instruction",
+        title: "수업 계획서 작성 지침",
+        content: "학습목표 중심",
+        skillTags: ["syllabus-draft"],
+      },
+      {
+        _id: "review-guide",
+        kind: "instruction",
+        title: "생활기록부 검수 지침",
+        content: "금지어 점검",
+      },
+    ]);
+
+    const prep = await resolveSkillPrepSettings(
+      "academy1",
+      {
+        _id: "school1",
+        aiConfig: {
+          skills: {
+            [SKILL_IDS.ACTIVITY_DRAFT]: {
+              instructions: "",
+              libraryItemIds: [],
+            },
+          },
+        },
+      },
+      { aiSettings: {} },
+      SKILL_IDS.ACTIVITY_DRAFT
+    );
+
+    expect(prep.instructionItems).toEqual([]);
+    expect(prep.defaultGuidelineItemIds).toEqual([]);
+    expect(prep.references).toEqual([]);
+  });
+
+  test("activity-draft prep은 연결한 지침만 목록·기본 선택에 넣는다", async () => {
+    mockFindLean.mockResolvedValue([
+      {
+        _id: "activity-guide",
+        kind: "instruction",
+        title: "활동 양식 지침",
+        content: "필드 구성을 명확히",
+      },
+      {
+        _id: "other-guide",
+        kind: "instruction",
+        title: "세특 작성 지침",
+        content: "성장 중심",
+        skillTags: ["archive-draft"],
+      },
+      {
+        _id: "tagged-activity",
+        kind: "instruction",
+        title: "활동 태그 지침",
+        content: "체험 중심",
+        skillTags: ["activity-draft"],
+      },
+    ]);
+
+    const prep = await resolveSkillPrepSettings(
+      "academy1",
+      {
+        _id: "school1",
+        aiConfig: {
+          skills: {
+            [SKILL_IDS.ACTIVITY_DRAFT]: {
+              instructions: "",
+              libraryItemIds: ["activity-guide"],
+            },
+          },
+        },
+      },
+      { aiSettings: {} },
+      SKILL_IDS.ACTIVITY_DRAFT
+    );
+
+    expect(prep.instructionItems?.map((it) => it._id)).toEqual([
+      "activity-guide",
+      "tagged-activity",
+    ]);
+    expect(prep.defaultGuidelineItemIds).toEqual(["activity-guide"]);
+    expect(prep.instructionItems?.map((it) => it._id)).not.toContain(
+      "other-guide"
+    );
+  });
+
   test("chat 스킬은 라이브러리가 없으면 수업형 defaultSkillGuide를 넣지 않는다", async () => {
     mockFindLean.mockResolvedValue([]);
     const pack = await resolveSkillPromptPack(

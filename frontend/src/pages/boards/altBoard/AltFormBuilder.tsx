@@ -28,11 +28,7 @@ import {
   estimateWeekdayOccurrenceCount,
   type TWeekdaySchedule,
 } from "./weekdaySchedule";
-
-const toLocalDatetimeString = (date: Date) => {
-  const pad = (n: number) => n.toString().padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-};
+import { toLocalDatetimeString } from "utils/activityDraft";
 
 /** 설정 라벨 옆 설명 — 아이콘 클릭 시 짧은 팝오버 */
 const SettingsHint = ({ text }: { text: string }) => {
