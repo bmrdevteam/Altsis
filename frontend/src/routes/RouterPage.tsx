@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import {
   BrowserRouter,
   Navigate,
@@ -79,6 +80,31 @@ import ChooseAcademy from "pages/login/ChooseAcademy";
 import Dev from "pages/dev/Index";
 import Classrooms from "pages/dev/Classrooms";
 import UrlContextSync from "./UrlContextSync";
+
+/**
+ * Hard-redirect SPA /sites/:academyId/* to backend public site URL
+ * (served under /api so existing API proxies work in production).
+ */
+const SitesPublicRedirect = () => {
+  const { academyId } = useParams<{ academyId: string }>();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!academyId) return;
+    const prefix = `/sites/${academyId}`;
+    let rest = location.pathname.startsWith(prefix)
+      ? location.pathname.slice(prefix.length)
+      : "";
+    rest = rest.replace(/^\/+/, "");
+    const base = (process.env.REACT_APP_SERVER_URL || "").replace(/\/$/, "");
+    const target = `${base}/api/sites/${encodeURIComponent(
+      academyId
+    )}/public/${rest}${location.search}${location.hash}`;
+    window.location.replace(target);
+  }, [academyId, location.pathname, location.search, location.hash]);
+
+  return null;
+};
 
 const LegacyRedirect = () => {
   const { currentUser, currentSchool } = useAuth();
@@ -302,6 +328,10 @@ function RouterPage() {
             <Route path="myaccount" element={<LegacyRedirect />} />
             <Route path="search/*" element={<LegacyRedirect />} />
             <Route path="dev/*" element={<LegacyRedirect />} />
+
+            {/* Public academy sites — never treat "sites" as academyId */}
+            <Route path="sites/:academyId/*" element={<SitesPublicRedirect />} />
+            <Route path="sites/:academyId" element={<SitesPublicRedirect />} />
 
             {/* ----------------------------------------------------- */}
 

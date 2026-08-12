@@ -71,7 +71,7 @@ export const getMeta = async (req, res) => {
       academyId: academy.academyId,
       sitePublishEnabled: !!academy.sitePublishEnabled,
       sitePublished: !!academy.sitePublished,
-      publicPath: `/sites/${academy.academyId}/`,
+      publicPath: `/api/sites/${academy.academyId}/public/`,
       limits: {
         maxFileBytes: MAX_FILE_BYTES,
         maxFileCount: MAX_FILE_COUNT,
@@ -102,7 +102,7 @@ export const updatePublished = async (req, res) => {
     return res.status(200).send({
       academyId: academy.academyId,
       sitePublished: academy.sitePublished,
-      publicPath: `/sites/${academy.academyId}/`,
+      publicPath: `/api/sites/${academy.academyId}/public/`,
     });
   } catch (err) {
     logger.error(err.message);
@@ -470,7 +470,7 @@ async function streamSiteFile(res, academyId, relativePath) {
 }
 
 /**
- * Public serve: GET /sites/:academyId/*
+ * Public serve: GET /sites/:academyId/* and GET /api/sites/:academyId/public/*
  */
 export const servePublic = async (req, res) => {
   try {
@@ -485,10 +485,7 @@ export const servePublic = async (req, res) => {
       return res.status(404).send("사이트를 찾을 수 없습니다.");
     }
 
-    const raw =
-      req.params[0] != null
-        ? req.params[0]
-        : (req.path || "").replace(new RegExp(`^/sites/${academyId}/?`), "");
+    const raw = req.params[0] != null ? req.params[0] : "";
 
     const relativePath = resolvePublicRelativePath(raw);
     if (!relativePath || !isAllowedFilePath(relativePath)) {
