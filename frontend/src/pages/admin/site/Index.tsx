@@ -58,7 +58,8 @@ const SiteAdmin = () => {
   const zipInput = useRef<HTMLInputElement>(null);
 
   const publicUrl = useMemo(
-    () => `${process.env.REACT_APP_SERVER_URL}/sites/${academyId}/`,
+    () =>
+      `${process.env.REACT_APP_SERVER_URL}/api/sites/${academyId}/public/`,
     [academyId]
   );
 
@@ -476,8 +477,9 @@ const SiteAdmin = () => {
                   </Button>
                 </div>
                 <p className={style.pathHint}>
-                  자산은 <code>/sites/{academyId}/</code> 기준 상대 경로로
-                  연결하세요. 예: <code>css/style.css</code>
+                  자산은{" "}
+                  <code>/api/sites/{academyId}/public/</code> 기준 상대
+                  경로로 연결하세요. 예: <code>css/style.css</code>
                 </p>
               </div>
             ) : (

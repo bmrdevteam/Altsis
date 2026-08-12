@@ -3,6 +3,14 @@ const router = express.Router();
 import { isOwAdmin } from "../middleware/auth.js";
 import * as sites from "../controllers/sites.js";
 
+// Public site (no auth) — must be registered before authenticated routes
+router.use("/:academyId/public", (req, res, next) => {
+  if (req.method !== "GET" && req.method !== "HEAD") return next();
+  const rel = decodeURIComponent((req.path || "/").replace(/^\/+/, ""));
+  req.params[0] = rel;
+  return sites.servePublic(req, res);
+});
+
 router.get("/:academyId/meta", isOwAdmin, sites.getMeta);
 router.put("/:academyId/published", isOwAdmin, sites.updatePublished);
 router.get("/:academyId/files", isOwAdmin, sites.listFiles);

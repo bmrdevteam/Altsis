@@ -21,6 +21,7 @@ const KNOWN_PATH_SEGMENTS = new Set([
   "myaccount",
   "search",
   "dev",
+  "sites",
 ]);
 
 const UrlContextSync = () => {
