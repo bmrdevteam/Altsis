@@ -784,6 +784,9 @@ FormArchiveItem과 동일한 구조에 `deletedAt` 필드가 추가됩니다.
 | `reminder.enabled` | `Boolean` | X | `false` | 리마인더 활성화 |
 | `reminder.minutesBefore` | `Number` | X | - | 몇 분 전 알림 |
 | `reminder.useDefault` | `Boolean` | X | `true` | 기본 설정 사용 |
+| `scheduleStart` | `Object` | X | `{enabled:false}` | 일정 시작 알림 (옵트인) |
+| `scheduleStart.enabled` | `Boolean` | X | `false` | 일정 시작 알림 활성화 |
+| `notifySchool` | `Boolean` | X | `false` | 학교 전체 알림 (`scope=school`일 때만 유효) |
 | `sourceType` | `String` | X | `"manual"` | 출처 유형. enum: `"manual"`, `"enrollment"`, `"syllabus"`, `"memo"` |
 | `sourceId` | `String` | X | - | 출처 ID |
 | `syllabusId` | `ObjectId` | X | - | 연결된 강의계획서 `_id` |

@@ -82,14 +82,25 @@ export const create = async (req, res) => {
       };
     }
 
+    if (req.body.scheduleStart) {
+      eventData.scheduleStart = {
+        enabled: req.body.scheduleStart.enabled ?? false,
+      };
+    }
+
+    eventData.notifySchool =
+      req.body.scope === "school" && req.body.notifySchool === true;
+
     const calendarEvent = await CalendarEvent(req.user.academyId).create(
       eventData
     );
 
-    // 스케줄러 큐에 등록 (fire-and-forget)
-    registerEventNotification(req.user.academyId, calendarEvent).catch((err) =>
-      logger.error(`Failed to register event notification: ${err.message}`)
-    );
+    // 스케줄러 큐에 등록 (fire-and-forget; 옵트인 게이트는 register* 내부)
+    if (calendarEvent.scheduleStart?.enabled) {
+      registerEventNotification(req.user.academyId, calendarEvent).catch((err) =>
+        logger.error(`Failed to register event notification: ${err.message}`)
+      );
+    }
     if (calendarEvent.reminder?.enabled) {
       registerEventReminder(req.user.academyId, calendarEvent).catch((err) =>
         logger.error(`Failed to register event reminder: ${err.message}`)
@@ -221,6 +232,8 @@ export const update = async (req, res) => {
       "color",
       "calendarId",
       "reminder",
+      "scheduleStart",
+      "notifySchool",
     ];
     for (const field of allowedFields) {
       if (field in req.body) {
@@ -240,10 +253,22 @@ export const update = async (req, res) => {
             minutesBefore: req.body.reminder.minutesBefore,
             useDefault: req.body.reminder.useDefault ?? true,
           };
+        } else if (field === "scheduleStart") {
+          event.scheduleStart = {
+            enabled: req.body.scheduleStart.enabled ?? false,
+          };
+        } else if (field === "notifySchool") {
+          event.notifySchool =
+            event.scope === "school" && req.body.notifySchool === true;
         } else {
           event[field] = req.body[field];
         }
       }
+    }
+
+    // personal 등으로 scope가 바뀌지 않더라도, school이 아니면 강제 OFF
+    if (event.scope !== "school") {
+      event.notifySchool = false;
     }
 
     await event.save();
@@ -257,9 +282,11 @@ export const update = async (req, res) => {
     removeEventReminder(academyId, eventId).catch((err) =>
       logger.error(`Failed to remove old event reminder: ${err.message}`)
     );
-    registerEventNotification(academyId, event).catch((err) =>
-      logger.error(`Failed to re-register event notification: ${err.message}`)
-    );
+    if (event.scheduleStart?.enabled) {
+      registerEventNotification(academyId, event).catch((err) =>
+        logger.error(`Failed to re-register event notification: ${err.message}`)
+      );
+    }
     if (event.reminder?.enabled) {
       registerEventReminder(academyId, event).catch((err) =>
         logger.error(`Failed to re-register event reminder: ${err.message}`)

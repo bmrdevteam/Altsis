@@ -6,6 +6,7 @@
 import { Notification, NotificationSetting, School } from "../models/index.js";
 import { getIoNotification } from "../utils/webSocket.js";
 import { sendWebPushesForNotifications } from "./webPush.js";
+import { filterRecipientsBySettings } from "./calendarEventNotify.js";
 import { logger } from "../log/logger.js";
 
 /**
@@ -64,25 +65,39 @@ export const sendAutoNotification = async ({
   fromUser,
 }) => {
   try {
+    if (!toUserList?.length) {
+      return [];
+    }
+
     // 알림 설정 확인 - 해당 유형의 알림을 받지 않는 사용자 필터링
-    const userIds = toUserList.map((u) => u.userId);
-    const notificationSettings = await NotificationSetting(academyId).find({
-      userId: { $in: userIds },
-    });
+    const userIds = toUserList.map((u) => u.userId).filter(Boolean);
+    const userObjectIds = toUserList.map((u) => u.user).filter(Boolean);
+    const settingQuery = { $or: [] };
+    if (userIds.length) {
+      settingQuery.$or.push({ userId: { $in: userIds } });
+    }
+    if (userObjectIds.length) {
+      settingQuery.$or.push({ user: { $in: userObjectIds } });
+    }
+
+    const notificationSettings =
+      settingQuery.$or.length > 0
+        ? await NotificationSetting(academyId).find(settingQuery)
+        : [];
 
     const settingsMap = {};
     for (let setting of notificationSettings) {
-      settingsMap[setting.userId] = setting.settings;
+      if (setting.userId) {
+        settingsMap[setting.userId] = setting.settings;
+      }
     }
 
-    // 알림 설정에서 해당 유형을 끈 사용자 제외
-    const filteredUsers = toUserList.filter((user) => {
-      const settings = settingsMap[user.userId];
-      // 설정이 없으면 기본값 true (알림 받음)
-      if (!settings) return true;
-      // 해당 알림 유형이 false면 제외
-      return settings[notificationType] !== false;
-    });
+    // 알림 설정에서 해당 유형을 끈 사용자 제외 (user ObjectId + userId 매칭)
+    const filteredUsers = filterRecipientsBySettings(
+      toUserList,
+      notificationSettings,
+      notificationType
+    );
 
     if (filteredUsers.length === 0) {
       return [];

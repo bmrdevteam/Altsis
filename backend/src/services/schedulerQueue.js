@@ -156,6 +156,8 @@ export async function registerEventNotification(academyId, event) {
   try {
     if (!event || event.isAllDay) return;
     if (event.sourceType && event.sourceType !== "manual") return;
+    // 일정 시작 알림 옵트인 (기본 OFF; 필드 없으면 미등록)
+    if (event.scheduleStart?.enabled !== true) return;
 
     const now = new Date();
     const recurrenceType = event.recurrence?.type;

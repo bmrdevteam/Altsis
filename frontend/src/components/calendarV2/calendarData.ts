@@ -187,6 +187,10 @@ export class EventItem {
     minutesBefore?: number;
     useDefault?: boolean;
   };
+  scheduleStart?: {
+    enabled: boolean;
+  };
+  notifySchool?: boolean;
 }
 
 export interface SpanningEvent {
@@ -312,6 +316,8 @@ export class Calendar {
           : undefined,
         recurrenceDays: event.recurrence?.days || [],
         reminder: event.reminder,
+        scheduleStart: event.scheduleStart,
+        notifySchool: event.notifySchool === true,
       };
 
       const startDate = new Date(event.start);

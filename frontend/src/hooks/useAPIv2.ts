@@ -1444,6 +1444,10 @@ export default function useAPIv2() {
         minutesBefore?: number;
         useDefault?: boolean;
       };
+      scheduleStart?: {
+        enabled: boolean;
+      };
+      notifySchool?: boolean;
     };
   }) {
     const { calendarEvent } = await database.C({
@@ -1500,6 +1504,10 @@ export default function useAPIv2() {
         minutesBefore?: number;
         useDefault?: boolean;
       };
+      scheduleStart?: {
+        enabled: boolean;
+      };
+      notifySchool?: boolean;
     };
   }) {
     const { calendarEvent } = await database.U({
