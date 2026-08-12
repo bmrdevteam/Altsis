@@ -74,7 +74,9 @@ import {
   sanitizeAiDocResponseFill,
 } from "./formResponseSlots.js";
 import {
+  ALTER_HOWTO_EXAMPLE_PROMPTS,
   buildAlterChatSystemPrompt,
+  detectAlterHowtoIntent,
   withAlterSafety,
 } from "./alterCorePrompt.js";
 import {
@@ -1476,14 +1478,56 @@ export const formatReviewAsChatText = (review) => {
   return lines.join("\n") || "문서 점검을 완료했습니다.";
 };
 
-const buildAlterChatSystem = (promptPack, context, boardTitle) =>
-  buildAlterChatSystemPrompt({
+/**
+ * howto 모드용 스킬·예시 블록 (catalog + 예시 맵).
+ * @param {string[]} [suggestedSkills]
+ * @returns {{ availableSkillsText: string, examplePromptsText: string }}
+ */
+export const buildHowtoCoachBlocks = (suggestedSkills) => {
+  const ids = Array.isArray(suggestedSkills)
+    ? suggestedSkills.map((id) => resolveSkillId(id))
+    : [];
+  const unique = [...new Set(ids.length ? ids : [SKILL_IDS.CHAT])];
+
+  const skillLines = unique.map((id) => {
+    const meta = SKILL_CATALOG[id] || SKILL_CATALOG[SKILL_IDS.CHAT];
+    return `- ${meta.name} (${meta.id}): ${meta.description}`;
+  });
+  const availableSkillsText = `## 이 화면에서 쓸 수 있는 스킬\n${skillLines.join(
+    "\n"
+  )}`;
+
+  const exampleLines = [];
+  for (const id of unique) {
+    const meta = SKILL_CATALOG[id] || SKILL_CATALOG[SKILL_IDS.CHAT];
+    const prompts = ALTER_HOWTO_EXAMPLE_PROMPTS[id] || [];
+    for (const p of prompts.slice(0, 2)) {
+      exampleLines.push(`- [${meta.name}] ${p}`);
+    }
+  }
+  const examplePromptsText = exampleLines.length
+    ? `## 복붙용 예시\n${exampleLines.join("\n")}`
+    : "";
+
+  return { availableSkillsText, examplePromptsText };
+};
+
+const buildAlterChatSystem = (promptPack, context, boardTitle, message = "") => {
+  const howtoMode = detectAlterHowtoIntent(message);
+  const coach = howtoMode
+    ? buildHowtoCoachBlocks(context?.suggestedSkills)
+    : { availableSkillsText: "", examplePromptsText: "" };
+  return buildAlterChatSystemPrompt({
     boardTitle,
     pageContext: context,
     chatSnapshot: context?.chatSnapshot,
     guidelines: promptPack?.guidelines || "",
     references: promptPack?.references || [],
+    howtoMode,
+    availableSkillsText: coach.availableSkillsText,
+    examplePromptsText: coach.examplePromptsText,
   });
+};
 
 /** 평가 초안 레코드 구분자 (탭보다 모델이 안정적으로 출력) */
 const EVAL_DRAFT_SEP = "|||";
@@ -5112,7 +5156,8 @@ export const runAlterSkill = async ({
   const systemInstruction = buildAlterChatSystem(
     { ...chatPromptPack, references: chatReferences },
     context,
-    boardTitle
+    boardTitle,
+    message
   );
 
   const attachments = Array.isArray(context?.attachments)

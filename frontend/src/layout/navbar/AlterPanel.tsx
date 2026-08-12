@@ -994,6 +994,9 @@ const AlterPanel = ({ onClose }: Props) => {
       formSyllabus: pageContext?.formSyllabus || currentSeason?.formSyllabus,
       chatSnapshot,
       dataExpand,
+      suggestedSkills: pageContext?.suggestedSkills?.length
+        ? pageContext.suggestedSkills
+        : ["chat"],
       sourceText: attachmentText,
       attachments,
     };
