@@ -2,6 +2,7 @@ import {
   assembleSchoolTodos,
   sortSchoolTodos,
 } from "../../src/utils/schoolTodosAssemble.js";
+import { zonedLocalToUtc } from "../../src/services/weekdaySchedule.js";
 
 describe("sortSchoolTodos", () => {
   test("orders approve then grade then outgoing then unsubmitted; newest first within kind", () => {
@@ -261,5 +262,71 @@ describe("assembleSchoolTodos", () => {
     });
 
     expect(items.filter((i) => i.kind === "grade")).toHaveLength(0);
+  });
+
+  test("weekdaySchedule: unsubmitted only inside occurrence window; closeAt is occurrence end", () => {
+    const form = {
+      _id: "formWeekday",
+      board: "board1",
+      title: "요일마다 양식",
+      fields: [],
+      settings: {
+        requiredMode: true,
+        allowMultipleResponses: true,
+        requiredResponseCount: 10,
+        openAt: "2026-03-01T00:00:00.000Z",
+        closeAt: "2026-03-31T15:00:00.000Z",
+        weekdaySchedule: {
+          enabled: true,
+          daysOfWeek: [3],
+          startTime: "09:00",
+          endTime: "18:00",
+        },
+      },
+    };
+
+    const inWindow = zonedLocalToUtc(2026, 3, 11, 10, 0);
+    const outsideDay = zonedLocalToUtc(2026, 3, 10, 10, 0);
+
+    const inside = assembleSchoolTodos({
+      boards: [board],
+      forms: [form],
+      myRows: [],
+      approverRows: [],
+      user,
+      now: inWindow,
+    });
+    const unsub = inside.find((i) => i.kind === "unsubmitted");
+    expect(unsub?.formTitle).toBe("요일마다 양식");
+    expect(new Date(unsub.closeAt).getTime()).toBe(
+      zonedLocalToUtc(2026, 3, 11, 18, 0).getTime()
+    );
+
+    const outside = assembleSchoolTodos({
+      boards: [board],
+      forms: [form],
+      myRows: [],
+      approverRows: [],
+      user,
+      now: outsideDay,
+    });
+    expect(outside.filter((i) => i.kind === "unsubmitted")).toHaveLength(0);
+
+    const submittedToday = assembleSchoolTodos({
+      boards: [board],
+      forms: [form],
+      myRows: [
+        {
+          form: "formWeekday",
+          createdAt: zonedLocalToUtc(2026, 3, 11, 9, 30),
+        },
+      ],
+      approverRows: [],
+      user,
+      now: inWindow,
+    });
+    expect(
+      submittedToday.filter((i) => i.kind === "unsubmitted")
+    ).toHaveLength(0);
   });
 });

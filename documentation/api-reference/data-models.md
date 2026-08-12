@@ -1108,6 +1108,10 @@ Alt Board의 양식 빌더로, 데이터 수집용 Form을 관리합니다. Form
 | `settings.openAt` | `Date` | X | - | 공개 시작 시각 |
 | `settings.closeAt` | `Date` | X | - | 공개 종료 시각 |
 | `settings.allowResubmit` | `Boolean` | X | `false` | 재제출 허용 |
+| `settings.allowMultipleResponses` | `Boolean` | X | `false` | 복수 응답 허용 |
+| `settings.requiredMode` | `Boolean` | X | `false` | 필수 응답(미제출 할 일) |
+| `settings.requiredResponseCount` | `Number` | X | - | 필수+복수일 때 목표 제출 횟수 |
+| `settings.weekdaySchedule` | `Object` | X | - | 요일마다 회차 창 (`enabled`, `daysOfWeek` 0=일…6=토, `startTime`/`endTime` HH:mm, Asia/Seoul). 전제: requiredMode + allowMultipleResponses + openAt + closeAt |
 | `settings.quizMode` | `Boolean` | X | `false` | 퀴즈 모드 |
 | `settings.shareResponses` | `Boolean` | X | `false` | 응답 공유 |
 | `sheet` | `ObjectId` | X | - | 연결된 AltSheet `_id` |

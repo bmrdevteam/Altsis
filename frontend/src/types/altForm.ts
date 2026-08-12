@@ -178,6 +178,19 @@ export type TAltFormSettings = {
    * true일 때만 필수. 미설정·false는 선택(미제출 미표시).
    */
   requiredMode?: boolean;
+  /**
+   * 요일마다: 선택 요일의 startTime~endTime에서만 할 일·제출 (회차당 1회).
+   * 전제: requiredMode + allowMultipleResponses + openAt + closeAt
+   */
+  weekdaySchedule?: {
+    enabled: boolean;
+    /** JS getDay: 0=일 … 6=토 */
+    daysOfWeek: number[];
+    /** HH:mm */
+    startTime: string;
+    /** HH:mm */
+    endTime: string;
+  };
   quizMode?: boolean;
   quizSettings?: TQuizSettings;
   /** 평가 모드 (퀴즈와 상호 배타) */
@@ -216,4 +229,10 @@ export type TAltForm = {
   mySubmitted?: boolean;
   /** 목록 API 메타: 내 제출 건수 */
   myResponseCount?: number;
+  /** 목록 API 메타: 요일마다 — 현재 회차 창 안 */
+  inOccurrenceWindow?: boolean;
+  /** 목록 API 메타: 요일마다 — 현재 회차 이미 제출 */
+  submittedCurrentOccurrence?: boolean;
+  /** 목록 API 메타: 할 일 마감 표시용 (회차 end 또는 closeAt) */
+  occurrenceCloseAt?: string | null;
 };

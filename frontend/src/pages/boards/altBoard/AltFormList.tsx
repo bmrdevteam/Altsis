@@ -26,6 +26,7 @@ import {
   getDeadlineRemainingLabel,
   isDeadlineUrgent,
 } from "./activityDeadline";
+import { shouldShowUnsubmittedTodoForm, getEffectiveTodoCloseAtLocal } from "./weekdaySchedule";
 import {
   getSchoolTodosCached,
   invalidateSchoolTodosCache,
@@ -211,17 +212,10 @@ const AltFormList = ({
     return forms.filter((f) => !f.settings.directInputMode);
   }, [forms, myRole]);
 
-  /** 할 일: 필수·진행 중·미제출 */
+  /** 할 일: 필수·진행 중·미제출 (요일마다면 회차 창·당일 미제출) */
   const todoUnsubmitted = useMemo(() => {
     const now = new Date();
-    return forms.filter((f) => {
-      if (f.isDraft) return false;
-      if (f.settings?.requiredMode !== true) return false;
-      if (f.settings?.directInputMode) return false;
-      if (f.settings.closeAt && new Date(f.settings.closeAt) < now) return false;
-      if (f.settings.openAt && new Date(f.settings.openAt) > now) return false;
-      return !f.mySubmitted;
-    });
+    return forms.filter((f) => shouldShowUnsubmittedTodoForm(f, now));
   }, [forms]);
 
   const todoUnsubmittedIds = useMemo(
@@ -446,7 +440,8 @@ const AltFormList = ({
   };
 
   const renderActivityCard = (form: TAltForm) => {
-    const deadlineLabel = getDeadlineRemainingLabel(form.settings.closeAt);
+    const effectiveCloseAt = getEffectiveTodoCloseAtLocal(form);
+    const deadlineLabel = getDeadlineRemainingLabel(effectiveCloseAt);
     const period = getActivityPeriodKind(form);
     const isDirect = !!form.settings.directInputMode;
     const canEditForm = canModifyForm(form);
@@ -501,7 +496,7 @@ const AltFormList = ({
               {deadlineLabel && (
                 <span
                   className={
-                    isDeadlineUrgent(form.settings.closeAt)
+                    isDeadlineUrgent(effectiveCloseAt)
                       ? style.deadlineUrgent
                       : undefined
                   }

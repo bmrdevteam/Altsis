@@ -5,9 +5,10 @@
 import {
   getAltBoardRole,
   canManageForm,
-  hasSubmittedForList,
+  shouldShowUnsubmittedTodo,
   isFormRequiredMode,
   getRequiredResponseCount,
+  getEffectiveTodoCloseAt,
 } from "../services/altForms.js";
 import {
   isCurrentApprover,
@@ -197,15 +198,12 @@ export const assembleSchoolTodos = ({
       if (!altRole) continue;
       if (!isFormRequiredMode(form)) continue;
       if (form.settings?.directInputMode) continue;
-      if (form.settings?.closeAt && new Date(form.settings.closeAt) < now) {
+      if (!shouldShowUnsubmittedTodo(form, formMyRows, now)) {
         continue;
       }
-      if (form.settings?.openAt && new Date(form.settings.openAt) > now) {
-        continue;
-      }
-      if (hasSubmittedForList(form, formMyRows)) continue;
 
       const target = getRequiredResponseCount(form);
+      const effectiveClose = getEffectiveTodoCloseAt(form, now);
       todos.push({
         kind: "unsubmitted",
         boardId,
@@ -218,7 +216,7 @@ export const assembleSchoolTodos = ({
           target != null ? `${formMyRows.length}/${target}` : undefined,
         quizMode: !!form.settings?.quizMode,
         assessmentMode: !!form.settings?.assessmentMode,
-        closeAt: form.settings?.closeAt || null,
+        closeAt: effectiveClose || null,
       });
     }
   }

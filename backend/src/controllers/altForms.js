@@ -6,7 +6,7 @@
 import crypto from "crypto";
 import { logger } from "../log/logger.js";
 import { AltForm, AltSheet, AltSheetOpen, AltSheetRow, Board, CalendarEvent } from "../models/index.js";
-import { canManageForm, canModifyForm, getAltBoardRole, hasSubmittedForList, resolveUnreadResponseCount, validateExclusiveFormModes } from "../services/altForms.js";
+import { canManageForm, canModifyForm, getAltBoardRole, hasSubmittedForList, resolveUnreadResponseCount, validateExclusiveFormModes, applyWeekdayScheduleNormalize, isWeekdayScheduleEnabled, isInOccurrenceWindow, hasSubmittedCurrentOccurrence, getEffectiveTodoCloseAt } from "../services/altForms.js";
 import { cloneAltFormToBoard } from "../services/altFormClone.js";
 import { isBoardNotificationEnabled } from "../services/notifications.js";
 import { getBoardMembers } from "../services/boards.js";
@@ -57,7 +57,7 @@ const enrichFormsWithListMeta = async (
         _respondent: userId,
         isActive: true,
       })
-      .select("form createdAt")
+      .select("form createdAt _submittedAt")
       .lean(),
     includeResponseCount
       ? AltSheetOpen(academyId)
@@ -110,10 +110,23 @@ const enrichFormsWithListMeta = async (
     const plain = typeof form.toObject === "function" ? form.toObject() : form;
     const id = plain._id.toString();
     const mine = myRowsByForm.get(id) || [];
+    const now = new Date();
+    const effectiveClose = getEffectiveTodoCloseAt(plain, now);
     const meta = {
       ...plain,
       mySubmitted: hasSubmittedForList(plain, mine),
       myResponseCount: mine.length,
+      inOccurrenceWindow: isWeekdayScheduleEnabled(plain)
+        ? isInOccurrenceWindow(plain, now)
+        : undefined,
+      submittedCurrentOccurrence: isWeekdayScheduleEnabled(plain)
+        ? hasSubmittedCurrentOccurrence(plain, mine, now)
+        : undefined,
+      occurrenceCloseAt: effectiveClose
+        ? effectiveClose instanceof Date
+          ? effectiveClose.toISOString()
+          : new Date(effectiveClose).toISOString()
+        : null,
     };
     if (includeResponseCount) {
       meta.responseCount = countByForm.get(id) || 0;
@@ -151,6 +164,17 @@ export const create = async (req, res) => {
     }
 
     const createSettings = req.body.settings || { allowResubmit: false };
+    if (!createSettings.requiredMode || !createSettings.allowMultipleResponses) {
+      createSettings.requiredResponseCount = undefined;
+    } else {
+      const n = Number(createSettings.requiredResponseCount);
+      createSettings.requiredResponseCount =
+        Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
+    }
+    const wsErr = applyWeekdayScheduleNormalize(createSettings);
+    if (wsErr.error) {
+      return res.status(400).send({ message: wsErr.error });
+    }
     const modeErr = validateExclusiveFormModes(createSettings);
     if (modeErr) {
       return res.status(400).send({ message: modeErr });
@@ -447,6 +471,10 @@ export const update = async (req, res) => {
         form.settings.requiredResponseCount =
           Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
       }
+      const wsErr = applyWeekdayScheduleNormalize(form.settings);
+      if (wsErr.error) {
+        return res.status(400).send({ message: wsErr.error });
+      }
       const modeErr = validateExclusiveFormModes(form.settings);
       if (modeErr) {
         return res.status(400).send({ message: modeErr });
@@ -605,6 +633,7 @@ export const exportForm = async (req, res) => {
         showOwnResponse: form.settings?.showOwnResponse,
         openAt: form.settings?.openAt,
         closeAt: form.settings?.closeAt,
+        weekdaySchedule: form.settings?.weekdaySchedule,
       },
     };
 
@@ -639,6 +668,17 @@ export const importForm = async (req, res) => {
 
     const fd = req.body.formData;
     const importSettings = fd.settings || { allowResubmit: false };
+    if (!importSettings.requiredMode || !importSettings.allowMultipleResponses) {
+      importSettings.requiredResponseCount = undefined;
+    } else {
+      const n = Number(importSettings.requiredResponseCount);
+      importSettings.requiredResponseCount =
+        Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
+    }
+    const wsErr = applyWeekdayScheduleNormalize(importSettings);
+    if (wsErr.error) {
+      return res.status(400).send({ message: wsErr.error });
+    }
     const modeErr = validateExclusiveFormModes(importSettings);
     if (modeErr) {
       return res.status(400).send({ message: modeErr });

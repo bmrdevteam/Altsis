@@ -170,6 +170,20 @@ const altFormSettingsSchema = mongoose.Schema(
      */
     requiredMode: { type: Boolean, default: false },
 
+    /**
+     * 요일마다: 선택 요일의 startTime~endTime 회차 창에서만 할 일·제출.
+     * 전제: requiredMode + allowMultipleResponses + openAt + closeAt
+     */
+    weekdaySchedule: {
+      type: {
+        enabled: { type: Boolean, default: false },
+        daysOfWeek: [{ type: Number, min: 0, max: 6 }],
+        startTime: { type: String },
+        endTime: { type: String },
+      },
+      default: undefined,
+    },
+
     // Phase 2: 퀴즈 모드
     quizMode: { type: Boolean, default: false },
     quizSettings: {

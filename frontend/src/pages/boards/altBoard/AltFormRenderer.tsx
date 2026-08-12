@@ -20,6 +20,12 @@ import {
   normalizeApprovalValue,
 } from "utils/approvalLine";
 import { getRequiredResponseCount } from "./activityStatusVisual";
+import {
+  hasSubmittedCurrentOccurrence,
+  isInOccurrenceWindow,
+  isWeekdayScheduleEnabled,
+  getOccurrenceWindow,
+} from "./weekdaySchedule";
 import FieldRubricPanel, {
   getFieldRubrics,
   selectedLevelsFromDraft,
@@ -432,7 +438,25 @@ const AltFormRenderer = ({
   const isNotOpen =
     form?.settings.openAt && new Date(form.settings.openAt) > new Date();
 
-  const canSubmit = !isClosed && !isNotOpen;
+  const nowForSchedule = new Date();
+  const weekdayOn = form ? isWeekdayScheduleEnabled(form) : false;
+  const occurrenceWin = form ? getOccurrenceWindow(form, nowForSchedule) : null;
+  const outsideWeekdayDay = weekdayOn && !occurrenceWin;
+  const outsideWeekdayHours =
+    weekdayOn &&
+    !!occurrenceWin &&
+    !isInOccurrenceWindow(form!, nowForSchedule);
+  const submittedThisOccurrence =
+    weekdayOn &&
+    form &&
+    hasSubmittedCurrentOccurrence(form, myRows, nowForSchedule);
+
+  const canSubmit =
+    !isClosed &&
+    !isNotOpen &&
+    !outsideWeekdayDay &&
+    !outsideWeekdayHours &&
+    !submittedThisOccurrence;
   const requiredTarget = getRequiredResponseCount(form);
   const multipleQuotaReached =
     requiredTarget != null && myRows.length >= requiredTarget;
@@ -2019,6 +2043,9 @@ const AltFormRenderer = ({
 
       {(isClosed ||
         isNotOpen ||
+        outsideWeekdayDay ||
+        outsideWeekdayHours ||
+        submittedThisOccurrence ||
         (!isReviewMode && isSubmitted) ||
         isReviewMode) && (
         <div className={style.rendererMeta}>
@@ -2032,6 +2059,24 @@ const AltFormRenderer = ({
               아직 시작 전
             </span>
           )}
+          {!isClosed && !isNotOpen && outsideWeekdayDay && (
+            <span className={`${style.formCardBadge} ${style.badgeClosed}`}>
+              오늘은 제출일이 아닙니다
+            </span>
+          )}
+          {!isClosed && !isNotOpen && outsideWeekdayHours && (
+            <span className={`${style.formCardBadge} ${style.badgeClosed}`}>
+              오늘 제출 시간이 아닙니다
+            </span>
+          )}
+          {!isClosed &&
+            !isNotOpen &&
+            submittedThisOccurrence &&
+            !multipleQuotaReached && (
+              <span className={`${style.formCardBadge} ${style.badgeOpen}`}>
+                오늘 회차 제출 완료
+              </span>
+            )}
           {!isReviewMode && isSubmitted && (
             <span className={`${style.formCardBadge} ${style.badgeOpen}`}>
               응답 완료

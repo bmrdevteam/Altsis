@@ -858,6 +858,43 @@
   color: var(--text-color-2);
 }
 
+.weekdaySchedulePanel {
+  padding: 8px 16px 16px;
+  border-bottom: 1px solid var(--border-default-color, var(--border-color));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.weekdayChipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.weekdayChip {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-default-color, var(--border-color));
+  background: var(--bg-color-1, #fff);
+  color: var(--text-color);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--accent-color, var(--primary-color));
+  }
+}
+
+.weekdayChipSelected {
+  border-color: var(--accent-color, var(--primary-color));
+  background: var(--accent-color-light, var(--primary-color-light, #eef4ff));
+  color: var(--accent-color, var(--primary-color));
+}
+
 .settingsHint {
   font-size: 12px;
   font-weight: 400;

@@ -7,6 +7,7 @@ import {
   getRequiredResponseCount,
   hasSubmittedForList,
   isFormRequiredMode,
+  isWithinFormPeriod,
 } from "../services/altForms.js";
 
 /**
@@ -77,12 +78,7 @@ export const listRequiredFormProgress = ({
     for (const form of boardForms) {
       if (!isFormRequiredMode(form)) continue;
       if (form.settings?.directInputMode) continue;
-      if (form.settings?.closeAt && new Date(form.settings.closeAt) < now) {
-        continue;
-      }
-      if (form.settings?.openAt && new Date(form.settings.openAt) > now) {
-        continue;
-      }
+      if (!isWithinFormPeriod(form, now)) continue;
 
       const formId = form._id?.toString?.() ?? String(form._id);
       const formMyRows = rowsByForm.get(formId) || [];

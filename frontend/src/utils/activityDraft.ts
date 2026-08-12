@@ -50,6 +50,12 @@ export type TActivityBuilderSettings = {
   requiredMode: boolean;
   openAt: string;
   closeAt: string;
+  weekdaySchedule: {
+    enabled: boolean;
+    daysOfWeek: number[];
+    startTime: string;
+    endTime: string;
+  };
   quizMode: boolean;
   quizSettings: TQuizSettings;
   assessmentMode: boolean;
@@ -72,6 +78,12 @@ export const defaultActivitySettings = (): TActivityBuilderSettings => ({
   requiredMode: false,
   openAt: "",
   closeAt: "",
+  weekdaySchedule: {
+    enabled: false,
+    daysOfWeek: [1, 2, 3, 4, 5],
+    startTime: "09:00",
+    endTime: "18:00",
+  },
   quizMode: false,
   quizSettings: {
     scoreReveal: "immediately",
@@ -134,6 +146,33 @@ export const normalizeActivityDraftSettings = (
         : base.requiredResponseCount,
     openAt: s.openAt != null ? String(s.openAt) : base.openAt,
     closeAt: s.closeAt != null ? String(s.closeAt) : base.closeAt,
+    weekdaySchedule: (() => {
+      const ws = s.weekdaySchedule;
+      const fallback = base.weekdaySchedule || {
+        enabled: false,
+        daysOfWeek: [1, 2, 3, 4, 5],
+        startTime: "09:00",
+        endTime: "18:00",
+      };
+      if (!ws || typeof ws !== "object") return fallback;
+      const days = Array.isArray(ws.daysOfWeek)
+        ? ws.daysOfWeek
+            .map((d: unknown) => Number(d))
+            .filter((d: number) => Number.isInteger(d) && d >= 0 && d <= 6)
+        : fallback.daysOfWeek;
+      return {
+        enabled: !!ws.enabled,
+        daysOfWeek: days.length ? days : fallback.daysOfWeek,
+        startTime:
+          typeof ws.startTime === "string" && ws.startTime
+            ? ws.startTime
+            : fallback.startTime,
+        endTime:
+          typeof ws.endTime === "string" && ws.endTime
+            ? ws.endTime
+            : fallback.endTime,
+      };
+    })(),
     quizMode,
     quizSettings: {
       scoreReveal: ["immediately", "afterDeadline", "never"].includes(
@@ -363,6 +402,9 @@ export const toActivitySettingsSnapshot = (
   requiredResponseCount: settings.requiredResponseCount,
   openAt: settings.openAt || undefined,
   closeAt: settings.closeAt || undefined,
+  weekdaySchedule: settings.weekdaySchedule?.enabled
+    ? settings.weekdaySchedule
+    : undefined,
   quizMode: settings.quizMode,
   quizSettings: settings.quizSettings,
   assessmentMode: settings.assessmentMode,
