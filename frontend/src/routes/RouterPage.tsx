@@ -20,6 +20,7 @@ import Users from "../pages/admin/users/Index";
 import Schools from "../pages/admin/schools/Index";
 import School from "../pages/admin/schools/Pid";
 import Backup from "../pages/admin/Backup";
+import SiteAdmin from "../pages/admin/site/Index";
 
 //dev pages
 import Test from "../pages/dev/Test";
@@ -280,6 +281,7 @@ function RouterPage() {
             <Route path="admin" element={<AdminFallback />}>
               <Route path="" element={<Admin />} />
               <Route path="backup" element={<Backup />} />
+              <Route path="site" element={<SiteAdmin />} />
               <Route path="users" element={<Users />} />
               <Route path="users/add" element={<Schools />} />
               <Route path="schools/list" element={<Schools />} />
@@ -335,6 +337,14 @@ function RouterPage() {
                   element={
                     <RequireAuth auth={["admin"]}>
                       <Backup />
+                    </RequireAuth>
+                  }
+                ></Route>
+                <Route
+                  path="site"
+                  element={
+                    <RequireAuth auth={["admin"]}>
+                      <SiteAdmin />
                     </RequireAuth>
                   }
                 ></Route>

@@ -453,6 +453,27 @@ export default function useAPIv2() {
   }
 
   /**
+   * UAcademySitePublishEnabled API
+   * @description 아카데미 공개 웹사이트 기능 허용/비허용 API
+   * @version 1.0.0
+   * @auth owner
+   */
+  async function UAcademySitePublishEnabled(props: {
+    params: {
+      academyId: string;
+    };
+    data: {
+      sitePublishEnabled: boolean;
+    };
+  }) {
+    const { academy } = await database.U({
+      location: `academies/${props.params.academyId}/site-publish-enabled`,
+      data: props.data,
+    });
+    return { academy: academy as TAcademy };
+  }
+
+  /**
    * UAcademyAiEnabled API
    * @description 아카데미 AI 기능 활성화/비활성화 API
    * @version 1.0.0
@@ -5194,6 +5215,114 @@ export default function useAPIv2() {
     };
   }
 
+  /**
+   * ##########################################################################
+   * Site API (academy public static site)
+   * ##########################################################################
+   */
+
+  async function RSiteMeta(props: { params: { academyId: string } }) {
+    return await database.R({
+      location: `sites/${props.params.academyId}/meta`,
+    });
+  }
+
+  async function USitePublished(props: {
+    params: { academyId: string };
+    data: { sitePublished: boolean };
+  }) {
+    return await database.U({
+      location: `sites/${props.params.academyId}/published`,
+      data: props.data,
+    });
+  }
+
+  async function RSiteFiles(props: {
+    params: { academyId: string };
+    query?: { prefix?: string };
+  }) {
+    return await database.R({
+      location:
+        `sites/${props.params.academyId}/files` +
+        QUERY_BUILDER(props.query || {}),
+    });
+  }
+
+  async function CSiteMkdir(props: {
+    params: { academyId: string };
+    data: { path: string };
+  }) {
+    return await database.C({
+      location: `sites/${props.params.academyId}/mkdir`,
+      data: props.data,
+    });
+  }
+
+  async function CSiteUpload(props: {
+    params: { academyId: string };
+    query: { path: string };
+    data: FormData;
+  }) {
+    return await database.C({
+      location:
+        `sites/${props.params.academyId}/upload` +
+        QUERY_BUILDER(props.query),
+      data: props.data,
+    });
+  }
+
+  async function RSiteContent(props: {
+    params: { academyId: string };
+    query: { path: string };
+  }) {
+    return await database.R({
+      location:
+        `sites/${props.params.academyId}/content` +
+        QUERY_BUILDER(props.query),
+    });
+  }
+
+  async function USiteContent(props: {
+    params: { academyId: string };
+    data: { path: string; content: string };
+  }) {
+    return await database.U({
+      location: `sites/${props.params.academyId}/content`,
+      data: props.data,
+    });
+  }
+
+  async function USiteMove(props: {
+    params: { academyId: string };
+    data: { from: string; to: string };
+  }) {
+    return await database.U({
+      location: `sites/${props.params.academyId}/move`,
+      data: props.data,
+    });
+  }
+
+  async function DSiteFiles(props: {
+    params: { academyId: string };
+    query: { path: string; recursive?: boolean };
+  }) {
+    return await database.D({
+      location:
+        `sites/${props.params.academyId}/files` +
+        QUERY_BUILDER(props.query),
+    });
+  }
+
+  async function CSiteImportZip(props: {
+    params: { academyId: string };
+    data: FormData;
+  }) {
+    return await database.C({
+      location: `sites/${props.params.academyId}/import-zip`,
+      data: props.data,
+    });
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -5203,6 +5332,7 @@ export default function useAPIv2() {
       UAcademyTel,
       UAcademyChatEnabled,
       UAcademyBoardEnabled,
+      UAcademySitePublishEnabled,
       UAcademyAiEnabled,
       UAcademyAiApiKey,
       RAcademyAiApiKey,
@@ -5521,6 +5651,18 @@ export default function useAPIv2() {
       CAltSheetRowImportCsv,
       RAltSheetRowPendingApprovals,
       RAltSheetRowSchoolTodos,
+    },
+    SiteAPI: {
+      RSiteMeta,
+      USitePublished,
+      RSiteFiles,
+      CSiteMkdir,
+      CSiteUpload,
+      RSiteContent,
+      USiteContent,
+      USiteMove,
+      DSiteFiles,
+      CSiteImportZip,
     },
   };
 }

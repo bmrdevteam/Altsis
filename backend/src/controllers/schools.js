@@ -361,6 +361,7 @@ export const find = async (req, res) => {
             chatEnabled: academy.chatEnabled ?? false,
             boardEnabled: academy.boardEnabled ?? true,
             aiEnabled: academy.aiEnabled ?? false,
+            sitePublishEnabled: academy.sitePublishEnabled ?? false,
           };
         }
       } catch (_) {}

@@ -21,6 +21,11 @@ router.put("/:academyId/email", isOwner, academies.updateEmail);
 router.put("/:academyId/tel", isOwner, academies.updateTel);
 router.put("/:academyId/chat", isOwner, academies.updateChatEnabled);
 router.put("/:academyId/board", isOwner, academies.updateBoardEnabled);
+router.put(
+  "/:academyId/site-publish-enabled",
+  isOwner,
+  academies.updateSitePublishEnabled
+);
 
 /* AI settings */
 router.put("/:academyId/ai", isOwner, academies.updateAiEnabled);
