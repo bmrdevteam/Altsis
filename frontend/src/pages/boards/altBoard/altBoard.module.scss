@@ -429,6 +429,7 @@
 }
 
 .formCardIconBtn {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -458,6 +459,24 @@
     opacity: 0.45;
     cursor: not-allowed;
   }
+}
+
+.formCardIconUnreadBadge {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 999px;
+  box-sizing: border-box;
+  background-color: var(--status-error, var(--color-r3, #ff4d4f));
+  color: var(--accent-6, #fff);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 14px;
+  text-align: center;
+  pointer-events: none;
 }
 
 .formCard:hover .formCardIconBtn:not(:hover):not(:disabled) {

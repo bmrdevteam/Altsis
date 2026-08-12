@@ -4969,6 +4969,17 @@ export default function useAPIv2() {
     return { form: form as TAltForm };
   }
 
+  async function UAltFormSheetOpened(props: { params: { _id: string } }) {
+    const { form, lastOpenedAt } = await database.U({
+      location: `alt-forms/${props.params._id}/sheet-opened`,
+      data: {},
+    });
+    return {
+      form: form as string,
+      lastOpenedAt: lastOpenedAt as string,
+    };
+  }
+
   async function DAltForm(props: { params: { _id: string } }) {
     return await database.D({
       location: `alt-forms/${props.params._id}`,
@@ -5638,6 +5649,7 @@ export default function useAPIv2() {
       RAltForms,
       RAltForm,
       UAltForm,
+      UAltFormSheetOpened,
       DAltForm,
       ExportAltForm,
       ImportAltForm,

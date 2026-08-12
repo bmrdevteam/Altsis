@@ -210,6 +210,8 @@ export type TAltForm = {
   updatedAt: string;
   /** 목록 API 메타: 응답 행 수 (_respondent 있는 행) */
   responseCount?: number;
+  /** 목록 API 메타: 마지막 기록 열람 이후 신규 응답 수 (admin/writer) */
+  unreadResponseCount?: number;
   /** 목록 API 메타: 제출완료 여부 (필수+복수면 목표 횟수 달성 시) */
   mySubmitted?: boolean;
   /** 목록 API 메타: 내 제출 건수 */

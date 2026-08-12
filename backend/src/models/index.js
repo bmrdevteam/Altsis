@@ -14,6 +14,7 @@ import { AlterMessage } from "../models/AlterMessage.js";
 import { AltForm } from "../models/AltForm.js";
 import { AltFormDupCounter } from "../models/AltFormDupCounter.js";
 import { AltSheet } from "../models/AltSheet.js";
+import { AltSheetOpen } from "../models/AltSheetOpen.js";
 import { AltSheetRow } from "../models/AltSheetRow.js";
 import { Archive } from "../models/Archive.js";
 import { Board } from "../models/Board.js";
@@ -54,6 +55,7 @@ export {
   AltForm,
   AltFormDupCounter,
   AltSheet,
+  AltSheetOpen,
   AltSheetRow,
   Archive,
   Board,

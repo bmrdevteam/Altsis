@@ -5,8 +5,8 @@
  */
 import crypto from "crypto";
 import { logger } from "../log/logger.js";
-import { AltForm, AltSheet, AltSheetRow, Board, CalendarEvent } from "../models/index.js";
-import { canManageForm, canModifyForm, getAltBoardRole, hasSubmittedForList, validateExclusiveFormModes } from "../services/altForms.js";
+import { AltForm, AltSheet, AltSheetOpen, AltSheetRow, Board, CalendarEvent } from "../models/index.js";
+import { canManageForm, canModifyForm, getAltBoardRole, hasSubmittedForList, resolveUnreadResponseCount, validateExclusiveFormModes } from "../services/altForms.js";
 import { cloneAltFormToBoard } from "../services/altFormClone.js";
 import { isBoardNotificationEnabled } from "../services/notifications.js";
 import { getBoardMembers } from "../services/boards.js";
@@ -24,9 +24,9 @@ const ensureFieldIds = (fields) =>
   }));
 
 /**
- * 목록용 메타: responseCount / mySubmitted
+ * 목록용 메타: responseCount / mySubmitted / unreadResponseCount
  * (카드 N+1 방지를 위해 RAltForms에서 일괄 부착)
- * responseCount는 admin/writer에게만 부착 (응답자·비멤버에게 집계 노출 방지)
+ * responseCount·unreadResponseCount는 admin/writer에게만 부착 (응답자·비멤버에게 집계 노출 방지)
  */
 const enrichFormsWithListMeta = async (
   academyId,
@@ -38,7 +38,7 @@ const enrichFormsWithListMeta = async (
 
   const formIds = forms.map((f) => f._id);
 
-  const [countAgg, myRows] = await Promise.all([
+  const [countAgg, myRows, opens] = await Promise.all([
     includeResponseCount
       ? AltSheetRow(academyId).aggregate([
           {
@@ -59,11 +59,46 @@ const enrichFormsWithListMeta = async (
       })
       .select("form createdAt")
       .lean(),
+    includeResponseCount
+      ? AltSheetOpen(academyId)
+          .find({ user: userId, form: { $in: formIds } })
+          .select("form lastOpenedAt")
+          .lean()
+      : Promise.resolve([]),
   ]);
 
   const countByForm = new Map(
     countAgg.map((r) => [r._id.toString(), r.count])
   );
+  const openedAtByForm = new Map(
+    (opens || []).map((o) => [o.form.toString(), o.lastOpenedAt])
+  );
+
+  let unreadAggByForm = new Map();
+  if (includeResponseCount && opens?.length > 0) {
+    const orClauses = opens
+      .filter((o) => o.lastOpenedAt)
+      .map((o) => ({
+        form: o.form,
+        createdAt: { $gt: o.lastOpenedAt },
+      }));
+    if (orClauses.length > 0) {
+      const unreadAgg = await AltSheetRow(academyId).aggregate([
+        {
+          $match: {
+            isActive: true,
+            _respondent: { $ne: null },
+            $or: orClauses,
+          },
+        },
+        { $group: { _id: "$form", count: { $sum: 1 } } },
+      ]);
+      unreadAggByForm = new Map(
+        unreadAgg.map((r) => [r._id.toString(), r.count])
+      );
+    }
+  }
+
   const myRowsByForm = new Map();
   for (const row of myRows) {
     const fid = row.form.toString();
@@ -82,6 +117,11 @@ const enrichFormsWithListMeta = async (
     };
     if (includeResponseCount) {
       meta.responseCount = countByForm.get(id) || 0;
+      meta.unreadResponseCount = resolveUnreadResponseCount(
+        id,
+        openedAtByForm,
+        unreadAggByForm
+      );
     }
     return meta;
   });
@@ -663,6 +703,53 @@ export const duplicate = async (req, res) => {
     );
 
     return res.status(200).send({ form, sheet });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.AltFormAPI
+ * @function UAltFormSheetOpened API
+ * @description 기록(시트) 열람 시각 upsert — unreadResponseCount 기준점
+ */
+export const markSheetOpened = async (req, res) => {
+  try {
+    const form = await AltForm(req.user.academyId).findById(req.params._id);
+    if (!form || !form.isActive) {
+      return res.status(404).send({ message: __NOT_FOUND("form") });
+    }
+
+    const board = await Board(req.user.academyId).findById(form.board);
+    if (!board) {
+      return res.status(404).send({ message: __NOT_FOUND("board") });
+    }
+
+    if (!canManageForm(board, req.user)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    const now = new Date();
+    const open = await AltSheetOpen(req.user.academyId).findOneAndUpdate(
+      { user: req.user._id, form: form._id },
+      {
+        $set: {
+          lastOpenedAt: now,
+          board: board._id,
+        },
+        $setOnInsert: {
+          user: req.user._id,
+          form: form._id,
+        },
+      },
+      { upsert: true, new: true }
+    );
+
+    return res.status(200).send({
+      form: form._id,
+      lastOpenedAt: open.lastOpenedAt,
+    });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });

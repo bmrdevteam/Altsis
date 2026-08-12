@@ -57,6 +57,7 @@ const altSheetRowSchema = mongoose.Schema(
 altSheetRowSchema.index({ sheet: 1, _respondent: 1 });
 altSheetRowSchema.index({ sheet: 1, createdAt: -1 });
 altSheetRowSchema.index({ form: 1 });
+altSheetRowSchema.index({ form: 1, createdAt: 1 });
 
 export const AltSheetRow = (dbName) => {
   return conn[dbName].model("AltSheetRow", altSheetRowSchema);

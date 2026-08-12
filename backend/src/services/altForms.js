@@ -34,6 +34,24 @@ export const getAltBoardRole = (board, user) => {
 };
 
 /**
+ * 목록용 unreadResponseCount 해석.
+ * lastOpenedAt이 없는 양식은 0 (기준 미설정).
+ *
+ * @param {string} formId
+ * @param {Map<string, Date>} openedAtByForm - formId → lastOpenedAt
+ * @param {Map<string, number>} unreadAggByForm - formId → 집계 count
+ * @returns {number}
+ */
+export const resolveUnreadResponseCount = (
+  formId,
+  openedAtByForm,
+  unreadAggByForm
+) => {
+  if (!openedAtByForm?.has(formId)) return 0;
+  return unreadAggByForm?.get(formId) || 0;
+};
+
+/**
  * Form 관리 권한 확인 (admin 또는 writer) — 양식 생성 등에 사용
  * @param {Object} board - Board 문서
  * @param {Object} user - 사용자 객체

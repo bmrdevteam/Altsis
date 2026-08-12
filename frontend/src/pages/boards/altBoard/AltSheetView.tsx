@@ -39,6 +39,8 @@ type Props = {
   onFormSelect?: (formId: string) => void;
   onFormDeselect?: () => void;
   onCopySheetLink?: (formId: string) => void;
+  /** 기록 열람 후 목록 unreadResponseCount 낙관적 갱신 */
+  onUnreadCleared?: (formId: string) => void;
   boardName?: string;
 };
 
@@ -124,9 +126,10 @@ const AltSheetView = ({
   onFormSelect,
   onFormDeselect,
   onCopySheetLink,
+  onUnreadCleared,
   boardName,
 }: Props) => {
-  const { AltSheetRowAPI, FileAPI, PostAPI } = useAPIv2();
+  const { AltFormAPI, AltSheetRowAPI, FileAPI, PostAPI } = useAPIv2();
   const { currentUser } = useAuth();
 
   const handleEditorImageUpload = async (
@@ -148,6 +151,25 @@ const AltSheetView = ({
   );
   const [rows, setRows] = useState<TAltSheetRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const markedOpenRef = useRef<string | null>(null);
+
+  // 시트 상세 진입 시 열람 시각 기록 (unread 기준점)
+  useEffect(() => {
+    if (!selectedFormId) {
+      markedOpenRef.current = null;
+      return;
+    }
+    if (!canManage) return;
+    if (markedOpenRef.current === selectedFormId) return;
+    markedOpenRef.current = selectedFormId;
+    onUnreadCleared?.(selectedFormId);
+    AltFormAPI.UAltFormSheetOpened({ params: { _id: selectedFormId } }).catch(
+      () => {
+        /* 열람 기록 실패해도 시트 조회는 유지 */
+      }
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- useAPIv2 refs unstable
+  }, [selectedFormId, canManage]);
 
   // 인라인 편집 상태
   const [editingCell, setEditingCell] = useState<{
@@ -1689,13 +1711,24 @@ const AltSheetView = ({
                         type="button"
                         className={style.formCardIconBtn}
                         title="테이블 보기"
-                        aria-label="테이블 보기"
+                        aria-label={
+                          (form.unreadResponseCount ?? 0) > 0
+                            ? `테이블 보기, 미확인 응답 ${form.unreadResponseCount}건`
+                            : "테이블 보기"
+                        }
                         onClick={(e) => {
                           e.stopPropagation();
                           openForm(form._id, "table");
                         }}
                       >
                         <Svg type="table" width="20px" height="20px" />
+                        {canManage && (form.unreadResponseCount ?? 0) > 0 && (
+                          <span className={style.formCardIconUnreadBadge}>
+                            {(form.unreadResponseCount ?? 0) > 99
+                              ? "99+"
+                              : form.unreadResponseCount}
+                          </span>
+                        )}
                       </button>
                       <button
                         type="button"
