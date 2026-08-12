@@ -2289,6 +2289,11 @@ accepts@^1.3.7, accepts@~1.3.4, accepts@~1.3.8:
     mime-types "~2.1.34"
     negotiator "0.6.3"
 
+adm-zip@^0.6.0:
+  version "0.6.0"
+  resolved "https://registry.yarnpkg.com/adm-zip/-/adm-zip-0.6.0.tgz#bbc5c6c333755e967a06dd98747f431e1d53a3cf"
+  integrity sha512-XleryMhbuksdKtofnWZ9Sk+4CUTbms4Mb/EU32SZwToAyZ5RgVos/ki8n+yr0LWHOGKuakbXTuuYNHLQjhddgg==
+
 agent-base@6:
   version "6.0.2"
   resolved "https://registry.npmjs.org/agent-base/-/agent-base-6.0.2.tgz"

@@ -12,6 +12,7 @@ import { config as passportConfig } from "./_passport/index.js";
 
 import { routers } from "./routes/index.js";
 import { requestTracker } from "./middleware/requestTracker.js";
+import { servePublic as servePublicSite } from "./controllers/sites.js";
 
 /* logger */
 import morgan from "morgan";
@@ -105,6 +106,14 @@ app.use(requestTracker);
 
 routers.forEach((router) => {
   app.use("/api/" + router.label, router.routes);
+});
+
+/* Public academy static sites (no session required) */
+app.use("/sites/:academyId", (req, res, next) => {
+  if (req.method !== "GET" && req.method !== "HEAD") return next();
+  const rel = decodeURIComponent((req.path || "/").replace(/^\/+/, ""));
+  req.params[0] = rel;
+  return servePublicSite(req, res);
 });
 
 app.set("port", process.env["SERVER_PORT"].trim() || 3000);

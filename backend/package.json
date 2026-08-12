@@ -14,6 +14,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "adm-zip": "^0.6.0",
     "aws-sdk": "^2.1206.0",
     "bcrypt": "^5.1.1",
     "connect-redis": "^6.1.3",

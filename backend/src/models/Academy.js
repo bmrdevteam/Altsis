@@ -30,6 +30,8 @@ import { validate } from "../utils/validate.js";
  * @prop {boolean} chatEnabled=false - 채팅 기능 활성화 상태
  * @prop {boolean} boardEnabled=true - 보드 기능 활성화 상태
  * @prop {boolean} aiEnabled=false - AI 기능 활성화 상태
+ * @prop {boolean} sitePublishEnabled=false - 공개 웹사이트 기능 허용 (owner)
+ * @prop {boolean} sitePublished=false - 공개 웹사이트 외부 게시 여부 (admin)
  * @prop {string} aiApiKey - AI API 키; API를 통해 조회할 수 없다
  * @prop {string} aiProvider="gemini" - AI 제공자; openai | anthropic | gemini(테스트용)
  * @prop {Object} [aiUsageLimits] - 사용자별 AI 일일 Alt 한도 (1 Alt = 10,000 토큰)
@@ -81,6 +83,8 @@ const academySchema = mongoose.Schema(
     chatEnabled: { type: Boolean, default: false },
     boardEnabled: { type: Boolean, default: true },
     aiEnabled: { type: Boolean, default: false },
+    sitePublishEnabled: { type: Boolean, default: false },
+    sitePublished: { type: Boolean, default: false },
     aiApiKey: { type: String, select: false },
     aiProvider: {
       type: String,

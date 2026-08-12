@@ -213,6 +213,16 @@ export const SidebarData = (auth: string, role?: string): any => {
           path: "/admin/backup",
           icon: <Svg type="save" />,
         },
+        ...(currentSchool?.academyFeatures?.sitePublishEnabled
+          ? [
+              {
+                title: "site",
+                name: "공개 웹사이트",
+                path: "/admin/site",
+                icon: <Svg type="code" />,
+              },
+            ]
+          : []),
       ],
     });
   }

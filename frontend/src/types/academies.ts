@@ -18,6 +18,8 @@ export type TAcademy = {
   chatEnabled?: boolean;
   boardEnabled?: boolean;
   aiEnabled?: boolean;
+  sitePublishEnabled?: boolean;
+  sitePublished?: boolean;
   aiProvider?: "openai" | "anthropic" | "gemini";
   aiUsageLimits?: TAiUsageLimits;
 };

@@ -495,6 +495,45 @@ export const updateBoardEnabled = async (req, res) => {
 
 /**
  * @memberof APIs.AcademyAPI
+ * @function UAcademySitePublishEnabled API
+ * @description 아카데미 공개 웹사이트 기능 허용/비허용 API
+ * @version 1.0.0
+ *
+ * @param {Object} req
+ * @param {"PUT"} req.method
+ * @param {"/academies/:academyId/site-publish-enabled"} req.url
+ * @param {Object} req.user - "owner"
+ * @param {boolean} req.body.sitePublishEnabled
+ * @param {Object} res
+ * @param {TAcademy} res.academy
+ */
+export const updateSitePublishEnabled = async (req, res) => {
+  try {
+    const academy = await Academy.findOne({
+      academyId: req.params.academyId,
+    });
+    if (!academy)
+      return res.status(404).send({ message: __NOT_FOUND("academy") });
+
+    if (typeof req.body.sitePublishEnabled === "boolean") {
+      academy.sitePublishEnabled = req.body.sitePublishEnabled;
+    } else {
+      academy.sitePublishEnabled = !academy.sitePublishEnabled;
+    }
+    if (!academy.sitePublishEnabled) {
+      academy.sitePublished = false;
+    }
+    await academy.save();
+
+    return res.status(200).send({ academy });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.AcademyAPI
  * @function UAcademyAiEnabled API
  * @description 아카데미 AI 기능 활성화/비활성화 API
  * @version 1.0.0
