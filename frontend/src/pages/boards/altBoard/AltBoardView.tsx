@@ -444,10 +444,19 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
   // 시트 상세에서 활동 탭으로 복귀
   const handleBackToSheetList = () => {
     setEmbeddedSheetFormId(null);
+    loadForms();
     if (!embedded) {
       navigate(`/boards/${board._id}#활동`, { replace: true });
     }
   };
+
+  const clearFormUnread = useCallback((formId: string) => {
+    setForms((prev) =>
+      prev.map((f) =>
+        f._id === formId ? { ...f, unreadResponseCount: 0 } : f
+      )
+    );
+  }, []);
 
   // 시트(응답 기록) 열기 — 활동에서 진입
   const handleOpenSheet = (formId: string) => {
@@ -565,6 +574,7 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
           onFormSelect={handleOpenSheet}
           onFormDeselect={handleBackToSheetList}
           onCopySheetLink={handleCopySheetLink}
+          onUnreadCleared={clearFormUnread}
           boardName={board.name}
         />
       );

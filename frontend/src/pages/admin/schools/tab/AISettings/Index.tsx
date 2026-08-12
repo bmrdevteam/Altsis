@@ -1016,7 +1016,8 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
           <p className={style.sectionHint}>
             지침과 학습정보는 위 라이브러리에 등록한 뒤, 스킬별로 적용할 항목을
             선택합니다. 라이브러리 등록 시 적용 스킬을 지정하면 아래에 자동으로
-            체크됩니다.
+            체크됩니다. 여기서 체크하거나 적용 스킬 태그가 달린 항목만 Alter
+            작성 지침에 나타납니다.
           </p>
 
           <div className={style.skillTabs}>

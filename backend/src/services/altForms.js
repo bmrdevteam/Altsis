@@ -3,6 +3,29 @@
  * @namespace Services.AltFormService
  */
 
+import {
+  getOccurrenceWindow,
+  hasSubmittedCurrentOccurrence,
+  isInOccurrenceWindow,
+  isWeekdayScheduleEnabled,
+  isWithinFormPeriod,
+  normalizeWeekdayScheduleInput,
+  shouldShowUnsubmittedTodo as shouldShowUnsubmittedTodoCore,
+  getEffectiveTodoCloseAt,
+  estimateWeekdayOccurrenceCount,
+} from "./weekdaySchedule.js";
+
+export {
+  isWeekdayScheduleEnabled,
+  getOccurrenceWindow,
+  isInOccurrenceWindow,
+  hasSubmittedCurrentOccurrence,
+  isWithinFormPeriod,
+  getEffectiveTodoCloseAt,
+  estimateWeekdayOccurrenceCount,
+  normalizeWeekdayScheduleInput,
+};
+
 /**
  * altBoardRole Map/plain object에서 역할 조회
  * @param {Map|Object|undefined|null} altBoardRole
@@ -31,6 +54,24 @@ export const getAltBoardRole = (board, user) => {
   if (board.creator && board.creator.equals(user._id)) return "admin";
 
   return lookupAltBoardRole(board.altBoardRole, user._id.toString());
+};
+
+/**
+ * 목록용 unreadResponseCount 해석.
+ * lastOpenedAt이 없는 양식은 0 (기준 미설정).
+ *
+ * @param {string} formId
+ * @param {Map<string, Date>} openedAtByForm - formId → lastOpenedAt
+ * @param {Map<string, number>} unreadAggByForm - formId → 집계 count
+ * @returns {number}
+ */
+export const resolveUnreadResponseCount = (
+  formId,
+  openedAtByForm,
+  unreadAggByForm
+) => {
+  if (!openedAtByForm?.has(formId)) return 0;
+  return unreadAggByForm?.get(formId) || 0;
 };
 
 /**
@@ -90,7 +131,7 @@ export const getRequiredResponseCount = (form) => {
  * @param {Array} myRows
  * @returns {{ allowed: boolean, message?: string }}
  */
-export const checkMultipleResponseLimit = (form, myRows = []) => {
+export const checkMultipleResponseLimit = (form, myRows = [], now = new Date()) => {
   if (!form?.settings?.allowMultipleResponses) {
     return { allowed: true };
   }
@@ -102,6 +143,15 @@ export const checkMultipleResponseLimit = (form, myRows = []) => {
     return {
       allowed: false,
       message: `목표 제출 횟수(${target}회)를 모두 채웠습니다.`,
+    };
+  }
+  if (
+    isWeekdayScheduleEnabled(form) &&
+    hasSubmittedCurrentOccurrence(form, myRows, now)
+  ) {
+    return {
+      allowed: false,
+      message: "오늘 회차 제출을 이미 완료했습니다.",
     };
   }
   return { allowed: true };
@@ -129,13 +179,22 @@ export const hasSubmittedForList = (form, myRows = []) => {
 };
 
 /**
+ * 할 일(미제출) 카드 노출 여부
+ */
+export const shouldShowUnsubmittedTodo = (form, myRows = [], now = new Date()) =>
+  shouldShowUnsubmittedTodoCore(form, myRows, now, {
+    isFormRequiredMode,
+    hasSubmittedForList,
+  });
+
+/**
  * Form 응답 권한 확인 (respondent 이상 + 공개 기간 확인)
  * @param {Object} form - AltForm 문서
  * @param {Object} board - Board 문서
  * @param {Object} user - 사용자 객체
  * @returns {{ allowed: boolean, message?: string }}
  */
-export const canRespondForm = (form, board, user) => {
+export const canRespondForm = (form, board, user, now = new Date()) => {
   const role = getAltBoardRole(board, user);
   if (!role) {
     return { allowed: false, message: "보드 멤버가 아닙니다." };
@@ -145,7 +204,6 @@ export const canRespondForm = (form, board, user) => {
     return { allowed: false, message: "비공개 양식입니다." };
   }
 
-  const now = new Date();
   if (form.settings?.openAt && now < new Date(form.settings.openAt)) {
     return { allowed: false, message: "양식이 아직 공개되지 않았습니다." };
   }
@@ -153,7 +211,46 @@ export const canRespondForm = (form, board, user) => {
     return { allowed: false, message: "양식이 마감되었습니다." };
   }
 
+  if (isWeekdayScheduleEnabled(form)) {
+    const win = getOccurrenceWindow(form, now);
+    if (!win) {
+      return { allowed: false, message: "오늘은 제출일이 아닙니다." };
+    }
+    const t = now.getTime();
+    if (t < win.windowStart.getTime() || t > win.windowEnd.getTime()) {
+      return { allowed: false, message: "오늘 제출 시간이 아닙니다." };
+    }
+  }
+
   return { allowed: true };
+};
+
+/**
+ * settings.weekdaySchedule 정규화. 오류 시 { error: string }
+ * @param {Object} settings - mutate in place
+ * @returns {{ error?: string }}
+ */
+export const applyWeekdayScheduleNormalize = (settings) => {
+  if (!settings) return {};
+  try {
+    const normalized = normalizeWeekdayScheduleInput(
+      settings.weekdaySchedule,
+      {
+        requiredMode: settings.requiredMode === true,
+        allowMultipleResponses: !!settings.allowMultipleResponses,
+        openAt: settings.openAt,
+        closeAt: settings.closeAt,
+      }
+    );
+    if (!normalized.enabled) {
+      settings.weekdaySchedule = undefined;
+    } else {
+      settings.weekdaySchedule = normalized;
+    }
+    return {};
+  } catch (err) {
+    return { error: err.message || "요일마다 설정이 올바르지 않습니다." };
+  }
 };
 
 /**

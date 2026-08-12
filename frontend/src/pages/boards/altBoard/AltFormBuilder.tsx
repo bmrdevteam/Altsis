@@ -21,11 +21,14 @@ import { MarkdownEditor } from "components/markdown";
 import Button from "components/button/Button";
 import Popup from "components/popup/Popup";
 import AltSubmissionTracker from "./AltSubmissionTracker";
-
-const toLocalDatetimeString = (date: Date) => {
-  const pad = (n: number) => n.toString().padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-};
+import {
+  WEEKDAY_LABELS_MON_FIRST,
+  canEnableWeekdaySchedule,
+  defaultWeekdaySchedule,
+  estimateWeekdayOccurrenceCount,
+  type TWeekdaySchedule,
+} from "./weekdaySchedule";
+import { toLocalDatetimeString } from "utils/activityDraft";
 
 /** 설정 라벨 옆 설명 — 아이콘 클릭 시 짧은 팝오버 */
 const SettingsHint = ({ text }: { text: string }) => {
@@ -178,6 +181,7 @@ type Settings = {
   requiredMode: boolean;
   openAt: string;
   closeAt: string;
+  weekdaySchedule: TWeekdaySchedule;
   quizMode: boolean;
   quizSettings: TQuizSettings;
   assessmentMode: boolean;
@@ -272,6 +276,7 @@ const AltFormBuilder = ({
     requiredMode: false,
     openAt: "",
     closeAt: "",
+    weekdaySchedule: defaultWeekdaySchedule(),
     quizMode: false,
     quizSettings: {
       scoreReveal: "immediately",
@@ -418,6 +423,20 @@ const AltFormBuilder = ({
           closeAt: form.settings.closeAt
             ? toLocalDatetimeString(new Date(form.settings.closeAt))
             : "",
+          weekdaySchedule: form.settings.weekdaySchedule?.enabled
+            ? {
+                enabled: true,
+                daysOfWeek: Array.isArray(form.settings.weekdaySchedule.daysOfWeek)
+                  ? form.settings.weekdaySchedule.daysOfWeek.map(Number)
+                  : defaultWeekdaySchedule().daysOfWeek,
+                startTime:
+                  form.settings.weekdaySchedule.startTime ||
+                  defaultWeekdaySchedule().startTime,
+                endTime:
+                  form.settings.weekdaySchedule.endTime ||
+                  defaultWeekdaySchedule().endTime,
+              }
+            : defaultWeekdaySchedule(),
           quizMode: form.settings.quizMode || false,
           quizSettings: form.settings.quizSettings || {
             scoreReveal: "immediately",
@@ -466,6 +485,45 @@ const AltFormBuilder = ({
     setIsDirty(getSnapshot() !== savedSnapshotRef.current);
   }, [getSnapshot, isLoading]);
 
+  // 요일마다: 기간·요일 기준 예상 회차로 목표 제출 횟수 자동 반영
+  useEffect(() => {
+    if (isLoading) return;
+    if (
+      !settings.weekdaySchedule.enabled ||
+      !canEnableWeekdaySchedule(settings)
+    ) {
+      return;
+    }
+    const est = estimateWeekdayOccurrenceCount({
+      allowResubmit: settings.allowResubmit,
+      requiredMode: settings.requiredMode,
+      allowMultipleResponses: settings.allowMultipleResponses,
+      openAt: settings.openAt
+        ? new Date(settings.openAt).toISOString()
+        : undefined,
+      closeAt: settings.closeAt
+        ? new Date(settings.closeAt).toISOString()
+        : undefined,
+      weekdaySchedule: settings.weekdaySchedule,
+    });
+    if (est == null || est < 1) return;
+    setSettings((s) =>
+      s.requiredResponseCount === est
+        ? s
+        : { ...s, requiredResponseCount: est }
+    );
+  }, [
+    isLoading,
+    settings.weekdaySchedule.enabled,
+    settings.weekdaySchedule.daysOfWeek.join(","),
+    settings.weekdaySchedule.startTime,
+    settings.weekdaySchedule.endTime,
+    settings.requiredMode,
+    settings.allowMultipleResponses,
+    settings.openAt,
+    settings.closeAt,
+  ]);
+
   /**
    * @param visibility keep=현재 상태 유지, private=비공개, public=공개
    */
@@ -473,6 +531,27 @@ const AltFormBuilder = ({
     if (!title.trim()) {
       alert("제목을 입력해주세요.");
       return;
+    }
+    if (
+      settings.weekdaySchedule.enabled &&
+      canEnableWeekdaySchedule(settings)
+    ) {
+      if (settings.weekdaySchedule.daysOfWeek.length === 0) {
+        alert("요일마다: 요일을 하나 이상 선택하세요.");
+        return;
+      }
+      const [sh, sm] = settings.weekdaySchedule.startTime
+        .split(":")
+        .map(Number);
+      const [eh, em] = settings.weekdaySchedule.endTime.split(":").map(Number);
+      if (
+        !Number.isFinite(sh) ||
+        !Number.isFinite(eh) ||
+        eh * 60 + em <= sh * 60 + sm
+      ) {
+        alert("요일마다: 종료 시각은 시작 시각보다 뒤여야 합니다.");
+        return;
+      }
     }
 
     setIsSaving(true);
@@ -494,6 +573,16 @@ const AltFormBuilder = ({
               : undefined,
           openAt: settings.openAt ? new Date(settings.openAt).toISOString() : undefined,
           closeAt: settings.closeAt ? new Date(settings.closeAt).toISOString() : undefined,
+          weekdaySchedule:
+            settings.weekdaySchedule.enabled &&
+            canEnableWeekdaySchedule(settings)
+              ? {
+                  enabled: true,
+                  daysOfWeek: settings.weekdaySchedule.daysOfWeek,
+                  startTime: settings.weekdaySchedule.startTime,
+                  endTime: settings.weekdaySchedule.endTime,
+                }
+              : { enabled: false, daysOfWeek: [], startTime: "", endTime: "" },
           quizMode: settings.quizMode,
           quizSettings: settings.quizMode ? settings.quizSettings : undefined,
           assessmentMode: settings.assessmentMode,
@@ -2532,6 +2621,129 @@ const AltFormBuilder = ({
                       />
                     </div>
                   </div>
+                  <div className={style.settingsItemRow}>
+                    <div className={style.settingsItemText}>
+                      <div className={style.settingsLabelRow}>
+                        <span className={style.settingsLabel}>요일마다</span>
+                        <SettingsHint text="선택한 요일의 시작~종료 시각에만 할 일에 뜨고 제출할 수 있습니다. 회차당 1회이며, 목표 제출 횟수는 전체 합계입니다. 필수·복수 응답·시작일·마감일이 필요합니다." />
+                      </div>
+                      {!canEnableWeekdaySchedule(settings) && (
+                        <p className={style.settingsInlineNote}>
+                          필수 응답, 복수 응답, 시작일, 마감일이 필요합니다.
+                        </p>
+                      )}
+                    </div>
+                    <div className={style.settingsToggle}>
+                      <ToggleSwitch
+                        checked={settings.weekdaySchedule.enabled}
+                        disabled={!canEnableWeekdaySchedule(settings)}
+                        onChange={(v) =>
+                          setSettings((s) => ({
+                            ...s,
+                            weekdaySchedule: {
+                              ...s.weekdaySchedule,
+                              enabled: v,
+                            },
+                          }))
+                        }
+                      />
+                      <span className={style.settingsToggleText}>
+                        {settings.weekdaySchedule.enabled ? "사용" : "미사용"}
+                      </span>
+                    </div>
+                  </div>
+                  {settings.weekdaySchedule.enabled &&
+                    canEnableWeekdaySchedule(settings) && (
+                      <div className={style.weekdaySchedulePanel}>
+                        <div className={style.settingsItem}>
+                          <div className={style.settingsLabelRow}>
+                            <span className={style.settingsLabel}>요일</span>
+                          </div>
+                          <div className={style.weekdayChipRow}>
+                            {WEEKDAY_LABELS_MON_FIRST.map(({ day, label }) => {
+                              const selected =
+                                settings.weekdaySchedule.daysOfWeek.includes(
+                                  day
+                                );
+                              return (
+                                <button
+                                  key={day}
+                                  type="button"
+                                  className={`${style.weekdayChip} ${
+                                    selected ? style.weekdayChipSelected : ""
+                                  }`}
+                                  aria-pressed={selected}
+                                  onClick={() =>
+                                    setSettings((s) => {
+                                      const set = new Set(
+                                        s.weekdaySchedule.daysOfWeek
+                                      );
+                                      if (set.has(day)) set.delete(day);
+                                      else set.add(day);
+                                      return {
+                                        ...s,
+                                        weekdaySchedule: {
+                                          ...s.weekdaySchedule,
+                                          daysOfWeek: Array.from(set).sort(
+                                            (a, b) => a - b
+                                          ),
+                                        },
+                                      };
+                                    })
+                                  }
+                                >
+                                  {label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        <div className={style.settingsDateGrid}>
+                          <div className={style.settingsItem}>
+                            <div className={style.settingsLabelRow}>
+                              <span className={style.settingsLabel}>
+                                시작 시각
+                              </span>
+                            </div>
+                            <input
+                              type="time"
+                              className={style.settingsDateInput}
+                              value={settings.weekdaySchedule.startTime}
+                              onChange={(e) =>
+                                setSettings((s) => ({
+                                  ...s,
+                                  weekdaySchedule: {
+                                    ...s.weekdaySchedule,
+                                    startTime: e.target.value,
+                                  },
+                                }))
+                              }
+                            />
+                          </div>
+                          <div className={style.settingsItem}>
+                            <div className={style.settingsLabelRow}>
+                              <span className={style.settingsLabel}>
+                                종료 시각
+                              </span>
+                            </div>
+                            <input
+                              type="time"
+                              className={style.settingsDateInput}
+                              value={settings.weekdaySchedule.endTime}
+                              onChange={(e) =>
+                                setSettings((s) => ({
+                                  ...s,
+                                  weekdaySchedule: {
+                                    ...s.weekdaySchedule,
+                                    endTime: e.target.value,
+                                  },
+                                }))
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
                 </div>
               </section>
 
@@ -2614,7 +2826,7 @@ const AltFormBuilder = ({
                               <span className={style.settingsNestedLabel}>
                                 목표 제출 횟수
                               </span>
-                              <SettingsHint text="목표에 도달하면 추가 제출은 할 수 없습니다." />
+                              <SettingsHint text="목표에 도달하면 추가 제출은 할 수 없습니다. 요일마다를 켜면 기간·요일 기준 예상 회차로 자동 설정됩니다." />
                             </div>
                           </div>
                           <div className={style.settingsNestedControl}>
@@ -2624,7 +2836,21 @@ const AltFormBuilder = ({
                               min={1}
                               step={1}
                               value={settings.requiredResponseCount}
+                              disabled={
+                                settings.weekdaySchedule.enabled &&
+                                canEnableWeekdaySchedule(settings)
+                              }
+                              readOnly={
+                                settings.weekdaySchedule.enabled &&
+                                canEnableWeekdaySchedule(settings)
+                              }
                               onChange={(e) => {
+                                if (
+                                  settings.weekdaySchedule.enabled &&
+                                  canEnableWeekdaySchedule(settings)
+                                ) {
+                                  return;
+                                }
                                 const n = parseInt(e.target.value, 10);
                                 setSettings((s) => ({
                                   ...s,

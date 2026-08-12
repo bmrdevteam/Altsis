@@ -1,6 +1,10 @@
 import {
   ALTER_SAFETY_ETHICS,
   ALTER_NO_STEER,
+  ALTER_HOWTO_COACH,
+  ALTER_HOWTO_PRODUCT_NAV,
+  ALTER_LIBRARY_REF_POLICY,
+  ALTER_LIBRARY_REF_POLICY_HOWTO,
   ALTER_PAGE_DATA_POLICY,
   buildAlterChatPageContext,
   buildAlterChatPageData,
@@ -8,6 +12,7 @@ import {
   buildBoardAlterSystemPrompt,
   withAlterSafety,
 } from "../../src/services/alterCorePrompt.js";
+import { buildHowtoCoachBlocks } from "../../src/services/aiSkills.js";
 
 describe("ALTER_SAFETY_ETHICS", () => {
   test("미성년·유해·위기·개인정보·탈옥 거절을 포함한다", () => {
@@ -44,6 +49,68 @@ describe("buildAlterChatSystemPrompt", () => {
     expect(text).not.toMatch(/우선\s*답/);
   });
 
+  test("howto off면 NO_STEER이고 코칭·예시 섹션이 없다", () => {
+    const text = buildAlterChatSystemPrompt({
+      pageContext: { pageType: "evaluation" },
+      howtoMode: false,
+      availableSkillsText: "## 이 화면에서 쓸 수 있는 스킬\n- 평가",
+      examplePromptsText: "## 복붙용 예시\n- 테스트",
+    });
+    expect(text).toContain(ALTER_NO_STEER.split("\n")[0]);
+    expect(text).not.toContain(ALTER_HOWTO_COACH.split("\n")[0]);
+    expect(text).not.toContain("## 이 화면에서 쓸 수 있는 스킬");
+    expect(text).not.toContain("## 복붙용 예시");
+    expect(text).not.toContain("## 제품 경로");
+  });
+
+  test("howto on이면 COACH·제품경로·스킬·예시가 들어가고 NO_STEER는 없다", () => {
+    const coach = buildHowtoCoachBlocks([
+      "evaluation-draft",
+      "chat",
+    ]);
+    const text = buildAlterChatSystemPrompt({
+      pageContext: { pageType: "evaluation", label: "멘토평가" },
+      howtoMode: true,
+      availableSkillsText: coach.availableSkillsText,
+      examplePromptsText: coach.examplePromptsText,
+    });
+    expect(text).toContain(ALTER_HOWTO_COACH.split("\n")[0]);
+    expect(text).not.toContain(ALTER_NO_STEER.split("\n")[0]);
+    expect(text).toContain("## 제품 경로");
+    expect(text).toContain(ALTER_HOWTO_PRODUCT_NAV.split("\n")[0]);
+    expect(text).toContain("일반 기능");
+    expect(text).toContain("상단 바 채팅");
+    expect(text).toMatch(/DM|1:1/);
+    expect(text).toContain("스킬로 대체");
+    expect(text).toContain("syllabus-draft");
+    expect(text).toContain("## 이 화면에서 쓸 수 있는 스킬");
+    expect(text).toContain("평가");
+    expect(text).toContain("## 복붙용 예시");
+    expect(text).toContain("성장 포인트");
+  });
+
+  test("howto on이면 참고자료에 soft 정책을 쓰고 엄격 정책은 쓰지 않는다", () => {
+    const text = buildAlterChatSystemPrompt({
+      pageContext: { pageType: "general" },
+      howtoMode: true,
+      references: [{ title: "교육계획서", content: "수업 시수 안내" }],
+    });
+    expect(text).toContain(ALTER_LIBRARY_REF_POLICY_HOWTO);
+    expect(text).not.toContain(ALTER_LIBRARY_REF_POLICY);
+    expect(text).toContain("참고 자료");
+    expect(text).toContain("교육계획서");
+  });
+
+  test("howto off면 참고자료에 엄격 라이브러리 정책을 쓴다", () => {
+    const text = buildAlterChatSystemPrompt({
+      pageContext: { pageType: "general" },
+      howtoMode: false,
+      references: [{ title: "교육계획서", content: "수업 시수 안내" }],
+    });
+    expect(text).toContain(ALTER_LIBRARY_REF_POLICY);
+    expect(text).not.toContain(ALTER_LIBRARY_REF_POLICY_HOWTO);
+  });
+
   test("docs pageContext는 사실만 넣고 기안 유도를 넣지 않는다", () => {
     const page = buildAlterChatPageContext({
       pageType: "docs",
@@ -52,6 +119,16 @@ describe("buildAlterChatSystemPrompt", () => {
     expect(page).toContain("문서함");
     expect(page).not.toMatch(/기안/);
     expect(page).not.toMatch(/영수증/);
+  });
+});
+
+describe("buildHowtoCoachBlocks", () => {
+  test("suggestedSkills가 없으면 chat만", () => {
+    const { availableSkillsText, examplePromptsText } =
+      buildHowtoCoachBlocks(undefined);
+    expect(availableSkillsText).toContain("챗봇");
+    expect(availableSkillsText).toContain("(chat)");
+    expect(examplePromptsText).toContain("공통점");
   });
 });
 

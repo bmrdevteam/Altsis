@@ -20,6 +20,10 @@ import { client } from "../_database/redis/index.js";
 import { sendAutoNotification } from "./notifications.js";
 import { logger } from "../log/logger.js";
 import {
+  isScheduleStartEnabled,
+  shouldExpandRecipientsToSchool,
+} from "./calendarEventNotify.js";
+import {
   registerEventNotification,
   registerEventReminder,
   syncAllToRedis,
@@ -65,11 +69,12 @@ let schedulerTickRunning = false;
 
 /**
  * 이벤트의 알림 수신자 목록 구성
+ * 기본은 생성자만. notifySchool + school scope일 때만 학교 소속 전원 추가.
  * @param {string} academyId
  * @param {Object} event - CalendarEvent document
  * @returns {Promise<Array|null>} 수신자 목록 또는 null
  */
-async function buildRecipientList(academyId, event) {
+export async function buildRecipientList(academyId, event) {
   const user = await User(academyId).findById(event.user);
   if (!user) return null;
 
@@ -81,8 +86,7 @@ async function buildRecipientList(academyId, event) {
     },
   ];
 
-  // 학교 일정인 경우 해당 학교 소속 사용자들에게도 알림
-  if (event.scope === "school" && event.school) {
+  if (shouldExpandRecipientsToSchool(event)) {
     const schoolUsers = await User(academyId).find({
       "schools.school": event.school,
       _id: { $ne: user._id },
@@ -155,6 +159,12 @@ const processNotifications = async () => {
       try {
         const event = await CalendarEvent(academyId).findById(eventId);
         if (!event) {
+          await client.v4.zRem(NOTIFICATIONS_KEY, memberStr);
+          continue;
+        }
+
+        // 옵트인 해제·레거시 큐 항목 방어
+        if (!isScheduleStartEnabled(event)) {
           await client.v4.zRem(NOTIFICATIONS_KEY, memberStr);
           continue;
         }

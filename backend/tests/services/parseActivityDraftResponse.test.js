@@ -137,4 +137,54 @@ describe("normalizeActivityDraft", () => {
     expect(draft.fields[1].rubricIds).toEqual([draft.rubrics[0].id]);
     expect(draft.fields[0].gradingMethod).toBeUndefined();
   });
+
+  it("keeps weekdaySchedule and fills requiredResponseCount from occurrence estimate", () => {
+    const draft = normalizeActivityDraft({
+      title: "주간 운동 일지",
+      fields: [{ label: "오늘 운동", type: "textarea", required: true }],
+      settings: {
+        allowMultipleResponses: true,
+        requiredMode: true,
+        openAt: "2026-08-13T00:00",
+        closeAt: "2026-09-12T23:59",
+        weekdaySchedule: {
+          enabled: true,
+          daysOfWeek: [1],
+          startTime: "09:00",
+          endTime: "23:59",
+        },
+      },
+    });
+    expect(draft.settings.requiredMode).toBe(true);
+    expect(draft.settings.allowMultipleResponses).toBe(true);
+    expect(draft.settings.openAt).toMatch(/2026-08-1[23]/);
+    expect(draft.settings.closeAt).toBeTruthy();
+    expect(draft.settings.weekdaySchedule).toEqual({
+      enabled: true,
+      daysOfWeek: [1],
+      startTime: "09:00",
+      endTime: "23:59",
+    });
+    expect(draft.settings.requiredResponseCount).toBeGreaterThanOrEqual(4);
+    expect(draft.settings.requiredResponseCount).toBeLessThanOrEqual(5);
+  });
+
+  it("downgrades weekdaySchedule when openAt/closeAt are missing", () => {
+    const draft = normalizeActivityDraft({
+      title: "반복 과제",
+      fields: [{ label: "일지", type: "textarea" }],
+      settings: {
+        weekdaySchedule: {
+          enabled: true,
+          daysOfWeek: [1],
+          startTime: "09:00",
+          endTime: "18:00",
+        },
+      },
+    });
+    expect(draft.settings.requiredMode).toBe(true);
+    expect(draft.settings.allowMultipleResponses).toBe(true);
+    expect(draft.settings.weekdaySchedule.enabled).toBe(false);
+    expect(draft.settings.weekdaySchedule.daysOfWeek).toEqual([1]);
+  });
 });

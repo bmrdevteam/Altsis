@@ -50,6 +50,12 @@ export type TActivityBuilderSettings = {
   requiredMode: boolean;
   openAt: string;
   closeAt: string;
+  weekdaySchedule: {
+    enabled: boolean;
+    daysOfWeek: number[];
+    startTime: string;
+    endTime: string;
+  };
   quizMode: boolean;
   quizSettings: TQuizSettings;
   assessmentMode: boolean;
@@ -65,6 +71,24 @@ const defaultAssessmentSettings = (): TAssessmentSettings => ({
   finalEvaluation: { mode: "both" },
 });
 
+/** 빌더 datetime-local 입력용 (로컬 YYYY-MM-DDTHH:mm) */
+export const toLocalDatetimeString = (date: Date): string => {
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+    date.getDate()
+  )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
+/** ISO 등 → datetime-local. 이미 local 형이면 그대로. 파싱 실패 시 빈 문자열 */
+export const toBuilderDatetimeLocal = (raw: unknown): string => {
+  const str = String(raw ?? "").trim();
+  if (!str) return "";
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(str)) return str;
+  const d = new Date(str);
+  if (Number.isNaN(d.getTime())) return "";
+  return toLocalDatetimeString(d);
+};
+
 export const defaultActivitySettings = (): TActivityBuilderSettings => ({
   allowResubmit: false,
   allowMultipleResponses: false,
@@ -72,6 +96,12 @@ export const defaultActivitySettings = (): TActivityBuilderSettings => ({
   requiredMode: false,
   openAt: "",
   closeAt: "",
+  weekdaySchedule: {
+    enabled: false,
+    daysOfWeek: [1, 2, 3, 4, 5],
+    startTime: "09:00",
+    endTime: "18:00",
+  },
   quizMode: false,
   quizSettings: {
     scoreReveal: "immediately",
@@ -132,8 +162,39 @@ export const normalizeActivityDraftSettings = (
       Number.isFinite(s.requiredResponseCount)
         ? Math.max(1, Math.floor(s.requiredResponseCount))
         : base.requiredResponseCount,
-    openAt: s.openAt != null ? String(s.openAt) : base.openAt,
-    closeAt: s.closeAt != null ? String(s.closeAt) : base.closeAt,
+    openAt: toBuilderDatetimeLocal(
+      s.openAt != null ? s.openAt : base.openAt
+    ),
+    closeAt: toBuilderDatetimeLocal(
+      s.closeAt != null ? s.closeAt : base.closeAt
+    ),
+    weekdaySchedule: (() => {
+      const ws = s.weekdaySchedule;
+      const fallback = base.weekdaySchedule || {
+        enabled: false,
+        daysOfWeek: [1, 2, 3, 4, 5],
+        startTime: "09:00",
+        endTime: "18:00",
+      };
+      if (!ws || typeof ws !== "object") return fallback;
+      const days = Array.isArray(ws.daysOfWeek)
+        ? ws.daysOfWeek
+            .map((d: unknown) => Number(d))
+            .filter((d: number) => Number.isInteger(d) && d >= 0 && d <= 6)
+        : fallback.daysOfWeek;
+      return {
+        enabled: !!ws.enabled,
+        daysOfWeek: days.length ? days : fallback.daysOfWeek,
+        startTime:
+          typeof ws.startTime === "string" && ws.startTime
+            ? ws.startTime
+            : fallback.startTime,
+        endTime:
+          typeof ws.endTime === "string" && ws.endTime
+            ? ws.endTime
+            : fallback.endTime,
+      };
+    })(),
     quizMode,
     quizSettings: {
       scoreReveal: ["immediately", "afterDeadline", "never"].includes(
@@ -363,6 +424,9 @@ export const toActivitySettingsSnapshot = (
   requiredResponseCount: settings.requiredResponseCount,
   openAt: settings.openAt || undefined,
   closeAt: settings.closeAt || undefined,
+  weekdaySchedule: settings.weekdaySchedule?.enabled
+    ? settings.weekdaySchedule
+    : undefined,
   quizMode: settings.quizMode,
   quizSettings: settings.quizSettings,
   assessmentMode: settings.assessmentMode,

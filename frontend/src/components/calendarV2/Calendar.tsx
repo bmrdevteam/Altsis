@@ -543,6 +543,8 @@ const Calender = (props: Props) => {
             color: formData.color,
             calendarId: formData.calendarId,
             reminder: formData.reminder,
+            scheduleStart: formData.scheduleStart,
+            notifySchool: formData.notifySchool,
           },
         });
       } else {
@@ -569,6 +571,8 @@ const Calender = (props: Props) => {
             color: formData.color,
             calendarId: formData.calendarId,
             reminder: formData.reminder,
+            scheduleStart: formData.scheduleStart,
+            notifySchool: formData.notifySchool,
           },
         });
       }
@@ -604,6 +608,8 @@ const Calender = (props: Props) => {
       calendarId: eventItem.calendarId,
       daysOfWeek: eventItem.recurrenceDays || [],
       reminder: eventItem.reminder,
+      scheduleStart: eventItem.scheduleStart,
+      notifySchool: eventItem.notifySchool,
     };
 
     const eventId = eventItem.recurrenceParentId || eventItem.eventId;

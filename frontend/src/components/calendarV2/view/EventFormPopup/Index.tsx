@@ -36,6 +36,12 @@ export type EventFormData = {
     minutesBefore?: number;
     useDefault?: boolean;
   };
+  /** 일정 시작 알림 (기본 OFF) */
+  scheduleStart?: {
+    enabled: boolean;
+  };
+  /** 학교 전체 알림 (학교 캘린더만, 기본 OFF) */
+  notifySchool?: boolean;
 };
 
 
@@ -100,6 +106,12 @@ const Index = (props: Props) => {
       : props.defaultValues?.reminder?.minutesBefore ?? 15
   );
   const [defaultReminderMinutes, setDefaultReminderMinutes] = useState(15);
+  const [scheduleStartEnabled, setScheduleStartEnabled] = useState(
+    props.defaultValues?.scheduleStart?.enabled ?? false
+  );
+  const [notifySchool, setNotifySchool] = useState(
+    props.defaultValues?.notifySchool ?? false
+  );
 
   const [userCalendars, setUserCalendars] = useState<any[]>([]);
 
@@ -172,6 +184,7 @@ const Index = (props: Props) => {
     if (val === "__personal") {
       setScope("personal");
       setCalendarId("");
+      setNotifySchool(false);
     } else if (val === "__school") {
       setScope("school");
       setCalendarId("");
@@ -181,6 +194,9 @@ const Index = (props: Props) => {
         setScope(cal.scope);
         setCalendarId(cal._id);
         setColor(cal.color);
+        if (cal.scope !== "school") {
+          setNotifySchool(false);
+        }
       }
     }
   };
@@ -228,6 +244,8 @@ const Index = (props: Props) => {
             useDefault: reminderMinutesBefore === "default",
           }
         : { enabled: false },
+      scheduleStart: { enabled: !isAllDay && scheduleStartEnabled },
+      notifySchool: scope === "school" && notifySchool,
     });
   };
 
@@ -452,38 +470,73 @@ const Index = (props: Props) => {
         )}
 
         {!isAllDay && (
-          <div className={style.rowInline}>
-            <label className={style.checkbox}>
-              <input
-                type="checkbox"
-                checked={reminderEnabled}
-                onChange={(e) => setReminderEnabled(e.target.checked)}
-              />
-              리마인더
-            </label>
-            {reminderEnabled && (
-              <div style={{ flex: 1 }}>
-                <Select
-                  options={[
-                    {
-                      text: `기본 설정 (${defaultReminderMinutes}분 전)`,
-                      value: "default",
-                    },
-                    { text: "15분 전", value: "15" },
-                    { text: "30분 전", value: "30" },
-                    { text: "1시간 전", value: "60" },
-                    { text: "1일 전", value: "1440" },
-                  ]}
-                  defaultSelectedValue={String(reminderMinutesBefore)}
-                  onChange={(e: any) => {
-                    setReminderMinutesBefore(
-                      e === "default" ? "default" : Number(e)
-                    );
-                  }}
+          <>
+            <div className={style.rowInline}>
+              <label className={style.checkbox}>
+                <input
+                  type="checkbox"
+                  checked={scheduleStartEnabled}
+                  onChange={(e) => setScheduleStartEnabled(e.target.checked)}
                 />
+                일정 시작 알림
+              </label>
+            </div>
+            <div className={style.rowInline}>
+              <label className={style.checkbox}>
+                <input
+                  type="checkbox"
+                  checked={reminderEnabled}
+                  onChange={(e) => setReminderEnabled(e.target.checked)}
+                />
+                리마인더
+              </label>
+              {reminderEnabled && (
+                <div style={{ flex: 1 }}>
+                  <Select
+                    options={[
+                      {
+                        text: `기본 설정 (${defaultReminderMinutes}분 전)`,
+                        value: "default",
+                      },
+                      { text: "15분 전", value: "15" },
+                      { text: "30분 전", value: "30" },
+                      { text: "1시간 전", value: "60" },
+                      { text: "1일 전", value: "1440" },
+                    ]}
+                    defaultSelectedValue={String(reminderMinutesBefore)}
+                    onChange={(e: any) => {
+                      setReminderMinutesBefore(
+                        e === "default" ? "default" : Number(e)
+                      );
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+            {scope === "school" && (
+              <div className={style.row}>
+                <label className={style.checkbox}>
+                  <input
+                    type="checkbox"
+                    checked={notifySchool}
+                    onChange={(e) => setNotifySchool(e.target.checked)}
+                  />
+                  학교 전체 알림
+                </label>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: "var(--accent-3)",
+                    marginTop: 4,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  켜면 학교 구성원에게도 일정 시작·리마인더가 갈 수 있습니다.
+                  각자 알림 설정을 따릅니다.
+                </div>
               </div>
             )}
-          </div>
+          </>
         )}
 
         <div className={style.row}>

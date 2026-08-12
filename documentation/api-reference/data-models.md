@@ -32,12 +32,13 @@ Altsis 학교 정보 시스템의 MongoDB 스키마(Mongoose) 전체 명세입�
 24. [AltForm (양식 빌더)](#altform-양식-빌더)
 25. [AltSheet (시트)](#altsheet-시트)
 26. [AltSheetRow (시트 행)](#altsheetrow-시트-행)
-27. [AIChatSession (AI 채팅 세션)](#aichatsession-ai-채팅-세션)
-28. [AIChatMessage (AI 채팅 메시지)](#aichatmessage-ai-채팅-메시지)
-29. [AIUsageLog (AI 사용량 로그)](#aiusagelog-ai-사용량-로그)
-30. [BoardFavorite (보드 즐겨찾기)](#boardfavorite-보드-즐겨찾기)
-31. [SurveyResponse (설문 응답)](#surveyresponse-설문-응답)
-32. [RequestStat (요청 통계)](#requeststat-요청-통계)
+27. [AltSheetOpen (시트 열람)](#altsheetopen-시트-열람)
+28. [AIChatSession (AI 채팅 세션)](#aichatsession-ai-채팅-세션)
+29. [AIChatMessage (AI 채팅 메시지)](#aichatmessage-ai-채팅-메시지)
+30. [AIUsageLog (AI 사용량 로그)](#aiusagelog-ai-사용량-로그)
+31. [BoardFavorite (보드 즐겨찾기)](#boardfavorite-보드-즐겨찾기)
+32. [SurveyResponse (설문 응답)](#surveyresponse-설문-응답)
+33. [RequestStat (요청 통계)](#requeststat-요청-통계)
 
 ---
 
@@ -784,6 +785,9 @@ FormArchiveItem과 동일한 구조에 `deletedAt` 필드가 추가됩니다.
 | `reminder.enabled` | `Boolean` | X | `false` | 리마인더 활성화 |
 | `reminder.minutesBefore` | `Number` | X | - | 몇 분 전 알림 |
 | `reminder.useDefault` | `Boolean` | X | `true` | 기본 설정 사용 |
+| `scheduleStart` | `Object` | X | `{enabled:false}` | 일정 시작 알림 (옵트인) |
+| `scheduleStart.enabled` | `Boolean` | X | `false` | 일정 시작 알림 활성화 |
+| `notifySchool` | `Boolean` | X | `false` | 학교 전체 알림 (`scope=school`일 때만 유효) |
 | `sourceType` | `String` | X | `"manual"` | 출처 유형. enum: `"manual"`, `"enrollment"`, `"syllabus"`, `"memo"` |
 | `sourceId` | `String` | X | - | 출처 ID |
 | `syllabusId` | `ObjectId` | X | - | 연결된 강의계획서 `_id` |
@@ -1104,6 +1108,10 @@ Alt Board의 양식 빌더로, 데이터 수집용 Form을 관리합니다. Form
 | `settings.openAt` | `Date` | X | - | 공개 시작 시각 |
 | `settings.closeAt` | `Date` | X | - | 공개 종료 시각 |
 | `settings.allowResubmit` | `Boolean` | X | `false` | 재제출 허용 |
+| `settings.allowMultipleResponses` | `Boolean` | X | `false` | 복수 응답 허용 |
+| `settings.requiredMode` | `Boolean` | X | `false` | 필수 응답(미제출 할 일) |
+| `settings.requiredResponseCount` | `Number` | X | - | 필수+복수일 때 목표 제출 횟수 |
+| `settings.weekdaySchedule` | `Object` | X | - | 요일마다 회차 창 (`enabled`, `daysOfWeek` 0=일…6=토, `startTime`/`endTime` HH:mm, Asia/Seoul). 전제: requiredMode + allowMultipleResponses + openAt + closeAt |
 | `settings.quizMode` | `Boolean` | X | `false` | 퀴즈 모드 |
 | `settings.shareResponses` | `Boolean` | X | `false` | 응답 공유 |
 | `sheet` | `ObjectId` | X | - | 연결된 AltSheet `_id` |
@@ -1158,6 +1166,7 @@ AltSheet의 개별 행 데이터입니다. Form 응답 제출 시 또는 교사 
 | `sheet_1, _respondent_1` | COMPOUND |
 | `sheet_1, createdAt_-1` | COMPOUND |
 | `form_1` | INDEX |
+| `form_1, createdAt_1` | COMPOUND |
 
 ### 필드
 
@@ -1176,6 +1185,36 @@ AltSheet의 개별 행 데이터입니다. Form 응답 제출 시 또는 교사 
 | `isActive` | `Boolean` | X | `true` | 활성화 상태 |
 | `createdAt` | `Date` | 자동 | - | 생성 시각 |
 | `updatedAt` | `Date` | 자동 | - | 수정 시각 |
+
+---
+
+## AltSheetOpen (시트 열람)
+
+관리자/작성자가 양식 기록(시트)을 마지막으로 연 시각을 사용자·양식 단위로 저장합니다. 목록 API의 `unreadResponseCount`는 이 시각 이후 생성된 응답 행 수입니다. 기록이 없으면 unread는 0입니다.
+
+> **파일**: `backend/src/models/AltSheetOpen.js`
+> **DB**: 아카데미 데이터베이스
+
+### 인덱스
+
+| 인덱스 | 속성 |
+|--------|------|
+| `_id` | UNIQUE |
+| `user_1, form_1` | UNIQUE |
+| `user_1, board_1` | COMPOUND |
+| `user_1` / `form_1` / `board_1` | INDEX |
+
+### 필드
+
+| 필드 | 타입 | 필수 | 기본값 | 설명 |
+|------|------|------|--------|------|
+| `_id` | `ObjectId` | 자동 | - | MongoDB 기본 키 |
+| `user` | `ObjectId` | O | - | 열람자 User `_id` |
+| `form` | `ObjectId` | O | - | AltForm `_id` |
+| `board` | `ObjectId` | O | - | Board `_id` |
+| `lastOpenedAt` | `Date` | O | `Date.now` | 마지막 기록 열람 시각 |
+
+> **목록 메타** (`RAltForms`, admin/writer): `responseCount`, `unreadResponseCount` (열람 기준 이후 신규 응답 수).
 
 ---
 
@@ -1436,6 +1475,7 @@ Academy (루트 DB)
         +-- Board --> Post --> Comment
         |     |
         |     +-- AltForm --> AltSheet --> AltSheetRow
+        |     |                 +-- AltSheetOpen (user별 열람)
         |     +-- BoardFavorite
         |     +-- SurveyResponse (via Post)
         |

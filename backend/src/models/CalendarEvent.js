@@ -31,6 +31,9 @@ import { conn } from "../_database/mongodb/index.js";
  * @prop {string} recurrence.type - "none" | "daily" | "weekly" | "monthly"
  * @prop {Date} recurrence.endDate - 반복 종료일
  * @prop {string} color - 일정 색상
+ * @prop {Object} reminder - 리마인더 설정 {enabled, minutesBefore, useDefault}
+ * @prop {Object} scheduleStart - 일정 시작 알림 {enabled} (기본 OFF)
+ * @prop {boolean} notifySchool - 학교 전체 알림 (기본 false, scope=school일 때만)
  * @prop {string} sourceType - 일정 출처 유형 ("manual" | "enrollment" | "syllabus")
  * @prop {string} sourceId - 출처 ID (enrollment._id + timeIndex)
  */
@@ -75,6 +78,21 @@ const calendarEventSchema = mongoose.Schema(
       ),
       default: { enabled: false, useDefault: true },
     },
+    /** 일정 시작 알림 (옵트인, 기본 OFF) */
+    scheduleStart: {
+      type: mongoose.Schema(
+        {
+          enabled: { type: Boolean, default: false },
+        },
+        { _id: false }
+      ),
+      default: { enabled: false },
+    },
+    /**
+     * 학교 전체 알림 (기본 OFF).
+     * scope=school 이고 true일 때만 학교 소속 전원에게 수신 후보 추가.
+     */
+    notifySchool: { type: Boolean, default: false },
     sourceType: {
       type: String,
       enum: ["manual", "enrollment", "syllabus", "memo", "altForm"],
@@ -129,6 +147,15 @@ calendarEventSchema.index({
 // 스케줄러: 리마인더 활성 이벤트 조회 최적화
 calendarEventSchema.index({
   "reminder.enabled": 1,
+  isAllDay: 1,
+  sourceType: 1,
+  "recurrence.type": 1,
+  start: 1,
+});
+
+// 스케줄러: 일정 시작 알림 활성 이벤트 조회 최적화
+calendarEventSchema.index({
+  "scheduleStart.enabled": 1,
   isAllDay: 1,
   sourceType: 1,
   "recurrence.type": 1,

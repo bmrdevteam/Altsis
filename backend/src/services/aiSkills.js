@@ -74,13 +74,21 @@ import {
   sanitizeAiDocResponseFill,
 } from "./formResponseSlots.js";
 import {
+  ALTER_HOWTO_EXAMPLE_PROMPTS,
   buildAlterChatSystemPrompt,
+  detectAlterHowtoIntent,
   withAlterSafety,
 } from "./alterCorePrompt.js";
 import {
   ensureChunksForItems,
   retrieveLibraryChunks,
 } from "./aiLibraryChunks.js";
+import {
+  estimateWeekdayOccurrenceCount,
+  getZonedParts,
+  parseHhMm,
+  zonedLocalToUtc,
+} from "./weekdaySchedule.js";
 import { logger } from "../log/logger.js";
 
 export { parseFormResponseDraftResponse } from "./formResponseDraft.js";
@@ -423,6 +431,7 @@ export const resolveSkillPromptPack = async (
  * references 는 선택 전 전체 목록(인덱스는 프롬프트와 동일 순서).
  * syllabus/evaluation/archive/document/form-response/activity(-review) 는
  * instructionItems + defaultGuidelineItemIds 도 함께 반환.
+ * 목록·기본 선택은 관리에서 연결·태그한 항목만 (미연결 others 폴백 없음).
  */
 export const resolveSkillPrepSettings = async (
   academyId,
@@ -451,9 +460,7 @@ export const resolveSkillPrepSettings = async (
     skill === SKILL_IDS.FORM_RESPONSE_DRAFT ||
     skill === SKILL_IDS.ACTIVITY_DRAFT;
 
-  /** 문서 점검은 관리에서 정리한(연결·태그) 항목만 prep에 노출 */
-  const dedicatedOnly = skill === SKILL_IDS.DOCUMENT_REVIEW;
-
+  /** 지침 선택 스킬은 관리에서 연결·태그한 항목만 prep에 노출 */
   const loadLibraryChoicesByKind = async (kind, emptyTitle) => {
     if (!school?._id) {
       return { items: [], defaultIds: [] };
@@ -468,7 +475,6 @@ export const resolveSkillPrepSettings = async (
       .lean();
     const byId = new Map();
     const tagged = [];
-    const others = [];
     for (const it of items || []) {
       const id = String(it._id);
       const tags = Array.isArray(it.skillTags)
@@ -482,25 +488,14 @@ export const resolveSkillPrepSettings = async (
       byId.set(id, row);
       if (linkedSet.has(id)) continue;
       if (tags.includes(skill)) tagged.push(row);
-      else others.push(row);
     }
     // 관리 화면 연결 순서 유지
     const linked = linkedIds.map((id) => byId.get(id)).filter(Boolean);
-    const dedicated = [...linked, ...tagged];
-    let list;
-    if (dedicatedOnly) {
-      list = dedicated;
-    } else {
-      list = dedicated.length > 0 ? [...dedicated, ...others] : others;
-    }
+    const list = [...linked, ...tagged];
     const defaultIds =
       linked.length > 0
         ? linked.map((r) => r._id)
-        : tagged.length > 0
-          ? tagged.map((r) => r._id)
-          : dedicatedOnly
-            ? []
-            : others.map((r) => r._id);
+        : tagged.map((r) => r._id);
     return { items: list, defaultIds };
   };
 
@@ -1483,14 +1478,56 @@ export const formatReviewAsChatText = (review) => {
   return lines.join("\n") || "문서 점검을 완료했습니다.";
 };
 
-const buildAlterChatSystem = (promptPack, context, boardTitle) =>
-  buildAlterChatSystemPrompt({
+/**
+ * howto 모드용 스킬·예시 블록 (catalog + 예시 맵).
+ * @param {string[]} [suggestedSkills]
+ * @returns {{ availableSkillsText: string, examplePromptsText: string }}
+ */
+export const buildHowtoCoachBlocks = (suggestedSkills) => {
+  const ids = Array.isArray(suggestedSkills)
+    ? suggestedSkills.map((id) => resolveSkillId(id))
+    : [];
+  const unique = [...new Set(ids.length ? ids : [SKILL_IDS.CHAT])];
+
+  const skillLines = unique.map((id) => {
+    const meta = SKILL_CATALOG[id] || SKILL_CATALOG[SKILL_IDS.CHAT];
+    return `- ${meta.name} (${meta.id}): ${meta.description}`;
+  });
+  const availableSkillsText = `## 이 화면에서 쓸 수 있는 스킬\n${skillLines.join(
+    "\n"
+  )}`;
+
+  const exampleLines = [];
+  for (const id of unique) {
+    const meta = SKILL_CATALOG[id] || SKILL_CATALOG[SKILL_IDS.CHAT];
+    const prompts = ALTER_HOWTO_EXAMPLE_PROMPTS[id] || [];
+    for (const p of prompts.slice(0, 2)) {
+      exampleLines.push(`- [${meta.name}] ${p}`);
+    }
+  }
+  const examplePromptsText = exampleLines.length
+    ? `## 복붙용 예시\n${exampleLines.join("\n")}`
+    : "";
+
+  return { availableSkillsText, examplePromptsText };
+};
+
+const buildAlterChatSystem = (promptPack, context, boardTitle, message = "") => {
+  const howtoMode = detectAlterHowtoIntent(message);
+  const coach = howtoMode
+    ? buildHowtoCoachBlocks(context?.suggestedSkills)
+    : { availableSkillsText: "", examplePromptsText: "" };
+  return buildAlterChatSystemPrompt({
     boardTitle,
     pageContext: context,
     chatSnapshot: context?.chatSnapshot,
     guidelines: promptPack?.guidelines || "",
     references: promptPack?.references || [],
+    howtoMode,
+    availableSkillsText: coach.availableSkillsText,
+    examplePromptsText: coach.examplePromptsText,
   });
+};
 
 /** 평가 초안 레코드 구분자 (탭보다 모델이 안정적으로 출력) */
 const EVAL_DRAFT_SEP = "|||";
@@ -3748,6 +3785,95 @@ const newFieldId = () =>
     ? crypto.randomUUID()
     : `f_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 
+/** 프롬프트용 현재 시각 (Asia/Seoul, YYYY-MM-DDTHH:mm) */
+const formatKstDateTimeLocal = (date = new Date()) => {
+  const p = getZonedParts(date);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${p.year}-${pad(p.month)}-${pad(p.day)}T${pad(p.hour)}:${pad(p.minute)}`;
+};
+
+/**
+ * 초안 openAt/closeAt 파싱 → ISO. 타임존 없는 YYYY-MM-DDTHH:mm 은 KST로 해석.
+ * @returns {string}
+ */
+const normalizeDraftDateTime = (raw) => {
+  const str = String(raw || "").trim();
+  if (!str) return "";
+  const localMatch = str.match(
+    /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::\d{2})?(?:\.\d+)?$/
+  );
+  if (localMatch && !/[zZ]|[+-]\d{2}:?\d{2}$/.test(str)) {
+    const d = zonedLocalToUtc(
+      Number(localMatch[1]),
+      Number(localMatch[2]),
+      Number(localMatch[3]),
+      Number(localMatch[4]),
+      Number(localMatch[5])
+    );
+    return Number.isNaN(d.getTime()) ? "" : d.toISOString();
+  }
+  const d = new Date(str);
+  return Number.isNaN(d.getTime()) ? "" : d.toISOString();
+};
+
+const DEFAULT_DRAFT_WEEKDAY_SCHEDULE = {
+  enabled: false,
+  daysOfWeek: [1, 2, 3, 4, 5],
+  startTime: "09:00",
+  endTime: "18:00",
+};
+
+/**
+ * 초안용 요일마다 — 형식 오류 시 enabled만 끄고 초안은 유지.
+ */
+const normalizeDraftWeekdaySchedule = (raw, { openAt, closeAt }) => {
+  const fallback = { ...DEFAULT_DRAFT_WEEKDAY_SCHEDULE };
+  if (!raw || typeof raw !== "object") return fallback;
+
+  const daysOfWeek = [
+    ...new Set(
+      (Array.isArray(raw.daysOfWeek) ? raw.daysOfWeek : [])
+        .map((d) => Number(d))
+        .filter((d) => Number.isInteger(d) && d >= 0 && d <= 6)
+    ),
+  ].sort((a, b) => a - b);
+
+  const startTime =
+    typeof raw.startTime === "string" && parseHhMm(raw.startTime.trim())
+      ? raw.startTime.trim()
+      : fallback.startTime;
+  const endTime =
+    typeof raw.endTime === "string" && parseHhMm(raw.endTime.trim())
+      ? raw.endTime.trim()
+      : fallback.endTime;
+
+  const base = {
+    enabled: false,
+    daysOfWeek: daysOfWeek.length ? daysOfWeek : fallback.daysOfWeek,
+    startTime,
+    endTime,
+  };
+
+  if (!raw.enabled) return base;
+
+  const start = parseHhMm(startTime);
+  const end = parseHhMm(endTime);
+  const openOk = !!openAt && !Number.isNaN(new Date(openAt).getTime());
+  const closeOk = !!closeAt && !Number.isNaN(new Date(closeAt).getTime());
+  if (
+    !daysOfWeek.length ||
+    !start ||
+    !end ||
+    !openOk ||
+    !closeOk ||
+    end.hours * 60 + end.minutes <= start.hours * 60 + start.minutes
+  ) {
+    return base;
+  }
+
+  return { ...base, enabled: true, daysOfWeek };
+};
+
 /**
  * AI 활동 초안 JSON 파싱·검증
  * 형식: <<<JSON>>> ... <<<END>>>
@@ -3997,17 +4123,54 @@ export const normalizeActivityDraft = (parsed = {}, opts = {}) => {
     }
   }
 
+  const openAt = normalizeDraftDateTime(s.openAt);
+  const closeAt = normalizeDraftDateTime(s.closeAt);
+
+  let requiredMode = !!s.requiredMode;
+  let allowMultipleResponses = !!s.allowMultipleResponses;
+  const wantsWeekday =
+    s.weekdaySchedule &&
+    typeof s.weekdaySchedule === "object" &&
+    !!s.weekdaySchedule.enabled;
+  if (wantsWeekday) {
+    requiredMode = true;
+    allowMultipleResponses = true;
+  }
+
+  const weekdaySchedule = normalizeDraftWeekdaySchedule(s.weekdaySchedule, {
+    openAt,
+    closeAt,
+  });
+
+  let requiredResponseCount =
+    typeof s.requiredResponseCount === "number" &&
+    Number.isFinite(s.requiredResponseCount)
+      ? Math.max(1, Math.min(50, Math.floor(s.requiredResponseCount)))
+      : 2;
+
+  if (weekdaySchedule.enabled) {
+    const est = estimateWeekdayOccurrenceCount({
+      settings: {
+        requiredMode: true,
+        allowMultipleResponses: true,
+        openAt,
+        closeAt,
+        weekdaySchedule,
+      },
+    });
+    if (est != null && est >= 1) {
+      requiredResponseCount = Math.max(1, Math.min(50, est));
+    }
+  }
+
   const settings = {
     allowResubmit: !!s.allowResubmit,
-    allowMultipleResponses: !!s.allowMultipleResponses,
-    requiredMode: !!s.requiredMode,
-    requiredResponseCount:
-      typeof s.requiredResponseCount === "number" &&
-      Number.isFinite(s.requiredResponseCount)
-        ? Math.max(1, Math.min(50, Math.floor(s.requiredResponseCount)))
-        : 2,
-    openAt: s.openAt ? String(s.openAt) : "",
-    closeAt: s.closeAt ? String(s.closeAt) : "",
+    allowMultipleResponses,
+    requiredMode,
+    requiredResponseCount,
+    openAt,
+    closeAt,
+    weekdaySchedule,
     quizMode,
     quizSettings: {
       scoreReveal: ["immediately", "afterDeadline", "never"].includes(
@@ -4134,7 +4297,15 @@ text, textarea, number, date, multiDate, time, file, select, multiSelect, checkb
   · rubrics 배열에 루브릭을 정의하세요. 각 항목: { "key": "r1", "title": "...", "levels": [{ "label", "description", "points" }] }
   · 채점할 필드에 "gradingMethod": "rubric" 과 "rubricKeys": ["r1"] (또는 rubricIndexes: [0]) 를 넣으세요.
   · 루브릭이 비어 있으면 서버가 기본 루브릭을 만들고 서술형/응답 문서 필드에 연결합니다.
-- 설정 키: allowResubmit, allowMultipleResponses, requiredMode, requiredResponseCount, openAt, closeAt, quizMode, quizSettings{scoreReveal,answerReveal,showWrongMarks}, assessmentMode, directInputMode, shareResponses, showOwnerFields, showOwnResponse`;
+- 설정 키: allowResubmit, allowMultipleResponses, requiredMode, requiredResponseCount, openAt, closeAt, weekdaySchedule{enabled, daysOfWeek, startTime, endTime}, quizMode, quizSettings{scoreReveal,answerReveal,showWrongMarks}, assessmentMode, directInputMode, shareResponses, showOwnerFields, showOwnResponse
+- weekdaySchedule.daysOfWeek: 0=일 … 6=토 (월요일=1). startTime/endTime은 HH:mm (Asia/Seoul)
+- 반복·매주·요일마다 제출 요청:
+  · 필드로 회차/주차를 만들지 마세요(예: 「1주차」「제출 요일」 select/radio 금지).
+  · openAt·closeAt(기간) + weekdaySchedule.enabled=true 로 설정하세요.
+  · 이 경우 requiredMode=true, allowMultipleResponses=true 필수.
+  · 회차 시각이 없으면 startTime="09:00", endTime="23:59".
+  · openAt/closeAt은 ISO 8601 또는 YYYY-MM-DDTHH:mm (KST 의미). 「오늘부터 N주/한달」은 아래 기준 시각으로 계산.
+  · requiredResponseCount는 대략 넣거나 생략 가능(서버가 기간·요일로 보정).`;
 
   const preferFieldsRule = `필드 우선순위:
 1) 답·선택·점수·참석 여부 등 제출이 필요한 항목 → text/textarea/radio/select/multiSelect/checkbox/number/rating/scale 등 일반 필드
@@ -4155,6 +4326,8 @@ text, textarea, number, date, multiDate, time, file, select, multiSelect, checkb
 - 퀴즈/설문/신청은 객관식·단답 등 일반 필드 중심으로 구성하세요.
 - 근거 없는 사실·개인정보·민감정보는 넣지 마세요.`;
 
+  const kstNow = formatKstDateTimeLocal();
+
   const prompt = `당신은 학교 보드 활동(양식) 작성 보조입니다. 교사가 에디터에서 바로 검토·반영할 JSON 초안만 작성합니다.
 
 ${taskRules}
@@ -4174,6 +4347,9 @@ ${
 
 ## 보드
 ${boardName || "(미지정)"}
+
+## 기준 시각 (Asia/Seoul)
+${kstNow} (오늘 — 「오늘부터」「이번 주」 등 상대 기간은 이 시각 기준으로 계산)
 
 ## 필드·설정 스키마
 ${fieldCatalog}
@@ -4213,6 +4389,12 @@ ${currentSnapshot}
     "requiredResponseCount": 2,
     "openAt": "",
     "closeAt": "",
+    "weekdaySchedule": {
+      "enabled": false,
+      "daysOfWeek": [1, 2, 3, 4, 5],
+      "startTime": "09:00",
+      "endTime": "18:00"
+    },
     "quizMode": false,
     "quizSettings": {
       "scoreReveal": "immediately",
@@ -4974,7 +5156,8 @@ export const runAlterSkill = async ({
   const systemInstruction = buildAlterChatSystem(
     { ...chatPromptPack, references: chatReferences },
     context,
-    boardTitle
+    boardTitle,
+    message
   );
 
   const attachments = Array.isArray(context?.attachments)

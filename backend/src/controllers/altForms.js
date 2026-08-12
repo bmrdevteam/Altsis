@@ -5,8 +5,8 @@
  */
 import crypto from "crypto";
 import { logger } from "../log/logger.js";
-import { AltForm, AltSheet, AltSheetRow, Board, CalendarEvent } from "../models/index.js";
-import { canManageForm, canModifyForm, getAltBoardRole, hasSubmittedForList, validateExclusiveFormModes } from "../services/altForms.js";
+import { AltForm, AltSheet, AltSheetOpen, AltSheetRow, Board, CalendarEvent } from "../models/index.js";
+import { canManageForm, canModifyForm, getAltBoardRole, hasSubmittedForList, resolveUnreadResponseCount, validateExclusiveFormModes, applyWeekdayScheduleNormalize, isWeekdayScheduleEnabled, isInOccurrenceWindow, hasSubmittedCurrentOccurrence, getEffectiveTodoCloseAt } from "../services/altForms.js";
 import { cloneAltFormToBoard } from "../services/altFormClone.js";
 import { isBoardNotificationEnabled } from "../services/notifications.js";
 import { getBoardMembers } from "../services/boards.js";
@@ -24,9 +24,9 @@ const ensureFieldIds = (fields) =>
   }));
 
 /**
- * 목록용 메타: responseCount / mySubmitted
+ * 목록용 메타: responseCount / mySubmitted / unreadResponseCount
  * (카드 N+1 방지를 위해 RAltForms에서 일괄 부착)
- * responseCount는 admin/writer에게만 부착 (응답자·비멤버에게 집계 노출 방지)
+ * responseCount·unreadResponseCount는 admin/writer에게만 부착 (응답자·비멤버에게 집계 노출 방지)
  */
 const enrichFormsWithListMeta = async (
   academyId,
@@ -38,7 +38,7 @@ const enrichFormsWithListMeta = async (
 
   const formIds = forms.map((f) => f._id);
 
-  const [countAgg, myRows] = await Promise.all([
+  const [countAgg, myRows, opens] = await Promise.all([
     includeResponseCount
       ? AltSheetRow(academyId).aggregate([
           {
@@ -57,13 +57,48 @@ const enrichFormsWithListMeta = async (
         _respondent: userId,
         isActive: true,
       })
-      .select("form createdAt")
+      .select("form createdAt _submittedAt")
       .lean(),
+    includeResponseCount
+      ? AltSheetOpen(academyId)
+          .find({ user: userId, form: { $in: formIds } })
+          .select("form lastOpenedAt")
+          .lean()
+      : Promise.resolve([]),
   ]);
 
   const countByForm = new Map(
     countAgg.map((r) => [r._id.toString(), r.count])
   );
+  const openedAtByForm = new Map(
+    (opens || []).map((o) => [o.form.toString(), o.lastOpenedAt])
+  );
+
+  let unreadAggByForm = new Map();
+  if (includeResponseCount && opens?.length > 0) {
+    const orClauses = opens
+      .filter((o) => o.lastOpenedAt)
+      .map((o) => ({
+        form: o.form,
+        createdAt: { $gt: o.lastOpenedAt },
+      }));
+    if (orClauses.length > 0) {
+      const unreadAgg = await AltSheetRow(academyId).aggregate([
+        {
+          $match: {
+            isActive: true,
+            _respondent: { $ne: null },
+            $or: orClauses,
+          },
+        },
+        { $group: { _id: "$form", count: { $sum: 1 } } },
+      ]);
+      unreadAggByForm = new Map(
+        unreadAgg.map((r) => [r._id.toString(), r.count])
+      );
+    }
+  }
+
   const myRowsByForm = new Map();
   for (const row of myRows) {
     const fid = row.form.toString();
@@ -75,13 +110,31 @@ const enrichFormsWithListMeta = async (
     const plain = typeof form.toObject === "function" ? form.toObject() : form;
     const id = plain._id.toString();
     const mine = myRowsByForm.get(id) || [];
+    const now = new Date();
+    const effectiveClose = getEffectiveTodoCloseAt(plain, now);
     const meta = {
       ...plain,
       mySubmitted: hasSubmittedForList(plain, mine),
       myResponseCount: mine.length,
+      inOccurrenceWindow: isWeekdayScheduleEnabled(plain)
+        ? isInOccurrenceWindow(plain, now)
+        : undefined,
+      submittedCurrentOccurrence: isWeekdayScheduleEnabled(plain)
+        ? hasSubmittedCurrentOccurrence(plain, mine, now)
+        : undefined,
+      occurrenceCloseAt: effectiveClose
+        ? effectiveClose instanceof Date
+          ? effectiveClose.toISOString()
+          : new Date(effectiveClose).toISOString()
+        : null,
     };
     if (includeResponseCount) {
       meta.responseCount = countByForm.get(id) || 0;
+      meta.unreadResponseCount = resolveUnreadResponseCount(
+        id,
+        openedAtByForm,
+        unreadAggByForm
+      );
     }
     return meta;
   });
@@ -111,6 +164,17 @@ export const create = async (req, res) => {
     }
 
     const createSettings = req.body.settings || { allowResubmit: false };
+    if (!createSettings.requiredMode || !createSettings.allowMultipleResponses) {
+      createSettings.requiredResponseCount = undefined;
+    } else {
+      const n = Number(createSettings.requiredResponseCount);
+      createSettings.requiredResponseCount =
+        Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
+    }
+    const wsErr = applyWeekdayScheduleNormalize(createSettings);
+    if (wsErr.error) {
+      return res.status(400).send({ message: wsErr.error });
+    }
     const modeErr = validateExclusiveFormModes(createSettings);
     if (modeErr) {
       return res.status(400).send({ message: modeErr });
@@ -407,6 +471,10 @@ export const update = async (req, res) => {
         form.settings.requiredResponseCount =
           Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
       }
+      const wsErr = applyWeekdayScheduleNormalize(form.settings);
+      if (wsErr.error) {
+        return res.status(400).send({ message: wsErr.error });
+      }
       const modeErr = validateExclusiveFormModes(form.settings);
       if (modeErr) {
         return res.status(400).send({ message: modeErr });
@@ -565,6 +633,7 @@ export const exportForm = async (req, res) => {
         showOwnResponse: form.settings?.showOwnResponse,
         openAt: form.settings?.openAt,
         closeAt: form.settings?.closeAt,
+        weekdaySchedule: form.settings?.weekdaySchedule,
       },
     };
 
@@ -599,6 +668,17 @@ export const importForm = async (req, res) => {
 
     const fd = req.body.formData;
     const importSettings = fd.settings || { allowResubmit: false };
+    if (!importSettings.requiredMode || !importSettings.allowMultipleResponses) {
+      importSettings.requiredResponseCount = undefined;
+    } else {
+      const n = Number(importSettings.requiredResponseCount);
+      importSettings.requiredResponseCount =
+        Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
+    }
+    const wsErr = applyWeekdayScheduleNormalize(importSettings);
+    if (wsErr.error) {
+      return res.status(400).send({ message: wsErr.error });
+    }
     const modeErr = validateExclusiveFormModes(importSettings);
     if (modeErr) {
       return res.status(400).send({ message: modeErr });
@@ -663,6 +743,53 @@ export const duplicate = async (req, res) => {
     );
 
     return res.status(200).send({ form, sheet });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.AltFormAPI
+ * @function UAltFormSheetOpened API
+ * @description 기록(시트) 열람 시각 upsert — unreadResponseCount 기준점
+ */
+export const markSheetOpened = async (req, res) => {
+  try {
+    const form = await AltForm(req.user.academyId).findById(req.params._id);
+    if (!form || !form.isActive) {
+      return res.status(404).send({ message: __NOT_FOUND("form") });
+    }
+
+    const board = await Board(req.user.academyId).findById(form.board);
+    if (!board) {
+      return res.status(404).send({ message: __NOT_FOUND("board") });
+    }
+
+    if (!canManageForm(board, req.user)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    const now = new Date();
+    const open = await AltSheetOpen(req.user.academyId).findOneAndUpdate(
+      { user: req.user._id, form: form._id },
+      {
+        $set: {
+          lastOpenedAt: now,
+          board: board._id,
+        },
+        $setOnInsert: {
+          user: req.user._id,
+          form: form._id,
+        },
+      },
+      { upsert: true, new: true }
+    );
+
+    return res.status(200).send({
+      form: form._id,
+      lastOpenedAt: open.lastOpenedAt,
+    });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });

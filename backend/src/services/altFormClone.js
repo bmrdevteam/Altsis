@@ -77,6 +77,7 @@ export const cloneAltFormToBoard = async (
       showOwnResponse: original.settings?.showOwnResponse,
       openAt: original.settings?.openAt,
       closeAt: original.settings?.closeAt,
+      weekdaySchedule: original.settings?.weekdaySchedule,
     },
   });
 

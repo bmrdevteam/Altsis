@@ -8,6 +8,7 @@ import * as altForms from "../controllers/altForms.js";
 router.post("/import", isLoggedIn, altForms.importForm);
 router.get("/:_id/export", isLoggedIn, altForms.exportForm);
 router.post("/:_id/duplicate", isLoggedIn, altForms.duplicate);
+router.put("/:_id/sheet-opened", isLoggedIn, altForms.markSheetOpened);
 
 // Alt Form CRUD
 router.post("/", isLoggedIn, altForms.create);

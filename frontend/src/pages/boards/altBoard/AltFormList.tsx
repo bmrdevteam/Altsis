@@ -23,6 +23,11 @@ import {
   TActivityLeadTone,
 } from "./activityStatusVisual";
 import {
+  getDeadlineRemainingLabel,
+  isDeadlineUrgent,
+} from "./activityDeadline";
+import { shouldShowUnsubmittedTodoForm, getEffectiveTodoCloseAtLocal } from "./weekdaySchedule";
+import {
   getSchoolTodosCached,
   invalidateSchoolTodosCache,
   schoolTodosCacheKey,
@@ -89,31 +94,6 @@ const formatDateTime = (dateStr: string) =>
     hour: "2-digit",
     minute: "2-digit",
   });
-
-/** 마감일 기준 D-day / 오늘 마감 문구 */
-const getDeadlineHint = (form: TAltForm): string | null => {
-  if (!form.settings.closeAt) return null;
-  const close = new Date(form.settings.closeAt);
-  const now = new Date();
-  if (close < now) return null;
-
-  const startOfToday = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate()
-  );
-  const startOfClose = new Date(
-    close.getFullYear(),
-    close.getMonth(),
-    close.getDate()
-  );
-  const diffDays = Math.round(
-    (startOfClose.getTime() - startOfToday.getTime()) / (24 * 60 * 60 * 1000)
-  );
-  if (diffDays === 0) return "오늘 마감";
-  if (diffDays > 0 && diffDays <= 7) return `D-${diffDays}`;
-  return null;
-};
 
 const submitSortRank = (form: TAltForm): number => {
   const period = getActivityPeriodKind(form);
@@ -232,17 +212,10 @@ const AltFormList = ({
     return forms.filter((f) => !f.settings.directInputMode);
   }, [forms, myRole]);
 
-  /** 할 일: 필수·진행 중·미제출 */
+  /** 할 일: 필수·진행 중·미제출 (요일마다면 회차 창·당일 미제출) */
   const todoUnsubmitted = useMemo(() => {
     const now = new Date();
-    return forms.filter((f) => {
-      if (f.isDraft) return false;
-      if (f.settings?.requiredMode !== true) return false;
-      if (f.settings?.directInputMode) return false;
-      if (f.settings.closeAt && new Date(f.settings.closeAt) < now) return false;
-      if (f.settings.openAt && new Date(f.settings.openAt) > now) return false;
-      return !f.mySubmitted;
-    });
+    return forms.filter((f) => shouldShowUnsubmittedTodoForm(f, now));
   }, [forms]);
 
   const todoUnsubmittedIds = useMemo(
@@ -467,7 +440,8 @@ const AltFormList = ({
   };
 
   const renderActivityCard = (form: TAltForm) => {
-    const deadlineHint = getDeadlineHint(form);
+    const effectiveCloseAt = getEffectiveTodoCloseAtLocal(form);
+    const deadlineLabel = getDeadlineRemainingLabel(effectiveCloseAt);
     const period = getActivityPeriodKind(form);
     const isDirect = !!form.settings.directInputMode;
     const canEditForm = canModifyForm(form);
@@ -479,11 +453,6 @@ const AltFormList = ({
       !!onViewMyResponses;
     const showSheet = !!onOpenSheet;
     const showManageMenu = canManage;
-
-    const count = form.responseCount ?? 0;
-    const countLabel = form.settings.allowMultipleResponses
-      ? `응답 ${count}건`
-      : `제출 ${count}명`;
 
     const statusVisual = getActivityStatusVisual(form);
 
@@ -521,22 +490,18 @@ const AltFormList = ({
                 </span>
               )}
               {renderSubmitBadge(form)}
-              {canManage && !isDirect && (
-                <span className={style.responseCount}>{countLabel}</span>
-              )}
               {form.settings.openAt && period === "scheduled" && (
                 <span>시작: {formatDateTime(form.settings.openAt)}</span>
               )}
-              {form.settings.closeAt && (
+              {deadlineLabel && (
                 <span
                   className={
-                    deadlineHint === "오늘 마감"
+                    isDeadlineUrgent(effectiveCloseAt)
                       ? style.deadlineUrgent
                       : undefined
                   }
                 >
-                  마감: {formatDateTime(form.settings.closeAt)}
-                  {deadlineHint ? ` · ${deadlineHint}` : ""}
+                  {deadlineLabel}
                 </span>
               )}
               {form.mySubmitted &&
@@ -585,9 +550,21 @@ const AltFormList = ({
               type="button"
               className={style.formCardIconBtn}
               title="기록 보기"
+              aria-label={
+                (form.unreadResponseCount ?? 0) > 0
+                  ? `기록 보기, 미확인 응답 ${form.unreadResponseCount}건`
+                  : "기록 보기"
+              }
               onClick={() => onOpenSheet!(form._id)}
             >
               <Svg type="table" width="20px" height="20px" />
+              {canManage && (form.unreadResponseCount ?? 0) > 0 && (
+                <span className={style.formCardIconUnreadBadge}>
+                  {(form.unreadResponseCount ?? 0) > 99
+                    ? "99+"
+                    : form.unreadResponseCount}
+                </span>
+              )}
             </button>
           )}
           {showManageMenu && (
