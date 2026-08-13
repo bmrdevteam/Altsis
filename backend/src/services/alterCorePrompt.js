@@ -127,7 +127,7 @@ export const hasAlterConsultIntent = (message = "") => {
     return true;
   }
   if (
-    /(효율|빠르게|한번에|일괄|방법|절차).{0,20}(쓰|작성|평가|기록|문서|채점|초안)?/.test(
+    /(효율|빠르게|한번에|일괄|방법|절차).{0,20}(쓰|작성|평가|기록|문서|채점|초안)/.test(
       text
     )
   ) {
@@ -148,16 +148,19 @@ export const hasAlterConsultIntent = (message = "") => {
 export const detectAlterHowtoIntent = (message = "") => {
   const text = String(message || "").trim();
   if (!text) return false;
-  if (hasAlterConsultIntent(text)) return true;
 
-  if (/\/(도움말|사용법)/i.test(text)) return true;
-  if (/사용법|도움말|가이드/.test(text)) return true;
-  if (/(Alter|알터).{0,12}(뭐|무엇|어떻게|사용)/i.test(text)) return true;
-  if (/(뭐|무엇|어떻게|사용).{0,12}(Alter|알터)/i.test(text)) return true;
-  if (/이\s*화면에서\s*(뭐|무엇|어떤|할\s*수)/.test(text)) return true;
-  if (/(스킬|기능).{0,12}(뭐|무엇|어떤|고르|선택)/.test(text)) return true;
-  if (/(뭐|무엇|어떤|고르|선택).{0,12}(스킬|기능)/.test(text)) return true;
+  const strongHowto =
+    /\/(도움말|사용법)/i.test(text) ||
+    /사용법|도움말|가이드/.test(text) ||
+    /(Alter|알터).{0,12}(뭐|무엇|어떻게|사용)/i.test(text) ||
+    /(뭐|무엇|어떻게|사용).{0,12}(Alter|알터)/i.test(text) ||
+    /이\s*화면에서\s*(뭐|무엇|어떤|할\s*수)/.test(text) ||
+    /(스킬|기능).{0,12}(뭐|무엇|어떤|고르|선택)/.test(text) ||
+    /(뭐|무엇|어떤|고르|선택).{0,12}(스킬|기능)/.test(text);
 
+  // 명시적 사용법·상담은 실행 동사보다 우선
+  if (strongHowto) return true;
+  if (hasAlterConsultIntent(text) && !hasAlterWorkIntent(text)) return true;
   if (hasAlterWorkIntent(text)) return false;
   return false;
 };

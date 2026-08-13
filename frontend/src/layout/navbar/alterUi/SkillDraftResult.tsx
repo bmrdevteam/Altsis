@@ -11,6 +11,10 @@ import {
   reviewLevelToVariant,
 } from "./draftUi";
 import {
+  formatActivityAccessGroups,
+  normalizeActivityDraftAccess,
+} from "utils/activityDraft";
+import {
   isActivityDraft,
   isArchiveDraft,
   isAssessmentGradeDraft,
@@ -524,7 +528,11 @@ const SkillDraftResult = ({
       settings.assessmentMode ? "평가" : null,
       settings.requiredMode ? "필수 응답" : null,
       settings.allowMultipleResponses ? "복수 응답" : null,
+      settings.allowResubmit ? "응답 수정" : null,
     ].filter(Boolean);
+    const access = normalizeActivityDraftAccess(draft.access);
+    const memberAccess = formatActivityAccessGroups(access?.members);
+    const writerAccess = formatActivityAccessGroups(access?.writers);
     const fields = draft.fields || [];
     return (
       <DraftResultCard
@@ -558,13 +566,19 @@ const SkillDraftResult = ({
         {draft.description ? (
           <p className={style.reviewComment}>{draft.description}</p>
         ) : null}
-        {modeBits.length > 0 ? (
+        {modeBits.length > 0 || memberAccess || writerAccess ? (
           <div className={style.draftModeChips}>
             {modeBits.map((bit) => (
               <span key={String(bit)} className={style.skillTag}>
                 {bit}
               </span>
             ))}
+            {memberAccess ? (
+              <span className={style.skillTag}>멤버: {memberAccess}</span>
+            ) : null}
+            {writerAccess ? (
+              <span className={style.skillTag}>작성: {writerAccess}</span>
+            ) : null}
           </div>
         ) : null}
         <FieldBlocks

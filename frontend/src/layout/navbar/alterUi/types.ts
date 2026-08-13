@@ -68,11 +68,16 @@ export type TAlterActivityDraftResult = {
     permission?: string;
     options?: string[];
     content?: string;
+    links?: Array<{ url?: string; title?: string }>;
     gradingMethod?: string;
     rubricIds?: string[];
     rubricKeys?: string[];
   }>;
   settings?: Record<string, unknown>;
+  access?: {
+    members?: "board" | { groups?: Record<string, boolean> };
+    writers?: "board" | { groups?: Record<string, boolean> };
+  };
   rubrics?: Array<{
     id?: string;
     key?: string;

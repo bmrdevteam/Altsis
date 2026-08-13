@@ -18,6 +18,7 @@ import type {
   TAlterChatSnapshot,
   TAlterChatSnapshotItem,
 } from "utils/alterChatSnapshot";
+import type { TActivityDraftAccess } from "utils/activityDraft";
 
 export type { TAlterChatSnapshot, TAlterChatSnapshotItem };
 
@@ -93,6 +94,7 @@ export type TAlterActivitySnapshot = {
   settings: TAltFormSettings & Record<string, unknown>;
   rubrics?: TFormRubric[];
   boardName?: string;
+  access?: TActivityDraftAccess;
 };
 
 export type TAlterActivityDraft = {
@@ -101,6 +103,7 @@ export type TAlterActivityDraft = {
   fields: TAltFormField[];
   settings?: Partial<TAltFormSettings> & Record<string, unknown>;
   rubrics?: TFormRubric[];
+  access?: TActivityDraftAccess;
 };
 
 export type TAlterEvaluationRow = {

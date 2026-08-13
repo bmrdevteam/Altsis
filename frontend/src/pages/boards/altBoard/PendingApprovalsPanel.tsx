@@ -512,7 +512,7 @@ const PendingApprovalsPanel = ({
       }
       return (
         <div className={style.contentFieldBody}>
-          <MarkdownViewer content={String(md)} />
+          <MarkdownViewer content={String(md)} allowHtmlApp />
         </div>
       );
     }

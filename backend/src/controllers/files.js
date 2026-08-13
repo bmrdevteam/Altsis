@@ -313,7 +313,14 @@ export const signDocument = async (req, res) => {
     }
 
     const key = String(req.query.key);
-    if (!key.startsWith(`${req.user.academyId}/`)) {
+    const academyPrefix = `${req.user.academyId}/`;
+    if (!key.startsWith(academyPrefix) || key.includes("..")) {
+      return res.status(400).send({ message: FIELD_INVALID("key") });
+    }
+
+    // archive/backup는 전용 엔드포인트 권한 검사 우회 금지
+    const sub = key.slice(academyPrefix.length).split("/")[0];
+    if (sub === "archive" || sub === "backup") {
       return res.status(400).send({ message: FIELD_INVALID("key") });
     }
 
@@ -322,17 +329,17 @@ export const signDocument = async (req, res) => {
       req.query.view === true ||
       req.query.view === "1";
 
-    if (forView && !isFormFileKey(key)) {
-      return res.status(400).send({ message: FIELD_INVALID("key") });
-    }
-
     if (forView) {
-      const preSignedUrl = signUrlForView(req.query.key, 300);
+      // 인라인 열람은 양식 첨부만 (archive 권한 우회 방지)
+      if (!isFormFileKey(key)) {
+        return res.status(400).send({ message: FIELD_INVALID("key") });
+      }
+      const preSignedUrl = signUrlForView(key, 300);
       return res.status(200).send({ preSignedUrl });
     }
 
     const { preSignedUrl, expiryDate } = signUrl(
-      req.query.key,
+      key,
       req.query.fileName,
       60
     );

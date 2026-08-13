@@ -6,7 +6,12 @@ import * as sites from "../controllers/sites.js";
 // Public site (no auth) — must be registered before authenticated routes
 router.use("/:academyId/public", (req, res, next) => {
   if (req.method !== "GET" && req.method !== "HEAD") return next();
-  const rel = decodeURIComponent((req.path || "/").replace(/^\/+/, ""));
+  let rel;
+  try {
+    rel = decodeURIComponent((req.path || "/").replace(/^\/+/, ""));
+  } catch {
+    return res.status(404).send("사이트를 찾을 수 없습니다.");
+  }
   req.params[0] = rel;
   return sites.servePublic(req, res);
 });
@@ -25,7 +30,12 @@ router.post("/:academyId/import-zip", isOwAdmin, sites.importZip);
 // Preview (auth) — remaining path after /preview
 router.use("/:academyId/preview", isOwAdmin, (req, res, next) => {
   if (req.method !== "GET" && req.method !== "HEAD") return next();
-  const rel = decodeURIComponent((req.path || "/").replace(/^\/+/, ""));
+  let rel;
+  try {
+    rel = decodeURIComponent((req.path || "/").replace(/^\/+/, ""));
+  } catch {
+    return res.status(404).send("사이트를 찾을 수 없습니다.");
+  }
   req.params[0] = rel;
   return sites.servePreview(req, res);
 });
