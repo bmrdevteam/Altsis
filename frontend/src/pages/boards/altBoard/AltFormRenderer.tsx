@@ -31,6 +31,20 @@ import FieldRubricPanel, {
   selectedLevelsFromDraft,
 } from "./FieldRubricPanel";
 import AssessmentResultBanner from "./AssessmentResultBanner";
+import FilePreviewModal from "./FilePreviewModal";
+import FieldDocResources from "./FieldDocResources";
+import LinkAttachModal from "./LinkAttachModal";
+import FileAttachCard from "./FileAttachCard";
+import LinkPreviewThumb from "./LinkPreviewThumb";
+import { TFormFileRef } from "./formFilePreview";
+import {
+  isFileAnswerFile,
+  isFileAnswerLink,
+  linkDisplayTitle,
+  linkPreviewHostname,
+  sanitizeHttpUrl,
+  youtubeThumbnailUrl,
+} from "./formDocLink";
 
 type Props = {
   board: TBoard;
@@ -164,6 +178,7 @@ const AltFormRenderer = ({
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [previewFile, setPreviewFile] = useState<TFormFileRef | null>(null);
 
   // counter 필드용 현재 카운트
   const [counterCounts, setCounterCounts] = useState<Record<string, number>>(
@@ -175,6 +190,7 @@ const AltFormRenderer = ({
   const [uploadingFields, setUploadingFields] = useState<
     Record<string, boolean>
   >({});
+  const [fileLinkFieldId, setFileLinkFieldId] = useState<string | null>(null);
 
   // link 필드용 OG 메타데이터 로딩
   const [fetchingOg, setFetchingOg] = useState<Record<string, boolean>>({});
@@ -457,6 +473,8 @@ const AltFormRenderer = ({
     !outsideWeekdayDay &&
     !outsideWeekdayHours &&
     !submittedThisOccurrence;
+  const windowOpen =
+    !isClosed && !isNotOpen && !outsideWeekdayDay && !outsideWeekdayHours;
   const requiredTarget = getRequiredResponseCount(form);
   const multipleQuotaReached =
     requiredTarget != null && myRows.length >= requiredTarget;
@@ -466,10 +484,46 @@ const AltFormRenderer = ({
     !multipleQuotaReached;
   const canResubmit =
     !isReviewMode &&
-    (form?.settings.allowResubmit || form?.settings.allowMultipleResponses) &&
+    !!form?.settings.allowResubmit &&
     isSubmitted &&
-    canSubmit &&
-    !multipleQuotaReached;
+    !!myRow &&
+    windowOpen;
+  const canEditReviewRow =
+    isReviewMode &&
+    !!form?.settings.allowResubmit &&
+    windowOpen &&
+    myRows.length > 0;
+
+  const reuseCurrentResponse = () => {
+    if (!form || !isReviewMode || !canComposeMultiple) return;
+    const row = myRows[reviewIndex];
+    if (!row) return;
+    const copied: Record<string, any> = { ...(row.data || {}) };
+    for (const key of Object.keys(copied)) {
+      if (key.startsWith("_")) delete copied[key];
+    }
+    for (const field of form.fields) {
+      if (field.type === "approval") delete copied[field._id];
+    }
+    setData(withDocResponseDefaults(form.fields, copied));
+    setMyRow(null);
+    setIsSubmitted(false);
+    setErrors({});
+    setViewMode("compose");
+    onViewModeChange?.("compose");
+  };
+
+  const editCurrentResponse = () => {
+    if (!form || !isReviewMode || !form.settings.allowResubmit) return;
+    const row = myRows[reviewIndex];
+    if (!row) return;
+    setMyRow(row);
+    setData(withDocResponseDefaults(form.fields, row.data || {}));
+    setIsSubmitted(true);
+    setErrors({});
+    setViewMode("compose");
+    onViewModeChange?.("compose");
+  };
 
   // 퀴즈 결과 가시성
   const quizScoreVisible = useMemo(() => {
@@ -580,8 +634,13 @@ const AltFormRenderer = ({
         }
       } else if (field.required) {
         if (field.type === "file") {
-          if (!Array.isArray(value) || value.length === 0) {
-            newErrors[field._id] = "파일을 업로드해주세요.";
+          const hasAttachment =
+            Array.isArray(value) &&
+            value.some(
+              (item) => isFileAnswerFile(item) || isFileAnswerLink(item)
+            );
+          if (!hasAttachment) {
+            newErrors[field._id] = "파일 또는 링크를 첨부해주세요.";
             continue;
           }
         } else if (field.type === "link") {
@@ -664,11 +723,37 @@ const AltFormRenderer = ({
     setIsSubmitting(true);
     try {
       const submitData = withDocResponseDefaults(form.fields, data);
+      const editingExisting = !!(myRow && form.settings.allowResubmit);
       const { row } = await AltSheetRowAPI.CAltSheetRow({
-        data: { form: form._id, data: submitData },
+        data: {
+          form: form._id,
+          data: submitData,
+          ...(myRow && form.settings.allowResubmit
+            ? { row: myRow._id }
+            : {}),
+        },
       });
 
-      if (form.settings.allowMultipleResponses) {
+      if (editingExisting) {
+        const nextRows = myRows.some((r) => r._id === row._id)
+          ? myRows.map((r) => (r._id === row._id ? row : r))
+          : [row, ...myRows];
+        setMyRows(nextRows);
+        setMyRow(row);
+        setData(withDocResponseDefaults(form.fields, row.data || submitData));
+        setIsSubmitted(true);
+        if (form.settings.allowMultipleResponses) {
+          alert(
+            form.settings.assessmentMode
+              ? "과제가 수정되었습니다."
+              : "응답이 수정되었습니다."
+          );
+          const idx = nextRows.findIndex((r) => r._id === row._id);
+          setReviewIndex(idx >= 0 ? idx : 0);
+          setViewMode("review");
+          onViewModeChange?.("review");
+        }
+      } else if (form.settings.allowMultipleResponses) {
         // 다중 응답: 제출 후 목록에 추가하고 작성 폼 초기화
         alert(
           form.settings.assessmentMode
@@ -703,15 +788,31 @@ const AltFormRenderer = ({
   };
 
   const handleWithdraw = async () => {
-    if (!myRow || !form || isReviewMode) return;
-    if (!window.confirm("응답을 철회하시겠습니까?")) return;
+    if (!form?.settings.allowResubmit) return;
+    const row = isReviewMode ? myRows[reviewIndex] : myRow;
+    if (!row) return;
+    if (!window.confirm("이 응답을 삭제하시겠습니까?")) return;
 
     try {
-      await AltSheetRowAPI.DAltSheetRow({ params: { _id: myRow._id } });
+      await AltSheetRowAPI.DAltSheetRow({ params: { _id: row._id } });
+      const nextRows = myRows.filter((r) => r._id !== row._id);
+      setMyRows(nextRows);
       setMyRow(null);
-      setMyRows([]);
-      setData(withDocResponseDefaults(form.fields));
       setIsSubmitted(false);
+      if (nextRows.length > 0) {
+        const nextIdx = Math.min(reviewIndex, nextRows.length - 1);
+        setReviewIndex(nextIdx);
+        setData(
+          withDocResponseDefaults(form.fields, nextRows[nextIdx].data || {})
+        );
+        setViewMode("review");
+        onViewModeChange?.("review");
+      } else {
+        setReviewIndex(0);
+        setData(withDocResponseDefaults(form.fields));
+        setViewMode("compose");
+        onViewModeChange?.("compose");
+      }
     } catch (err) {
       ALERT_ERROR(err);
     }
@@ -773,10 +874,18 @@ const AltFormRenderer = ({
 
       case "docResponse": {
         const docValue = data[field._id] ?? field.content ?? "";
+        const resources = (
+          <FieldDocResources
+            attachments={field.attachments}
+            links={field.links}
+            onPreview={setPreviewFile}
+          />
+        );
         if (disabled) {
           return (
             <div className={style.contentFieldBody}>
               <MarkdownViewer content={docValue} />
+              {resources}
             </div>
           );
         }
@@ -789,6 +898,7 @@ const AltFormRenderer = ({
               minHeight="220px"
               onImageUpload={handleEditorImageUpload}
             />
+            {resources}
           </div>
         );
       }
@@ -1677,29 +1787,8 @@ const AltFormRenderer = ({
       }
 
       case "file": {
-        const files: { originalName: string; key: string }[] = Array.isArray(
-          value
-        )
-          ? value
-          : [];
+        const items: any[] = Array.isArray(value) ? value : [];
         const isUploading = uploadingFields[field._id] || false;
-
-        const handleFileDownload = async (f: {
-          originalName: string;
-          key: string;
-        }) => {
-          try {
-            const { preSignedUrl } = await FileAPI.RSignedUrlDocument({
-              query: { key: f.key, fileName: f.originalName },
-            });
-            const anchor = document.createElement("a");
-            anchor.href = preSignedUrl;
-            anchor.download = f.originalName;
-            anchor.click();
-          } catch (err) {
-            ALERT_ERROR(err);
-          }
-        };
 
         const handleFileSelect = async (file: File) => {
           if (file.size > 20 * 1024 * 1024) {
@@ -1710,12 +1799,17 @@ const AltFormRenderer = ({
           try {
             const formData = new FormData();
             formData.append("file", file);
-            const result = await FileAPI.CUploadFileArchive({
+            const result = await FileAPI.CUploadFileForm({
               data: formData,
             });
             setValue(field._id, [
-              ...files,
-              { originalName: result.originalName, key: result.key },
+              ...items,
+              {
+                originalName: result.originalName,
+                key: result.key,
+                mimeType: result.mimeType,
+                size: result.size,
+              },
             ]);
           } catch (err) {
             ALERT_ERROR(err);
@@ -1733,45 +1827,67 @@ const AltFormRenderer = ({
           if (file) handleFileSelect(file);
         };
 
+        const removeItem = (index: number) => {
+          setValue(
+            field._id,
+            items.filter((_, idx) => idx !== index)
+          );
+        };
+
         return (
           <div className={style.fileUploadArea}>
-            {files.map((f) => (
-              <div key={f.key} className={style.uploadedFile}>
-                <span
-                  className={`${style.uploadedFileName} ${
-                    disabled ? style.uploadedFileLink : ""
-                  }`}
-                  onClick={disabled ? () => handleFileDownload(f) : undefined}
-                  role={disabled ? "button" : undefined}
-                  tabIndex={disabled ? 0 : undefined}
-                  onKeyDown={
-                    disabled
-                      ? (e) => {
-                          if (e.key === "Enter" || e.key === " ")
-                            handleFileDownload(f);
-                        }
-                      : undefined
-                  }
-                >
-                  {f.originalName}
-                </span>
-                {!disabled && (
-                  <button
-                    type="button"
-                    className={style.fileRemoveBtn}
-                    onClick={() =>
-                      setValue(
-                        field._id,
-                        files.filter((x) => x.key !== f.key)
-                      )
-                    }
-                    aria-label={`${f.originalName} 삭제`}
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            ))}
+            {items.map((item, i) => {
+              if (isFileAnswerLink(item)) {
+                const href = sanitizeHttpUrl(item.url);
+                if (!href) return null;
+                const display = linkDisplayTitle({ ...item, url: href });
+                const ogImage =
+                  sanitizeHttpUrl(item.ogImage || "") ||
+                  youtubeThumbnailUrl(href);
+                return (
+                  <div key={`link-${href}-${i}`} className={style.docLinkItem}>
+                    <a
+                      className={style.linkPreview}
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <LinkPreviewThumb src={ogImage} />
+                      <div className={style.linkPreviewText}>
+                        <div className={style.linkPreviewTitle}>{display}</div>
+                        {item.ogDescription && (
+                          <div className={style.linkPreviewDesc}>
+                            {item.ogDescription}
+                          </div>
+                        )}
+                        <div className={style.linkPreviewUrl}>
+                          {linkPreviewHostname(href)}
+                        </div>
+                      </div>
+                    </a>
+                    {!disabled && (
+                      <button
+                        type="button"
+                        className={style.fileRemoveBtn}
+                        onClick={() => removeItem(i)}
+                        aria-label={`${display} 삭제`}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                );
+              }
+              if (!isFileAnswerFile(item)) return null;
+              return (
+                <FileAttachCard
+                  key={item.key}
+                  file={item}
+                  onPreview={setPreviewFile}
+                  onRemove={disabled ? undefined : () => removeItem(i)}
+                />
+              );
+            })}
 
             {isUploading && (
               <div className={style.uploadProgress}>업로드 중...</div>
@@ -1830,10 +1946,29 @@ const AltFormRenderer = ({
                     }}
                   >
                     최대 20MB
-                    {files.length > 0 && ` · ${files.length}개 첨부됨`}
+                    {items.length > 0 && ` · ${items.length}개 첨부됨`}
                   </span>
                 </div>
+                <button
+                  type="button"
+                  className={style.docLinkAdd}
+                  onClick={() => setFileLinkFieldId(field._id)}
+                >
+                  <span className={style.docLinkAddIcon} aria-hidden>
+                    🔗
+                  </span>
+                  <span>링크를 클릭하여 첨부</span>
+                </button>
               </>
+            )}
+            {fileLinkFieldId === field._id && (
+              <LinkAttachModal
+                onClose={() => setFileLinkFieldId(null)}
+                onAdd={(link) => {
+                  setValue(field._id, [...items, link]);
+                  setFileLinkFieldId(null);
+                }}
+              />
             )}
           </div>
         );
@@ -1912,16 +2047,7 @@ const AltFormRenderer = ({
                 rel="noopener noreferrer"
                 className={style.linkPreview}
               >
-                {linkData.ogImage && (
-                  <img
-                    src={linkData.ogImage}
-                    alt=""
-                    className={style.linkPreviewImage}
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
-                  />
-                )}
+                <LinkPreviewThumb src={linkData.ogImage} />
                 <div className={style.linkPreviewText}>
                   <div className={style.linkPreviewTitle}>
                     {linkData.title || linkData.ogTitle || linkData.url}
@@ -2160,13 +2286,74 @@ const AltFormRenderer = ({
         </div>
       )}
 
-      {/* 개별 보기: 읽기 전용 배너 */}
+      {/* 복수 응답: 기존 행 수정 중 */}
+      {!isReviewMode &&
+        isSubmitted &&
+        !!myRow &&
+        !!form?.settings.allowMultipleResponses &&
+        !!form.settings.allowResubmit && (
+        <div className={style.readonlyBanner}>
+          <div className={style.readonlyBannerText}>
+            <strong>기존 응답을 수정 중입니다.</strong>
+            {reviewSubmittedAt && <span>제출일: {reviewSubmittedAt}</span>}
+          </div>
+          <div className={style.reviewBannerActions}>
+            <button
+              type="button"
+              className={style.reviewReuseBtn}
+              onClick={() => switchViewMode("review")}
+            >
+              취소
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 개별 보기: 안내 카드 (수정·재사용은 박스 안) */}
       {isReviewMode && (
         <div className={style.readonlyBanner}>
           <div className={style.readonlyBannerText}>
-            <strong>응답은 수정할 수 없습니다.</strong>
+            <strong>
+              {canEditReviewRow
+                ? "이 응답을 수정하거나 삭제할 수 있습니다."
+                : "응답은 수정할 수 없습니다."}
+            </strong>
             {reviewSubmittedAt && <span>제출일: {reviewSubmittedAt}</span>}
           </div>
+          {(canEditReviewRow || canComposeMultiple) && (
+            <div className={`${style.reviewBannerActions} ${style.noPrint}`}>
+              {canEditReviewRow && (
+                <button
+                  type="button"
+                  className={style.reviewReuseBtn}
+                  onClick={editCurrentResponse}
+                  title="이 응답 수정"
+                >
+                  수정
+                </button>
+              )}
+              {canEditReviewRow && (
+                <button
+                  type="button"
+                  className={style.reviewReuseBtn}
+                  onClick={handleWithdraw}
+                  title="이 응답 삭제"
+                >
+                  삭제
+                </button>
+              )}
+              {canComposeMultiple && (
+                <button
+                  type="button"
+                  className={style.reviewReuseBtn}
+                  onClick={reuseCurrentResponse}
+                  title="이 내용으로 새로 작성"
+                >
+                  재사용
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -2208,13 +2395,18 @@ const AltFormRenderer = ({
                 )}
                 <div className={style.contentFieldBody}>
                   <MarkdownViewer content={field.content || ""} />
+                  <FieldDocResources
+                    attachments={field.attachments}
+                    links={field.links}
+                    onPreview={setPreviewFile}
+                  />
                 </div>
               </div>
             );
           }
 
           const disabled =
-            isReviewMode || (isSubmitted && !canResubmit) || !canSubmit;
+            isReviewMode || (isSubmitted ? !canResubmit : !canSubmit);
           const quizMark = getQuizMark(field);
 
           const assessmentRubrics =
@@ -2360,17 +2552,15 @@ const AltFormRenderer = ({
       {/* 제출/수정 버튼 */}
       {!isReviewMode && (
         <div className={style.submitArea}>
-          {isSubmitted &&
-            myRow &&
-            canSubmit &&
-            !form?.settings.allowMultipleResponses && (
+          {isSubmitted && myRow && canResubmit && (
               <Button type="ghost" onClick={handleWithdraw}>
-                응답 철회
+                삭제
               </Button>
             )}
-          {(!isSubmitted || canResubmit) &&
+          {((!isSubmitted &&
             canSubmit &&
-            (!form?.settings.allowMultipleResponses || canComposeMultiple) && (
+            (!form?.settings.allowMultipleResponses || canComposeMultiple)) ||
+            (isSubmitted && canResubmit)) && (
             <Button
               type="ghost"
               onClick={handleSubmit}
@@ -2380,10 +2570,11 @@ const AltFormRenderer = ({
                 ? "제출 중..."
                 : (() => {
                     const base = isSubmitted
-                      ? form?.settings.allowMultipleResponses
+                      ? "수정 제출"
+                      : form?.settings.allowMultipleResponses &&
+                          myRows.length > 0
                         ? "추가 제출"
-                        : "수정 제출"
-                      : "제출";
+                        : "제출";
                     if (requiredTarget == null || !canComposeMultiple) {
                       return base;
                     }
@@ -2394,6 +2585,10 @@ const AltFormRenderer = ({
         </div>
       )}
       </div>
+      <FilePreviewModal
+        file={previewFile}
+        onClose={() => setPreviewFile(null)}
+      />
     </div>
   );
 };

@@ -29,12 +29,23 @@ import FieldAssessmentInline, {
 } from "./FieldAssessmentInline";
 import useRegisterAlterAssessmentGrade from "hooks/useRegisterAlterAssessmentGrade";
 import useRegisterAlterSnapshot from "hooks/useRegisterAlterSnapshot";
+import FilePreviewModal from "./FilePreviewModal";
+import { TFormFileRef } from "./formFilePreview";
 import { buildSheetChatSnapshot } from "utils/alterChatSnapshot";
+import {
+  fileAnswerLabel,
+  isFileAnswerFile,
+  isFileAnswerLink,
+  linkDisplayTitle,
+  sanitizeHttpUrl,
+} from "./formDocLink";
 
 type Props = {
   forms: TAltForm[];
   canManage: boolean;
   canDeleteAnyRow: boolean;
+  /** 양식별 기록 전체 보기. 없으면 canManage */
+  canViewAllRowsForForm?: (form: TAltForm) => boolean;
   initialFormId?: string;
   onFormSelect?: (formId: string) => void;
   onFormDeselect?: () => void;
@@ -122,6 +133,7 @@ const AltSheetView = ({
   forms,
   canManage,
   canDeleteAnyRow,
+  canViewAllRowsForForm,
   initialFormId,
   onFormSelect,
   onFormDeselect,
@@ -129,7 +141,7 @@ const AltSheetView = ({
   onUnreadCleared,
   boardName,
 }: Props) => {
-  const { AltFormAPI, AltSheetRowAPI, FileAPI, PostAPI } = useAPIv2();
+  const { AltFormAPI, AltSheetRowAPI, PostAPI } = useAPIv2();
   const { currentUser } = useAuth();
 
   const handleEditorImageUpload = async (
@@ -159,7 +171,10 @@ const AltSheetView = ({
       markedOpenRef.current = null;
       return;
     }
-    if (!canManage) return;
+    const opened = forms.find((f) => f._id === selectedFormId);
+    if (!(opened ? canViewAllRowsForForm?.(opened) ?? canManage : canManage)) {
+      return;
+    }
     if (markedOpenRef.current === selectedFormId) return;
     markedOpenRef.current = selectedFormId;
     onUnreadCleared?.(selectedFormId);
@@ -236,8 +251,14 @@ const AltSheetView = ({
   const docBatchPrintRootRef = useRef<HTMLDivElement>(null);
   /** 문서 보기 일괄 인쇄: DOM 마운트 후 print */
   const [docBatchPrintActive, setDocBatchPrintActive] = useState(false);
+  const [previewFile, setPreviewFile] = useState<TFormFileRef | null>(null);
 
   const selectedForm = forms.find((f) => f._id === selectedFormId);
+  const formAllowsAllRows = (form: TAltForm) =>
+    canViewAllRowsForForm?.(form) ?? canManage;
+  const canManageSelected = selectedForm
+    ? formAllowsAllRows(selectedForm)
+    : canManage;
 
   const handleSheetPrint = () => {
     if (!selectedFormId) {
@@ -262,7 +283,7 @@ const AltSheetView = ({
 
   // 표시할 필드: 문서(content) 제외. 관리자는 전체, 응답자는 respondent + visibleToRespondent
   const allVisibleFields: TAltFormField[] = selectedForm
-    ? (canManage
+    ? (canManageSelected
         ? selectedForm.fields
         : selectedForm.fields.filter(
             (f) =>
@@ -463,7 +484,7 @@ const AltSheetView = ({
     }
 
     if (field?.type === "file" && Array.isArray(value)) {
-      return value.map((f: any) => f.originalName || f.key || "").join(", ");
+      return value.map((f: any) => fileAnswerLabel(f)).filter(Boolean).join(", ");
     }
 
     if (field?.type === "time" && value) {
@@ -686,7 +707,7 @@ const AltSheetView = ({
   const currentDocRow = filteredRows[docIndex] ?? null;
 
   const inAssessmentGradeMode =
-    !!canManage &&
+    !!canManageSelected &&
     !!isAssessment &&
     viewMode === "doc" &&
     !!selectedForm &&
@@ -761,7 +782,7 @@ const AltSheetView = ({
     finalize?: boolean;
     unfinalize?: boolean;
   }) => {
-    if (!currentDocRow || !canManage) return;
+    if (!currentDocRow || !canManageSelected) return;
     setIsSavingGrade(true);
     try {
       const { row } = await AltSheetRowAPI.UAltSheetRowAssessment({
@@ -1249,8 +1270,7 @@ const AltSheetView = ({
     if (canDeleteAnyRow) return true;
     if (
       row._respondent === currentUser?._id &&
-      (selectedForm?.settings?.allowResubmit ||
-        selectedForm?.settings?.allowMultipleResponses)
+      selectedForm?.settings?.allowResubmit
     )
       return true;
     return false;
@@ -1420,27 +1440,38 @@ const AltSheetView = ({
     if (field.type === "file" && Array.isArray(value)) {
       return (
         <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-          {value.map((f: any) => (
-            <span
-              key={f.key}
-              style={{ color: "var(--accent-1)", textDecoration: "underline", cursor: "pointer" }}
-              onClick={async () => {
-                try {
-                  const { preSignedUrl } = await FileAPI.RSignedUrlDocument({
-                    query: { key: f.key, fileName: f.originalName },
-                  });
-                  const anchor = document.createElement("a");
-                  anchor.href = preSignedUrl;
-                  anchor.download = f.originalName;
-                  anchor.click();
-                } catch (err) {
-                  ALERT_ERROR(err);
-                }
-              }}
-            >
-              {f.originalName}
-            </span>
-          ))}
+          {value.map((f: any, i: number) => {
+            if (isFileAnswerLink(f)) {
+              const href = sanitizeHttpUrl(f.url);
+              if (!href) return null;
+              return (
+                <a
+                  key={`${href}-${i}`}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: "var(--accent-1)", textDecoration: "underline" }}
+                >
+                  {linkDisplayTitle({ ...f, url: href })}
+                </a>
+              );
+            }
+            if (!isFileAnswerFile(f)) return null;
+            return (
+              <span
+                key={f.key}
+                style={{ color: "var(--accent-1)", textDecoration: "underline", cursor: "pointer" }}
+                onClick={() => setPreviewFile(f)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") setPreviewFile(f);
+                }}
+                role="button"
+                tabIndex={0}
+              >
+                {f.originalName}
+              </span>
+            );
+          })}
         </div>
       );
     }
@@ -1517,12 +1548,13 @@ const AltSheetView = ({
   // 응답자: shareResponses(전체 공유) 또는 showOwnResponse(본인 기록) 켜진 양식
   const availableForms = useMemo(
     () =>
-      canManage
-        ? forms
-        : forms.filter(
-            (f) => f.settings.shareResponses || f.settings.showOwnResponse
-          ),
-    [canManage, forms]
+      forms.filter(
+        (f) =>
+          formAllowsAllRows(f) ||
+          f.settings.shareResponses ||
+          f.settings.showOwnResponse
+      ),
+    [forms, canManage, canViewAllRowsForForm]
   );
 
   const keywordForms = useMemo(
@@ -1722,7 +1754,7 @@ const AltSheetView = ({
                         }}
                       >
                         <Svg type="table" width="20px" height="20px" />
-                        {canManage && (form.unreadResponseCount ?? 0) > 0 && (
+                        {formAllowsAllRows(form) && (form.unreadResponseCount ?? 0) > 0 && (
                           <span className={style.formCardIconUnreadBadge}>
                             {(form.unreadResponseCount ?? 0) > 99
                               ? "99+"
@@ -1990,7 +2022,7 @@ const AltSheetView = ({
                     링크 복사
                   </button>
                 )}
-                {canManage && viewMode !== "timetable" && (
+                {canManageSelected && viewMode !== "timetable" && (
                   <>
                     <button
                       type="button"
@@ -2125,7 +2157,7 @@ const AltSheetView = ({
           form={selectedForm}
           rows={filteredRows}
           visibleFields={visibleFields}
-          canManage={canManage}
+          canManage={canManageSelected}
           printRootRef={summaryPrintRootRef}
           printTitle={selectedForm.title || "요약"}
         />
@@ -2254,9 +2286,7 @@ const AltSheetView = ({
                       )}
                       {(canDeleteAnyRow ||
                         (currentDocRow._respondent === currentUser?._id &&
-                          (selectedForm?.settings?.allowResubmit ||
-                            selectedForm?.settings
-                              ?.allowMultipleResponses))) && (
+                          selectedForm?.settings?.allowResubmit)) && (
                         <button
                           className={style.removeBtn}
                           onClick={() => requestDeleteRow(currentDocRow)}
@@ -2313,7 +2343,7 @@ const AltSheetView = ({
                         <FieldAssessmentInline
                           field={field}
                           form={selectedForm}
-                          canManage={canManage}
+                          canManage={canManageSelected}
                           isEditingDoc={
                             editingRowId === currentDocRow._id
                           }
@@ -2357,7 +2387,7 @@ const AltSheetView = ({
                   <SheetAssessmentSection
                     form={selectedForm}
                     row={currentDocRow}
-                    canManage={canManage}
+                    canManage={canManageSelected}
                     gradeDraft={gradeDraft}
                     setGradeDraft={setGradeDraft}
                     isSavingGrade={isSavingGrade}
@@ -2456,11 +2486,29 @@ const AltSheetView = ({
                     return (
                       <td key={field._id}>
                         {(
-                          row.data[field._id] as {
-                            originalName: string;
-                            key: string;
-                          }[]
-                        ).map((f) => (
+                          row.data[field._id] as any[]
+                        ).map((f, i) => {
+                          if (isFileAnswerLink(f)) {
+                            const href = sanitizeHttpUrl(f.url);
+                            if (!href) return null;
+                            return (
+                              <a
+                                key={`${href}-${i}`}
+                                href={href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  color: "var(--accent-1)",
+                                  textDecoration: "underline",
+                                  marginRight: "8px",
+                                }}
+                              >
+                                {linkDisplayTitle({ ...f, url: href })}
+                              </a>
+                            );
+                          }
+                          if (!isFileAnswerFile(f)) return null;
+                          return (
                           <span
                             key={f.key}
                             style={{
@@ -2469,27 +2517,20 @@ const AltSheetView = ({
                               cursor: "pointer",
                               marginRight: "8px",
                             }}
-                            onClick={async () => {
-                              try {
-                                const { preSignedUrl } =
-                                  await FileAPI.RSignedUrlDocument({
-                                    query: {
-                                      key: f.key,
-                                      fileName: f.originalName,
-                                    },
-                                  });
-                                const anchor = document.createElement("a");
-                                anchor.href = preSignedUrl;
-                                anchor.download = f.originalName;
-                                anchor.click();
-                              } catch (err) {
-                                ALERT_ERROR(err);
+                            onClick={() => setPreviewFile(f)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                setPreviewFile(f);
                               }
                             }}
+                            role="button"
+                            tabIndex={0}
                           >
                             {f.originalName}
                           </span>
-                        ))}
+                          );
+                        })}
                       </td>
                     );
                   }
@@ -2616,8 +2657,7 @@ const AltSheetView = ({
                 <td className={style.actionCell}>
                   {(canDeleteAnyRow ||
                     (row._respondent === currentUser?._id &&
-                      (selectedForm?.settings?.allowResubmit ||
-                        selectedForm?.settings?.allowMultipleResponses))) && (
+                      selectedForm?.settings?.allowResubmit)) && (
                     <button
                       className={style.removeBtn}
                       onClick={() => requestDeleteRow(row)}
@@ -2820,6 +2860,10 @@ const AltSheetView = ({
           ))}
         </div>
       )}
+      <FilePreviewModal
+        file={previewFile}
+        onClose={() => setPreviewFile(null)}
+      />
     </div>
   );
 };

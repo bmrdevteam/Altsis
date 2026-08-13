@@ -10,6 +10,7 @@ import { isOwner, isLoggedIn, isOwAdmin } from "../middleware/auth.js";
 router.post("/archive", isLoggedIn, files.uploadArchive);
 router.get("/archive/signed", isLoggedIn, files.signArchive);
 
+router.post("/form", isLoggedIn, files.uploadFormFile);
 router.get("/document/signed", isLoggedIn, files.signDocument);
 
 router.get("/backup/signed", isOwAdmin, files.signBackup);

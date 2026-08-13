@@ -103,6 +103,151 @@ export const canModifyForm = (form, board, user) => {
   return false;
 };
 
+const idsEqual = (a, b) => {
+  if (a == null || b == null) return false;
+  if (typeof a.equals === "function") return a.equals(b);
+  return String(a) === String(b);
+};
+
+/**
+ * groups 또는 users가 있으면 보드 상속이 아니라 이 양식만 지정.
+ * @param {Object|undefined|null} access
+ * @returns {boolean}
+ */
+export const isAccessListCustom = (access) => {
+  if (!access) return false;
+  const g = access.groups || {};
+  const users = access.users || [];
+  return !!(g.manager || g.teacher || g.student || users.length > 0);
+};
+
+/** 저장용. 커스텀이 아니면 undefined (보드 inherit) */
+export const normalizeFormAccess = (access) => {
+  if (!isAccessListCustom(access)) return undefined;
+  return {
+    groups: {
+      manager: !!access.groups?.manager,
+      teacher: !!access.groups?.teacher,
+      student: !!access.groups?.student,
+    },
+    users: (access.users || [])
+      .filter((u) => u && (u.user || u.userId))
+      .map((u) => ({
+        user: u.user,
+        userId: u.userId,
+        userName: u.userName,
+      })),
+  };
+};
+
+/**
+ * @param {Object} access
+ * @param {Object} user
+ * @param {string|null} [schoolRole] teacher|student|manager
+ * @returns {boolean}
+ */
+export const userMatchesAccessList = (access, user, schoolRole) => {
+  if (!access || !user) return false;
+  const users = access.users || [];
+  const uid = user._id != null ? String(user._id) : "";
+  if (
+    users.some(
+      (u) => String(u.user) === uid || (user.userId && u.userId === user.userId)
+    )
+  ) {
+    return true;
+  }
+  const g = access.groups || {};
+  if (g.manager && (user.auth === "manager" || schoolRole === "manager")) {
+    return true;
+  }
+  if (schoolRole && g[schoolRole]) return true;
+  return false;
+};
+
+/** 보드 admin · 시스템 manager · 양식 작성자 */
+export const isFormStaff = (form, board, user) => {
+  if (!user) return false;
+  if (user.auth === "admin" || user.auth === "manager") return true;
+  if (form?.creator && idsEqual(form.creator, user._id)) return true;
+  if (getAltBoardRole(board, user) === "admin") return true;
+  return false;
+};
+
+/**
+ * 양식 멤버(제출·할 일). 미지정이면 보드 역할이 있으면 멤버.
+ * @param {string|null} [schoolRole]
+ */
+export const isFormMember = (form, board, user, schoolRole = null) => {
+  if (isFormStaff(form, board, user)) return true;
+  if (!getAltBoardRole(board, user)) return false;
+  if (canViewAllRows(form, board, user, schoolRole)) return true;
+  if (!isAccessListCustom(form?.members)) return true;
+  return userMatchesAccessList(form.members, user, schoolRole);
+};
+
+/**
+ * 기록 전체 보기·시트 관리. 미지정이면 보드 admin/writer.
+ * @param {string|null} [schoolRole]
+ */
+export const canViewAllRows = (form, board, user, schoolRole = null) => {
+  if (isFormStaff(form, board, user)) return true;
+  if (!getAltBoardRole(board, user)) return false;
+  if (!isAccessListCustom(form?.writers)) {
+    return canManageForm(board, user);
+  }
+  return userMatchesAccessList(form.writers, user, schoolRole);
+};
+
+/** getVisibleFields용 역할: 기록 전체면 writer, 멤버면 respondent */
+export const getFormViewerRole = (form, board, user, schoolRole = null) => {
+  if (canViewAllRows(form, board, user, schoolRole)) {
+    const boardRole = getAltBoardRole(board, user);
+    return boardRole === "admin" ? "admin" : "writer";
+  }
+  if (isFormMember(form, board, user, schoolRole)) return "respondent";
+  return getAltBoardRole(board, user);
+};
+
+/**
+ * 캘린더·제출 현황용 양식 멤버 목록. inherit이면 보드 멤버.
+ * @returns {Promise<Array<{user, userId, userName}>>}
+ */
+export const resolveFormMemberUsers = async (academyId, form, board) => {
+  const { getBoardMembers } = await import("./boards.js");
+  const { Registration } = await import("../models/index.js");
+  const boardMembers = await getBoardMembers(academyId, board);
+  if (!isAccessListCustom(form?.members) && !isAccessListCustom(form?.writers)) {
+    return boardMembers;
+  }
+
+  const regs = await Registration(academyId)
+    .find({
+      school: board.school,
+      isActivated: true,
+      user: { $in: boardMembers.map((m) => m.user) },
+    })
+    .select("user role")
+    .lean();
+  const roleByUser = new Map(
+    regs.map((r) => [String(r.user), r.role || null])
+  );
+
+  return boardMembers.filter((m) => {
+    const fakeUser = {
+      _id: m.user,
+      userId: m.userId,
+      auth: "member",
+    };
+    return isFormMember(
+      form,
+      board,
+      fakeUser,
+      roleByUser.get(String(m.user)) || null
+    );
+  });
+};
+
 /**
  * 필수 모드 여부 (미제출 표시 대상).
  * true일 때만 필수. 미설정·false는 선택.
@@ -194,10 +339,9 @@ export const shouldShowUnsubmittedTodo = (form, myRows = [], now = new Date()) =
  * @param {Object} user - 사용자 객체
  * @returns {{ allowed: boolean, message?: string }}
  */
-export const canRespondForm = (form, board, user, now = new Date()) => {
-  const role = getAltBoardRole(board, user);
-  if (!role) {
-    return { allowed: false, message: "보드 멤버가 아닙니다." };
+export const canRespondForm = (form, board, user, now = new Date(), schoolRole = null) => {
+  if (!isFormMember(form, board, user, schoolRole)) {
+    return { allowed: false, message: "이 양식의 멤버가 아닙니다." };
   }
 
   if (form.isDraft) {

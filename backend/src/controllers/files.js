@@ -5,7 +5,8 @@
 import _ from "lodash";
 import { School, Registration, Archive } from "../models/index.js";
 import { archiveMulter } from "../_s3/archiveMulter.js";
-import { signUrl } from "../_s3/fileBucket.js";
+import { formMulter, isFormFileKey } from "../_s3/formMulter.js";
+import { signUrl, signUrlForView } from "../_s3/fileBucket.js";
 import {
   FIELD_INVALID,
   FIELD_REQUIRED,
@@ -234,6 +235,54 @@ export const signArchive = async (req, res) => {
 
 /**
  * @memberof APIs.FileAPI
+ * @function CUploadFileForm API
+ * @description 양식 첨부 파일 업로드 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ * @param {"POST"} req.method
+ * @param {"/files/form"} req.url
+ * @param {Object} req.user
+ * @param {FormData} req.body
+ */
+export const uploadFormFile = async (req, res) => {
+  formMulter.single("file")(req, {}, async (err) => {
+    if (err) {
+      switch (err.code) {
+        case "LIMIT_FILE_SIZE":
+          return res.status(409).send({ message: LIMIT_FILE_SIZE });
+        case "INVALID_FILE_TYPE":
+          return res.status(409).send({ message: INVALID_FILE_TYPE });
+        default:
+          return res.status(500).send({ message: err.code });
+      }
+    }
+
+    try {
+      const { preSignedUrl, expiryDate } = signUrl(
+        req.tmp.key,
+        req.file.originalname
+      );
+
+      return res.status(200).send({
+        originalName: req.file.originalname,
+        type: req.file.mimetype,
+        mimeType: req.file.mimetype,
+        size: req.file.size,
+        key: req.tmp.key,
+        url: req.file.location,
+        preSignedUrl,
+        expiryDate,
+      });
+    } catch (err) {
+      logger.error(err.message);
+      return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+    }
+  });
+};
+
+/**
+ * @memberof APIs.FileAPI
  * @function RSignedUrlDocument API
  * @description 서명된 문서 파일 주소 조회 API
  * @version 2.0.0
@@ -246,6 +295,7 @@ export const signArchive = async (req, res) => {
  * @param {Object} req.query
  * @param {string} req.query.key - file key
  * @param {string} req.query.fileName- fileName
+ * @param {string} [req.query.view] - "true"이면 인라인 열람용 URL
  *
  * @param {Object} req.user
  *
@@ -260,6 +310,25 @@ export const signDocument = async (req, res) => {
       if (!(field in req.query)) {
         return res.status(400).send({ message: FIELD_REQUIRED(field) });
       }
+    }
+
+    const key = String(req.query.key);
+    if (!key.startsWith(`${req.user.academyId}/`)) {
+      return res.status(400).send({ message: FIELD_INVALID("key") });
+    }
+
+    const forView =
+      req.query.view === "true" ||
+      req.query.view === true ||
+      req.query.view === "1";
+
+    if (forView && !isFormFileKey(key)) {
+      return res.status(400).send({ message: FIELD_INVALID("key") });
+    }
+
+    if (forView) {
+      const preSignedUrl = signUrlForView(req.query.key, 300);
+      return res.status(200).send({ preSignedUrl });
     }
 
     const { preSignedUrl, expiryDate } = signUrl(
