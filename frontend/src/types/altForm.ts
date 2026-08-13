@@ -1,3 +1,20 @@
+import { TBoardMembers } from "./board";
+
+export type TFormFileAttachment = {
+  originalName: string;
+  key: string;
+  mimeType?: string;
+  size?: number;
+};
+
+export type TFormDocLink = {
+  title?: string;
+  url: string;
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImage?: string;
+};
+
 export type TAltFormFieldType =
   | "text"
   | "textarea"
@@ -143,6 +160,10 @@ export type TAltFormField = {
   validation?: Record<string, any>;
   /** content: 읽기 전용 안내 마크다운 / docResponse: 응답 템플릿 마크다운 */
   content?: string;
+  /** content / docResponse 참고 파일 (응답값·시트에 저장되지 않음) */
+  attachments?: TFormFileAttachment[];
+  /** content / docResponse 참고 링크 (응답값·시트에 저장되지 않음) */
+  links?: TFormDocLink[];
   order: number;
   displayCondition?: TDisplayCondition;
   correctAnswer?: any;
@@ -166,6 +187,7 @@ export type TQuizSettings = {
 export type TAltFormSettings = {
   openAt?: string;
   closeAt?: string;
+  /** 제출한 응답 수정·삭제 허용. 복수 응답과 함께 쓰면 내 응답에서 건별로 적용 */
   allowResubmit: boolean;
   allowMultipleResponses?: boolean;
   /**
@@ -219,6 +241,10 @@ export type TAltForm = {
   isActive: boolean;
   /** 비공개(true): 작성자만 목록·열람 / 공개(false) */
   isDraft?: boolean;
+  /** 양식 멤버. 비어 있으면 보드 멤버를 따름 */
+  members?: TBoardMembers;
+  /** 양식 작성 권한(기록 전체). 비어 있으면 보드 writer를 따름 */
+  writers?: TBoardMembers;
   createdAt: string;
   updatedAt: string;
   /** 목록 API 메타: 응답 행 수 (_respondent 있는 행) */

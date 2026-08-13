@@ -7,8 +7,12 @@ import { logger } from "../log/logger.js";
 import { AltForm, AltFormDupCounter, AltSheet, AltSheetRow, Board, User, School } from "../models/index.js";
 import {
   getAltBoardRole,
-  canManageForm,
   canRespondForm,
+  canViewAllRows,
+  isFormMember,
+  isAccessListCustom,
+  getFormViewerRole,
+  resolveFormMemberUsers,
   checkMultipleResponseLimit,
   getVisibleFields,
   isFieldVisible,
@@ -22,6 +26,7 @@ import {
   getDuplicateCheckFields,
   buildDupCounterKeys,
 } from "../services/altForms.js";
+import { getUserRoleInSeason, isSeasonScopedBoard } from "../services/boards.js";
 import { getSchoolTodosForUser } from "../services/schoolTodos.js";
 import { sendAutoNotification, isBoardNotificationEnabled } from "../services/notifications.js";
 import {
@@ -37,6 +42,14 @@ import {
   isCurrentApprover,
   normalizeApprovalValue,
 } from "../utils/approvalLine.js";
+
+const schoolRoleOf = (academyId, board, user) =>
+  getUserRoleInSeason(
+    academyId,
+    board.schoolId,
+    user,
+    isSeasonScopedBoard(board) ? board.season : null
+  );
 
 /**
  * 자유 모드 중복 검사 카운터 atomic claim
@@ -102,7 +115,7 @@ function validateDocResponseField(field, value) {
 /**
  * @memberof APIs.AltSheetRowAPI
  * @function CAltSheetRow API
- * @description Form 응답 제출 (= Sheet에 행 추가)
+ * @description Form 응답 제출 또는 기존 행 수정 (`row` + allowResubmit)
  * @version 1.0.0
  */
 export const create = async (req, res) => {
@@ -123,25 +136,68 @@ export const create = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("board") });
     }
 
-    // 응답 권한 + 공개 기간 확인
-    const respondCheck = canRespondForm(form, board, req.user);
+    // 응답 권한 + 공개 기간 확인 (학교 역할 그룹 멤버십 반영)
+    const schoolRole = await schoolRoleOf(
+      req.user.academyId,
+      board,
+      req.user
+    );
+    const respondCheck = canRespondForm(
+      form,
+      board,
+      req.user,
+      new Date(),
+      schoolRole
+    );
     if (!respondCheck.allowed) {
       return res.status(403).send({ message: respondCheck.message });
     }
 
-    // 기존 응답 확인 (복수 응답 허용 시 제한만 검사)
-    if (!form.settings.allowMultipleResponses) {
-      const existing = await AltSheetRow(req.user.academyId).findOne({
+    // 기존 응답: 단건 재제출, 또는 복수 응답에서 지정한 행 수정
+    let existing = null;
+    if (req.body.row) {
+      existing = await AltSheetRow(req.user.academyId).findById(req.body.row);
+      if (!existing || !existing.isActive) {
+        return res.status(404).send({ message: __NOT_FOUND("row") });
+      }
+      const existingFormId = existing.form?._id || existing.form;
+      if (String(existingFormId) !== String(form._id)) {
+        return res.status(400).send({ message: "양식이 일치하지 않습니다." });
+      }
+      const respondentId = existing._respondent?._id || existing._respondent;
+      if (!respondentId || String(respondentId) !== String(req.user._id)) {
+        return res.status(403).send({ message: PERMISSION_DENIED });
+      }
+      if (!form.settings.allowResubmit) {
+        return res.status(403).send({ message: "응답 수정이 허용되지 않았습니다." });
+      }
+    } else if (!form.settings.allowMultipleResponses) {
+      existing = await AltSheetRow(req.user.academyId).findOne({
         form: form._id,
         _respondent: req.user._id,
         isActive: true,
       });
 
-      if (existing) {
-        if (!form.settings.allowResubmit) {
-          return res.status(409).send({ message: "이미 응답하셨습니다." });
-        }
+      if (existing && !form.settings.allowResubmit) {
+        return res.status(409).send({ message: "이미 응답하셨습니다." });
+      }
+    } else {
+      const myRows = await AltSheetRow(req.user.academyId)
+        .find({
+          form: form._id,
+          _respondent: req.user._id,
+          isActive: true,
+        })
+        .select("createdAt")
+        .sort({ createdAt: -1 })
+        .lean();
+      const limitCheck = checkMultipleResponseLimit(form, myRows);
+      if (!limitCheck.allowed) {
+        return res.status(409).send({ message: limitCheck.message });
+      }
+    }
 
+    if (existing) {
         // 재제출: 기존 행 업데이트
         const respondentFields = form.fields.filter(
           (f) => f.permission === "respondent" && f.type !== "content"
@@ -193,21 +249,6 @@ export const create = async (req, res) => {
         await existing.save();
 
         return res.status(200).send({ row: existing });
-      }
-    } else {
-      const myRows = await AltSheetRow(req.user.academyId)
-        .find({
-          form: form._id,
-          _respondent: req.user._id,
-          isActive: true,
-        })
-        .select("createdAt")
-        .sort({ createdAt: -1 })
-        .lean();
-      const limitCheck = checkMultipleResponseLimit(form, myRows);
-      if (!limitCheck.allowed) {
-        return res.status(409).send({ message: limitCheck.message });
-      }
     }
 
     // respondent 필드만 추출하여 data 구성
@@ -617,13 +658,23 @@ export const find = async (req, res) => {
     }
 
     const role = getAltBoardRole(board, req.user);
+    const schoolRole = await getUserRoleInSeason(
+      req.user.academyId,
+      board.schoolId,
+      req.user,
+      isSeasonScopedBoard(board) ? board.season : null
+    );
+    const viewAll = canViewAllRows(form, board, req.user, schoolRole);
+    const member = isFormMember(form, board, req.user, schoolRole);
+    const viewerRole =
+      getFormViewerRole(form, board, req.user, schoolRole) || "respondent";
 
     // 승인 필드가 있는 경우, 승인자도 접근 허용
     const approvalFieldIds = form.fields
       .filter((f) => f.type === "approval")
       .map((f) => f._id.toString());
 
-    if (!role && approvalFieldIds.length === 0) {
+    if (!member && !role && approvalFieldIds.length === 0) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
@@ -635,13 +686,12 @@ export const find = async (req, res) => {
         { [`data.${fid}.approver.userId`]: req.user.userId },
       ]);
 
-    if (role === "admin" || role === "writer") {
-      // admin/writer: 전체 행
-    } else if (role === "respondent") {
+    if (viewAll) {
+      // 기록 전체
+    } else if (member || role === "respondent") {
       if (form.settings?.shareResponses) {
         // shareResponses 켜짐: 전체 행 열람 가능
       } else if (approvalFieldIds.length > 0) {
-        // respondent: 본인 행 + 승인자로 지정된 행
         query.$or = [
           { _respondent: req.user._id },
           ...approverOrForFields(approvalFieldIds),
@@ -667,9 +717,9 @@ export const find = async (req, res) => {
       .lean();
 
     // respondent/승인자에게는 보이는 필드만 필터링
-    if (role !== "admin" && role !== "writer") {
+    if (!viewAll) {
       const visibleFieldIds = new Set(
-        getVisibleFields(form.fields, role || "respondent").map((f) =>
+        getVisibleFields(form.fields, viewerRole).map((f) =>
           f._id.toString()
         )
       );
@@ -744,8 +794,17 @@ export const findMy = async (req, res) => {
 
     const board = await Board(req.user.academyId).findById(form.board);
     const role = board ? getAltBoardRole(board, req.user) : null;
+    const schoolRole = board
+      ? await getUserRoleInSeason(
+          req.user.academyId,
+          board.schoolId,
+          req.user,
+          isSeasonScopedBoard(board) ? board.season : null
+        )
+      : null;
     const canSeeFullAssessment =
-      role === "admin" || role === "writer" || req.user.auth === "manager";
+      (board && canViewAllRows(form, board, req.user, schoolRole)) ||
+      req.user.auth === "manager";
 
     const rows = await AltSheetRow(req.user.academyId)
       .find({
@@ -966,16 +1025,14 @@ export const remove = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("board") });
     }
 
-    // admin 또는 시스템 manager이거나 본인 응답 철회 (재제출 허용 시에만)
+    // admin 또는 시스템 manager이거나, 본인 응답 + 응답 수정(삭제 포함) 허용
     const role = getAltBoardRole(board, req.user);
     const isAdmin = role === "admin" || req.user.auth === "manager";
     const isOwner = row._respondent && row._respondent.equals(req.user._id);
 
     const form = await AltForm(req.user.academyId).findById(row.form);
-    const allowResubmit =
-      form?.settings?.allowResubmit || form?.settings?.allowMultipleResponses;
 
-    if (!isAdmin && !(isOwner && allowResubmit)) {
+    if (!isAdmin && !(isOwner && form?.settings?.allowResubmit)) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
     if (form) {
@@ -1032,7 +1089,12 @@ export const createBulk = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("board") });
     }
 
-    if (!canManageForm(board, req.user)) {
+    const schoolRole = await schoolRoleOf(
+      req.user.academyId,
+      board,
+      req.user
+    );
+    if (!canViewAllRows(form, board, req.user, schoolRole)) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
@@ -1079,13 +1141,26 @@ export const findSubmissionStatus = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("board") });
     }
 
-    if (!canManageForm(board, req.user)) {
+    const schoolRole = await schoolRoleOf(
+      req.user.academyId,
+      board,
+      req.user
+    );
+    if (!canViewAllRows(form, board, req.user, schoolRole)) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
-    // 응답자 목록: altBoardRole에서 respondent 추출, 없으면 members에서 추출
     const respondentOids = [];
-    if (board.altBoardRole && board.altBoardRole.size > 0) {
+    if (isAccessListCustom(form.members) || isAccessListCustom(form.writers)) {
+      const memberUsers = await resolveFormMemberUsers(
+        req.user.academyId,
+        form,
+        board
+      );
+      for (const u of memberUsers) {
+        respondentOids.push(String(u.user));
+      }
+    } else if (board.altBoardRole && board.altBoardRole.size > 0) {
       for (const [userOid, role] of board.altBoardRole.entries()) {
         if (role === "respondent") {
           respondentOids.push(userOid);
@@ -1183,7 +1258,12 @@ export const sendReminder = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("board") });
     }
 
-    if (!canManageForm(board, req.user)) {
+    const schoolRole = await schoolRoleOf(
+      req.user.academyId,
+      board,
+      req.user
+    );
+    if (!canViewAllRows(form, board, req.user, schoolRole)) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
@@ -1364,7 +1444,12 @@ export const importCsv = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("board") });
     }
 
-    if (!canManageForm(board, req.user)) {
+    const schoolRole = await schoolRoleOf(
+      req.user.academyId,
+      board,
+      req.user
+    );
+    if (!canViewAllRows(form, board, req.user, schoolRole)) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
@@ -1662,7 +1747,15 @@ export const updateAssessment = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("board") });
     }
 
-    if (!canManageForm(board, req.user) && req.user.auth !== "manager") {
+    const schoolRole = await schoolRoleOf(
+      req.user.academyId,
+      board,
+      req.user
+    );
+    if (
+      !canViewAllRows(form, board, req.user, schoolRole) &&
+      req.user.auth !== "manager"
+    ) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 

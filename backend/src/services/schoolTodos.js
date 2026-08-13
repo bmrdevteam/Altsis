@@ -9,7 +9,7 @@ import {
   isSeasonScopedBoard,
   canBypassSeasonRegistration,
 } from "./boards.js";
-import { canManageForm } from "./altForms.js";
+import { canViewAllRows } from "./altForms.js";
 import {
   assembleSchoolTodos,
   sortSchoolTodos,
@@ -121,7 +121,7 @@ export const loadAccessibleAltBoardFormsContext = async (
     )
     .lean();
 
-  return { boards: accessibleBoards, forms, myRows };
+  return { boards: accessibleBoards, forms, myRows, schoolRole: seasonRole };
 };
 
 /**
@@ -148,7 +148,7 @@ export const getSchoolTodosForUser = async (
     return { items: [], count: 0 };
   }
 
-  const { boards: accessibleBoards, forms, myRows } = ctx;
+  const { boards: accessibleBoards, forms, myRows, schoolRole } = ctx;
 
   const orConds = [];
   for (const form of forms) {
@@ -192,7 +192,12 @@ export const getSchoolTodosForUser = async (
     if (form.settings?.directInputMode) continue;
     const board = boardsById.get(form.board.toString());
     if (!board) continue;
-    if (!canManageForm(board, user) && user.auth !== "manager") continue;
+    if (
+      !canViewAllRows(form, board, user, schoolRole) &&
+      user.auth !== "manager"
+    ) {
+      continue;
+    }
     gradeFormIds.push(form._id);
   }
 
@@ -219,6 +224,7 @@ export const getSchoolTodosForUser = async (
     approverRows,
     pendingGradeRows,
     user,
+    schoolRole: schoolRole || null,
   });
 
   return { items, count: items.length };

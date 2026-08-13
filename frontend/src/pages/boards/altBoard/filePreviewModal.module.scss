@@ -1,0 +1,43 @@
+.body {
+  min-height: 120px;
+}
+
+.status {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-color-2);
+}
+
+.image {
+  display: block;
+  max-width: 100%;
+  max-height: min(70vh, 720px);
+  margin: 0 auto;
+  object-fit: contain;
+}
+
+.frame {
+  width: 100%;
+  height: min(70vh, 720px);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.pre {
+  margin: 0;
+  padding: 12px;
+  max-height: min(70vh, 720px);
+  overflow: auto;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--background-color-2);
+  border-radius: 8px;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+}

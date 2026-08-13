@@ -66,6 +66,31 @@ const altFormFieldSchema = mongoose.Schema({
   validation: { type: mongoose.Schema.Types.Mixed },
   /** content: 읽기 전용 안내 / docResponse: 응답 템플릿 마크다운 */
   content: { type: String, default: "" },
+  /** content / docResponse 참고 파일 (응답값으로 저장되지 않음) */
+  attachments: {
+    type: [
+      {
+        originalName: { type: String, required: true },
+        key: { type: String, required: true },
+        mimeType: { type: String, default: "" },
+        size: { type: Number },
+      },
+    ],
+    default: undefined,
+  },
+  /** content / docResponse 참고 링크 */
+  links: {
+    type: [
+      {
+        title: { type: String, default: "" },
+        url: { type: String, required: true },
+        ogTitle: { type: String, default: "" },
+        ogDescription: { type: String, default: "" },
+        ogImage: { type: String, default: "" },
+      },
+    ],
+    default: undefined,
+  },
   order: { type: Number, default: 0 },
 
   // Phase 2: 조건부 표시
@@ -151,7 +176,7 @@ const altFormFieldSchema = mongoose.Schema({
  *
  * @prop {Date} openAt - 공개 시작
  * @prop {Date} closeAt - 공개 종료
- * @prop {boolean} allowResubmit - 재제출 허용
+ * @prop {boolean} allowResubmit - 재제출 허용 (수정·삭제. 복수 응답과 함께 쓰면 건별)
  */
 const altFormSettingsSchema = mongoose.Schema(
   {
@@ -298,6 +323,54 @@ const altFormSchema = mongoose.Schema(
      * DB 기본은 공개(false). 신규 비공개 생성은 컨트롤러에서 isDraft:true 로 지정.
      */
     isDraft: { type: Boolean, default: false },
+
+    /**
+     * 양식 멤버 (보드와 동일 형태). 비어 있으면 보드 멤버를 따름.
+     * groups + users 중 하나라도 있으면 이 양식만 제한.
+     */
+    members: {
+      type: {
+        groups: {
+          manager: { type: Boolean, default: false },
+          teacher: { type: Boolean, default: false },
+          student: { type: Boolean, default: false },
+        },
+        users: {
+          type: [
+            {
+              user: mongoose.Types.ObjectId,
+              userId: String,
+              userName: String,
+            },
+          ],
+          default: [],
+        },
+      },
+      default: undefined,
+    },
+    /**
+     * 양식 작성 권한 (기록 전체). 비어 있으면 보드 writer를 따름.
+     */
+    writers: {
+      type: {
+        groups: {
+          manager: { type: Boolean, default: false },
+          teacher: { type: Boolean, default: false },
+          student: { type: Boolean, default: false },
+        },
+        users: {
+          type: [
+            {
+              user: mongoose.Types.ObjectId,
+              userId: String,
+              userName: String,
+            },
+          ],
+          default: [],
+        },
+      },
+      default: undefined,
+    },
   },
   { timestamps: true }
 );

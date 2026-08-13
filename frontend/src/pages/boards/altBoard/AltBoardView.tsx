@@ -25,6 +25,7 @@ import AltDocsView from "./AltDocsView";
 import BoardChatContainer from "./BoardChatContainer";
 import style from "./altBoard.module.scss";
 import { markAllBoardChatRoomsRead } from "utils/markAllBoardChatRoomsRead";
+import { canViewAllRowsForm } from "./formAccess";
 
 export type TAltBoardSurface = "활동" | "문서" | "채팅";
 
@@ -36,7 +37,7 @@ type Props = {
 };
 
 const AltBoardView = ({ board, embedded, surface }: Props) => {
-  const { currentUser, currentSchool } = useAuth();
+  const { currentUser, currentSchool, currentRegistration } = useAuth();
   const { AltFormAPI, BoardChatAPI, PostAPI, AltSheetRowAPI } = useAPIv2();
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
@@ -104,7 +105,18 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
     return false;
   };
 
-  // Form builder/renderer 상태
+  const canViewAllRowsForForm = (form: TAltForm) => {
+    if (!currentUser) return false;
+    return canViewAllRowsForm(
+      form,
+      board,
+      currentUser,
+      myRole,
+      currentUser.auth === "manager"
+        ? "manager"
+        : currentRegistration?.role || null
+    );
+  };
   const [builderFormId, setBuilderFormId] = useState<string | null>(null);
   const [rendererFormId, setRendererFormId] = useState<string | null>(null);
   /** embedded일 때 URL 없이 작성/개별 보기 구분 */
@@ -569,6 +581,7 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
         <AltSheetView
           forms={forms}
           canManage={canManage}
+          canViewAllRowsForForm={canViewAllRowsForForm}
           canDeleteAnyRow={canDeleteAnyRow}
           initialFormId={activeSheetFormId}
           onFormSelect={handleOpenSheet}
