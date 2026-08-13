@@ -96,20 +96,21 @@ export const ACADEMY_INACTIVATED = "ACADEMY_INACTIVATED";
 export const PASSWORD_INCORRECT = "PASSWORD_INCORRECT";
 
 /**
+ * @tag 401 Unauthorized
+ *
+ * @alias NOT_LOGGED_IN
+ * @description 로그인 세션이 없거나 만료됨
+ *
+ * @memberof APIs._MESSAGE
+ */
+export const NOT_LOGGED_IN = "NOT_LOGGED_IN";
+
+/**
  * -----------------------------------------
  * 403 Forbidden
  * 사용자 접근 거부
  * -----------------------------------------
  */
-
-/**
- * @tag 403 Forbidden
- *
- * @alias NOT_LOGGED_IN
- *
- * @memberof APIs._MESSAGE
- */
-export const NOT_LOGGED_IN = "NOT_LOGGED_IN";
 
 /**
  * @tag 403 Forbidden

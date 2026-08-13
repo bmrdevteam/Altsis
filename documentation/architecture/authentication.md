@@ -204,7 +204,7 @@ member ──► 일반 기능
 
 | 미들웨어 | 허용 역할 | 설명 |
 |----------|-----------|------|
-| `isLoggedIn` | 모든 인증 사용자 | 로그인 여부 확인 |
+| `isLoggedIn` | 모든 인증 사용자 | 로그인 여부 확인. 미인증 시 401 `NOT_LOGGED_IN` |
 | `isNotLoggedIn` | 미인증 사용자만 | 비로그인 상태 확인 |
 | `forceNotLoggedIn` | 모두 | 로그인 상태면 강제 로그아웃 후 진행 |
 | `isOwner` | owner | 시스템 소유자만 허용 |
@@ -230,7 +230,7 @@ router.post("/api/academies", isOwner,     createAcademy); // owner만 가능
 HTTP 요청 수신
       │
       ▼
-  isLoggedIn?  ──(No)──► 403 Forbidden
+  isLoggedIn?  ──(No)──► 401 Unauthorized (NOT_LOGGED_IN)
       │
      (Yes)
       │
@@ -307,6 +307,8 @@ AuthProvider 마운트
     ├── 세션 유효 → currentUser 설정 → 학교/학기 정보 로드
     │
     └── 세션 만료 → 로그인 페이지로 리디렉트
+
+모바일에서 백그라운드에 오래 둔 뒤 복귀하면, 프론트엔드는 `visibilitychange` / `pageshow` / `resume`에서 `/users/current`로 세션을 다시 확인합니다. 만료되었으면 흰 화면을 유지하지 않고 해당 아카데미 로그인 페이지로 이동합니다. API가 401(또는 레거시 `/users/current` 403)을 반환해도 동일하게 처리합니다.
 ```
 
 ---
@@ -319,7 +321,7 @@ AuthProvider 마운트
 | 세션 쿠키 | `httpOnly: true`로 JavaScript 접근 차단 |
 | 비밀번호 필드 | `select: false`로 기본 조회 시 제외 |
 | CORS | 지정된 origin만 허용 (`credentials: true`) |
-| 인증 실패 | 403 Forbidden 반환, 구체적 오류 메시지 최소화 |
+| 인증 실패 | 미로그인 401 `NOT_LOGGED_IN`, 권한 부족 403 `PERMISSION_DENIED` |
 | 아카데미 비활성화 | `isActivated: false`인 아카데미 로그인 차단 |
 
 ---

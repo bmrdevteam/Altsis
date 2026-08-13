@@ -29,7 +29,7 @@
  *
  */
 
-import axios from "axios";
+import apiClient from "utils/apiClient";
 
 /**
  *
@@ -48,6 +48,7 @@ import axios from "axios";
 export default function useDatabase() {
   interface IDatabaseQuery {
     location: string;
+    timeout?: number;
   }
   interface IDatabaseQueryC extends IDatabaseQuery {
     data: any;
@@ -68,7 +69,7 @@ export default function useDatabase() {
    * @version 1.0 initial version
    */
 
-  async function C({ location, data }: IDatabaseQueryC) {
+  async function C({ location, data, timeout }: IDatabaseQueryC) {
     const config = {
       // set the method
       method: "post",
@@ -80,13 +81,13 @@ export default function useDatabase() {
       data: data,
       // send request with 🍪 cookies
       withCredentials: true,
+      timeout,
     };
     // check if data is not null or undefined or ''
     if (data) {
       //
       try {
-        // asynchronously call axios
-        const { data: result } = await axios(config);
+        const { data: result } = await apiClient(config);
 
         // return result
         return result;
@@ -111,7 +112,7 @@ export default function useDatabase() {
    * @version 1.0 initial version
    *
    */
-  async function R({ location }: IDatabaseQuery) {
+  async function R({ location, timeout }: IDatabaseQuery) {
     const config = {
       /**
        * set the method
@@ -130,10 +131,10 @@ export default function useDatabase() {
        */
 
       withCredentials: true,
+      timeout,
     };
     try {
-      // asynchronously call axios
-      const { data: result } = await axios(config);
+      const { data: result } = await apiClient(config);
 
       // return the response data
       return result;
@@ -157,7 +158,7 @@ export default function useDatabase() {
    * @version 1.0 initial version
    *
    */
-  async function U({ location, data }: IDatabaseQueryC) {
+  async function U({ location, data, timeout }: IDatabaseQueryC) {
     const config = {
       // set the method
       method: "put",
@@ -169,13 +170,13 @@ export default function useDatabase() {
       data: data,
       // send request with 🍪 cookies
       withCredentials: true,
+      timeout,
     };
     // check if data is not null or undefined or ''
     if (data) {
       //
       try {
-        // asynchronously call axios
-        const { data: result } = await axios(config);
+        const { data: result } = await apiClient(config);
 
         // return result
         return result;
@@ -200,7 +201,7 @@ export default function useDatabase() {
    * @version 1.0 initial version
    *
    */
-  async function D({ location }: IDatabaseQuery) {
+  async function D({ location, timeout }: IDatabaseQuery) {
     /**
      * @constant config for the axios
      *
@@ -214,10 +215,11 @@ export default function useDatabase() {
       headers: {},
       // send request with 🍪 cookies
       withCredentials: true,
+      timeout,
     };
     try {
       /** @constant config for the axios asynchronously call axios */
-      const { data: result } = await axios(config);
+      const { data: result } = await apiClient(config);
 
       // return the response
       return result;

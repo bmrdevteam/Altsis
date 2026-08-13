@@ -22,7 +22,7 @@
  * | :----- | :---------------  | :--------------------------------     |
  * | 400    | {field}_REQUIRED  | if parameter {field} is not given     |
  * | 400    | {field}_INVALID   | if parameter {field} is invalid       |
- * | 403    | NOT_LOGGED_IN     | if user is not logged in              |
+ * | 401    | NOT_LOGGED_IN     | if user is not logged in              |
  * | 403    | ALREADY_LOGGED_IN | if user is already logged in          |
  * | 403    | PERMISSION_DENIED | if user has no permission             |
  * | 500    | Internal Server Error | if server has no handler to this error |

@@ -4,6 +4,7 @@ import React, {
   useContext,
   useState,
   useEffect,
+  useRef,
 } from "react";
 
 import _ from "lodash";
@@ -13,6 +14,10 @@ import { TCurrentUser, TCurrentRegistration, TCurrentSeason } from "types/auth";
 import useAPIv2 from "hooks/useAPIv2";
 import { TSchool } from "types/schools";
 import { SESSION_COOKIE_OPTS } from "utils/authCookies";
+import {
+  isUnauthenticatedError,
+  redirectToLogin,
+} from "utils/sessionExpiry";
 
 const AuthContext = createContext<any>(null);
 
@@ -39,15 +44,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     "currentSchool",
     "currentRegistration",
   ]);
-  const [current, setCurrent] = useState<{
-    user: any;
-    school: any;
-    loading: boolean;
-  }>({
-    user: {},
-    school: {},
-    loading: true,
-  });
   const [currentUser, setCurrentUser] = useState<TCurrentUser>();
   const [currentSchool, setCurrentSchool] = useState<TSchool>();
   const [currentRegistration, setCurrentRegistration] =
@@ -55,6 +51,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [currentSeason, setCurrentSeason] = useState<TCurrentSeason>();
 
   const [loading, setLoading] = useState<boolean>(true);
+  const currentUserRef = useRef(currentUser);
+  currentUserRef.current = currentUser;
+  const userApiRef = useRef(UserAPI);
+  userApiRef.current = UserAPI;
 
   async function getLoggedInUser() {
     const { user } = await UserAPI.RMySelf();
@@ -85,7 +85,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     /* set currentRegistration using cookie */
     const re = user.registrations.filter(
-      (r: any) => r.school === user.schools[schoolIdx].school
+      (r: any) => r.school === user.schools[schoolIdx]?.school
     );
 
     let registrationIdx = 0;
@@ -121,9 +121,56 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setLoading(false);
         })
         .catch((err) => {
+          if (isUnauthenticatedError(err, { currentUserEndpoint: true })) {
+            setCurrentUser(undefined);
+            redirectToLogin();
+          }
           setLoading(false);
         });
   }, [loading]);
+
+  useEffect(() => {
+    let hiddenAt = 0;
+    let inFlight = false;
+
+    const revalidateSession = async () => {
+      if (!currentUserRef.current || inFlight) return;
+      inFlight = true;
+      try {
+        await userApiRef.current.RMySelf();
+      } catch (err) {
+        if (isUnauthenticatedError(err, { currentUserEndpoint: true })) {
+          setCurrentUser(undefined);
+          redirectToLogin();
+        }
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        hiddenAt = Date.now();
+        return;
+      }
+      if (document.visibilityState !== "visible") return;
+      if (hiddenAt && Date.now() - hiddenAt < 1500) return;
+      void revalidateSession();
+    };
+
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) void revalidateSession();
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("pageshow", onPageShow);
+    document.addEventListener("resume", revalidateSession as EventListener);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("pageshow", onPageShow);
+      document.removeEventListener("resume", revalidateSession as EventListener);
+    };
+  }, []);
 
   async function changeSchool(to: string) {
     const { school, academyFeatures } = await SchoolAPI.RSchool({ params: { _id: to } });
