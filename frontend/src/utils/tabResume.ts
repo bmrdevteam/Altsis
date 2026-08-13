@@ -39,6 +39,16 @@ export function markReload(storage: TabResumeStorage, now: number): void {
   storage.setItem(RELOAD_FLAG_KEY, String(now));
 }
 
+function defaultStorage(): TabResumeStorage | null {
+  try {
+    if (typeof sessionStorage === "undefined") return null;
+    sessionStorage.getItem(RELOAD_FLAG_KEY);
+    return sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
 export type InstallTabResumeReloadOptions = {
   reload?: () => void;
   getNow?: () => number;
@@ -65,11 +75,7 @@ export function installTabResumeReload(
   const reload = options.reload ?? (() => window.location.reload());
   const getNow = options.getNow ?? (() => Date.now());
   const storage =
-    options.storage !== undefined
-      ? options.storage
-      : typeof sessionStorage === "undefined"
-        ? null
-        : sessionStorage;
+    options.storage !== undefined ? options.storage : defaultStorage();
   const thresholdMs = options.thresholdMs ?? HIDDEN_RELOAD_MS;
   const doc = options.documentRef ?? document;
   const win = options.windowRef ?? window;

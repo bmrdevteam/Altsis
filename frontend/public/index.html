@@ -60,6 +60,7 @@
         }
 
         var timer = setTimeout(showRecover, delayMs);
+        var obs = null;
 
         function cancel() {
           if (root.childElementCount === 0) return;
@@ -69,7 +70,6 @@
           if (obs) obs.disconnect();
         }
 
-        var obs = null;
         if (typeof MutationObserver !== "undefined") {
           obs = new MutationObserver(cancel);
           obs.observe(root, { childList: true, subtree: true });

@@ -7,8 +7,8 @@ import {
   shouldSkipReload,
 } from "./tabResume";
 
-function memoryStorage(initial: Record<string, string> = {}) {
-  const data = { ...initial };
+function memoryStorage() {
+  const data: Record<string, string> = {};
   return {
     getItem: (key: string) => (key in data ? data[key] : null),
     setItem: (key: string, value: string) => {
@@ -17,7 +17,6 @@ function memoryStorage(initial: Record<string, string> = {}) {
     removeItem: (key: string) => {
       delete data[key];
     },
-    data,
   };
 }
 
@@ -152,6 +151,24 @@ describe("installTabResumeReload", () => {
 
     win.emit("pageshow", true);
     expect(reload).toHaveBeenCalledTimes(1);
+
+    win.emit("pageshow", true);
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  test("continues without storage when sessionStorage is unavailable", () => {
+    const reload = jest.fn();
+    const now = 5_000;
+    const doc = fakeDoc("visible");
+    const win = fakeWin();
+
+    installTabResumeReload({
+      reload,
+      getNow: () => now,
+      storage: null,
+      documentRef: doc,
+      windowRef: win,
+    });
 
     win.emit("pageshow", true);
     expect(reload).toHaveBeenCalledTimes(1);
