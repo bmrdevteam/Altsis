@@ -7,6 +7,7 @@ import {
   TQuizSettings,
 } from "types/altForm";
 import { normalizeDocumentDraftContent } from "utils/documentDraftMarkdown";
+import { sanitizeHttpUrl } from "pages/boards/altBoard/formDocLink";
 
 const FIELD_TYPES = new Set<TAltFormFieldType>([
   "text",
@@ -42,6 +43,21 @@ const RUBRIC_TARGET_TYPES = new Set<TAltFormFieldType>([
   "text",
   "file",
 ]);
+
+export type TActivityAccessGroups = {
+  manager: boolean;
+  teacher: boolean;
+  student: boolean;
+};
+
+export type TActivityDraftAccessSide =
+  | "board"
+  | { groups: TActivityAccessGroups };
+
+export type TActivityDraftAccess = {
+  members?: TActivityDraftAccessSide;
+  writers?: TActivityDraftAccessSide;
+};
 
 export type TActivityBuilderSettings = {
   allowResubmit: boolean;
@@ -115,6 +131,108 @@ export const defaultActivitySettings = (): TActivityBuilderSettings => ({
   showOwnerFields: false,
   showOwnResponse: true,
 });
+
+const ACCESS_GROUP_IDS: Array<keyof TActivityAccessGroups> = [
+  "manager",
+  "teacher",
+  "student",
+];
+const MAX_DRAFT_LINKS = 10;
+const DRAFT_LINK_TITLE_CHARS = 80;
+
+const emptyAccessGroups = (): TActivityAccessGroups => ({
+  manager: false,
+  teacher: false,
+  student: false,
+});
+
+const hasAnyAccessGroup = (groups?: TActivityAccessGroups | null) =>
+  !!(groups && (groups.manager || groups.teacher || groups.student));
+
+export const normalizeActivityDraftAccessSide = (
+  raw: unknown
+): TActivityDraftAccessSide | undefined => {
+  if (raw == null || raw === false) return undefined;
+  if (raw === true || raw === "board") return "board";
+  if (typeof raw === "string" && raw.trim().toLowerCase() === "board") {
+    return "board";
+  }
+  const flags = emptyAccessGroups();
+  const applyId = (id: unknown) => {
+    const k = String(id || "").trim().toLowerCase();
+    if (k === "manager" || k === "teacher" || k === "student") {
+      flags[k] = true;
+    }
+  };
+  if (Array.isArray(raw)) {
+    raw.forEach(applyId);
+  } else if (typeof raw === "object") {
+    const obj = raw as Record<string, unknown>;
+    if (Array.isArray(obj.groups)) {
+      obj.groups.forEach(applyId);
+    } else if (obj.groups && typeof obj.groups === "object") {
+      const g = obj.groups as Record<string, unknown>;
+      for (const id of ACCESS_GROUP_IDS) flags[id] = !!g[id];
+    } else {
+      for (const id of ACCESS_GROUP_IDS) flags[id] = !!obj[id];
+    }
+  } else {
+    return undefined;
+  }
+  if (!hasAnyAccessGroup(flags)) return undefined;
+  return { groups: flags };
+};
+
+export const normalizeActivityDraftAccess = (
+  raw: unknown
+): TActivityDraftAccess | undefined => {
+  if (raw === "board") {
+    return { members: "board", writers: "board" };
+  }
+  if (raw == null || typeof raw !== "object") return undefined;
+  const obj = raw as Record<string, unknown>;
+  let members = normalizeActivityDraftAccessSide(obj.members);
+  let writers = normalizeActivityDraftAccessSide(obj.writers);
+  if (
+    members &&
+    members !== "board" &&
+    writers &&
+    writers !== "board"
+  ) {
+    const next = emptyAccessGroups();
+    for (const id of ACCESS_GROUP_IDS) {
+      next[id] = !!(writers.groups[id] && members.groups[id]);
+    }
+    writers = hasAnyAccessGroup(next) ? { groups: next } : undefined;
+  }
+  if (!members && !writers) return undefined;
+  return {
+    ...(members ? { members } : {}),
+    ...(writers ? { writers } : {}),
+  };
+};
+
+export const normalizeActivityDraftLinks = (raw: unknown) => {
+  if (!Array.isArray(raw)) return undefined;
+  const out: { url: string; title?: string }[] = [];
+  for (const item of raw.slice(0, MAX_DRAFT_LINKS)) {
+    const url = sanitizeHttpUrl(
+      item && typeof item === "object"
+        ? String((item as { url?: unknown }).url || "")
+        : String(item || "")
+    );
+    if (!url) continue;
+    const title = String(
+      item && typeof item === "object"
+        ? (item as { title?: unknown }).title || ""
+        : ""
+    )
+      .trim()
+      .slice(0, DRAFT_LINK_TITLE_CHARS);
+    out.push(title ? { url, title } : { url });
+  }
+  return out.length ? out : undefined;
+};
 
 const createEmptyField = (type: TAltFormFieldType): TAltFormField => ({
   _id: crypto.randomUUID(),
@@ -233,10 +351,12 @@ export const normalizeActivityDraftBundle = (draft: {
   fields?: unknown;
   settings?: unknown;
   rubrics?: unknown;
+  access?: unknown;
 }): {
   fields: TAltFormField[];
   settings: TActivityBuilderSettings;
   rubrics: TFormRubric[];
+  access?: TActivityDraftAccess;
 } => {
   let settings = normalizeActivityDraftSettings(draft?.settings);
   const rawRubrics = Array.isArray(draft?.rubrics) ? draft.rubrics : [];
@@ -347,6 +467,8 @@ export const normalizeActivityDraftBundle = (draft: {
     }
     if (type === "content" || type === "docResponse") {
       base.content = normalizeDocumentDraftContent(String(raw?.content || ""));
+      const links = normalizeActivityDraftLinks(raw?.links);
+      if (links) base.links = links;
     }
     if (typeof raw?.points === "number") base.points = raw.points;
     if (raw?.correctAnswer != null) base.correctAnswer = raw.correctAnswer;
@@ -397,7 +519,9 @@ export const normalizeActivityDraftBundle = (draft: {
     rubrics = [];
   }
 
-  return { fields, settings, rubrics };
+  const access = normalizeActivityDraftAccess(draft?.access);
+
+  return { fields, settings, rubrics, ...(access ? { access } : {}) };
 };
 
 /** @deprecated prefer normalizeActivityDraftBundle */
@@ -436,3 +560,32 @@ export const toActivitySettingsSnapshot = (
   showOwnerFields: settings.showOwnerFields,
   showOwnResponse: settings.showOwnResponse,
 });
+
+export const ACTIVITY_ACCESS_GROUP_LABELS: Record<
+  keyof TActivityAccessGroups,
+  string
+> = {
+  manager: "관리자",
+  teacher: "교사",
+  student: "학생",
+};
+
+export const toActivityAccessSnapshot = (
+  restrictMembers: boolean,
+  memberGroups: TActivityAccessGroups,
+  restrictWriters: boolean,
+  writerGroups: TActivityAccessGroups
+): TActivityDraftAccess => ({
+  members: restrictMembers ? { groups: { ...memberGroups } } : "board",
+  writers: restrictWriters ? { groups: { ...writerGroups } } : "board",
+});
+
+export const formatActivityAccessGroups = (
+  side?: TActivityDraftAccessSide
+): string | null => {
+  if (!side || side === "board") return null;
+  const labels = ACCESS_GROUP_IDS.filter((id) => side.groups[id]).map(
+    (id) => ACTIVITY_ACCESS_GROUP_LABELS[id]
+  );
+  return labels.length ? labels.join("·") : null;
+};

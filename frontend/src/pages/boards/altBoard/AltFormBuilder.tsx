@@ -382,12 +382,30 @@ const AltFormBuilder = ({
       fields,
       settings,
       rubrics,
+      restrictMembers,
+      restrictWriters,
+      memberGroups,
+      writerGroups,
     }),
     setTitle,
     setDescription,
     setFields,
     setSettings,
     setRubrics,
+    applyAccess: (access) => {
+      if (access.members === "board") {
+        setRestrictMembers(false);
+      } else if (access.members) {
+        setRestrictMembers(true);
+        setMemberGroups(access.members.groups);
+      }
+      if (access.writers === "board") {
+        setRestrictWriters(false);
+      } else if (access.writers) {
+        setRestrictWriters(true);
+        setWriterGroups(access.writers.groups);
+      }
+    },
   });
 
   const getSnapshot = useCallback(

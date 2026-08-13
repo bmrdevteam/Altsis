@@ -3,8 +3,11 @@ import { useAlter, TAlterActivityDraft } from "contexts/alterContext";
 import { TAltFormField, TFormRubric } from "types/altForm";
 import {
   normalizeActivityDraftBundle,
+  toActivityAccessSnapshot,
   toActivitySettingsSnapshot,
+  TActivityAccessGroups,
   TActivityBuilderSettings,
+  TActivityDraftAccess,
 } from "utils/activityDraft";
 import {
   clipText,
@@ -22,6 +25,10 @@ type Params = {
     fields: TAltFormField[];
     settings: TActivityBuilderSettings;
     rubrics: TFormRubric[];
+    restrictMembers: boolean;
+    restrictWriters: boolean;
+    memberGroups: TActivityAccessGroups;
+    writerGroups: TActivityAccessGroups;
   };
   setTitle: (title: string) => void;
   setDescription: (description: string) => void;
@@ -32,6 +39,7 @@ type Params = {
       | ((prev: TActivityBuilderSettings) => TActivityBuilderSettings)
   ) => void;
   setRubrics: (rubrics: TFormRubric[]) => void;
+  applyAccess?: (access: TActivityDraftAccess) => void;
 };
 
 /**
@@ -45,12 +53,14 @@ const useRegisterAlterActivity = (params: Params) => {
   const setFieldsRef = useRef(params.setFields);
   const setSettingsRef = useRef(params.setSettings);
   const setRubricsRef = useRef(params.setRubrics);
+  const applyAccessRef = useRef(params.applyAccess);
   getActivityRef.current = params.getActivity;
   setTitleRef.current = params.setTitle;
   setDescriptionRef.current = params.setDescription;
   setFieldsRef.current = params.setFields;
   setSettingsRef.current = params.setSettings;
   setRubricsRef.current = params.setRubrics;
+  applyAccessRef.current = params.applyAccess;
 
   useEffect(() => {
     if (params.enabled === false) return;
@@ -99,14 +109,22 @@ const useRegisterAlterActivity = (params: Params) => {
           settings: toActivitySettingsSnapshot(cur.settings),
           rubrics: cur.rubrics || [],
           boardName: params.boardName,
+          access: toActivityAccessSnapshot(
+            cur.restrictMembers,
+            cur.memberGroups,
+            cur.restrictWriters,
+            cur.writerGroups
+          ),
         };
       },
       applyActivityDraft: (draft: TAlterActivityDraft) => {
-        const { fields, settings, rubrics } = normalizeActivityDraftBundle({
-          fields: draft?.fields,
-          settings: draft?.settings,
-          rubrics: draft?.rubrics,
-        });
+        const { fields, settings, rubrics, access } =
+          normalizeActivityDraftBundle({
+            fields: draft?.fields,
+            settings: draft?.settings,
+            rubrics: draft?.rubrics,
+            access: draft?.access,
+          });
         if (fields.length === 0) {
           return { applied: false };
         }
@@ -116,6 +134,7 @@ const useRegisterAlterActivity = (params: Params) => {
         setFieldsRef.current(fields);
         setSettingsRef.current(settings);
         setRubricsRef.current(rubrics);
+        if (access) applyAccessRef.current?.(access);
         return { applied: true };
       },
       suggestedSkills: ["activity-draft", "chat"],

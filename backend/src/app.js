@@ -111,7 +111,12 @@ routers.forEach((router) => {
 /* Public academy static sites (no session required) */
 app.use("/sites/:academyId", (req, res, next) => {
   if (req.method !== "GET" && req.method !== "HEAD") return next();
-  const rel = decodeURIComponent((req.path || "/").replace(/^\/+/, ""));
+  let rel;
+  try {
+    rel = decodeURIComponent((req.path || "/").replace(/^\/+/, ""));
+  } catch {
+    return res.status(404).send("사이트를 찾을 수 없습니다.");
+  }
   req.params[0] = rel;
   return servePublicSite(req, res);
 });

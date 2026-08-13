@@ -22,7 +22,9 @@ export const userMatchesAccessList = (
   const uid = String(user._id);
   if (
     (access.users || []).some(
-      (u) => String(u.user) === uid || u.userId === user.userId
+      (u) =>
+        String(u.user) === uid ||
+        (!!user.userId && !!u.userId && u.userId === user.userId)
     )
   ) {
     return true;

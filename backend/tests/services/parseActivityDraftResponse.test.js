@@ -187,4 +187,97 @@ describe("normalizeActivityDraft", () => {
     expect(draft.settings.weekdaySchedule.enabled).toBe(false);
     expect(draft.settings.weekdaySchedule.daysOfWeek).toEqual([1]);
   });
+
+  it("keeps http(s) links on content/docResponse and drops unsafe urls", () => {
+    const draft = normalizeActivityDraft({
+      title: "참고",
+      fields: [
+        {
+          label: "안내",
+          type: "content",
+          content: "읽기",
+          links: [
+            { url: "https://example.com/a", title: "예제" },
+            { url: "javascript:alert(1)", title: "악성" },
+            { url: "http://school.example/b" },
+            "https://plain.example/c",
+          ],
+        },
+        {
+          label: "이름",
+          type: "text",
+          links: [{ url: "https://should-not-keep.example" }],
+        },
+      ],
+    });
+    expect(draft.fields[0].links).toEqual([
+      { url: "https://example.com/a", title: "예제" },
+      { url: "http://school.example/b" },
+      { url: "https://plain.example/c" },
+    ]);
+    expect(draft.fields[1].links).toBeUndefined();
+  });
+
+  it("keeps allowResubmit together with allowMultipleResponses", () => {
+    const draft = normalizeActivityDraft({
+      title: "일지",
+      fields: [{ label: "오늘", type: "textarea" }],
+      settings: {
+        allowResubmit: true,
+        allowMultipleResponses: true,
+      },
+    });
+    expect(draft.settings.allowResubmit).toBe(true);
+    expect(draft.settings.allowMultipleResponses).toBe(true);
+  });
+
+  it("normalizes access board vs groups and intersects writers", () => {
+    const board = normalizeActivityDraft({
+      title: "A",
+      fields: [{ label: "q", type: "text" }],
+      access: { members: "board", writers: "board" },
+    });
+    expect(board.access).toEqual({
+      members: "board",
+      writers: "board",
+    });
+
+    const groups = normalizeActivityDraft({
+      title: "B",
+      fields: [{ label: "q", type: "text" }],
+      access: {
+        members: { groups: ["student", "teacher", "ghost"] },
+        writers: { groups: ["teacher", "manager"] },
+      },
+    });
+    expect(groups.access.members).toEqual({
+      groups: { manager: false, teacher: true, student: true },
+    });
+    expect(groups.access.writers).toEqual({
+      groups: { manager: false, teacher: true, student: false },
+    });
+
+    const omitted = normalizeActivityDraft({
+      title: "C",
+      fields: [{ label: "q", type: "text" }],
+    });
+    expect(omitted.access).toBeUndefined();
+  });
+
+  it("drops access users and empty groups", () => {
+    const draft = normalizeActivityDraft({
+      title: "D",
+      fields: [{ label: "q", type: "text" }],
+      access: {
+        members: {
+          groups: { student: true },
+          users: [{ userId: "stu1" }],
+        },
+        writers: { groups: [] },
+      },
+    });
+    expect(draft.access).toEqual({
+      members: { groups: { manager: false, teacher: false, student: true } },
+    });
+  });
 });

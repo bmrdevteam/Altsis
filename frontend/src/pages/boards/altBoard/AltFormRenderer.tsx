@@ -2394,7 +2394,10 @@ const AltFormRenderer = ({
                   </div>
                 )}
                 <div className={style.contentFieldBody}>
-                  <MarkdownViewer content={field.content || ""} />
+                  <MarkdownViewer
+                    content={field.content || ""}
+                    allowHtmlApp
+                  />
                   <FieldDocResources
                     attachments={field.attachments}
                     links={field.links}

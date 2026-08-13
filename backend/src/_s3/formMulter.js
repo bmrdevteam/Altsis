@@ -133,7 +133,8 @@ export const formMulter = multer({
       "utf8"
     );
 
-    const ext = fileExt(file.originalname) || "bin";
+    const rawExt = fileExt(file.originalname);
+    const ext = /^[a-z0-9]{1,10}$/.test(rawExt) ? rawExt : "bin";
     req.tmp = {
       key: `${req.user.academyId}/${FORM_KEY_PREFIX}/${
         getDateString() + "_" + getRandomString()
@@ -145,7 +146,8 @@ export const formMulter = multer({
   },
 });
 
+/** 양식 첨부만 (archive/backup 등 다른 버킷 경로 서명 금지) */
 export const isFormFileKey = (key) => {
   const parts = String(key || "").split("/");
-  return parts[1] === FORM_KEY_PREFIX || parts[1] === "archive";
+  return parts.length >= 3 && parts[1] === FORM_KEY_PREFIX;
 };

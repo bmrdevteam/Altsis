@@ -273,24 +273,20 @@ export const update = async (req, res) => {
 
     await event.save();
 
-    // 스케줄러 큐 재등록 (기존 제거 후 새로 등록)
+    // 스케줄러 큐 재등록 — 제거를 끝낸 뒤 등록해야 reverse index 레이스 방지
     const academyId = req.user.academyId;
     const eventId = String(event._id);
-    removeEventNotification(academyId, eventId).catch((err) =>
-      logger.error(`Failed to remove old event notification: ${err.message}`)
-    );
-    removeEventReminder(academyId, eventId).catch((err) =>
-      logger.error(`Failed to remove old event reminder: ${err.message}`)
-    );
-    if (event.scheduleStart?.enabled) {
-      registerEventNotification(academyId, event).catch((err) =>
-        logger.error(`Failed to re-register event notification: ${err.message}`)
-      );
-    }
-    if (event.reminder?.enabled) {
-      registerEventReminder(academyId, event).catch((err) =>
-        logger.error(`Failed to re-register event reminder: ${err.message}`)
-      );
+    try {
+      await removeEventNotification(academyId, eventId);
+      await removeEventReminder(academyId, eventId);
+      if (event.scheduleStart?.enabled) {
+        await registerEventNotification(academyId, event);
+      }
+      if (event.reminder?.enabled) {
+        await registerEventReminder(academyId, event);
+      }
+    } catch (err) {
+      logger.error(`Failed to refresh event scheduler queue: ${err.message}`);
     }
 
     return res.status(200).send({ calendarEvent: event });
