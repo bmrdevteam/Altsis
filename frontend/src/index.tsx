@@ -7,9 +7,12 @@ import RouterPage from "./routes/RouterPage";
 import { AuthProvider } from "./contexts/authContext";
 import { CookiesProvider } from "react-cookie";
 import { ThemeProvider } from "./contexts/themeContext";
+import { installTabResumeReload } from "./utils/tabResume";
 
 /* config */
 globalThis.SUCCESS_MESSAGE = "성공적으로 처리되었습니다🚀";
+
+installTabResumeReload();
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement

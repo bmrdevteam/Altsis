@@ -29,6 +29,53 @@
   <body>
     <noscript>Alternative School Information System V2.0</noscript>
     <div id="root"></div>
+    <script>
+      (function () {
+        var delayMs = 8000;
+        var shown = false;
+        var root = document.getElementById("root");
+        if (!root) return;
+
+        function showRecover() {
+          if (shown || root.childElementCount > 0) return;
+          shown = true;
+          var wrap = document.createElement("div");
+          wrap.id = "boot-recover";
+          wrap.setAttribute("role", "alert");
+          wrap.style.cssText =
+            "min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;text-align:center;font-family:sans-serif;box-sizing:border-box;";
+          var msg = document.createElement("p");
+          msg.textContent = "화면을 불러오지 못했습니다.";
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.textContent = "새로고침";
+          btn.style.cssText =
+            "min-height:44px;padding:8px 16px;font-size:16px;cursor:pointer;";
+          btn.addEventListener("click", function () {
+            location.reload();
+          });
+          wrap.appendChild(msg);
+          wrap.appendChild(btn);
+          document.body.appendChild(wrap);
+        }
+
+        var timer = setTimeout(showRecover, delayMs);
+
+        function cancel() {
+          if (root.childElementCount === 0) return;
+          clearTimeout(timer);
+          var recover = document.getElementById("boot-recover");
+          if (recover && recover.parentNode) recover.parentNode.removeChild(recover);
+          if (obs) obs.disconnect();
+        }
+
+        var obs = null;
+        if (typeof MutationObserver !== "undefined") {
+          obs = new MutationObserver(cancel);
+          obs.observe(root, { childList: true, subtree: true });
+        }
+      })();
+    </script>
     <!--
       This HTML file is a template.
       If you open it directly in the browser, you will see an empty page.
