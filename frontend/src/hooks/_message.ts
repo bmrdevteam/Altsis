@@ -55,7 +55,6 @@ export const MESSAGE = new Map<string, string>([
   ["TIME_DUPLICATED", "시간표가 중복되었습니다."],
   ["SYLLABUS_NOT_CONFIRMED", "승인되지 않은 수업입니다."],
   ["PERMISSION_DENIED", "권한이 없습니다."],
-  ["NOT_LOGGED_IN", "로그인이 필요합니다. 다시 로그인해 주세요."],
   ["BOARD_CONNECTED_ALREADY", "이미 보드가 연결된 수업입니다."],
   ["SYLLABUS_CONNECTED_ALREADY", "이미 다른 수업에 연결된 보드입니다."],
   ["BOARD_NOT_FOUND", "보드를 찾을 수 없습니다."],

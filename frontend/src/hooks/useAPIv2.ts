@@ -9,7 +9,6 @@
 import useDatabase from "hooks/useDatabase";
 
 import { MESSAGE } from "./_message";
-import { isUnauthenticatedError } from "utils/sessionExpiry";
 import { TAcademy } from "types/academies";
 import { TUser } from "types/users";
 import _ from "lodash";
@@ -67,7 +66,6 @@ function QUERY_BUILDER(params?: object) {
 }
 
 export const ALERT_ERROR = (err: any) => {
-  if (isUnauthenticatedError(err)) return;
   let message = "";
   if (err.response?.data?.message) {
     message += MESSAGE.get(err.response.data.message) ?? "";
@@ -969,7 +967,6 @@ export default function useAPIv2() {
   async function RMySelf() {
     const { user, registrations } = await database.R({
       location: `users/current`,
-      timeout: 20000,
     });
 
     user.registrations = _.orderBy(

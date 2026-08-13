@@ -367,7 +367,7 @@ HTTP 요청
     ▼
 세션 확인 (req.isAuthenticated())
     │
-    ├─ 미인증 → Guest 처리 또는 401 Unauthorized (`NOT_LOGGED_IN`)
+    ├─ 미인증 → Guest 처리 또는 403 응답
     │
     └─ 인증됨 → 역할 확인 (req.user.auth)
         │
