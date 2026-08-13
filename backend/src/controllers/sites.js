@@ -411,11 +411,23 @@ export const importZip = async (req, res) => {
           });
         }
 
+        // 압축 해제 폭탄: 파일 수·용량 한도를 루프 중 즉시 검사
+        if (toUpload.length + 1 > MAX_FILE_COUNT) {
+          return res.status(409).send({
+            message: "파일 개수 한도를 초과합니다.",
+          });
+        }
+
         const data = entry.getData();
         if (data.length > MAX_FILE_BYTES) {
           return res.status(409).send({ message: LIMIT_FILE_SIZE });
         }
         totalBytes += data.length;
+        if (totalBytes > MAX_TOTAL_BYTES) {
+          return res.status(409).send({
+            message: "용량 한도를 초과합니다.",
+          });
+        }
         toUpload.push({ path: normalized, data });
       }
 
@@ -458,8 +470,12 @@ async function streamSiteFile(res, academyId, relativePath) {
       ? data.ContentType
       : contentTypeForPath(path);
 
-  // User-authored HTML/JS; do not inherit API CSP
-  res.removeHeader("Content-Security-Policy");
+  // 고유 origin 샌드박스(allow-same-origin 없음) — API 세션 쿠키 접근 차단
+  res.set(
+    "Content-Security-Policy",
+    "sandbox allow-scripts allow-forms allow-popups allow-modals"
+  );
+  res.set("X-Content-Type-Options", "nosniff");
   res.set("Content-Type", contentType);
   if (data.ContentLength != null) {
     res.set("Content-Length", String(data.ContentLength));

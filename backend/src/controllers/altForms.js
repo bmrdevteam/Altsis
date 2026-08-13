@@ -6,22 +6,88 @@
 import crypto from "crypto";
 import { logger } from "../log/logger.js";
 import { AltForm, AltSheet, AltSheetOpen, AltSheetRow, Board, CalendarEvent } from "../models/index.js";
-import { canManageForm, canModifyForm, getAltBoardRole, hasSubmittedForList, resolveUnreadResponseCount, validateExclusiveFormModes, applyWeekdayScheduleNormalize, isWeekdayScheduleEnabled, isInOccurrenceWindow, hasSubmittedCurrentOccurrence, getEffectiveTodoCloseAt, isFormMember, canViewAllRows, normalizeFormAccess, resolveFormMemberUsers } from "../services/altForms.js";
+import { canManageForm, canModifyForm, getAltBoardRole, hasSubmittedForList, resolveUnreadResponseCount, validateExclusiveFormModes, applyWeekdayScheduleNormalize, isWeekdayScheduleEnabled, isInOccurrenceWindow, hasSubmittedCurrentOccurrence, getEffectiveTodoCloseAt, isFormMember, canViewAllRows, normalizeFormAccess, resolveFormMemberUsers, estimateWeekdayOccurrenceCount } from "../services/altForms.js";
 import { cloneAltFormToBoard } from "../services/altFormClone.js";
 import { isBoardNotificationEnabled } from "../services/notifications.js";
 import { getUserRoleInSeason, isSeasonScopedBoard } from "../services/boards.js";
+import { isFormFileKey } from "../_s3/formMulter.js";
 import {
   FIELD_REQUIRED,
+  FIELD_INVALID,
   PERMISSION_DENIED,
   __NOT_FOUND,
 } from "../messages/index.js";
 
-/** 필드 배열에 _id가 없는 항목에 자동 생성 */
-const ensureFieldIds = (fields) =>
-  (fields || []).map((f) => ({
-    ...f,
-    _id: f._id || crypto.randomUUID(),
-  }));
+const isHttpUrl = (url) => {
+  try {
+    const u = new URL(String(url || ""));
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+};
+
+/** 필드 배열에 _id가 없는 항목에 자동 생성 + 첨부 key/링크 URL 검증 */
+const ensureFieldIds = (fields, academyId) => {
+  const academyPrefix = academyId ? `${academyId}/` : "";
+  return (fields || []).map((f) => {
+    const next = { ...f, _id: f._id || crypto.randomUUID() };
+    if (Array.isArray(f.attachments)) {
+      next.attachments = f.attachments
+        .filter((a) => a && a.originalName && a.key)
+        .map((a) => {
+          const key = String(a.key);
+          if (
+            academyPrefix &&
+            (!key.startsWith(academyPrefix) || !isFormFileKey(key))
+          ) {
+            throw Object.assign(new Error("INVALID_ATTACHMENT_KEY"), {
+              code: "INVALID_ATTACHMENT_KEY",
+            });
+          }
+          return {
+            originalName: String(a.originalName),
+            key,
+            mimeType: a.mimeType ? String(a.mimeType) : "",
+            size: typeof a.size === "number" ? a.size : undefined,
+          };
+        });
+      if (next.attachments.length === 0) delete next.attachments;
+    }
+    if (Array.isArray(f.links)) {
+      next.links = f.links
+        .filter((l) => l && l.url && isHttpUrl(l.url))
+        .map((l) => ({
+          title: l.title ? String(l.title) : "",
+          url: String(l.url),
+          ogTitle: l.ogTitle ? String(l.ogTitle) : "",
+          ogDescription: l.ogDescription ? String(l.ogDescription) : "",
+          ogImage:
+            l.ogImage && isHttpUrl(l.ogImage) ? String(l.ogImage) : "",
+        }));
+      if (next.links.length === 0) delete next.links;
+    }
+    return next;
+  });
+};
+
+/** 요일마다 필수 회차 수는 서버에서 기간·요일로 산출 (클라이언트 값 신뢰 금지) */
+const syncWeekdayRequiredCount = (settings) => {
+  if (!settings?.requiredMode || !settings?.allowMultipleResponses) {
+    settings.requiredResponseCount = undefined;
+    return;
+  }
+  if (isWeekdayScheduleEnabled({ settings })) {
+    const est = estimateWeekdayOccurrenceCount({ settings });
+    if (est != null && est >= 1) {
+      settings.requiredResponseCount = Math.min(50, Math.floor(est));
+      return;
+    }
+  }
+  const n = Number(settings.requiredResponseCount);
+  settings.requiredResponseCount =
+    Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
+};
 
 /**
  * 목록용 메타: responseCount / mySubmitted / unreadResponseCount
@@ -76,18 +142,19 @@ const enrichFormsWithListMeta = async (
 
   let unreadAggByForm = new Map();
   if (includeResponseCount && opens?.length > 0) {
+    // 재제출은 createdAt이 유지되므로 updatedAt 기준. 본인 응답은 제외.
     const orClauses = opens
       .filter((o) => o.lastOpenedAt)
       .map((o) => ({
         form: o.form,
-        createdAt: { $gt: o.lastOpenedAt },
+        updatedAt: { $gt: o.lastOpenedAt },
       }));
     if (orClauses.length > 0) {
       const unreadAgg = await AltSheetRow(academyId).aggregate([
         {
           $match: {
             isActive: true,
-            _respondent: { $ne: null },
+            _respondent: { $ne: null, $ne: userId },
             $or: orClauses,
           },
         },
@@ -164,20 +231,24 @@ export const create = async (req, res) => {
     }
 
     const createSettings = req.body.settings || { allowResubmit: false };
-    if (!createSettings.requiredMode || !createSettings.allowMultipleResponses) {
-      createSettings.requiredResponseCount = undefined;
-    } else {
-      const n = Number(createSettings.requiredResponseCount);
-      createSettings.requiredResponseCount =
-        Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
-    }
     const wsErr = applyWeekdayScheduleNormalize(createSettings);
     if (wsErr.error) {
       return res.status(400).send({ message: wsErr.error });
     }
+    syncWeekdayRequiredCount(createSettings);
     const modeErr = validateExclusiveFormModes(createSettings);
     if (modeErr) {
       return res.status(400).send({ message: modeErr });
+    }
+
+    let fields;
+    try {
+      fields = ensureFieldIds(req.body.fields, req.user.academyId);
+    } catch (e) {
+      if (e.code === "INVALID_ATTACHMENT_KEY") {
+        return res.status(400).send({ message: FIELD_INVALID("attachments") });
+      }
+      throw e;
     }
 
     const form = await AltForm(req.user.academyId).create({
@@ -188,7 +259,7 @@ export const create = async (req, res) => {
       creatorName: req.user.userName,
       title: req.body.title,
       description: req.body.description || "",
-      fields: ensureFieldIds(req.body.fields),
+      fields,
       rubrics: Array.isArray(req.body.rubrics) ? req.body.rubrics : [],
       settings: createSettings,
       members: normalizeFormAccess(req.body.members),
@@ -481,7 +552,16 @@ export const update = async (req, res) => {
 
     if ("title" in req.body) form.title = req.body.title;
     if ("description" in req.body) form.description = req.body.description;
-    if ("fields" in req.body) form.fields = ensureFieldIds(req.body.fields);
+    if ("fields" in req.body) {
+      try {
+        form.fields = ensureFieldIds(req.body.fields, req.user.academyId);
+      } catch (e) {
+        if (e.code === "INVALID_ATTACHMENT_KEY") {
+          return res.status(400).send({ message: FIELD_INVALID("attachments") });
+        }
+        throw e;
+      }
+    }
     if ("rubrics" in req.body) {
       form.rubrics = Array.isArray(req.body.rubrics) ? req.body.rubrics : [];
       form.markModified("rubrics");
@@ -491,17 +571,11 @@ export const update = async (req, res) => {
       // 레거시 필드 정리
       form.settings.maxResponsesPerUser = undefined;
       form.settings.responseInterval = undefined;
-      if (!form.settings.requiredMode || !form.settings.allowMultipleResponses) {
-        form.settings.requiredResponseCount = undefined;
-      } else {
-        const n = Number(form.settings.requiredResponseCount);
-        form.settings.requiredResponseCount =
-          Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
-      }
       const wsErr = applyWeekdayScheduleNormalize(form.settings);
       if (wsErr.error) {
         return res.status(400).send({ message: wsErr.error });
       }
+      syncWeekdayRequiredCount(form.settings);
       const modeErr = validateExclusiveFormModes(form.settings);
       if (modeErr) {
         return res.status(400).send({ message: modeErr });
@@ -705,20 +779,23 @@ export const importForm = async (req, res) => {
 
     const fd = req.body.formData;
     const importSettings = fd.settings || { allowResubmit: false };
-    if (!importSettings.requiredMode || !importSettings.allowMultipleResponses) {
-      importSettings.requiredResponseCount = undefined;
-    } else {
-      const n = Number(importSettings.requiredResponseCount);
-      importSettings.requiredResponseCount =
-        Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
-    }
     const wsErr = applyWeekdayScheduleNormalize(importSettings);
     if (wsErr.error) {
       return res.status(400).send({ message: wsErr.error });
     }
+    syncWeekdayRequiredCount(importSettings);
     const modeErr = validateExclusiveFormModes(importSettings);
     if (modeErr) {
       return res.status(400).send({ message: modeErr });
+    }
+    let importFields;
+    try {
+      importFields = ensureFieldIds(fd.fields, req.user.academyId);
+    } catch (e) {
+      if (e.code === "INVALID_ATTACHMENT_KEY") {
+        return res.status(400).send({ message: FIELD_INVALID("attachments") });
+      }
+      throw e;
     }
     const form = await AltForm(req.user.academyId).create({
       board: board._id,
@@ -728,7 +805,7 @@ export const importForm = async (req, res) => {
       creatorName: req.user.userName,
       title: fd.title || "가져온 양식",
       description: fd.description || "",
-      fields: ensureFieldIds(fd.fields),
+      fields: importFields,
       rubrics: Array.isArray(fd.rubrics) ? fd.rubrics : [],
       settings: importSettings,
     });

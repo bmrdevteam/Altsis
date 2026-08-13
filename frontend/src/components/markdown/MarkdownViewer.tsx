@@ -77,7 +77,7 @@ const FullscreenOverlay = ({
     <div className={style.embedFullscreenOverlay} onClick={onClose}>
       <iframe
         {...(embedType === "url" ? { src: content } : { srcDoc: content })}
-        sandbox="allow-scripts allow-same-origin"
+        sandbox="allow-scripts"
         title="임베드된 앱 (전체 보기)"
         onClick={(e) => e.stopPropagation()}
       />
@@ -124,7 +124,7 @@ const HtmlAppEmbed = ({
       <div className={style.htmlEmbedWrapper}>
         <iframe
           srcDoc={html}
-          sandbox="allow-scripts allow-same-origin"
+          sandbox="allow-scripts"
           title="임베드된 앱"
           style={height ? { height: `${height}px` } : undefined}
         />
@@ -158,7 +158,7 @@ const UrlEmbed = ({ url, height }: { url: string; height?: number }) => {
       <div className={style.htmlEmbedWrapper}>
         <iframe
           src={url}
-          sandbox="allow-scripts allow-same-origin"
+          sandbox="allow-scripts"
           title="임베드된 앱"
           style={height ? { height: `${height}px` } : undefined}
         />
@@ -281,19 +281,27 @@ const baseComponents = {
 export type Props = {
   content: string;
   className?: string;
+  /**
+   * true면 ```html-app``` 블록을 스크립트 실행 iframe으로 복원.
+   * 응답자 작성 본문에는 false (기본) — 저장 XSS 방지.
+   */
+  allowHtmlApp?: boolean;
 };
 
-const MarkdownViewer = ({ content, className }: Props) => {
+const MarkdownViewer = ({
+  content,
+  className,
+  allowHtmlApp = false,
+}: Props) => {
   const sanitizedContent = useMemo(() => {
     // html-app 코드 블록을 DOMPurify 처리 전에 추출 (script 태그 보존)
     const preserved: string[] = [];
-    const withPlaceholders = content.replace(
-      /```html-app(?::\d+)?\n[\s\S]*?```/g,
-      (match) => {
-        preserved.push(match);
-        return `__HTMLAPP_PRESERVE_${preserved.length - 1}__`;
-      }
-    );
+    const withPlaceholders = allowHtmlApp
+      ? content.replace(/```html-app(?::\d+)?\n[\s\S]*?```/g, (match) => {
+          preserved.push(match);
+          return `__HTMLAPP_PRESERVE_${preserved.length - 1}__`;
+        })
+      : content;
 
     // 콜아웃 마크다운 → HTML (sanitize 전에 변환)
     const withCallouts = preprocessCallouts(withPlaceholders);
@@ -365,7 +373,7 @@ const MarkdownViewer = ({ content, className }: Props) => {
     });
 
     return sanitized;
-  }, [content]);
+  }, [content, allowHtmlApp]);
 
   return (
     <div className={`${style.markdown} ${className || ""}`}>

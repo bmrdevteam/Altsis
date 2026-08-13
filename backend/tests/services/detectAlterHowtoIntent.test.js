@@ -76,6 +76,7 @@ describe("detectAlterHowtoIntent", () => {
   test("순수 실행 요청이면 false", () => {
     expect(detectAlterHowtoIntent("평가 초안 작성해 줘")).toBe(false);
     expect(detectAlterHowtoIntent("문서 다듬어줘")).toBe(false);
+    expect(detectAlterHowtoIntent("학생 기록 일괄로 작성해줘")).toBe(false);
   });
 
   test("상담 우선: 사용법+업무 혼합이면 true", () => {
