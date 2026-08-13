@@ -798,6 +798,9 @@
 }
 
 .settingsSectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   margin: 0;
   padding: 12px 16px;
   font-size: 13px;
@@ -842,6 +845,11 @@
   &:last-child {
     border-bottom: none;
   }
+}
+
+.settingsItemRowOpen {
+  border-bottom: none;
+  padding-bottom: 8px;
 }
 
 .settingsItemText {
@@ -1434,6 +1442,7 @@
   font-size: 13px;
   color: var(--text-color-2);
   min-width: 3.5em;
+  white-space: nowrap;
   text-align: right;
 }
 
@@ -2422,6 +2431,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
+  flex: 1 1 100%;
   padding: 24px 16px;
   border: 2px dashed var(--border-color);
   border-radius: 8px;
@@ -2483,9 +2493,177 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 1 1 100%;
   padding: 8px 12px;
   font-size: 13px;
   color: var(--text-color-2);
+}
+
+.docResources {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.docLinkItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+
+  .linkPreview {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.docLinkAdd {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 1 1 100%;
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px dashed var(--border-color);
+  border-radius: 8px;
+  background: var(--background-color);
+  color: var(--text-color-2);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+
+  &:hover,
+  &:focus-visible {
+    outline: none;
+    border-color: var(--accent-1);
+    color: var(--accent-1);
+    background: color-mix(in srgb, var(--accent-1) 6%, var(--background-color));
+  }
+}
+
+.docLinkAddIcon {
+  flex-shrink: 0;
+  font-size: 16px;
+  line-height: 1;
+  opacity: 0.55;
+}
+
+.docLinkModal {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.docLinkInput {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--border-default-color, var(--border-color));
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--background-color);
+  color: var(--text-color-1);
+  font-family: inherit;
+  box-sizing: border-box;
+
+  &::placeholder {
+    color: var(--text-color-2);
+    opacity: 0.65;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent-1);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-1) 22%, transparent);
+  }
+}
+
+.docLinkModalFooter {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.docLinkError {
+  margin: 0;
+  font-size: 12px;
+  color: var(--status-error);
+}
+
+.formAccessBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 4px 16px 16px;
+  border-bottom: 1px solid var(--border-default-color, var(--border-color));
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.formAccessField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.formAccessSubLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-color-2);
+}
+
+.formAccessGroups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.formAccessChip {
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-default-color, var(--border-color));
+  background: var(--bg-color-1, var(--background-color));
+  color: var(--text-color);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    border-color: var(--accent-color, var(--primary-color));
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-1);
+    outline-offset: 2px;
+  }
+}
+
+.formAccessChipSelected {
+  border-color: var(--accent-color, var(--primary-color));
+  background: var(--accent-color-light, var(--primary-color-light, #eef4ff));
+  color: var(--accent-color, var(--primary-color));
+}
+
+.formAccessEmpty {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px dashed var(--border-default-color, var(--border-color));
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-color-2);
+  background: var(--background-color-2, var(--component-color));
 }
 
 .selectInput {
@@ -2723,9 +2901,39 @@
   text-align: center;
 }
 
+.reviewBannerActions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.reviewReuseBtn {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border: 1px solid var(--border-default-color, var(--border-color));
+  border-radius: 8px;
+  background: var(--background-color);
+  color: var(--text-color-1);
+  font-size: 13px;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    border-color: var(--accent-1);
+    color: var(--accent-1);
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+}
+
 .readonlyBanner {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 14px;
   padding: 16px 20px;
   margin-bottom: 24px;
@@ -4302,8 +4510,9 @@ tbody tr:hover .actionCell {
 
 .linkPreview {
   display: flex;
-  gap: 12px;
-  padding: 10px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
   border: 1px solid var(--border-color);
   border-radius: 8px;
   text-decoration: none;
@@ -4312,17 +4521,92 @@ tbody tr:hover .actionCell {
   overflow: hidden;
   cursor: pointer;
 
-  &:hover {
+  &:hover:not(:disabled) {
     border-color: var(--accent-1);
+  }
+
+  &[type="button"] {
+    width: 100%;
+    margin: 0;
+    font: inherit;
+    text-align: left;
+    appearance: none;
+
+    &:disabled {
+      cursor: default;
+    }
   }
 }
 
 .linkPreviewImage {
-  width: 80px;
-  height: 80px;
+  width: 48px;
+  height: 48px;
   object-fit: cover;
   border-radius: 4px;
   flex-shrink: 0;
+}
+
+.filePreviewThumb {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.filePreviewThumbCsv {
+  background: color-mix(in srgb, var(--status-success) 18%, var(--background-color));
+  color: var(--status-success);
+}
+
+.filePreviewThumbPdf {
+  background: color-mix(in srgb, var(--status-error) 18%, var(--background-color));
+  color: var(--status-error);
+}
+
+.filePreviewThumbHtml {
+  background: color-mix(in srgb, var(--status-warning) 22%, var(--background-color));
+  color: var(--status-warning);
+}
+
+.filePreviewThumbImage {
+  background: color-mix(in srgb, var(--status-info) 18%, var(--background-color));
+  color: var(--status-info);
+}
+
+.filePreviewThumbJson {
+  background: color-mix(in srgb, #0d9488 16%, var(--background-color));
+  color: #0f766e;
+}
+
+.filePreviewThumbText {
+  background: color-mix(in srgb, #5b6b8c 20%, var(--background-color));
+  color: #3f4f6c;
+}
+
+.filePreviewThumbOffice {
+  background: color-mix(in srgb, #7c6a9a 18%, var(--background-color));
+  color: #5b4d75;
+}
+
+.filePreviewThumbArchive {
+  background: var(--background-color-2);
+  color: var(--text-color-2);
+}
+
+.filePreviewThumbDefault {
+  background: var(--background-color-2);
+  color: var(--accent-1);
+}
+
+.filePreviewThumbWeb {
+  background: color-mix(in srgb, var(--accent-1) 14%, var(--background-color));
+  color: var(--accent-1);
 }
 
 .linkPreviewText {

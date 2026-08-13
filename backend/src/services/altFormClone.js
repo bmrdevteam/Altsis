@@ -38,6 +38,23 @@ export const cloneAltFormToBoard = async (
     rubricIds: f.rubricIds ? [...f.rubricIds] : undefined,
     duplicateCheck: f.duplicateCheck,
     approvalLine: f.approvalLine,
+    attachments: Array.isArray(f.attachments)
+      ? f.attachments.map((a) => ({
+          originalName: a.originalName,
+          key: a.key,
+          mimeType: a.mimeType || "",
+          size: a.size,
+        }))
+      : undefined,
+    links: Array.isArray(f.links)
+      ? f.links.map((l) => ({
+          title: l.title || "",
+          url: l.url,
+          ogTitle: l.ogTitle || "",
+          ogDescription: l.ogDescription || "",
+          ogImage: l.ogImage || "",
+        }))
+      : undefined,
   }));
 
   const clonedRubrics = (original.rubrics || []).map((r) => ({

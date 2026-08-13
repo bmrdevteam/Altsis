@@ -3036,6 +3036,29 @@ export default function useAPIv2() {
   }
 
   /**
+   * CUploadFileForm API
+   * @description 양식 첨부 파일 업로드
+   * @version 2.0.0
+   * @auth user
+   */
+  async function CUploadFileForm(props: { data: FormData }) {
+    const { originalName, key, url, preSignedUrl, expiryDate, type, mimeType, size } =
+      await database.C({
+        location: "files/form",
+        data: props.data,
+      });
+    return {
+      originalName: originalName as string,
+      key: key as string,
+      url: url as string,
+      preSignedUrl: preSignedUrl as string,
+      expiryDate: expiryDate as string,
+      mimeType: (mimeType || type) as string,
+      size: size as number,
+    };
+  }
+
+  /**
    * RSignedUrlArchive API
    * @description 서명된 아카이브 파일 주소 조회 API
    * @version 2.0.0
@@ -3069,6 +3092,7 @@ export default function useAPIv2() {
     query: {
       key: string;
       fileName: string;
+      view?: boolean;
     };
   }) {
     const { preSignedUrl, expiryDate } = await database.R({
@@ -4927,6 +4951,8 @@ export default function useAPIv2() {
       fields?: TAltFormField[];
       rubrics?: TAltForm["rubrics"];
       settings?: Partial<TAltFormSettings>;
+      members?: TAltForm["members"];
+      writers?: TAltForm["writers"];
       isDraft?: boolean;
     };
   }) {
@@ -4959,6 +4985,8 @@ export default function useAPIv2() {
       fields?: TAltFormField[];
       rubrics?: TAltForm["rubrics"];
       settings?: Partial<TAltFormSettings>;
+      members?: TAltForm["members"];
+      writers?: TAltForm["writers"];
       isDraft?: boolean;
     };
   }) {
@@ -5021,6 +5049,8 @@ export default function useAPIv2() {
     data: {
       form: string;
       data: Record<string, any>;
+      /** 응답 수정: 기존 행 _id (본인 행 + allowResubmit) */
+      row?: string;
     };
   }) {
     const { row } = await database.C({
@@ -5511,6 +5541,7 @@ export default function useAPIv2() {
     },
     FileAPI: {
       CUploadFileArchive,
+      CUploadFileForm,
       RSignedUrlArchive,
       RSignedUrlDocument,
       RSignedUrlBackup,

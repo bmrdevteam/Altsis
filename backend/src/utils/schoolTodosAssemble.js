@@ -4,7 +4,8 @@
 
 import {
   getAltBoardRole,
-  canManageForm,
+  canViewAllRows,
+  isFormMember,
   shouldShowUnsubmittedTodo,
   isFormRequiredMode,
   getRequiredResponseCount,
@@ -30,9 +31,6 @@ export const sortSchoolTodos = (todos) => {
   });
 };
 
-const canGradeAssessment = (board, user) =>
-  canManageForm(board, user) || user?.auth === "manager";
-
 /**
  * 메모리에서 할 일 항목 조립
  *
@@ -44,6 +42,7 @@ const canGradeAssessment = (board, user) =>
  * @param {Object[]} [params.pendingGradeRows] - 미확정 평가 응답 행
  * @param {Object} params.user - req.user
  * @param {Date} [params.now]
+ * @param {string|null} [params.schoolRole] teacher|student|manager
  * @returns {Object[]}
  */
 export const assembleSchoolTodos = ({
@@ -54,6 +53,7 @@ export const assembleSchoolTodos = ({
   pendingGradeRows = [],
   user,
   now = new Date(),
+  schoolRole = null,
 }) => {
   const formsByBoard = new Map();
   for (const form of forms) {
@@ -93,7 +93,6 @@ export const assembleSchoolTodos = ({
     if (!boardForms.length) continue;
 
     const altRole = getAltBoardRole(board, user);
-    const grader = canGradeAssessment(board, user);
 
     for (const form of boardForms) {
       const formId = form._id;
@@ -102,6 +101,7 @@ export const assembleSchoolTodos = ({
       const approvalFields = (form.fields || []).filter(
         (f) => f.type === "approval"
       );
+      const grader = canViewAllRows(form, board, user, schoolRole);
 
       if (
         grader &&
@@ -195,6 +195,7 @@ export const assembleSchoolTodos = ({
         }
       }
 
+      if (!isFormMember(form, board, user, schoolRole)) continue;
       if (!altRole) continue;
       if (!isFormRequiredMode(form)) continue;
       if (form.settings?.directInputMode) continue;

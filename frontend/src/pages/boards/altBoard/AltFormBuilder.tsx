@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
 import style from "./altBoard.module.scss";
-import { TBoard } from "types/board";
+import { TBoard, TMemberUser } from "types/board";
 import {
   TAltForm,
   TAltFormField,
@@ -13,6 +13,13 @@ import {
   TGradingMethod,
   TQuizSettings,
 } from "types/altForm";
+import { FIELD_TYPE_LABELS, nextFieldLabel } from "./formFieldLabel";
+import { sanitizeHttpUrl } from "./formDocLink";
+import {
+  emptyFormAccess,
+  isAccessListCustom,
+  selectedIdsFromAccess,
+} from "./formAccess";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import useRegisterAlterActivity from "hooks/useRegisterAlterActivity";
 import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
@@ -29,6 +36,10 @@ import {
   type TWeekdaySchedule,
 } from "./weekdaySchedule";
 import { toLocalDatetimeString } from "utils/activityDraft";
+import FilePreviewModal from "./FilePreviewModal";
+import MemberInvitePicker from "./MemberInvitePicker";
+import FieldDocResources from "./FieldDocResources";
+import { TFormFileRef } from "./formFilePreview";
 
 /** 설정 라벨 옆 설명 — 아이콘 클릭 시 짧은 팝오버 */
 const SettingsHint = ({ text }: { text: string }) => {
@@ -69,6 +80,43 @@ const SettingsHint = ({ text }: { text: string }) => {
   );
 };
 
+const ACCESS_GROUP_ITEMS = [
+  { id: "manager" as const, label: "관리자" },
+  { id: "teacher" as const, label: "교사" },
+  { id: "student" as const, label: "학생" },
+];
+
+const AccessGroupChips = ({
+  value,
+  onToggle,
+  allowed,
+}: {
+  value: { manager: boolean; teacher: boolean; student: boolean };
+  onToggle: (id: "manager" | "teacher" | "student") => void;
+  allowed?: { manager: boolean; teacher: boolean; student: boolean };
+}) => (
+  <div className={style.formAccessGroups} role="group" aria-label="역할">
+    {ACCESS_GROUP_ITEMS.map(({ id, label }) => {
+      const enabled = allowed ? allowed[id] : true;
+      const selected = enabled && value[id];
+      return (
+        <button
+          key={id}
+          type="button"
+          className={`${style.formAccessChip} ${
+            selected ? style.formAccessChipSelected : ""
+          }`}
+          aria-pressed={selected}
+          disabled={!enabled}
+          onClick={() => onToggle(id)}
+        >
+          {label}
+        </button>
+      );
+    })}
+  </div>
+);
+
 type Props = {
   board: TBoard;
   formId?: string;
@@ -77,28 +125,6 @@ type Props = {
   onCopyFormLink?: (formId: string) => void;
   /** 새 양식 첫 저장 후 ID 반영 (URL·상태 유지) */
   onFormCreated?: (formId: string) => void;
-};
-
-const FIELD_TYPE_LABELS: Record<TAltFormFieldType, string> = {
-  text: "단답형",
-  textarea: "장문형",
-  number: "숫자",
-  date: "날짜",
-  multiDate: "복수 날짜",
-  time: "시간",
-  file: "파일",
-  select: "드롭다운",
-  multiSelect: "복수 선택",
-  checkbox: "체크박스",
-  radio: "객관식",
-  userSelect: "사용자 선택",
-  rating: "별점",
-  scale: "척도",
-  counter: "카운터",
-  approval: "승인",
-  link: "링크",
-  content: "안내 문서",
-  docResponse: "응답 문서",
 };
 
 /** 접힌 항목 목록용 Material 아이콘 (유형별 구분) */
@@ -153,10 +179,14 @@ const SYSTEM_VARIABLES = [
 ] as const;
 
 const createEmptyField = (
-  type: TAltFormFieldType = "text"
+  type: TAltFormFieldType = "text",
+  existingFields: TAltFormField[] = []
 ): TAltFormField => ({
   _id: crypto.randomUUID(),
-  label: "",
+  label: nextFieldLabel(
+    type,
+    existingFields.map((f) => f.label)
+  ),
   type,
   permission: "respondent",
   visibleToRespondent: false,
@@ -166,6 +196,9 @@ const createEmptyField = (
     : [],
   content:
     type === "content" || type === "docResponse" ? "" : undefined,
+  attachments:
+    type === "content" || type === "docResponse" ? [] : undefined,
+  links: type === "content" || type === "docResponse" ? [] : undefined,
   approvalLine:
     type === "approval"
       ? { steps: [{ order: 0, label: "1차 승인", mode: "pick" }] }
@@ -250,7 +283,7 @@ const AltFormBuilder = ({
   onCopyFormLink,
   onFormCreated,
 }: Props) => {
-  const { AltFormAPI, PostAPI } = useAPIv2();
+  const { AltFormAPI, PostAPI, FileAPI, BoardAPI } = useAPIv2();
 
   const handleEditorImageUpload = async (
     file: File
@@ -315,6 +348,17 @@ const AltFormBuilder = ({
   const [isDirty, setIsDirty] = useState(false);
   /** 비공개(true) / 공개(false). 신규는 비공개 */
   const [isDraft, setIsDraft] = useState(!formId);
+  const [restrictMembers, setRestrictMembers] = useState(false);
+  const [restrictWriters, setRestrictWriters] = useState(false);
+  const [memberGroups, setMemberGroups] = useState(emptyFormAccess().groups);
+  const [writerGroups, setWriterGroups] = useState(emptyFormAccess().groups);
+  const [memberIds, setMemberIds] = useState<string[]>([]);
+  const [writerIds, setWriterIds] = useState<string[]>([]);
+  const [boardMembers, setBoardMembers] = useState<TMemberUser[]>([]);
+  const [previewFile, setPreviewFile] = useState<TFormFileRef | null>(null);
+  const [uploadingContentField, setUploadingContentField] = useState<
+    string | null
+  >(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const savedSnapshotRef = useRef<string | null>(null);
@@ -362,8 +406,26 @@ const AltFormBuilder = ({
         fields: next?.fields ?? fields,
         settings: next?.settings ?? settings,
         rubrics: next?.rubrics ?? rubrics,
+        restrictMembers,
+        restrictWriters,
+        memberGroups,
+        writerGroups,
+        memberIds,
+        writerIds,
       }),
-    [title, description, fields, settings, rubrics]
+    [
+      title,
+      description,
+      fields,
+      settings,
+      rubrics,
+      restrictMembers,
+      restrictWriters,
+      memberGroups,
+      writerGroups,
+      memberIds,
+      writerIds,
+    ]
   );
 
   // Click outside field card / add toolbar → deactivate
@@ -462,6 +524,14 @@ const AltFormBuilder = ({
             : new Set()
         );
         setIsDraft(!!form.isDraft);
+        const membersCustom = isAccessListCustom(form.members);
+        const writersCustom = isAccessListCustom(form.writers);
+        setRestrictMembers(membersCustom);
+        setRestrictWriters(writersCustom);
+        setMemberGroups(form.members?.groups || emptyFormAccess().groups);
+        setWriterGroups(form.writers?.groups || emptyFormAccess().groups);
+        setMemberIds(selectedIdsFromAccess(form.members));
+        setWriterIds(selectedIdsFromAccess(form.writers));
         setCurrentFormId(form._id);
         savedSnapshotRef.current = JSON.stringify({
           title: form.title.trim(),
@@ -469,6 +539,12 @@ const AltFormBuilder = ({
           fields: form.fields,
           settings: nextSettings,
           rubrics: nextRubrics,
+          restrictMembers: membersCustom,
+          restrictWriters: writersCustom,
+          memberGroups: form.members?.groups || emptyFormAccess().groups,
+          writerGroups: form.writers?.groups || emptyFormAccess().groups,
+          memberIds: selectedIdsFromAccess(form.members),
+          writerIds: selectedIdsFromAccess(form.writers),
         });
         setIsDirty(false);
         setIsLoading(false);
@@ -484,6 +560,18 @@ const AltFormBuilder = ({
     if (isLoading || savedSnapshotRef.current === null) return;
     setIsDirty(getSnapshot() !== savedSnapshotRef.current);
   }, [getSnapshot, isLoading]);
+
+  useEffect(() => {
+    BoardAPI.RBoardMemberList({ params: { _id: board._id } })
+      .then(({ users }) => setBoardMembers(users || []))
+      .catch(() => setBoardMembers([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- BoardAPI identity changes
+  }, [board._id]);
+
+  useEffect(() => {
+    if (!restrictMembers) return;
+    setWriterIds((prev) => prev.filter((id) => memberIds.includes(id)));
+  }, [restrictMembers, memberIds]);
 
   // 요일마다: 기간·요일 기준 예상 회차로 목표 제출 횟수 자동 반영
   useEffect(() => {
@@ -598,6 +686,31 @@ const AltFormBuilder = ({
           showOwnResponse: settings.showOwnResponse,
         },
         isDraft: asDraft,
+        members: restrictMembers
+          ? {
+              groups: memberGroups,
+              users: boardMembers.filter((m) =>
+                memberIds.includes(String(m.user))
+              ),
+            }
+          : emptyFormAccess(),
+        writers: restrictWriters
+          ? {
+              groups: restrictMembers
+                ? {
+                    manager: writerGroups.manager && memberGroups.manager,
+                    teacher: writerGroups.teacher && memberGroups.teacher,
+                    student: writerGroups.student && memberGroups.student,
+                  }
+                : writerGroups,
+              users: boardMembers.filter((m) => {
+                const id = String(m.user);
+                if (!writerIds.includes(id)) return false;
+                if (restrictMembers && !memberIds.includes(id)) return false;
+                return true;
+              }),
+            }
+          : emptyFormAccess(),
       };
 
       if (currentFormId) {
@@ -660,7 +773,7 @@ const AltFormBuilder = ({
     index: number,
     type: TAltFormFieldType = "text"
   ) => {
-    const newField = createEmptyField(type);
+    const newField = createEmptyField(type, fields);
     if (settings.directInputMode) {
       newField.permission = "owner";
     }
@@ -1389,6 +1502,71 @@ const AltFormBuilder = ({
     );
   };
 
+  const uploadContentAttachment = async (fieldIndex: number, file: File) => {
+    if (file.size > 20 * 1024 * 1024) {
+      alert(`${file.name}: 파일 크기는 20MB 이하여야 합니다.`);
+      return;
+    }
+    const field = fields[fieldIndex];
+    setUploadingContentField(field._id);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const result = await FileAPI.CUploadFileForm({ data: fd });
+      updateField(fieldIndex, {
+        attachments: [
+          ...(field.attachments || []),
+          {
+            originalName: result.originalName,
+            key: result.key,
+            mimeType: result.mimeType,
+            size: result.size,
+          },
+        ],
+      });
+    } catch (err) {
+      ALERT_ERROR(err);
+    } finally {
+      setUploadingContentField(null);
+    }
+  };
+
+  const renderDocResources = (fieldIndex: number) => {
+    const field = fields[fieldIndex];
+    return (
+      <FieldDocResources
+        editable
+        attachments={field.attachments}
+        links={field.links}
+        uploading={uploadingContentField === field._id}
+        onPreview={setPreviewFile}
+        onUpload={(file) => uploadContentAttachment(fieldIndex, file)}
+        onRemoveAttachment={(key) =>
+          updateField(fieldIndex, {
+            attachments: (field.attachments || []).filter((x) => x.key !== key),
+          })
+        }
+        onAddLink={(link) =>
+          updateField(fieldIndex, {
+            links: [...(field.links || []), link],
+          })
+        }
+        onPatchLink={(url, patch) =>
+          updateField(fieldIndex, {
+            links: (field.links || []).map((l) =>
+              sanitizeHttpUrl(l.url) === url ? { ...l, ...patch } : l
+            ),
+          })
+        }
+        onRemoveLink={(i) =>
+          updateField(fieldIndex, {
+            links: (field.links || []).filter((_, idx) => idx !== i),
+          })
+        }
+      />
+    );
+  };
+
   const renderFieldTypeSettings = (fieldIndex: number) => {
     const field = fields[fieldIndex];
     switch (field.type) {
@@ -1411,6 +1589,7 @@ const AltFormBuilder = ({
               minHeight="220px"
               onImageUpload={handleEditorImageUpload}
             />
+            {renderDocResources(fieldIndex)}
           </div>
         );
       case "docResponse":
@@ -1436,6 +1615,7 @@ const AltFormBuilder = ({
               minHeight="220px"
               onImageUpload={handleEditorImageUpload}
             />
+            {renderDocResources(fieldIndex)}
           </div>
         );
       case "rating":
@@ -2168,6 +2348,10 @@ const AltFormBuilder = ({
               content: usesContentTemplate
                 ? field.content ?? ""
                 : field.content,
+              attachments: usesContentTemplate
+                ? field.attachments || []
+                : field.attachments,
+              links: usesContentTemplate ? field.links || [] : field.links,
               options:
                 needsOptions(nextType) &&
                 (!field.options || field.options.length === 0)
@@ -2764,7 +2948,6 @@ const AltFormBuilder = ({
                           setSettings((s) => ({
                             ...s,
                             allowMultipleResponses: v,
-                            ...(v && { allowResubmit: false }),
                           }))
                         }
                       />
@@ -2777,18 +2960,12 @@ const AltFormBuilder = ({
                     <div className={style.settingsItemText}>
                       <div className={style.settingsLabelRow}>
                         <span className={style.settingsLabel}>응답 수정</span>
-                        <SettingsHint text="허용하면 제출한 응답을 다시 열어 수정할 수 있습니다. 복수 응답이 켜져 있으면 사용할 수 없습니다." />
+                        <SettingsHint text="허용하면 제출한 응답을 수정하거나 삭제할 수 있습니다. 복수 응답과 함께 쓰면 내 응답에서 건별로 적용됩니다." />
                       </div>
-                      {settings.allowMultipleResponses && (
-                        <p className={style.settingsInlineNote}>
-                          복수 응답이 켜져 있어 사용할 수 없습니다.
-                        </p>
-                      )}
                     </div>
                     <div className={style.settingsToggle}>
                       <ToggleSwitch
                         checked={settings.allowResubmit}
-                        disabled={settings.allowMultipleResponses}
                         onChange={(v) =>
                           setSettings((s) => ({ ...s, allowResubmit: v }))
                         }
@@ -3473,6 +3650,121 @@ const AltFormBuilder = ({
               </section>
 
               <section className={style.settingsSection}>
+                <h4 className={style.settingsSectionTitle}>
+                  멤버 · 작성 권한
+                  <SettingsHint text="지정하지 않으면 보드와 같습니다. 멤버는 제출·할 일, 작성 권한은 기록 전체입니다. 빌더 수정은 양식 작성자·보드 관리자만 가능합니다." />
+                </h4>
+                <div className={style.settingsSectionBody}>
+                  <div
+                    className={`${style.settingsItemRow} ${
+                      restrictMembers ? style.settingsItemRowOpen : ""
+                    }`}
+                  >
+                    <div className={style.settingsItemText}>
+                      <div className={style.settingsLabelRow}>
+                        <span className={style.settingsLabel}>멤버</span>
+                        <SettingsHint text="켜면 보드 멤버 중에서 이 양식을 제출할 사람을 고릅니다." />
+                      </div>
+                    </div>
+                    <div className={style.settingsToggle}>
+                      <ToggleSwitch
+                        checked={restrictMembers}
+                        onChange={(v) => setRestrictMembers(v)}
+                      />
+                      <span className={style.settingsToggleText}>
+                        {restrictMembers ? "지정" : "보드와 동일"}
+                      </span>
+                    </div>
+                  </div>
+                  {restrictMembers && (
+                    <div className={style.formAccessBlock}>
+                      <div className={style.formAccessField}>
+                        <span className={style.formAccessSubLabel}>역할</span>
+                        <AccessGroupChips
+                          value={memberGroups}
+                          onToggle={(id) =>
+                            setMemberGroups((prev) => ({
+                              ...prev,
+                              [id]: !prev[id],
+                            }))
+                          }
+                        />
+                      </div>
+                      <div className={style.formAccessField}>
+                        <span className={style.formAccessSubLabel}>사람</span>
+                        <MemberInvitePicker
+                          members={boardMembers}
+                          selectedIds={memberIds}
+                          onChange={setMemberIds}
+                          emptyText="보드 멤버가 없습니다."
+                        />
+                      </div>
+                    </div>
+                  )}
+                  <div
+                    className={`${style.settingsItemRow} ${
+                      restrictWriters ? style.settingsItemRowOpen : ""
+                    }`}
+                  >
+                    <div className={style.settingsItemText}>
+                      <div className={style.settingsLabelRow}>
+                        <span className={style.settingsLabel}>작성 권한</span>
+                        <SettingsHint text="켜면 기록 전체를 볼 사람을 고릅니다. 빌더 수정 권한은 바뀌지 않습니다." />
+                      </div>
+                    </div>
+                    <div className={style.settingsToggle}>
+                      <ToggleSwitch
+                        checked={restrictWriters}
+                        onChange={(v) => setRestrictWriters(v)}
+                      />
+                      <span className={style.settingsToggleText}>
+                        {restrictWriters ? "지정" : "보드와 동일"}
+                      </span>
+                    </div>
+                  </div>
+                  {restrictWriters && (
+                    <div className={style.formAccessBlock}>
+                      <div className={style.formAccessField}>
+                        <span className={style.formAccessSubLabel}>역할</span>
+                        <AccessGroupChips
+                          value={writerGroups}
+                          allowed={restrictMembers ? memberGroups : undefined}
+                          onToggle={(id) =>
+                            setWriterGroups((prev) => ({
+                              ...prev,
+                              [id]: !prev[id],
+                            }))
+                          }
+                        />
+                      </div>
+                      <div className={style.formAccessField}>
+                        <span className={style.formAccessSubLabel}>사람</span>
+                        {restrictMembers && memberIds.length === 0 ? (
+                          <p className={style.formAccessEmpty}>
+                            멤버에서 사람을 고르면 여기에서 고를 수 있습니다.
+                            역할만으로도 지정할 수 있습니다.
+                          </p>
+                        ) : (
+                          <MemberInvitePicker
+                            members={
+                              restrictMembers
+                                ? boardMembers.filter((m) =>
+                                    memberIds.includes(String(m.user))
+                                  )
+                                : boardMembers
+                            }
+                            selectedIds={writerIds}
+                            onChange={setWriterIds}
+                            emptyText="보드 멤버가 없습니다."
+                          />
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              <section className={style.settingsSection}>
                 <h4 className={style.settingsSectionTitle}>운영</h4>
                 <div className={style.settingsSectionBody}>
                   <div className={style.settingsItemRow}>
@@ -3698,6 +3990,10 @@ const AltFormBuilder = ({
           </div>
         </Popup>
       )}
+      <FilePreviewModal
+        file={previewFile}
+        onClose={() => setPreviewFile(null)}
+      />
     </div>
   );
 };

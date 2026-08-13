@@ -11,6 +11,13 @@ import {
   TApprovalValueV2,
 } from "utils/approvalLine";
 import { TApprovalLine } from "types/altForm";
+import {
+  fileAnswerLabel,
+  isFileAnswerFile,
+  isFileAnswerLink,
+  linkDisplayTitle,
+  sanitizeHttpUrl,
+} from "./formDocLink";
 
 type FieldMeta = {
   _id: string;
@@ -141,6 +148,13 @@ const formatFieldDisplay = (value: any, field?: FieldMeta): string => {
     return value.title || value.ogTitle || value.url;
   }
 
+  if (field?.type === "file" && Array.isArray(value)) {
+    return (
+      value.map((item) => fileAnswerLabel(item)).filter(Boolean).join(", ") ||
+      "-"
+    );
+  }
+
   if (field?.type === "rating") {
     return value ? `${"★".repeat(Number(value))}` : "-";
   }
@@ -157,11 +171,6 @@ const formatFieldDisplay = (value: any, field?: FieldMeta): string => {
     return "-";
   }
   return String(value);
-};
-
-const parseFiles = (value: any): UploadedFile[] => {
-  if (!Array.isArray(value)) return [];
-  return value.filter((f) => f && (f.key || f.originalName));
 };
 
 const APPROVAL_STEP_STATUS_LABELS: Record<
@@ -414,8 +423,8 @@ const PendingApprovalsPanel = ({
     const val = active?.rowData?.[f._id];
 
     if (f.type === "file") {
-      const files = parseFiles(val);
-      if (files.length === 0) {
+      const items = Array.isArray(val) ? val : [];
+      if (items.length === 0) {
         return (
           <span style={{ color: "var(--text-color-2)", fontStyle: "italic" }}>
             —
@@ -424,28 +433,49 @@ const PendingApprovalsPanel = ({
       }
       return (
         <div className={style.fileUploadArea}>
-          {files.map((file) => (
+          {items.map((item: any, i: number) => {
+            if (isFileAnswerLink(item)) {
+              const href = sanitizeHttpUrl(item.url);
+              if (!href) return null;
+              const label = linkDisplayTitle({ ...item, url: href });
+              return (
+                <div key={`${href}-${i}`} className={style.uploadedFile}>
+                  <a
+                    className={`${style.uploadedFileName} ${style.uploadedFileLink}`}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={label}
+                  >
+                    {label}
+                  </a>
+                </div>
+              );
+            }
+            if (!isFileAnswerFile(item)) return null;
+            return (
             <div
-              key={file.key || file.originalName}
+              key={item.key || item.originalName}
               className={style.uploadedFile}
             >
               <span
                 className={`${style.uploadedFileName} ${style.uploadedFileLink}`}
-                onClick={() => handleFileOpen(file)}
+                onClick={() => handleFileOpen(item)}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    handleFileOpen(file);
+                    handleFileOpen(item);
                   }
                 }}
-                title={`${file.originalName || file.key} 열기`}
+                title={`${item.originalName || item.key} 열기`}
               >
-                {file.originalName || file.key}
+                {item.originalName || item.key}
               </span>
             </div>
-          ))}
+            );
+          })}
         </div>
       );
     }

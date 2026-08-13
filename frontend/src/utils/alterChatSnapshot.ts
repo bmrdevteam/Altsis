@@ -465,7 +465,9 @@ const formatSheetCellValue = (value: unknown, fieldType?: string): string => {
   }
   if (fieldType === "file" && Array.isArray(value)) {
     return value
-      .map((f: { originalName?: string; key?: string }) => f.originalName || f.key || "")
+      .map((f: { originalName?: string; key?: string; title?: string; ogTitle?: string; url?: string }) =>
+        f.originalName || f.key || f.title || f.ogTitle || f.url || ""
+      )
       .filter(Boolean)
       .join(", ");
   }

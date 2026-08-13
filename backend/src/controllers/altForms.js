@@ -6,10 +6,10 @@
 import crypto from "crypto";
 import { logger } from "../log/logger.js";
 import { AltForm, AltSheet, AltSheetOpen, AltSheetRow, Board, CalendarEvent } from "../models/index.js";
-import { canManageForm, canModifyForm, getAltBoardRole, hasSubmittedForList, resolveUnreadResponseCount, validateExclusiveFormModes, applyWeekdayScheduleNormalize, isWeekdayScheduleEnabled, isInOccurrenceWindow, hasSubmittedCurrentOccurrence, getEffectiveTodoCloseAt } from "../services/altForms.js";
+import { canManageForm, canModifyForm, getAltBoardRole, hasSubmittedForList, resolveUnreadResponseCount, validateExclusiveFormModes, applyWeekdayScheduleNormalize, isWeekdayScheduleEnabled, isInOccurrenceWindow, hasSubmittedCurrentOccurrence, getEffectiveTodoCloseAt, isFormMember, canViewAllRows, normalizeFormAccess, resolveFormMemberUsers } from "../services/altForms.js";
 import { cloneAltFormToBoard } from "../services/altFormClone.js";
 import { isBoardNotificationEnabled } from "../services/notifications.js";
-import { getBoardMembers } from "../services/boards.js";
+import { getUserRoleInSeason, isSeasonScopedBoard } from "../services/boards.js";
 import {
   FIELD_REQUIRED,
   PERMISSION_DENIED,
@@ -32,7 +32,7 @@ const enrichFormsWithListMeta = async (
   academyId,
   forms,
   userId,
-  { includeResponseCount = false } = {}
+  { includeResponseCount = false, attachCountsIf } = {}
 ) => {
   if (!forms?.length) return [];
 
@@ -128,7 +128,7 @@ const enrichFormsWithListMeta = async (
           : new Date(effectiveClose).toISOString()
         : null,
     };
-    if (includeResponseCount) {
+    if (includeResponseCount && (!attachCountsIf || attachCountsIf(plain))) {
       meta.responseCount = countByForm.get(id) || 0;
       meta.unreadResponseCount = resolveUnreadResponseCount(
         id,
@@ -191,6 +191,8 @@ export const create = async (req, res) => {
       fields: ensureFieldIds(req.body.fields),
       rubrics: Array.isArray(req.body.rubrics) ? req.body.rubrics : [],
       settings: createSettings,
+      members: normalizeFormAccess(req.body.members),
+      writers: normalizeFormAccess(req.body.writers),
       // 기본 비공개. 명시적으로 isDraft:false 일 때만 공개 생성
       isDraft: "isDraft" in req.body ? !!req.body.isDraft : true,
     });
@@ -258,7 +260,7 @@ async function syncFormCalendar(academyId, form, board, user) {
   }
 
   const closeAt = new Date(form.settings.closeAt);
-  const members = await getBoardMembers(academyId, board);
+  const members = await resolveFormMemberUsers(academyId, form, board);
 
   const currentSourceIds = new Set();
   const ops = [];
@@ -324,13 +326,19 @@ export const find = async (req, res) => {
       }
 
       const role = getAltBoardRole(board, req.user);
+      const schoolRole = await getUserRoleInSeason(
+        req.user.academyId,
+        board.schoolId,
+        req.user,
+        isSeasonScopedBoard(board) ? board.season : null
+      );
       if (form.isDraft) {
         const isCreator =
           form.creator && form.creator.equals(req.user._id);
         if (!isCreator) {
           return res.status(403).send({ message: PERMISSION_DENIED });
         }
-      } else if (!role) {
+      } else if (!isFormMember(form, board, req.user, schoolRole)) {
         // 역할 없지만 승인자로 지정된 경우 접근 허용
         const approvalFieldIds = form.fields
           .filter((f) => f.type === "approval")
@@ -362,6 +370,12 @@ export const find = async (req, res) => {
     }
 
     const role = getAltBoardRole(board, req.user);
+    const schoolRole = await getUserRoleInSeason(
+      req.user.academyId,
+      board.schoolId,
+      req.user,
+      isSeasonScopedBoard(board) ? board.season : null
+    );
 
     const forms = await AltForm(req.user.academyId)
       .find({
@@ -374,7 +388,14 @@ export const find = async (req, res) => {
       })
       .sort({ createdAt: -1 });
 
-    if (!role) {
+    const visibleForms = forms.filter((form) => {
+      if (form.isDraft) {
+        return form.creator && form.creator.equals(req.user._id);
+      }
+      return isFormMember(form, board, req.user, schoolRole);
+    });
+
+    if (!role && visibleForms.length === 0) {
       // 양식이 없으면 빈 배열 반환 (공지사항 등 alt-form이 없는 보드)
       if (forms.length === 0) {
         return res.status(200).send({ forms: [] });
@@ -403,12 +424,18 @@ export const find = async (req, res) => {
       return res.status(200).send({ forms: enrichedApprover });
     }
 
-    const canSeeResponseCount = role === "admin" || role === "writer";
+    const canSeeAnyCounts = visibleForms.some((form) =>
+      canViewAllRows(form, board, req.user, schoolRole)
+    );
     const enriched = await enrichFormsWithListMeta(
       req.user.academyId,
-      forms,
+      visibleForms,
       req.user._id,
-      { includeResponseCount: canSeeResponseCount }
+      {
+        includeResponseCount: canSeeAnyCounts,
+        attachCountsIf: (form) =>
+          canViewAllRows(form, board, req.user, schoolRole),
+      }
     );
     return res.status(200).send({ forms: enriched });
   } catch (err) {
@@ -484,6 +511,14 @@ export const update = async (req, res) => {
 
     if ("isDraft" in req.body) {
       form.isDraft = !!req.body.isDraft;
+    }
+    if ("members" in req.body) {
+      form.members = normalizeFormAccess(req.body.members);
+      form.markModified("members");
+    }
+    if ("writers" in req.body) {
+      form.writers = normalizeFormAccess(req.body.writers);
+      form.markModified("writers");
     }
 
     await form.save();
@@ -616,6 +651,8 @@ export const exportForm = async (req, res) => {
         rubricId: f.rubricId,
         rubricIds: f.rubricIds,
         duplicateCheck: f.duplicateCheck,
+        attachments: f.attachments,
+        links: f.links,
       })),
       rubrics: form.rubrics || [],
       settings: {
@@ -766,7 +803,13 @@ export const markSheetOpened = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("board") });
     }
 
-    if (!canManageForm(board, req.user)) {
+    const schoolRole = await getUserRoleInSeason(
+      req.user.academyId,
+      board.schoolId,
+      req.user,
+      isSeasonScopedBoard(board) ? board.season : null
+    );
+    if (!canViewAllRows(form, board, req.user, schoolRole)) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 

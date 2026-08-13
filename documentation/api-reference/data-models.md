@@ -1107,7 +1107,7 @@ Alt Board의 양식 빌더로, 데이터 수집용 Form을 관리합니다. Form
 | `settings` | `Object` | X | - | Form 설정 |
 | `settings.openAt` | `Date` | X | - | 공개 시작 시각 |
 | `settings.closeAt` | `Date` | X | - | 공개 종료 시각 |
-| `settings.allowResubmit` | `Boolean` | X | `false` | 재제출 허용 |
+| `settings.allowResubmit` | `Boolean` | X | `false` | 재제출(응답 수정·삭제) 허용. 복수 응답과 함께 쓰면 건별 적용 |
 | `settings.allowMultipleResponses` | `Boolean` | X | `false` | 복수 응답 허용 |
 | `settings.requiredMode` | `Boolean` | X | `false` | 필수 응답(미제출 할 일) |
 | `settings.requiredResponseCount` | `Number` | X | - | 필수+복수일 때 목표 제출 횟수 |
