@@ -250,7 +250,7 @@ const defaultSkillGuide = (skill) => {
     return "양식 안내·필드 규칙을 지키며 응답 초안을 작성하세요. docResponse는 `(작성)`·`(본문 작성)` 등 작성 칸만 채우고 표·수신/경유·로고 골격은 유지하세요. 선택형은 제시된 옵션만 쓰고, 근거 없는 사실·민감정보는 넣지 마세요.";
   }
   if (skill === SKILL_IDS.ACTIVITY_DRAFT) {
-    return "활동 목적에 맞는 양식 구조를 만드세요. 제출·채점이 필요한 답은 text/textarea/radio/select 등 일반 필드로 만드세요. html-app은 제출이 필요 없는 데모·게임·시각 안내일 때만 쓰고, 퀴즈와 평가 모드는 동시에 켜지 마세요.";
+    return "활동 목적에 맞는 양식 구조를 만드세요. 제출·채점이 필요한 답은 text/textarea/radio/select 등 일반 필드로 만드세요. html-app은 제출이 필요 없는 데모·게임·시각 안내일 때만 쓰고, 퀴즈와 평가 모드는 동시에 켜지 마세요. 복수 응답과 응답 수정(allowResubmit)은 함께 켤 수 있습니다. 참고 자료는 content/docResponse의 links(http/https)로 넣고, 양식 멤버·작성 권한은 access에 역할 그룹만 지정하세요.";
   }
   if (skill === SKILL_IDS.ASSESSMENT_GRADE) {
     return "학생을 존중하는 공손한 문어체로, 응답과 루브릭 설명에 근거해 수준·점수를 고르고 짧은 피드백을 작성하세요. 추측·낙인·민감정보는 피하세요.";
@@ -3942,6 +3942,117 @@ const resolveRubricIdRefs = (f, rubricIdByRef) => {
   return ids;
 };
 
+const ACTIVITY_ACCESS_GROUP_IDS = ["manager", "teacher", "student"];
+const ACTIVITY_DRAFT_MAX_LINKS = 10;
+const ACTIVITY_DRAFT_LINK_TITLE_CHARS = 80;
+
+const sanitizeDraftHttpUrl = (raw) => {
+  const trimmed = String(raw || "").trim();
+  if (!trimmed) return null;
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return null;
+    }
+    return parsed.href;
+  } catch {
+    return null;
+  }
+};
+
+const normalizeDraftFieldLinks = (raw) => {
+  if (!Array.isArray(raw)) return undefined;
+  const out = [];
+  for (const item of raw.slice(0, ACTIVITY_DRAFT_MAX_LINKS)) {
+    const url = sanitizeDraftHttpUrl(
+      item && typeof item === "object" ? item.url : item
+    );
+    if (!url) continue;
+    const title = truncateText(
+      String(item && typeof item === "object" ? item.title || "" : "").trim(),
+      ACTIVITY_DRAFT_LINK_TITLE_CHARS
+    );
+    out.push(title ? { url, title } : { url });
+  }
+  return out.length ? out : undefined;
+};
+
+const emptyAccessGroups = () => ({
+  manager: false,
+  teacher: false,
+  student: false,
+});
+
+const hasAnyAccessGroup = (groups) =>
+  !!(groups && (groups.manager || groups.teacher || groups.student));
+
+/**
+ * "board" | { groups }. 사람 users는 버림.
+ * @returns {"board"|{ groups: { manager: boolean, teacher: boolean, student: boolean } }|undefined}
+ */
+export const normalizeActivityDraftAccessSide = (raw) => {
+  if (raw == null || raw === false) return undefined;
+  if (raw === true || raw === "board") return "board";
+  if (typeof raw === "string" && raw.trim().toLowerCase() === "board") {
+    return "board";
+  }
+  const flags = emptyAccessGroups();
+  const applyId = (id) => {
+    const k = String(id || "")
+      .trim()
+      .toLowerCase();
+    if (ACTIVITY_ACCESS_GROUP_IDS.includes(k)) flags[k] = true;
+  };
+  if (Array.isArray(raw)) {
+    raw.forEach(applyId);
+  } else if (typeof raw === "object") {
+    if (Array.isArray(raw.groups)) {
+      raw.groups.forEach(applyId);
+    } else if (raw.groups && typeof raw.groups === "object") {
+      for (const id of ACTIVITY_ACCESS_GROUP_IDS) {
+        flags[id] = !!raw.groups[id];
+      }
+    } else {
+      for (const id of ACTIVITY_ACCESS_GROUP_IDS) {
+        flags[id] = !!raw[id];
+      }
+    }
+  } else {
+    return undefined;
+  }
+  if (!hasAnyAccessGroup(flags)) return undefined;
+  return { groups: flags };
+};
+
+/**
+ * @returns {{ members?: object, writers?: object }|undefined}
+ */
+export const normalizeActivityDraftAccess = (raw) => {
+  if (raw === "board") {
+    return { members: "board", writers: "board" };
+  }
+  if (raw == null || typeof raw !== "object") return undefined;
+  let members = normalizeActivityDraftAccessSide(raw.members);
+  let writers = normalizeActivityDraftAccessSide(raw.writers);
+  if (
+    members &&
+    members !== "board" &&
+    writers &&
+    writers !== "board"
+  ) {
+    const next = emptyAccessGroups();
+    for (const id of ACTIVITY_ACCESS_GROUP_IDS) {
+      next[id] = !!(writers.groups[id] && members.groups[id]);
+    }
+    writers = hasAnyAccessGroup(next) ? { groups: next } : undefined;
+  }
+  if (!members && !writers) return undefined;
+  return {
+    ...(members ? { members } : {}),
+    ...(writers ? { writers } : {}),
+  };
+};
+
 /**
  * 필드·설정·루브릭을 에디터/저장 가능한 형태로 정규화.
  * assessment 모드에서는 rubrics를 만들고 필드 rubricIds에 연결한다.
@@ -4064,6 +4175,10 @@ export const normalizeActivityDraft = (parsed = {}, opts = {}) => {
       order: fields.length,
     };
     if (content !== undefined) field.content = content;
+    if (type === "content" || type === "docResponse") {
+      const links = normalizeDraftFieldLinks(f?.links);
+      if (links) field.links = links;
+    }
     if (type === "approval") {
       field.approvalLine = {
         steps: [{ order: 0, label: "1차 승인", mode: "pick" }],
@@ -4196,7 +4311,16 @@ export const normalizeActivityDraft = (parsed = {}, opts = {}) => {
     showOwnResponse: s.showOwnResponse !== false,
   };
 
-  return { title, description, fields, settings, rubrics };
+  const access = normalizeActivityDraftAccess(parsed.access);
+
+  return {
+    title,
+    description,
+    fields,
+    settings,
+    rubrics,
+    ...(access ? { access } : {}),
+  };
 };
 
 /**
@@ -4230,6 +4354,7 @@ export const executeActivityDraftSkill = async ({
       fields: context.currentFields || [],
       settings: context.currentSettings || {},
       rubrics: context.currentRubrics || [],
+      access: context.currentAccess || undefined,
     }),
     PROMPT_LIMITS.ACTIVITY_DRAFT_CURRENT_CHARS || 14000
   );
@@ -4298,11 +4423,15 @@ text, textarea, number, date, multiDate, time, file, select, multiSelect, checkb
   · 채점할 필드에 "gradingMethod": "rubric" 과 "rubricKeys": ["r1"] (또는 rubricIndexes: [0]) 를 넣으세요.
   · 루브릭이 비어 있으면 서버가 기본 루브릭을 만들고 서술형/응답 문서 필드에 연결합니다.
 - 설정 키: allowResubmit, allowMultipleResponses, requiredMode, requiredResponseCount, openAt, closeAt, weekdaySchedule{enabled, daysOfWeek, startTime, endTime}, quizMode, quizSettings{scoreReveal,answerReveal,showWrongMarks}, assessmentMode, directInputMode, shareResponses, showOwnerFields, showOwnResponse
+- allowResubmit 와 allowMultipleResponses 는 동시에 true 가능. allowResubmit=true 이면 응답자가 제출한 건을 수정·삭제할 수 있음(복수 응답이면 건별).
+- permission: respondent(제출자 작성) | owner(관리자 필드). 관리자 전용 항목은 owner.
+- content/docResponse 에 links: [{ "url": "https://...", "title": "선택 제목" }] (http/https만, 최대 10). attachments(파일 키)는 출력하지 마세요 — 교사가 빌더에서 업로드합니다.
+- 양식 멤버·작성 권한은 settings가 아니라 루트 access. "board" 또는 { "groups": ["student"] } (manager|teacher|student). 사람 id/userId는 넣지 마세요. writers 그룹은 members 그룹의 부분집합. 생략 시 새 작성은 보드와 동일, 다듬기는 현재 값 유지.
 - weekdaySchedule.daysOfWeek: 0=일 … 6=토 (월요일=1). startTime/endTime은 HH:mm (Asia/Seoul)
 - 반복·매주·요일마다 제출 요청:
   · 필드로 회차/주차를 만들지 마세요(예: 「1주차」「제출 요일」 select/radio 금지).
   · openAt·closeAt(기간) + weekdaySchedule.enabled=true 로 설정하세요.
-  · 이 경우 requiredMode=true, allowMultipleResponses=true 필수.
+  · 이 경우 requiredMode=true, allowMultipleResponses=true 필수. allowResubmit는 별개(회차 제출을 고치게 하려면 true).
   · 회차 시각이 없으면 startTime="09:00", endTime="23:59".
   · openAt/closeAt은 ISO 8601 또는 YYYY-MM-DDTHH:mm (KST 의미). 「오늘부터 N주/한달」은 아래 기준 시각으로 계산.
   · requiredResponseCount는 대략 넣거나 생략 가능(서버가 기간·요일로 보정).`;
@@ -4378,10 +4507,15 @@ ${currentSnapshot}
       "permission": "respondent",
       "options": [],
       "content": "",
+      "links": [{ "url": "https://example.com", "title": "참고" }],
       "gradingMethod": "rubric",
       "rubricKeys": ["r1"]
     }
   ],
+  "access": {
+    "members": "board",
+    "writers": "board"
+  },
   "settings": {
     "allowResubmit": false,
     "allowMultipleResponses": false,
@@ -4500,6 +4634,7 @@ ${currentSnapshot}
         fields: draft.fields,
         settings: draft.settings,
         rubrics: draft.rubrics,
+        ...(draft.access ? { access: draft.access } : {}),
       },
     };
   } catch (err) {

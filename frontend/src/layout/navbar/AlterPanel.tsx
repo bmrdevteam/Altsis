@@ -934,6 +934,7 @@ const AlterPanel = ({ onClose }: Props) => {
         fields: [],
         settings: {},
         rubrics: [],
+        access: undefined,
       };
       return {
         pageType: "activity",
@@ -948,6 +949,7 @@ const AlterPanel = ({ onClose }: Props) => {
         currentFields: current.fields || [],
         currentSettings: current.settings || {},
         currentRubrics: current.rubrics || [],
+        currentAccess: current.access || undefined,
         sourceText: attachmentText,
         attachments,
       };
@@ -1499,6 +1501,7 @@ const AlterPanel = ({ onClose }: Props) => {
         fields: [],
         settings: {},
         rubrics: [],
+        access: undefined,
       };
       if (
         activityWriteMode === "create" &&
@@ -2310,6 +2313,7 @@ const AlterPanel = ({ onClose }: Props) => {
         fields: (draftResult.fields || []) as any,
         settings: draftResult.settings,
         rubrics: draftResult.rubrics as any,
+        access: draftResult.access as any,
       });
       setAppliedDraftIds((prev) => new Set(prev).add(msgId));
       if (!result.applied) {
