@@ -11,13 +11,10 @@ import {
   TApprovalValueV2,
 } from "utils/approvalLine";
 import { TApprovalLine } from "types/altForm";
-import {
-  fileAnswerLabel,
-  isFileAnswerFile,
-  isFileAnswerLink,
-  linkDisplayTitle,
-  sanitizeHttpUrl,
-} from "./formDocLink";
+import { fileAnswerLabel } from "./formDocLink";
+import FilePreviewModal from "./FilePreviewModal";
+import FormFileAnswerList from "./FormFileAnswerList";
+import { TFormFileRef } from "./formFilePreview";
 
 type FieldMeta = {
   _id: string;
@@ -72,8 +69,6 @@ type Props = {
   unsubmittedCards?: ReactNode;
   unsubmittedCount?: number;
 };
-
-type UploadedFile = { originalName: string; key: string };
 
 const pendingMatchesKeyword = (item: PendingItem, keyword: string) => {
   const kw = keyword.trim().toLowerCase();
@@ -269,7 +264,7 @@ const PendingApprovalsPanel = ({
   unsubmittedCards,
   unsubmittedCount = 0,
 }: Props) => {
-  const { AltSheetRowAPI, FileAPI } = useAPIv2();
+  const { AltSheetRowAPI } = useAPIv2();
   const [items, setItems] = useState<PendingItem[]>([]);
   const [outgoing, setOutgoing] = useState<PendingItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -277,6 +272,7 @@ const PendingApprovalsPanel = ({
   const [activeKind, setActiveKind] = useState<ActiveKind>("approve");
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
+  const [previewFile, setPreviewFile] = useState<TFormFileRef | null>(null);
   const openedRef = useRef<string | null>(null);
   const settledOnceRef = useRef(false);
   const loadGenRef = useRef(0);
@@ -285,6 +281,7 @@ const PendingApprovalsPanel = ({
     setActive(item);
     setActiveKind(kind);
     setReason("");
+    setPreviewFile(null);
   };
 
   const load = async (opts?: { announceSettled?: boolean }) => {
@@ -365,18 +362,6 @@ const PendingApprovalsPanel = ({
     }
   };
 
-  const handleFileOpen = async (f: UploadedFile) => {
-    if (!f.key) return;
-    try {
-      const { preSignedUrl } = await FileAPI.RSignedUrlDocument({
-        query: { key: f.key, fileName: f.originalName || "file" },
-      });
-      window.open(preSignedUrl, "_blank", "noopener,noreferrer");
-    } catch (err) {
-      ALERT_ERROR(err);
-    }
-  };
-
   const visibleItems = useMemo(
     () => items.filter((item) => pendingMatchesKeyword(item, keyword)),
     [items, keyword]
@@ -424,59 +409,8 @@ const PendingApprovalsPanel = ({
 
     if (f.type === "file") {
       const items = Array.isArray(val) ? val : [];
-      if (items.length === 0) {
-        return (
-          <span style={{ color: "var(--text-color-2)", fontStyle: "italic" }}>
-            —
-          </span>
-        );
-      }
       return (
-        <div className={style.fileUploadArea}>
-          {items.map((item: any, i: number) => {
-            if (isFileAnswerLink(item)) {
-              const href = sanitizeHttpUrl(item.url);
-              if (!href) return null;
-              const label = linkDisplayTitle({ ...item, url: href });
-              return (
-                <div key={`${href}-${i}`} className={style.uploadedFile}>
-                  <a
-                    className={`${style.uploadedFileName} ${style.uploadedFileLink}`}
-                    href={href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title={label}
-                  >
-                    {label}
-                  </a>
-                </div>
-              );
-            }
-            if (!isFileAnswerFile(item)) return null;
-            return (
-            <div
-              key={item.key || item.originalName}
-              className={style.uploadedFile}
-            >
-              <span
-                className={`${style.uploadedFileName} ${style.uploadedFileLink}`}
-                onClick={() => handleFileOpen(item)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    handleFileOpen(item);
-                  }
-                }}
-                title={`${item.originalName || item.key} 열기`}
-              >
-                {item.originalName || item.key}
-              </span>
-            </div>
-            );
-          })}
-        </div>
+        <FormFileAnswerList items={items} onPreview={setPreviewFile} />
       );
     }
 
@@ -857,6 +791,10 @@ const PendingApprovalsPanel = ({
           </div>
         </Popup>
       )}
+      <FilePreviewModal
+        file={previewFile}
+        onClose={() => setPreviewFile(null)}
+      />
     </>
   );
 };
