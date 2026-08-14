@@ -30,6 +30,7 @@ import FieldAssessmentInline, {
 import useRegisterAlterAssessmentGrade from "hooks/useRegisterAlterAssessmentGrade";
 import useRegisterAlterSnapshot from "hooks/useRegisterAlterSnapshot";
 import FilePreviewModal from "./FilePreviewModal";
+import FormFileAnswerList from "./FormFileAnswerList";
 import { TFormFileRef } from "./formFilePreview";
 import { buildSheetChatSnapshot } from "utils/alterChatSnapshot";
 import {
@@ -1439,40 +1440,7 @@ const AltSheetView = ({
 
     if (field.type === "file" && Array.isArray(value)) {
       return (
-        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-          {value.map((f: any, i: number) => {
-            if (isFileAnswerLink(f)) {
-              const href = sanitizeHttpUrl(f.url);
-              if (!href) return null;
-              return (
-                <a
-                  key={`${href}-${i}`}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ color: "var(--accent-1)", textDecoration: "underline" }}
-                >
-                  {linkDisplayTitle({ ...f, url: href })}
-                </a>
-              );
-            }
-            if (!isFileAnswerFile(f)) return null;
-            return (
-              <span
-                key={f.key}
-                style={{ color: "var(--accent-1)", textDecoration: "underline", cursor: "pointer" }}
-                onClick={() => setPreviewFile(f)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") setPreviewFile(f);
-                }}
-                role="button"
-                tabIndex={0}
-              >
-                {f.originalName}
-              </span>
-            );
-          })}
-        </div>
+        <FormFileAnswerList items={value} onPreview={setPreviewFile} />
       );
     }
 

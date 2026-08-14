@@ -11,6 +11,7 @@ import DOMPurify, {
 } from "dompurify";
 import style from "./markdown.module.scss";
 import { preprocessCallouts } from "./extensions/callout";
+import { sanitizeMarkdownInlineStyle } from "./sanitizeMarkdownInlineStyle";
 
 // @[이름](id) 멘션 패턴을 React 요소로 변환
 const renderMentions = (text: string): (string | JSX.Element)[] => {
@@ -306,22 +307,16 @@ const MarkdownViewer = ({
     // 콜아웃 마크다운 → HTML (sanitize 전에 변환)
     const withCallouts = preprocessCallouts(withPlaceholders);
 
-    // 표 셀 스타일만 허용 (전역 style 허용은 CSS 주입 면적을 넓힘)
+    // 표·문단 레이아웃 스타일만 허용 (url/position 등은 차단)
     const styleHook = (node: Element, data: UponSanitizeAttributeHookEvent) => {
       if (data.attrName !== "style") return;
-      const tag = node.nodeName?.toLowerCase();
-      if (tag !== "td" && tag !== "th" && tag !== "table" && tag !== "tr") {
+      const tag = node.nodeName?.toLowerCase() || "";
+      const next = sanitizeMarkdownInlineStyle(tag, data.attrValue || "");
+      if (!next) {
         data.keepAttr = false;
         return;
       }
-      const allowed =
-        /^(background-color|vertical-align|border(-[a-z]+)?|text-align|color)\s*:/i;
-      data.attrValue = data.attrValue
-        .split(";")
-        .map((part) => part.trim())
-        .filter((part) => part && allowed.test(part))
-        .join("; ");
-      if (!data.attrValue) data.keepAttr = false;
+      data.attrValue = next;
     };
     DOMPurify.addHook("uponSanitizeAttribute", styleHook);
 
