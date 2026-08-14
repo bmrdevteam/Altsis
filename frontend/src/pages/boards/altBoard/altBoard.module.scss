@@ -2733,9 +2733,16 @@
 .submitArea {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   gap: 8px;
   padding-top: 24px;
   margin-top: 12px;
+}
+
+.submitAreaStatus {
+  margin-right: auto;
+  font-size: 12px;
+  color: var(--text-color-2);
 }
 
 .orphanResponses {

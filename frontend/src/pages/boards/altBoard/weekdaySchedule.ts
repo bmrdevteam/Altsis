@@ -147,7 +147,11 @@ const rowSubmittedAt = (row: {
 
 export const hasSubmittedCurrentOccurrence = (
   form: Pick<TAltForm, "settings">,
-  myRows: { _submittedAt?: string | Date; createdAt?: string | Date }[] = [],
+  myRows: {
+    _submittedAt?: string | Date;
+    createdAt?: string | Date;
+    isDraft?: boolean;
+  }[] = [],
   now: Date = new Date()
 ): boolean => {
   const win = getOccurrenceWindow(form, now);
@@ -155,6 +159,7 @@ export const hasSubmittedCurrentOccurrence = (
   const start = win.windowStart.getTime();
   const end = win.windowEnd.getTime();
   return myRows.some((row) => {
+    if (row?.isDraft) return false;
     const at = rowSubmittedAt(row);
     if (!at) return false;
     const t = at.getTime();

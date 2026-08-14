@@ -9,6 +9,7 @@ import {
   isFormRequiredMode,
   isWithinFormPeriod,
 } from "../services/altForms.js";
+import { isSubmittedSheetRow } from "./sheetRowQuery.js";
 
 /**
  * 필수 양식 진행도: 분모=대상 필수 양식 수, 분자=제출 완료 수
@@ -60,6 +61,7 @@ export const listRequiredFormProgress = ({
 
   const rowsByForm = new Map();
   for (const row of myRows) {
+    if (!isSubmittedSheetRow(row)) continue;
     const fid = row.form?.toString?.() ?? String(row.form);
     if (!rowsByForm.has(fid)) rowsByForm.set(fid, []);
     rowsByForm.get(fid).push(row);

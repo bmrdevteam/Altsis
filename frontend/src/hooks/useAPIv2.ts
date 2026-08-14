@@ -5060,6 +5060,20 @@ export default function useAPIv2() {
     return { row: row as TAltSheetRow };
   }
 
+  async function CAltSheetRowDraft(props: {
+    data: {
+      form: string;
+      data: Record<string, any>;
+      row?: string;
+    };
+  }) {
+    const { row } = await database.C({
+      location: "alt-sheet-rows/draft",
+      data: props.data,
+    });
+    return { row: row as TAltSheetRow };
+  }
+
   async function RAltSheetRow(props: { params: { _id: string } }) {
     const { row, boardId, formId, formTitle } = await database.R({
       location: `alt-sheet-rows/${props.params._id}`,
@@ -5688,6 +5702,7 @@ export default function useAPIv2() {
     },
     AltSheetRowAPI: {
       CAltSheetRow,
+      CAltSheetRowDraft,
       RAltSheetRow,
       RAltSheetRows,
       RAltSheetRowMy,

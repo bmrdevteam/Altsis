@@ -23,6 +23,7 @@ import {
   stripMergeTags,
 } from "../utils/mergeEngine.js";
 import { getAltBoardRole } from "../services/altForms.js";
+import { submittedSheetRowFilter } from "../utils/sheetRowQuery.js";
 import {
   isBoardMember,
   isBoardWriter,
@@ -454,7 +455,7 @@ export const find = async (req, res) => {
             if (form) {
               // 기록 시트 목록과 동일하게 form 기준으로 조회
               // (sheet id 불일치 시 CSV/직접입력 행이 빠지는 문제 방지)
-              let rowQuery = { form: form._id, isActive: true };
+              let rowQuery = { form: form._id, ...submittedSheetRowFilter() };
 
               // 기록(시트) 목록과 동일한 가시성:
               // admin/writer → 전체

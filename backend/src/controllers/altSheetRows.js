@@ -26,6 +26,17 @@ import {
   getDuplicateCheckFields,
   buildDupCounterKeys,
 } from "../services/altForms.js";
+import {
+  checkDraftSaveLimit,
+  collectRespondentFieldData,
+  canOwnerDeleteDraft,
+  needsAllowResubmitToEdit,
+} from "../services/sheetRowDraft.js";
+import {
+  submittedSheetRowFilter,
+  isDraftSheetRow,
+  splitSheetRows,
+} from "../utils/sheetRowQuery.js";
 import { getUserRoleInSeason, isSeasonScopedBoard } from "../services/boards.js";
 import { getSchoolTodosForUser } from "../services/schoolTodos.js";
 import { sendAutoNotification, isBoardNotificationEnabled } from "../services/notifications.js";
@@ -112,6 +123,133 @@ function validateDocResponseField(field, value) {
   return null;
 }
 
+const sortMyRowsForReview = (rows = []) => {
+  const { draftRows, submittedRows } = splitSheetRows(rows);
+  const byTime = (key) => (a, b) => {
+    const ta = a[key] ? new Date(a[key]).getTime() : 0;
+    const tb = b[key] ? new Date(b[key]).getTime() : 0;
+    return tb - ta;
+  };
+  draftRows.sort(byTime("_updatedAt"));
+  submittedRows.sort(byTime("_submittedAt"));
+  return [...draftRows, ...submittedRows];
+};
+
+/**
+ * @memberof APIs.AltSheetRowAPI
+ * @function CAltSheetRowDraft API
+ * @description 미제출 초안 저장 (필수·중복·결재·퀴즈 없음)
+ */
+export const saveDraft = async (req, res) => {
+  try {
+    for (let field of ["form", "data"]) {
+      if (!(field in req.body)) {
+        return res.status(400).send({ message: FIELD_REQUIRED(field) });
+      }
+    }
+
+    const form = await AltForm(req.user.academyId).findById(req.body.form);
+    if (!form || !form.isActive) {
+      return res.status(404).send({ message: __NOT_FOUND("form") });
+    }
+
+    const board = await Board(req.user.academyId).findById(form.board);
+    if (!board) {
+      return res.status(404).send({ message: __NOT_FOUND("board") });
+    }
+
+    const schoolRole = await schoolRoleOf(
+      req.user.academyId,
+      board,
+      req.user
+    );
+    const respondCheck = canRespondForm(
+      form,
+      board,
+      req.user,
+      new Date(),
+      schoolRole
+    );
+    if (!respondCheck.allowed) {
+      return res.status(403).send({ message: respondCheck.message });
+    }
+
+    const myRows = await AltSheetRow(req.user.academyId)
+      .find({
+        form: form._id,
+        _respondent: req.user._id,
+        isActive: true,
+      })
+      .lean();
+    const { draftRows, submittedRows } = splitSheetRows(myRows);
+
+    let existing = null;
+    if (req.body.row) {
+      existing = await AltSheetRow(req.user.academyId).findById(req.body.row);
+      if (!existing || !existing.isActive) {
+        return res.status(404).send({ message: __NOT_FOUND("row") });
+      }
+      const existingFormId = existing.form?._id || existing.form;
+      if (String(existingFormId) !== String(form._id)) {
+        return res.status(400).send({ message: "양식이 일치하지 않습니다." });
+      }
+      const respondentId = existing._respondent?._id || existing._respondent;
+      if (!respondentId || String(respondentId) !== String(req.user._id)) {
+        return res.status(403).send({ message: PERMISSION_DENIED });
+      }
+      if (!isDraftSheetRow(existing)) {
+        return res.status(400).send({
+          message: "제출된 응답은 저장이 아니라 제출로 수정합니다.",
+        });
+      }
+    }
+
+    const limitCheck = checkDraftSaveLimit(form, submittedRows, draftRows, {
+      updatingDraftId: existing?._id?.toString?.(),
+    });
+    if (!limitCheck.allowed) {
+      return res.status(409).send({ message: limitCheck.message });
+    }
+    if (!existing && limitCheck.existingDraft) {
+      existing = await AltSheetRow(req.user.academyId).findById(
+        limitCheck.existingDraft._id
+      );
+    }
+
+    const { data } = collectRespondentFieldData(form, req.body.data);
+    const now = new Date();
+
+    if (existing) {
+      for (const [fieldId, value] of Object.entries(data)) {
+        existing.data.set(fieldId, value);
+      }
+      existing.isDraft = true;
+      existing._submittedAt = undefined;
+      existing._updatedAt = now;
+      existing.markModified("data");
+      await existing.save();
+      return res.status(200).send({ row: existing });
+    }
+
+    const row = await AltSheetRow(req.user.academyId).create({
+      sheet: form.sheet,
+      form: form._id,
+      board: form.board,
+      _respondent: req.user._id,
+      _respondentId: req.user.userId,
+      _respondentName: req.user.userName,
+      data,
+      isDraft: true,
+      _updatedAt: now,
+    });
+
+    return res.status(200).send({ row });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
 /**
  * @memberof APIs.AltSheetRowAPI
  * @function CAltSheetRow API
@@ -153,8 +291,9 @@ export const create = async (req, res) => {
       return res.status(403).send({ message: respondCheck.message });
     }
 
-    // 기존 응답: 단건 재제출, 또는 복수 응답에서 지정한 행 수정
+    // 기존 응답: 단건 재제출, 초안 승격, 또는 복수 응답에서 지정한 행 수정
     let existing = null;
+    let promotingDraft = false;
     if (req.body.row) {
       existing = await AltSheetRow(req.user.academyId).findById(req.body.row);
       if (!existing || !existing.isActive) {
@@ -168,27 +307,35 @@ export const create = async (req, res) => {
       if (!respondentId || String(respondentId) !== String(req.user._id)) {
         return res.status(403).send({ message: PERMISSION_DENIED });
       }
-      if (!form.settings.allowResubmit) {
+      promotingDraft = isDraftSheetRow(existing);
+      if (needsAllowResubmitToEdit(existing) && !form.settings.allowResubmit) {
         return res.status(403).send({ message: "응답 수정이 허용되지 않았습니다." });
       }
     } else if (!form.settings.allowMultipleResponses) {
-      existing = await AltSheetRow(req.user.academyId).findOne({
+      const mine = await AltSheetRow(req.user.academyId).find({
         form: form._id,
         _respondent: req.user._id,
         isActive: true,
       });
-
-      if (existing && !form.settings.allowResubmit) {
-        return res.status(409).send({ message: "이미 응답하셨습니다." });
+      const submittedDoc = mine.find((r) => !isDraftSheetRow(r));
+      const draftDoc = mine.find((r) => isDraftSheetRow(r));
+      if (submittedDoc) {
+        existing = submittedDoc;
+        if (!form.settings.allowResubmit) {
+          return res.status(409).send({ message: "이미 응답하셨습니다." });
+        }
+      } else if (draftDoc) {
+        existing = draftDoc;
+        promotingDraft = true;
       }
     } else {
       const myRows = await AltSheetRow(req.user.academyId)
         .find({
           form: form._id,
           _respondent: req.user._id,
-          isActive: true,
+          ...submittedSheetRowFilter(),
         })
-        .select("createdAt")
+        .select("createdAt _submittedAt")
         .sort({ createdAt: -1 })
         .lean();
       const limitCheck = checkMultipleResponseLimit(form, myRows);
@@ -197,7 +344,7 @@ export const create = async (req, res) => {
       }
     }
 
-    if (existing) {
+    if (existing && !promotingDraft) {
         // 재제출: 기존 행 업데이트
         const respondentFields = form.fields.filter(
           (f) => f.permission === "respondent" && f.type !== "content"
@@ -354,7 +501,7 @@ export const create = async (req, res) => {
       if (!maxCount) continue;
       const currentCount = await AltSheetRow(req.user.academyId).countDocuments({
         form: form._id,
-        isActive: true,
+        ...submittedSheetRowFilter(),
       });
       if (currentCount >= maxCount) {
         return res.status(409).send({ message: "정원이 마감되었습니다." });
@@ -385,7 +532,7 @@ export const create = async (req, res) => {
 
       // 기본 쿼리 빌더 (multiDate 필드 제외, 배열은 $in으로 요소별 매칭)
       const buildBaseQuery = () => {
-        const q = { form: form._id, isActive: true };
+        const q = { form: form._id, ...submittedSheetRowFilter() };
         const mdId = multiDateDupField?._id?.toString();
         for (const df of dupFields) {
           const fieldId = df._id.toString();
@@ -442,6 +589,9 @@ export const create = async (req, res) => {
               });
             }
             claimedSlots.push(emptySlot);
+          }
+          if (promotingDraft && existing) {
+            await existing.deleteOne();
           }
           return res.status(200).send({ row: claimedSlots[0] });
         } else {
@@ -523,6 +673,10 @@ export const create = async (req, res) => {
           await emptySlot.save();
         }
 
+        if (promotingDraft && existing) {
+          await existing.deleteOne();
+        }
+
         return res.status(200).send({ row: emptySlot });
       } else {
         // === 자유 모드 (단일 값): atomic 카운터 ===
@@ -572,17 +726,30 @@ export const create = async (req, res) => {
 
     let row;
     try {
-      row = await AltSheetRow(req.user.academyId).create({
-        sheet: form.sheet,
-        form: form._id,
-        board: form.board,
-        _respondent: req.user._id,
-        _respondentId: req.user.userId,
-        _respondentName: req.user.userName,
-        data: rowData,
-        _submittedAt: now,
-        _updatedAt: now,
-      });
+      if (promotingDraft && existing) {
+        for (const [key, value] of Object.entries(rowData)) {
+          existing.data.set(key, value);
+        }
+        existing.isDraft = false;
+        existing._submittedAt = now;
+        existing._updatedAt = now;
+        existing.markModified("data");
+        await existing.save();
+        row = existing;
+      } else {
+        row = await AltSheetRow(req.user.academyId).create({
+          sheet: form.sheet,
+          form: form._id,
+          board: form.board,
+          _respondent: req.user._id,
+          _respondentId: req.user.userId,
+          _respondentName: req.user.userName,
+          data: rowData,
+          isDraft: false,
+          _submittedAt: now,
+          _updatedAt: now,
+        });
+      }
     } catch (createErr) {
       // Row 생성 실패 시 카운터 롤백
       if (claimedCounterKeys.length > 0) {
@@ -678,7 +845,7 @@ export const find = async (req, res) => {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
-    let query = { form: form._id, isActive: true };
+    let query = { form: form._id, ...submittedSheetRowFilter() };
 
     const approverOrForFields = (fieldIds) =>
       fieldIds.flatMap((fid) => [
@@ -812,12 +979,13 @@ export const findMy = async (req, res) => {
         _respondent: req.user._id,
         isActive: true,
       })
-      .sort({ _submittedAt: -1, createdAt: -1 })
       .lean();
+
+    const sorted = sortMyRowsForReview(rows);
 
     // 평가 모드: 확정 전 결과 마스킹 (본인 조회라도)
     if (form.settings?.assessmentMode && !canSeeFullAssessment) {
-      for (const row of rows) {
+      for (const row of sorted) {
         if (row.data?._assessment) {
           row.data._assessment = filterAssessmentForViewer(
             row.data._assessment,
@@ -827,7 +995,7 @@ export const findMy = async (req, res) => {
       }
     }
 
-    return res.status(200).send({ rows });
+    return res.status(200).send({ rows: sorted });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });
@@ -845,6 +1013,9 @@ export const update = async (req, res) => {
     const row = await AltSheetRow(req.user.academyId).findById(req.params._id);
     if (!row || !row.isActive) {
       return res.status(404).send({ message: __NOT_FOUND("row") });
+    }
+    if (isDraftSheetRow(row)) {
+      return res.status(400).send({ message: "저장본은 채점·승인할 수 없습니다." });
     }
 
     const board = await Board(req.user.academyId).findById(row.board);
@@ -1032,10 +1203,10 @@ export const remove = async (req, res) => {
 
     const form = await AltForm(req.user.academyId).findById(row.form);
 
-    if (!isAdmin && !(isOwner && form?.settings?.allowResubmit)) {
+    if (!isAdmin && !(isOwner && (form?.settings?.allowResubmit || canOwnerDeleteDraft(row, req.user._id)))) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
-    if (form) {
+    if (form && !isDraftSheetRow(row)) {
       const dupFields = getDuplicateCheckFields(form);
       const dupMode = dupFields[0]?.duplicateCheck?.mode;
       if (dupFields.length > 0 && dupMode === "free") {
@@ -1109,6 +1280,7 @@ export const createBulk = async (req, res) => {
       data: r.data || {},
       _submittedAt: now,
       _updatedAt: now,
+      isDraft: false,
     }));
 
     const rows = await AltSheetRow(req.user.academyId).insertMany(docs);
@@ -1189,7 +1361,11 @@ export const findSubmissionStatus = async (req, res) => {
 
     // 제출된 행 목록
     const submittedRows = await AltSheetRow(req.user.academyId)
-      .find({ form: form._id, isActive: true, _respondent: { $ne: null } })
+      .find({
+        form: form._id,
+        ...submittedSheetRowFilter(),
+        _respondent: { $ne: null },
+      })
       .select("_respondent _respondentId _respondentName _submittedAt")
       .lean();
 
@@ -1313,7 +1489,7 @@ export const findCount = async (req, res) => {
 
     const count = await AltSheetRow(req.user.academyId).countDocuments({
       form: req.query.form,
-      isActive: true,
+      ...submittedSheetRowFilter(),
       _respondent: { $ne: null },
     });
 
@@ -1346,7 +1522,7 @@ export const findAvailableCombinations = async (req, res) => {
     }
 
     // 필터 조건 구성
-    const query = { form: form._id, isActive: true };
+    const query = { form: form._id, ...submittedSheetRowFilter() };
     const filters = req.query.filters || {};
     for (const [fieldId, value] of Object.entries(filters)) {
       if (value !== undefined && value !== "") {
@@ -1475,6 +1651,7 @@ export const importCsv = async (req, res) => {
         data,
         _submittedAt: now,
         _updatedAt: now,
+        isDraft: false,
       };
     });
 
@@ -1525,7 +1702,7 @@ export const findPendingApprovals = async (req, res) => {
       const rows = await AltSheetRow(req.user.academyId)
         .find({
           form: form._id,
-          isActive: true,
+          ...submittedSheetRowFilter(),
           $or: orConds,
         })
         .sort({ _submittedAt: -1 })
@@ -1559,7 +1736,7 @@ export const findPendingApprovals = async (req, res) => {
       const myRows = await AltSheetRow(req.user.academyId)
         .find({
           form: form._id,
-          isActive: true,
+          ...submittedSheetRowFilter(),
           _respondent: req.user._id,
         })
         .sort({ _submittedAt: -1 })
@@ -1676,6 +1853,10 @@ export const findById = async (req, res) => {
     const isOwner =
       row._respondent && String(row._respondent) === String(req.user._id);
 
+    if (isDraftSheetRow(row) && !isOwner) {
+      return res.status(404).send({ message: __NOT_FOUND("row") });
+    }
+
     const approvalFields = (form.fields || []).filter((f) => f.type === "approval");
     const isApprover = approvalFields.some((f) =>
       isCurrentApprover(row.data?.[f._id.toString()], req.user.userId, f)
@@ -1732,6 +1913,9 @@ export const updateAssessment = async (req, res) => {
     const row = await AltSheetRow(req.user.academyId).findById(req.params._id);
     if (!row || !row.isActive) {
       return res.status(404).send({ message: __NOT_FOUND("row") });
+    }
+    if (isDraftSheetRow(row)) {
+      return res.status(400).send({ message: "저장본은 채점할 수 없습니다." });
     }
 
     const form = await AltForm(req.user.academyId).findById(row.form);
