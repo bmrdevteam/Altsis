@@ -44,7 +44,7 @@ import useAPIv2 from "hooks/useAPIv2";
 import { TSeasonWithRegistrations } from "types/seasons";
 import Progress from "components/progress/Progress";
 import Callout from "components/callout/Callout";
-import { MESSAGE } from "hooks/_message";
+import { messageFromError } from "hooks/_message";
 
 type Props = {
   setPopupActive: React.Dispatch<React.SetStateAction<boolean>>;
@@ -133,7 +133,7 @@ function Basic(props: Props) {
       } catch (err: any) {
         failedUserList.push({
           ...selectedUsers.current[i],
-          message: MESSAGE.get(err) ?? "알 수 없는 에러가 발생했습니다.",
+          message: messageFromError(err),
         });
       } finally {
         setRatio((i + 1) / selectedUsers.current.length);
@@ -320,11 +320,13 @@ function Basic(props: Props) {
             {failedUserList.length > 0 && (
               <Callout
                 type="error"
-                style={{ whiteSpace: "pre" }}
-                title={"저장되지 않은 항목이 있습니다."}
-                description={failedUserList
-                  .map(({ userId, message }) => `${userId}: ${message}`)
-                  .join("\n")}
+                showIcon
+                title={`저장되지 않은 항목이 ${failedUserList.length}건 있습니다.`}
+                items={failedUserList.map((user) => ({
+                  key: user._id,
+                  label: user.userId,
+                  message: user.message,
+                }))}
               />
             )}
             {ratio === 1 && (

@@ -6,6 +6,45 @@ export type TAiUsageLimits = {
   monthlyUserTokens?: number;
 };
 
+export type TAcademyPlans = {
+  alt: {
+    enabled: boolean;
+    seasonSeatLimit: number | null;
+    unitPrice: number;
+  };
+  shift: {
+    enabled: boolean;
+    storageLimitBytes: number | null;
+    usedBytes: number;
+    usageSyncedAt?: string | null;
+    unitPrice: number;
+  };
+  ctrl: {
+    enabled: boolean;
+    tokenLimit: number | null;
+    usedTokens: number;
+    usageMonth?: string;
+    unitPrice: number;
+  };
+};
+
+export type TAcademyPlanUsage = {
+  seats: number;
+  storageBytes: number;
+  storageCategories: Array<{
+    name: string;
+    totalBytes: number;
+    count: number;
+  }>;
+  tokens: number;
+};
+
+export type TAcademyPlanPrice = {
+  alt: number;
+  shift: number;
+  ctrl: number;
+};
+
 export type TAcademy = {
   _id: string;
   academyId: string;
@@ -22,4 +61,5 @@ export type TAcademy = {
   sitePublished?: boolean;
   aiProvider?: "openai" | "anthropic" | "gemini";
   aiUsageLimits?: TAiUsageLimits;
+  plans?: TAcademyPlans;
 };

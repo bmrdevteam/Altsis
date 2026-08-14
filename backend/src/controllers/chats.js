@@ -19,6 +19,7 @@ import {
 import { getIoChat } from "../utils/webSocket.js";
 import { chatMulter, isImageFile } from "../_s3/chatMulter.js";
 import { signUrl, signUrlForView } from "../_s3/fileBucket.js";
+import { tryCommitUpload } from "../services/academyStorage.js";
 import { sendChatWebPushes } from "../services/webPush.js";
 import {
   FIELD_REQUIRED,
@@ -1348,6 +1349,12 @@ export const uploadChatFile = async (req, res) => {
 
       if (!req.file) {
         return res.status(400).send({ message: FIELD_REQUIRED("file") });
+      }
+
+      if (
+        !(await tryCommitUpload(res, req.user.academyId, req.file))
+      ) {
+        return;
       }
 
       try {

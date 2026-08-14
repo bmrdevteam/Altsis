@@ -1,6 +1,6 @@
 import express from "express";
 const router = express.Router();
-import { isLoggedIn, isOwner, isAdManager } from "../middleware/auth.js";
+import { isLoggedIn, isOwAdmin, isAdManager } from "../middleware/auth.js";
 import * as ai from "../controllers/ai.js";
 
 //=================================
@@ -57,9 +57,9 @@ router.post(
 );
 
 // Test API key (owner only)
-router.post("/test", isOwner, ai.testApiKey);
+router.post("/test", isOwAdmin, ai.testApiKey);
 
-// List available models (owner only)
-router.post("/models", isOwner, ai.listModels);
+// List available models (owner | admin)
+router.post("/models", isOwAdmin, ai.listModels);
 
 export { router };

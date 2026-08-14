@@ -44,6 +44,22 @@ import {
   pickPreferredModel,
 } from "../services/aiProvider.js";
 import { TOKENS_PER_ALT } from "../services/aiUsageQuota.js";
+import {
+  countActiveSeats,
+  listActiveSeasonWarnings,
+  normalizePlans,
+  parsePlanPatch,
+  persistCtrlUsageMonth,
+  priceOf,
+  suggestedLimits,
+  writePlansToAcademy,
+} from "../services/entitlement.js";
+import { refreshAcademyStorageUsage } from "../services/academyStorage.js";
+
+const canManageAcademyKeys = (req, academyId) => {
+  if (req.user?.auth === "owner") return true;
+  return req.user?.auth === "admin" && req.user.academyId === academyId;
+};
 
 /**
  * @memberof APIs.AcademyAPI
@@ -569,6 +585,10 @@ export const updateAiEnabled = async (req, res) => {
     } else {
       academy.aiEnabled = !academy.aiEnabled;
     }
+    const plans = normalizePlans(academy);
+    plans.ctrl.enabled = !!academy.aiEnabled;
+    writePlansToAcademy(academy, plans);
+    academy.aiEnabled = plans.ctrl.enabled;
     await academy.save();
 
     return res.status(200).send({ academy });
@@ -595,7 +615,8 @@ export const updateAiEnabled = async (req, res) => {
  * @param {Object} req.user - "owner"
  *
  * @param {Object} req.body
- * @param {string} req.body.apiKey
+ * @param {string} [req.body.apiKey] - 새 키. 빈 문자열이면 삭제
+ * @param {boolean} [req.body.clear] - true면 저장된 키를 $unset
  * @param {string} [req.body.aiModel]
  * @param {string} [req.body.aiProvider] - openai | anthropic | gemini(테스트용)
  *
@@ -651,6 +672,10 @@ const syncModelsForAcademy = async (academy, apiKey) => {
 
 export const updateAiApiKey = async (req, res) => {
   try {
+    if (!canManageAcademyKeys(req, req.params.academyId)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
     /* find document */
     const academy = await Academy.findOne({
       academyId: req.params.academyId,
@@ -659,7 +684,30 @@ export const updateAiApiKey = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("academy") });
 
     /* set apiKey, model and provider */
-    academy.aiApiKey = req.body.apiKey;
+    const clearKey = req.body.clear === true || req.body.apiKey === "";
+    if (clearKey) {
+      await Academy.updateOne(
+        { academyId: req.params.academyId },
+        { $unset: { aiApiKey: 1 } }
+      );
+      return res.status(200).send({
+        success: true,
+        hasApiKey: false,
+        apiKeyHint: null,
+        aiProvider: resolveProvider(academy.aiProvider),
+        aiModel:
+          academy.aiModel ||
+          resolveModel(resolveProvider(academy.aiProvider)),
+        models: [],
+        modelAdjusted: false,
+      });
+    }
+
+    if (typeof req.body.apiKey !== "string" || !req.body.apiKey.trim()) {
+      return res.status(400).send({ message: FIELD_REQUIRED("apiKey") });
+    }
+
+    academy.aiApiKey = req.body.apiKey.trim();
     if (req.body.aiModel) {
       academy.aiModel = req.body.aiModel;
     }
@@ -670,7 +718,7 @@ export const updateAiApiKey = async (req, res) => {
 
     const { models, aiModel, modelAdjusted } = await syncModelsForAcademy(
       academy,
-      req.body.apiKey
+      academy.aiApiKey
     );
 
     return res.status(200).send({
@@ -715,6 +763,10 @@ export const updateAiApiKey = async (req, res) => {
  */
 export const updateAiModel = async (req, res) => {
   try {
+    if (!canManageAcademyKeys(req, req.params.academyId)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
     const academy = await Academy.findOne({
       academyId: req.params.academyId,
     });
@@ -794,8 +846,131 @@ export const updateAiUsageLimits = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.AcademyAPI
+ * @function RAcademyPlans API
+ * @auth owner | admin (admin는 본인 아카데미만)
+ */
+export const getPlans = async (req, res) => {
+  try {
+    if (
+      req.user.auth === "admin" &&
+      req.user.academyId !== req.params.academyId
+    ) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    const academy = await Academy.findOne({
+      academyId: req.params.academyId,
+    });
+    if (!academy)
+      return res.status(404).send({ message: __NOT_FOUND("academy") });
+
+    await persistCtrlUsageMonth(academy);
+
+    let storageCategories = [];
+    try {
+      const refreshed = await refreshAcademyStorageUsage(academy);
+      storageCategories = refreshed.categories;
+    } catch (err) {
+      logger.warn(`plans storage refresh failed: ${err.message}`);
+    }
+
+    const plans = normalizePlans(academy);
+    const seats = await countActiveSeats(academy.academyId);
+    const seasonWarnings = await listActiveSeasonWarnings(academy.academyId);
+
+    return res.status(200).send({
+      plans,
+      usage: {
+        seats,
+        storageBytes: plans.shift.usedBytes,
+        storageCategories,
+        tokens: plans.ctrl.usedTokens,
+      },
+      price: priceOf(plans),
+      suggested: suggestedLimits({
+        seats,
+        bytes: plans.shift.usedBytes,
+        tokens: plans.ctrl.usedTokens,
+      }),
+      seasonWarnings,
+      academy: {
+        academyId: academy.academyId,
+        academyName: academy.academyName,
+        chatEnabled: academy.chatEnabled,
+        boardEnabled: academy.boardEnabled,
+        aiEnabled: academy.aiEnabled,
+        sitePublishEnabled: academy.sitePublishEnabled,
+        plans,
+      },
+    });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.AcademyAPI
+ * @function UAcademyPlans API
+ * @auth owner
+ */
+export const updatePlans = async (req, res) => {
+  try {
+    const academy = await Academy.findOne({
+      academyId: req.params.academyId,
+    });
+    if (!academy)
+      return res.status(404).send({ message: __NOT_FOUND("academy") });
+
+    const current = normalizePlans(academy);
+    const patch = parsePlanPatch(req.body);
+    const next = {
+      alt: { ...current.alt, ...(patch.alt || {}) },
+      shift: { ...current.shift, ...(patch.shift || {}) },
+      ctrl: { ...current.ctrl, ...(patch.ctrl || {}) },
+    };
+    if (patch.ctrl?.resetUsage) {
+      next.ctrl.usedTokens = 0;
+    }
+    delete next.ctrl.resetUsage;
+
+    if (
+      patch.shift &&
+      ("storageLimitBytes" in patch.shift || "enabled" in patch.shift)
+    ) {
+      try {
+        const { totalBytes } = await refreshAcademyStorageUsage(academy);
+        next.shift.usedBytes = totalBytes;
+        next.shift.usageSyncedAt =
+          academy.plans?.shift?.usageSyncedAt || new Date();
+      } catch (err) {
+        logger.warn(`plans storage refresh on update failed: ${err.message}`);
+      }
+    }
+
+    writePlansToAcademy(academy, next);
+    await academy.save();
+
+    const plans = normalizePlans(academy);
+    return res.status(200).send({
+      academy,
+      plans,
+      price: priceOf(plans),
+    });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
 export const checkAiApiKey = async (req, res) => {
   try {
+    if (!canManageAcademyKeys(req, req.params.academyId)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
     /* find document with apiKey */
     const academy = await Academy.findOne(
       { academyId: req.params.academyId },

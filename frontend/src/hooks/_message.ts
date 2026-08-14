@@ -61,6 +61,20 @@ export const MESSAGE = new Map<string, string>([
   ["BOARD_REQUIRED", "보드를 선택해주세요."],
   ["TITLE_IN_USE", "제목이 중복됩니다."],
   ["CHAT_NOT_ENABLED", "이 아카데미에서 채팅 기능이 비활성화되어 있습니다."],
+  ["PLAN_SHIFT_REQUIRED", "SHIFT 플랜이 꺼져 있어 이 기능을 사용할 수 없습니다."],
+  ["PLAN_CTRL_REQUIRED", "CTRL 플랜이 꺼져 있어 AI를 사용할 수 없습니다."],
+  [
+    "SEASON_SEAT_LIMIT",
+    "활성 학기 등록 인원이 ALT 좌석 한도에 도달했습니다. 소유자에게 한도 상향을 요청하세요.",
+  ],
+  [
+    "STORAGE_LIMIT",
+    "아카데미 파일 보관량이 SHIFT 한도에 도달했습니다. 파일을 정리하거나 한도를 늘려 주세요.",
+  ],
+  [
+    "ACADEMY_TOKEN_LIMIT",
+    "아카데미 이번 달 AI 토큰 한도에 도달했습니다. 소유자에게 한도 상향을 요청하세요.",
+  ],
   ["ROOM_NOT_FOUND", "채팅방을 찾을 수 없습니다."],
   ["AI_NOT_ENABLED", "AI 기능이 활성화되지 않았습니다."],
   ["AI_NOT_ENABLED_FOR_SEASON", "이 학기에서 AI 기능이 활성화되지 않았습니다."],
@@ -87,3 +101,21 @@ export const MESSAGE = new Map<string, string>([
     "오늘 AI 사용량(Alt) 한도를 초과했습니다. 관리자에게 문의해 주세요.",
   ],
 ]);
+
+const UNKNOWN_MESSAGE = MESSAGE.get("UNKNOWN") ?? "알 수 없는 에러가 발생했습니다.";
+
+function errorCodeFrom(err: unknown): string | undefined {
+  if (typeof err === "string" && err) return err;
+  if (!err || typeof err !== "object") return undefined;
+  const fromBody = (err as { response?: { data?: { message?: unknown } } })
+    .response?.data?.message;
+  if (typeof fromBody === "string" && fromBody) return fromBody;
+  return undefined;
+}
+
+/** API 에러 코드(또는 axios 응답)를 사용자용 한글로 바꾼다. */
+export function messageFromError(err: unknown): string {
+  const code = errorCodeFrom(err);
+  if (!code) return UNKNOWN_MESSAGE;
+  return MESSAGE.get(code) ?? UNKNOWN_MESSAGE;
+}

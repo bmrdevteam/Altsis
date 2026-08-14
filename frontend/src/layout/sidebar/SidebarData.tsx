@@ -208,6 +208,12 @@ export const SidebarData = (auth: string, role?: string): any => {
           icon: <Svg type="user" />,
         },
         {
+          title: "plans",
+          name: "플랜",
+          path: "/admin/plans",
+          icon: <Svg type="analyze" />,
+        },
+        {
           title: "backup",
           name: "백업 및 복구",
           path: "/admin/backup",

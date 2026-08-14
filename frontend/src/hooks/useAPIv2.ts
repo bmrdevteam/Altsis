@@ -9,7 +9,7 @@
 import useDatabase from "hooks/useDatabase";
 
 import { MESSAGE } from "./_message";
-import { TAcademy } from "types/academies";
+import { TAcademy, TAcademyPlans, TAcademyPlanPrice, TAcademyPlanUsage } from "types/academies";
 import { TUser } from "types/users";
 import _ from "lodash";
 import { TCurrentUser } from "types/auth";
@@ -496,16 +496,17 @@ export default function useAPIv2() {
 
   /**
    * UAcademyAiApiKey API
-   * @description 아카데미 AI API 키 설정 API
+   * @description 아카데미 AI API 키 설정·삭제 API (`clear: true`면 저장된 키 제거)
    * @version 1.0.0
-   * @auth owner
+   * @auth owner|admin
    */
   async function UAcademyAiApiKey(props: {
     params: {
       academyId: string;
     };
     data: {
-      apiKey: string;
+      apiKey?: string;
+      clear?: boolean;
       aiModel?: string;
       aiProvider?: string;
     };
@@ -529,7 +530,7 @@ export default function useAPIv2() {
    * RAcademyAiApiKey API
    * @description 아카데미 AI API 키 존재 여부 확인 API
    * @version 1.0.0
-   * @auth owner
+   * @auth owner|admin
    */
   async function RAcademyAiApiKey(props: {
     params: {
@@ -560,7 +561,7 @@ export default function useAPIv2() {
    * UAcademyAiModel API
    * @description 아카데미 AI 모델 설정 API
    * @version 1.0.0
-   * @auth owner
+   * @auth owner|admin
    */
   async function UAcademyAiModel(props: {
     params: {
@@ -596,6 +597,69 @@ export default function useAPIv2() {
       data: props.data,
     });
     return { academy: academy as TAcademy };
+  }
+
+  /**
+   * RAcademyPlans API
+   * @auth owner|admin
+   */
+  async function RAcademyPlans(props: { params: { academyId: string } }) {
+    const result = await database.R({
+      location: `academies/${props.params.academyId}/plans`,
+    });
+    return {
+      plans: result.plans as TAcademyPlans,
+      usage: result.usage as TAcademyPlanUsage,
+      price: result.price as TAcademyPlanPrice,
+      suggested: result.suggested as {
+        seasonSeatLimit: number;
+        storageLimitBytes: number;
+        tokenLimit: number;
+      },
+      seasonWarnings: (result.seasonWarnings || []) as Array<{
+        school: string;
+        schoolId: string;
+        schoolName: string;
+        seasons: Array<{ _id: string; year?: string; term?: string }>;
+      }>,
+      academy: result.academy as TAcademy,
+    };
+  }
+
+  /**
+   * UAcademyPlans API
+   * @auth owner
+   */
+  async function UAcademyPlans(props: {
+    params: { academyId: string };
+    data: {
+      alt?: {
+        enabled?: boolean;
+        seasonSeatLimit?: number | null;
+        unitPrice?: number;
+      };
+      shift?: {
+        enabled?: boolean;
+        storageLimitBytes?: number | null;
+        unitPrice?: number;
+      };
+      ctrl?: {
+        enabled?: boolean;
+        tokenLimit?: number | null;
+        unitPrice?: number;
+        resetUsage?: boolean;
+      };
+    };
+  }) {
+    const { academy, plans, price } = await database.U({
+      location: `academies/${props.params.academyId}/plans`,
+      data: props.data,
+    });
+    return {
+      academy: academy as TAcademy,
+      plans: plans as TAcademyPlans,
+      price: price as TAcademyPlanPrice,
+    };
   }
 
   /**
@@ -4820,10 +4884,7 @@ export default function useAPIv2() {
   }
 
   /**
-   * TestAiApiKey API
-   * @description AI API 키 테스트
-   * @version 1.0.0
-   * @auth owner
+   * @auth owner|admin
    */
   async function TestAiApiKey(props: {
     data: {
@@ -4848,7 +4909,7 @@ export default function useAPIv2() {
    * ListAiModels API
    * @description 사용 가능한 AI 모델 목록 조회
    * @version 1.0.0
-   * @auth owner
+   * @auth owner|admin
    */
   async function ListAiModels(props: {
     data: {
@@ -5437,6 +5498,8 @@ export default function useAPIv2() {
       RAcademyAiApiKey,
       UAcademyAiModel,
       UAcademyAiUsageLimits,
+      RAcademyPlans,
+      UAcademyPlans,
       UActivateAcademy,
       UInactivateAcademy,
       CAcademyBackup,

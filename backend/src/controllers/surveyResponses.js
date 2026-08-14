@@ -11,6 +11,7 @@ import {
 } from "../services/boards.js";
 import { signUrl, signUrlForView } from "../_s3/fileBucket.js";
 import { surveyMulter } from "../_s3/surveyMulter.js";
+import { tryCommitUpload } from "../services/academyStorage.js";
 import {
   FIELD_REQUIRED,
   PERMISSION_DENIED,
@@ -456,6 +457,11 @@ export const uploadFile = async (req, res) => {
     }
 
     try {
+      if (
+        !(await tryCommitUpload(res, req.user.academyId, req.file))
+      ) {
+        return;
+      }
       return res.status(200).send({
         fileName: req.file.originalname,
         fileSize: req.file.size,

@@ -1,4 +1,5 @@
 import { Academy } from "../models/index.js";
+import { assertShiftEnabled, sendPlanError } from "../services/entitlement.js";
 
 /**
  * Middleware to check if chat is enabled for the user's academy
@@ -17,6 +18,13 @@ export const isChatEnabled = async (req, res, next) => {
 
     if (!academy.chatEnabled) {
       return res.status(403).send({ message: "CHAT_NOT_ENABLED" });
+    }
+
+    try {
+      assertShiftEnabled(academy);
+    } catch (err) {
+      if (sendPlanError(res, err)) return;
+      throw err;
     }
 
     next();

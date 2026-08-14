@@ -10,6 +10,7 @@ import {
   LIMIT_FILE_SIZE,
   INVALID_FILE_TYPE,
   PERMISSION_DENIED,
+  PLAN_SHIFT_REQUIRED,
   __NOT_FOUND,
 } from "../messages/index.js";
 import { siteMulter, siteZipMulter } from "../_s3/siteMulter.js";
@@ -30,6 +31,12 @@ import {
   MAX_TOTAL_BYTES,
   MAX_FILE_BYTES,
 } from "../services/siteFiles.js";
+import { fileBucket } from "../_s3/fileBucket.js";
+import { normalizePlans, sendPlanError } from "../services/entitlement.js";
+import {
+  tryCommitUpload,
+  assertAndIncrementStorage,
+} from "../services/academyStorage.js";
 
 function canManageAcademy(req, academyId) {
   if (!req.user) return false;
@@ -54,6 +61,10 @@ async function requireEnabledAcademy(req, res) {
   }
   if (!academy.sitePublishEnabled) {
     res.status(403).send({ message: PERMISSION_DENIED });
+    return null;
+  }
+  if (!normalizePlans(academy).shift.enabled) {
+    res.status(403).send({ message: PLAN_SHIFT_REQUIRED });
     return null;
   }
   return academy;
@@ -181,18 +192,19 @@ export const uploadFile = async (req, res) => {
       }
 
       const size = req.file.size || 0;
-      // Object already in S3; validate resulting usage (do not add deltas again)
+      const plans = normalizePlans(academy);
       try {
-        await assertWithinQuota(academy.academyId, {
-          addFiles: 0,
-          addBytes: 0,
-        });
+        if (plans.shift.storageLimitBytes == null) {
+          await assertWithinQuota(academy.academyId, {
+            addFiles: 0,
+            addBytes: 0,
+          });
+        }
       } catch (quotaErr) {
         if (
           quotaErr.code === "SITE_FILE_LIMIT" ||
           quotaErr.code === "SITE_SIZE_LIMIT"
         ) {
-          // Roll back the written key so 409 matches storage state
           try {
             await deleteSitePath(academy.academyId, req.tmp.relativePath);
           } catch (cleanupErr) {
@@ -201,6 +213,17 @@ export const uploadFile = async (req, res) => {
           return res.status(409).send({ message: quotaErr.code });
         }
         throw quotaErr;
+      }
+
+      if (
+        !(await tryCommitUpload(res, academy.academyId, {
+          ...req.file,
+          bucket: req.file.bucket || fileBucket,
+          key: req.file.key || req.tmp.key,
+          size,
+        }))
+      ) {
+        return;
       }
 
       return res.status(200).send({
@@ -284,10 +307,15 @@ export const putContent = async (req, res) => {
       if (e.code === "NoSuchKey") exists = false;
       else throw e;
     }
-    await assertWithinQuota(academy.academyId, {
-      addFiles: exists ? 0 : 1,
-      addBytes: Math.max(0, body.length - previousSize),
-    });
+    const delta = Math.max(0, body.length - previousSize);
+    const plans = normalizePlans(academy);
+    if (plans.shift.storageLimitBytes == null) {
+      await assertWithinQuota(academy.academyId, {
+        addFiles: exists ? 0 : 1,
+        addBytes: delta,
+      });
+    }
+    await assertAndIncrementStorage(academy.academyId, delta);
 
     await putSiteObject(
       academy.academyId,
@@ -297,6 +325,7 @@ export const putContent = async (req, res) => {
     );
     return res.status(200).send({ path });
   } catch (err) {
+    if (sendPlanError(res, err)) return;
     if (err.code === "INVALID_PATH") {
       return res.status(400).send({ message: FIELD_INVALID("path") });
     }
@@ -423,7 +452,11 @@ export const importZip = async (req, res) => {
           return res.status(409).send({ message: LIMIT_FILE_SIZE });
         }
         totalBytes += data.length;
-        if (totalBytes > MAX_TOTAL_BYTES) {
+        const plans = normalizePlans(academy);
+        if (
+          plans.shift.storageLimitBytes == null &&
+          totalBytes > MAX_TOTAL_BYTES
+        ) {
           return res.status(409).send({
             message: "용량 한도를 초과합니다.",
           });
@@ -435,10 +468,14 @@ export const importZip = async (req, res) => {
         return res.status(400).send({ message: FIELD_INVALID("file") });
       }
 
-      await assertWithinQuota(academy.academyId, {
-        addFiles: toUpload.length,
-        addBytes: totalBytes,
-      });
+      const plans = normalizePlans(academy);
+      if (plans.shift.storageLimitBytes == null) {
+        await assertWithinQuota(academy.academyId, {
+          addFiles: toUpload.length,
+          addBytes: totalBytes,
+        });
+      }
+      await assertAndIncrementStorage(academy.academyId, totalBytes);
 
       for (const item of toUpload) {
         await putSiteObject(
@@ -454,6 +491,7 @@ export const importZip = async (req, res) => {
         paths: toUpload.map((i) => i.path),
       });
     } catch (e) {
+      if (sendPlanError(res, e)) return;
       if (e.code === "SITE_FILE_LIMIT" || e.code === "SITE_SIZE_LIMIT") {
         return res.status(409).send({ message: e.code });
       }

@@ -54,9 +54,13 @@ describe("aiUsageQuota", () => {
       assertAiUserQuota(
         "acad",
         { _id: "507f1f77bcf86cd799439011" },
-        { aiUsageLimits: { enabled: true, dailyUserAlts: 0 } }
+        {
+          plans: {
+            ctrl: { enabled: true, tokenLimit: 10, usedTokens: 10 },
+          },
+        }
       )
-    ).resolves.toBeUndefined();
+    ).rejects.toMatchObject({ code: "ACADEMY_TOKEN_LIMIT", status: 403 });
   });
 
   test("USAGE_LIMIT_EXCEEDED error code is defined", () => {
