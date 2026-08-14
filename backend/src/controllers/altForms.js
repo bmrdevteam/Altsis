@@ -10,6 +10,10 @@ import { canManageForm, canModifyForm, getAltBoardRole, hasSubmittedForList, res
 import { cloneAltFormToBoard } from "../services/altFormClone.js";
 import { isBoardNotificationEnabled } from "../services/notifications.js";
 import { getUserRoleInSeason, isSeasonScopedBoard } from "../services/boards.js";
+import {
+  submittedSheetRowFilter,
+  splitSheetRows,
+} from "../utils/sheetRowQuery.js";
 import { isFormFileKey } from "../_s3/formMulter.js";
 import {
   FIELD_REQUIRED,
@@ -110,7 +114,7 @@ const enrichFormsWithListMeta = async (
           {
             $match: {
               form: { $in: formIds },
-              isActive: true,
+              ...submittedSheetRowFilter(),
               _respondent: { $ne: null },
             },
           },
@@ -153,7 +157,7 @@ const enrichFormsWithListMeta = async (
       const unreadAgg = await AltSheetRow(academyId).aggregate([
         {
           $match: {
-            isActive: true,
+            ...submittedSheetRowFilter(),
             _respondent: { $ne: null, $ne: userId },
             $or: orClauses,
           },
@@ -177,17 +181,19 @@ const enrichFormsWithListMeta = async (
     const plain = typeof form.toObject === "function" ? form.toObject() : form;
     const id = plain._id.toString();
     const mine = myRowsByForm.get(id) || [];
+    const { draftRows, submittedRows } = splitSheetRows(mine);
     const now = new Date();
     const effectiveClose = getEffectiveTodoCloseAt(plain, now);
     const meta = {
       ...plain,
-      mySubmitted: hasSubmittedForList(plain, mine),
-      myResponseCount: mine.length,
+      mySubmitted: hasSubmittedForList(plain, submittedRows),
+      myResponseCount: submittedRows.length,
+      myDraftCount: draftRows.length,
       inOccurrenceWindow: isWeekdayScheduleEnabled(plain)
         ? isInOccurrenceWindow(plain, now)
         : undefined,
       submittedCurrentOccurrence: isWeekdayScheduleEnabled(plain)
-        ? hasSubmittedCurrentOccurrence(plain, mine, now)
+        ? hasSubmittedCurrentOccurrence(plain, submittedRows, now)
         : undefined,
       occurrenceCloseAt: effectiveClose
         ? effectiveClose instanceof Date
@@ -417,7 +423,7 @@ export const find = async (req, res) => {
         if (approvalFieldIds.length === 0) {
           return res.status(403).send({ message: PERMISSION_DENIED });
         }
-        const approverQuery = { form: form._id, isActive: true };
+        const approverQuery = { form: form._id, ...submittedSheetRowFilter() };
         approverQuery.$or = approvalFieldIds.map((fid) => ({
           [`data.${fid}.approver.userId`]: req.user.userId,
         }));
@@ -478,7 +484,7 @@ export const find = async (req, res) => {
           .filter((f) => f.type === "approval")
           .map((f) => f._id.toString());
         if (approvalFieldIds.length === 0) continue;
-        const approverQuery = { form: form._id, isActive: true };
+        const approverQuery = { form: form._id, ...submittedSheetRowFilter() };
         approverQuery.$or = approvalFieldIds.map((fid) => ({
           [`data.${fid}.approver.userId`]: req.user.userId,
         }));

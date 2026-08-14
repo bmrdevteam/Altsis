@@ -119,6 +119,23 @@ describe("weekdaySchedule helpers", () => {
     ).toBe(false);
   });
 
+  test("hasSubmittedCurrentOccurrence ignores isDraft rows even with createdAt in window", () => {
+    const now = zonedLocalToUtc(2026, 3, 11, 12, 0);
+    const form = formWith();
+    expect(
+      hasSubmittedCurrentOccurrence(
+        form,
+        [
+          {
+            isDraft: true,
+            createdAt: zonedLocalToUtc(2026, 3, 11, 10, 30),
+          },
+        ],
+        now
+      )
+    ).toBe(false);
+  });
+
   test("shouldShowUnsubmittedTodo only inside window when not yet submitted", () => {
     const form = formWith();
     const deps = { isFormRequiredMode, hasSubmittedForList };

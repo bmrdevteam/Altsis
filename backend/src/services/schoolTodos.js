@@ -10,6 +10,7 @@ import {
   canBypassSeasonRegistration,
 } from "./boards.js";
 import { canViewAllRows } from "./altForms.js";
+import { submittedSheetRowFilter } from "../utils/sheetRowQuery.js";
 import {
   assembleSchoolTodos,
   sortSchoolTodos,
@@ -114,7 +115,7 @@ export const loadAccessibleAltBoardFormsContext = async (
     .find({
       form: { $in: formIds },
       _respondent: user._id,
-      isActive: true,
+      ...submittedSheetRowFilter(),
     })
     .select(
       "form createdAt data _submittedAt _respondentName _respondentId"
@@ -175,7 +176,7 @@ export const getSchoolTodosForUser = async (
   if (orConds.length > 0) {
     approverRows = await AltSheetRow(academyId)
       .find({
-        isActive: true,
+        ...submittedSheetRowFilter(),
         $or: orConds,
       })
       .sort({ _submittedAt: -1 })
@@ -206,7 +207,7 @@ export const getSchoolTodosForUser = async (
     pendingGradeRows = await AltSheetRow(academyId)
       .find({
         form: { $in: gradeFormIds },
-        isActive: true,
+        ...submittedSheetRowFilter(),
         _respondent: { $exists: true, $ne: null },
         _submittedAt: { $exists: true, $ne: null },
         "data._assessment.final.status": { $ne: "finalized" },

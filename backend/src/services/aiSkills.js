@@ -4842,6 +4842,11 @@ export const executeAssessmentGradeSkill = async ({
     err.code = __NOT_FOUND("row");
     throw err;
   }
+  if (row.isDraft) {
+    const err = new Error("저장본은 채점할 수 없습니다.");
+    err.status = 400;
+    throw err;
+  }
   if (String(row.form) !== String(form._id)) {
     const err = new Error(PERMISSION_DENIED);
     err.status = 403;

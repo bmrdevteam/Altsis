@@ -153,6 +153,12 @@ export const getActivityBadgeLabel = (form: TAltForm): string => {
     case "scheduled":
       return "예정";
     case "submitted":
+      if (form.settings?.allowMultipleResponses) {
+        const mine = form.myResponseCount ?? 0;
+        const target = getRequiredResponseCount(form);
+        if (target != null) return `제출 ${mine}/${target}`;
+        return `제출 ${mine}`;
+      }
       return "제출완료";
     case "openOptional":
       return "선택";

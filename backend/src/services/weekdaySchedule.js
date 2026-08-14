@@ -221,6 +221,7 @@ export const hasSubmittedCurrentOccurrence = (
   const start = win.windowStart.getTime();
   const end = win.windowEnd.getTime();
   return myRows.some((row) => {
+    if (row?.isDraft) return false;
     const at = rowSubmittedAt(row);
     if (!at) return false;
     const t = at.getTime();

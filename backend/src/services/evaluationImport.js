@@ -4,6 +4,7 @@ import {
   Enrollment,
 } from "../models/index.js";
 import { isEmptyValue } from "../utils/isEmptyValue.js";
+import { submittedSheetRowFilter } from "../utils/sheetRowQuery.js";
 
 /** 평가로 가져올 수 있는 활동 양식 필드 타입 */
 export const IMPORTABLE_FIELD_TYPES = new Set([
@@ -156,7 +157,7 @@ export const importEvaluationFromBoardForm = async (
   const rows = await AltSheetRow(academyId)
     .find({
       form: form._id,
-      isActive: true,
+      ...submittedSheetRowFilter(),
       _respondent: { $ne: null },
     })
     .sort({ _submittedAt: -1, createdAt: -1 })

@@ -253,8 +253,10 @@ export type TAltForm = {
   unreadResponseCount?: number;
   /** 목록 API 메타: 제출완료 여부 (필수+복수면 목표 횟수 달성 시) */
   mySubmitted?: boolean;
-  /** 목록 API 메타: 내 제출 건수 */
+  /** 목록 API 메타: 내 제출 건수 (초안 제외) */
   myResponseCount?: number;
+  /** 목록 API 메타: 내 미제출 저장 건수 */
+  myDraftCount?: number;
   /** 목록 API 메타: 요일마다 — 현재 회차 창 안 */
   inOccurrenceWindow?: boolean;
   /** 목록 API 메타: 요일마다 — 현재 회차 이미 제출 */
