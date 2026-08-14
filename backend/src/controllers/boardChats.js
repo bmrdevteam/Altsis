@@ -35,6 +35,7 @@ import { getIoChat } from "../utils/webSocket.js";
 import { sendChatWebPushes } from "../services/webPush.js";
 import { chatMulter, isImageFile } from "../_s3/chatMulter.js";
 import { signUrlForView } from "../_s3/fileBucket.js";
+import { tryCommitUpload } from "../services/academyStorage.js";
 import {
   FIELD_REQUIRED,
   PERMISSION_DENIED,
@@ -847,6 +848,10 @@ const uploadFileToRoom = (req, res, room) => {
 
     if (!req.file) {
       return res.status(400).send({ message: FIELD_REQUIRED("file") });
+    }
+
+    if (!(await tryCommitUpload(res, req.user.academyId, req.file))) {
+      return;
     }
 
     const file = req.file;

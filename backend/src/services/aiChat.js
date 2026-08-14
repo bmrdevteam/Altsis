@@ -14,6 +14,7 @@ import { FEATURE_PROFILES, AI_ERRORS } from "./aiPromptPolicy.js";
 import { maskSensitiveText } from "./aiSafety.js";
 import { logAIUsage } from "./aiUsage.js";
 import { assertAiUserQuota } from "./aiUsageQuota.js";
+import { assertCtrlEnabled } from "./entitlement.js";
 import { buildBoardAlterSystemPrompt } from "./alterCorePrompt.js";
 
 /**
@@ -66,6 +67,8 @@ export const callAI = async (academyId, systemInstruction, messages, user) => {
   if (!academy || !academy.aiEnabled || !academy.aiApiKey) {
     throw new Error(AI_ERRORS.NOT_AVAILABLE);
   }
+
+  assertCtrlEnabled(academy);
 
   await assertAiUserQuota(academyId, user, academy);
 
@@ -150,5 +153,7 @@ export const getBoardTeacherUserIds = (board) => {
  */
 export const checkAIEnabled = async (academyId) => {
   const academy = await Academy.findOne({ academyId }, "+aiApiKey");
-  return !!(academy?.aiEnabled && academy?.aiApiKey);
+  if (!academy?.aiEnabled || !academy?.aiApiKey) return false;
+  const { normalizePlans } = await import("./entitlement.js");
+  return normalizePlans(academy).ctrl.enabled;
 };

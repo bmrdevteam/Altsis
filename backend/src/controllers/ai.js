@@ -4,7 +4,7 @@
  * @description Alter AI — Skill 라우팅, 강의계획서 점검, 관리자 유틸
  */
 import { logger } from "../log/logger.js";
-import { FIELD_REQUIRED, __NOT_FOUND } from "../messages/index.js";
+import { FIELD_REQUIRED, PERMISSION_DENIED, __NOT_FOUND } from "../messages/index.js";
 import { Academy } from "../models/Academy.js";
 import { Season, School } from "../models/index.js";
 import {
@@ -27,6 +27,8 @@ import {
 } from "../services/aiPromptPolicy.js";
 import { maskSensitiveText } from "../services/aiSafety.js";
 import { logAIUsage } from "../services/aiUsage.js";
+import { tryCommitUpload } from "../services/academyStorage.js";
+import { assertCtrlEnabled } from "../services/entitlement.js";
 import {
   assertAiUserQuota,
   getMyAiUsage as getMyAiUsageSvc,
@@ -137,6 +139,10 @@ export const uploadAlterAttachment = async (req, res) => {
 
         if (!req.file || !req.tmp?.key) {
           return res.status(400).send({ message: FIELD_REQUIRED("file") });
+        }
+
+        if (!(await tryCommitUpload(res, req.user.academyId, req.file))) {
+          return;
         }
 
         const s3Object = await fileS3
@@ -612,6 +618,13 @@ export const generateGuidelinesTemplate = async (req, res) => {
     if (!academy.aiEnabled) {
       return res.status(403).send({ message: AI_ERRORS.NOT_ENABLED });
     }
+    try {
+      assertCtrlEnabled(academy);
+    } catch (planErr) {
+      return res.status(planErr.status || 403).send({
+        message: planErr.code || planErr.message,
+      });
+    }
     if (!academy.aiApiKey) {
       return res.status(400).send({ message: AI_ERRORS.API_KEY_NOT_SET });
     }
@@ -852,6 +865,12 @@ export const listModels = async (req, res) => {
     const { academyId } = req.body;
 
     if (!apiKey && academyId) {
+      if (
+        req.user.auth === "admin" &&
+        req.user.academyId !== academyId
+      ) {
+        return res.status(403).send({ message: PERMISSION_DENIED });
+      }
       const academy = await Academy.findOne({ academyId }, "+aiApiKey");
       if (academy?.aiApiKey) {
         apiKey = academy.aiApiKey;

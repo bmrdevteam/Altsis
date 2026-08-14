@@ -131,6 +131,41 @@ export const PERMISSION_DENIED = "PERMISSION_DENIED";
 
 /**
  * @tag 403 Forbidden
+ * @alias PLAN_SHIFT_REQUIRED
+ * @description SHIFT 플랜이 꺼져 있어 보드·채팅·공개 사이트를 쓸 수 없음
+ */
+export const PLAN_SHIFT_REQUIRED = "PLAN_SHIFT_REQUIRED";
+
+/**
+ * @tag 403 Forbidden
+ * @alias PLAN_CTRL_REQUIRED
+ * @description CTRL 플랜이 꺼져 있어 Alter를 쓸 수 없음
+ */
+export const PLAN_CTRL_REQUIRED = "PLAN_CTRL_REQUIRED";
+
+/**
+ * @tag 403 Forbidden
+ * @alias SEASON_SEAT_LIMIT
+ * @description ALT 활성 학기 좌석 한도 초과
+ */
+export const SEASON_SEAT_LIMIT = "SEASON_SEAT_LIMIT";
+
+/**
+ * @tag 403 Forbidden
+ * @alias STORAGE_LIMIT
+ * @description SHIFT 저장 용량 한도 초과
+ */
+export const STORAGE_LIMIT = "STORAGE_LIMIT";
+
+/**
+ * @tag 403 Forbidden
+ * @alias ACADEMY_TOKEN_LIMIT
+ * @description CTRL 아카데미 토큰 한도 초과
+ */
+export const ACADEMY_TOKEN_LIMIT = "ACADEMY_TOKEN_LIMIT";
+
+/**
+ * @tag 403 Forbidden
  *
  * @alias SYLLABUS_CONFIRMED_ALREADY
  * @description 승인이 완료된 강의계획서는 수정할 수 없음

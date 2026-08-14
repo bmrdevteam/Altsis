@@ -3,36 +3,79 @@
   border: 1px solid var(--status-success-border);
 
   border-radius: 8px;
-  box-sizing: "border-box";
-  margin: 0px;
-  padding: 8px 12px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 12px 14px;
   color: var(--accent-1);
   font-size: 1.2rem;
+  min-width: 0;
+  overflow: hidden;
 
   display: flex;
-  align-items: "center";
+  align-items: flex-start;
+  gap: 8px;
 
   .icon {
-    margin-right: 8px;
+    flex: 0 0 auto;
+    margin-top: 1px;
     svg {
       fill: var(--status-success);
     }
   }
 
   .text {
-    width: 100%;
+    min-width: 0;
+    flex: 1 1 auto;
 
     .title {
       font-weight: bold;
       font-size: 1.2rem;
+      line-height: 1.4;
     }
     .title-oneline {
       font-size: 1rem;
+      line-height: 1.4;
     }
     .description {
       margin-top: 8px;
       font-size: 1rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      user-select: text;
     }
+  }
+
+  .failList {
+    list-style: none;
+    margin: 10px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .failItem {
+    min-width: 0;
+  }
+
+  .failLabel {
+    font-weight: 600;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    color: var(--accent-1);
+  }
+
+  .failMessage {
+    margin-top: 2px;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: var(--accent-2);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    user-select: text;
   }
 
   //un selectable

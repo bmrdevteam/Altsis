@@ -8,11 +8,13 @@ type Props = {
 
 const SiteSettings = (props: Props) => {
   const { AcademyAPI } = useAPIv2();
+  const shiftEnabled = props.academyData?.plans?.shift?.enabled !== false;
+  const siteEnabled = !!props.academyData.sitePublishEnabled;
+  const canToggle = shiftEnabled || siteEnabled;
 
   const onClickToggleSiteHandler = async () => {
-    const action = props.academyData.sitePublishEnabled
-      ? "비활성화"
-      : "활성화";
+    if (!canToggle) return;
+    const action = siteEnabled ? "비활성화" : "활성화";
     if (
       !window.confirm(`정말 공개 웹사이트 기능을 ${action}하시겠습니까?`)
     )
@@ -50,6 +52,12 @@ const SiteSettings = (props: Props) => {
             활성화하면 아카데미 관리자가 정적 웹사이트 파일을 업로드·편집하고
             외부에 공개할 수 있습니다. 비활성화하면 게시가 즉시 중단됩니다.
           </p>
+          {!shiftEnabled && (
+            <p style={{ color: "var(--color-r4, #d9534f)", marginBottom: "16px" }}>
+              SHIFT 모듈이 꺼져 있어 웹사이트를 켤 수 없습니다. 플랜 탭에서
+              SHIFT를 먼저 켜 주세요.
+            </p>
+          )}
 
           <div
             style={{
@@ -79,15 +87,14 @@ const SiteSettings = (props: Props) => {
 
             <Button
               type="ghost"
+              disabled={!canToggle}
               style={{
                 borderRadius: "4px",
                 height: "32px",
               }}
               onClick={onClickToggleSiteHandler}
             >
-              {props.academyData.sitePublishEnabled
-                ? "웹사이트 비활성화"
-                : "웹사이트 활성화"}
+              {siteEnabled ? "웹사이트 비활성화" : "웹사이트 활성화"}
             </Button>
           </div>
         </div>

@@ -32,6 +32,8 @@ import {
 import { profileS3, profileBucket } from "../_s3/profileBucket.js";
 import { fileS3, fileBucket, signUrl } from "../_s3/fileBucket.js";
 import { schoolAiLibraryMulter } from "../_s3/aiRefMulter.js";
+import { tryCommitUpload } from "../services/academyStorage.js";
+import { normalizePlans } from "../services/entitlement.js";
 import { extractText } from "../utils/textExtractor.js";
 import {
   normalizeGuidelines,
@@ -357,14 +359,18 @@ export const find = async (req, res) => {
       try {
         const academy = await Academy.findOne({ academyId });
         if (academy) {
+          const plans = normalizePlans(academy);
           academyFeatures = {
-            chatEnabled: academy.chatEnabled ?? false,
-            boardEnabled: academy.boardEnabled ?? true,
-            aiEnabled: academy.aiEnabled ?? false,
-            sitePublishEnabled: academy.sitePublishEnabled ?? false,
+            chatEnabled: (academy.chatEnabled ?? false) && plans.shift.enabled,
+            boardEnabled: (academy.boardEnabled ?? true) && plans.shift.enabled,
+            aiEnabled: (academy.aiEnabled ?? false) && plans.ctrl.enabled,
+            sitePublishEnabled:
+              (academy.sitePublishEnabled ?? false) && plans.shift.enabled,
           };
         }
-      } catch (_) {}
+      } catch (err) {
+        logger.warn(`academyFeatures lookup failed: ${err.message}`);
+      }
 
       return res.status(200).send({
         school,
@@ -1510,6 +1516,10 @@ export const uploadAiLibraryItem = async (req, res) => {
 
         if (!req.file) {
           return res.status(400).send({ message: FIELD_REQUIRED("file") });
+        }
+
+        if (!(await tryCommitUpload(res, req.user.academyId, req.file))) {
+          return;
         }
 
         const s3Object = await fileS3

@@ -8,9 +8,13 @@ type Props = {
 
 const BoardSettings = (props: Props) => {
   const { AcademyAPI } = useAPIv2();
+  const shiftEnabled = props.academyData?.plans?.shift?.enabled !== false;
+  const boardEnabled = props.academyData.boardEnabled !== false;
+  const canToggle = shiftEnabled || boardEnabled;
 
   const onClickToggleBoardHandler = async () => {
-    const action = props.academyData.boardEnabled ? "비활성화" : "활성화";
+    if (!canToggle) return;
+    const action = boardEnabled ? "비활성화" : "활성화";
     if (!window.confirm(`정말 보드를 ${action}하시겠습니까?`)) return;
 
     try {
@@ -45,6 +49,12 @@ const BoardSettings = (props: Props) => {
             보드 기능을 활성화하면 아카데미 사용자들이 보드를 생성하고 게시글을
             작성할 수 있습니다.
           </p>
+          {!shiftEnabled && (
+            <p style={{ color: "var(--color-r4, #d9534f)", marginBottom: "16px" }}>
+              SHIFT 모듈이 꺼져 있어 보드를 켤 수 없습니다. 플랜 탭에서 SHIFT를
+              먼저 켜 주세요.
+            </p>
+          )}
 
           <div
             style={{
@@ -72,13 +82,14 @@ const BoardSettings = (props: Props) => {
 
             <Button
               type="ghost"
+              disabled={!canToggle}
               style={{
                 borderRadius: "4px",
                 height: "32px",
               }}
               onClick={onClickToggleBoardHandler}
             >
-              {props.academyData.boardEnabled ? "보드 비활성화" : "보드 활성화"}
+              {boardEnabled ? "보드 비활성화" : "보드 활성화"}
             </Button>
           </div>
         </div>

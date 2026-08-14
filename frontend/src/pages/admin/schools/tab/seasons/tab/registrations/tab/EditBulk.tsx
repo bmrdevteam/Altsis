@@ -38,7 +38,7 @@ import Select from "components/select/Select";
 import _ from "lodash";
 import Autofill from "components/input/Autofill";
 import useAPIv2 from "hooks/useAPIv2";
-import { MESSAGE } from "hooks/_message";
+import { messageFromError } from "hooks/_message";
 import Progress from "components/progress/Progress";
 import Callout from "components/callout/Callout";
 import { TSeasonRegistration } from "types/seasons";
@@ -109,8 +109,7 @@ function Basic(props: Props) {
         failedList.push({
           userId: props.selectedRegistrationList[i].userId,
           userName: props.selectedRegistrationList[i].userName,
-          message:
-            MESSAGE.get(err ?? "UNKOWN") ?? "알 수 없는 에러가 발생했습니다.",
+          message: messageFromError(err),
         });
       } finally {
         setRatio((i + 1) / props.selectedRegistrationList.length);
@@ -228,11 +227,13 @@ function Basic(props: Props) {
             {failedList.length > 0 && (
               <Callout
                 type="error"
-                style={{ whiteSpace: "pre" }}
-                title={"저장되지 않은 항목이 있습니다."}
-                description={failedList
-                  .map(({ userName, message }) => `${userName}: ${message}`)
-                  .join("\n")}
+                showIcon
+                title={`저장되지 않은 항목이 ${failedList.length}건 있습니다.`}
+                items={failedList.map((row) => ({
+                  key: row.userId,
+                  label: row.userName,
+                  message: row.message,
+                }))}
               />
             )}
             {ratio === 1 && (

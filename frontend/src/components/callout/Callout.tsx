@@ -26,14 +26,21 @@
  */
 
 import Svg from "assets/svg/Svg";
-import { CSSProperties, useState } from "react";
+import { CSSProperties } from "react";
 import calloutStyle from "./callout.module.scss";
+
+export type TCalloutItem = {
+  key?: string;
+  label: string;
+  message: string;
+};
 
 type Props = {
   type?: "success" | "info" | "warning" | "error";
   showIcon?: boolean;
   title: string;
   description?: string;
+  items?: TCalloutItem[];
   child?: any;
   style?: CSSProperties;
 };
@@ -43,6 +50,7 @@ const Callout = ({
   showIcon,
   title,
   description,
+  items,
   child,
   style,
 }: Props) => {
@@ -65,22 +73,41 @@ const Callout = ({
     icon = "x-circle";
   }
 
+  const hasItems = (items?.length ?? 0) > 0;
+  const hasBody = Boolean(description || child || hasItems);
+
   return (
-    <div className={`${calloutClass}`} style={style}>
+    <div className={calloutClass} style={style}>
       {showIcon && (
-        <div className={`${calloutStyle.icon}`}>
+        <div className={calloutStyle.icon}>
           <Svg type={icon} style={{ width: "24px", height: "24px" }} />
         </div>
       )}
-      <div className={`${calloutStyle.text}`}>
-        {!description && !child ? (
-          <div className={`${calloutStyle["title-oneline"]}`}>{title}</div>
+      <div className={calloutStyle.text}>
+        {!hasBody ? (
+          <div className={calloutStyle["title-oneline"]}>{title}</div>
         ) : (
           <>
-            <div className={`${calloutStyle.title}`}>{title}</div>
-            <div className={`${calloutStyle.description}`}>
-              {description ?? child}
-            </div>
+            <div className={calloutStyle.title}>{title}</div>
+            {description ? (
+              <div className={calloutStyle.description}>{description}</div>
+            ) : null}
+            {hasItems && items ? (
+              <ul className={calloutStyle.failList}>
+                {items.map((item, index) => (
+                  <li
+                    key={item.key || `${item.label}-${index}`}
+                    className={calloutStyle.failItem}
+                  >
+                    <div className={calloutStyle.failLabel}>{item.label}</div>
+                    <div className={calloutStyle.failMessage}>{item.message}</div>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {!description && child ? (
+              <div className={calloutStyle.description}>{child}</div>
+            ) : null}
           </>
         )}
       </div>

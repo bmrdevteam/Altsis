@@ -4,6 +4,8 @@
  */
 import mongoose from "mongoose";
 import { AI_ERRORS } from "./aiPromptPolicy.js";
+import { ACADEMY_TOKEN_LIMIT } from "../messages/index.js";
+import { normalizePlans, persistCtrlUsageMonth, planError } from "./entitlement.js";
 
 /** 1 Alt = 10,000 tokens */
 export const TOKENS_PER_ALT = 10_000;
@@ -102,6 +104,16 @@ export const normalizeAiUsageLimits = (limits) => {
  * @param {Object} academy - academy doc with aiUsageLimits
  */
 export const assertAiUserQuota = async (academyId, user, academy) => {
+  await persistCtrlUsageMonth(academy);
+  const plans = normalizePlans(academy);
+  if (
+    plans.ctrl.enabled &&
+    plans.ctrl.tokenLimit != null &&
+    plans.ctrl.usedTokens >= plans.ctrl.tokenLimit
+  ) {
+    throw planError(ACADEMY_TOKEN_LIMIT);
+  }
+
   const limits = normalizeAiUsageLimits(academy?.aiUsageLimits);
   if (!limits.enabled || limits.dailyUserAlts <= 0) return;
 

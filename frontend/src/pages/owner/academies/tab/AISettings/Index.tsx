@@ -12,6 +12,9 @@ import style from "./Index.module.scss";
 type Props = {
   academyData: any;
   setAcademyData: React.Dispatch<any>;
+  showModuleToggle?: boolean;
+  /** false면 키·제공자·모델 입력을 숨긴다(소유자 화면). 기본 true(관리자 플랜). */
+  showKeyEditor?: boolean;
 };
 
 type TModelInfo = {
@@ -82,6 +85,7 @@ const AISettings = (props: Props) => {
   const [isLoadingModels, setIsLoadingModels] = useState<boolean>(false);
   const [useCustomModel, setUseCustomModel] = useState<boolean>(false);
   const [modelNotice, setModelNotice] = useState<string | null>(null);
+  const [showCompliance, setShowCompliance] = useState(true);
 
   const applyModels = (
     models: TModelInfo[] | undefined,
@@ -239,6 +243,33 @@ const AISettings = (props: Props) => {
     }
   };
 
+  const onClickClearApiKeyHandler = async () => {
+    if (
+      !window.confirm(
+        "이 아카데미에 저장된 API 키를 삭제할까요? Alter는 키가 있어야 사용할 수 있습니다."
+      )
+    ) {
+      return;
+    }
+    try {
+      await AcademyAPI.UAcademyAiApiKey({
+        params: { academyId: props.academyData.academyId },
+        data: { clear: true },
+      });
+      setHasApiKey(false);
+      setApiKeyHint(null);
+      setSavedProvider(null);
+      setSavedModel(null);
+      setApiKey("");
+      setIsEditingApiKey(true);
+      setAvailableModels([]);
+      setModelNotice(null);
+      alert("API 키를 삭제했습니다.");
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+  };
+
   const onClickCancelEditApiKey = () => {
     setApiKey("");
     setIsEditingApiKey(false);
@@ -362,14 +393,16 @@ const AISettings = (props: Props) => {
   };
 
   const showKeyForm = !hasApiKey || isEditingApiKey;
+  const showKeyEditor = props.showKeyEditor !== false;
 
   return (
     <div className={style.root}>
       <section>
         <h3 className={style.sectionTitle}>AI 기능</h3>
         <p className={style.sectionDesc}>
-          AI를 켜면 강의계획서 생성과 보드의 Alter 채팅을 사용할 수 있습니다.
-          운영 환경에서는 OpenAI 또는 Anthropic을 사용하세요.
+          {showKeyEditor
+            ? "CTRL 모듈 on/off와 월 Alt 한도는 소유자가 플랜에서 설정합니다. 이 화면에서는 제공자·API 키·모델을 관리합니다."
+            : "CTRL 모듈 on/off와 월 Alt 한도는 플랜 탭에서 설정합니다. API 키·제공자·모델은 아카데미 관리자 플랜 페이지에서 등록합니다."}
         </p>
 
         <div className={`${style.card} ${style.statusRow}`}>
@@ -404,16 +437,85 @@ const AISettings = (props: Props) => {
             </div>
           </div>
 
-          <Button
-            type="ghost"
-            style={{ borderRadius: "4px", height: "32px" }}
-            onClick={onClickToggleAiHandler}
-          >
-            {props.academyData.aiEnabled ? "AI 비활성화" : "AI 활성화"}
-          </Button>
+          {props.showModuleToggle !== false && (
+            <Button
+              type="ghost"
+              style={{ borderRadius: "4px", height: "32px" }}
+              onClick={onClickToggleAiHandler}
+            >
+              {props.academyData.aiEnabled ? "AI 비활성화" : "AI 활성화"}
+            </Button>
+          )}
         </div>
       </section>
 
+      <section className={style.complianceCard}>
+        <button
+          type="button"
+          className={style.complianceSummary}
+          onClick={() => setShowCompliance((v) => !v)}
+          aria-expanded={showCompliance}
+        >
+          <div>
+            <h3 className={style.sectionTitle} style={{ marginBottom: 4 }}>
+              미성년 학생 보호를 위한 아카데미 이행사항
+            </h3>
+            <p className={style.sectionDesc} style={{ marginBottom: 0 }}>
+              API 키 계약 당사자는 아카데미입니다. 법정대리인 동의, ZDR,
+              개인정보 처리방침 갱신 등이 필요할 수 있습니다.
+            </p>
+          </div>
+          <span className={style.chevron}>
+            {showCompliance ? "접기 ▲" : "펼치기 ▼"}
+          </span>
+        </button>
+        {showCompliance && (
+          <div className={style.complianceBody}>
+            <ul>
+              <li>
+                만 14세 미만 학생이 AI 기능을 사용하는 경우, 개인정보보호법에
+                따라 법정대리인 동의를 받아야 합니다.
+              </li>
+              <li>
+                OpenAI를 사용하고 만 14세 미만 학생이 있는 경우, OpenAI
+                계정에서 Zero Data Retention(ZDR)을 신청해야 합니다.
+              </li>
+              <li>
+                아카데미의 개인정보 처리방침에 사용하는 AI 제공자를 처리
+                위탁·국외 이전 항목으로 기재해야 합니다.
+              </li>
+              <li>
+                제공자의 미성년자 관련 가이드라인을 확인하세요.{" "}
+                <a
+                  href="https://developers.openai.com/api/docs/guides/safety-checks/under-18-api-guidance"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={style.link}
+                >
+                  OpenAI Under 18 API Guidance
+                </a>
+                {" · "}
+                <a
+                  href="https://support.claude.com/en/articles/9307344-responsible-use-of-anthropic-s-models-guidelines-for-organizations-serving-minors"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={style.link}
+                >
+                  Anthropic 미성년자 대상 조직 가이드라인
+                </a>
+              </li>
+            </ul>
+            <p className={style.complianceFoot}>
+              Altsis는 AI 사용 고지, 안전 시스템 프롬프트, 교사의 학생 AI
+              대화 모니터링 기능을 기본 제공하여 위 가이드라인의 안전조치
+              요건 이행을 지원합니다.
+            </p>
+          </div>
+        )}
+      </section>
+
+      {showKeyEditor && (
+        <>
       <section>
         <h3 className={style.sectionTitle}>AI 제공자</h3>
         <p className={style.sectionDesc}>
@@ -516,6 +618,9 @@ const AISettings = (props: Props) => {
                 >
                   키 변경
                 </Button>
+                <Button type="ghost" onClick={onClickClearApiKeyHandler}>
+                  키 삭제
+                </Button>
               </div>
             </div>
           ) : (
@@ -566,6 +671,11 @@ const AISettings = (props: Props) => {
                 {hasApiKey && (
                   <Button type="ghost" onClick={onClickCancelEditApiKey}>
                     취소
+                  </Button>
+                )}
+                {hasApiKey && (
+                  <Button type="ghost" onClick={onClickClearApiKeyHandler}>
+                    키 삭제
                   </Button>
                 )}
               </div>
@@ -641,6 +751,8 @@ const AISettings = (props: Props) => {
           </div>
         </div>
       </section>
+        </>
+      )}
     </div>
   );
 };

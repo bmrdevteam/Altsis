@@ -17,6 +17,7 @@ import {
   __NOT_FOUND,
 } from "../messages/index.js";
 import { courseMulter } from "../_s3/courseMulter.js";
+import { tryCommitUpload } from "../services/academyStorage.js";
 import {
   Board,
   Enrollment,
@@ -1119,6 +1120,12 @@ export const updateCoverImage = async (req, res) => {
           default:
             return res.status(500).send({ message: err.code });
         }
+      }
+
+      if (
+        !(await tryCommitUpload(res, req.user.academyId, req.file))
+      ) {
+        return;
       }
 
       const syllabus = await Syllabus(req.user.academyId).findById(

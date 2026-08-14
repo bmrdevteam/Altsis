@@ -32,6 +32,7 @@ import {
   updateRegistrationPermission,
 } from "../services/registrations.js";
 import { aiRefMulter } from "../_s3/aiRefMulter.js";
+import { tryCommitUpload } from "../services/academyStorage.js";
 import { extractText } from "../utils/textExtractor.js";
 import { fileS3, fileBucket, signUrl } from "../_s3/fileBucket.js";
 import {
@@ -1547,6 +1548,10 @@ export const uploadAiReference = async (req, res) => {
 
         if (!req.file) {
           return res.status(400).send({ message: FIELD_REQUIRED("file") });
+        }
+
+        if (!(await tryCommitUpload(res, req.user.academyId, req.file))) {
+          return;
         }
 
         // Download from S3 to extract text
