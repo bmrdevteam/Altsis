@@ -22,6 +22,23 @@ export type TActivityViewCounts = Record<
   number
 >;
 
+export type TActivityListSort =
+  | "default"
+  | "title"
+  | "updatedAt"
+  | "createdAt"
+  | "closeAt"
+  | "openAt";
+
+const SORT_OPTIONS: { value: TActivityListSort; label: string }[] = [
+  { value: "default", label: "기본 정렬" },
+  { value: "title", label: "이름순" },
+  { value: "updatedAt", label: "최근 수정순" },
+  { value: "createdAt", label: "생성일순" },
+  { value: "closeAt", label: "마감 임박순" },
+  { value: "openAt", label: "시작일순" },
+];
+
 const CHIP_TONE_CLASS: Record<string, string> = {
   All: bStyle.filterChipToneAll,
   Approval: bStyle.filterChipToneApproval,
@@ -46,6 +63,8 @@ const CHIP_ORDER: Exclude<TActivityChipKey, "all">[] = [
 type Props = {
   keyword: string;
   onKeywordChange: (value: string) => void;
+  sortBy: TActivityListSort;
+  onSortByChange: (value: TActivityListSort) => void;
   viewFilter: TActivityViewFilter;
   onViewFilterChange: (value: TActivityViewFilter) => void;
   counts: TActivityViewCounts;
@@ -61,6 +80,8 @@ const ChipIcon = ({ type }: { type: string }) => (
 const ActivityListFilterBar = ({
   keyword,
   onKeywordChange,
+  sortBy,
+  onSortByChange,
   viewFilter,
   onViewFilterChange,
   counts,
@@ -84,6 +105,23 @@ const ActivityListFilterBar = ({
             onChange={(e) => onKeywordChange(e.target.value)}
           />
         </div>
+        <label className={bStyle.sortSelectWrap}>
+          <span className={bStyle.sortSelectLabel}>정렬</span>
+          <select
+            className={bStyle.sortSelect}
+            value={sortBy}
+            onChange={(e) =>
+              onSortByChange(e.target.value as TActivityListSort)
+            }
+            aria-label="활동 정렬"
+          >
+            {SORT_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       <div

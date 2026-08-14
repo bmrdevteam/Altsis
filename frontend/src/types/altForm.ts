@@ -247,6 +247,8 @@ export type TAltForm = {
   writers?: TBoardMembers;
   createdAt: string;
   updatedAt: string;
+  /** 목록 API 메타: 사용자별 상단 고정 */
+  isFavorited?: boolean;
   /** 목록 API 메타: 응답 행 수 (_respondent 있는 행) */
   responseCount?: number;
   /** 목록 API 메타: 마지막 기록 열람 이후 신규 응답 수 (admin/writer) */
@@ -263,4 +265,15 @@ export type TAltForm = {
   submittedCurrentOccurrence?: boolean;
   /** 목록 API 메타: 할 일 마감 표시용 (회차 end 또는 closeAt) */
   occurrenceCloseAt?: string | null;
+};
+
+export type TAltFormFavorite = {
+  _id: string;
+  user: string;
+  form: string;
+  board: string;
+  school: string;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
 };

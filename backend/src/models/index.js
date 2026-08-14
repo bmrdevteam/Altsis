@@ -13,6 +13,7 @@ import { AlterConversation } from "../models/AlterConversation.js";
 import { AlterMessage } from "../models/AlterMessage.js";
 import { AltForm } from "../models/AltForm.js";
 import { AltFormDupCounter } from "../models/AltFormDupCounter.js";
+import { AltFormFavorite } from "../models/AltFormFavorite.js";
 import { AltSheet } from "../models/AltSheet.js";
 import { AltSheetOpen } from "../models/AltSheetOpen.js";
 import { AltSheetRow } from "../models/AltSheetRow.js";
@@ -54,6 +55,7 @@ export {
   AlterMessage,
   AltForm,
   AltFormDupCounter,
+  AltFormFavorite,
   AltSheet,
   AltSheetOpen,
   AltSheetRow,

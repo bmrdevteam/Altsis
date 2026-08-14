@@ -7,6 +7,7 @@ import { logger } from "../log/logger.js";
 import _ from "lodash";
 import {
   AltForm,
+  AltFormFavorite,
   AltSheet,
   AltSheetRow,
   Board,
@@ -1001,6 +1002,7 @@ export const remove = async (req, res) => {
 
     // 4. 즐겨찾기 삭제
     await BoardFavorite(academyId).deleteMany({ board: boardId });
+    await AltFormFavorite(academyId).deleteMany({ board: boardId });
 
     // 5. Syllabus 참조 해제 (Alt Board인 경우)
     if (board.syllabus) {

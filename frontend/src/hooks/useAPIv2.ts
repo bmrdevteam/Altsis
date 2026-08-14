@@ -50,7 +50,7 @@ import {
   TSurveyExportData,
   TSurveyAnswer,
 } from "types/survey";
-import { TAltForm, TAltFormField, TAltFormSettings } from "types/altForm";
+import { TAltForm, TAltFormFavorite, TAltFormField, TAltFormSettings } from "types/altForm";
 import { TAltSheet, TAltSheetRow } from "types/altSheet";
 import { TAIChatSession, TAIChatMessage } from "types/aiChat";
 
@@ -4977,6 +4977,42 @@ export default function useAPIv2() {
     return { form: form as TAltForm };
   }
 
+  /**
+   * ##########################################################################
+   * Alt Form Favorite API
+   * ##########################################################################
+   */
+
+  /**
+   * CAltFormFavorite API
+   * @description 활동(양식) 즐겨찾기 추가 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function CAltFormFavorite(props: {
+    data: { form: string; board: string; school: string };
+  }) {
+    const { altFormFavorite } = await database.C({
+      location: "alt-form-favorites",
+      data: props.data,
+    });
+    return { altFormFavorite: altFormFavorite as TAltFormFavorite };
+  }
+
+  /**
+   * DAltFormFavoriteByForm API
+   * @description 활동 즐겨찾기 삭제 API (양식 ID로)
+   * @version 1.0.0
+   * @auth user
+   */
+  async function DAltFormFavoriteByForm(props: {
+    params: { formId: string };
+  }) {
+    return await database.D({
+      location: `alt-form-favorites/form/${props.params.formId}`,
+    });
+  }
+
   async function UAltForm(props: {
     params: { _id: string };
     data: {
@@ -5699,6 +5735,10 @@ export default function useAPIv2() {
       ExportAltForm,
       ImportAltForm,
       DuplicateAltForm,
+    },
+    AltFormFavoriteAPI: {
+      CAltFormFavorite,
+      DAltFormFavoriteByForm,
     },
     AltSheetRowAPI: {
       CAltSheetRow,
