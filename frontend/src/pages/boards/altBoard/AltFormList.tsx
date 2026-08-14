@@ -448,9 +448,9 @@ const AltFormList = ({
     const showRespond = !form.isDraft && !isDirect;
     const showMyResponses =
       !isDirect &&
-      !!form.mySubmitted &&
-      form.settings.showOwnResponse !== false &&
-      !!onViewMyResponses;
+      !!onViewMyResponses &&
+      ((form.myDraftCount ?? 0) > 0 ||
+        (!!form.mySubmitted && form.settings.showOwnResponse !== false));
     const showSheet = !!onOpenSheet;
     const showManageMenu = canManage;
 
@@ -490,6 +490,11 @@ const AltFormList = ({
                 </span>
               )}
               {renderSubmitBadge(form)}
+              {(form.myDraftCount ?? 0) > 0 &&
+                period === "open" &&
+                !isDirect && (
+                  <span className={style.formCardHint}>작성 중</span>
+                )}
               {form.settings.openAt && period === "scheduled" && (
                 <span>시작: {formatDateTime(form.settings.openAt)}</span>
               )}

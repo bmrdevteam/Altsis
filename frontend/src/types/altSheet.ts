@@ -20,6 +20,8 @@ export type TAltSheetRow = {
   data: Record<string, any>;
   _submittedAt: string;
   _updatedAt: string;
+  /** 미제출 초안. 양식 AltForm.isDraft(비공개)와 다름 */
+  isDraft?: boolean;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

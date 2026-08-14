@@ -185,6 +185,25 @@ describe("countRequiredFormProgress", () => {
     expect(result).toEqual({ submitted: 1, total: 2 });
   });
 
+  test("draft sheet rows do not count as submitted progress", () => {
+    const forms = [
+      {
+        _id: "f1",
+        board: "board1",
+        title: "필수1",
+        settings: { requiredMode: true },
+      },
+    ];
+    const result = countRequiredFormProgress({
+      boards: [board],
+      forms,
+      myRows: [{ _id: "d1", form: "f1", isDraft: true }],
+      user,
+      now,
+    });
+    expect(result).toEqual({ submitted: 0, total: 1 });
+  });
+
   test("listRequiredFormProgress includes per-form submitted/required", () => {
     const forms = [
       {

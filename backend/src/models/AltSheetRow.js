@@ -26,8 +26,9 @@ import { conn } from "../_database/mongodb/index.js";
  * @prop {string} _respondentId - 응답자 userId
  * @prop {string} _respondentName - 응답자 userName
  * @prop {Map<string, Mixed>} data - 필드별 데이터 (필드 _id → 값)
- * @prop {Date} _submittedAt - 최초 제출 시각
+ * @prop {Date} _submittedAt - 최초 제출 시각 (초안은 비움)
  * @prop {Date} _updatedAt - 마지막 수정 시각
+ * @prop {boolean} isDraft - 미제출 초안. AltForm.isDraft(양식 비공개)와 다름
  * @prop {boolean} isActive - 활성화 상태
  */
 const altSheetRowSchema = mongoose.Schema(
@@ -49,6 +50,8 @@ const altSheetRowSchema = mongoose.Schema(
     _submittedAt: Date,
     _updatedAt: Date,
 
+    /** 미제출 저장본. 양식 AltForm.isDraft와 다른 개념 */
+    isDraft: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true }
@@ -58,6 +61,7 @@ altSheetRowSchema.index({ sheet: 1, _respondent: 1 });
 altSheetRowSchema.index({ sheet: 1, createdAt: -1 });
 altSheetRowSchema.index({ form: 1 });
 altSheetRowSchema.index({ form: 1, createdAt: 1 });
+altSheetRowSchema.index({ form: 1, _respondent: 1, isDraft: 1 });
 
 export const AltSheetRow = (dbName) => {
   return conn[dbName].model("AltSheetRow", altSheetRowSchema);
