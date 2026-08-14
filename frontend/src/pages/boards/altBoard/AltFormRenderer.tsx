@@ -45,6 +45,7 @@ import {
   sanitizeHttpUrl,
   youtubeThumbnailUrl,
 } from "./formDocLink";
+import { copyRowDataForReuse } from "./reuseResponseDraft";
 
 type Props = {
   board: TBoard;
@@ -210,6 +211,8 @@ const AltFormRenderer = ({
   const [availableCombinations, setAvailableCombinations] = useState<
     { values: Record<string, any>; availableCount: number }[]
   >([]);
+  /** 재사용·수정 등 내부 전환 직후, URL initialViewMode가 따라올 때까지 덮어쓰지 않음 */
+  const skipNextExternalViewMode = useRef(false);
 
   useEffect(() => {
     Promise.all([
@@ -367,6 +370,7 @@ const AltFormRenderer = ({
 
   const switchViewMode = (mode: TViewMode) => {
     if (!form) return;
+    if (mode === viewMode) return;
     if (mode === "review") {
       if (!canShowOwnResponses) return;
       const idx = Math.min(reviewIndex, Math.max(0, myRows.length - 1));
@@ -407,6 +411,18 @@ const AltFormRenderer = ({
     setViewMode("compose");
     onViewModeChange?.("compose");
   };
+
+  useEffect(() => {
+    if (!form) return;
+    if (skipNextExternalViewMode.current) {
+      skipNextExternalViewMode.current = false;
+      return;
+    }
+    if (initialViewMode === viewMode) return;
+    switchViewMode(initialViewMode);
+    // 부모 URL/딥링크 모드만 따라감. 내부 재사용·수정 초안은 skip ref로 보존.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialViewMode]);
 
   const goReview = (nextIndex: number) => {
     if (!form || nextIndex < 0 || nextIndex >= myRows.length) return;
@@ -498,13 +514,8 @@ const AltFormRenderer = ({
     if (!form || !isReviewMode || !canComposeMultiple) return;
     const row = myRows[reviewIndex];
     if (!row) return;
-    const copied: Record<string, any> = { ...(row.data || {}) };
-    for (const key of Object.keys(copied)) {
-      if (key.startsWith("_")) delete copied[key];
-    }
-    for (const field of form.fields) {
-      if (field.type === "approval") delete copied[field._id];
-    }
+    const copied = copyRowDataForReuse(row.data, form.fields);
+    skipNextExternalViewMode.current = true;
     setData(withDocResponseDefaults(form.fields, copied));
     setMyRow(null);
     setIsSubmitted(false);
@@ -517,6 +528,7 @@ const AltFormRenderer = ({
     if (!form || !isReviewMode || !form.settings.allowResubmit) return;
     const row = myRows[reviewIndex];
     if (!row) return;
+    skipNextExternalViewMode.current = true;
     setMyRow(row);
     setData(withDocResponseDefaults(form.fields, row.data || {}));
     setIsSubmitted(true);
