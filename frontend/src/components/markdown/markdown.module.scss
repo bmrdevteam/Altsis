@@ -2,6 +2,16 @@
   font-size: 14px;
   line-height: 1.45;
   color: var(--accent-1);
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow-x: auto;
+
+  :global(div),
+  :global(figure) {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
 
   h1,
   h2,
@@ -113,7 +123,9 @@
   }
 
   table {
-    width: 100%;
+    /* 인라인·HTML 너비 유지. 넘치면 부모 overflow-x로 스크롤 */
+    max-width: 100%;
+    box-sizing: border-box;
     margin-bottom: 0.75em;
     border-collapse: collapse;
     border-spacing: 0;
@@ -123,6 +135,8 @@
       padding: 4px 8px;
       border: var(--border-default);
       vertical-align: top;
+      word-break: break-word;
+      overflow-wrap: anywhere;
 
       > p {
         margin: 0;
