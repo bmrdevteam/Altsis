@@ -1,5 +1,6 @@
 import { router as academies } from "./academies.js";
 import { router as ai } from "./ai.js";
+import { router as altFormFavorites } from "./altFormFavorites.js";
 import { router as altForms } from "./altForms.js";
 import { router as altSheetRows } from "./altSheetRows.js";
 import { router as archives } from "./archives.js";
@@ -34,6 +35,7 @@ import { router as test } from "./test.js";
 export const routers = [
   { label: "academies", routes: academies },
   { label: "ai", routes: ai },
+  { label: "alt-form-favorites", routes: altFormFavorites },
   { label: "alt-forms", routes: altForms },
   { label: "alt-sheet-rows", routes: altSheetRows },
   { label: "archives", routes: archives },

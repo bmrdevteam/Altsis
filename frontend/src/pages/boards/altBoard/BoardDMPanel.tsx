@@ -5,6 +5,7 @@ import { useAuth } from "contexts/authContext";
 import useAPIv2 from "hooks/useAPIv2";
 import ChatMessageContent from "layout/navbar/ChatMessageContent";
 import ImageLightbox from "layout/navbar/ImageLightbox";
+import { ChatInputBar, chatUiStyle } from "layout/navbar/chatUi";
 import Svg from "assets/svg/Svg";
 import defaultProfilePic from "assets/img/default_profile.png";
 import style from "./boardChat.module.scss";
@@ -385,8 +386,8 @@ const BoardDMPanel = ({
 
   // Typing
   const lastTypingRef = useRef(0);
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setNewMessage(e.target.value);
+  const handleInputChange = (value: string) => {
+    setNewMessage(value);
     if (socket && room && Date.now() - lastTypingRef.current > 2000) {
       socket.emit("typing", {
         roomId: room._id,
@@ -395,13 +396,6 @@ const BoardDMPanel = ({
         isTyping: true,
       });
       lastTypingRef.current = Date.now();
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
     }
   };
 
@@ -727,35 +721,28 @@ const BoardDMPanel = ({
           style={{ display: "none" }}
           onChange={handleFileSelect}
         />
-        <div className={style.input_bar}>
-          <button
-            className={style.attach_btn}
-            onClick={() => fileInputRef.current?.click()}
-            title="파일 첨부"
-          >
-            <Svg type="paperclip" width="20px" height="20px" />
-          </button>
-          <textarea
-            className={style.text_input}
-            value={newMessage}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            onPaste={handlePaste}
-            placeholder={`${partnerName}님에게 메시지 보내기...`}
-            rows={1}
-            disabled={isSending}
-          />
-          <button
-            className={`${style.send_btn} ${
-              newMessage.trim() || pendingFile ? style.active : ""
-            }`}
-            onClick={handleSend}
-            disabled={isSending || (!newMessage.trim() && !pendingFile)}
-            title="전송"
-          >
-            <Svg type="send" width="20px" height="20px" />
-          </button>
-        </div>
+        <ChatInputBar
+          bare
+          value={newMessage}
+          onChange={handleInputChange}
+          onSend={handleSend}
+          onPaste={handlePaste}
+          placeholder={`${partnerName}님에게 메시지 보내기...`}
+          disabled={isSending}
+          sendDisabled={isSending || (!newMessage.trim() && !pendingFile)}
+          sendActive={!!(newMessage.trim() || pendingFile)}
+          sendTitle="전송"
+          leftSlot={
+            <button
+              type="button"
+              className={chatUiStyle.slotBtn}
+              onClick={() => fileInputRef.current?.click()}
+              title="파일 첨부"
+            >
+              <Svg type="paperclip" width="20px" height="20px" />
+            </button>
+          }
+        />
       </div>
 
       {/* Image lightbox */}

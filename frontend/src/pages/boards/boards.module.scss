@@ -176,14 +176,14 @@
   }
 }
 
+.boardFormCardPinned {
+  border-width: 2px;
+}
+
 /* Color bar inside formCard-style board rows */
 .boardFormCard {
   padding-left: 12px;
   gap: 4px;
-}
-
-.boardFormCard.boardFormCardPinned {
-  border-width: 2px;
 }
 
 /* formCard 모바일 column보다 우선해 색 바·액션을 한 줄로 유지 */
