@@ -486,7 +486,8 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
             <p className={style.sectionHint}>
               아카데미 전체 사용자에게 적용됩니다. 1 Alt = 10,000 토큰이며,
               사용자마다 오늘(UTC) 사용량이 한도에 도달하면 AI 요청이
-              차단됩니다.
+              차단됩니다. API 키와 모델은 아카데미 관리자 플랜 페이지에서
+              설정합니다.
             </p>
             <label className={style.limitToggle}>
               <input

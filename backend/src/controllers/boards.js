@@ -49,6 +49,7 @@ import {
 } from "../messages/index.js";
 import { cloneAltFormToBoard } from "../services/altFormClone.js";
 import { boardMulter } from "../_s3/boardMulter.js";
+import { tryCommitUpload } from "../services/academyStorage.js";
 
 /**
  * 수업 연결 보드에 syllabusMeta(수업명·수업 경로)를 붙인다.
@@ -1081,6 +1082,12 @@ export const updateCoverImage = async (req, res) => {
           default:
             return res.status(500).send({ message: err.code });
         }
+      }
+
+      if (
+        !(await tryCommitUpload(res, req.user.academyId, req.file))
+      ) {
+        return;
       }
 
       const board = await Board(req.user.academyId).findById(req.params._id);

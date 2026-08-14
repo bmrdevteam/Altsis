@@ -33,6 +33,10 @@ export const logAIUsage = async (
       thoughtsTokens: tokenUsage?.thoughtsTokens || 0,
       totalTokens: tokenUsage?.totalTokens || 0,
     });
+    if (success && tokenUsage?.totalTokens) {
+      const { incrementTokenUsage } = await import("./academyStorage.js");
+      await incrementTokenUsage(academyId, tokenUsage.totalTokens);
+    }
   } catch (_) {
     // fire-and-forget
   }

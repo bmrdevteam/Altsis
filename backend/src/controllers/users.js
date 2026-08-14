@@ -25,6 +25,7 @@ import {
 } from "../messages/index.js";
 import { conn } from "../_database/mongodb/index.js";
 import { profileMulter } from "../_s3/profileMulter.js";
+import { tryCommitUpload } from "../services/academyStorage.js";
 
 /**
  * @memberof APIs.UserAPI
@@ -501,6 +502,12 @@ export const updateProfile = async (req, res) => {
         }
       }
       const user = req.user;
+
+      if (
+        !(await tryCommitUpload(res, req.user.academyId, req.file))
+      ) {
+        return;
+      }
 
       // 프로필은 AWS Lambda로 자동으로 사이즈가 축소되어 /thumb/ 폴더에 저장된다
       user.profile = req.file.location.replace("/original/", "/thumb/");

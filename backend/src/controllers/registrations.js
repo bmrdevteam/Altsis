@@ -5,7 +5,7 @@
  */
 import { logger } from "../log/logger.js";
 import _ from "lodash";
-import { User, Registration, Season } from "../models/index.js";
+import { User, Registration, Season, Academy } from "../models/index.js";
 import {
   FIELD_INVALID,
   FIELD_REQUIRED,
@@ -17,6 +17,7 @@ import { Types } from "mongoose";
 import { RegistrationService } from "../services/registrations.js";
 import { SeasonService } from "../services/seasons.js";
 import { UserService } from "../services/users.js";
+import { assertAltSeats, sendPlanError } from "../services/entitlement.js";
 
 /**
  * @memberof APIs.RegistrationAPI
@@ -113,6 +114,16 @@ export const create = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("user") });
     }
 
+    if (season.isActivated) {
+      try {
+        const academy = await Academy.findOne({ academyId });
+        await assertAltSeats(academyId, academy, { addUserIds: [user._id] });
+      } catch (quotaErr) {
+        if (sendPlanError(res, quotaErr)) return;
+        throw quotaErr;
+      }
+    }
+
     const teacher = {};
     if (teacherUID) {
       const { registration: teacherReg } =
@@ -149,6 +160,7 @@ export const create = async (req, res) => {
 
     return res.status(200).send({ registration });
   } catch (err) {
+    if (sendPlanError(res, err)) return;
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
@@ -200,6 +212,20 @@ export const copyFromSeason = async (req, res) => {
       season: req.body.fromSeason,
     });
 
+    if (season.isActivated && registrationsCopied.length > 0) {
+      try {
+        const academy = await Academy.findOne({
+          academyId: req.user.academyId,
+        });
+        await assertAltSeats(req.user.academyId, academy, {
+          addUserIds: registrationsCopied.map((reg) => reg.user),
+        });
+      } catch (quotaErr) {
+        if (sendPlanError(res, quotaErr)) return;
+        throw quotaErr;
+      }
+    }
+
     const registerationPasted = await Registration(
       req.user.academyId
     ).insertMany(
@@ -226,6 +252,7 @@ export const copyFromSeason = async (req, res) => {
     );
     return res.status(200).send({ registerations: registerationPasted });
   } catch (err) {
+    if (sendPlanError(res, err)) return;
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }

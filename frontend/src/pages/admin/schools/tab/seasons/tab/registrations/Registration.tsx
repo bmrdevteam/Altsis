@@ -41,7 +41,7 @@ import style from "style/pages/admin/schools.module.scss";
 import { TSeasonRegistration, TSeasonWithRegistrations } from "types/seasons";
 import { TRegistration } from "types/registrations";
 import useAPIv2 from "hooks/useAPIv2";
-import { MESSAGE } from "hooks/_message";
+import { messageFromError } from "hooks/_message";
 import Popup from "components/popup/Popup";
 import Progress from "components/progress/Progress";
 import Callout from "components/callout/Callout";
@@ -95,7 +95,7 @@ const Index = (props: Props) => {
         } catch (err: any) {
           failedList.push({
             userName: selectedRegistrations.current[i].userName,
-            message: MESSAGE.get(err) ?? "알 수 없는 에러가 발생했습니다.",
+            message: messageFromError(err),
           });
         } finally {
           setRatio((i + 1) / selectedRegistrations.current.length);
@@ -344,11 +344,13 @@ const Index = (props: Props) => {
             {failedList.length > 0 && (
               <Callout
                 type="error"
-                style={{ whiteSpace: "pre" }}
-                title={"삭제되지 않은 항목이 있습니다."}
-                description={failedList
-                  .map(({ userName, message }) => `${userName}: ${message}`)
-                  .join("\n")}
+                showIcon
+                title={`삭제되지 않은 항목이 ${failedList.length}건 있습니다.`}
+                items={failedList.map((row) => ({
+                  key: row.userName,
+                  label: row.userName,
+                  message: row.message,
+                }))}
               />
             )}
             {ratio === 1 && (

@@ -312,3 +312,58 @@
   width: 100%;
   max-width: 480px;
 }
+
+.complianceCard {
+  padding: 16px 18px;
+  border: 1px solid var(--border-default-color, var(--border-color));
+  border-radius: 12px;
+  background: var(--background-color);
+}
+
+.complianceSummary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+}
+
+.chevron {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--accent-3);
+  margin-top: 2px;
+}
+
+.complianceBody {
+  margin-top: 14px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--accent-1);
+
+  ul {
+    margin: 0;
+    padding-left: 20px;
+  }
+
+  li + li {
+    margin-top: 6px;
+  }
+
+  a {
+    text-decoration: underline;
+  }
+}
+
+.complianceFoot {
+  margin: 12px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--accent-3);
+}

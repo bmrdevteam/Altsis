@@ -1,4 +1,5 @@
 import { Academy, Board, School } from "../models/index.js";
+import { assertShiftEnabled, sendPlanError } from "../services/entitlement.js";
 
 /**
  * Middleware to check if board feature is enabled for the user's academy and school
@@ -22,6 +23,13 @@ export const isBoardEnabled = async (req, res, next) => {
 
     if (!academy.boardEnabled) {
       return res.status(403).send({ message: "BOARD_NOT_ENABLED" });
+    }
+
+    try {
+      assertShiftEnabled(academy);
+    } catch (err) {
+      if (sendPlanError(res, err)) return;
+      throw err;
     }
 
     // Determine which school to check

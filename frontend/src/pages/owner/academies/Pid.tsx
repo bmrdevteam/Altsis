@@ -47,6 +47,7 @@ import ChatSettings from "./tab/ChatSettings/Index";
 import BoardSettings from "./tab/BoardSettings/Index";
 import SiteSettings from "./tab/SiteSettings/Index";
 import AISettings from "./tab/AISettings/Index";
+import PlansTab from "./tab/Plans/Index";
 
 // import Setting from "./tab/Setting";
 import Skeleton from "components/skeleton/Skeleton";
@@ -126,6 +127,12 @@ const Academy = (props: Props) => {
           <>
             <Tab
               items={{
+                플랜: (
+                  <PlansTab
+                    academyData={academyData}
+                    setAcademyData={setAcademyData}
+                  />
+                ),
                 아카데미: (
                   <BasicInfo
                     academyData={academyData}
@@ -156,6 +163,8 @@ const Academy = (props: Props) => {
                   <AISettings
                     academyData={academyData}
                     setAcademyData={setAcademyData}
+                    showModuleToggle={false}
+                    showKeyEditor={false}
                   />
                 ),
                 백업: <Backup />,

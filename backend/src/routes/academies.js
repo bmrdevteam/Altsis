@@ -29,14 +29,16 @@ router.put(
 
 /* AI settings */
 router.put("/:academyId/ai", isOwner, academies.updateAiEnabled);
-router.put("/:academyId/ai/apikey", isOwner, academies.updateAiApiKey);
-router.get("/:academyId/ai/apikey", isOwner, academies.checkAiApiKey);
-router.put("/:academyId/ai/model", isOwner, academies.updateAiModel);
+router.put("/:academyId/ai/apikey", isOwAdmin, academies.updateAiApiKey);
+router.get("/:academyId/ai/apikey", isOwAdmin, academies.checkAiApiKey);
+router.put("/:academyId/ai/model", isOwAdmin, academies.updateAiModel);
 router.put(
   "/:academyId/ai/usage-limits",
   isOwAdManager,
   academies.updateAiUsageLimits
 );
+router.get("/:academyId/plans", isOwAdmin, academies.getPlans);
+router.put("/:academyId/plans", isOwner, academies.updatePlans);
 
 /* backup */
 router.post("/:academyId/backup", isOwAdmin, academies.createBackup);

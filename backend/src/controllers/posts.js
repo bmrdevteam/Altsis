@@ -45,6 +45,7 @@ import {
 } from "../messages/index.js";
 import { postMulter, isImageFile } from "../_s3/postMulter.js";
 import { signUrl, signUrlForView, fileS3, fileBucket } from "../_s3/fileBucket.js";
+import { tryCommitUpload } from "../services/academyStorage.js";
 
 /** 시트명 또는 동일 제목 양식으로 AltSheet 해석 (조회 시 name 무단 변경 없음) */
 const resolveAltSheetByName = async (academyId, boardId, sheetName) => {
@@ -942,6 +943,11 @@ export const uploadFile = async (req, res) => {
     }
 
     try {
+      if (
+        !(await tryCommitUpload(res, req.user.academyId, req.file))
+      ) {
+        return;
+      }
       const isImage = req.tmp.isImage;
 
       // 이미지: 인라인 삽입용 7일 서명 URL, 비이미지: 5분 서명 URL

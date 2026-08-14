@@ -7,6 +7,7 @@ import { School, Registration, Archive } from "../models/index.js";
 import { archiveMulter } from "../_s3/archiveMulter.js";
 import { formMulter, isFormFileKey } from "../_s3/formMulter.js";
 import { signUrl, signUrlForView } from "../_s3/fileBucket.js";
+import { tryCommitUpload } from "../services/academyStorage.js";
 import {
   FIELD_INVALID,
   FIELD_REQUIRED,
@@ -67,6 +68,11 @@ export const uploadArchive = async (req, res) => {
     }
 
     try {
+      if (
+        !(await tryCommitUpload(res, req.user.academyId, req.file))
+      ) {
+        return;
+      }
       const { preSignedUrl, expiryDate } = signUrl(
         req.tmp.key,
         req.file.originalname
@@ -259,6 +265,11 @@ export const uploadFormFile = async (req, res) => {
     }
 
     try {
+      if (
+        !(await tryCommitUpload(res, req.user.academyId, req.file))
+      ) {
+        return;
+      }
       const { preSignedUrl, expiryDate } = signUrl(
         req.tmp.key,
         req.file.originalname

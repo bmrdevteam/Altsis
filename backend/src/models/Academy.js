@@ -35,8 +35,56 @@ import { validate } from "../utils/validate.js";
  * @prop {string} aiApiKey - AI API 키; API를 통해 조회할 수 없다
  * @prop {string} aiProvider="gemini" - AI 제공자; openai | anthropic | gemini(테스트용)
  * @prop {Object} [aiUsageLimits] - 사용자별 AI 일일 Alt 한도 (1 Alt = 10,000 토큰)
+ * @prop {Object} [plans] - ALT/SHIFT/CTRL 플랜 한도
  *
  */
+const academyPlanAltSchema = mongoose.Schema(
+  {
+    enabled: { type: Boolean, default: true },
+    /** null = 미강제. 1명 단위 */
+    seasonSeatLimit: { type: Number, default: null },
+    /** 100명당 요금(원). 기본 30,000 */
+    unitPrice: { type: Number, default: 30_000 },
+  },
+  { _id: false }
+);
+
+const academyPlanShiftSchema = mongoose.Schema(
+  {
+    enabled: { type: Boolean, default: true },
+    /** null = 미강제. 바이트 */
+    storageLimitBytes: { type: Number, default: null },
+    usedBytes: { type: Number, default: 0 },
+    usageSyncedAt: { type: Date, default: null },
+    /** 100GiB당 요금(원). 기본 10,000 */
+    unitPrice: { type: Number, default: 10_000 },
+  },
+  { _id: false }
+);
+
+const academyPlanCtrlSchema = mongoose.Schema(
+  {
+    enabled: { type: Boolean, default: false },
+    /** null = 미강제. 1토큰 단위 */
+    tokenLimit: { type: Number, default: null },
+    usedTokens: { type: Number, default: 0 },
+    /** Asia/Seoul YYYY-MM. 없으면 다음 저장 때 이번 달로 기록 */
+    usageMonth: { type: String, default: null },
+    /** 월 1억 토큰당 요금(원). 기본 10,000 */
+    unitPrice: { type: Number, default: 10_000 },
+  },
+  { _id: false }
+);
+
+const academyPlansSchema = mongoose.Schema(
+  {
+    alt: { type: academyPlanAltSchema, default: () => ({}) },
+    shift: { type: academyPlanShiftSchema, default: () => ({}) },
+    ctrl: { type: academyPlanCtrlSchema, default: () => ({}) },
+  },
+  { _id: false }
+);
+
 const aiUsageLimitsSchema = mongoose.Schema(
   {
     enabled: { type: Boolean, default: false },
@@ -95,6 +143,10 @@ const academySchema = mongoose.Schema(
     aiUsageLimits: {
       type: aiUsageLimitsSchema,
       default: () => ({ enabled: false, dailyUserAlts: 0 }),
+    },
+    plans: {
+      type: academyPlansSchema,
+      default: () => ({}),
     },
   },
   { timestamps: true }
