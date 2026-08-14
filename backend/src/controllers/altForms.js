@@ -5,7 +5,7 @@
  */
 import crypto from "crypto";
 import { logger } from "../log/logger.js";
-import { AltForm, AltSheet, AltSheetOpen, AltSheetRow, Board, CalendarEvent } from "../models/index.js";
+import { AltForm, AltFormFavorite, AltSheet, AltSheetOpen, AltSheetRow, Board, CalendarEvent } from "../models/index.js";
 import { canManageForm, canModifyForm, getAltBoardRole, hasSubmittedForList, resolveUnreadResponseCount, validateExclusiveFormModes, applyWeekdayScheduleNormalize, isWeekdayScheduleEnabled, isInOccurrenceWindow, hasSubmittedCurrentOccurrence, getEffectiveTodoCloseAt, isFormMember, canViewAllRows, normalizeFormAccess, resolveFormMemberUsers, estimateWeekdayOccurrenceCount } from "../services/altForms.js";
 import { cloneAltFormToBoard } from "../services/altFormClone.js";
 import { isBoardNotificationEnabled } from "../services/notifications.js";
@@ -108,7 +108,7 @@ const enrichFormsWithListMeta = async (
 
   const formIds = forms.map((f) => f._id);
 
-  const [countAgg, myRows, opens] = await Promise.all([
+  const [countAgg, myRows, opens, favorites] = await Promise.all([
     includeResponseCount
       ? AltSheetRow(academyId).aggregate([
           {
@@ -135,7 +135,15 @@ const enrichFormsWithListMeta = async (
           .select("form lastOpenedAt")
           .lean()
       : Promise.resolve([]),
+    AltFormFavorite(academyId)
+      .find({ user: userId, form: { $in: formIds } })
+      .select("form")
+      .lean(),
   ]);
+
+  const favoritedFormIds = new Set(
+    (favorites || []).map((f) => f.form.toString())
+  );
 
   const countByForm = new Map(
     countAgg.map((r) => [r._id.toString(), r.count])
@@ -186,6 +194,7 @@ const enrichFormsWithListMeta = async (
     const effectiveClose = getEffectiveTodoCloseAt(plain, now);
     const meta = {
       ...plain,
+      isFavorited: favoritedFormIds.has(id),
       mySubmitted: hasSubmittedForList(plain, submittedRows),
       myResponseCount: submittedRows.length,
       myDraftCount: draftRows.length,
@@ -683,6 +692,8 @@ export const remove = async (req, res) => {
     syncFormCalendar(req.user.academyId, form, board, req.user).catch((err) =>
       logger.error(`Form calendar sync failed: ${err.message}`)
     );
+
+    await AltFormFavorite(req.user.academyId).deleteMany({ form: form._id });
 
     return res.status(200).send();
   } catch (err) {

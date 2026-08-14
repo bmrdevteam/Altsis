@@ -301,7 +301,6 @@
   flex: 1;
 }
 
-// Input area
 .input_area {
   display: flex;
   align-items: flex-end;
@@ -309,92 +308,6 @@
   padding: 8px 12px;
   border-top: var(--border-default);
   background-color: var(--background-color);
-
-  .input_bar {
-    flex: 1;
-    display: flex;
-    align-items: flex-end;
-    gap: 4px;
-    background-color: var(--component-color, #f1f3f4);
-    border-radius: 24px;
-    padding: 4px 4px 4px 12px;
-    transition: background-color 0.15s;
-
-    &:focus-within {
-      background-color: var(--background-color);
-      box-shadow: 0 0 0 1px var(--accent-3);
-    }
-  }
-}
-
-.attach_btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 6px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  color: var(--accent-3);
-  transition: all 0.15s;
-
-  &:hover {
-    background-color: var(--component-color);
-    color: var(--accent-1);
-  }
-}
-
-.text_input {
-  flex: 1;
-  resize: none;
-  border: none;
-  background: transparent;
-  padding: 6px 0;
-  font-size: 14px;
-  outline: none;
-  font-family: inherit;
-  line-height: 1.4;
-  min-height: 32px;
-  max-height: 100px;
-  overflow-y: auto;
-  color: var(--accent-1);
-
-  &::placeholder {
-    color: var(--accent-3);
-  }
-}
-
-.send_btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 6px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: background-color 0.15s;
-
-  svg {
-    fill: var(--accent-3);
-    transition: fill 0.15s;
-  }
-
-  &.active svg {
-    fill: var(--accent-1);
-  }
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.4;
-  }
-
-  &:hover:not(:disabled) {
-    background-color: var(--component-color);
-  }
 }
 
 // File preview modal

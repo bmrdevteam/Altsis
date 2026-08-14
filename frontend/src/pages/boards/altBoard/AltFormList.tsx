@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import style from "./altBoard.module.scss";
+import bStyle from "../boards.module.scss";
 import { TAltForm } from "types/altForm";
 import { TAltBoardRole, TBoard } from "types/board";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
@@ -11,9 +12,11 @@ import Svg from "assets/svg/Svg";
 import CombinationGenerator from "./CombinationGenerator";
 import PendingApprovalsPanel from "./PendingApprovalsPanel";
 import ActivityListFilterBar, {
+  TActivityListSort,
   TActivityViewCounts,
   TActivityViewFilter,
 } from "./ActivityListFilterBar";
+import { sortFormsForList } from "./activityListSort";
 import {
   getActivityBadgeLabel,
   getActivityPeriodKind,
@@ -95,14 +98,25 @@ const formatDateTime = (dateStr: string) =>
     minute: "2-digit",
   });
 
-const submitSortRank = (form: TAltForm): number => {
-  const period = getActivityPeriodKind(form);
-  const submitted = !!form.mySubmitted;
-  const required = form.settings?.requiredMode === true;
-  if (!submitted && period === "open" && required) return 0;
-  if (period === "scheduled") return 1;
-  if (submitted && period !== "closed") return 2;
-  return 3; // closed / optional unsubmitted
+const ACTIVITY_LIST_SORT_KEY = "activityListSort";
+const VALID_ACTIVITY_LIST_SORTS: TActivityListSort[] = [
+  "default",
+  "title",
+  "updatedAt",
+  "createdAt",
+  "closeAt",
+  "openAt",
+];
+
+const readStoredActivityListSort = (): TActivityListSort => {
+  try {
+    const stored = localStorage.getItem(
+      ACTIVITY_LIST_SORT_KEY
+    ) as TActivityListSort;
+    return VALID_ACTIVITY_LIST_SORTS.includes(stored) ? stored : "default";
+  } catch {
+    return "default";
+  }
 };
 
 const LEAD_TONE_CLASS: Record<TActivityLeadTone, string> = {
@@ -143,7 +157,7 @@ const AltFormList = ({
   onPendingApprovalCountChange,
   onGradeTodoCountChange,
 }: Props) => {
-  const { AltFormAPI, AltSheetRowAPI } = useAPIv2();
+  const { AltFormAPI, AltFormFavoriteAPI, AltSheetRowAPI } = useAPIv2();
   const { currentSchool, currentRegistration, currentSeason } = useAuth();
 
   const [comboForm, setComboForm] = useState<TAltForm | null>(null);
@@ -153,6 +167,12 @@ const AltFormList = ({
   const [approvalsSettled, setApprovalsSettled] = useState(false);
   const [activityKeyword, setActivityKeyword] = useState("");
   const [viewFilter, setViewFilter] = useState<TActivityViewFilter>("");
+  const [activityListSort, setActivityListSort] = useState<TActivityListSort>(
+    readStoredActivityListSort
+  );
+  const [pinOverrides, setPinOverrides] = useState<Record<string, boolean>>(
+    {}
+  );
   const [approvalTodoCounts, setApprovalTodoCounts] = useState({
     approve: 0,
     outgoing: 0,
@@ -165,6 +185,7 @@ const AltFormList = ({
 
   useEffect(() => {
     setApprovalsSettled(false);
+    setPinOverrides({});
   }, [board._id]);
 
   // 채점 대기(학교 할 일과 동일 소스) — 이 보드분만 표시
@@ -226,7 +247,7 @@ const AltFormList = ({
   /** 활동 목록: 할 일(미제출) 제외. 제출 권한만 있으면 마감도 제외(열람 가능한 기록은 유지) */
   const activityForms = useMemo(() => {
     if (!myRole) return [];
-    const list = (canManage ? forms : submitForms).filter((f) => {
+    return (canManage ? forms : submitForms).filter((f) => {
       if (todoUnsubmittedIds.has(f._id)) return false;
       if (!canManage && getActivityPeriodKind(f) === "closed") {
         const canViewSheet =
@@ -234,12 +255,6 @@ const AltFormList = ({
         if (!canViewSheet) return false;
       }
       return true;
-    });
-    return list.sort((a, b) => {
-      const aDirect = a.settings.directInputMode ? 1 : 0;
-      const bDirect = b.settings.directInputMode ? 1 : 0;
-      if (aDirect !== bDirect) return aDirect - bDirect;
-      return submitSortRank(a) - submitSortRank(b);
     });
   }, [forms, myRole, canManage, submitForms, todoUnsubmittedIds]);
 
@@ -283,6 +298,41 @@ const AltFormList = ({
       formMatchesStatus(f, viewFilter)
     );
   }, [showActivity, viewFilter, keywordActivityForms]);
+
+  const pinnedIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const f of forms) {
+      const overridden = pinOverrides[f._id];
+      if (overridden !== undefined ? overridden : !!f.isFavorited) {
+        ids.add(f._id);
+      }
+    }
+    return ids;
+  }, [forms, pinOverrides]);
+
+  const sortedActivityForms = useMemo(
+    () =>
+      sortFormsForList(filteredActivityForms, activityListSort, pinnedIds),
+    [filteredActivityForms, activityListSort, pinnedIds]
+  );
+
+  const pinnedActivityForms = useMemo(
+    () => sortedActivityForms.filter((f) => pinnedIds.has(f._id)),
+    [sortedActivityForms, pinnedIds]
+  );
+  const unpinnedActivityForms = useMemo(
+    () => sortedActivityForms.filter((f) => !pinnedIds.has(f._id)),
+    [sortedActivityForms, pinnedIds]
+  );
+
+  const handleActivityListSortChange = (value: TActivityListSort) => {
+    setActivityListSort(value);
+    try {
+      localStorage.setItem(ACTIVITY_LIST_SORT_KEY, value);
+    } catch {
+      // ignore quota / private mode
+    }
+  };
 
   const viewCounts: TActivityViewCounts = useMemo(() => {
     const statusKeys = [
@@ -423,6 +473,30 @@ const AltFormList = ({
     }
   };
 
+  const handleTogglePin = async (form: TAltForm) => {
+    const schoolId = board.school || currentSchool?._id;
+    if (!schoolId) return;
+    const next = !pinnedIds.has(form._id);
+    try {
+      if (next) {
+        await AltFormFavoriteAPI.CAltFormFavorite({
+          data: {
+            form: form._id,
+            board: board._id,
+            school: schoolId,
+          },
+        });
+      } else {
+        await AltFormFavoriteAPI.DAltFormFavoriteByForm({
+          params: { formId: form._id },
+        });
+      }
+      setPinOverrides((prev) => ({ ...prev, [form._id]: next }));
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+  };
+
   const hasPreRegFields = (form: TAltForm) =>
     form.fields.filter(
       (f) =>
@@ -455,13 +529,14 @@ const AltFormList = ({
     const showManageMenu = canManage;
 
     const statusVisual = getActivityStatusVisual(form);
+    const pinned = pinnedIds.has(form._id);
 
     return (
       <div
         key={form._id}
         className={`${style.formCard} ${
           actionMenu === form._id ? style.formCardMenuOpen : ""
-        }`}
+        } ${pinned ? bStyle.boardFormCardPinned : ""}`}
       >
         <div className={style.formCardMain}>
           <div
@@ -520,6 +595,21 @@ const AltFormList = ({
           </div>
         </div>
         <div className={style.formCardRight} style={{ position: "relative" }}>
+          <button
+            type="button"
+            className={`${style.formCardIconBtn} ${
+              pinned ? bStyle.pinIconActive : ""
+            }`}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleTogglePin(form);
+            }}
+            title={pinned ? "고정 해제" : "상단에 고정"}
+            aria-label={pinned ? "고정 해제" : "상단에 고정"}
+            aria-pressed={pinned}
+          >
+            <Svg type="pin" width="16px" height="16px" />
+          </button>
           {showRespond && (
             <button
               type="button"
@@ -700,6 +790,8 @@ const AltFormList = ({
       <ActivityListFilterBar
         keyword={activityKeyword}
         onKeywordChange={setActivityKeyword}
+        sortBy={activityListSort}
+        onSortByChange={handleActivityListSortChange}
         viewFilter={viewFilter}
         onViewFilterChange={setViewFilter}
         counts={viewCounts}
@@ -842,7 +934,38 @@ const AltFormList = ({
             </div>
           ) : (
             <div className={style.formCardList}>
-              {filteredActivityForms.map(renderActivityCard)}
+              {pinnedActivityForms.length > 0 && (
+                <div className={bStyle.boardListSection}>
+                  <div
+                    className={bStyle.boardListSectionHeader}
+                    role="heading"
+                    aria-level={4}
+                  >
+                    <span
+                      className={bStyle.boardListSectionHeaderPin}
+                      aria-hidden
+                    >
+                      <Svg type="pin" width="12px" height="12px" />
+                    </span>
+                    고정 · {pinnedActivityForms.length}
+                  </div>
+                  {pinnedActivityForms.map(renderActivityCard)}
+                </div>
+              )}
+              {unpinnedActivityForms.length > 0 && (
+                <div className={bStyle.boardListSection}>
+                  {pinnedActivityForms.length > 0 && (
+                    <div
+                      className={bStyle.boardListSectionHeader}
+                      role="heading"
+                      aria-level={4}
+                    >
+                      전체 · {unpinnedActivityForms.length}
+                    </div>
+                  )}
+                  {unpinnedActivityForms.map(renderActivityCard)}
+                </div>
+              )}
             </div>
           )}
         </div>
