@@ -564,7 +564,8 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
     } else if (rendererFormId) {
       content = (
         <AltFormRenderer
-          key={`${rendererFormId}-${rendererMode}`}
+          // 같은 양식에서 작성/내 응답만 바꿀 때는 초안(재사용·수정)을 유지
+          key={rendererFormId}
           board={board}
           formId={rendererFormId}
           onBack={handleBackToList}
