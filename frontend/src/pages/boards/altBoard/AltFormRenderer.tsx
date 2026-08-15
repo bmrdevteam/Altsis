@@ -1036,7 +1036,7 @@ const AltFormRenderer = ({
         if (disabled) {
           return (
             <div className={style.contentFieldBody}>
-              <MarkdownViewer content={docValue} />
+              <MarkdownViewer content={docValue} allowHtmlApp />
               {resources}
             </div>
           );

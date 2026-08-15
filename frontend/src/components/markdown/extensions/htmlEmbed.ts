@@ -1,4 +1,31 @@
 import { Node } from "@tiptap/core";
+import { createRoot, type Root } from "react-dom/client";
+import { createElement } from "react";
+import CanvasEditor, {
+  type CanvasEditorSubmit,
+} from "../canvas/CanvasEditor";
+import {
+  attrsFromPayload,
+  CANVAS_IFRAME_SANDBOX,
+  parseCanvasContent,
+  payloadFromAttrs,
+  serializeCanvasPayload,
+  serializeCodeEmbed,
+  shouldSerializeAsCanvas,
+  srcDocFromCodeAttrs,
+  type CanvasPayload,
+} from "../canvas/canvasModel";
+
+export interface HtmlEmbedAttrs {
+  embedType: "code" | "url";
+  content: string;
+  height: number;
+  title?: string;
+  html?: string;
+  css?: string;
+  javascript?: string;
+  editing?: boolean;
+}
 
 export interface HtmlEmbedOptions {
   maxInlineSize: number; // bytes
@@ -9,18 +36,64 @@ declare module "@tiptap/core" {
     htmlEmbed: {
       setHtmlEmbed: (options: {
         embedType: "code" | "url";
-        content: string;
+        content?: string;
         height?: number;
+        title?: string;
+        html?: string;
+        css?: string;
+        javascript?: string;
+        editing?: boolean;
       }) => ReturnType;
+      updateHtmlEmbed: (
+        pos: number,
+        attrs: Partial<HtmlEmbedAttrs>
+      ) => ReturnType;
     };
   }
 }
 
 const MAX_INLINE_SIZE = 100 * 1024; // 100KB
 const MIN_HEIGHT = 200;
+const AUTO_HEIGHT_PX = 500;
+
+function normalizeCodeAttrs(options: {
+  content?: string;
+  height?: number;
+  title?: string;
+  html?: string;
+  css?: string;
+  javascript?: string;
+}): HtmlEmbedAttrs {
+  const height = options.height ?? 0;
+  const hasSplit =
+    options.html != null ||
+    options.css != null ||
+    options.javascript != null;
+  const payload: CanvasPayload = hasSplit
+    ? {
+        v: 1,
+        ...(options.title?.trim() ? { title: options.title.trim() } : {}),
+        html: options.html ?? "",
+        css: options.css ?? "",
+        javascript: options.javascript ?? "",
+      }
+    : parseCanvasContent(options.content || "");
+  if (!payload.title && options.title?.trim()) {
+    payload.title = options.title.trim();
+  }
+  return attrsFromPayload(payload, height);
+}
+
+function codeSrcDoc(attrs: HtmlEmbedAttrs): string {
+  return srcDocFromCodeAttrs(attrs);
+}
 
 /** 전체보기 오버레이 (에디터/뷰어 공용) */
-export function openFullscreen(embedType: "code" | "url", content: string) {
+export function openFullscreen(
+  embedType: "code" | "url",
+  content: string,
+  onClose?: () => void
+): { update: (next: string) => void; close: () => void } {
   const overlay = document.createElement("div");
   overlay.className = "embed-fullscreen-overlay";
 
@@ -28,13 +101,15 @@ export function openFullscreen(embedType: "code" | "url", content: string) {
   closeBtn.type = "button";
   closeBtn.className = "embed-fullscreen-close";
   closeBtn.title = "닫기 (ESC)";
+  closeBtn.setAttribute("aria-label", "전체 보기 닫기");
   closeBtn.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
     <path d="M18.3 5.71a1 1 0 0 0-1.41 0L12 10.59 7.11 5.7A1 1 0 0 0 5.7 7.11L10.59 12 5.7 16.89a1 1 0 1 0 1.41 1.41L12 13.41l4.89 4.89a1 1 0 0 0 1.41-1.41L13.41 12l4.89-4.89a1 1 0 0 0 0-1.4z"/>
   </svg>`;
 
   const iframe = document.createElement("iframe");
-  iframe.setAttribute("sandbox", "allow-scripts allow-same-origin");
+  iframe.setAttribute("sandbox", CANVAS_IFRAME_SANDBOX);
   iframe.className = "embed-fullscreen-iframe";
+  iframe.title = "캔버스 전체 보기";
   if (embedType === "url") {
     iframe.src = content;
   } else {
@@ -44,6 +119,7 @@ export function openFullscreen(embedType: "code" | "url", content: string) {
   const close = () => {
     document.removeEventListener("keydown", onEsc);
     overlay.remove();
+    onClose?.();
   };
 
   const onEsc = (e: KeyboardEvent) => {
@@ -59,6 +135,17 @@ export function openFullscreen(embedType: "code" | "url", content: string) {
   overlay.appendChild(iframe);
   overlay.appendChild(closeBtn);
   document.body.appendChild(overlay);
+
+  return {
+    update: (next: string) => {
+      if (embedType === "url") {
+        iframe.src = next;
+      } else {
+        iframe.srcdoc = next;
+      }
+    },
+    close,
+  };
 }
 
 export const HtmlEmbed = Node.create<HtmlEmbedOptions>({
@@ -77,6 +164,11 @@ export const HtmlEmbed = Node.create<HtmlEmbedOptions>({
       embedType: { default: "code" },
       content: { default: "" },
       height: { default: 0 }, // 0 = 자동
+      title: { default: "" },
+      html: { default: "" },
+      css: { default: "" },
+      javascript: { default: "" },
+      editing: { default: false, rendered: false },
     };
   },
 
@@ -86,23 +178,35 @@ export const HtmlEmbed = Node.create<HtmlEmbedOptions>({
         tag: "div[data-html-embed]",
         getAttrs: (dom) => {
           const el = dom as HTMLElement;
-          const embedType = el.getAttribute("data-embed-type") || "code";
+          const embedType =
+            (el.getAttribute("data-embed-type") as "code" | "url") || "code";
           const raw = el.getAttribute("data-embed-content") || "";
           const content = embedType === "code" ? safeAtob(raw) : raw;
           const height = parseInt(
             el.getAttribute("data-embed-height") || "0",
             10
           );
-          return { embedType, content, height: height || 0 };
+          if (embedType === "url") {
+            return { embedType, content, height: height || 0 };
+          }
+          return normalizeCodeAttrs({ content, height: height || 0 });
         },
       },
     ];
   },
 
   renderHTML({ HTMLAttributes }) {
-    const { embedType, content, height } = HTMLAttributes;
+    const attrs = HTMLAttributes as HtmlEmbedAttrs;
+    const { embedType, height } = attrs;
+    const payload = embedType === "code" ? payloadFromAttrs(attrs) : null;
     const encodedContent =
-      embedType === "code" ? safeBtoa(content) : content;
+      embedType === "code" && payload
+        ? safeBtoa(
+            shouldSerializeAsCanvas(payload)
+              ? serializeCanvasPayload(payload)
+              : attrs.content || attrs.html || ""
+          )
+        : attrs.content;
     return [
       "div",
       {
@@ -114,7 +218,6 @@ export const HtmlEmbed = Node.create<HtmlEmbedOptions>({
     ];
   },
 
-  // tiptap-markdown 직렬화: HTML 대신 마크다운 형식으로 출력
   addStorage() {
     return {
       markdown: {
@@ -125,7 +228,7 @@ export const HtmlEmbed = Node.create<HtmlEmbedOptions>({
             state.write(`![embed${heightSuffix}](${node.attrs.content})`);
           } else {
             state.write(
-              `\`\`\`html-app${heightSuffix}\n${node.attrs.content}\n\`\`\``
+              serializeCodeEmbed(payloadFromAttrs(node.attrs), h || 0)
             );
           }
           state.closeBlock(node);
@@ -138,31 +241,86 @@ export const HtmlEmbed = Node.create<HtmlEmbedOptions>({
   },
 
   addNodeView() {
-    return ({ node, editor }) => {
-      // node attr 업데이트 헬퍼
-      const updateHeight = (newHeight: number) => {
-        iframe.style.height = `${newHeight}px`;
-        const pos = editor.view.posAtDOM(wrapper, 0);
-        if (pos != null) {
-          editor.view.dispatch(
-            editor.view.state.tr.setNodeMarkup(pos, undefined, {
-              ...node.attrs,
-              height: newHeight,
-            })
-          );
+    return ({ node, editor, getPos }) => {
+      let currentAttrs = { ...(node.attrs as HtmlEmbedAttrs) };
+      let previewVisible = true;
+      let editorFullscreen = false;
+      let fullscreenBackdrop: HTMLDivElement | null = null;
+
+      const resolvePos = (): number | null => {
+        if (typeof getPos !== "function") return null;
+        const pos = getPos();
+        return typeof pos === "number" ? pos : null;
+      };
+
+      const dispatchAttrs = (next: Partial<HtmlEmbedAttrs>) => {
+        const pos = resolvePos();
+        if (pos == null) return;
+        editor.view.dispatch(
+          editor.view.state.tr.setNodeMarkup(pos, undefined, {
+            ...currentAttrs,
+            ...next,
+          })
+        );
+      };
+
+      const applyIframeContent = () => {
+        iframe.title = currentAttrs.title?.trim() || "캔버스";
+        if (currentAttrs.embedType === "url") {
+          iframe.removeAttribute("srcdoc");
+          iframe.src = currentAttrs.content;
+        } else {
+          iframe.removeAttribute("src");
+          iframe.srcdoc = codeSrcDoc(currentAttrs);
         }
       };
 
+      const applyHeight = () => {
+        if (!editorFullscreen) {
+          if (currentAttrs.height > 0) {
+            iframe.style.height = `${currentAttrs.height}px`;
+          } else {
+            iframe.style.height = `${AUTO_HEIGHT_PX}px`;
+          }
+        }
+        heightInput.value = currentAttrs.height
+          ? String(currentAttrs.height)
+          : "";
+        presetGroup.querySelectorAll(".embed-toolbar-btn").forEach((b) => {
+          const value = Number((b as HTMLElement).dataset.height);
+          b.classList.toggle("active", currentAttrs.height === value);
+        });
+      };
+
+      const applyTitle = () => {
+        const title = currentAttrs.title?.trim() || "";
+        titleEl.textContent = title || "캔버스";
+        titleEl.title = title || "캔버스";
+        titleEl.hidden = currentAttrs.embedType === "url" && !title;
+      };
+
+      const updateHeight = (newHeight: number) => {
+        iframe.style.height = `${newHeight || AUTO_HEIGHT_PX}px`;
+        dispatchAttrs({ height: newHeight });
+        applyHeight();
+      };
+
+      const shell = document.createElement("div");
+      shell.className = "embed-shell";
+      shell.style.width = "100%";
+      shell.style.marginBottom = "16px";
+
       const wrapper = document.createElement("div");
+      wrapper.className = "embed-frame";
       wrapper.style.position = "relative";
       wrapper.style.width = "100%";
       wrapper.style.minHeight = `${MIN_HEIGHT}px`;
       wrapper.style.borderRadius = "8px";
       wrapper.style.overflow = "hidden";
       wrapper.style.border = "1px solid var(--border-default-color)";
-      wrapper.style.marginBottom = "16px";
+      wrapper.style.display = "flex";
+      wrapper.style.flexDirection = "column";
 
-      // === 높이 조절 툴바 ===
       const toolbar = document.createElement("div");
       toolbar.className = "embed-toolbar";
 
@@ -181,34 +339,14 @@ export const HtmlEmbed = Node.create<HtmlEmbedOptions>({
         btn.type = "button";
         btn.className = "embed-toolbar-btn";
         btn.textContent = label;
-        if (node.attrs.height === value) {
+        btn.dataset.height = String(value);
+        if (currentAttrs.height === value) {
           btn.classList.add("active");
         }
         btn.addEventListener("click", (e) => {
           e.preventDefault();
           e.stopPropagation();
-          // 활성 상태 업데이트
-          presetGroup
-            .querySelectorAll(".embed-toolbar-btn")
-            .forEach((b) => b.classList.remove("active"));
-          btn.classList.add("active");
-          heightInput.value = value ? String(value) : "";
-          if (value === 0) {
-            // 자동: 높이 제거 후 iframe 자동 조절
-            iframe.style.height = "";
-            const pos = editor.view.posAtDOM(wrapper, 0);
-            if (pos != null) {
-              editor.view.dispatch(
-                editor.view.state.tr.setNodeMarkup(pos, undefined, {
-                  ...node.attrs,
-                  height: 0,
-                })
-              );
-            }
-            autoResizeIframe();
-          } else {
-            updateHeight(value);
-          }
+          updateHeight(value);
         });
         presetGroup.appendChild(btn);
       });
@@ -221,14 +359,14 @@ export const HtmlEmbed = Node.create<HtmlEmbedOptions>({
       heightInput.className = "embed-height-input";
       heightInput.placeholder = "높이(px)";
       heightInput.min = String(MIN_HEIGHT);
-      heightInput.value = node.attrs.height ? String(node.attrs.height) : "";
+      heightInput.setAttribute("aria-label", "캔버스 높이");
+      heightInput.value = currentAttrs.height
+        ? String(currentAttrs.height)
+        : "";
       heightInput.addEventListener("change", (e) => {
         e.stopPropagation();
         const val = parseInt(heightInput.value, 10);
         if (val >= MIN_HEIGHT) {
-          presetGroup
-            .querySelectorAll(".embed-toolbar-btn")
-            .forEach((b) => b.classList.remove("active"));
           updateHeight(val);
         }
       });
@@ -246,62 +384,107 @@ export const HtmlEmbed = Node.create<HtmlEmbedOptions>({
       heightInputWrapper.appendChild(heightInput);
       heightInputWrapper.appendChild(pxLabel);
 
-      // 전체보기 버튼
+      const titleEl = document.createElement("span");
+      titleEl.className = "embed-toolbar-title";
+      applyTitle();
+
+      const actionGroup = document.createElement("div");
+      actionGroup.className = "embed-toolbar-group embed-toolbar-actions";
+
+      const editBtn = document.createElement("button");
+      editBtn.type = "button";
+      editBtn.className = "embed-toolbar-btn embed-toolbar-icon";
+      editBtn.title = "캔버스 에디터";
+      editBtn.setAttribute("aria-label", "캔버스 에디터");
+      editBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+      </svg>`;
+      editBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setEditing(!currentAttrs.editing);
+      });
+
+      const cloneBtn = document.createElement("button");
+      cloneBtn.type = "button";
+      cloneBtn.className = "embed-toolbar-btn embed-toolbar-icon";
+      cloneBtn.title = "캔버스 복제";
+      cloneBtn.setAttribute("aria-label", "캔버스 복제");
+      cloneBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+      </svg>`;
+      cloneBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const pos = resolvePos();
+        if (pos == null) return;
+        const current = editor.state.doc.nodeAt(pos);
+        if (!current || current.type.name !== "htmlEmbed") return;
+        editor
+          .chain()
+          .insertContentAt(pos + current.nodeSize, {
+            type: "htmlEmbed",
+            attrs: { ...current.attrs, editing: false },
+          })
+          .run();
+      });
+
+      const previewBtn = document.createElement("button");
+      previewBtn.type = "button";
+      previewBtn.className = "embed-toolbar-btn embed-toolbar-icon";
+      previewBtn.title = "미리보기 끄기";
+      previewBtn.setAttribute("aria-label", "미리보기 끄기");
+      previewBtn.setAttribute("aria-pressed", "true");
+      previewBtn.hidden = true;
+      previewBtn.style.display = "none";
+      previewBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 6c3.79 0 7.17 2.13 8.82 5.5C19.17 14.87 15.79 17 12 17s-7.17-2.13-8.82-5.5C4.83 8.13 8.21 6 12 6m0-2C7 4 2.73 7.11 1 11.5 2.73 15.89 7 19 12 19s9.27-3.11 11-7.5C21.27 7.11 17 4 12 4zm0 5a2.5 2.5 0 0 1 0 5 2.5 2.5 0 0 1 0-5m0-2c-2.48 0-4.5 2.02-4.5 4.5S9.52 16 12 16s4.5-2.02 4.5-4.5S14.48 7 12 7z"/>
+      </svg>`;
+      previewBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setPreviewVisible(!previewVisible);
+      });
+
       const fullscreenBtn = document.createElement("button");
       fullscreenBtn.type = "button";
       fullscreenBtn.className = "embed-toolbar-btn embed-toolbar-icon";
-      fullscreenBtn.title = "전체 보기";
+      fullscreenBtn.title = "에디터 전체화면";
+      fullscreenBtn.setAttribute("aria-label", "에디터 전체화면");
       fullscreenBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
         <path d="M1.5 1a.5.5 0 0 0-.5.5v4a.5.5 0 0 1-1 0v-4A1.5 1.5 0 0 1 1.5 0h4a.5.5 0 0 1 0 1h-4zM10 .5a.5.5 0 0 1 .5-.5h4A1.5 1.5 0 0 1 16 1.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 1-.5-.5zM.5 10a.5.5 0 0 1 .5.5v4a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 0 14.5v-4a.5.5 0 0 1 .5-.5zm15 0a.5.5 0 0 1 .5.5v4a1.5 1.5 0 0 1-1.5 1.5h-4a.5.5 0 0 1 0-1h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 1 .5-.5z"/>
       </svg>`;
       fullscreenBtn.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
-        openFullscreen(node.attrs.embedType, node.attrs.content);
+        if (currentAttrs.embedType === "url") {
+          openFullscreen("url", currentAttrs.content);
+          return;
+        }
+        setEditorFullscreen(!editorFullscreen);
       });
+
+      if (editor.isEditable && currentAttrs.embedType !== "url") {
+        actionGroup.appendChild(editBtn);
+        actionGroup.appendChild(previewBtn);
+      }
+      actionGroup.appendChild(cloneBtn);
+      actionGroup.appendChild(fullscreenBtn);
 
       toolbar.appendChild(presetGroup);
       toolbar.appendChild(heightInputWrapper);
-      toolbar.appendChild(fullscreenBtn);
+      toolbar.appendChild(titleEl);
+      toolbar.appendChild(actionGroup);
 
-      // === iframe ===
       const iframe = document.createElement("iframe");
-      iframe.setAttribute("sandbox", "allow-scripts allow-same-origin");
+      iframe.setAttribute("sandbox", CANVAS_IFRAME_SANDBOX);
       iframe.style.width = "100%";
       iframe.style.minHeight = `${MIN_HEIGHT}px`;
       iframe.style.border = "none";
       iframe.style.display = "block";
+      applyIframeContent();
+      applyHeight();
 
-      // 저장된 높이가 있으면 적용
-      if (node.attrs.height > 0) {
-        iframe.style.height = `${node.attrs.height}px`;
-      }
-
-      if (node.attrs.embedType === "url") {
-        iframe.src = node.attrs.content;
-      } else {
-        iframe.srcdoc = node.attrs.content;
-      }
-
-      // iframe 높이 자동 조절
-      const autoResizeIframe = () => {
-        try {
-          const body = iframe.contentDocument?.body;
-          if (body) {
-            const h = body.scrollHeight;
-            iframe.style.height = `${Math.min(h + 16, 600)}px`;
-          }
-        } catch {
-          iframe.style.height = "400px";
-        }
-      };
-
-      // 저장된 높이가 없을 때만 자동 조절
-      if (!node.attrs.height) {
-        iframe.addEventListener("load", autoResizeIframe);
-      }
-
-      // === 리사이즈 핸들 ===
       const resizeHandle = document.createElement("div");
       resizeHandle.className = "embed-resize-handle";
       resizeHandle.title = "드래그하여 높이 조절";
@@ -336,10 +519,6 @@ export const HtmlEmbed = Node.create<HtmlEmbedOptions>({
             MIN_HEIGHT,
             Math.round(startHeight + (ev.clientY - startY))
           );
-          heightInput.value = String(finalHeight);
-          presetGroup
-            .querySelectorAll(".embed-toolbar-btn")
-            .forEach((b) => b.classList.remove("active"));
           updateHeight(finalHeight);
         };
 
@@ -347,17 +526,185 @@ export const HtmlEmbed = Node.create<HtmlEmbedOptions>({
         document.addEventListener("mouseup", onMouseUp);
       });
 
+      const editorMount = document.createElement("div");
+      editorMount.className = "canvas-inline-editor";
+      editorMount.style.display = "none";
+
+      let reactRoot: Root | null = null;
+
+      const applyCodeAttrs = (value: CanvasEditorSubmit) => {
+        const code = normalizeCodeAttrs({
+          title: value.title,
+          html: value.html,
+          css: value.css,
+          javascript: value.javascript,
+          height: currentAttrs.height,
+        });
+        dispatchAttrs({
+          ...code,
+          title: code.title || "",
+        });
+      };
+
+      const mountEditor = () => {
+        if (reactRoot) return;
+        editorMount.style.display = "flex";
+        editorMount.style.flexDirection = "column";
+        editBtn.classList.add("active");
+        reactRoot = createRoot(editorMount);
+        reactRoot.render(
+          createElement(CanvasEditor, {
+            initial: currentAttrs,
+            onLiveChange: applyCodeAttrs,
+            onSubmit: (value) => {
+              applyCodeAttrs(value);
+              setEditing(false);
+            },
+          })
+        );
+        applyPreviewVisibility();
+      };
+
+      const setEditing = (editing: boolean) => {
+        if (editing) mountEditor();
+        else unmountEditor();
+        dispatchAttrs({ editing });
+      };
+
+      const unmountEditor = () => {
+        if (reactRoot) {
+          reactRoot.unmount();
+          reactRoot = null;
+        }
+        editorMount.style.display = "none";
+        editBtn.classList.remove("active");
+        applyPreviewVisibility();
+        if (editorFullscreen) setEditorFullscreen(false);
+      };
+
+      const applyPreviewVisibility = () => {
+        const editing = reactRoot != null;
+        previewBtn.hidden = !editing;
+        previewBtn.style.display = editing ? "" : "none";
+        const showIframe = !editing || previewVisible;
+        iframe.style.display = showIframe ? "block" : "none";
+        resizeHandle.style.display =
+          showIframe && !editorFullscreen ? "block" : "none";
+        previewBtn.classList.toggle("is-on", previewVisible);
+        previewBtn.setAttribute("aria-pressed", previewVisible ? "true" : "false");
+        previewBtn.title = previewVisible ? "미리보기 끄기" : "미리보기 켜기";
+        previewBtn.setAttribute(
+          "aria-label",
+          previewVisible ? "미리보기 끄기" : "미리보기 켜기"
+        );
+      };
+
+      const onFullscreenEsc = (e: KeyboardEvent) => {
+        if (e.key === "Escape" && editorFullscreen) {
+          e.preventDefault();
+          setEditorFullscreen(false);
+        }
+      };
+
+      const setPreviewVisible = (visible: boolean) => {
+        previewVisible = visible;
+        applyPreviewVisibility();
+      };
+
+      const setEditorFullscreen = (on: boolean) => {
+        if (on === editorFullscreen) return;
+        editorFullscreen = on;
+        wrapper.classList.toggle("embed-editor-fullscreen", on);
+        fullscreenBtn.classList.toggle("is-on", on);
+        fullscreenBtn.title = on ? "전체화면 닫기" : "에디터 전체화면";
+        fullscreenBtn.setAttribute(
+          "aria-label",
+          on ? "전체화면 닫기" : "에디터 전체화면"
+        );
+
+        if (on) {
+          shell.style.minHeight = `${wrapper.getBoundingClientRect().height}px`;
+          if (!fullscreenBackdrop) {
+            fullscreenBackdrop = document.createElement("div");
+            fullscreenBackdrop.className = "embed-editor-fullscreen-backdrop";
+            fullscreenBackdrop.addEventListener("click", () => {
+              setEditorFullscreen(false);
+            });
+            document.body.appendChild(fullscreenBackdrop);
+          }
+          if (
+            editor.isEditable &&
+            currentAttrs.embedType !== "url" &&
+            !currentAttrs.editing
+          ) {
+            setEditing(true);
+          }
+          document.addEventListener("keydown", onFullscreenEsc);
+        } else {
+          shell.style.minHeight = "";
+          fullscreenBackdrop?.remove();
+          fullscreenBackdrop = null;
+          document.removeEventListener("keydown", onFullscreenEsc);
+          iframe.style.height = "";
+          applyHeight();
+        }
+        applyPreviewVisibility();
+        window.requestAnimationFrame(() => {
+          window.dispatchEvent(new Event("resize"));
+        });
+      };
+
       wrapper.appendChild(toolbar);
+      wrapper.appendChild(editorMount);
       wrapper.appendChild(iframe);
       wrapper.appendChild(resizeHandle);
+      shell.appendChild(wrapper);
+      applyPreviewVisibility();
+
+      if (
+        editor.isEditable &&
+        currentAttrs.editing &&
+        currentAttrs.embedType !== "url"
+      ) {
+        mountEditor();
+      }
 
       return {
-        dom: wrapper,
-        // 툴바 내 input/button 이벤트를 ProseMirror가 가로채지 않도록
-        stopEvent: (event: Event) => {
-          const target = event.target as HTMLElement;
-          return toolbar.contains(target);
+        dom: shell,
+        update: (updatedNode) => {
+          if (updatedNode.type.name !== "htmlEmbed") return false;
+          const next = updatedNode.attrs as HtmlEmbedAttrs;
+          const wasEditing = Boolean(currentAttrs.editing);
+          const srcChanged =
+            next.embedType !== currentAttrs.embedType ||
+            next.content !== currentAttrs.content ||
+            next.html !== currentAttrs.html ||
+            next.css !== currentAttrs.css ||
+            next.javascript !== currentAttrs.javascript ||
+            next.title !== currentAttrs.title;
+          currentAttrs = { ...next };
+          if (srcChanged) applyIframeContent();
+          applyHeight();
+          applyTitle();
+          const nowEditing = Boolean(next.editing);
+          if (nowEditing !== wasEditing) {
+            if (nowEditing && next.embedType !== "url") mountEditor();
+            else unmountEditor();
+          }
+          return true;
         },
+        destroy: () => {
+          setEditorFullscreen(false);
+          unmountEditor();
+        },
+        stopEvent: (event: Event) => {
+          const target = event.target;
+          return (
+            target instanceof Element &&
+            (toolbar.contains(target) || editorMount.contains(target))
+          );
+        },
+        ignoreMutation: () => true,
       };
     };
   },
@@ -367,10 +714,52 @@ export const HtmlEmbed = Node.create<HtmlEmbedOptions>({
       setHtmlEmbed:
         (options) =>
         ({ commands }) => {
+          const attrs =
+            options.embedType === "url"
+              ? {
+                  embedType: "url" as const,
+                  content: options.content || "",
+                  height: options.height ?? 0,
+                  editing: false,
+                }
+              : {
+                  ...normalizeCodeAttrs(options),
+                  editing: options.editing ?? false,
+                };
           return commands.insertContent({
             type: this.name,
-            attrs: options,
+            attrs,
           });
+        },
+      updateHtmlEmbed:
+        (pos, attrs) =>
+        ({ tr, dispatch, state }) => {
+          const current = state.doc.nodeAt(pos);
+          if (!current || current.type.name !== "htmlEmbed") return false;
+          const nextType = attrs.embedType ?? current.attrs.embedType;
+          const next =
+            nextType === "url"
+              ? {
+                  ...current.attrs,
+                  ...attrs,
+                  embedType: "url" as const,
+                  editing: false,
+                }
+              : {
+                  ...normalizeCodeAttrs({
+                    content: attrs.content ?? current.attrs.content,
+                    height: attrs.height ?? current.attrs.height,
+                    title: attrs.title ?? current.attrs.title,
+                    html: attrs.html ?? current.attrs.html,
+                    css: attrs.css ?? current.attrs.css,
+                    javascript: attrs.javascript ?? current.attrs.javascript,
+                  }),
+                  editing: attrs.editing ?? current.attrs.editing ?? false,
+                };
+          if (dispatch) {
+            dispatch(tr.setNodeMarkup(pos, undefined, next));
+          }
+          return true;
         },
     };
   },

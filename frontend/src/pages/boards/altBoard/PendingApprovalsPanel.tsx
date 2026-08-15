@@ -430,7 +430,7 @@ const PendingApprovalsPanel = ({
     if (f.type === "docResponse" && val) {
       return (
         <div className={style.contentFieldBody}>
-          <MarkdownViewer content={String(val)} />
+          <MarkdownViewer content={String(val)} allowHtmlApp />
         </div>
       );
     }

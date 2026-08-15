@@ -632,7 +632,7 @@ const PostPid = ({
         )}
 
         <div ref={contentPrintRef} style={{ minHeight: "300px" }}>
-          <MarkdownViewer content={processedContent} />
+          <MarkdownViewer content={processedContent} allowHtmlApp />
         </div>
 
         {/* 첨부 (파일 + 설문) */}
