@@ -210,7 +210,7 @@ const PostStreamCard = ({
                 : ""
             }`}
           >
-            <MarkdownViewer content={processedContent} />
+            <MarkdownViewer content={processedContent} allowHtmlApp />
           </div>
           {isContentOverflow && (
             <button
