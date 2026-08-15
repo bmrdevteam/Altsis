@@ -31,7 +31,7 @@ import TableBubbleMenu from "./TableBubbleMenu";
 import LinkBubbleMenu from "./LinkBubbleMenu";
 import ImageBubbleMenu from "./ImageBubbleMenu";
 import SelectionBubbleMenu from "./SelectionBubbleMenu";
-import EmbedDialog from "./EmbedDialog";
+import { DEFAULT_CANVAS_HEIGHT } from "./canvas/canvasModel";
 import ImageInsertDialog from "./ImageInsertDialog";
 import YouTubeInsertDialog from "./YouTubeInsertDialog";
 import LinkInsertDialog from "./LinkInsertDialog";
@@ -97,7 +97,6 @@ const MarkdownEditor = ({
   toolbarExtra,
 }: Props) => {
   const [viewMode, setViewMode] = useState<ViewMode>("wysiwyg");
-  const [showEmbedDialog, setShowEmbedDialog] = useState(false);
   const [showImageDialog, setShowImageDialog] = useState(false);
   const [showYouTubeDialog, setShowYouTubeDialog] = useState(false);
   const [showLinkDialog, setShowLinkDialog] = useState(false);
@@ -118,12 +117,13 @@ const MarkdownEditor = ({
   const contentVersionRef = useRef(0);
   const openLinkDialogRef = useRef(() => {});
   openLinkDialogRef.current = () => setShowLinkDialog(true);
+  const insertCanvasRef = useRef(() => {});
 
   const slashActionsRef = useRef<SlashDialogActions>({});
   slashActionsRef.current = {
     openImage: () => setShowImageDialog(true),
     openYouTube: () => setShowYouTubeDialog(true),
-    openEmbed: () => setShowEmbedDialog(true),
+    openEmbed: () => insertCanvasRef.current(),
     openMath: () => setMathDialog({ kind: "insert" }),
   };
 
@@ -473,7 +473,7 @@ const MarkdownEditor = ({
 
   // 에디터 초기화 후 및 WYSIWYG 전환 시 특수 노드 변환
   // ![youtube](URL) → YouTube 노드, ![embed](URL) → HtmlEmbed 노드,
-  // ```html-app → HtmlEmbed 노드
+  // ```html-app / ```canvas → HtmlEmbed 노드
   // useEffect를 사용하여 EditorContent가 DOM에 마운트된 후 실행되도록 보장
   useEffect(() => {
     if (!editor || viewMode !== "wysiwyg") return;
@@ -578,12 +578,22 @@ const MarkdownEditor = ({
     }
   };
 
-  const handleEmbedSubmit = (embedType: "code" | "url", content: string) => {
-    if (editor) {
-      editor.chain().focus().setHtmlEmbed({ embedType, content }).run();
-    }
-    setShowEmbedDialog(false);
+  const insertCanvas = () => {
+    if (!editor) return;
+    editor
+      .chain()
+      .focus()
+      .setHtmlEmbed({
+        embedType: "code",
+        html: "",
+        css: "",
+        javascript: "",
+        height: DEFAULT_CANVAS_HEIGHT,
+        editing: true,
+      })
+      .run();
   };
+  insertCanvasRef.current = insertCanvas;
 
   return (
     <div className={style.editor}>
@@ -637,7 +647,7 @@ const MarkdownEditor = ({
         <div className={style.toolbarRight}>
           <TipTapToolbar
             editor={editor}
-            onEmbedClick={() => setShowEmbedDialog(true)}
+            onEmbedClick={insertCanvas}
             onImageClick={() => setShowImageDialog(true)}
             onYouTubeClick={() => setShowYouTubeDialog(true)}
             onLinkClick={() => setShowLinkDialog(true)}
@@ -655,7 +665,7 @@ const MarkdownEditor = ({
           className={style.editorPrintRoot}
           aria-hidden="true"
         >
-          <MarkdownViewer content={printContent} />
+          <MarkdownViewer content={printContent} allowHtmlApp />
         </div>
       )}
 
@@ -754,16 +764,9 @@ const MarkdownEditor = ({
           />
           <div className={style.splitDivider} />
           <div className={style.splitPreview}>
-            <MarkdownViewer content={value} />
+            <MarkdownViewer content={value} allowHtmlApp />
           </div>
         </div>
-      )}
-
-      {showEmbedDialog && (
-        <EmbedDialog
-          onSubmit={handleEmbedSubmit}
-          onClose={() => setShowEmbedDialog(false)}
-        />
       )}
 
       {showImageDialog && (

@@ -2,7 +2,7 @@
  * 마크다운 직렬화 유틸리티
  *
  * YouTube: ![youtube](URL) ↔ TipTap YouTube 노드
- * HTML 임베드: ```html-app ... ``` / ![embed](URL) ↔ TipTap HtmlEmbed 노드
+ * HTML 임베드: ```canvas``` / ```html-app``` / ![embed](URL) ↔ TipTap HtmlEmbed 노드
  *
  * html: false 모드에서 동작:
  * - 전처리(HTML 삽입) 대신 에디터 초기화 후 노드 변환 방식 사용
@@ -11,7 +11,12 @@
 
 import type { Editor } from "@tiptap/react";
 import type { Node as PMNode } from "@tiptap/pm/model";
-import { safeBtoa, safeAtob } from "./htmlEmbed";
+import { safeAtob } from "./htmlEmbed";
+import {
+  parseCanvasContent,
+  serializeCodeEmbed,
+  attrsFromPayload,
+} from "../canvas/canvasModel";
 
 /** replaceWith 전 from/to가 현재 doc 범위 안인지 확인 */
 const isValidReplaceRange = (
@@ -42,7 +47,7 @@ export const extractYouTubeId = (url: string): string | null => {
  * tiptap-markdown(html: false)이 마크다운을 파싱하면:
  * - ![youtube](URL) → Image 노드 (alt="youtube", src=URL)
  * - ![embed](URL) → Image 노드 (alt="embed", src=URL)
- * - ```html-app\n...\n``` → CodeBlock 노드 (language="html-app")
+ * - ```html-app``` / ```canvas``` → CodeBlock 노드 (language="html-app"|"canvas")
  *
  * 이 함수는 해당 노드들을 실제 YouTube/HtmlEmbed 노드로 변환합니다.
  */
@@ -107,24 +112,23 @@ export const transformSpecialNodes = (editor: Editor): void => {
       }
     }
 
-    // ```html-app 또는 ```html-app:HEIGHT → HtmlEmbed 노드
+    // ```html-app / ```canvas 또는 :HEIGHT → HtmlEmbed 노드
     if (
       htmlEmbedType &&
       node.type.name === "codeBlock"
     ) {
       const langMatch = (node.attrs.language || "").match(
-        /^html-app(?::(\d+))?$/
+        /^(html-app|canvas)(?::(\d+))?$/
       );
       if (langMatch) {
-        const height = langMatch[1] ? parseInt(langMatch[1], 10) : 0;
+        const height = langMatch[2] ? parseInt(langMatch[2], 10) : 0;
+        const payload = parseCanvasContent(node.textContent);
         transforms.push({
           from: pos,
           to: pos + node.nodeSize,
-          node: htmlEmbedType.create({
-            embedType: "code",
-            content: node.textContent,
-            height,
-          }),
+          node: htmlEmbedType.create(
+            attrsFromPayload(payload, height)
+          ),
         });
       }
     }
@@ -241,7 +245,8 @@ export const postprocessMarkdown = (md: string): string => {
 
       if (embedType === "code") {
         const decoded = safeAtob(encodedContent);
-        return `\`\`\`html-app${heightSuffix}\n${decoded}\n\`\`\``;
+        const height = heightMatch ? parseInt(heightMatch[1], 10) : 0;
+        return serializeCodeEmbed(parseCanvasContent(decoded), height);
       } else {
         return `![embed${heightSuffix}](${encodedContent})`;
       }

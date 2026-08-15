@@ -1433,7 +1433,7 @@ const AltSheetView = ({
     if (field.type === "docResponse") {
       return (
         <div className={style.contentFieldBody}>
-          <MarkdownViewer content={String(value)} />
+          <MarkdownViewer content={String(value)} allowHtmlApp />
         </div>
       );
     }

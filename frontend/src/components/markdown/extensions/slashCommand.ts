@@ -133,8 +133,8 @@ export const createSlashSuggestion = (
         command: () => actions.openYouTube?.(),
       },
       {
-        title: "HTML 삽입",
-        keywords: ["html", "embed", "임베드"],
+        title: "캔버스",
+        keywords: ["html", "embed", "임베드", "캔버스", "canvas"],
         command: () => actions.openEmbed?.(),
       },
       {

@@ -12,6 +12,14 @@ import DOMPurify, {
 import style from "./markdown.module.scss";
 import { preprocessCallouts } from "./extensions/callout";
 import { sanitizeMarkdownInlineStyle } from "./sanitizeMarkdownInlineStyle";
+import {
+  buildCanvasSrcDoc,
+  CANVAS_IFRAME_SANDBOX,
+  parseCanvasContent,
+  parseFenceLanguage,
+  preserveInteractiveFences,
+  restoreInteractiveFences,
+} from "./canvas/canvasModel";
 
 // @[이름](id) 멘션 패턴을 React 요소로 변환
 const renderMentions = (text: string): (string | JSX.Element)[] => {
@@ -78,8 +86,8 @@ const FullscreenOverlay = ({
     <div className={style.embedFullscreenOverlay} onClick={onClose}>
       <iframe
         {...(embedType === "url" ? { src: content } : { srcDoc: content })}
-        sandbox="allow-scripts"
-        title="임베드된 앱 (전체 보기)"
+        sandbox={CANVAS_IFRAME_SANDBOX}
+        title="캔버스 전체 보기"
         onClick={(e) => e.stopPropagation()}
       />
       <button
@@ -125,8 +133,8 @@ const HtmlAppEmbed = ({
       <div className={style.htmlEmbedWrapper}>
         <iframe
           srcDoc={html}
-          sandbox="allow-scripts"
-          title="임베드된 앱"
+          sandbox={CANVAS_IFRAME_SANDBOX}
+          title="캔버스"
           style={height ? { height: `${height}px` } : undefined}
         />
         <button
@@ -159,8 +167,8 @@ const UrlEmbed = ({ url, height }: { url: string; height?: number }) => {
       <div className={style.htmlEmbedWrapper}>
         <iframe
           src={url}
-          sandbox="allow-scripts"
-          title="임베드된 앱"
+          sandbox={CANVAS_IFRAME_SANDBOX}
+          title="임베드된 페이지"
           style={height ? { height: `${height}px` } : undefined}
         />
         <button
@@ -238,13 +246,13 @@ const baseComponents = {
       : children;
     return <p {...props}>{processed}</p>;
   },
-  // ```html-app / ```html-app:HEIGHT 코드 블록을 임베드로 렌더링
+  // ```html-app / ```canvas 코드 블록을 임베드로 렌더링
   code: ({ className, children, ...props }: any) => {
-    const match = /language-html-app(?::(\d+))?/.exec(className || "");
-    if (match) {
-      const html = String(children).replace(/\n$/, "");
-      const height = match[1] ? parseInt(match[1], 10) : undefined;
-      return <HtmlAppEmbed html={html} height={height} />;
+    const fence = parseFenceLanguage(className);
+    if (fence) {
+      const raw = String(children).replace(/\n$/, "");
+      const html = buildCanvasSrcDoc(parseCanvasContent(raw));
+      return <HtmlAppEmbed html={html} height={fence.height} />;
     }
     return (
       <code className={className} {...props}>
@@ -256,7 +264,10 @@ const baseComponents = {
   pre: ({ children, ...props }: any) => {
     // children이 code 엘리먼트이고 language-html-app 클래스를 가지면
     // code 컴포넌트가 이미 iframe으로 변환하므로 pre 래핑 제거
-    if (children?.props?.className?.includes("language-html-app")) {
+    if (
+      children?.props?.className?.includes("language-html-app") ||
+      children?.props?.className?.includes("language-canvas")
+    ) {
       return <>{children}</>;
     }
     return <pre {...props}>{children}</pre>;
@@ -283,7 +294,7 @@ export type Props = {
   content: string;
   className?: string;
   /**
-   * true면 ```html-app``` 블록을 스크립트 실행 iframe으로 복원.
+   * true면 ```html-app``` / ```canvas``` 블록을 스크립트 실행 iframe으로 복원.
    * 응답자 작성 본문에는 false (기본) — 저장 XSS 방지.
    */
   allowHtmlApp?: boolean;
@@ -295,14 +306,10 @@ const MarkdownViewer = ({
   allowHtmlApp = false,
 }: Props) => {
   const sanitizedContent = useMemo(() => {
-    // html-app 코드 블록을 DOMPurify 처리 전에 추출 (script 태그 보존)
-    const preserved: string[] = [];
-    const withPlaceholders = allowHtmlApp
-      ? content.replace(/```html-app(?::\d+)?\n[\s\S]*?```/g, (match) => {
-          preserved.push(match);
-          return `__HTMLAPP_PRESERVE_${preserved.length - 1}__`;
-        })
-      : content;
+    // 인터랙티브 펜스를 DOMPurify 처리 전에 추출 (script 태그 보존)
+    const { withPlaceholders, preserved } = allowHtmlApp
+      ? preserveInteractiveFences(content)
+      : { withPlaceholders: content, preserved: [] as string[] };
 
     // 콜아웃 마크다운 → HTML (sanitize 전에 변환)
     const withCallouts = preprocessCallouts(withPlaceholders);
@@ -362,10 +369,7 @@ const MarkdownViewer = ({
       DOMPurify.removeHook("uponSanitizeAttribute", styleHook);
     }
 
-    // 보존된 html-app 코드 블록 복원
-    preserved.forEach((block, i) => {
-      sanitized = sanitized.replace(`__HTMLAPP_PRESERVE_${i}__`, block);
-    });
+    sanitized = restoreInteractiveFences(sanitized, preserved);
 
     return sanitized;
   }, [content, allowHtmlApp]);

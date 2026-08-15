@@ -80,7 +80,7 @@ const TipTapToolbar = ({
     },
     {
       icon: "htmlEmbed",
-      label: "HTML 삽입",
+      label: "캔버스",
       onClick: onEmbedClick,
     },
     {
