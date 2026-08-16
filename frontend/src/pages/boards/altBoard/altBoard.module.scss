@@ -2736,6 +2736,97 @@
   gap: 4px;
 }
 
+.multiSelectHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 2px 0 6px;
+}
+
+.multiSelectCollapseBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 4px 2px;
+  border: none;
+  background: transparent;
+  color: var(--text-color-1);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+
+  .material-symbols-outlined {
+    font-size: 20px;
+    line-height: 1;
+    color: var(--text-color-2);
+  }
+
+  &:hover {
+    color: var(--accent-1);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-1);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+.multiSelectHeaderTotal {
+  font-weight: 500;
+  color: var(--text-color-2);
+}
+
+.multiSelectChipRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.multiSelectChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--background-color-2, var(--background-color));
+  color: var(--text-color-2);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease,
+    box-shadow 0.15s ease;
+
+  &:hover {
+    filter: brightness(0.97);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-1);
+    outline-offset: 2px;
+  }
+}
+
+.multiSelectChipActive {
+  font-weight: 600;
+  background: color-mix(in srgb, var(--accent-1) 12%, var(--background-color));
+  color: var(--accent-1);
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+
+.multiSelectChipCount {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+
 .multiSelectSearch {
   width: 100%;
   padding: 8px 12px;
@@ -2787,13 +2878,6 @@
     opacity: 0.55;
     cursor: not-allowed;
   }
-}
-
-.multiSelectCount {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-color-2);
-  flex-shrink: 0;
 }
 
 .multiSelectEmpty {

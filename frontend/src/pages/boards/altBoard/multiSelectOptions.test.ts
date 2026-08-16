@@ -24,6 +24,25 @@ describe("filterOptionIndices", () => {
   test("treats missing options as empty", () => {
     expect(filterOptionIndices(undefined, "a")).toEqual([]);
   });
+
+  test("checkFilter keeps only checked or unchecked", () => {
+    expect(filterOptionIndices(options, "", "checked", ["축구"])).toEqual([0]);
+    expect(filterOptionIndices(options, "", "unchecked", ["축구"])).toEqual([
+      1, 2,
+    ]);
+    expect(filterOptionIndices(options, "", "all", ["축구"])).toEqual([
+      0, 1, 2,
+    ]);
+  });
+
+  test("applies search then checkFilter", () => {
+    expect(
+      filterOptionIndices(options, "농", "checked", ["축구", "농구"])
+    ).toEqual([1]);
+    expect(filterOptionIndices(options, "농", "unchecked", ["농구"])).toEqual(
+      []
+    );
+  });
 });
 
 describe("toggleSelectAllVisible", () => {
