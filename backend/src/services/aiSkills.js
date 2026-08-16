@@ -3768,6 +3768,7 @@ const ACTIVITY_FIELD_TYPES = new Set([
   "link",
   "content",
   "docResponse",
+  "aiChat",
 ]);
 
 const ACTIVITY_FORM_TYPES = {
@@ -4150,7 +4151,7 @@ export const normalizeActivityDraft = (parsed = {}, opts = {}) => {
     if (!OPTION_FIELD_TYPES.has(type)) options = [];
 
     let content;
-    if (type === "content" || type === "docResponse") {
+    if (type === "content" || type === "docResponse" || type === "aiChat") {
       content = normalizeDocumentDraftContent(
         truncateText(
           maskSensitiveText(String(f?.content || "")).text,
@@ -4167,7 +4168,9 @@ export const normalizeActivityDraft = (parsed = {}, opts = {}) => {
           ? "안내"
           : type === "docResponse"
             ? "응답 문서"
-            : "항목"),
+            : type === "aiChat"
+              ? "AI 챗봇"
+              : "항목"),
       type,
       permission,
       visibleToRespondent:
@@ -4177,7 +4180,7 @@ export const normalizeActivityDraft = (parsed = {}, opts = {}) => {
       order: fields.length,
     };
     if (content !== undefined) field.content = content;
-    if (type === "content" || type === "docResponse") {
+    if (type === "content" || type === "docResponse" || type === "aiChat") {
       const links = normalizeDraftFieldLinks(f?.links);
       if (links) field.links = links;
     }
@@ -4412,10 +4415,11 @@ export const executeActivityDraftSkill = async ({
   assertVisionIfNeeded(modelName, context);
 
   const fieldCatalog = `허용 필드 type (정확히 이 값만):
-text, textarea, number, date, multiDate, time, file, select, multiSelect, checkbox, radio, userSelect, rating, scale, counter, approval, link, content, docResponse
+text, textarea, number, date, multiDate, time, file, select, multiSelect, checkbox, radio, userSelect, rating, scale, counter, approval, link, content, docResponse, aiChat
 - select/multiSelect/radio 는 options: string[] 필수
 - content: 읽기 전용 안내 마크다운(제목·목록·표 등). 기본은 일반 마크다운.
 - docResponse: 학생이 마크다운 에디터에서 편집하는 응답 템플릿. 기본은 일반 마크다운 초안(빈칸·소제목·안내 문구).
+- aiChat: 학생용 학습 챗봇. content에 지침, links에 참고 URL. 교사가 AI 권한이 있을 때만 사용.
 - html-app(\`\`\`html-app ... \`\`\`)은 제출이 필요 없는 데모·게임·시각 효과일 때만 content에 사용. docResponse에는 교사가 명시적으로 요청한 경우에만.
 - 중요: html-app 안의 입력값·퀴즈 점수는 양식 제출 데이터에 저장되지 않습니다. 수집·채점이 필요하면 반드시 text/textarea/radio/select/number 등 일반 필드를 만드세요.
 - approval 은 approvalLine을 넣지 마세요(서버가 기본값 부여)

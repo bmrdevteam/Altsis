@@ -40,6 +40,8 @@ import {
   linkDisplayTitle,
   sanitizeHttpUrl,
 } from "./formDocLink";
+import FormAiChatField from "./FormAiChatField";
+import { formatAiChatCell } from "./formAiChat";
 
 type Props = {
   forms: TAltForm[];
@@ -253,6 +255,10 @@ const AltSheetView = ({
   /** 문서 보기 일괄 인쇄: DOM 마운트 후 print */
   const [docBatchPrintActive, setDocBatchPrintActive] = useState(false);
   const [previewFile, setPreviewFile] = useState<TFormFileRef | null>(null);
+  const [aiChatPreview, setAiChatPreview] = useState<{
+    field: TAltFormField;
+    row: TAltSheetRow;
+  } | null>(null);
 
   const selectedForm = forms.find((f) => f._id === selectedFormId);
   const formAllowsAllRows = (form: TAltForm) =>
@@ -421,6 +427,10 @@ const AltSheetView = ({
 
   const formatCellValue = (value: any, field?: TAltFormField): string => {
     if (value === null || value === undefined) return "";
+
+    if (field?.type === "aiChat") {
+      return formatAiChatCell(value);
+    }
 
     if (field?.type === "userSelect" && typeof value === "object") {
       return value.userName
@@ -884,6 +894,7 @@ const AltSheetView = ({
     const nonEditableTypes = [
       "multiDate", "multiSelect", "userSelect", "file", "link",
       "checkbox", "rating", "scale", "counter", "approval", "content",
+      "aiChat",
     ];
     if (nonEditableTypes.includes(field.type)) return;
     setEditingCell({ rowId, fieldId: field._id });
@@ -1264,6 +1275,7 @@ const AltSheetView = ({
   const nonEditableTypes = [
     "multiDate", "multiSelect", "userSelect", "file", "link",
     "checkbox", "rating", "scale", "counter", "approval", "content",
+    "aiChat",
   ];
 
   // 문서 뷰: 행 수정 가능 여부
@@ -1427,6 +1439,18 @@ const AltSheetView = ({
         <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", lineHeight: 1.6 }}>
           {String(value)}
         </div>
+      );
+    }
+
+    if (field.type === "aiChat") {
+      return (
+        <FormAiChatField
+          formId={selectedForm?._id || ""}
+          field={field}
+          value={value}
+          rowId={undefined}
+          disabled
+        />
       );
     }
 
@@ -2539,6 +2563,7 @@ const AltSheetView = ({
                     "counter",
                     "approval",
                     "content",
+                    "aiChat",
                   ];
                   const canInlineEdit =
                     canEdit && !nonEditableTypes.includes(field.type);
@@ -2548,6 +2573,10 @@ const AltSheetView = ({
                       key={field._id}
                       onClick={(e) => {
                         if (isEditing) return;
+                        if (field.type === "aiChat") {
+                          setAiChatPreview({ field, row });
+                          return;
+                        }
                         if (canInlineEdit) {
                           handleCellClick(row._id, field, editSource);
                           return;
@@ -2827,6 +2856,22 @@ const AltSheetView = ({
             </div>
           ))}
         </div>
+      )}
+      {aiChatPreview && selectedForm && (
+        <Popup
+          setState={() => setAiChatPreview(null)}
+          title={aiChatPreview.field.label || "AI 챗봇"}
+          closeBtn
+          contentScroll
+        >
+          <FormAiChatField
+            formId={selectedForm._id}
+            field={aiChatPreview.field}
+            value={aiChatPreview.row.data?.[aiChatPreview.field._id]}
+            rowId={aiChatPreview.row._id}
+            disabled
+          />
+        </Popup>
       )}
       <FilePreviewModal
         file={previewFile}

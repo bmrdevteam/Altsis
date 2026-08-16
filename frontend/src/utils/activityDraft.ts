@@ -29,6 +29,7 @@ const FIELD_TYPES = new Set<TAltFormFieldType>([
   "link",
   "content",
   "docResponse",
+  "aiChat",
 ]);
 
 const OPTION_TYPES = new Set<TAltFormFieldType>([
@@ -242,7 +243,10 @@ const createEmptyField = (type: TAltFormFieldType): TAltFormField => ({
   visibleToRespondent: false,
   required: false,
   options: OPTION_TYPES.has(type) ? ["옵션 1", "옵션 2"] : [],
-  content: type === "content" || type === "docResponse" ? "" : undefined,
+  content:
+    type === "content" || type === "docResponse" || type === "aiChat"
+      ? ""
+      : undefined,
   approvalLine:
     type === "approval"
       ? { steps: [{ order: 0, label: "1차 승인", mode: "pick" }] }
@@ -451,7 +455,9 @@ export const normalizeActivityDraftBundle = (draft: {
         ? "안내"
         : type === "docResponse"
           ? "응답 문서"
-          : "항목");
+          : type === "aiChat"
+            ? "AI 챗봇"
+            : "항목");
     base.permission = raw?.permission === "owner" ? "owner" : "respondent";
     base.visibleToRespondent =
       base.permission === "owner" ? !!raw?.visibleToRespondent : false;
@@ -465,7 +471,7 @@ export const normalizeActivityDraftBundle = (draft: {
         : [];
       base.options = opts.length > 0 ? opts : ["옵션 1", "옵션 2"];
     }
-    if (type === "content" || type === "docResponse") {
+    if (type === "content" || type === "docResponse" || type === "aiChat") {
       base.content = normalizeDocumentDraftContent(String(raw?.content || ""));
       const links = normalizeActivityDraftLinks(raw?.links);
       if (links) base.links = links;

@@ -34,7 +34,8 @@ export type TAltFormFieldType =
   | "approval"
   | "link"
   | "content"
-  | "docResponse";
+  | "docResponse"
+  | "aiChat";
 
 export type TAltFormFieldPermission = "respondent" | "owner";
 
@@ -158,11 +159,11 @@ export type TAltFormField = {
   required: boolean;
   options?: string[];
   validation?: Record<string, any>;
-  /** content: 읽기 전용 안내 마크다운 / docResponse: 응답 템플릿 마크다운 */
+  /** content: 읽기 전용 안내 / docResponse: 응답 템플릿 / aiChat: 챗봇 지침 */
   content?: string;
-  /** content / docResponse 참고 파일 (응답값·시트에 저장되지 않음) */
+  /** content / docResponse / aiChat 참고 파일 (응답값·시트에 저장되지 않음) */
   attachments?: TFormFileAttachment[];
-  /** content / docResponse 참고 링크 (응답값·시트에 저장되지 않음) */
+  /** content / docResponse / aiChat 참고 링크 (응답값·시트에 저장되지 않음) */
   links?: TFormDocLink[];
   order: number;
   displayCondition?: TDisplayCondition;

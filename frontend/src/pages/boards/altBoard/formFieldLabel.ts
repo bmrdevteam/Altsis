@@ -20,6 +20,7 @@ export const FIELD_TYPE_LABELS: Record<TAltFormFieldType, string> = {
   link: "링크",
   content: "안내 문서",
   docResponse: "응답 문서",
+  aiChat: "AI 챗봇",
 };
 
 export const nextFieldLabel = (

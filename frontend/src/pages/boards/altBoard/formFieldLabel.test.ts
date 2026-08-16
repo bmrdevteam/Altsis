@@ -19,5 +19,6 @@ describe("nextFieldLabel", () => {
   test("covers all field type labels", () => {
     expect(FIELD_TYPE_LABELS.docResponse).toBe("응답 문서");
     expect(FIELD_TYPE_LABELS.approval).toBe("승인");
+    expect(FIELD_TYPE_LABELS.aiChat).toBe("AI 챗봇");
   });
 });

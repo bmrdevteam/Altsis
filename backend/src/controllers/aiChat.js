@@ -16,6 +16,7 @@ import {
   getUserRoleInSeason,
 } from "../services/boards.js";
 import {
+  boardAlterSessionFilter,
   getOrCreateSession,
   buildAIChatContents,
   callAI,
@@ -110,10 +111,10 @@ export const getAIChatSessions = async (req, res) => {
     const altRole = getAltBoardRole(board, req.user);
     const isTeacher = altRole === "admin" || altRole === "writer";
 
-    const query = { board: board._id };
-    if (!isTeacher) {
-      query.student = req.user._id;
-    }
+    const query = boardAlterSessionFilter(
+      board._id,
+      isTeacher ? undefined : req.user._id
+    );
 
     const sessions = await AIChatSession(req.user.academyId)
       .find(query)
@@ -142,9 +143,13 @@ export const getAIChatMessages = async (req, res) => {
 
     const { sessionId } = req.params;
 
-    // 세션 조회
+    // 세션 조회 (양식 aiChat 세션은 보드 Alter API에서 제외)
     const session = await AIChatSession(req.user.academyId).findById(sessionId);
-    if (!session || session.board.toString() !== board._id.toString()) {
+    if (
+      !session ||
+      session.board.toString() !== board._id.toString() ||
+      session.form
+    ) {
       return res.status(404).send({ message: __NOT_FOUND("session") });
     }
 
@@ -207,12 +212,16 @@ export const sendAIChatMessage = async (req, res) => {
 
     const ioChat = getIoChat();
 
-    // 교사가 학생 세션에 개입 (sessionId 지정 시)
+    // 교사가 학생 세션에 개입 (sessionId 지정 시, 보드 Alter만)
     if (isTeacher && bodySessionId) {
       const session = await AIChatSession(req.user.academyId).findById(
         bodySessionId
       );
-      if (!session || session.board.toString() !== board._id.toString()) {
+      if (
+        !session ||
+        session.board.toString() !== board._id.toString() ||
+        session.form
+      ) {
         return res.status(404).send({ message: __NOT_FOUND("session") });
       }
 
