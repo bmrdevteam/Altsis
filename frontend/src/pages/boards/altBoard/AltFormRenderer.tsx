@@ -46,6 +46,8 @@ import {
   youtubeThumbnailUrl,
 } from "./formDocLink";
 import { copyRowDataForReuse } from "./reuseResponseDraft";
+import FormAiChatField from "./FormAiChatField";
+import { isAiChatRequiredMet } from "./formAiChat";
 import {
   canCreateAdditionalDraft,
   isDraftSheetRow,
@@ -165,7 +167,8 @@ const AltFormRenderer = ({
   onViewModeChange,
 }: Props) => {
   const { AltFormAPI, AltSheetRowAPI, ChatAPI, FileAPI, PostAPI } = useAPIv2();
-  const { currentSchool, currentRegistration, currentUser } = useAuth();
+  const { currentSchool, currentRegistration, currentUser, currentSeason } =
+    useAuth();
 
   const handleEditorImageUpload = async (
     file: File
@@ -718,6 +721,11 @@ const AltFormRenderer = ({
           newErrors[field._id] = "템플릿을 수정한 뒤 제출해 주세요.";
           continue;
         }
+      } else if (field.type === "aiChat") {
+        if (field.required && !isAiChatRequiredMet(value)) {
+          newErrors[field._id] = "AI 챗봇과 한 번 이상 대화해 주세요.";
+        }
+        continue;
       } else if (field.required) {
         if (field.type === "file") {
           const hasAttachment =
@@ -1021,6 +1029,31 @@ const AltFormRenderer = ({
             onChange={(e) => setValue(field._id, e.target.value)}
             placeholder="답변을 입력하세요"
             disabled={disabled}
+          />
+        );
+
+      case "aiChat":
+        return (
+          <FormAiChatField
+            formId={form?._id || formId}
+            field={field}
+            value={data[field._id]}
+            seasonId={currentSeason?._id}
+            rowId={myRow?._id}
+            disabled={disabled}
+            onChange={(summary) => setValue(field._id, summary)}
+            onRowReady={(row) => {
+              setMyRow(row);
+              setMyRows((prev) => {
+                const merged = prev.some((r) => r._id === row._id)
+                  ? prev.map((r) => (r._id === row._id ? row : r))
+                  : [row, ...prev];
+                return sortMyRowsForReview(merged);
+              });
+              const next = row.data?.[field._id];
+              if (next) setValue(field._id, next);
+            }}
+            onPreview={setPreviewFile}
           />
         );
 

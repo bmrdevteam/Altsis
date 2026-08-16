@@ -15,6 +15,7 @@ import { fileAnswerLabel } from "./formDocLink";
 import FilePreviewModal from "./FilePreviewModal";
 import FormFileAnswerList from "./FormFileAnswerList";
 import { TFormFileRef } from "./formFilePreview";
+import { formatAiChatCell } from "./formAiChat";
 
 type FieldMeta = {
   _id: string;
@@ -432,6 +433,15 @@ const PendingApprovalsPanel = ({
         <div className={style.contentFieldBody}>
           <MarkdownViewer content={String(val)} allowHtmlApp />
         </div>
+      );
+    }
+
+    if (f.type === "aiChat") {
+      const label = formatAiChatCell(val);
+      return label || (
+        <span style={{ color: "var(--text-color-2)", fontStyle: "italic" }}>
+          —
+        </span>
       );
     }
 

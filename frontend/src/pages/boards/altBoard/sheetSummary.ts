@@ -74,7 +74,7 @@ const BAR_OPTION_TYPES = new Set([
 
 const BAR_VALUE_TYPES = new Set(["number", "counter", "date", "multiDate", "time"]);
 
-const SKIP_TYPES = new Set(["file", "content"]);
+const SKIP_TYPES = new Set(["file", "content", "aiChat"]);
 
 const TEXT_LIST_LIMIT = 50;
 

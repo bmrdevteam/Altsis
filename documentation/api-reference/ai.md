@@ -35,6 +35,24 @@ UI에서의 Alter 사용법은 [사용자 가이드 — Alter](../user-guide/cha
 
 ---
 
+## 양식 AI 챗봇 (`aiChat` 항목)
+
+활동 양식 안의 학생용 챗봇입니다. 상단바 Alter와 분리되어 있으며, 학생 전역 AI 권한(`permission.student`)은 필요 없습니다. 교사가 양식에 항목을 추가할 때는 교사 AI 권한이 필요합니다. 대화 열람은 양식 응답을 볼 수 있는 교사(admin/writer)만 가능하고, `shareResponses`여도 다른 학생에게는 비공개입니다.
+
+> **라우트 파일**: `backend/src/routes/altForms.js`  
+> **컨트롤러**: `backend/src/controllers/formAiChat.js`  
+> **서비스**: `backend/src/services/formAiChat.js`
+
+| 메서드 | 경로 | 설명 | 권한 |
+|--------|------|------|------|
+| `POST` | `/api/alt-forms/:_id/ai-chat/messages` | 학생 메시지 전송 + AI 응답. `{ fieldId, content, rowId?, season? }` | 양식 응답자 + 학기/학교 AI on |
+| `GET` | `/api/alt-forms/:_id/ai-chat/sessions` | 세션 목록 (`fieldId`, `row` 쿼리) | 본인 또는 `canViewAllRows` |
+| `GET` | `/api/alt-forms/:_id/ai-chat/sessions/:sessionId/messages` | 메시지 목록 | 본인 또는 `canViewAllRows` |
+
+행 값에는 대화 전문이 아니라 `{ sessionId, messageCount, studentMessageCount, lastMessagePreview, lastMessageAt }` 요약만 저장합니다. 필수는 학생 메시지 1회 이상입니다. 제출 후 `allowResubmit`이 아니면 전송이 잠깁니다.
+
+---
+
 ## Skill 카탈로그
 
 ```

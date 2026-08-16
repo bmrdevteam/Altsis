@@ -15,6 +15,7 @@ import {
   splitSheetRows,
 } from "../utils/sheetRowQuery.js";
 import { isFormFileKey } from "../_s3/formMulter.js";
+import { assertNewAiChatFieldsAllowed } from "../services/formAiChat.js";
 import {
   FIELD_REQUIRED,
   FIELD_INVALID,
@@ -262,6 +263,22 @@ export const create = async (req, res) => {
     } catch (e) {
       if (e.code === "INVALID_ATTACHMENT_KEY") {
         return res.status(400).send({ message: FIELD_INVALID("attachments") });
+      }
+      throw e;
+    }
+
+    try {
+      await assertNewAiChatFieldsAllowed({
+        academyId: req.user.academyId,
+        user: req.user,
+        board,
+        previousFields: [],
+        nextFields: fields,
+        requestedSeasonId: req.body.season,
+      });
+    } catch (e) {
+      if (e.status) {
+        return res.status(e.status).send({ message: e.message });
       }
       throw e;
     }
@@ -569,10 +586,22 @@ export const update = async (req, res) => {
     if ("description" in req.body) form.description = req.body.description;
     if ("fields" in req.body) {
       try {
-        form.fields = ensureFieldIds(req.body.fields, req.user.academyId);
+        const nextFields = ensureFieldIds(req.body.fields, req.user.academyId);
+        await assertNewAiChatFieldsAllowed({
+          academyId: req.user.academyId,
+          user: req.user,
+          board,
+          previousFields: form.fields,
+          nextFields,
+          requestedSeasonId: req.body.season,
+        });
+        form.fields = nextFields;
       } catch (e) {
         if (e.code === "INVALID_ATTACHMENT_KEY") {
           return res.status(400).send({ message: FIELD_INVALID("attachments") });
+        }
+        if (e.status) {
+          return res.status(e.status).send({ message: e.message });
         }
         throw e;
       }
@@ -814,6 +843,21 @@ export const importForm = async (req, res) => {
       }
       throw e;
     }
+    try {
+      await assertNewAiChatFieldsAllowed({
+        academyId: req.user.academyId,
+        user: req.user,
+        board,
+        previousFields: [],
+        nextFields: importFields,
+        requestedSeasonId: req.body.season,
+      });
+    } catch (e) {
+      if (e.status) {
+        return res.status(e.status).send({ message: e.message });
+      }
+      throw e;
+    }
     const form = await AltForm(req.user.academyId).create({
       board: board._id,
       school: board.school,
@@ -863,6 +907,22 @@ export const duplicate = async (req, res) => {
 
     if (!canManageForm(board, req.user)) {
       return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    try {
+      await assertNewAiChatFieldsAllowed({
+        academyId: req.user.academyId,
+        user: req.user,
+        board,
+        previousFields: [],
+        nextFields: original.fields,
+        requestedSeasonId: req.body.season,
+      });
+    } catch (e) {
+      if (e.status) {
+        return res.status(e.status).send({ message: e.message });
+      }
+      throw e;
     }
 
     const { form, sheet } = await cloneAltFormToBoard(

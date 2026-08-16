@@ -1,6 +1,17 @@
+export type TFormAiChatSummary = {
+  sessionId: string;
+  messageCount: number;
+  studentMessageCount: number;
+  lastMessagePreview?: string;
+  lastMessageAt?: string;
+};
+
 export type TAIChatSession = {
   _id: string;
   board: string;
+  form?: string;
+  fieldId?: string;
+  row?: string;
   student: string;
   studentId: string;
   studentName: string;
@@ -8,6 +19,7 @@ export type TAIChatSession = {
   lastMessageAt?: string;
   lastMessagePreview?: string;
   messageCount: number;
+  studentMessageCount?: number;
   createdAt: string;
 };
 

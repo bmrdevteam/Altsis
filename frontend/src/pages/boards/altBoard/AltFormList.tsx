@@ -440,7 +440,11 @@ const AltFormList = ({
       const text = await file.text();
       const formData = JSON.parse(text);
       await AltFormAPI.ImportAltForm({
-        data: { board: board._id, formData },
+        data: {
+          board: board._id,
+          formData,
+          ...(currentSeasonId ? { season: currentSeasonId } : {}),
+        },
       });
       onRefresh();
     } catch (err) {
@@ -451,7 +455,10 @@ const AltFormList = ({
 
   const handleDuplicate = async (formId: string) => {
     try {
-      await AltFormAPI.DuplicateAltForm({ params: { _id: formId } });
+      await AltFormAPI.DuplicateAltForm({
+        params: { _id: formId },
+        ...(currentSeasonId ? { data: { season: currentSeasonId } } : {}),
+      });
       onRefresh();
     } catch (err) {
       ALERT_ERROR(err);
