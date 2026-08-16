@@ -60,6 +60,7 @@ import {
   readFormResponseDraft,
 } from "./formResponseLocalDraft";
 import { useFormResponseDraft } from "./useFormResponseDraft";
+import MultiSelectField from "./MultiSelectField";
 
 type Props = {
   board: TBoard;
@@ -742,6 +743,9 @@ const AltFormRenderer = ({
             newErrors[field._id] = "링크를 입력해주세요.";
             continue;
           }
+        } else if (Array.isArray(value) && value.length === 0) {
+          newErrors[field._id] = "필수 항목입니다.";
+          continue;
         } else if (value === undefined || value === null || value === "") {
           newErrors[field._id] = "필수 항목입니다.";
           continue;
@@ -1528,28 +1532,13 @@ const AltFormRenderer = ({
       case "multiSelect": {
         const selected: string[] = Array.isArray(value) ? value : [];
         return (
-          <div>
-            {field.options?.map((opt, i) => (
-              <label key={i} className={style.choiceOption}>
-                <input
-                  type="checkbox"
-                  checked={selected.includes(opt)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setValue(field._id, [...selected, opt]);
-                    } else {
-                      setValue(
-                        field._id,
-                        selected.filter((s) => s !== opt)
-                      );
-                    }
-                  }}
-                  disabled={disabled}
-                />
-                {opt}
-              </label>
-            ))}
-          </div>
+          <MultiSelectField
+            fieldId={field._id}
+            options={field.options || []}
+            selected={selected}
+            disabled={disabled}
+            onChange={(next) => setValue(field._id, next)}
+          />
         );
       }
 
