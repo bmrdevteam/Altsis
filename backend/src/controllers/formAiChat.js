@@ -5,6 +5,7 @@ import { logger } from "../log/logger.js";
 import { AltForm, Board, School } from "../models/index.js";
 import { getUserRoleInSeason, isSeasonScopedBoard } from "../services/boards.js";
 import {
+  deleteFormAiChatSession,
   listFormAiChatMessages,
   listFormAiChatSessions,
   resolveSeasonForFormAi,
@@ -148,6 +149,34 @@ export const listMessages = async (req, res) => {
       limit: req.query.limit,
     });
     return res.status(200).send({ session, messages });
+  } catch (err) {
+    return sendServiceError(res, err);
+  }
+};
+
+/**
+ * @memberof APIs.AltFormAPI
+ * @function DFormAiChatSession
+ * @route DELETE /alt-forms/:_id/ai-chat/sessions/:sessionId
+ */
+export const removeSession = async (req, res) => {
+  try {
+    const { form, board, error } = await loadFormBoard(
+      req.user.academyId,
+      req.params._id
+    );
+    if (error) return res.status(error.status).send({ message: error.message });
+
+    const schoolRole = await schoolRoleOf(req.user.academyId, board, req.user);
+    await deleteFormAiChatSession({
+      academyId: req.user.academyId,
+      form,
+      board,
+      user: req.user,
+      schoolRole,
+      sessionId: req.params.sessionId,
+    });
+    return res.status(200).send();
   } catch (err) {
     return sendServiceError(res, err);
   }

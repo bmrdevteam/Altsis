@@ -20,7 +20,8 @@ import { parseAiChatSummary } from "./formAiChat";
 type Props = {
   formId: string;
   field: TAltFormField;
-  value: unknown;
+  value?: unknown;
+  sessionId?: string;
   seasonId?: string;
   rowId?: string;
   disabled?: boolean;
@@ -41,6 +42,7 @@ const FormAiChatField = ({
   formId,
   field,
   value,
+  sessionId,
   seasonId,
   rowId,
   disabled,
@@ -56,8 +58,12 @@ const FormAiChatField = ({
   const [myUsage, setMyUsage] = useState<TMyAiUsage | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
   const summary = parseAiChatSummary(value);
+  const loadedSessionId = sessionId || summary?.sessionId;
   const usageMeter = myUsage ? getUsageMeter(myUsage) : null;
   const usageLimitExceeded = !!usageMeter?.exceeded;
+  const studentTurns =
+    summary?.studentMessageCount ??
+    messages.filter((msg) => msg.senderType === "student").length;
 
   const refreshMyUsage = useCallback(() => {
     AIAPI.RMyAiUsage()
@@ -75,11 +81,11 @@ const FormAiChatField = ({
   }, [disabled, refreshMyUsage]);
 
   useEffect(() => {
-    if (!summary?.sessionId || !formId) return;
+    if (!loadedSessionId || !formId) return;
     let cancelled = false;
     setLoading(true);
     AltFormAPI.RFormAiChatMessages({
-      params: { _id: formId, sessionId: summary.sessionId },
+      params: { _id: formId, sessionId: loadedSessionId },
     })
       .then(({ messages: next }) => {
         if (!cancelled) setMessages(next || []);
@@ -94,7 +100,7 @@ const FormAiChatField = ({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- useAPIv2 refs are unstable
-  }, [formId, summary?.sessionId]);
+  }, [formId, loadedSessionId]);
 
   useEffect(() => {
     const el = logRef.current;
@@ -170,7 +176,13 @@ const FormAiChatField = ({
           <ChatMessageBubble
             key={msg._id}
             variant={msg.senderType === "student" ? "own" : "other"}
-            sender={msg.senderType === "student" ? "나" : "Alter"}
+            sender={
+              msg.senderType === "student"
+                ? disabled
+                  ? msg.senderName || "학생"
+                  : "나"
+                : "Alter"
+            }
             time={formatBubbleTime(msg.createdAt)}
           >
             {msg.senderType === "student" ? (
@@ -191,8 +203,8 @@ const FormAiChatField = ({
       </div>
       {disabled ? (
         <p className={style.aiChatNotice}>
-          {summary?.studentMessageCount
-            ? `대화 ${summary.studentMessageCount}턴`
+          {studentTurns
+            ? `대화 ${studentTurns}턴`
             : "아직 대화가 없습니다."}
         </p>
       ) : (

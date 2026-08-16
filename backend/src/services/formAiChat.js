@@ -100,6 +100,11 @@ export const parseAiChatSummary = (value) => {
   };
 };
 
+export const rowSummaryPointsToSession = (raw, sessionId) => {
+  const summary = parseAiChatSummary(raw);
+  return !!summary && summary.sessionId === String(sessionId || "");
+};
+
 const throwHttp = (status, message, code) => {
   const err = new Error(message);
   err.status = status;
@@ -576,6 +581,20 @@ export const sendFormAiChatMessage = async ({
   };
 };
 
+export const annotateSessionsWithRowStatus = (sessions, activeRowIds) => {
+  const ids =
+    activeRowIds instanceof Set
+      ? activeRowIds
+      : new Set([...(activeRowIds || [])].map((id) => String(id)));
+  return (sessions || []).map((session) => {
+    const rowId = session?.row ? String(session.row) : "";
+    return {
+      ...session,
+      responseDeleted: !rowId || !ids.has(rowId),
+    };
+  });
+};
+
 export const listFormAiChatSessions = async ({
   academyId,
   form,
@@ -595,7 +614,26 @@ export const listFormAiChatSessions = async ({
   if (rowId) query.row = rowId;
   if (!canViewAll) query.student = user._id;
 
-  return AIChatSession(academyId).find(query).sort({ lastMessageAt: -1 }).lean();
+  const sessions = await AIChatSession(academyId)
+    .find(query)
+    .sort({ lastMessageAt: -1 })
+    .lean();
+  const rowIds = [
+    ...new Set(
+      sessions.map((session) => session.row).filter(Boolean).map(String)
+    ),
+  ];
+  const activeRows =
+    rowIds.length > 0
+      ? await AltSheetRow(academyId)
+          .find({ _id: { $in: rowIds }, isActive: true })
+          .select("_id")
+          .lean()
+      : [];
+  return annotateSessionsWithRowStatus(
+    sessions,
+    new Set(activeRows.map((row) => String(row._id)))
+  );
 };
 
 export const listFormAiChatMessages = async ({
@@ -627,4 +665,37 @@ export const listFormAiChatMessages = async ({
     .limit(cap)
     .lean();
   return { session, messages };
+};
+
+export const deleteFormAiChatSession = async ({
+  academyId,
+  form,
+  board,
+  user,
+  schoolRole,
+  sessionId,
+}) => {
+  if (!canViewAllRows(form, board, user, schoolRole)) {
+    throwHttp(403, PERMISSION_DENIED);
+  }
+  const session = await AIChatSession(academyId).findById(sessionId);
+  if (!session || String(session.form) !== String(form._id)) {
+    throwHttp(404, __NOT_FOUND("session"));
+  }
+
+  const fieldId = session.fieldId ? String(session.fieldId) : "";
+  const rowId = session.row;
+  await AIChatMessage(academyId).deleteMany({ session: session._id });
+  await session.deleteOne();
+
+  if (!rowId || !fieldId) return;
+  const row = await AltSheetRow(academyId).findById(rowId);
+  if (!row?.isActive) return;
+  const current = row.data?.get ? row.data.get(fieldId) : row.data?.[fieldId];
+  if (!rowSummaryPointsToSession(current, sessionId)) return;
+  if (row.data?.delete) row.data.delete(fieldId);
+  else if (row.data) delete row.data[fieldId];
+  row.markModified("data");
+  row._updatedAt = new Date();
+  await row.save();
 };

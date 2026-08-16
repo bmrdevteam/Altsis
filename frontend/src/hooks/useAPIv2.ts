@@ -5086,6 +5086,14 @@ export default function useAPIv2() {
     };
   }
 
+  async function DFormAiChatSession(props: {
+    params: { _id: string; sessionId: string };
+  }) {
+    return await database.D({
+      location: `alt-forms/${props.params._id}/ai-chat/sessions/${props.params.sessionId}`,
+    });
+  }
+
   /**
    * ##########################################################################
    * Alt Form Favorite API
@@ -5853,6 +5861,7 @@ export default function useAPIv2() {
       CFormAiChatMessage,
       RFormAiChatSessions,
       RFormAiChatMessages,
+      DFormAiChatSession,
     },
     AltFormFavoriteAPI: {
       CAltFormFavorite,
