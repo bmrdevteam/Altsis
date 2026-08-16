@@ -20,6 +20,8 @@ export type TAIChatSession = {
   lastMessagePreview?: string;
   messageCount: number;
   studentMessageCount?: number;
+  /** 연결된 시트 행이 없거나 비활성 */
+  responseDeleted?: boolean;
   createdAt: string;
 };
 

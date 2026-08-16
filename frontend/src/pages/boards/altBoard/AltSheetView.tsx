@@ -41,7 +41,8 @@ import {
   sanitizeHttpUrl,
 } from "./formDocLink";
 import FormAiChatField from "./FormAiChatField";
-import { formatAiChatCell } from "./formAiChat";
+import SheetAiChatView from "./SheetAiChatView";
+import { formatAiChatCell, isAiChatFieldType, parseAiChatSummary } from "./formAiChat";
 
 type Props = {
   forms: TAltForm[];
@@ -63,13 +64,14 @@ type SortConfig = {
   direction: "asc" | "desc";
 } | null;
 
-type TSheetViewMode = "table" | "doc" | "timetable" | "summary";
+type TSheetViewMode = "table" | "doc" | "timetable" | "summary" | "aiChat";
 
 const SHEET_VIEW_MODES: TSheetViewMode[] = [
   "table",
   "doc",
   "timetable",
   "summary",
+  "aiChat",
 ];
 
 const formSupportsTimetable = (form: TAltForm | undefined) => {
@@ -79,6 +81,13 @@ const formSupportsTimetable = (form: TAltForm | undefined) => {
   );
   return dateFields.length > 0 && periodFields.length > 0;
 };
+
+const formSupportsAiChatView = (
+  form: TAltForm | undefined,
+  canViewAll: boolean
+) =>
+  !!canViewAll &&
+  !!form?.fields?.some((field) => isAiChatFieldType(field.type));
 
 const readStoredViewMode = (formId: string): TSheetViewMode | null => {
   try {
@@ -103,10 +112,14 @@ const writeStoredViewMode = (formId: string, mode: TSheetViewMode) => {
 const resolveViewMode = (
   formId: string,
   form: TAltForm | undefined,
-  mode?: TSheetViewMode
+  mode?: TSheetViewMode,
+  canViewAll = false
 ): TSheetViewMode => {
   const next = mode ?? readStoredViewMode(formId) ?? "doc";
   if (next === "timetable" && !formSupportsTimetable(form)) return "doc";
+  if (next === "aiChat" && !formSupportsAiChatView(form, canViewAll)) {
+    return "doc";
+  }
   return next;
 };
 
@@ -209,7 +222,12 @@ const AltSheetView = ({
   const [viewMode, setViewMode] = useState<TSheetViewMode>(() => {
     if (!initialFormId) return "doc";
     const form = forms.find((f) => f._id === initialFormId);
-    return resolveViewMode(initialFormId, form);
+    return resolveViewMode(
+      initialFormId,
+      form,
+      undefined,
+      form ? canViewAllRowsForForm?.(form) ?? canManage : false
+    );
   });
 
   const viewModeMenu = useOutsideClick();
@@ -222,7 +240,12 @@ const AltSheetView = ({
 
   const openForm = (formId: string, mode?: TSheetViewMode) => {
     const form = forms.find((f) => f._id === formId);
-    const resolved = resolveViewMode(formId, form, mode);
+    const resolved = resolveViewMode(
+      formId,
+      form,
+      mode,
+      form ? canViewAllRowsForForm?.(form) ?? canManage : false
+    );
     applyViewMode(formId, resolved);
     setSelectedFormId(formId);
     onFormSelect?.(formId);
@@ -251,14 +274,18 @@ const AltSheetView = ({
   const tablePrintRootRef = useRef<HTMLDivElement>(null);
   const timetablePrintRootRef = useRef<HTMLDivElement>(null);
   const summaryPrintRootRef = useRef<HTMLDivElement>(null);
+  const aiChatPrintRootRef = useRef<HTMLDivElement>(null);
   const docBatchPrintRootRef = useRef<HTMLDivElement>(null);
   /** 문서 보기 일괄 인쇄: DOM 마운트 후 print */
   const [docBatchPrintActive, setDocBatchPrintActive] = useState(false);
   const [previewFile, setPreviewFile] = useState<TFormFileRef | null>(null);
   const [aiChatPreview, setAiChatPreview] = useState<{
     field: TAltFormField;
-    row: TAltSheetRow;
+    row?: TAltSheetRow;
+    sessionId?: string;
   } | null>(null);
+  const [aiChatReloadNonce, setAiChatReloadNonce] = useState(0);
+  const [deletingAiChat, setDeletingAiChat] = useState(false);
 
   const selectedForm = forms.find((f) => f._id === selectedFormId);
   const formAllowsAllRows = (form: TAltForm) =>
@@ -266,6 +293,43 @@ const AltSheetView = ({
   const canManageSelected = selectedForm
     ? formAllowsAllRows(selectedForm)
     : canManage;
+
+  const refreshSheetRows = () => {
+    if (!selectedFormId) return;
+    AltSheetRowAPI.RAltSheetRows({ query: { form: selectedFormId } })
+      .then(({ rows: loadedRows }) => setRows(loadedRows))
+      .catch((err) => ALERT_ERROR(err));
+  };
+
+  const previewSessionId =
+    aiChatPreview?.sessionId ||
+    parseAiChatSummary(
+      aiChatPreview?.row?.data?.[aiChatPreview.field._id]
+    )?.sessionId;
+
+  const handleDeleteAiChatSession = async (sessionId: string) => {
+    if (!selectedForm || !sessionId || deletingAiChat) return;
+    if (
+      !window.confirm(
+        "이 대화를 삭제할까요? 삭제하면 기록에서 다시 볼 수 없습니다."
+      )
+    ) {
+      return;
+    }
+    setDeletingAiChat(true);
+    try {
+      await AltFormAPI.DFormAiChatSession({
+        params: { _id: selectedForm._id, sessionId },
+      });
+      setAiChatPreview(null);
+      setAiChatReloadNonce((n) => n + 1);
+      refreshSheetRows();
+    } catch (err) {
+      ALERT_ERROR(err);
+    } finally {
+      setDeletingAiChat(false);
+    }
+  };
 
   const handleSheetPrint = () => {
     if (!selectedFormId) {
@@ -282,6 +346,10 @@ const AltSheetView = ({
     }
     if (viewMode === "summary") {
       printArea(summaryPrintRootRef.current);
+      return;
+    }
+    if (viewMode === "aiChat") {
+      printArea(aiChatPrintRootRef.current);
       return;
     }
     // 테이블: 조회된(필터·정렬) 전체
@@ -315,6 +383,10 @@ const AltSheetView = ({
     () => formSupportsTimetable(selectedForm),
     [selectedForm]
   );
+  const supportsAiChatView = useMemo(
+    () => formSupportsAiChatView(selectedForm, canManageSelected),
+    [selectedForm, canManageSelected]
+  );
 
   useEffect(() => {
     if (!supportsTimetable && viewMode === "timetable") {
@@ -322,6 +394,13 @@ const AltSheetView = ({
       if (selectedFormId) writeStoredViewMode(selectedFormId, "doc");
     }
   }, [supportsTimetable, viewMode, selectedFormId]);
+
+  useEffect(() => {
+    if (!supportsAiChatView && viewMode === "aiChat") {
+      setViewMode("doc");
+      if (selectedFormId) writeStoredViewMode(selectedFormId, "doc");
+    }
+  }, [supportsAiChatView, viewMode, selectedFormId]);
 
   // 평가 채점 초안 (문서 보기)
   const [gradeDraft, setGradeDraft] = useState<TGradeDraft>({
@@ -1671,6 +1750,10 @@ const AltSheetView = ({
               <div className={style.formCardList}>
                 {filteredForms.map((form) => {
                   const canTimetable = formSupportsTimetable(form);
+                  const canAiChatView = formSupportsAiChatView(
+                    form,
+                    formAllowsAllRows(form)
+                  );
                   return (
                   <div
                     key={form._id}
@@ -1780,6 +1863,20 @@ const AltSheetView = ({
                           <Svg type="calender" width="20px" height="20px" />
                         </button>
                       )}
+                      {canAiChatView && (
+                        <button
+                          type="button"
+                          className={style.formCardIconBtn}
+                          title="AI 대화 보기"
+                          aria-label="AI 대화 보기"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openForm(form._id, "aiChat");
+                          }}
+                        >
+                          <Svg type="chat" width="20px" height="20px" />
+                        </button>
+                      )}
                       {onCopySheetLink && (
                         <button
                           type="button"
@@ -1879,7 +1976,9 @@ const AltSheetView = ({
                       ? "calender"
                       : viewMode === "summary"
                         ? "analyze"
-                        : "article"
+                        : viewMode === "aiChat"
+                          ? "chat"
+                          : "article"
                 }
                 width="20px"
                 height="20px"
@@ -1951,6 +2050,23 @@ const AltSheetView = ({
                     시간표 보기
                   </button>
                 )}
+                {supportsAiChatView && (
+                  <button
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={viewMode === "aiChat"}
+                    className={`${style.formActionItem} ${
+                      viewMode === "aiChat" ? style.formActionItemActive : ""
+                    }`}
+                    onClick={() => {
+                      applyViewMode(selectedFormId, "aiChat");
+                      viewModeMenu.setActive(false);
+                    }}
+                  >
+                    <Svg type="chat" width="16px" height="16px" />
+                    AI 대화 보기
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -2014,7 +2130,9 @@ const AltSheetView = ({
                     링크 복사
                   </button>
                 )}
-                {canManageSelected && viewMode !== "timetable" && (
+                {canManageSelected &&
+                  viewMode !== "timetable" &&
+                  viewMode !== "aiChat" && (
                   <>
                     <button
                       type="button"
@@ -2067,7 +2185,8 @@ const AltSheetView = ({
         </div>
       </div>
 
-      {/* 공통 검색·표시 항목·정렬 (모든 뷰모드) */}
+      {/* 공통 검색·표시 항목·정렬 (행 기반 보기) */}
+      {viewMode !== "aiChat" && (
       <div
         className={`${style.sheetFilterToolbar} ${style.noPrint} ${NO_PRINT_CLASS}`}
       >
@@ -2119,9 +2238,25 @@ const AltSheetView = ({
           }
         />
       </div>
-
-      {/* 콘텐츠 */}
-      {!isLoading && rows.length === 0 ? (
+      )}
+      {viewMode === "aiChat" && selectedForm ? (
+        <SheetAiChatView
+          form={selectedForm}
+          printRootRef={aiChatPrintRootRef}
+          printTitle={selectedForm.title || "AI 대화"}
+          reloadNonce={aiChatReloadNonce}
+          onOpenSession={(session, field) =>
+            setAiChatPreview({
+              field,
+              sessionId: session._id,
+            })
+          }
+          onSessionDeleted={(sessionId) => {
+            if (previewSessionId === sessionId) setAiChatPreview(null);
+            refreshSheetRows();
+          }}
+        />
+      ) : !isLoading && rows.length === 0 ? (
         <div className={style.sheetEmpty}>아직 응답이 없습니다.</div>
       ) : !isLoading && viewMode === "timetable" && selectedForm ? (
         <SheetTimetableView
@@ -2867,10 +3002,22 @@ const AltSheetView = ({
           <FormAiChatField
             formId={selectedForm._id}
             field={aiChatPreview.field}
-            value={aiChatPreview.row.data?.[aiChatPreview.field._id]}
-            rowId={aiChatPreview.row._id}
+            value={aiChatPreview.row?.data?.[aiChatPreview.field._id]}
+            sessionId={aiChatPreview.sessionId}
+            rowId={aiChatPreview.row?._id}
             disabled
           />
+          {canManageSelected && previewSessionId && (
+            <div className={style.aiChatDeleteRow}>
+              <Button
+                type="ghost"
+                onClick={() => handleDeleteAiChatSession(previewSessionId)}
+                disabled={deletingAiChat}
+              >
+                {deletingAiChat ? "삭제 중" : "대화 삭제"}
+              </Button>
+            </div>
+          )}
         </Popup>
       )}
       <FilePreviewModal
