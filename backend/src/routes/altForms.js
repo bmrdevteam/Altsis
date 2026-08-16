@@ -11,7 +11,16 @@ router.get("/:_id/export", isLoggedIn, altForms.exportForm);
 router.post("/:_id/duplicate", isLoggedIn, altForms.duplicate);
 router.put("/:_id/sheet-opened", isLoggedIn, altForms.markSheetOpened);
 router.post("/:_id/ai-chat/messages", isLoggedIn, formAiChat.sendMessage);
-router.get("/:_id/ai-chat/sessions/:sessionId/messages", isLoggedIn, formAiChat.listMessages);
+router.delete(
+  "/:_id/ai-chat/sessions/:sessionId",
+  isLoggedIn,
+  formAiChat.removeSession
+);
+router.get(
+  "/:_id/ai-chat/sessions/:sessionId/messages",
+  isLoggedIn,
+  formAiChat.listMessages
+);
 router.get("/:_id/ai-chat/sessions", isLoggedIn, formAiChat.listSessions);
 
 // Alt Form CRUD

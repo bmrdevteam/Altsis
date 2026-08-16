@@ -46,10 +46,11 @@ UI에서의 Alter 사용법은 [사용자 가이드 — Alter](../user-guide/cha
 | 메서드 | 경로 | 설명 | 권한 |
 |--------|------|------|------|
 | `POST` | `/api/alt-forms/:_id/ai-chat/messages` | 학생 메시지 전송 + AI 응답. `{ fieldId, content, rowId?, season? }` | 양식 응답자 + 학기/학교 AI on |
-| `GET` | `/api/alt-forms/:_id/ai-chat/sessions` | 세션 목록 (`fieldId`, `row` 쿼리) | 본인 또는 `canViewAllRows` |
+| `GET` | `/api/alt-forms/:_id/ai-chat/sessions` | 세션 목록 (`fieldId`, `row` 쿼리). 행이 삭제된 세션도 포함하며 `responseDeleted`로 표시 | 본인 또는 `canViewAllRows` |
 | `GET` | `/api/alt-forms/:_id/ai-chat/sessions/:sessionId/messages` | 메시지 목록 | 본인 또는 `canViewAllRows` |
+| `DELETE` | `/api/alt-forms/:_id/ai-chat/sessions/:sessionId` | 세션·메시지 삭제. 연결된 행 요약도 지움 | `canViewAllRows` |
 
-행 값에는 대화 전문이 아니라 `{ sessionId, messageCount, studentMessageCount, lastMessagePreview, lastMessageAt }` 요약만 저장합니다. 필수는 학생 메시지 1회 이상입니다. 제출 후 `allowResubmit`이 아니면 전송이 잠깁니다.
+행 값에는 대화 전문이 아니라 `{ sessionId, messageCount, studentMessageCount, lastMessagePreview, lastMessageAt }` 요약만 저장합니다. 필수는 학생 메시지 1회 이상입니다. 제출 후 `allowResubmit`이 아니면 전송이 잠깁니다. 시트 행을 삭제해도 세션·메시지는 남고, 교사는 기록 시트의 AI 대화 보기에서 열람한 뒤 삭제할 수 있습니다.
 
 ---
 

@@ -1,4 +1,5 @@
 import {
+  annotateSessionsWithRowStatus,
   buildAiChatRowSummary,
   buildFormAiChatSystemPrompt,
   hasSchoolSkillConfig,
@@ -8,6 +9,7 @@ import {
   newAiChatFieldIds,
   parseAiChatSummary,
   resolveAiRolePermission,
+  rowSummaryPointsToSession,
 } from "../../src/services/formAiChat.js";
 
 describe("formAiChat helpers", () => {
@@ -104,5 +106,31 @@ describe("formAiChat helpers", () => {
     expect(prompt).toContain("https://example.com");
     expect(prompt).toContain("미성년");
     expect(prompt).toContain("열람");
+  });
+
+  test("annotateSessionsWithRowStatus marks missing or inactive rows", () => {
+    const sessions = [
+      { _id: "s1", row: "r1" },
+      { _id: "s2", row: "r2" },
+      { _id: "s3" },
+    ];
+    const marked = annotateSessionsWithRowStatus(sessions, ["r1"]);
+    expect(marked[0].responseDeleted).toBe(false);
+    expect(marked[1].responseDeleted).toBe(true);
+    expect(marked[2].responseDeleted).toBe(true);
+    expect(
+      annotateSessionsWithRowStatus([{ _id: "s4", row: "r1" }], new Set(["r1"]))[0]
+        .responseDeleted
+    ).toBe(false);
+  });
+
+  test("rowSummaryPointsToSession matches stored summary", () => {
+    expect(
+      rowSummaryPointsToSession({ sessionId: "abc" }, "abc")
+    ).toBe(true);
+    expect(
+      rowSummaryPointsToSession({ sessionId: "abc" }, "other")
+    ).toBe(false);
+    expect(rowSummaryPointsToSession(null, "abc")).toBe(false);
   });
 });

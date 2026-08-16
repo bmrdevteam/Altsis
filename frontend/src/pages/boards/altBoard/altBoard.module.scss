@@ -357,6 +357,11 @@
   color: #0f766e;
 }
 
+.badgeAiChatDeleted {
+  background: color-mix(in srgb, var(--color-y4, #e6a23c) 18%, var(--background-color));
+  color: var(--color-y4, #c48820);
+}
+
 .badgeOpen {
   background: var(--status-success-bg);
   color: var(--status-success);
@@ -6040,4 +6045,8 @@ tbody tr:hover .actionCell {
   font-size: 12px;
   color: var(--text-color-2);
   margin: 0;
+}
+
+.aiChatDeleteRow {
+  margin-top: 12px;
 }
