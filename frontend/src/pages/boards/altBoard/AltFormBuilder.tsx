@@ -14,6 +14,7 @@ import {
   TQuizSettings,
 } from "types/altForm";
 import { FIELD_TYPE_LABELS, nextFieldLabel } from "./formFieldLabel";
+import { applyOptionEnter, applyOptionPaste } from "./optionListEdit";
 import { canAuthorFormAiChat } from "./formAiPermission";
 import { useAuth } from "contexts/authContext";
 import { sanitizeHttpUrl } from "./formDocLink";
@@ -382,6 +383,11 @@ const AltFormBuilder = ({
   const builderBodyRef = useRef<HTMLDivElement>(null);
   /** 필드 추가/복제 후 새 카드로 스크롤 */
   const shouldScrollToActiveRef = useRef(false);
+  /** Enter·붙여넣기 후 옵션 입력칸 포커스 */
+  const pendingOptionFocusRef = useRef<{
+    fieldId: string;
+    optionIndex: number;
+  } | null>(null);
 
   useRegisterAlterActivity({
     enabled: !isLoading,
@@ -958,6 +964,23 @@ const AltFormBuilder = ({
     return () => window.clearTimeout(scrollTimer);
   }, [activeFieldId, fields]);
 
+  useEffect(() => {
+    const pending = pendingOptionFocusRef.current;
+    if (!pending) return;
+    const { fieldId, optionIndex } = pending;
+    const focusTimer = window.setTimeout(() => {
+      if (pendingOptionFocusRef.current !== pending) return;
+      const el = document.querySelector(
+        `[data-option-input="${CSS.escape(`${fieldId}:${optionIndex}`)}"]`
+      ) as HTMLInputElement | null;
+      if (!el) return;
+      pendingOptionFocusRef.current = null;
+      el.focus();
+      el.select();
+    }, 0);
+    return () => window.clearTimeout(focusTimer);
+  }, [fields]);
+
   const toggleRubricExpanded = (id: string) => {
     setExpandedRubricIds((prev) => {
       const next = new Set(prev);
@@ -1073,6 +1096,20 @@ const AltFormBuilder = ({
     );
   };
 
+  const applyOptionListEdit = (
+    fieldIndex: number,
+    fieldId: string,
+    edit: { options: string[]; focusIndex: number } | null
+  ) => {
+    if (!edit) return false;
+    pendingOptionFocusRef.current = {
+      fieldId,
+      optionIndex: edit.focusIndex,
+    };
+    updateField(fieldIndex, { options: edit.options });
+    return true;
+  };
+
   const needsOptions = (type: TAltFormFieldType) =>
     ["select", "multiSelect", "radio"].includes(type);
 
@@ -1130,7 +1167,7 @@ const AltFormBuilder = ({
           <MI icon="radio_button_unchecked" />
         </span>
       );
-    if (type === "checkbox")
+    if (type === "checkbox" || type === "multiSelect")
       return (
         <span className={style.optionIcon}>
           <MI icon="check_box_outline_blank" />
@@ -2458,12 +2495,32 @@ const AltFormBuilder = ({
                 <input
                   className={style.optionInputGf}
                   value={opt}
+                  data-option-input={`${field._id}:${oi}`}
                   onChange={(e) => updateOption(index, oi, e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter" || e.nativeEvent.isComposing) return;
+                    e.preventDefault();
+                    applyOptionListEdit(
+                      index,
+                      field._id,
+                      applyOptionEnter(field.options, oi)
+                    );
+                  }}
+                  onPaste={(e) => {
+                    const text = e.clipboardData.getData("text");
+                    const applied = applyOptionPaste(field.options, oi, text);
+                    if (!applied) return;
+                    e.preventDefault();
+                    applyOptionListEdit(index, field._id, applied);
+                  }}
                   placeholder={`옵션 ${oi + 1}`}
                 />
                 <button
                   className={style.removeBtn}
                   onClick={() => removeOption(index, oi)}
+                  type="button"
+                  title="옵션 삭제"
+                  aria-label={`옵션 ${oi + 1} 삭제`}
                 >
                   <MI icon="close" size={18} />
                 </button>
@@ -2474,6 +2531,7 @@ const AltFormBuilder = ({
               <button
                 className={style.addOptionLink}
                 onClick={() => addOption(index)}
+                type="button"
               >
                 옵션 추가
               </button>
