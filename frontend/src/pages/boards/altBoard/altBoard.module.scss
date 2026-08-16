@@ -2730,6 +2730,80 @@
   }
 }
 
+.multiSelectField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.multiSelectSearch {
+  width: 100%;
+  padding: 8px 12px;
+  margin-bottom: 4px;
+  border: 1px solid var(--border-default-color, var(--border-color));
+  border-radius: 6px;
+  font-size: 13px;
+  background: var(--background-color);
+  color: var(--text-color-1);
+  font-family: inherit;
+
+  &::placeholder {
+    color: var(--text-color-2);
+    opacity: 0.6;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent-1);
+    box-shadow: 0 0 0 1px var(--accent-1);
+  }
+}
+
+.multiSelectToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 2px 8px;
+}
+
+.multiSelectSelectAll {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--text-color-1);
+  cursor: pointer;
+
+  input[type="checkbox"] {
+    accent-color: var(--accent-1);
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  &:has(input:disabled) {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+.multiSelectCount {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-color-2);
+  flex-shrink: 0;
+}
+
+.multiSelectEmpty {
+  padding: 12px 14px;
+  font-size: 13px;
+  color: var(--text-color-2);
+  border: 1px dashed var(--border-color);
+  border-radius: 6px;
+}
+
 .submitArea {
   display: flex;
   justify-content: flex-end;
