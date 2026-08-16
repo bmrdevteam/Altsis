@@ -1,20 +1,28 @@
 const normalizeQuery = (query: string): string => query.trim().toLowerCase();
 
+export type TCheckFilter = "all" | "checked" | "unchecked";
+
 /**
- * 검색어에 맞는 옵션 인덱스를 반환한다. 빈 검색어면 전체.
- * 대소문자를 구분하지 않는다.
+ * 검색어·체크 여부에 맞는 옵션 인덱스를 반환한다.
+ * 빈 검색어면 이름 필터 없음. 순서는 검색 → 체크 여부.
  */
 export const filterOptionIndices = (
   options: string[] | undefined,
-  query: string
+  query: string,
+  checkFilter: TCheckFilter = "all",
+  selected: string[] = []
 ): number[] => {
   const list = Array.isArray(options) ? options : [];
   const q = normalizeQuery(query);
+  const selectedSet = new Set(selected);
   const indices: number[] = [];
   for (let i = 0; i < list.length; i += 1) {
-    if (!q || String(list[i] ?? "").toLowerCase().includes(q)) {
-      indices.push(i);
-    }
+    const label = String(list[i] ?? "");
+    if (q && !label.toLowerCase().includes(q)) continue;
+    const isChecked = selectedSet.has(label);
+    if (checkFilter === "checked" && !isChecked) continue;
+    if (checkFilter === "unchecked" && isChecked) continue;
+    indices.push(i);
   }
   return indices;
 };
@@ -28,7 +36,7 @@ export const isAllVisibleSelected = (
 
 /**
  * 보이는 항목을 모두 선택하거나, 이미 모두 선택돼 있으면 그 범위만 해제한다.
- * 검색으로 가려진 선택은 유지한다.
+ * 검색·뱃지로 가려진 선택은 유지한다.
  */
 export const toggleSelectAllVisible = (
   selected: string[],
