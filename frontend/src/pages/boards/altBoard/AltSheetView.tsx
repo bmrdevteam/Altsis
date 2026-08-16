@@ -2998,6 +2998,17 @@ const AltSheetView = ({
           title={aiChatPreview.field.label || "AI 챗봇"}
           closeBtn
           contentScroll
+          footer={
+            canManageSelected && previewSessionId ? (
+              <Button
+                type="ghost"
+                onClick={() => handleDeleteAiChatSession(previewSessionId)}
+                disabled={deletingAiChat}
+              >
+                {deletingAiChat ? "삭제 중" : "대화 삭제"}
+              </Button>
+            ) : undefined
+          }
         >
           <FormAiChatField
             formId={selectedForm._id}
@@ -3007,17 +3018,6 @@ const AltSheetView = ({
             rowId={aiChatPreview.row?._id}
             disabled
           />
-          {canManageSelected && previewSessionId && (
-            <div className={style.aiChatDeleteRow}>
-              <Button
-                type="ghost"
-                onClick={() => handleDeleteAiChatSession(previewSessionId)}
-                disabled={deletingAiChat}
-              >
-                {deletingAiChat ? "삭제 중" : "대화 삭제"}
-              </Button>
-            </div>
-          )}
         </Popup>
       )}
       <FilePreviewModal
