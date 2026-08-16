@@ -165,6 +165,11 @@ export const FEATURE_PROFILES = {
     temperature: 0.7,
     maxTokens: 2048,
   },
+  formAiChat: {
+    feature: "form-ai-chat",
+    temperature: 0.7,
+    maxTokens: 2048,
+  },
   evaluationDraft: {
     feature: "evaluation_draft",
     temperature: 0.3,

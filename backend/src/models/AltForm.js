@@ -52,6 +52,7 @@ const altFormFieldSchema = mongoose.Schema({
       "link",
       "content",
       "docResponse",
+      "aiChat",
     ],
     required: true,
   },
@@ -64,9 +65,9 @@ const altFormFieldSchema = mongoose.Schema({
   required: { type: Boolean, default: false },
   options: { type: [String], default: undefined },
   validation: { type: mongoose.Schema.Types.Mixed },
-  /** content: 읽기 전용 안내 / docResponse: 응답 템플릿 마크다운 */
+  /** content: 읽기 전용 안내 / docResponse: 응답 템플릿 / aiChat: 챗봇 지침 마크다운 */
   content: { type: String, default: "" },
-  /** content / docResponse 참고 파일 (응답값으로 저장되지 않음) */
+  /** content / docResponse / aiChat 참고 파일 (응답값으로 저장되지 않음) */
   attachments: {
     type: [
       {
@@ -78,7 +79,7 @@ const altFormFieldSchema = mongoose.Schema({
     ],
     default: undefined,
   },
-  /** content / docResponse 참고 링크 */
+  /** content / docResponse / aiChat 참고 링크 */
   links: {
     type: [
       {

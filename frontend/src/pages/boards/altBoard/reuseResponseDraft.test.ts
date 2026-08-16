@@ -4,6 +4,7 @@ const fields = [
   { _id: "text1", type: "text" as const },
   { _id: "file1", type: "file" as const },
   { _id: "appr1", type: "approval" as const },
+  { _id: "chat1", type: "aiChat" as const },
 ];
 
 describe("copyRowDataForReuse", () => {
@@ -37,6 +38,18 @@ describe("copyRowDataForReuse", () => {
         {
           text1: "본문",
           appr1: { status: "approved", steps: [] },
+        },
+        fields
+      )
+    ).toEqual({ text1: "본문" });
+  });
+
+  test("drops aiChat session summaries", () => {
+    expect(
+      copyRowDataForReuse(
+        {
+          text1: "본문",
+          chat1: { sessionId: "s1", studentMessageCount: 2, messageCount: 4 },
         },
         fields
       )

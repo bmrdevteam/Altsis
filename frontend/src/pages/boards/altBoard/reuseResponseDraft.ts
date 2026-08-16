@@ -10,7 +10,9 @@ export const copyRowDataForReuse = (
     if (key.startsWith("_")) delete copied[key];
   }
   for (const field of fields) {
-    if (field.type === "approval") delete copied[field._id];
+    if (field.type === "approval" || field.type === "aiChat") {
+      delete copied[field._id];
+    }
   }
   return copied;
 };

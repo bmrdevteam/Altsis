@@ -13,7 +13,9 @@ import useAPIv2 from "hooks/useAPIv2";
 import { isEmptyEval } from "utils/evaluationCsv";
 import { TAlterConversation } from "types/alterChat";
 import { TMyAiUsage } from "types/dashboard";
+import AiUsageBar from "components/ai/AiUsageBar";
 import Button from "components/button/Button";
+import { getUsageMeter } from "utils/aiUsageMeter";
 import { MarkdownViewer } from "components/markdown";
 import normalizeAlterMarkdown from "utils/normalizeAlterMarkdown";
 import { FORM_RESPONSE_WRITABLE_TYPES } from "utils/formResponseDraft";
@@ -251,28 +253,6 @@ const buildHistoryForSkill = (
     (m) => m.skill === skill || m.skill === "chat" || !m.skill
   );
   return filtered.slice(-8).map(({ role, content }) => ({ role, content }));
-};
-
-const formatAlt = (n: number) => {
-  if (!Number.isFinite(n)) return "0";
-  if (n === 0) return "0";
-  if (n >= 10) return n.toLocaleString(undefined, { maximumFractionDigits: 1 });
-  return n.toLocaleString(undefined, {
-    maximumFractionDigits: 2,
-    minimumFractionDigits: 0,
-  });
-};
-
-const getUsageMeter = (usage: TMyAiUsage) => {
-  const used = usage.usedAlts ?? 0;
-  const limit =
-    usage.limitEnabled && usage.limitAlts != null && usage.limitAlts > 0
-      ? usage.limitAlts
-      : null;
-  const ratio = limit != null ? Math.min(1, used / limit) : null;
-  const exceeded = limit != null && used >= limit;
-  const warn = !exceeded && ratio != null && ratio >= 0.8;
-  return { used, limit, ratio, exceeded, warn };
 };
 
 const AlterPanel = ({ onClose }: Props) => {
@@ -3387,56 +3367,7 @@ const AlterPanel = ({ onClose }: Props) => {
       </div>
 
       <div className={style.composerWrap}>
-        {usageMeter && (
-          <div
-            className={[
-              style.usageBar,
-              usageMeter.exceeded
-                ? style.usageBarExceeded
-                : usageMeter.warn
-                  ? style.usageBarWarn
-                  : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-            aria-live="polite"
-            role="status"
-          >
-            <div className={style.usageBarMeta}>
-              <span className={style.usageBarLabel}>오늘</span>
-              <span className={style.usageBarValue}>
-                {usageMeter.limit != null
-                  ? `${formatAlt(usageMeter.used)} / ${formatAlt(
-                      usageMeter.limit
-                    )} Alt`
-                  : `${formatAlt(usageMeter.used)} Alt`}
-              </span>
-              {usageMeter.exceeded && (
-                <span className={style.usageBarHint}>한도 초과</span>
-              )}
-            </div>
-            {usageMeter.ratio != null && (
-              <div
-                className={style.usageTrack}
-                role="progressbar"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={Math.round(usageMeter.ratio * 100)}
-                aria-label="오늘 AI Alt 사용률"
-              >
-                <div
-                  className={style.usageFill}
-                  style={{
-                    width: `${Math.max(
-                      usageMeter.ratio * 100,
-                      usageMeter.used > 0 ? 2 : 0
-                    )}%`,
-                  }}
-                />
-              </div>
-            )}
-          </div>
-        )}
+        <AiUsageBar usage={myUsage} />
         {attachmentChips}
         <ChatInputBar
           bare

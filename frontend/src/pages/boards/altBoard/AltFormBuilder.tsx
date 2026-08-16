@@ -14,6 +14,8 @@ import {
   TQuizSettings,
 } from "types/altForm";
 import { FIELD_TYPE_LABELS, nextFieldLabel } from "./formFieldLabel";
+import { canAuthorFormAiChat } from "./formAiPermission";
+import { useAuth } from "contexts/authContext";
 import { sanitizeHttpUrl } from "./formDocLink";
 import {
   emptyFormAccess,
@@ -148,13 +150,14 @@ const FIELD_TYPE_ICONS: Record<TAltFormFieldType, string> = {
   link: "link",
   content: "article",
   docResponse: "edit_note",
+  aiChat: "smart_toy",
 };
 
 const FIELD_TYPE_GROUPS: { label: string; types: TAltFormFieldType[] }[] = [
   { label: "텍스트", types: ["text", "textarea", "number"] },
   { label: "선택", types: ["radio", "checkbox", "select", "multiSelect"] },
   { label: "날짜/시간", types: ["date", "multiDate", "time"] },
-  { label: "문서", types: ["content", "docResponse"] },
+  { label: "문서", types: ["content", "docResponse", "aiChat"] },
   { label: "평가 입력", types: ["rating", "scale", "counter"] },
   {
     label: "기타",
@@ -195,10 +198,17 @@ const createEmptyField = (
     ? ["옵션 1", "옵션 2"]
     : [],
   content:
-    type === "content" || type === "docResponse" ? "" : undefined,
+    type === "content" || type === "docResponse" || type === "aiChat"
+      ? ""
+      : undefined,
   attachments:
-    type === "content" || type === "docResponse" ? [] : undefined,
-  links: type === "content" || type === "docResponse" ? [] : undefined,
+    type === "content" || type === "docResponse" || type === "aiChat"
+      ? []
+      : undefined,
+  links:
+    type === "content" || type === "docResponse" || type === "aiChat"
+      ? []
+      : undefined,
   approvalLine:
     type === "approval"
       ? { steps: [{ order: 0, label: "1차 승인", mode: "pick" }] }
@@ -284,6 +294,8 @@ const AltFormBuilder = ({
   onFormCreated,
 }: Props) => {
   const { AltFormAPI, PostAPI, FileAPI, BoardAPI } = useAPIv2();
+  const { currentSchool, currentSeason } = useAuth();
+  const canAddAiChat = canAuthorFormAiChat(currentSchool, currentSeason);
 
   const handleEditorImageUpload = async (
     file: File
@@ -704,6 +716,7 @@ const AltFormBuilder = ({
           showOwnResponse: settings.showOwnResponse,
         },
         isDraft: asDraft,
+        season: currentSeason?._id,
         members: restrictMembers
           ? {
               groups: memberGroups,
@@ -1194,7 +1207,7 @@ const AltFormBuilder = ({
 
     const prevFields = fields
       .slice(0, fieldIndex)
-      .filter((f) => f.type !== "content");
+      .filter((f) => f.type !== "content" && f.type !== "aiChat");
 
     return (
       <div
@@ -1338,7 +1351,7 @@ const AltFormBuilder = ({
   const renderQuizSettings = (fieldIndex: number) => {
     if (!settings.quizMode) return null;
     const field = fields[fieldIndex];
-    if (field.type === "content") return null;
+    if (field.type === "content" || field.type === "aiChat") return null;
     if (field.permission !== "respondent") return null;
 
     const gradable = isGradable(field.type);
@@ -1604,6 +1617,30 @@ const AltFormBuilder = ({
               value={field.content ?? ""}
               onChange={(md) => updateField(fieldIndex, { content: md })}
               placeholder="마크다운으로 안내문을 작성하세요."
+              minHeight="220px"
+              onImageUpload={handleEditorImageUpload}
+            />
+            {renderDocResources(fieldIndex)}
+          </div>
+        );
+      case "aiChat":
+        return (
+          <div style={{ marginTop: "8px" }}>
+            <div
+              style={{
+                fontSize: "12px",
+                color: "var(--text-color-2)",
+                marginBottom: "8px",
+              }}
+            >
+              학생이 이 항목에서만 대화하는 학습 챗봇입니다. 지침과 참고
+              자료를 넣으면 그 범위 안에서 답합니다. 대화는 응답 기록에서
+              확인할 수 있습니다.
+            </div>
+            <MarkdownEditor
+              value={field.content ?? ""}
+              onChange={(md) => updateField(fieldIndex, { content: md })}
+              placeholder="챗봇 지침을 마크다운으로 작성하세요."
               minHeight="220px"
               onImageUpload={handleEditorImageUpload}
             />
@@ -2257,7 +2294,7 @@ const AltFormBuilder = ({
           {renderConditionEditor(fieldIndex)}
         </div>
 
-        {field.type !== "content" && (
+        {field.type !== "content" && field.type !== "aiChat" && (
           <div className={style.advancedOption}>
             <label className={style.advancedOptionLabel}>
               <input
@@ -2348,7 +2385,9 @@ const AltFormBuilder = ({
               ? "안내 문서 제목 (선택)"
               : field.type === "docResponse"
                 ? "응답 문서 제목"
-                : "질문"
+                : field.type === "aiChat"
+                  ? "AI 챗봇 제목"
+                  : "질문"
           }
           value={field.label}
           onChange={(e) => updateField(index, { label: e.target.value })}
@@ -2359,7 +2398,9 @@ const AltFormBuilder = ({
           onChange={(e) => {
             const nextType = e.target.value as TAltFormFieldType;
             const usesContentTemplate =
-              nextType === "content" || nextType === "docResponse";
+              nextType === "content" ||
+              nextType === "docResponse" ||
+              nextType === "aiChat";
             updateField(index, {
               type: nextType,
               required: nextType === "content" ? false : field.required,
@@ -2388,15 +2429,21 @@ const AltFormBuilder = ({
             });
           }}
         >
-          {FIELD_TYPE_GROUPS.map((group) => (
-            <optgroup key={group.label} label={group.label}>
-              {group.types.map((t) => (
-                <option key={t} value={t}>
-                  {FIELD_TYPE_LABELS[t]}
-                </option>
-              ))}
-            </optgroup>
-          ))}
+          {FIELD_TYPE_GROUPS.map((group) => {
+            const types = group.types.filter(
+              (t) => t !== "aiChat" || canAddAiChat || field.type === "aiChat"
+            );
+            if (types.length === 0) return null;
+            return (
+              <optgroup key={group.label} label={group.label}>
+                {types.map((t) => (
+                  <option key={t} value={t}>
+                    {FIELD_TYPE_LABELS[t]}
+                  </option>
+                ))}
+              </optgroup>
+            );
+          })}
         </select>
       </div>
 
@@ -2608,6 +2655,17 @@ const AltFormBuilder = ({
       >
         <MI icon="edit_note" size={22} />
       </button>
+      {canAddAiChat && (
+        <button
+          type="button"
+          className={style.toolbarBtn}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => addFieldOfType("aiChat")}
+          title="AI 챗봇"
+        >
+          <MI icon="smart_toy" size={22} />
+        </button>
+      )}
       <button
         type="button"
         className={style.toolbarBtn}
@@ -3923,7 +3981,9 @@ const AltFormBuilder = ({
                                   ? "(안내 문서)"
                                   : field.type === "docResponse"
                                     ? "(응답 문서)"
-                                    : "(이름 없음)")}
+                                    : field.type === "aiChat"
+                                      ? "(AI 챗봇)"
+                                      : "(이름 없음)")}
                               {field.required && (
                                 <span className={style.requiredMark}> *</span>
                               )}

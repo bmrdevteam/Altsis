@@ -17,14 +17,20 @@ import { assertAiUserQuota } from "./aiUsageQuota.js";
 import { assertCtrlEnabled } from "./entitlement.js";
 import { buildBoardAlterSystemPrompt } from "./alterCorePrompt.js";
 
-/**
- * 학생의 AI 채팅 세션을 조회하거나 새로 생성
- */
+/** 보드 Alter 세션만 (양식 aiChat form/fieldId/row 세션 제외) */
+export const boardAlterSessionFilter = (boardId, studentId) => {
+  const query = {
+    board: boardId,
+    form: { $exists: false },
+  };
+  if (studentId) query.student = studentId;
+  return query;
+};
+
 export const getOrCreateSession = async (academyId, board, user) => {
-  let session = await AIChatSession(academyId).findOne({
-    board: board._id,
-    student: user._id,
-  });
+  let session = await AIChatSession(academyId).findOne(
+    boardAlterSessionFilter(board._id, user._id)
+  );
 
   if (session) return session;
 

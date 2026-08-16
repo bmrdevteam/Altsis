@@ -52,7 +52,7 @@ import {
 } from "types/survey";
 import { TAltForm, TAltFormFavorite, TAltFormField, TAltFormSettings } from "types/altForm";
 import { TAltSheet, TAltSheetRow } from "types/altSheet";
-import { TAIChatSession, TAIChatMessage } from "types/aiChat";
+import { TAIChatSession, TAIChatMessage, TFormAiChatSummary } from "types/aiChat";
 
 function QUERY_BUILDER(params?: object) {
   let query = "";
@@ -5015,6 +5015,7 @@ export default function useAPIv2() {
       members?: TAltForm["members"];
       writers?: TAltForm["writers"];
       isDraft?: boolean;
+      season?: string;
     };
   }) {
     const { form, sheet } = await database.C({
@@ -5036,6 +5037,53 @@ export default function useAPIv2() {
       location: `alt-forms/${props.params._id}`,
     });
     return { form: form as TAltForm };
+  }
+
+  async function CFormAiChatMessage(props: {
+    params: { _id: string };
+    data: {
+      fieldId: string;
+      content: string;
+      rowId?: string;
+      season?: string;
+    };
+  }) {
+    return (await database.C({
+      location: `alt-forms/${props.params._id}/ai-chat/messages`,
+      data: props.data,
+    })) as {
+      messages: TAIChatMessage[];
+      session: TAIChatSession;
+      summary: TFormAiChatSummary;
+      row: TAltSheetRow;
+    };
+  }
+
+  async function RFormAiChatSessions(props: {
+    params: { _id: string };
+    query?: { fieldId?: string; row?: string };
+  }) {
+    const { sessions } = await database.R({
+      location:
+        `alt-forms/${props.params._id}/ai-chat/sessions` +
+        QUERY_BUILDER(props.query),
+    });
+    return { sessions: sessions as TAIChatSession[] };
+  }
+
+  async function RFormAiChatMessages(props: {
+    params: { _id: string; sessionId: string };
+    query?: { limit?: number };
+  }) {
+    const { session, messages } = await database.R({
+      location:
+        `alt-forms/${props.params._id}/ai-chat/sessions/${props.params.sessionId}/messages` +
+        QUERY_BUILDER(props.query),
+    });
+    return {
+      session: session as TAIChatSession,
+      messages: messages as TAIChatMessage[],
+    };
   }
 
   /**
@@ -5085,6 +5133,7 @@ export default function useAPIv2() {
       members?: TAltForm["members"];
       writers?: TAltForm["writers"];
       isDraft?: boolean;
+      season?: string;
     };
   }) {
     const { form } = await database.U({
@@ -5119,7 +5168,7 @@ export default function useAPIv2() {
   }
 
   async function ImportAltForm(props: {
-    data: { board: string; formData: any };
+    data: { board: string; formData: any; season?: string };
   }) {
     const { form, sheet } = await database.C({
       location: "alt-forms/import",
@@ -5128,10 +5177,13 @@ export default function useAPIv2() {
     return { form: form as TAltForm, sheet: sheet as TAltSheet };
   }
 
-  async function DuplicateAltForm(props: { params: { _id: string } }) {
+  async function DuplicateAltForm(props: {
+    params: { _id: string };
+    data?: { season?: string };
+  }) {
     const { form, sheet } = await database.C({
       location: `alt-forms/${props.params._id}/duplicate`,
-      data: {},
+      data: props.data || {},
     });
     return { form: form as TAltForm, sheet: sheet as TAltSheet };
   }
@@ -5798,6 +5850,9 @@ export default function useAPIv2() {
       ExportAltForm,
       ImportAltForm,
       DuplicateAltForm,
+      CFormAiChatMessage,
+      RFormAiChatSessions,
+      RFormAiChatMessages,
     },
     AltFormFavoriteAPI: {
       CAltFormFavorite,

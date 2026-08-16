@@ -1,0 +1,108 @@
+import {
+  buildAiChatRowSummary,
+  buildFormAiChatSystemPrompt,
+  hasSchoolSkillConfig,
+  isAiChatFieldType,
+  isAiChatRequiredMet,
+  isAiChatSendLocked,
+  newAiChatFieldIds,
+  parseAiChatSummary,
+  resolveAiRolePermission,
+} from "../../src/services/formAiChat.js";
+
+describe("formAiChat helpers", () => {
+  test("isAiChatFieldType", () => {
+    expect(isAiChatFieldType("aiChat")).toBe(true);
+    expect(isAiChatFieldType("content")).toBe(false);
+    expect(isAiChatFieldType("")).toBe(false);
+  });
+
+  test("hasSchoolSkillConfig requires skill keys", () => {
+    expect(hasSchoolSkillConfig(null)).toBe(false);
+    expect(hasSchoolSkillConfig({ aiConfig: { skills: {} } })).toBe(false);
+    expect(
+      hasSchoolSkillConfig({ aiConfig: { skills: { chat: { libraryItemIds: [] } } } })
+    ).toBe(true);
+  });
+
+  test("resolveAiRolePermission prefers school when skills exist", () => {
+    const school = {
+      aiConfig: {
+        permission: { teacher: true, student: false },
+        skills: { chat: {} },
+      },
+    };
+    const season = {
+      aiSettings: { permission: { teacher: false, student: true } },
+    };
+    expect(resolveAiRolePermission(school, season, "teacher")).toBe(true);
+    expect(resolveAiRolePermission(school, season, "student")).toBe(false);
+  });
+
+  test("resolveAiRolePermission falls back to season", () => {
+    const school = { aiConfig: { permission: { teacher: false, student: false } } };
+    const season = {
+      aiSettings: { permission: { teacher: true, student: false } },
+    };
+    expect(resolveAiRolePermission(school, season, "teacher")).toBe(true);
+  });
+
+  test("newAiChatFieldIds only returns newly added aiChat fields", () => {
+    const prev = [{ _id: "a", type: "aiChat" }, { _id: "t", type: "text" }];
+    const next = [
+      { _id: "a", type: "aiChat" },
+      { _id: "b", type: "aiChat" },
+      { _id: "t", type: "text" },
+    ];
+    expect(newAiChatFieldIds(prev, next)).toEqual(["b"]);
+    expect(newAiChatFieldIds([], next)).toEqual(["a", "b"]);
+    expect(newAiChatFieldIds(prev, prev)).toEqual([]);
+  });
+
+  test("isAiChatSendLocked locks submitted rows unless resubmit", () => {
+    expect(isAiChatSendLocked({ isDraft: true }, false)).toBe(false);
+    expect(isAiChatSendLocked({ isDraft: false }, false)).toBe(true);
+    expect(isAiChatSendLocked({ isDraft: false }, true)).toBe(false);
+    expect(isAiChatSendLocked(null, false)).toBe(false);
+  });
+
+  test("isAiChatRequiredMet needs one student turn", () => {
+    expect(isAiChatRequiredMet(0)).toBe(false);
+    expect(isAiChatRequiredMet(1)).toBe(true);
+    expect(isAiChatRequiredMet(undefined)).toBe(false);
+  });
+
+  test("build and parse row summary", () => {
+    const summary = buildAiChatRowSummary({
+      _id: "sess1",
+      messageCount: 4,
+      studentMessageCount: 2,
+      lastMessagePreview: "안녕",
+      lastMessageAt: "2026-08-16T00:00:00.000Z",
+    });
+    expect(summary.sessionId).toBe("sess1");
+    expect(parseAiChatSummary(summary)?.studentMessageCount).toBe(2);
+    expect(parseAiChatSummary(null)).toBe(null);
+    expect(parseAiChatSummary("x")).toBe(null);
+  });
+
+  test("system prompt includes guidelines, safety, and materials", () => {
+    const prompt = buildFormAiChatSystemPrompt({
+      form: { title: "탐구 일지" },
+      board: { name: "과학" },
+      field: {
+        label: "학습 대화",
+        content: "힌트만 주고 답을 말하지 마세요.",
+        attachments: [{ originalName: "자료.pdf" }],
+        links: [{ title: "위키", url: "https://example.com" }],
+      },
+    });
+    expect(prompt).toContain("탐구 일지");
+    expect(prompt).toContain("학습 대화");
+    expect(prompt).toContain("힌트만 주고");
+    expect(prompt).toContain("자료.pdf");
+    expect(prompt).toContain("https://example.com");
+    expect(prompt).toContain("미성년");
+    expect(prompt).toContain("열람");
+  });
+});

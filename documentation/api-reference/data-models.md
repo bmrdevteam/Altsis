@@ -1097,7 +1097,7 @@ Alt Board의 양식 빌더로, 데이터 수집용 Form을 관리합니다. Form
 | `description` | `String` | X | `""` | 양식 설명 |
 | `fields` | `Array` | X | `[]` | 필드 정의 배열 |
 | `fields[].label` | `String` | O | - | 필드명 |
-| `fields[].type` | `String` | O | - | 필드 타입 (text, textarea, number, date, file, select, multiSelect, checkbox, radio, userSelect, approval, rating, scale, counter) |
+| `fields[].type` | `String` | O | - | 필드 타입 (text, textarea, number, date, file, select, multiSelect, checkbox, radio, userSelect, approval, rating, scale, counter, content, docResponse, aiChat) |
 | `fields[].permission` | `String` | X | `"respondent"` | respondent 또는 owner |
 | `fields[].visibleToRespondent` | `Boolean` | X | `false` | owner 필드를 응답자에게 공개 |
 | `fields[].required` | `Boolean` | X | `false` | 필수 입력 여부 |
@@ -1220,7 +1220,7 @@ AltSheet의 개별 행 데이터입니다. Form 응답 제출 시 또는 교사 
 
 ## AIChatSession (AI 채팅 세션)
 
-AI 채팅(Alter)의 세션 정보를 관리합니다. 보드당 학생 1인 1세션 구조입니다.
+양식 `aiChat` 항목의 대화 세션입니다. 양식·필드·응답 행당 1세션입니다.
 
 > **파일**: `backend/src/models/AIChatSession.js`
 > **DB**: 아카데미 데이터베이스
@@ -1230,7 +1230,8 @@ AI 채팅(Alter)의 세션 정보를 관리합니다. 보드당 학생 1인 1세
 | 인덱스 | 속성 |
 |--------|------|
 | `_id` | UNIQUE |
-| `board_1, student_1` | UNIQUE, COMPOUND |
+| `form_1, fieldId_1, row_1` | UNIQUE, SPARSE, COMPOUND |
+| `form_1, lastMessageAt_-1` | COMPOUND |
 | `board_1, lastMessageAt_-1` | COMPOUND |
 
 ### 필드
@@ -1239,6 +1240,9 @@ AI 채팅(Alter)의 세션 정보를 관리합니다. 보드당 학생 1인 1세
 |------|------|------|--------|------|
 | `_id` | `ObjectId` | 자동 | - | MongoDB 기본 키 |
 | `board` | `ObjectId` | O | - | 보드 `_id` |
+| `form` | `ObjectId` | X | - | 양식 `_id` |
+| `fieldId` | `String` | X | - | 양식 필드 `_id` |
+| `row` | `ObjectId` | X | - | AltSheetRow `_id` |
 | `student` | `ObjectId` | O | - | 학생 `_id` |
 | `studentId` | `String` | O | - | 학생 사용자 ID |
 | `studentName` | `String` | O | - | 학생 이름 |
@@ -1246,6 +1250,7 @@ AI 채팅(Alter)의 세션 정보를 관리합니다. 보드당 학생 1인 1세
 | `lastMessageAt` | `Date` | X | - | 마지막 메시지 시각 |
 | `lastMessagePreview` | `String` | X | - | 마지막 메시지 미리보기 |
 | `messageCount` | `Number` | X | `0` | 메시지 수 |
+| `studentMessageCount` | `Number` | X | `0` | 학생 메시지 수 |
 | `createdAt` | `Date` | 자동 | - | 생성 시각 |
 | `updatedAt` | `Date` | 자동 | - | 수정 시각 |
 

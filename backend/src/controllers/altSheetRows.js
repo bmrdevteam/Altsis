@@ -32,6 +32,7 @@ import {
   canOwnerDeleteDraft,
   needsAllowResubmitToEdit,
 } from "../services/sheetRowDraft.js";
+import { assertAiChatRequiredOnSubmit } from "../services/formAiChat.js";
 import {
   submittedSheetRowFilter,
   isDraftSheetRow,
@@ -423,6 +424,21 @@ export const create = async (req, res) => {
         const docError = validateDocResponseField(field, value);
         if (docError) {
           return res.status(400).send({ message: docError });
+        }
+        continue;
+      }
+      if (field.type === "aiChat") {
+        const targetRowId = req.body.row || null;
+        const aiError = await assertAiChatRequiredOnSubmit({
+          academyId: req.user.academyId,
+          form,
+          row: targetRowId ? { _id: targetRowId } : null,
+          field,
+          visible: true,
+          user: req.user,
+        });
+        if (aiError) {
+          return res.status(400).send({ message: aiError });
         }
         continue;
       }
