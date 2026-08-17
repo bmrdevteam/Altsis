@@ -30,9 +30,10 @@
   display: none;
 }
 
-/* 바깥 .section + Tab 안에 넣을 때: 중첩 스크롤·패딩을 만들지 않음 */
+/* 바깥 .section + Tab 안에 넣을 때: 중첩 스크롤은 만들지 않고 탭 아래 여백만 둠 */
 .tab_panel {
   min-width: 0;
+  padding-top: 24px;
 }
 
 .section {
