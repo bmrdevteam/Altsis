@@ -13,6 +13,10 @@ import style from "./markdown.module.scss";
 import { preprocessCallouts } from "./extensions/callout";
 import { sanitizeMarkdownInlineStyle } from "./sanitizeMarkdownInlineStyle";
 import {
+  createGithubSlugger,
+  flattenHeadingText,
+} from "./headingSlug";
+import {
   buildCanvasSrcDoc,
   CANVAS_IFRAME_SANDBOX,
   parseCanvasContent,
@@ -290,6 +294,23 @@ const baseComponents = {
   },
 };
 
+const HEADING_TAGS = ["h1", "h2", "h3", "h4", "h5", "h6"] as const;
+
+const headingComponents = (slug: (value: string) => string) =>
+  Object.fromEntries(
+    HEADING_TAGS.map((Tag) => [
+      Tag,
+      ({ children, ...props }: any) => {
+        const id = props.id || slug(flattenHeadingText(children));
+        return (
+          <Tag {...props} id={id}>
+            {children}
+          </Tag>
+        );
+      },
+    ])
+  );
+
 export type Props = {
   content: string;
   className?: string;
@@ -374,12 +395,20 @@ const MarkdownViewer = ({
     return sanitized;
   }, [content, allowHtmlApp]);
 
+  const components = useMemo(
+    () => ({
+      ...baseComponents,
+      ...headingComponents(createGithubSlugger()),
+    }),
+    [sanitizedContent]
+  );
+
   return (
     <div className={`${style.markdown} ${className || ""}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeRaw, rehypeKatex] as any}
-        components={baseComponents}
+        components={components}
       >
         {sanitizedContent}
       </ReactMarkdown>

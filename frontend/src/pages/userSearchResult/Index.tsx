@@ -189,22 +189,30 @@ const UserSearchResult = (props: Props) => {
       mentoringCourseList: courseLists.mentoring,
     };
 
+    const wrap = (panel: JSX.Element) => (
+      <div className={style.tab_panel}>{panel}</div>
+    );
+
     const items: Record<string, JSX.Element> = {
-      일정: <ScheduleTab user={user} />,
-      시간표: <CoursesTab {...courseProps} view="timeTable" />,
+      일정: wrap(<ScheduleTab user={user} />),
+      시간표: wrap(<CoursesTab {...courseProps} view="timeTable" />),
     };
 
     if (coursesLoaded) {
       if (courseLists.enrolled.length > 0) {
-        items["수강 현황"] = (
+        items["수강 현황"] = wrap(
           <CoursesTab {...courseProps} view="enrollments" />
         );
       }
       if (courseLists.created.length > 0) {
-        items["개설 수업"] = <CoursesTab {...courseProps} view="myDesgins" />;
+        items["개설 수업"] = wrap(
+          <CoursesTab {...courseProps} view="myDesgins" />
+        );
       }
       if (courseLists.mentoring.length > 0) {
-        items["담당 수업"] = <CoursesTab {...courseProps} view="mentoring" />;
+        items["담당 수업"] = wrap(
+          <CoursesTab {...courseProps} view="mentoring" />
+        );
       }
     }
 
