@@ -1,9 +1,10 @@
 import { useAuth } from "contexts/authContext";
-import _, { isArray, isNumber, isObject } from "lodash";
-import React, { useState } from "react";
+import _, { isArray, isNumber } from "lodash";
+import React from "react";
 import style from "../../editor.module.scss";
-import useAPIv2 from "hooks/useAPIv2";
 import { matchesDataFilter } from "../../functions/dataConnFilters";
+import { isArchiveFileValue } from "../../functions/archiveImage";
+import ArchiveImage from "./ArchiveImage";
 
 type Props = {
   blockData: any;
@@ -47,7 +48,6 @@ function deleteByCellId(store: any, data: { id?: string; name?: string }) {
 
 const ParsedTableBlock = (props: Props) => {
   const { currentSchool } = useAuth();
-  const { FileAPI } = useAPIv2();
 
   const SetColumn = () => {
     const columns = props.blockData?.data?.columns;
@@ -236,8 +236,6 @@ const ParsedTableBlock = (props: Props) => {
     table: any;
     colIndex: number;
   }) => {
-    const [url, setUrl] = useState<string>("");
-
     switch (data.type) {
       case "paragraph":
         return (
@@ -262,64 +260,27 @@ const ParsedTableBlock = (props: Props) => {
                   const locationArr = dataTextElement.location.split("//");
                   if (!dataRepeat) {
                     const result = _.get(props.dbData, locationArr, "");
-                    // if data is image
-                    if (
-                      isObject(result) &&
-                      "key" in result &&
-                      "originalName" in result
-                    ) {
-                      const key = result.key as string;
-                      const originalName = result.originalName as string;
+                    if (isArchiveFileValue(result)) {
                       return (
-                        <div style={{ margin: "auto" }}>
-                          <img
-                            src={url}
-                            onError={async (e) => {
-                              e.currentTarget.onerror = null;
-                              FileAPI.RSignedUrlDocument({
-                                query: {
-                                  key,
-                                  fileName: originalName,
-                                },
-                              })
-                                .then(({ preSignedUrl }) => {
-                                  setUrl(preSignedUrl);
-                                })
-                                .catch(() => {});
-                            }}
-                            alt="undefined"
-                          />
-                        </div>
+                        <ArchiveImage
+                          key={index}
+                          file={result}
+                          location={dataTextElement.location}
+                          dbData={props.dbData}
+                        />
                       );
                     }
                     return `${_.get(props.dbData, locationArr, "")}`;
                   } else {
                     const repeatResult = dataRepeat?.[locationArr[locationArr.length - 1]];
-                    if (
-                      isObject(repeatResult) &&
-                      "key" in repeatResult &&
-                      "originalName" in repeatResult
-                    ) {
-                      const key = repeatResult.key as string;
-                      const originalName = repeatResult.originalName as string;
+                    if (isArchiveFileValue(repeatResult)) {
                       return (
-                        <div style={{ margin: "auto" }}>
-                          <img
-                            src={url}
-                            onError={async (e) => {
-                              e.currentTarget.onerror = null;
-                              FileAPI.RSignedUrlDocument({
-                                query: {
-                                  key,
-                                  fileName: originalName,
-                                },
-                              }).then(({ preSignedUrl }) => {
-                                setUrl(preSignedUrl);
-                              });
-                            }}
-                            alt="undefined"
-                          />
-                        </div>
+                        <ArchiveImage
+                          key={index}
+                          file={repeatResult}
+                          location={dataTextElement.location}
+                          dbData={props.dbData}
+                        />
                       );
                     }
                     return repeatResult;
