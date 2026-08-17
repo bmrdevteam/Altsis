@@ -2043,8 +2043,7 @@
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   position: sticky;
-  /* Tab 안에서는 메뉴 높이 + 16px, 단독 화면에서는 16px */
-  top: calc(var(--tab-sticky-offset, 0px) + 16px);
+  top: 16px;
   z-index: 5;
   flex-shrink: 0;
 }
