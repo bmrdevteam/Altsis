@@ -21,9 +21,7 @@
     flex-shrink: 0;
     overflow-x: auto;
     overflow-y: hidden;
-    position: sticky;
-    top: 0;
-    z-index: 1;
+    position: relative;
     width: 100%;
     background-color: var(--background-color);
     -ms-overflow-style: none;

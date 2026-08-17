@@ -4,6 +4,7 @@ import { createElement } from "react";
 import CanvasEditor, {
   type CanvasEditorSubmit,
 } from "../canvas/CanvasEditor";
+import { canvasFullscreenPanes } from "../canvas/canvasFullscreenPanes";
 import {
   attrsFromPayload,
   CANVAS_IFRAME_SANDBOX,
@@ -394,15 +395,16 @@ export const HtmlEmbed = Node.create<HtmlEmbedOptions>({
       const editBtn = document.createElement("button");
       editBtn.type = "button";
       editBtn.className = "embed-toolbar-btn embed-toolbar-icon";
-      editBtn.title = "캔버스 에디터";
-      editBtn.setAttribute("aria-label", "캔버스 에디터");
+      editBtn.title = "에디터 켜기";
+      editBtn.setAttribute("aria-label", "에디터 켜기");
+      editBtn.setAttribute("aria-pressed", "false");
       editBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
         <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
       </svg>`;
       editBtn.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
-        setEditing(!currentAttrs.editing);
+        setEditing(reactRoot == null);
       });
 
       const cloneBtn = document.createElement("button");
@@ -435,8 +437,6 @@ export const HtmlEmbed = Node.create<HtmlEmbedOptions>({
       previewBtn.title = "미리보기 끄기";
       previewBtn.setAttribute("aria-label", "미리보기 끄기");
       previewBtn.setAttribute("aria-pressed", "true");
-      previewBtn.hidden = true;
-      previewBtn.style.display = "none";
       previewBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
         <path d="M12 6c3.79 0 7.17 2.13 8.82 5.5C19.17 14.87 15.79 17 12 17s-7.17-2.13-8.82-5.5C4.83 8.13 8.21 6 12 6m0-2C7 4 2.73 7.11 1 11.5 2.73 15.89 7 19 12 19s9.27-3.11 11-7.5C21.27 7.11 17 4 12 4zm0 5a2.5 2.5 0 0 1 0 5 2.5 2.5 0 0 1 0-5m0-2c-2.48 0-4.5 2.02-4.5 4.5S9.52 16 12 16s4.5-2.02 4.5-4.5S14.48 7 12 7z"/>
       </svg>`;
@@ -449,8 +449,8 @@ export const HtmlEmbed = Node.create<HtmlEmbedOptions>({
       const fullscreenBtn = document.createElement("button");
       fullscreenBtn.type = "button";
       fullscreenBtn.className = "embed-toolbar-btn embed-toolbar-icon";
-      fullscreenBtn.title = "에디터 전체화면";
-      fullscreenBtn.setAttribute("aria-label", "에디터 전체화면");
+      fullscreenBtn.title = "전체화면";
+      fullscreenBtn.setAttribute("aria-label", "전체화면");
       fullscreenBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
         <path d="M1.5 1a.5.5 0 0 0-.5.5v4a.5.5 0 0 1-1 0v-4A1.5 1.5 0 0 1 1.5 0h4a.5.5 0 0 1 0 1h-4zM10 .5a.5.5 0 0 1 .5-.5h4A1.5 1.5 0 0 1 16 1.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 1-.5-.5zM.5 10a.5.5 0 0 1 .5.5v4a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 0 14.5v-4a.5.5 0 0 1 .5-.5zm15 0a.5.5 0 0 1 .5.5v4a1.5 1.5 0 0 1-1.5 1.5h-4a.5.5 0 0 1 0-1h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 1 .5-.5z"/>
       </svg>`;
@@ -531,8 +531,10 @@ export const HtmlEmbed = Node.create<HtmlEmbedOptions>({
       editorMount.style.display = "none";
 
       let reactRoot: Root | null = null;
+      let ignoreLiveChange = false;
 
       const applyCodeAttrs = (value: CanvasEditorSubmit) => {
+        if (ignoreLiveChange) return;
         const code = normalizeCodeAttrs({
           title: value.title,
           html: value.html,
@@ -551,6 +553,9 @@ export const HtmlEmbed = Node.create<HtmlEmbedOptions>({
         editorMount.style.display = "flex";
         editorMount.style.flexDirection = "column";
         editBtn.classList.add("active");
+        editBtn.setAttribute("aria-pressed", "true");
+        editBtn.title = "에디터 끄기";
+        editBtn.setAttribute("aria-label", "에디터 끄기");
         reactRoot = createRoot(editorMount);
         reactRoot.render(
           createElement(CanvasEditor, {
@@ -572,24 +577,37 @@ export const HtmlEmbed = Node.create<HtmlEmbedOptions>({
       };
 
       const unmountEditor = () => {
+        ignoreLiveChange = true;
         if (reactRoot) {
           reactRoot.unmount();
           reactRoot = null;
         }
+        ignoreLiveChange = false;
         editorMount.style.display = "none";
         editBtn.classList.remove("active");
+        editBtn.setAttribute("aria-pressed", "false");
+        editBtn.title = "에디터 켜기";
+        editBtn.setAttribute("aria-label", "에디터 켜기");
         applyPreviewVisibility();
-        if (editorFullscreen) setEditorFullscreen(false);
       };
 
       const applyPreviewVisibility = () => {
         const editing = reactRoot != null;
-        previewBtn.hidden = !editing;
-        previewBtn.style.display = editing ? "" : "none";
-        const showIframe = !editing || previewVisible;
-        iframe.style.display = showIframe ? "block" : "none";
+        const { showEditor, showPreview } = canvasFullscreenPanes(
+          editing,
+          previewVisible
+        );
+        iframe.style.display = showPreview ? "block" : "none";
         resizeHandle.style.display =
-          showIframe && !editorFullscreen ? "block" : "none";
+          showPreview && !editorFullscreen ? "block" : "none";
+        wrapper.classList.toggle(
+          "embed-fs-show-editor",
+          editorFullscreen && showEditor
+        );
+        wrapper.classList.toggle(
+          "embed-fs-show-preview",
+          editorFullscreen && showPreview
+        );
         previewBtn.classList.toggle("is-on", previewVisible);
         previewBtn.setAttribute("aria-pressed", previewVisible ? "true" : "false");
         previewBtn.title = previewVisible ? "미리보기 끄기" : "미리보기 켜기";
@@ -611,15 +629,22 @@ export const HtmlEmbed = Node.create<HtmlEmbedOptions>({
         applyPreviewVisibility();
       };
 
+      const stopFullscreenBubble = (e: Event) => {
+        if (editorFullscreen) e.stopPropagation();
+      };
+      wrapper.addEventListener("pointerdown", stopFullscreenBubble);
+      wrapper.addEventListener("mousedown", stopFullscreenBubble);
+      wrapper.addEventListener("click", stopFullscreenBubble);
+
       const setEditorFullscreen = (on: boolean) => {
         if (on === editorFullscreen) return;
         editorFullscreen = on;
         wrapper.classList.toggle("embed-editor-fullscreen", on);
         fullscreenBtn.classList.toggle("is-on", on);
-        fullscreenBtn.title = on ? "전체화면 닫기" : "에디터 전체화면";
+        fullscreenBtn.title = on ? "전체화면 닫기" : "전체화면";
         fullscreenBtn.setAttribute(
           "aria-label",
-          on ? "전체화면 닫기" : "에디터 전체화면"
+          on ? "전체화면 닫기" : "전체화면"
         );
 
         if (on) {
@@ -627,20 +652,19 @@ export const HtmlEmbed = Node.create<HtmlEmbedOptions>({
           if (!fullscreenBackdrop) {
             fullscreenBackdrop = document.createElement("div");
             fullscreenBackdrop.className = "embed-editor-fullscreen-backdrop";
-            fullscreenBackdrop.addEventListener("click", () => {
+            fullscreenBackdrop.addEventListener("pointerdown", (e) => {
+              if (e.target !== fullscreenBackdrop) return;
+              e.preventDefault();
               setEditorFullscreen(false);
             });
             document.body.appendChild(fullscreenBackdrop);
           }
-          if (
-            editor.isEditable &&
-            currentAttrs.embedType !== "url" &&
-            !currentAttrs.editing
-          ) {
-            setEditing(true);
-          }
+          document.body.appendChild(wrapper);
           document.addEventListener("keydown", onFullscreenEsc);
         } else {
+          if (wrapper.parentElement !== shell) {
+            shell.appendChild(wrapper);
+          }
           shell.style.minHeight = "";
           fullscreenBackdrop?.remove();
           fullscreenBackdrop = null;

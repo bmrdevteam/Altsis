@@ -2284,6 +2284,7 @@
     inset: 0;
     z-index: 9998;
     background: rgba(0, 0, 0, 0.55);
+    pointer-events: auto;
   }
 
   .embed-editor-fullscreen {
@@ -2298,6 +2299,7 @@
     flex-direction: column;
     background: var(--background-color);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.28);
+    pointer-events: auto;
 
     .canvas-inline-editor {
       flex: 1 1 auto;
@@ -2308,10 +2310,16 @@
     }
 
     iframe {
+      flex: 1 1 auto;
+      min-height: 0 !important;
+      max-height: none;
+      height: auto !important;
+    }
+
+    &.embed-fs-show-editor.embed-fs-show-preview iframe {
       flex: 0 1 28%;
       min-height: 160px !important;
       max-height: 28%;
-      height: auto !important;
     }
   }
 }

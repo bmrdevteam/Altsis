@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import style from "./altBoard.module.scss";
 import { TAltFormField } from "types/altForm";
 import { TAIChatMessage, TFormAiChatSummary } from "types/aiChat";
@@ -56,7 +57,10 @@ const FormAiChatField = ({
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(false);
   const [myUsage, setMyUsage] = useState<TMyAiUsage | null>(null);
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const logRef = useRef<HTMLDivElement>(null);
+  const guideId = useId();
   const summary = parseAiChatSummary(value);
   const loadedSessionId = sessionId || summary?.sessionId;
   const usageMeter = myUsage ? getUsageMeter(myUsage) : null;
@@ -64,6 +68,15 @@ const FormAiChatField = ({
   const studentTurns =
     summary?.studentMessageCount ??
     messages.filter((msg) => msg.senderType === "student").length;
+  const resourceCount =
+    (field.attachments?.length || 0) + (field.links?.length || 0);
+  const hasGuide = !!(field.content?.trim() || resourceCount > 0);
+  const guideSummary = [
+    field.content?.trim() ? "지침" : null,
+    resourceCount > 0 ? `자료 ${resourceCount}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   const refreshMyUsage = useCallback(() => {
     AIAPI.RMyAiUsage()
@@ -106,7 +119,21 @@ const FormAiChatField = ({
     const el = logRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
-  }, [messages, sending]);
+  }, [messages, sending, expanded]);
+
+  useEffect(() => {
+    if (!expanded) return undefined;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setExpanded(false);
+    };
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [expanded]);
 
   const handleSend = async () => {
     const content = draft.trim();
@@ -140,66 +167,111 @@ const FormAiChatField = ({
     }
   };
 
-  return (
-    <div className={style.aiChatField}>
-      {(field.content ||
-        (field.attachments && field.attachments.length > 0) ||
-        (field.links && field.links.length > 0)) && (
-        <div className={style.contentFieldBody}>
-          {field.content?.trim() && (
-            <MarkdownViewer content={field.content} allowHtmlApp />
+  const fieldUi = (
+    <div
+      className={`${style.aiChatField} ${
+        expanded ? style.aiChatFieldExpandedInner : ""
+      }`}
+    >
+      {hasGuide && (
+        <div className={style.aiChatGuide}>
+          <button
+            type="button"
+            className={style.aiChatGuideToggle}
+            aria-expanded={guideOpen}
+            aria-controls={guideId}
+            onClick={() => setGuideOpen((v) => !v)}
+          >
+            <span className={style.aiChatGuideToggleMain}>
+              <span className={style.aiChatGuideToggleTitle}>지침 · 자료</span>
+              <span className={style.aiChatGuideToggleSummary}>
+                {guideOpen
+                  ? "접기"
+                  : guideSummary
+                    ? `${guideSummary} · 펼쳐서 보기`
+                    : "펼쳐서 보기"}
+              </span>
+            </span>
+            <span className={style.aiChatGuideChevron} aria-hidden>
+              {guideOpen ? "▾" : "▸"}
+            </span>
+          </button>
+          {guideOpen && (
+            <div id={guideId} className={style.aiChatGuideBody}>
+              {field.content?.trim() && (
+                <MarkdownViewer content={field.content} allowHtmlApp />
+              )}
+              <FieldDocResources
+                attachments={field.attachments}
+                links={field.links}
+                onPreview={onPreview}
+              />
+            </div>
           )}
-          <FieldDocResources
-            attachments={field.attachments}
-            links={field.links}
-            onPreview={onPreview}
-          />
         </div>
       )}
-      <div
-        className={style.aiChatLog}
-        ref={logRef}
-        role="log"
-        aria-live="polite"
-        aria-label={`${field.label || "AI 챗봇"} 대화`}
-      >
-        {loading && messages.length === 0 && (
-          <p className={style.aiChatEmpty}>대화를 불러오는 중…</p>
-        )}
-        {!loading && messages.length === 0 && (
-          <p className={style.aiChatEmpty}>
-            이 활동의 지침과 자료를 바탕으로 질문해 보세요. 대화는 담당 교사가
-            확인할 수 있습니다.
-          </p>
-        )}
-        {messages.map((msg) => (
-          <ChatMessageBubble
-            key={msg._id}
-            variant={msg.senderType === "student" ? "own" : "other"}
-            sender={
-              msg.senderType === "student"
-                ? disabled
-                  ? msg.senderName || "학생"
-                  : "나"
-                : "Alter"
-            }
-            time={formatBubbleTime(msg.createdAt)}
+      <div className={style.aiChatLogWrap}>
+        <div className={style.aiChatLogBar}>
+          <span className={style.aiChatLogBarTitle}>대화</span>
+          <button
+            type="button"
+            className={style.aiChatExpandBtn}
+            onClick={() => setExpanded((v) => !v)}
+            aria-pressed={expanded}
+            aria-label={expanded ? "채팅창 원래 크기" : "채팅창 확대"}
+            title={expanded ? "원래 크기" : "확대"}
           >
-            {msg.senderType === "student" ? (
-              <div className={style.aiChatMsgText}>{msg.content}</div>
-            ) : (
-              <MarkdownViewer
-                content={normalizeAlterMarkdown(msg.content)}
-                className={style.aiChatMd}
-              />
-            )}
-          </ChatMessageBubble>
-        ))}
-        {sending && (
-          <ChatMessageBubble variant="other" sender="Alter">
-            답변을 작성하는 중…
-          </ChatMessageBubble>
-        )}
+            {expanded ? "원래 크기" : "확대"}
+          </button>
+        </div>
+        <div
+          className={style.aiChatLog}
+          ref={logRef}
+          role="log"
+          aria-live="polite"
+          aria-label={`${field.label || "AI 챗봇"} 대화`}
+        >
+          {loading && messages.length === 0 && (
+            <p className={style.aiChatEmpty}>대화를 불러오는 중…</p>
+          )}
+          {!loading && messages.length === 0 && (
+            <p className={style.aiChatEmpty}>
+              이 활동의 지침과 자료를 바탕으로 질문해 보세요. 대화는 담당 교사가
+              확인할 수 있습니다.
+            </p>
+          )}
+          {messages.map((msg) => (
+            <ChatMessageBubble
+              key={msg._id}
+              variant={msg.senderType === "student" ? "own" : "other"}
+              wide={msg.senderType !== "student"}
+              sender={
+                msg.senderType === "student"
+                  ? disabled
+                    ? msg.senderName || "학생"
+                    : "나"
+                  : "Alter"
+              }
+              time={formatBubbleTime(msg.createdAt)}
+            >
+              {msg.senderType === "student" ? (
+                <div className={style.aiChatMsgText}>{msg.content}</div>
+              ) : (
+                <div className={style.aiChatMd}>
+                  <MarkdownViewer
+                    content={normalizeAlterMarkdown(msg.content)}
+                    allowHtmlApp
+                  />
+                </div>
+              )}
+            </ChatMessageBubble>
+          ))}
+          {sending && (
+            <ChatMessageBubble variant="other" sender="Alter" wide>
+              답변을 작성하는 중…
+            </ChatMessageBubble>
+          )}
+        </div>
       </div>
       {disabled ? (
         <p className={style.aiChatNotice}>
@@ -231,6 +303,35 @@ const FormAiChatField = ({
       )}
     </div>
   );
+
+  if (expanded) {
+    return (
+      <>
+        <div className={style.aiChatExpandPlaceholder} aria-hidden />
+        {createPortal(
+          <div className={style.aiChatExpandRoot}>
+            <button
+              type="button"
+              className={style.aiChatExpandBackdrop}
+              aria-label="채팅창 닫기"
+              onClick={() => setExpanded(false)}
+            />
+            <div
+              className={style.aiChatFieldExpanded}
+              role="dialog"
+              aria-modal="true"
+              aria-label={`${field.label || "학습 챗봇"} 확대`}
+            >
+              {fieldUi}
+            </div>
+          </div>,
+          document.body
+        )}
+      </>
+    );
+  }
+
+  return fieldUi;
 };
 
 export default FormAiChatField;
