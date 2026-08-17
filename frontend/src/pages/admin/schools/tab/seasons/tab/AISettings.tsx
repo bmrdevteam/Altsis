@@ -3,6 +3,7 @@
  */
 import { useEffect, useState } from "react";
 import Button from "components/button/Button";
+import { useAuth } from "contexts/authContext";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import { TAiSettings } from "types/seasons";
 import style from "./AISettings.module.scss";
@@ -24,6 +25,7 @@ const defaultAiSettings: TAiSettings = {
 
 const AISettings = (props: Props) => {
   const { SeasonAPI } = useAPIv2();
+  const { currentSeason, patchCurrentSeason } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [aiSettings, setAiSettings] = useState<TAiSettings>(defaultAiSettings);
 
@@ -68,8 +70,26 @@ const AISettings = (props: Props) => {
           ...defaultAiSettings,
           ...season.aiSettings,
         });
+        if (String(currentSeason?._id) === String(props._id)) {
+          patchCurrentSeason({
+            aiSettings: {
+              ...defaultAiSettings,
+              ...(currentSeason?.aiSettings || {}),
+              ...season.aiSettings,
+            },
+          });
+        }
       } else {
         setAiSettings((prev) => ({ ...prev, enabled: next }));
+        if (String(currentSeason?._id) === String(props._id)) {
+          patchCurrentSeason({
+            aiSettings: {
+              ...defaultAiSettings,
+              ...(currentSeason?.aiSettings || {}),
+              enabled: next,
+            },
+          });
+        }
       }
       alert(SUCCESS_MESSAGE);
     } catch (err) {

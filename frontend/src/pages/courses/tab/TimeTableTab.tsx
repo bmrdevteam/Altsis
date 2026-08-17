@@ -85,7 +85,7 @@ const Timetable = (props: Props) => {
   }
 
   return (
-    <div className={style.section}>
+    <div className={style.tab_panel}>
       {currentSeason?.formTimetable && (
         <>
           <div

@@ -229,6 +229,15 @@ const hasSchoolSkillConfig = (school) =>
     Object.keys(school.aiConfig.skills).length > 0
   );
 
+const hasSchoolAiPermissionAuthority = (school) => {
+  const perm = school?.aiConfig?.permission;
+  return (
+    hasSchoolSkillConfig(school) ||
+    perm?.teacher === true ||
+    perm?.student === true
+  );
+};
+
 const defaultSkillGuide = (skill) => {
   // chat: 상황형 기본 지침 없음 — 공통 안전·화면 맥락만 (alterCorePrompt)
   if (skill === SKILL_IDS.CHAT) return "";
@@ -909,11 +918,18 @@ export const assertSeasonAiAccess = async (academyId, user, seasonId) => {
     throw err;
   }
 
-  const useSchoolPerm = hasSchoolSkillConfig(school);
+  const useSchoolPerm = hasSchoolAiPermissionAuthority(school);
   const schoolPerm = school?.aiConfig?.permission;
   const seasonPerm = season.aiSettings?.permission;
-  const hasPermission =
+  const role =
+    user.auth === "admin" ||
+    user.auth === "manager" ||
+    user.auth === "owner" ||
     registration.role === "teacher"
+      ? "teacher"
+      : "student";
+  const hasPermission =
+    role === "teacher"
       ? useSchoolPerm
         ? !!schoolPerm?.teacher
         : !!seasonPerm?.teacher

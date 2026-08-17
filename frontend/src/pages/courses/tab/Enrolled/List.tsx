@@ -82,7 +82,7 @@ const List = (props: Props) => {
   const displayedCourseList = filterCourses(props.courseList);
 
   return (
-    <div className={style.section}>
+    <div className={style.tab_panel}>
       <div className={style.summary_grid}>
         {summaryItems.map((item, i) => (
           <div
