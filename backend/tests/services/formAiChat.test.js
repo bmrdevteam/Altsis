@@ -41,6 +41,16 @@ describe("formAiChat helpers", () => {
     expect(resolveAiRolePermission(school, season, "student")).toBe(false);
   });
 
+  test("resolveAiRolePermission prefers school teacher Y even without skills", () => {
+    const school = {
+      aiConfig: { permission: { teacher: true, student: false } },
+    };
+    const season = {
+      aiSettings: { permission: { teacher: false, student: false } },
+    };
+    expect(resolveAiRolePermission(school, season, "teacher")).toBe(true);
+  });
+
   test("resolveAiRolePermission falls back to season", () => {
     const school = { aiConfig: { permission: { teacher: false, student: false } } };
     const season = {

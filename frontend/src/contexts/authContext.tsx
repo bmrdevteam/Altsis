@@ -29,6 +29,7 @@ export function useAuth(): {
   changeRegistration: (rid: string) => void;
   reloadRegistration: () => void;
   currentSeason: TCurrentSeason;
+  patchCurrentSeason: (partial: Partial<TCurrentSeason>) => void;
 } {
   return useContext(AuthContext);
 }
@@ -153,6 +154,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setCurrentSchool((prev) => (prev ? { ...prev, ...partial } : prev));
   }
 
+  function patchCurrentSeason(partial: Partial<TCurrentSeason>) {
+    setCurrentSeason((prev) => (prev ? { ...prev, ...partial } : prev));
+  }
+
   async function changeRegistration(rid: string) {
     const registration = _.find(
       currentUser?.registrations,
@@ -190,6 +195,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     changeRegistration,
     reloadRegistration,
     currentSeason,
+    patchCurrentSeason,
   };
   return (
     <AuthContext.Provider value={value}>

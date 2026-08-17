@@ -78,7 +78,7 @@ type Props = {
 };
 
 const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
-  const { currentUser } = useAuth();
+  const { currentUser, currentSchool, patchCurrentSchool } = useAuth();
   const { SchoolAPI, AcademyAPI } = useAPIv2();
   const canEditUsageLimits =
     currentUser?.auth === "admin" ||
@@ -237,6 +237,15 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
         data: { permission: next },
       });
       setAiConfig((prev) => ({ ...prev, permission: saved.permission }));
+      if (currentSchool?._id === schoolData._id) {
+        patchCurrentSchool({
+          aiConfig: {
+            ...(currentSchool.aiConfig || {}),
+            ...saved,
+            permission: saved.permission,
+          },
+        });
+      }
       alert(SUCCESS_MESSAGE);
     } catch (err) {
       ALERT_ERROR(err);
