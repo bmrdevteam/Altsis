@@ -208,10 +208,10 @@ const Tab = (props: {
   };
 
   return (
-    <>
+    <div className={style.tab}>
       <Header />
       {props.children}
-      <div>
+      <div className={style.tab_body}>
         {
           /**
            * display the corresponding item based on the location.hash
@@ -219,7 +219,7 @@ const Tab = (props: {
           props.items[activeKey as keyof typeof props.items]
         }
       </div>
-    </>
+    </div>
   );
 };
 

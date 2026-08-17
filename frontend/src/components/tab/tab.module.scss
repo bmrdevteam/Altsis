@@ -4,12 +4,28 @@
     }
 }
 
-.tab_menu_container {
+.tab {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    width: 100%;
+    flex: 1 1 auto;
+}
 
+.tab_body {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.tab_menu_container {
+    flex-shrink: 0;
     overflow-x: auto;
     overflow-y: hidden;
-    position: relative;
+    position: sticky;
+    top: 0;
+    z-index: 1;
     width: 100%;
+    background-color: var(--background-color);
     -ms-overflow-style: none;
     /* IE and Edge */
     scrollbar-width: none;
