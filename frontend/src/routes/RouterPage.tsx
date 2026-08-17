@@ -77,6 +77,7 @@ import ArchiveField from "pages/archive/Pid";
 import ArchiveViewer from "pages/archiveViewer/Index";
 import ArchiveViwerField from "pages/archiveViewer/Pid";
 import Docs from "pages/docs/Index";
+import Guide from "pages/guide/Index";
 import ChooseAcademy from "pages/login/ChooseAcademy";
 import Dev from "pages/dev/Index";
 import Classrooms from "pages/dev/Classrooms";
@@ -258,6 +259,8 @@ function RouterPage() {
               }
             ></Route>
             <Route path="register" element={<Register />}></Route>
+            <Route path="guide" element={<Guide />} />
+            <Route path="guide/*" element={<Guide />} />
 
             {/* ----------------------------------------------------- */}
 
@@ -699,6 +702,22 @@ function RouterPage() {
                   </RequireAuth>
                 }
               ></Route>
+              <Route
+                path="guide"
+                element={
+                  <RequireAuth>
+                    <Guide />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="guide/*"
+                element={
+                  <RequireAuth>
+                    <Guide />
+                  </RequireAuth>
+                }
+              />
               {/* ----------------------------------------------------- */}
 
               {/* school routes */}

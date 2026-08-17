@@ -33,6 +33,7 @@ import Button from "components/button/Button";
 import { useNavigate, useParams } from "react-router-dom";
 import { useCookies } from "react-cookie";
 import Svg from "../../assets/svg/Svg";
+import altsisLogo from "../../assets/img/altsis-logo.png";
 
 import axios from "axios";
 
@@ -243,11 +244,29 @@ const Login = () => {
           <GoogleLoginBtn academyId={academyId} />
         </div>
       <div className={style.container_logo}>
-        <div className={style.logo}
-          onClick={() => {
-            window.open("https://github.com/bmrdevteam/Altsis", "_blank");
-        }}>
-            <Svg type={"github"} width="40px" height="40px" text-align ="center" style={{textAlign : "center"}}/>
+        <div className={style.links}>
+          <button
+            type="button"
+            className={style.guide_link}
+            onClick={() => navigate("/guide")}
+            title="Altsis 안내"
+            aria-label="Altsis 안내"
+          >
+            <img src={altsisLogo} alt="" width={40} height={35} />
+          </button>
+          <div
+            className={style.logo}
+            onClick={() => {
+              window.open("https://github.com/bmrdevteam/Altsis", "_blank");
+            }}
+          >
+            <Svg
+              type={"github"}
+              width="40px"
+              height="40px"
+              style={{ textAlign: "center" }}
+            />
+          </div>
         </div>
       </div>
       </div>

@@ -78,6 +78,7 @@ describe("buildAlterChatSystemPrompt", () => {
     expect(text).not.toContain(ALTER_NO_STEER.split("\n")[0]);
     expect(text).toContain("## 제품 경로");
     expect(text).toContain(ALTER_HOWTO_PRODUCT_NAV.split("\n")[0]);
+    expect(text).toContain("설정 · Altsis 안내");
     expect(text).toContain("일반 기능");
     expect(text).toContain("상단 바 채팅");
     expect(text).toMatch(/DM|1:1/);
