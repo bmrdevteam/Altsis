@@ -8,6 +8,7 @@ import { archiveMulter } from "../_s3/archiveMulter.js";
 import { formMulter, isFormFileKey } from "../_s3/formMulter.js";
 import { signUrl, signUrlForView } from "../_s3/fileBucket.js";
 import { tryCommitUpload } from "../services/academyStorage.js";
+import { archiveSectionHasFileKey } from "../services/archiveFileKey.js";
 import {
   FIELD_INVALID,
   FIELD_REQUIRED,
@@ -140,10 +141,12 @@ export const signArchive = async (req, res) => {
     }
 
     if (
-      !(req.query.label in archive.data) ||
-      !(req.query.fieldLabel in archive.data[req.query.label]) ||
-      !("key" in archive.data[req.query.label][req.query.fieldLabel]) ||
-      archive.data[req.query.label][req.query.fieldLabel].key !== req.query.key
+      !archiveSectionHasFileKey(
+        archive.data,
+        req.query.label,
+        req.query.fieldLabel,
+        req.query.key
+      )
     ) {
       return res.status(404).send({ message: __NOT_FOUND("archive") });
     }

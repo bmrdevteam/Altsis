@@ -61,11 +61,13 @@ function Docs({}: Props) {
   async function getDBData(rid: string, uid: string, evalDataOverride?: any) {
     const evalData = evalDataOverride || evaluationData;
     let archiveData: any = {};
+    let archiveId: string | undefined;
     try {
       const { archive } = await ArchiveAPI.RArchiveByRegistration({
         query: { registration: rid },
       });
       archiveData = archive?.data || {};
+      archiveId = archive?._id;
     } catch {
       archiveData = {};
     }
@@ -131,6 +133,7 @@ function Docs({}: Props) {
     return {
       [currentSchool.schoolId]: {
         archive: archiveData,
+        archiveId,
         evaluation: _.sortBy(processedEvaluationByYear, ["학년도","교과","과목"]),
       },
     };
