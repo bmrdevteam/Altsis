@@ -47,8 +47,17 @@ export const hasSchoolSkillConfig = (school) =>
     Object.keys(school.aiConfig.skills).length > 0
   );
 
+export const hasSchoolAiPermissionAuthority = (school) => {
+  const perm = school?.aiConfig?.permission;
+  return (
+    hasSchoolSkillConfig(school) ||
+    perm?.teacher === true ||
+    perm?.student === true
+  );
+};
+
 export const resolveAiRolePermission = (school, season, role) => {
-  const useSchoolPerm = hasSchoolSkillConfig(school);
+  const useSchoolPerm = hasSchoolAiPermissionAuthority(school);
   const schoolPerm = school?.aiConfig?.permission;
   const seasonPerm = season?.aiSettings?.permission;
   if (role === "teacher") {

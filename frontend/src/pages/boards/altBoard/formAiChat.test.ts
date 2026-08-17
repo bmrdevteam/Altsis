@@ -1,5 +1,9 @@
 import { formatAiChatCell, isAiChatRequiredMet, parseAiChatSummary } from "./formAiChat";
-import { canAuthorFormAiChat, resolveAiRolePermission } from "./formAiPermission";
+import {
+  canAuthorFormAiChat,
+  canShowAlter,
+  resolveAiRolePermission,
+} from "./formAiPermission";
 
 describe("formAiChat", () => {
   test("parse and required", () => {
@@ -56,6 +60,16 @@ describe("formAiPermission", () => {
     ).toBe(false);
   });
 
+  test("resolveAiRolePermission uses school teacher Y even without skills", () => {
+    expect(
+      resolveAiRolePermission(
+        { aiConfig: { permission: { teacher: true, student: false } } },
+        { aiSettings: { permission: { teacher: false, student: false } } },
+        "teacher"
+      )
+    ).toBe(true);
+  });
+
   test("resolveAiRolePermission uses season when school has no skills", () => {
     expect(
       resolveAiRolePermission(
@@ -64,5 +78,24 @@ describe("formAiPermission", () => {
         "teacher"
       )
     ).toBe(true);
+  });
+
+  test("canShowAlter uses school teacher Y and season enabled", () => {
+    const school = {
+      aiEnabled: true,
+      academyFeatures: { aiEnabled: true },
+      aiConfig: { permission: { teacher: true, student: false } },
+    };
+    const season = {
+      aiSettings: { enabled: true, permission: { teacher: false, student: false } },
+    };
+    expect(canShowAlter(school, season, { role: "teacher" })).toBe(true);
+    expect(canShowAlter(school, season, { role: "student" })).toBe(false);
+    expect(
+      canShowAlter(school, season, { role: "student", auth: "admin" })
+    ).toBe(true);
+    expect(
+      canShowAlter(school, { aiSettings: { enabled: false } }, { role: "teacher" })
+    ).toBe(false);
   });
 });

@@ -1,6 +1,7 @@
 import { useId, useSyncExternalStore } from "react";
 import { useAuth } from "contexts/authContext";
 import { useAlter } from "contexts/alterContext";
+import { canShowAlter } from "pages/boards/altBoard/formAiPermission";
 import AlterPanel from "./AlterPanel";
 import style from "./Alter.module.scss";
 
@@ -115,7 +116,8 @@ const AlterIcon = ({
 };
 
 const Alter = () => {
-  const { currentSchool, currentSeason, currentRegistration } = useAuth();
+  const { currentSchool, currentSeason, currentRegistration, currentUser } =
+    useAuth();
   const {
     isOpen,
     isWorking,
@@ -124,13 +126,10 @@ const Alter = () => {
     close,
   } = useAlter();
 
-  const aiEnabled =
-    currentSchool?.aiEnabled !== false &&
-    currentSchool?.academyFeatures?.aiEnabled !== false &&
-    !!currentSeason?.aiSettings?.enabled &&
-    (currentRegistration?.role === "teacher"
-      ? !!currentSeason?.aiSettings?.permission?.teacher
-      : !!currentSeason?.aiSettings?.permission?.student);
+  const aiEnabled = canShowAlter(currentSchool, currentSeason, {
+    role: currentRegistration?.role,
+    auth: currentUser?.auth,
+  });
 
   if (!aiEnabled) return null;
 
