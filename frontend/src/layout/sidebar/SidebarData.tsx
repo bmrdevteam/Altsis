@@ -31,6 +31,13 @@ export const SidebarData = (auth: string, role?: string): any => {
         path: "/owner/academies",
         icon: <Svg type="school" />,
       },
+      {
+        title: "guide",
+        name: "안내",
+        path: "/guide",
+        icon: <Svg type="article" />,
+        matchPaths: ["guide"],
+      },
     ];
   }
 

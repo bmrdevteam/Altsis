@@ -1,0 +1,152 @@
+.guide_page {
+  display: flex;
+  height: calc(100vh - 56px);
+  height: calc(100dvh - 56px);
+  overflow: hidden;
+  background-color: var(--background-color);
+}
+
+.guide_page_full {
+  height: 100vh;
+  height: 100dvh;
+}
+
+.toc {
+  width: 260px;
+  min-width: 260px;
+  height: 100%;
+  overflow-y: auto;
+  background-color: var(--component-color);
+  border-right: var(--border-default);
+  padding: 16px 12px 24px;
+}
+
+.toc_title {
+  display: block;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent-1);
+  padding: 4px 8px 12px;
+}
+
+.toc_home {
+  display: block;
+  width: 100%;
+  border: none;
+  background: none;
+  text-align: left;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-2);
+  padding: 8px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--background-color);
+    color: var(--accent-1);
+  }
+}
+
+.toc_home_active {
+  color: var(--accent-1);
+  background-color: var(--background-color);
+}
+
+.toc_section {
+  margin-top: 8px;
+}
+
+.toc_section_btn,
+.toc_item {
+  display: block;
+  width: 100%;
+  border: none;
+  background: none;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 8px;
+  color: var(--accent-3);
+}
+
+.toc_section_btn {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px;
+  color: var(--accent-1);
+
+  &:hover {
+    background-color: var(--background-color);
+  }
+}
+
+.toc_item {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 8px 6px 16px;
+
+  &:hover {
+    background-color: var(--background-color);
+    color: var(--accent-1);
+  }
+}
+
+.toc_active {
+  background-color: var(--background-color);
+  color: var(--accent-1);
+  font-weight: 600;
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  overflow-y: auto;
+  padding: 24px 32px 48px;
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    scroll-margin-top: 12px;
+  }
+}
+
+.missing {
+  color: var(--accent-2);
+  font-size: 14px;
+}
+
+.missing_btn {
+  margin-top: 12px;
+  border: none;
+  background: none;
+  color: var(--accent-1);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+@media (max-width: 800px) {
+  .guide_page {
+    flex-direction: column;
+    height: auto;
+    min-height: calc(100vh - 56px);
+    overflow: visible;
+  }
+
+  .toc {
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    max-height: 40vh;
+    border-right: none;
+    border-bottom: var(--border-default);
+  }
+}

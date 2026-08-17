@@ -62,5 +62,27 @@
             cursor: pointer;
             text-align: center;
         }
+        .links {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+        .guide_link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            background: none;
+            cursor: pointer;
+            padding: 0;
+            line-height: 0;
+
+            img {
+                width: 40px;
+                height: auto;
+                display: block;
+            }
+        }
     }
 }

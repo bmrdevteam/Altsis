@@ -2,7 +2,7 @@ import { useNavigate, NavigateOptions, To } from "react-router-dom";
 import { useAppPrefix } from "./useAppPrefix";
 import { useAuth } from "contexts/authContext";
 
-const UNPREFIXED_PATHS = ["/login", "/register", "/owner"];
+const UNPREFIXED_PATHS = ["/login", "/register", "/owner", "/guide"];
 
 function shouldPrefix(path: string): boolean {
   if (!path.startsWith("/")) return false;

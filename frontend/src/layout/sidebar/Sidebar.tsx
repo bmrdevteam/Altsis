@@ -144,7 +144,10 @@ const Sidebar = (props: Props) => {
                           : data.badge
                     }
                     active={
-                      location.pathname.split("/")[3]
+                      data.path === "/guide"
+                        ? location.pathname === "/guide" ||
+                          location.pathname.startsWith("/guide/")
+                        : location.pathname.split("/")[3]
                         ? data.title.includes(location.pathname.split("/")[3]) ||
                           (data.matchPaths?.includes(
                             location.pathname.split("/")[3]

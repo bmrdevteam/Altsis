@@ -12,6 +12,9 @@
 # production
 /build
 
+# generated Altsis guide snapshot
+/src/pages/guide/guideDocs.generated.ts
+
 # misc
 .DS_Store
 .env.local

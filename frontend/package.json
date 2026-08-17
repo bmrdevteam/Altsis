@@ -54,6 +54,10 @@
         "zustand": "^4.1.1"
     },
     "scripts": {
+        "sync-guide-docs": "node scripts/syncGuideDocs.js",
+        "prestart": "node scripts/syncGuideDocs.js",
+        "prebuild": "node scripts/syncGuideDocs.js",
+        "pretest": "node scripts/syncGuideDocs.js",
         "start": "react-scripts start",
         "build": "react-scripts build",
         "test": "react-scripts test",

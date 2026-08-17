@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Svg from "assets/svg/Svg";
 import style from "style/pages/settings/settings.module.scss";
+import { useAppNavigate } from "hooks/useAppNavigate";
 
 import UserSettings from "./tab/UserSettings";
 import SocialLoginSettings from "./tab/SocialLoginSettings";
@@ -29,6 +30,7 @@ const sectionComponents: Record<string, JSX.Element> = {
 
 const Settings = () => {
   const [activeSection, setActiveSection] = useState<string>("user");
+  const navigate = useAppNavigate();
 
   return (
     <div className={style.settings_page}>
@@ -52,6 +54,16 @@ const Settings = () => {
               <span className={style.sidebar_label}>{section.label}</span>
             </button>
           ))}
+          <button
+            type="button"
+            className={style.sidebar_item}
+            onClick={() => navigate("/guide")}
+          >
+            <span className={style.sidebar_icon}>
+              <Svg type="article" width="18px" height="18px" />
+            </span>
+            <span className={style.sidebar_label}>Altsis 안내</span>
+          </button>
         </nav>
       </aside>
 
