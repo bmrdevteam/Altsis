@@ -52,4 +52,16 @@ describe("getActivityBadgeLabel", () => {
       )
     ).toBe("제출완료");
   });
+
+  test("non-respondent does not show 미제출", () => {
+    expect(
+      getActivityBadgeLabel(
+        form({
+          mySubmitted: false,
+          myResponseCount: 0,
+          myRespondent: false,
+        })
+      )
+    ).toBe("");
+  });
 });

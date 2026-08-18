@@ -7,7 +7,7 @@ const collator = new Intl.Collator("ko", { sensitivity: "base" });
 const submitSortRank = (form: TAltForm): number => {
   const period = getActivityPeriodKind(form);
   const submitted = !!form.mySubmitted;
-  const required = form.settings?.requiredMode === true;
+  const required = form.settings?.requiredMode === true && form.myRespondent !== false;
   if (!submitted && period === "open" && required) return 0;
   if (period === "scheduled") return 1;
   if (submitted && period !== "closed") return 2;

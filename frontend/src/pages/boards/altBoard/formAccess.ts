@@ -72,5 +72,35 @@ export const canViewAllRowsForm = (
   return userMatchesAccessList(form.writers, user, schoolRole);
 };
 
+export const getMyAltBoardRole = (
+  board: TBoard,
+  user: Pick<TUser, "_id" | "auth"> | null | undefined
+): TAltBoardRole | null => {
+  if (!user) return null;
+  if (user.auth === "admin") return "admin";
+  if (board.creator != null && String(board.creator) === String(user._id)) {
+    return "admin";
+  }
+  const roles = board.altBoardRole;
+  if (!roles) return null;
+  return (
+    (roles[user._id] as TAltBoardRole | undefined) ||
+    (roles[String(user._id)] as TAltBoardRole | undefined) ||
+    null
+  );
+};
+
+/** 제출·할 일·미제출 대상. staff·작성 권한 우회 없음. */
+export const isFormRespondent = (
+  form: TAltForm,
+  user: Pick<TUser, "_id" | "userId" | "auth"> | null | undefined,
+  myRole: TAltBoardRole | null,
+  schoolRole?: string | null
+): boolean => {
+  if (!user || !myRole) return false;
+  if (!isAccessListCustom(form.members)) return true;
+  return userMatchesAccessList(form.members, user, schoolRole);
+};
+
 export const selectedIdsFromAccess = (access?: TBoardMembers | null): string[] =>
   (access?.users || []).map((u) => String(u.user));

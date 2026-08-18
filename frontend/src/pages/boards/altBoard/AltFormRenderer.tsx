@@ -61,6 +61,7 @@ import {
 } from "./formResponseLocalDraft";
 import { useFormResponseDraft } from "./useFormResponseDraft";
 import MultiSelectField from "./MultiSelectField";
+import { getMyAltBoardRole, isFormRespondent } from "./formAccess";
 
 type Props = {
   board: TBoard;
@@ -539,7 +540,17 @@ const AltFormRenderer = ({
     form &&
     hasSubmittedCurrentOccurrence(form, submittedRows, nowForSchedule);
 
+  const schoolRole =
+    currentUser?.auth === "manager"
+      ? "manager"
+      : currentRegistration?.role || null;
+  const myRole = getMyAltBoardRole(board, currentUser);
+  const canRespondAsMember = !!(
+    form && isFormRespondent(form, currentUser, myRole, schoolRole)
+  );
+
   const canSubmit =
+    canRespondAsMember &&
     !isClosed &&
     !isNotOpen &&
     !outsideWeekdayDay &&

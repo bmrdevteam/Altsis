@@ -7,6 +7,7 @@ import {
   getRequiredResponseCount,
   hasSubmittedForList,
   isFormRequiredMode,
+  isFormRespondent,
   isWithinFormPeriod,
 } from "../services/altForms.js";
 import { isSubmittedSheetRow } from "./sheetRowQuery.js";
@@ -23,6 +24,7 @@ export const countRequiredFormProgress = ({
   myRows,
   user,
   now = new Date(),
+  schoolRole = null,
 }) => {
   const detail = listRequiredFormProgress({
     boards,
@@ -30,6 +32,7 @@ export const countRequiredFormProgress = ({
     myRows,
     user,
     now,
+    schoolRole,
   });
   return { submitted: detail.submitted, total: detail.total };
 };
@@ -51,6 +54,7 @@ export const listRequiredFormProgress = ({
   myRows,
   user,
   now = new Date(),
+  schoolRole = null,
 }) => {
   const formsByBoard = new Map();
   for (const form of forms) {
@@ -78,6 +82,7 @@ export const listRequiredFormProgress = ({
 
     const boardForms = formsByBoard.get(boardId) || [];
     for (const form of boardForms) {
+      if (!isFormRespondent(form, board, user, schoolRole)) continue;
       if (!isFormRequiredMode(form)) continue;
       if (form.settings?.directInputMode) continue;
       if (!isWithinFormPeriod(form, now)) continue;

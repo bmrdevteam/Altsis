@@ -5,7 +5,7 @@
 import {
   getAltBoardRole,
   canViewAllRows,
-  isFormMember,
+  isFormRespondent,
   shouldShowUnsubmittedTodo,
   isFormRequiredMode,
   getRequiredResponseCount,
@@ -195,7 +195,7 @@ export const assembleSchoolTodos = ({
         }
       }
 
-      if (!isFormMember(form, board, user, schoolRole)) continue;
+      if (!isFormRespondent(form, board, user, schoolRole)) continue;
       if (!altRole) continue;
       if (!isFormRequiredMode(form)) continue;
       if (form.settings?.directInputMode) continue;

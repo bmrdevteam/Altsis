@@ -1,34 +1,8 @@
 import { getHTMLFromFragment } from "@tiptap/core";
 import { Fragment, type Node as PMNode } from "@tiptap/pm/model";
 import { Table } from "@tiptap/extension-table";
-
-const STYLE_ATTR_KEYS = [
-  "backgroundColor",
-  "verticalAlign",
-  "borderColor",
-  "borderStyle",
-  "borderWidth",
-] as const;
-
-const hasColWidth = (colwidth: unknown): boolean =>
-  Array.isArray(colwidth) &&
-  colwidth.some((w) => typeof w === "number" && Number.isFinite(w) && w > 0);
-
-/** 셀 스타일·열 너비처럼 GFM 파이프 표로 표현할 수 없는 속성이 있는지 */
-export const tableHasCellStyles = (node: PMNode): boolean => {
-  let styled = false;
-  node.descendants((n) => {
-    if (n.type.name !== "tableCell" && n.type.name !== "tableHeader") {
-      return;
-    }
-    const a = n.attrs || {};
-    if (STYLE_ATTR_KEYS.some((k) => !!a[k]) || hasColWidth(a.colwidth)) {
-      styled = true;
-      return false;
-    }
-  });
-  return styled;
-};
+import { currentTableCellHighlight } from "./currentTableCellHighlight";
+import { tableHasCellStyles } from "./tableHasCellStyles";
 
 const hasSpan = (node: PMNode) =>
   Number(node.attrs.colspan || 1) > 1 || Number(node.attrs.rowspan || 1) > 1;
@@ -100,7 +74,7 @@ const writePipeTable = (state: any, node: PMNode) => {
 };
 
 /**
- * 셀 배경/테두리/세로정렬이 있으면 HTML로 직렬화해 스타일을 보존한다.
+ * 셀 배경/테두리/세로정렬·칸 안 가로 정렬이 있으면 HTML로 직렬화해 스타일을 보존한다.
  * (GFM 파이프 표는 셀 style을 표현할 수 없음)
  */
 export const StyledTable = Table.extend({
@@ -117,5 +91,8 @@ export const StyledTable = Table.extend({
         parse: {},
       },
     };
+  },
+  addProseMirrorPlugins() {
+    return [...(this.parent?.() || []), currentTableCellHighlight()];
   },
 });

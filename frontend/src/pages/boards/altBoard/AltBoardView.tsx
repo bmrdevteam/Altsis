@@ -25,7 +25,7 @@ import AltDocsView from "./AltDocsView";
 import BoardChatContainer from "./BoardChatContainer";
 import style from "./altBoard.module.scss";
 import { markAllBoardChatRoomsRead } from "utils/markAllBoardChatRoomsRead";
-import { canViewAllRowsForm } from "./formAccess";
+import { canViewAllRowsForm, isFormRespondent } from "./formAccess";
 
 export type TAltBoardSurface = "활동" | "문서" | "채팅";
 
@@ -193,10 +193,16 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- load once per board/surface
   }, [board._id, surface]);
 
+  const schoolRole =
+    currentUser?.auth === "manager"
+      ? "manager"
+      : currentRegistration?.role || null;
+
   // 활동 뱃지: 필수·미제출 + 승인/승인진행 + 채점 대기 (할 일 칩과 동일 구성)
   const activityBadgeCount = (() => {
     const now = new Date();
     const unsubmitted = forms.filter((f) => {
+      if (!isFormRespondent(f, currentUser, myRole, schoolRole)) return false;
       if (f.isDraft) return false;
       if (f.settings?.requiredMode !== true) return false;
       if (f.settings?.directInputMode) return false;

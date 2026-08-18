@@ -3,6 +3,9 @@ import Image from "@tiptap/extension-image";
 export type ImageAlign = "left" | "center" | "right";
 
 export const ResizableImage = Image.extend({
+  // 표 안 로고를 살짝 밀 때 네이티브 드래그 + selectClickedLeaf RangeError 방지
+  draggable: false,
+
   addAttributes() {
     return {
       ...this.parent?.(),
@@ -222,6 +225,7 @@ export const ResizableImage = Image.extend({
       img.src = node.attrs.src;
       img.alt = node.attrs.alt || "";
       img.title = node.attrs.title || "";
+      img.draggable = false;
       img.style.maxWidth = "100%";
       img.style.height = "auto";
       img.style.display = "block";
@@ -305,6 +309,13 @@ export const ResizableImage = Image.extend({
 
       handle.addEventListener("mousedown", onMouseDown);
 
+      const onDragStart = (e: DragEvent) => {
+        e.preventDefault();
+      };
+      img.addEventListener("dragstart", onDragStart);
+      wrapper.draggable = false;
+      wrapper.addEventListener("dragstart", onDragStart);
+
       wrapper.appendChild(img);
       wrapper.appendChild(captionEl);
       if (editor.isEditable) wrapper.appendChild(handle);
@@ -314,6 +325,7 @@ export const ResizableImage = Image.extend({
         stopEvent: (event: Event) => {
           const t = event.target as Node;
           return (
+            event.type === "dragstart" ||
             event.target === handle ||
             captionEl.contains(t) ||
             wrapper.classList.contains("image-resizing")
@@ -340,6 +352,8 @@ export const ResizableImage = Image.extend({
         },
         destroy: () => {
           handle.removeEventListener("mousedown", onMouseDown);
+          img.removeEventListener("dragstart", onDragStart);
+          wrapper.removeEventListener("dragstart", onDragStart);
           captionEl.removeEventListener("blur", commitCaption);
         },
       };
