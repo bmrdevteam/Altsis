@@ -253,4 +253,39 @@ describe("countRequiredFormProgress", () => {
       },
     ]);
   });
+
+  test("skips required forms when user is not a respondent", () => {
+    const teacher = {
+      _id: "tea1",
+      userId: "t1",
+      auth: "member",
+    };
+    const teacherBoard = {
+      _id: "board1",
+      name: "보드",
+      creator: { equals: () => false },
+      altBoardRole: new Map([["tea1", "admin"]]),
+    };
+    const forms = [
+      {
+        _id: "f1",
+        board: "board1",
+        title: "학생만",
+        settings: { requiredMode: true },
+        members: {
+          groups: { manager: false, teacher: false, student: true },
+          users: [],
+        },
+      },
+    ];
+    const result = countRequiredFormProgress({
+      boards: [teacherBoard],
+      forms,
+      myRows: [],
+      user: teacher,
+      now,
+      schoolRole: "teacher",
+    });
+    expect(result).toEqual({ submitted: 0, total: 0 });
+  });
 });

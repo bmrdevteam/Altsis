@@ -95,6 +95,7 @@ export const getGoalsForUser = async (
         forms: ctx.forms,
         myRows: ctx.myRows,
         user,
+        schoolRole: ctx.schoolRole,
       });
       board = {
         submitted: progress.submitted,

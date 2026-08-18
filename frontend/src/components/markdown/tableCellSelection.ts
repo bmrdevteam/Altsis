@@ -1,5 +1,7 @@
 import { Editor } from "@tiptap/react";
-import { CellSelection, TableMap, cellAround } from "@tiptap/pm/tables";
+import { CellSelection, TableMap, cellAround } from "prosemirror-tables";
+
+export { collapseCellSelectionAtPos, handleTableCellClick } from "./tableCellClick";
 
 export type MergeDirection = "right" | "down";
 
@@ -61,12 +63,17 @@ export const mergeAdjacentCells = (
   return editor
     .chain()
     .focus()
-    .command(({ tr, dispatch }) => {
-      const $anchor = tr.doc.resolve(cellPos);
-      const $head = tr.doc.resolve(headPos);
-      tr.setSelection(new CellSelection($anchor, $head));
-      if (dispatch) dispatch(tr);
-      return true;
+    .command(({ tr }) => {
+      try {
+        const $anchor = tr.doc.resolve(cellPos);
+        const $head = tr.doc.resolve(headPos);
+        if (!$anchor.nodeAfter || !$head.nodeAfter) return false;
+        tr.setSelection(new CellSelection($anchor, $head));
+        return true;
+      } catch (err) {
+        if (err instanceof RangeError) return false;
+        throw err;
+      }
     })
     .mergeCells()
     .run();

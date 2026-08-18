@@ -266,5 +266,6 @@ export const getRequiredFormProgressForUser = async (
     forms: ctx.forms,
     myRows: ctx.myRows,
     user,
+    schoolRole: ctx.schoolRole,
   });
 };

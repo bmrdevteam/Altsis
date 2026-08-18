@@ -9,6 +9,7 @@ import {
   schoolTodosCacheKey,
 } from "../schoolTodosCache";
 import { markAllBoardChatRoomsRead } from "utils/markAllBoardChatRoomsRead";
+import { getMyAltBoardRole, isFormRespondent } from "./formAccess";
 
 /**
  * 수업 탭 등 외부 Tab에 넘길 보드 뱃지(활동/문서/채팅)
@@ -180,7 +181,13 @@ export const useAltBoardBadges = (
 
   const activityBadgeCount = (() => {
     const now = new Date();
+    const myRole = board ? getMyAltBoardRole(board, currentUser) : null;
+    const schoolRole =
+      currentUser?.auth === "manager"
+        ? "manager"
+        : currentRegistration?.role || null;
     const unsubmitted = forms.filter((f) => {
+      if (!isFormRespondent(f, currentUser, myRole, schoolRole)) return false;
       if (f.isDraft) return false;
       if (f.settings?.requiredMode !== true) return false;
       if (f.settings?.directInputMode) return false;

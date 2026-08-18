@@ -3,10 +3,17 @@ import { Editor } from "@tiptap/react";
 import Svg from "assets/svg/Svg";
 import ColorDropdown from "./ColorDropdown";
 import HeadingDropdown, { getHeadingBadge } from "./HeadingDropdown";
+import FontSizeDropdown from "./FontSizeDropdown";
+import FontFamilyDropdown from "./FontFamilyDropdown";
 import CodeDropdown from "./CodeDropdown";
 import CheckDropdown from "./CheckDropdown";
-import ToolbarMoreMenu from "./ToolbarMoreMenu";
+import ToolbarMoreMenu, { type MoreMenuItem } from "./ToolbarMoreMenu";
 import MarkdownShortcutsHelp from "./MarkdownShortcutsHelp";
+import {
+  FONT_OPTIONS,
+  canonicalFontFamily,
+  parseFontSizePx,
+} from "./editorFonts";
 import style from "./markdown.module.scss";
 
 type Props = {
@@ -16,8 +23,8 @@ type Props = {
   onYouTubeClick: () => void;
   onLinkClick: () => void;
   onMathClick: () => void;
-  onPrintClick?: () => void;
   enableMention?: boolean;
+  moreExtraItems?: MoreMenuItem[];
 };
 
 const TipTapToolbar = ({
@@ -27,13 +34,15 @@ const TipTapToolbar = ({
   onYouTubeClick,
   onLinkClick,
   onMathClick,
-  onPrintClick,
   enableMention = false,
+  moreExtraItems,
 }: Props) => {
   const [activeDropdown, setActiveDropdown] = useState<
     | "textColor"
     | "highlight"
     | "heading"
+    | "fontSize"
+    | "fontFamily"
     | "code"
     | "check"
     | "more"
@@ -52,6 +61,16 @@ const TipTapToolbar = ({
   };
 
   const headingBadge = getHeadingBadge(editor);
+  const textStyle = editor.getAttributes("textStyle") as {
+    fontSize?: string | null;
+    fontFamily?: string | null;
+  };
+  const currentFontPx = parseFontSizePx(textStyle.fontSize);
+  const currentFontFamily = canonicalFontFamily(textStyle.fontFamily);
+  const fontLabel =
+    FONT_OPTIONS.find((opt) =>
+      opt.family == null ? !currentFontFamily : opt.family === currentFontFamily
+    )?.label ?? "기본";
 
   const close = () => setActiveDropdown(null);
 
@@ -103,6 +122,7 @@ const TipTapToolbar = ({
           },
         ]
       : []),
+    ...(moreExtraItems ?? []),
   ];
 
   const renderBtn = (btn: {
@@ -158,6 +178,65 @@ const TipTapToolbar = ({
         </button>
         {activeDropdown === "heading" && (
           <HeadingDropdown editor={editor} onClose={close} />
+        )}
+      </div>
+
+      <div className={style.colorBtnWrapper}>
+        <button
+          type="button"
+          title="글자 크기"
+          aria-label="글자 크기"
+          onClick={() =>
+            setActiveDropdown(
+              activeDropdown === "fontSize" ? null : "fontSize"
+            )
+          }
+          className={`${style.toolbarBtn} ${style.toolbarLabelBtn} ${
+            currentFontPx != null ? style.toolbarBtnActive : ""
+          }`}
+        >
+          {currentFontPx ?? 14}
+        </button>
+        {activeDropdown === "fontSize" && (
+          <FontSizeDropdown
+            currentPx={currentFontPx}
+            onSelect={(size) => {
+              if (size) editor.chain().focus().setFontSize(size).run();
+              else editor.chain().focus().unsetFontSize().run();
+            }}
+            onClose={close}
+          />
+        )}
+      </div>
+
+      <div className={style.colorBtnWrapper}>
+        <button
+          type="button"
+          title="글꼴"
+          aria-label="글꼴"
+          onClick={() =>
+            setActiveDropdown(
+              activeDropdown === "fontFamily" ? null : "fontFamily"
+            )
+          }
+          className={`${style.toolbarBtn} ${style.toolbarLabelBtn} ${
+            currentFontFamily ? style.toolbarBtnActive : ""
+          }`}
+          style={
+            currentFontFamily ? { fontFamily: currentFontFamily } : undefined
+          }
+        >
+          {fontLabel}
+        </button>
+        {activeDropdown === "fontFamily" && (
+          <FontFamilyDropdown
+            currentFamily={currentFontFamily}
+            onSelect={(family) => {
+              if (family) editor.chain().focus().setFontFamily(family).run();
+              else editor.chain().focus().unsetFontFamily().run();
+            }}
+            onClose={close}
+          />
         )}
       </div>
 
@@ -343,17 +422,6 @@ const TipTapToolbar = ({
           <CheckDropdown editor={editor} onClose={close} />
         )}
       </div>
-
-      {onPrintClick && (
-        <>
-          <span className={style.divider} />
-          {renderBtn({
-            icon: "print",
-            title: "인쇄 / 미리보기",
-            action: onPrintClick,
-          })}
-        </>
-      )}
 
       <div className={style.colorBtnWrapper}>
         <button
