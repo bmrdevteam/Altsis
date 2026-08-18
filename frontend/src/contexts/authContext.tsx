@@ -4,6 +4,7 @@ import React, {
   useContext,
   useState,
   useEffect,
+  useRef,
 } from "react";
 
 import _ from "lodash";
@@ -12,7 +13,13 @@ import { useCookies } from "react-cookie";
 import { TCurrentUser, TCurrentRegistration, TCurrentSeason } from "types/auth";
 import useAPIv2 from "hooks/useAPIv2";
 import { TSchool } from "types/schools";
-import { SESSION_COOKIE_OPTS } from "utils/authCookies";
+import { SESSION_COOKIE_OPTS, clearAuthClientCookies } from "utils/authCookies";
+import {
+  decideResumeSessionCheck,
+  isSessionAuthFailure,
+  loginPathForAcademy,
+} from "utils/sessionAuth";
+import { installTabResumeListener } from "utils/tabResume";
 
 const AuthContext = createContext<any>(null);
 
@@ -56,6 +63,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [currentSeason, setCurrentSeason] = useState<TCurrentSeason>();
 
   const [loading, setLoading] = useState<boolean>(true);
+
+  const userApiRef = useRef(UserAPI);
+  userApiRef.current = UserAPI;
+  const currentUserRef = useRef(currentUser);
+  currentUserRef.current = currentUser;
+  const loadingRef = useRef(loading);
+  loadingRef.current = loading;
+  const removeCookieRef = useRef(removeCookie);
+  removeCookieRef.current = removeCookie;
+  const resumeCheckInFlightRef = useRef(false);
+  const lastResumeOkAtRef = useRef(0);
 
   async function getLoggedInUser() {
     const { user } = await UserAPI.RMySelf();
@@ -119,12 +137,55 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     loading &&
       getLoggedInUser()
         .then(() => {
+          lastResumeOkAtRef.current = Date.now();
           setLoading(false);
         })
-        .catch((err) => {
+        .catch(() => {
           setLoading(false);
         });
   }, [loading]);
+
+  useEffect(() => {
+    const resumeSession = async () => {
+      const decision = decideResumeSessionCheck({
+        loading: loadingRef.current,
+        hasUser: Boolean(currentUserRef.current),
+        pathname:
+          typeof window !== "undefined" ? window.location.pathname : "",
+        inFlight: resumeCheckInFlightRef.current,
+        lastOkAt: lastResumeOkAtRef.current,
+        now: Date.now(),
+      });
+      if (decision !== "check") return;
+
+      resumeCheckInFlightRef.current = true;
+      try {
+        await userApiRef.current.RMySelf();
+        lastResumeOkAtRef.current = Date.now();
+      } catch (err) {
+        if (!isSessionAuthFailure(err)) return;
+        const academyId = currentUserRef.current?.academyId;
+        clearAuthClientCookies(removeCookieRef.current);
+        setCurrentUser(undefined);
+        setCurrentSchool(undefined);
+        setCurrentRegistration(undefined);
+        setCurrentSeason(undefined);
+        const loginPath = loginPathForAcademy(academyId);
+        if (
+          typeof window !== "undefined" &&
+          !window.location.pathname.includes("/login")
+        ) {
+          window.location.replace(loginPath);
+        }
+      } finally {
+        resumeCheckInFlightRef.current = false;
+      }
+    };
+
+    return installTabResumeListener(() => {
+      void resumeSession();
+    });
+  }, []);
 
   async function changeSchool(to: string) {
     const { school, academyFeatures } = await SchoolAPI.RSchool({ params: { _id: to } });

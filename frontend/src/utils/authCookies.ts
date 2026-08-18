@@ -5,8 +5,13 @@ export const SESSION_COOKIE_OPTS = {
 
 const CLIENT_AUTH_COOKIES = ["currentSchool", "currentRegistration"] as const;
 
+export type ClientAuthCookieName = (typeof CLIENT_AUTH_COOKIES)[number];
+
 export function clearAuthClientCookies(
-  removeCookie: (name: string, options?: { path: string }) => void
+  removeCookie: (
+    name: ClientAuthCookieName,
+    options?: { path: string }
+  ) => void
 ) {
   for (const name of CLIENT_AUTH_COOKIES) {
     removeCookie(name, { path: "/" });
