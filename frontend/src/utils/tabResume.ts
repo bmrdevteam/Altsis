@@ -1,111 +1,53 @@
-/** Reload after this long in the background (covers “a few minutes” freezes). */
-export const HIDDEN_RELOAD_MS = 2 * 60 * 1000;
+export type TabResumeReason = "visible" | "bfcache";
 
-const RELOAD_FLAG_KEY = "altsis-tab-resume-reload";
-const RELOAD_FLAG_TTL_MS = 10 * 1000;
-
-export type TabResumeStorage = {
-  getItem: (key: string) => string | null;
-  setItem: (key: string, value: string) => void;
-  removeItem: (key: string) => void;
+export type TabResumeDocumentRef = {
+  visibilityState: Document["visibilityState"];
+  addEventListener: (type: string, listener: EventListener) => void;
+  removeEventListener: (type: string, listener: EventListener) => void;
 };
 
-export function shouldReloadAfterHidden(
-  hiddenAt: number | null,
-  now: number,
-  thresholdMs: number = HIDDEN_RELOAD_MS
-): boolean {
-  if (hiddenAt == null) return false;
-  return now - hiddenAt >= thresholdMs;
-}
+export type TabResumeWindowRef = {
+  addEventListener: (type: string, listener: EventListener) => void;
+  removeEventListener: (type: string, listener: EventListener) => void;
+};
 
-export function shouldReloadOnPageShow(persisted: boolean): boolean {
+export type InstallTabResumeListenerOptions = {
+  documentRef?: TabResumeDocumentRef;
+  windowRef?: TabResumeWindowRef;
+};
+
+export function shouldNotifyOnPageShow(persisted: boolean): boolean {
   return persisted === true;
 }
 
-export function shouldSkipReload(
-  storage: TabResumeStorage,
-  now: number
-): boolean {
-  const raw = storage.getItem(RELOAD_FLAG_KEY);
-  if (!raw) return false;
-  storage.removeItem(RELOAD_FLAG_KEY);
-  const at = Number(raw);
-  if (!Number.isFinite(at)) return true;
-  return now - at < RELOAD_FLAG_TTL_MS;
-}
-
-export function markReload(storage: TabResumeStorage, now: number): void {
-  storage.setItem(RELOAD_FLAG_KEY, String(now));
-}
-
-function defaultStorage(): TabResumeStorage | null {
-  try {
-    if (typeof sessionStorage === "undefined") return null;
-    sessionStorage.getItem(RELOAD_FLAG_KEY);
-    return sessionStorage;
-  } catch {
-    return null;
-  }
-}
-
-export type InstallTabResumeReloadOptions = {
-  reload?: () => void;
-  getNow?: () => number;
-  storage?: TabResumeStorage | null;
-  thresholdMs?: number;
-  documentRef?: {
-    visibilityState: Document["visibilityState"];
-    addEventListener: (type: string, listener: EventListener) => void;
-    removeEventListener: (type: string, listener: EventListener) => void;
-  };
-  windowRef?: {
-    addEventListener: (type: string, listener: EventListener) => void;
-    removeEventListener: (type: string, listener: EventListener) => void;
-  };
-};
-
 /**
- * Reloads the page after a long background freeze or bfcache restore.
- * Call once as soon as the JS bundle runs (before React render).
+ * Notifies when the tab returns from the background or bfcache.
+ * Does not reload. Callers decide whether to revalidate session.
  */
-export function installTabResumeReload(
-  options: InstallTabResumeReloadOptions = {}
+export function installTabResumeListener(
+  onResume: (reason: TabResumeReason) => void,
+  options: InstallTabResumeListenerOptions = {}
 ): () => void {
-  const reload = options.reload ?? (() => window.location.reload());
-  const getNow = options.getNow ?? (() => Date.now());
-  const storage =
-    options.storage !== undefined ? options.storage : defaultStorage();
-  const thresholdMs = options.thresholdMs ?? HIDDEN_RELOAD_MS;
   const doc = options.documentRef ?? document;
   const win = options.windowRef ?? window;
 
-  let hiddenAt: number | null =
-    doc.visibilityState === "hidden" ? getNow() : null;
-
-  const tryReload = () => {
-    if (storage && shouldSkipReload(storage, getNow())) return;
-    if (storage) markReload(storage, getNow());
-    reload();
-  };
+  let wasHidden = doc.visibilityState === "hidden";
 
   const onVisibilityChange = () => {
     if (doc.visibilityState === "hidden") {
-      hiddenAt = getNow();
+      wasHidden = true;
       return;
     }
-    if (doc.visibilityState !== "visible") return;
-    if (shouldReloadAfterHidden(hiddenAt, getNow(), thresholdMs)) {
-      tryReload();
-    }
-    hiddenAt = null;
+    if (doc.visibilityState !== "visible" || !wasHidden) return;
+    wasHidden = false;
+    onResume("visible");
   };
 
   const onPageShow = (event: Event) => {
     const persisted = Boolean((event as PageTransitionEvent).persisted);
-    if (shouldReloadOnPageShow(persisted)) {
-      tryReload();
-    }
+    if (!shouldNotifyOnPageShow(persisted)) return;
+    wasHidden = false;
+    onResume("bfcache");
   };
 
   doc.addEventListener("visibilitychange", onVisibilityChange);
