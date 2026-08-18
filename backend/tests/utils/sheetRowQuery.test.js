@@ -18,6 +18,14 @@ describe("sheetRowQuery", () => {
     expect(isSubmittedSheetRow({ isDraft: false })).toBe(true);
   });
 
+  // 목록 메타 조회가 isDraft를 select하지 않으면 lean 행이 이 경로로 제출로 오인된다.
+  test("lean row missing isDraft (as if select omitted the field) is treated as submitted", () => {
+    const leanWithoutIsDraft = { form: "f1", createdAt: new Date() };
+    const { draftRows, submittedRows } = splitSheetRows([leanWithoutIsDraft]);
+    expect(draftRows).toHaveLength(0);
+    expect(submittedRows).toHaveLength(1);
+  });
+
   test("isDraft true is a draft, not submitted", () => {
     expect(isDraftSheetRow({ isDraft: true })).toBe(true);
     expect(isSubmittedSheetRow({ isDraft: true })).toBe(false);

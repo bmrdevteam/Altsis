@@ -91,6 +91,16 @@ describe("draft vs submitted list counts", () => {
     expect(hasSubmittedForList(form, submittedRows)).toBe(true);
     expect(hasSubmittedForList(form, [])).toBe(false);
   });
+
+  test("draft-only rows are not submitted for list badge", () => {
+    const form = { settings: { allowMultipleResponses: false } };
+    const { draftRows, submittedRows } = splitSheetRows([
+      { _id: "d", isDraft: true },
+    ]);
+    expect(draftRows).toHaveLength(1);
+    expect(submittedRows).toHaveLength(0);
+    expect(hasSubmittedForList(form, submittedRows)).toBe(false);
+  });
 });
 
 describe("canOwnerDeleteDraft / needsAllowResubmitToEdit", () => {
