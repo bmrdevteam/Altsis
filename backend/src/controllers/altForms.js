@@ -128,7 +128,7 @@ const enrichFormsWithListMeta = async (
         _respondent: userId,
         isActive: true,
       })
-      .select("form createdAt _submittedAt")
+      .select("form createdAt _submittedAt isDraft")
       .lean(),
     includeResponseCount
       ? AltSheetOpen(academyId)
