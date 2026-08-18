@@ -1,3 +1,9 @@
+import {
+  canonicalFontFamily,
+  parseFontSizePx,
+  formatFontSizePx,
+} from "./editorFonts";
+
 const STYLE_TAGS = new Set([
   "td",
   "th",
@@ -40,7 +46,7 @@ const keepColorLike = (value: string): boolean =>
 
 /**
  * MarkdownViewer DOMPurify style 훅용.
- * 레이아웃(가운데 정렬)만 허용하고 url/position 등은 버린다.
+ * 레이아웃(가운데 정렬)·허용 폰트/크기만 통과하고 url/position 등은 버린다.
  */
 export const sanitizeMarkdownInlineStyle = (
   tag: string,
@@ -71,6 +77,16 @@ export const sanitizeMarkdownInlineStyle = (
     }
     if (prop === "text-align") {
       if (TEXT_ALIGN.test(value)) kept.push(`${prop}: ${value}`);
+      continue;
+    }
+    if (prop === "font-size") {
+      const px = parseFontSizePx(value);
+      if (px != null) kept.push(`font-size: ${formatFontSizePx(px)}`);
+      continue;
+    }
+    if (prop === "font-family") {
+      const family = canonicalFontFamily(value);
+      if (family) kept.push(`font-family: ${family}`);
       continue;
     }
     if (prop === "margin" || prop.startsWith("margin-")) {

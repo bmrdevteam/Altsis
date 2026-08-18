@@ -14,7 +14,6 @@ import { SlashCommand, type SlashDialogActions } from "./extensions/slashCommand
 import Placeholder from "@tiptap/extension-placeholder";
 import Youtube from "@tiptap/extension-youtube";
 import TextAlign from "@tiptap/extension-text-align";
-import { TextStyle } from "@tiptap/extension-text-style";
 import Color from "@tiptap/extension-color";
 import Highlight from "@tiptap/extension-highlight";
 import { TableRow, TableCell, TableHeader } from "@tiptap/extension-table";
@@ -27,10 +26,10 @@ import {
 import Mention from "@tiptap/extension-mention";
 import { createMentionSuggestion } from "./extensions/mentionSuggestion";
 import TipTapToolbar from "./TipTapToolbar";
-import TableBubbleMenu from "./TableBubbleMenu";
+import type { MoreMenuItem } from "./ToolbarMoreMenu";
+import TableToolbar from "./TableToolbar";
+import ImageToolbar from "./ImageToolbar";
 import LinkBubbleMenu from "./LinkBubbleMenu";
-import ImageBubbleMenu from "./ImageBubbleMenu";
-import SelectionBubbleMenu from "./SelectionBubbleMenu";
 import { DEFAULT_CANVAS_HEIGHT } from "./canvas/canvasModel";
 import ImageInsertDialog from "./ImageInsertDialog";
 import YouTubeInsertDialog from "./YouTubeInsertDialog";
@@ -43,8 +42,12 @@ import {
 } from "./extensions/youtube";
 import { useEditorDraft } from "./hooks/useEditorDraft";
 import { tableCellStyleAttributes } from "./tableCellAttributes";
+import { handleAtomNodeClick } from "./atomNodeClick";
+import { handleTableCellClick } from "./tableCellClick";
 import { StyledTable } from "./tableMarkdown";
-import { printArea } from "utils/printArea";
+import { serializeClipboardPlainText } from "./clipboardPlainText";
+import { AlignedHeading, AlignedParagraph } from "./extensions/alignedBlocks";
+import { StyledTextStyle } from "./extensions/styledTextStyle";
 import style from "./markdown.module.scss";
 import Svg from "assets/svg/Svg";
 import "katex/dist/katex.min.css";
@@ -70,7 +73,7 @@ type Props = {
   title?: string;
   onDraftRestore?: (data: { content: string; title?: string }) => void;
   searchMentionUsers?: (query: string) => Promise<any[]>;
-  toolbarExtra?: React.ReactNode;
+  toolbarMoreItems?: MoreMenuItem[];
 };
 
 type ViewMode = "wysiwyg" | "split";
@@ -94,7 +97,7 @@ const MarkdownEditor = ({
   title,
   onDraftRestore,
   searchMentionUsers,
-  toolbarExtra,
+  toolbarMoreItems,
 }: Props) => {
   const [viewMode, setViewMode] = useState<ViewMode>("wysiwyg");
   const [showImageDialog, setShowImageDialog] = useState(false);
@@ -139,14 +142,17 @@ const MarkdownEditor = ({
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        heading: { levels: [1, 2, 3, 4, 5, 6] },
+        heading: false,
+        paragraph: false,
       }),
+      AlignedParagraph,
+      AlignedHeading,
       Markdown.configure({
         html: true,
         tightLists: true,
         bulletListMarker: "-",
         transformPastedText: true,
-        transformCopiedText: true,
+        transformCopiedText: false,
       }),
       TaskList,
       TaskItem.configure({ nested: true }),
@@ -177,7 +183,7 @@ const MarkdownEditor = ({
         types: ["heading", "paragraph"],
         alignments: ["left", "center", "right", "justify"],
       }),
-      TextStyle.configure({}),
+      StyledTextStyle,
       Color,
       Highlight.configure({ multicolor: true }),
       // StyledTable: 셀 스타일이 있으면 HTML로 직렬화해 저장 시 스타일 유지
@@ -228,6 +234,7 @@ const MarkdownEditor = ({
     ],
     content: value,
     editorProps: {
+      clipboardTextSerializer: serializeClipboardPlainText,
       handleKeyDown: (_view, event) => {
         if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
           event.preventDefault();
@@ -236,8 +243,29 @@ const MarkdownEditor = ({
         }
         return false;
       },
+      handleDOMEvents: {
+        // MouseDown.up보다 먼저 셀 블록을 접어, Chrome·resizable 표의 옛 doc setSelection을 피한다
+        mousedown: (view, event) => {
+          const mouse = event as MouseEvent;
+          if (mouse.button !== 0 || mouse.shiftKey) return false;
+          const coords = view.posAtCoords({
+            left: mouse.clientX,
+            top: mouse.clientY,
+          });
+          if (coords) handleTableCellClick(view, coords.pos);
+          return false;
+        },
+      },
+      handleClickOn: (view, _pos, node, nodePos, event, direct) => {
+        if (event.button !== 0 || !direct) return false;
+        if (node.type.name !== "image") return false;
+        // selectClickedLeaf는 옛 ResolvedPos로 NodeSelection을 만들어 표 안 이미지에서 RangeError가 난다
+        handleAtomNodeClick(view, nodePos);
+        return true;
+      },
       handleClick: (view, pos, event) => {
         if (event.button !== 0) return false;
+        if (handleTableCellClick(view, pos)) return true;
         const linkType = view.state.schema.marks.link;
         if (!linkType) return false;
         const $pos = view.state.doc.resolve(pos);
@@ -278,10 +306,11 @@ const MarkdownEditor = ({
     };
   }, [editor]);
 
-  // 버블 메뉴: 링크/표/이미지/선택이 동시에 뜨지 않도록 활성 상태에 따라 하나만 마운트
-  const [bubbleKind, setBubbleKind] = useState<
-    "none" | "link" | "table" | "image" | "selection"
-  >("none");
+  // 버블은 링크만. 표/이미지는 상단 맥락 툴바.
+  const [bubbleKind, setBubbleKind] = useState<"none" | "link">("none");
+  const [contextBar, setContextBar] = useState<"none" | "table" | "image">(
+    "none"
+  );
   const [linkHover, setLinkHover] = useState<{
     href: string;
     top: number;
@@ -289,59 +318,35 @@ const MarkdownEditor = ({
     from: number;
     to: number;
   } | null>(null);
-  const printRootRef = useRef<HTMLDivElement>(null);
-  const [printContent, setPrintContent] = useState<string | null>(null);
-
-  const handlePrint = useCallback(() => {
-    // 인쇄 시에만 MarkdownViewer를 마운트 (키입력마다 sanitize/파싱 방지)
-    setPrintContent(valueRef.current);
-  }, []);
-
-  useEffect(() => {
-    if (printContent == null) return;
-    let cancelled = false;
-    requestAnimationFrame(() => {
-      if (cancelled) return;
-      printArea(printRootRef.current);
-      setPrintContent(null);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [printContent]);
 
   useEffect(() => {
     if (!editor) return;
-    const syncBubble = () => {
+    const syncChrome = () => {
       const { selection } = editor.state;
       if (
         selection instanceof NodeSelection &&
         selection.node?.type?.name === "image"
       ) {
-        setBubbleKind("image");
+        setContextBar("image");
+        setBubbleKind("none");
       } else if (editor.isActive("link")) {
+        setContextBar("none");
         setBubbleKind("link");
         setLinkHover(null);
-      } else if (
-        selection instanceof CellSelection ||
-        editor.isActive("table")
-      ) {
-        setBubbleKind("table");
-      } else if (
-        !selection.empty &&
-        selection instanceof TextSelection
-      ) {
-        setBubbleKind("selection");
+      } else if (selection instanceof CellSelection) {
+        setContextBar("table");
+        setBubbleKind("none");
       } else {
+        setContextBar("none");
         setBubbleKind("none");
       }
     };
-    syncBubble();
-    editor.on("selectionUpdate", syncBubble);
-    editor.on("transaction", syncBubble);
+    syncChrome();
+    editor.on("selectionUpdate", syncChrome);
+    editor.on("transaction", syncChrome);
     return () => {
-      editor.off("selectionUpdate", syncBubble);
-      editor.off("transaction", syncBubble);
+      editor.off("selectionUpdate", syncChrome);
+      editor.off("transaction", syncChrome);
     };
   }, [editor]);
 
@@ -652,22 +657,13 @@ const MarkdownEditor = ({
             onYouTubeClick={() => setShowYouTubeDialog(true)}
             onLinkClick={() => setShowLinkDialog(true)}
             onMathClick={() => setMathDialog({ kind: "insert" })}
-            onPrintClick={handlePrint}
             enableMention={!!searchMentionUsers}
+            moreExtraItems={toolbarMoreItems}
           />
-          {toolbarExtra}
         </div>
       </div>
-
-      {printContent != null && (
-        <div
-          ref={printRootRef}
-          className={style.editorPrintRoot}
-          aria-hidden="true"
-        >
-          <MarkdownViewer content={printContent} allowHtmlApp />
-        </div>
-      )}
+      {editor && contextBar === "table" && <TableToolbar editor={editor} />}
+      {editor && contextBar === "image" && <ImageToolbar editor={editor} />}
 
       {viewMode === "wysiwyg" ? (
         <div
@@ -679,22 +675,10 @@ const MarkdownEditor = ({
           onDrop={handleDrop}
         >
           <EditorContent editor={editor} />
-          {editor && bubbleKind === "table" && (
-            <TableBubbleMenu editor={editor} />
-          )}
           {editor && bubbleKind === "link" && (
             <LinkBubbleMenu
               editor={editor}
               onEdit={() => setShowLinkDialog(true)}
-            />
-          )}
-          {editor && bubbleKind === "image" && (
-            <ImageBubbleMenu editor={editor} />
-          )}
-          {editor && bubbleKind === "selection" && (
-            <SelectionBubbleMenu
-              editor={editor}
-              onLinkClick={() => setShowLinkDialog(true)}
             />
           )}
           {linkHover && bubbleKind !== "link" && (

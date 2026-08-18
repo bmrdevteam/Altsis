@@ -175,13 +175,25 @@ export const isFormStaff = (form, board, user) => {
 };
 
 /**
- * 양식 멤버(제출·할 일). 미지정이면 보드 역할이 있으면 멤버.
+ * 양식 접근(목록·열람). staff·작성 권한·멤버.
+ * 제출·할 일은 {@link isFormRespondent}.
  * @param {string|null} [schoolRole]
  */
 export const isFormMember = (form, board, user, schoolRole = null) => {
   if (isFormStaff(form, board, user)) return true;
   if (!getAltBoardRole(board, user)) return false;
   if (canViewAllRows(form, board, user, schoolRole)) return true;
+  if (!isAccessListCustom(form?.members)) return true;
+  return userMatchesAccessList(form.members, user, schoolRole);
+};
+
+/**
+ * 제출·할 일·미제출 대상. staff·작성 권한 우회 없음.
+ * 멤버 미지정이면 보드 역할이 있는 사람.
+ * @param {string|null} [schoolRole]
+ */
+export const isFormRespondent = (form, board, user, schoolRole = null) => {
+  if (!user || !getAltBoardRole(board, user)) return false;
   if (!isAccessListCustom(form?.members)) return true;
   return userMatchesAccessList(form.members, user, schoolRole);
 };
@@ -239,7 +251,7 @@ export const resolveFormMemberUsers = async (academyId, form, board) => {
       userId: m.userId,
       auth: "member",
     };
-    return isFormMember(
+    return isFormRespondent(
       form,
       board,
       fakeUser,
@@ -340,7 +352,7 @@ export const shouldShowUnsubmittedTodo = (form, myRows = [], now = new Date()) =
  * @returns {{ allowed: boolean, message?: string }}
  */
 export const canRespondForm = (form, board, user, now = new Date(), schoolRole = null) => {
-  if (!isFormMember(form, board, user, schoolRole)) {
+  if (!isFormRespondent(form, board, user, schoolRole)) {
     return { allowed: false, message: "이 양식의 멤버가 아닙니다." };
   }
 

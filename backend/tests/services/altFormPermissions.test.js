@@ -5,6 +5,7 @@ import {
   canViewAllRows,
   canModifyForm,
   canManageForm,
+  isFormRespondent,
 } from "../../src/services/altForms.js";
 
 const oid = (id) => ({
@@ -219,5 +220,54 @@ describe("custom form writers", () => {
 
   test("board admin still views all rows", () => {
     expect(canViewAllRows(form, board, adminUser, "teacher")).toBe(true);
+  });
+});
+
+describe("isFormRespondent (submit / unsubmitted todo)", () => {
+  const studentOnly = {
+    ...inheritForm,
+    members: {
+      groups: { manager: false, teacher: false, student: true },
+      users: [],
+    },
+  };
+
+  test("custom student members: student submits, teacher staff does not", () => {
+    expect(isFormRespondent(studentOnly, board, studentUser, "student")).toBe(
+      true
+    );
+    expect(isFormRespondent(studentOnly, board, teacherUser, "teacher")).toBe(
+      false
+    );
+    expect(isFormRespondent(studentOnly, board, writerUser, "teacher")).toBe(
+      false
+    );
+    expect(isFormRespondent(studentOnly, board, adminUser, "teacher")).toBe(
+      false
+    );
+    expect(isFormRespondent(studentOnly, board, creatorUser, "teacher")).toBe(
+      false
+    );
+  });
+
+  test("staff still count as form members for access", () => {
+    expect(isFormMember(studentOnly, board, adminUser, "teacher")).toBe(true);
+    expect(isFormMember(studentOnly, board, creatorUser, "teacher")).toBe(true);
+    expect(isFormMember(studentOnly, board, writerUser, "teacher")).toBe(true);
+  });
+
+  test("inherit members: any board role is a respondent", () => {
+    expect(isFormRespondent(inheritForm, board, studentUser, "student")).toBe(
+      true
+    );
+    expect(isFormRespondent(inheritForm, board, writerUser, "teacher")).toBe(
+      true
+    );
+  });
+
+  test("outsider is not a respondent", () => {
+    expect(
+      isFormRespondent(studentOnly, board, outsiderUser, "student")
+    ).toBe(false);
   });
 });

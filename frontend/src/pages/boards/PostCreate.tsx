@@ -856,34 +856,16 @@ const PostCreate = ({
                 return [];
               }
             }}
-            toolbarExtra={
-              board?.boardMode === "alt" && altForms.length > 0 ? (
-                <button
-                  type="button"
-                  title="양식·필드 복사"
-                  onClick={() => setShowFieldCopy(true)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    width: 32,
-                    height: 32,
-                    padding: 0,
-                    background: "none",
-                    border: "none",
-                    borderRadius: 6,
-                    cursor: "pointer",
-                    color: "var(--accent-3)",
-                  }}
-                >
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ fontSize: 20 }}
-                  >
-                    data_object
-                  </span>
-                </button>
-              ) : undefined
+            toolbarMoreItems={
+              board?.boardMode === "alt" && altForms.length > 0
+                ? [
+                    {
+                      icon: "copy",
+                      label: "양식·필드 복사",
+                      onClick: () => setShowFieldCopy(true),
+                    },
+                  ]
+                : undefined
             }
           />
         </div>

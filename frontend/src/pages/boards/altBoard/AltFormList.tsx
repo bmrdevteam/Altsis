@@ -36,6 +36,7 @@ import {
   schoolTodosCacheKey,
   TSchoolTodoItem,
 } from "../schoolTodosCache";
+import { isFormRespondent } from "./formAccess";
 
 const formMatchesKeyword = (form: TAltForm, keyword: string) => {
   const kw = keyword.trim().toLowerCase();
@@ -158,7 +159,8 @@ const AltFormList = ({
   onGradeTodoCountChange,
 }: Props) => {
   const { AltFormAPI, AltFormFavoriteAPI, AltSheetRowAPI } = useAPIv2();
-  const { currentSchool, currentRegistration, currentSeason } = useAuth();
+  const { currentUser, currentSchool, currentRegistration, currentSeason } =
+    useAuth();
 
   const [comboForm, setComboForm] = useState<TAltForm | null>(null);
   const [deleteForm, setDeleteForm] = useState<TAltForm | null>(null);
@@ -227,17 +229,31 @@ const AltFormList = ({
     };
   }, [board._id, currentSchool?._id, currentSeasonId]);
 
+  const schoolRole =
+    currentUser?.auth === "manager"
+      ? "manager"
+      : currentRegistration?.role || null;
+
+  const listedForms = useMemo(
+    () =>
+      forms.map((f) => ({
+        ...f,
+        myRespondent: isFormRespondent(f, currentUser, myRole, schoolRole),
+      })),
+    [forms, currentUser, myRole, schoolRole]
+  );
+
   /** 제출형 활동 (통계·정렬용) */
   const submitForms = useMemo(() => {
     if (!myRole) return [];
-    return forms.filter((f) => !f.settings.directInputMode);
-  }, [forms, myRole]);
+    return listedForms.filter((f) => !f.settings.directInputMode);
+  }, [listedForms, myRole]);
 
   /** 할 일: 필수·진행 중·미제출 (요일마다면 회차 창·당일 미제출) */
   const todoUnsubmitted = useMemo(() => {
     const now = new Date();
-    return forms.filter((f) => shouldShowUnsubmittedTodoForm(f, now));
-  }, [forms]);
+    return listedForms.filter((f) => shouldShowUnsubmittedTodoForm(f, now));
+  }, [listedForms]);
 
   const todoUnsubmittedIds = useMemo(
     () => new Set(todoUnsubmitted.map((f) => f._id)),
@@ -247,7 +263,7 @@ const AltFormList = ({
   /** 활동 목록: 할 일(미제출) 제외. 제출 권한만 있으면 마감도 제외(열람 가능한 기록은 유지) */
   const activityForms = useMemo(() => {
     if (!myRole) return [];
-    return (canManage ? forms : submitForms).filter((f) => {
+    return (canManage ? listedForms : submitForms).filter((f) => {
       if (todoUnsubmittedIds.has(f._id)) return false;
       if (!canManage && getActivityPeriodKind(f) === "closed") {
         const canViewSheet =
@@ -256,7 +272,7 @@ const AltFormList = ({
       }
       return true;
     });
-  }, [forms, myRole, canManage, submitForms, todoUnsubmittedIds]);
+  }, [listedForms, myRole, canManage, submitForms, todoUnsubmittedIds]);
 
   const keywordTodoUnsubmitted = useMemo(
     () =>
@@ -512,10 +528,12 @@ const AltFormList = ({
     ).length >= 1;
 
   const renderSubmitBadge = (form: TAltForm) => {
+    const label = getActivityBadgeLabel(form);
+    if (!label) return null;
     const { badgeKind } = getActivityStatusVisual(form);
     return (
       <span className={`${style.formCardBadge} ${BADGE_KIND_CLASS[badgeKind]}`}>
-        {getActivityBadgeLabel(form)}
+        {label}
       </span>
     );
   };
@@ -526,7 +544,8 @@ const AltFormList = ({
     const period = getActivityPeriodKind(form);
     const isDirect = !!form.settings.directInputMode;
     const canEditForm = canModifyForm(form);
-    const showRespond = !form.isDraft && !isDirect;
+    const showRespond =
+      !form.isDraft && !isDirect && form.myRespondent !== false;
     const showMyResponses =
       !isDirect &&
       !!onViewMyResponses &&

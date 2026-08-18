@@ -329,4 +329,38 @@ describe("assembleSchoolTodos", () => {
       submittedToday.filter((i) => i.kind === "unsubmitted")
     ).toHaveLength(0);
   });
+
+  test("custom student members: teacher admin does not get unsubmitted todo", () => {
+    const teacher = {
+      _id: "admin1",
+      userId: "t1",
+      auth: "member",
+    };
+    const teacherBoard = {
+      _id: "board1",
+      name: "테스트 보드",
+      creator: { equals: () => false },
+      altBoardRole: new Map([["admin1", "admin"]]),
+    };
+    const studentOnlyForm = {
+      _id: "formStudent",
+      board: "board1",
+      title: "학생만 제출",
+      fields: [],
+      settings: { requiredMode: true },
+      members: {
+        groups: { manager: false, teacher: false, student: true },
+        users: [],
+      },
+    };
+    const todos = assembleSchoolTodos({
+      boards: [teacherBoard],
+      forms: [studentOnlyForm],
+      myRows: [],
+      approverRows: [],
+      user: teacher,
+      schoolRole: "teacher",
+    });
+    expect(todos.filter((i) => i.kind === "unsubmitted")).toHaveLength(0);
+  });
 });

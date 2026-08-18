@@ -260,6 +260,8 @@ export type TAltForm = {
   myResponseCount?: number;
   /** 목록 API 메타: 내 미제출 저장 건수 */
   myDraftCount?: number;
+  /** 제출·할 일 대상인지. false면 미제출/할 일 숨김 (관리자·작성 권한만 있는 경우) */
+  myRespondent?: boolean;
   /** 목록 API 메타: 요일마다 — 현재 회차 창 안 */
   inOccurrenceWindow?: boolean;
   /** 목록 API 메타: 요일마다 — 현재 회차 이미 제출 */

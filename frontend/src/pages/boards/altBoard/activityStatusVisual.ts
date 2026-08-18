@@ -87,6 +87,7 @@ const getActivityStatusKey = (form: TAltForm): TActivityStatusKey => {
   if (period === "closed") return "closed";
   if (period === "scheduled") return "scheduled";
   if (form.mySubmitted) return "submitted";
+  if (form.myRespondent === false) return "openOptional";
   if (form.settings?.requiredMode === true) return "openRequired";
   return "openOptional";
 };
@@ -161,6 +162,7 @@ export const getActivityBadgeLabel = (form: TAltForm): string => {
       }
       return "제출완료";
     case "openOptional":
+      if (form.myRespondent === false) return "";
       return "선택";
     case "openRequired": {
       const target = getRequiredResponseCount(form);

@@ -45,4 +45,20 @@ describe("sanitizeMarkdownInlineStyle", () => {
     ).toBe("");
     expect(sanitizeMarkdownInlineStyle("body", "margin: 0 auto")).toBe("");
   });
+
+  test("keeps allowed font-size and font-family on span", () => {
+    expect(
+      sanitizeMarkdownInlineStyle(
+        "span",
+        "font-size: 18px; font-family: 'Noto Serif KR', serif"
+      )
+    ).toBe("font-size: 18px; font-family: 'Noto Serif KR', serif");
+  });
+
+  test("drops out-of-range font-size and unknown font-family", () => {
+    expect(sanitizeMarkdownInlineStyle("span", "font-size: 200px")).toBe("");
+    expect(
+      sanitizeMarkdownInlineStyle("span", "font-family: Comic Sans MS")
+    ).toBe("");
+  });
 });

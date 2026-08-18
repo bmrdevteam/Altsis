@@ -205,6 +205,7 @@ export const shouldShowUnsubmittedTodoForm = (
   form: TAltForm,
   now: Date = new Date()
 ): boolean => {
+  if (form.myRespondent === false) return false;
   if (form.isDraft) return false;
   if (form.settings?.requiredMode !== true) return false;
   if (form.settings?.directInputMode) return false;
