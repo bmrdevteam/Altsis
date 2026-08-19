@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import { getMarkRange } from "@tiptap/core";
 import { NodeSelection, TextSelection } from "@tiptap/pm/state";
-import { CellSelection } from "@tiptap/pm/tables";
 import StarterKit from "@tiptap/starter-kit";
 import { Markdown } from "tiptap-markdown";
 import TaskList from "@tiptap/extension-task-list";
@@ -27,6 +26,7 @@ import Mention from "@tiptap/extension-mention";
 import { createMentionSuggestion } from "./extensions/mentionSuggestion";
 import TipTapToolbar from "./TipTapToolbar";
 import type { MoreMenuItem } from "./ToolbarMoreMenu";
+import ToolbarContextTabs from "./ToolbarContextTabs";
 import TableToolbar from "./TableToolbar";
 import ImageToolbar from "./ImageToolbar";
 import LinkBubbleMenu from "./LinkBubbleMenu";
@@ -48,6 +48,13 @@ import { StyledTable } from "./tableMarkdown";
 import { serializeClipboardPlainText } from "./clipboardPlainText";
 import { AlignedHeading, AlignedParagraph } from "./extensions/alignedBlocks";
 import { StyledTextStyle } from "./extensions/styledTextStyle";
+import {
+  activeToolbarPanel,
+  detectEditorContext,
+  resolveToolbarTab,
+  type EditorContext,
+  type ToolbarTab,
+} from "./toolbarTab";
 import style from "./markdown.module.scss";
 import Svg from "assets/svg/Svg";
 import "katex/dist/katex.min.css";
@@ -306,11 +313,14 @@ const MarkdownEditor = ({
     };
   }, [editor]);
 
-  // 버블은 링크만. 표/이미지는 상단 맥락 툴바.
+  // 버블은 링크만. 표/이미지는 상단 탭에서 같은 줄의 도구를 교체한다.
   const [bubbleKind, setBubbleKind] = useState<"none" | "link">("none");
-  const [contextBar, setContextBar] = useState<"none" | "table" | "image">(
-    "none"
-  );
+  const [editorContext, setEditorContext] = useState<EditorContext>("none");
+  const [toolbarTab, setToolbarTab] = useState<ToolbarTab>("format");
+  const editorContextRef = useRef<EditorContext>("none");
+  const toolbarTabRef = useRef<ToolbarTab>("format");
+  editorContextRef.current = editorContext;
+  toolbarTabRef.current = toolbarTab;
   const [linkHover, setLinkHover] = useState<{
     href: string;
     top: number;
@@ -323,21 +333,31 @@ const MarkdownEditor = ({
     if (!editor) return;
     const syncChrome = () => {
       const { selection } = editor.state;
-      if (
+      const isImage =
         selection instanceof NodeSelection &&
-        selection.node?.type?.name === "image"
-      ) {
-        setContextBar("image");
+        selection.node?.type?.name === "image";
+      const context = detectEditorContext({
+        isImage,
+        isTable: editor.isActive("table"),
+      });
+      const nextTab = resolveToolbarTab({
+        context,
+        previousContext: editorContextRef.current,
+        tab: toolbarTabRef.current,
+      });
+      editorContextRef.current = context;
+      setEditorContext(context);
+      if (nextTab !== toolbarTabRef.current) {
+        toolbarTabRef.current = nextTab;
+        setToolbarTab(nextTab);
+      }
+
+      if (isImage) {
         setBubbleKind("none");
       } else if (editor.isActive("link")) {
-        setContextBar("none");
         setBubbleKind("link");
         setLinkHover(null);
-      } else if (selection instanceof CellSelection) {
-        setContextBar("table");
-        setBubbleKind("none");
       } else {
-        setContextBar("none");
         setBubbleKind("none");
       }
     };
@@ -600,6 +620,12 @@ const MarkdownEditor = ({
   };
   insertCanvasRef.current = insertCanvas;
 
+  const toolbarPanel = activeToolbarPanel({
+    viewMode,
+    context: editorContext,
+    tab: toolbarTab,
+  });
+
   return (
     <div className={style.editor}>
       {hasDraft && draftData && (
@@ -629,41 +655,57 @@ const MarkdownEditor = ({
         </div>
       )}
       <div className={style.toolbar}>
-        <div className={style.tabs}>
-          <button
-            type="button"
-            title="일반 에디터"
-            aria-label="일반 에디터"
-            className={viewMode === "wysiwyg" ? style.active : ""}
-            onClick={() => switchMode("wysiwyg")}
-          >
-            <Svg type="formatText" width="18px" height="18px" />
-          </button>
-          <button
-            type="button"
-            title="마크다운 편집"
-            aria-label="마크다운 편집"
-            className={viewMode === "split" ? style.active : ""}
-            onClick={() => switchMode("split")}
-          >
-            <Svg type="markdown" width="18px" height="18px" />
-          </button>
+        <div className={style.toolbarLeading}>
+          <div className={style.tabs}>
+            <button
+              type="button"
+              title="일반 에디터"
+              aria-label="일반 에디터"
+              className={viewMode === "wysiwyg" ? style.active : ""}
+              onClick={() => switchMode("wysiwyg")}
+            >
+              <Svg type="formatText" width="18px" height="18px" />
+            </button>
+            <button
+              type="button"
+              title="마크다운 편집"
+              aria-label="마크다운 편집"
+              className={viewMode === "split" ? style.active : ""}
+              onClick={() => switchMode("split")}
+            >
+              <Svg type="markdown" width="18px" height="18px" />
+            </button>
+          </div>
+          {viewMode === "wysiwyg" && (
+            <ToolbarContextTabs
+              context={editorContext}
+              tab={toolbarTab}
+              onChange={(next) => {
+                toolbarTabRef.current = next;
+                setToolbarTab(next);
+              }}
+            />
+          )}
         </div>
         <div className={style.toolbarRight}>
-          <TipTapToolbar
-            editor={editor}
-            onEmbedClick={insertCanvas}
-            onImageClick={() => setShowImageDialog(true)}
-            onYouTubeClick={() => setShowYouTubeDialog(true)}
-            onLinkClick={() => setShowLinkDialog(true)}
-            onMathClick={() => setMathDialog({ kind: "insert" })}
-            enableMention={!!searchMentionUsers}
-            moreExtraItems={toolbarMoreItems}
-          />
+          {toolbarPanel === "table" && editor ? (
+            <TableToolbar editor={editor} />
+          ) : toolbarPanel === "image" && editor ? (
+            <ImageToolbar editor={editor} />
+          ) : (
+            <TipTapToolbar
+              editor={editor}
+              onEmbedClick={insertCanvas}
+              onImageClick={() => setShowImageDialog(true)}
+              onYouTubeClick={() => setShowYouTubeDialog(true)}
+              onLinkClick={() => setShowLinkDialog(true)}
+              onMathClick={() => setMathDialog({ kind: "insert" })}
+              enableMention={!!searchMentionUsers}
+              moreExtraItems={toolbarMoreItems}
+            />
+          )}
         </div>
       </div>
-      {editor && contextBar === "table" && <TableToolbar editor={editor} />}
-      {editor && contextBar === "image" && <ImageToolbar editor={editor} />}
 
       {viewMode === "wysiwyg" ? (
         <div
