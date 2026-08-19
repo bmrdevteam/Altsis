@@ -4442,6 +4442,23 @@ export default function useAPIv2() {
   }
 
   /**
+   * UChatMessageReaction API
+   * @description 채팅 메시지 이모지 리액션 토글
+   */
+  async function UChatMessageReaction(props: {
+    params: { roomId: string; messageId: string };
+    data: { emoji: string };
+  }) {
+    const { reactions } = await database.U({
+      location: `chats/rooms/${props.params.roomId}/messages/${props.params.messageId}/reactions`,
+      data: props.data,
+    });
+    return {
+      reactions: reactions as TChatMessage["reactions"],
+    };
+  }
+
+  /**
    * DChatMessage API
    * @description 채팅 메시지 삭제 API
    * @version 1.0.0
@@ -4719,6 +4736,23 @@ export default function useAPIv2() {
       data: props.data,
     });
     return { message: message as TChatMessage };
+  }
+
+  /**
+   * UBoardChatMessageReaction API
+   * @description 보드 채팅 메시지 이모지 리액션 토글
+   */
+  async function UBoardChatMessageReaction(props: {
+    params: { boardId: string; roomId: string; messageId: string };
+    data: { emoji: string };
+  }) {
+    const { reactions } = await database.U({
+      location: `boards/${props.params.boardId}/chat/rooms/${props.params.roomId}/messages/${props.params.messageId}/reactions`,
+      data: props.data,
+    });
+    return {
+      reactions: reactions as TChatMessage["reactions"],
+    };
   }
 
   /**
@@ -5811,6 +5845,7 @@ export default function useAPIv2() {
       DChatRoomParticipant,
       RChatMessages,
       CChatMessage,
+      UChatMessageReaction,
       DChatMessage,
       UChatRoomRead,
       UChatRoomPin,
@@ -5831,6 +5866,7 @@ export default function useAPIv2() {
       DBoardChatRoomParticipant,
       RBoardChatMessages,
       CBoardChatMessage,
+      UBoardChatMessageReaction,
       DBoardChatMessage,
       UBoardChatRead,
       CBoardChatFileUpload,

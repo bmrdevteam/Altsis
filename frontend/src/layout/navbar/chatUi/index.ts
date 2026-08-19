@@ -5,4 +5,7 @@ export { default as ChatListRow } from "./ChatListRow";
 export type { TChatListMenuItem, TChatListTitleEdit } from "./ChatListRow";
 export { default as ChatMessageBubble } from "./ChatMessageBubble";
 export { default as ChatInputBar } from "./ChatInputBar";
+export { default as ChatReactionBar } from "./ChatReactionBar";
+export { default as ChatMessageActions } from "./ChatMessageActions";
+export { default as ChatEmojiPicker } from "./ChatEmojiPicker";
 export { default as chatUiStyle } from "./chatUi.module.scss";

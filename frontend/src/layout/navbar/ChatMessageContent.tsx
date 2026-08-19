@@ -1,5 +1,6 @@
 import { TChatMessage } from "types/chat";
 import Svg from "assets/svg/Svg";
+import { splitQuoteContent } from "./chatUi/chatMessageExtras";
 import style from "./chat.module.scss";
 
 type Props = {
@@ -18,28 +19,48 @@ const formatFileSize = (bytes: number): string => {
   return (bytes / (1024 * 1024)).toFixed(1) + " MB";
 };
 
-const TextContent = ({ content }: { content: string }) => {
+const TextContent = ({
+  content,
+  tone = "other",
+}: {
+  content: string;
+  tone?: "own" | "other";
+}) => {
   const urlRegex = /(https?:\/\/[^\s]+)/g;
-  const parts = content.split(urlRegex);
+  const { quote, body } = splitQuoteContent(content);
+
+  const renderWithLinks = (text: string) => {
+    const parts = text.split(urlRegex);
+    return parts.map((part, i) => {
+      if (part.match(urlRegex)) {
+        return (
+          <a
+            key={i}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={style.message_link}
+          >
+            {part}
+          </a>
+        );
+      }
+      return part;
+    });
+  };
 
   return (
     <span>
-      {parts.map((part, i) => {
-        if (part.match(urlRegex)) {
-          return (
-            <a
-              key={i}
-              href={part}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={style.message_link}
-            >
-              {part}
-            </a>
-          );
-        }
-        return part;
-      })}
+      {quote ? (
+        <span
+          className={`${style.quote_block} ${
+            tone === "own" ? style.quote_block_own : ""
+          }`}
+        >
+          {renderWithLinks(quote)}
+        </span>
+      ) : null}
+      {body ? <span>{renderWithLinks(body)}</span> : null}
     </span>
   );
 };
@@ -53,7 +74,7 @@ const ChatMessageContent = ({
 }: Props) => {
   // Text message - detect and render URLs
   if (message.messageType === "text") {
-    return <TextContent content={message.content} />;
+    return <TextContent content={message.content} tone={tone} />;
   }
 
   // Image message

@@ -52,6 +52,38 @@ const attachmentSchema = mongoose.Schema(
 
 /**
  * @memberof Models.ChatMessage
+ * @typedef TReactionUser
+ *
+ * @prop {ObjectId} user
+ * @prop {string} userId
+ * @prop {string} userName
+ */
+const reactionUserSchema = mongoose.Schema(
+  {
+    user: mongoose.Types.ObjectId,
+    userId: String,
+    userName: String,
+  },
+  { _id: false }
+);
+
+/**
+ * @memberof Models.ChatMessage
+ * @typedef TReaction
+ *
+ * @prop {string} emoji
+ * @prop {TReactionUser[]} users
+ */
+const reactionSchema = mongoose.Schema(
+  {
+    emoji: { type: String, required: true },
+    users: [reactionUserSchema],
+  },
+  { _id: false }
+);
+
+/**
+ * @memberof Models.ChatMessage
  * @typedef TChatMessage
  *
  * @prop {ObjectId} _id
@@ -63,6 +95,7 @@ const attachmentSchema = mongoose.Schema(
  * @prop {"text"|"image"|"file"|"system"} messageType="text" - message type
  * @prop {TAttachment?} attachment - attachment for image/file messages
  * @prop {TReadBy[]} readBy - users who read this message
+ * @prop {TReaction[]} reactions - emoji reactions
  * @prop {boolean} isDeleted=false - soft delete flag
  */
 const chatMessageSchema = mongoose.Schema(
@@ -79,6 +112,7 @@ const chatMessageSchema = mongoose.Schema(
     },
     attachment: attachmentSchema,
     readBy: [readBySchema],
+    reactions: { type: [reactionSchema], default: [] },
     isDeleted: { type: Boolean, default: false },
   },
   { timestamps: true }

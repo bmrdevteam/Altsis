@@ -33,6 +33,11 @@ import {
 } from "../services/boardChat.js";
 import { getIoChat } from "../utils/webSocket.js";
 import { sendChatWebPushes } from "../services/webPush.js";
+import {
+  emitChatEvent,
+  serializeReactions,
+  toggleMessageReaction,
+} from "../services/chatMessageExtras.js";
 import { chatMulter, isImageFile } from "../_s3/chatMulter.js";
 import { signUrlForView } from "../_s3/fileBucket.js";
 import { tryCommitUpload } from "../services/academyStorage.js";
@@ -402,6 +407,7 @@ const listMessagesForRoom = async (academyId, room, queryParams) => {
 
   return messages.map((msg) => {
     const msgObj = msg.toObject();
+    msgObj.reactions = serializeReactions(msgObj.reactions);
     if (msgObj.isDeleted) {
       msgObj.content = "삭제된 메시지입니다";
       msgObj.messageType = "text";
@@ -668,6 +674,18 @@ export const markBoardChatRoomRead = async (req, res) => {
         lastReadAt: new Date(),
       });
       await room.save();
+      emitChatEvent({
+        ioChat: getIoChat(),
+        academyId: req.user.academyId,
+        participants: room.participants,
+        exceptUserId: req.user._id,
+        event: "room_read",
+        payload: {
+          room: room._id,
+          userId: req.user.userId,
+          lastReadAt: room.participants[room.participants.length - 1].lastReadAt,
+        },
+      });
       return res.status(200).send({});
     }
     if (participantIndex === -1) {
@@ -676,6 +694,19 @@ export const markBoardChatRoomRead = async (req, res) => {
 
     room.participants[participantIndex].lastReadAt = new Date();
     await room.save();
+
+    emitChatEvent({
+      ioChat: getIoChat(),
+      academyId: req.user.academyId,
+      participants: room.participants,
+      exceptUserId: req.user._id,
+      event: "room_read",
+      payload: {
+        room: room._id,
+        userId: req.user.userId,
+        lastReadAt: room.participants[participantIndex].lastReadAt,
+      },
+    });
 
     return res.status(200).send({});
   } catch (err) {
@@ -719,6 +750,19 @@ export const markBoardChatRead = async (req, res) => {
 
     room.participants[participantIndex].lastReadAt = new Date();
     await room.save();
+
+    emitChatEvent({
+      ioChat: getIoChat(),
+      academyId: req.user.academyId,
+      participants: room.participants,
+      exceptUserId: req.user._id,
+      event: "room_read",
+      payload: {
+        room: room._id,
+        userId: req.user.userId,
+        lastReadAt: room.participants[participantIndex].lastReadAt,
+      },
+    });
 
     return res.status(200).send({});
   } catch (err) {
@@ -790,6 +834,62 @@ export const deleteBoardChatRoomMessage = async (req, res) => {
     }
 
     return res.status(200).send({});
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * PUT /boards/:_id/chat/rooms/:roomId/messages/:messageId/reactions
+ */
+export const toggleBoardChatRoomReaction = async (req, res) => {
+  try {
+    const { board, error } = await getBoardAndVerifyMember(req);
+    if (error) return res.status(error.status).send({ message: error.message });
+
+    const { room, error: roomError } = await getVerifiedRoom(req, board);
+    if (roomError) {
+      return res.status(roomError.status).send({ message: roomError.message });
+    }
+
+    const message = await ChatMessage(req.user.academyId).findById(
+      req.params.messageId
+    );
+    if (!message) {
+      return res.status(404).send({ message: __NOT_FOUND("message") });
+    }
+    if (message.room.toString() !== room._id.toString()) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    const result = await toggleMessageReaction({
+      ChatMessage,
+      academyId: req.user.academyId,
+      message,
+      user: req.user,
+      emoji: req.body?.emoji,
+    });
+    if (result.error) {
+      return res
+        .status(result.error.status)
+        .send({ message: result.error.message });
+    }
+
+    emitChatEvent({
+      ioChat: getIoChat(),
+      academyId: req.user.academyId,
+      participants: room.participants,
+      exceptUserId: req.user._id,
+      event: "message_reaction",
+      payload: {
+        room: room._id,
+        messageId: message._id,
+        reactions: result.reactions,
+      },
+    });
+
+    return res.status(200).send({ reactions: result.reactions });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });

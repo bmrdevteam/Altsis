@@ -5,7 +5,17 @@ import { useAuth } from "contexts/authContext";
 import useAPIv2 from "hooks/useAPIv2";
 import ChatMessageContent from "layout/navbar/ChatMessageContent";
 import ImageLightbox from "layout/navbar/ImageLightbox";
-import { ChatInputBar, chatUiStyle } from "layout/navbar/chatUi";
+import { ChatInputBar, ChatMessageActions, ChatReactionBar, ChatEmojiPicker, chatUiStyle } from "layout/navbar/chatUi";
+import {
+  canQuoteOrReact,
+  countUnreadForMessage,
+  formatQuotePrefix,
+} from "layout/navbar/chatUi/chatMessageExtras";
+import {
+  patchParticipantsReadAt,
+  useChatExtrasSocket,
+  useChatReactionToggle,
+} from "layout/navbar/chatUi/useChatExtras";
 import Svg from "assets/svg/Svg";
 import defaultProfilePic from "assets/img/default_profile.png";
 import style from "./boardChat.module.scss";
@@ -61,6 +71,11 @@ const BoardDMPanel = ({
 
   // Touch: show delete only for the active message
   const [activeDeleteId, setActiveDeleteId] = useState<string | null>(null);
+  const [inputFocusNonce, setInputFocusNonce] = useState(0);
+  const [emojiPicker, setEmojiPicker] = useState<{
+    messageId: string;
+    anchor: DOMRect;
+  } | null>(null);
   const longPressTimerRef = useRef<number | null>(null);
   const longPressTriggeredRef = useRef(false);
 
@@ -187,6 +202,49 @@ const BoardDMPanel = ({
       socket.off("message_deleted", handleMessageDeleted);
     };
   }, [socket, room?._id, currentUser?.userId]);
+
+  const requestToggleReaction = useCallback(
+    async (messageId: string, emoji: string) => {
+      if (!room) return {};
+      return ChatAPI.UChatMessageReaction({
+        params: { roomId: room._id, messageId },
+        data: { emoji },
+      });
+    },
+    [ChatAPI, room]
+  );
+
+  const handleToggleReaction = useChatReactionToggle({
+    currentUser: currentUser
+      ? {
+          _id: currentUser._id,
+          userId: currentUser.userId,
+          userName: currentUser.userName,
+        }
+      : undefined,
+    setMessages,
+    requestToggle: requestToggleReaction,
+  });
+
+  useChatExtrasSocket({
+    socket,
+    roomId: room?._id,
+    setMessages,
+    onRoomRead: (userId, lastReadAt) => {
+      patchParticipantsReadAt(setRoom, userId, lastReadAt);
+    },
+  });
+
+  const handleReply = (message: TChatMessage) => {
+    const prefix = formatQuotePrefix(
+      message.senderName,
+      message,
+      message.createdAt
+    );
+    setNewMessage((prev) => (prev.startsWith(prefix) ? prev : prefix + prev));
+    setInputFocusNonce((n) => n + 1);
+    setActiveDeleteId(null);
+  };
 
   // Scroll on new messages
   useEffect(() => {
@@ -332,7 +390,6 @@ const BoardDMPanel = ({
   // Delete message
   const handleDeleteMessage = async (messageId: string) => {
     if (!room) return;
-    if (!window.confirm("메시지를 삭제하시겠습니까?")) return;
     try {
       await ChatAPI.DChatMessage({
         params: { roomId: room._id, messageId },
@@ -573,9 +630,11 @@ const BoardDMPanel = ({
                       isMine ? style.mine : ""
                     } ${!groupStart ? style.consecutive : ""} ${
                       activeDeleteId === msg._id ? style.delete_visible : ""
+                    } ${chatUiStyle.messageExtras} ${
+                      activeDeleteId === msg._id ? chatUiStyle.actionsVisible : ""
                     }`}
                     onClick={(e) => {
-                      if (isMine) e.stopPropagation();
+                      if (canQuoteOrReact(msg) || isMine) e.stopPropagation();
                     }}
                   >
                     {!isMine &&
@@ -600,18 +659,6 @@ const BoardDMPanel = ({
                         </div>
                       )}
                       <div className={style.bubble_wrapper}>
-                        {isMine && !msg.isDeleted && (
-                          <button
-                            className={style.delete_btn}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteMessage(msg._id);
-                            }}
-                            title="삭제"
-                          >
-                            <Svg type="trash" width="14px" height="14px" />
-                          </button>
-                        )}
                         <div
                           className={`${style.bubble} ${
                             msg.isDeleted ? style.deleted : ""
@@ -623,7 +670,7 @@ const BoardDMPanel = ({
                               : ""
                           }`}
                           onPointerDown={() => {
-                            if (isMine && !msg.isDeleted) {
+                            if (canQuoteOrReact(msg) || (isMine && !msg.isDeleted)) {
                               handleOwnBubblePointerDown(msg._id);
                             }
                           }}
@@ -631,7 +678,7 @@ const BoardDMPanel = ({
                           onPointerLeave={handleOwnBubblePointerUp}
                           onPointerCancel={handleOwnBubblePointerUp}
                           onClick={() => {
-                            if (isMine && !msg.isDeleted) {
+                            if (canQuoteOrReact(msg) || (isMine && !msg.isDeleted)) {
                               handleOwnBubbleClick(msg._id);
                             }
                           }}
@@ -651,11 +698,58 @@ const BoardDMPanel = ({
                           )}
                         </div>
                       </div>
-                      {groupStart && (
-                        <div className={style.message_time}>
-                          {formatTime(msg.createdAt)}
+                      <ChatReactionBar
+                        reactions={msg.reactions}
+                        currentUserId={currentUser?._id}
+                        disabled={!canQuoteOrReact(msg)}
+                        alignEnd={isMine}
+                        onToggle={(emoji) => handleToggleReaction(msg, emoji)}
+                        onAdd={(anchor) =>
+                          setEmojiPicker({ messageId: msg._id, anchor })
+                        }
+                      />
+                      {groupStart ||
+                      canQuoteOrReact(msg) ||
+                      (isMine && !msg.isDeleted) ? (
+                        <div className={style.message_time_row}>
+                          {canQuoteOrReact(msg) ||
+                          (isMine && !msg.isDeleted) ? (
+                            <ChatMessageActions
+                              isOwn={isMine}
+                              onReply={() => handleReply(msg)}
+                              onPresetEmoji={(emoji) =>
+                                handleToggleReaction(msg, emoji)
+                              }
+                              onOpenPicker={(anchor) =>
+                                setEmojiPicker({ messageId: msg._id, anchor })
+                              }
+                              onDelete={
+                                isMine && !msg.isDeleted
+                                  ? () => handleDeleteMessage(msg._id)
+                                  : undefined
+                              }
+                            />
+                          ) : null}
+                          {groupStart ? (
+                            <div className={style.message_time_meta}>
+                              {isMine && room ? (
+                                countUnreadForMessage(msg, room.participants) >
+                                0 ? (
+                                  <span className={chatUiStyle.unreadCount}>
+                                    {countUnreadForMessage(
+                                      msg,
+                                      room.participants
+                                    )}
+                                  </span>
+                                ) : null
+                              ) : null}
+                              <div className={style.message_time}>
+                                {formatTime(msg.createdAt)}
+                              </div>
+                            </div>
+                          ) : null}
                         </div>
-                      )}
+                      ) : null}
                     </div>
                   </div>
                 )}
@@ -732,6 +826,7 @@ const BoardDMPanel = ({
           sendDisabled={isSending || (!newMessage.trim() && !pendingFile)}
           sendActive={!!(newMessage.trim() || pendingFile)}
           sendTitle="전송"
+          focusNonce={inputFocusNonce}
           leftSlot={
             <button
               type="button"
@@ -750,6 +845,17 @@ const BoardDMPanel = ({
         <ImageLightbox
           imageUrl={lightboxUrl}
           onClose={() => setLightboxUrl(null)}
+        />
+      )}
+
+      {emojiPicker && (
+        <ChatEmojiPicker
+          anchor={emojiPicker.anchor}
+          onClose={() => setEmojiPicker(null)}
+          onSelect={(emoji) => {
+            const msg = messages.find((m) => m._id === emojiPicker.messageId);
+            if (msg) handleToggleReaction(msg, emoji);
+          }}
         />
       )}
     </div>
