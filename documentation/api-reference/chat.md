@@ -22,6 +22,7 @@
 | `DELETE` | `/api/chats/rooms/:roomId/participants/:participantId` | 참가자 제거 | `isLoggedIn` + `isChatEnabled` |
 | `POST` | `/api/chats/rooms/:roomId/messages` | 메시지 전송 | `isLoggedIn` + `isChatEnabled` |
 | `GET` | `/api/chats/rooms/:roomId/messages` | 메시지 목록 조회 | `isLoggedIn` + `isChatEnabled` |
+| `PUT` | `/api/chats/rooms/:roomId/messages/:messageId/reactions` | 이모지 리액션 토글 | `isLoggedIn` + `isChatEnabled` |
 | `PUT` | `/api/chats/rooms/:roomId/read` | 읽음 처리 | `isLoggedIn` + `isChatEnabled` |
 | `POST` | `/api/chats/rooms/:roomId/upload` | 파일 업로드 | `isLoggedIn` + `isChatEnabled` |
 | `GET` | `/api/chats/files` | 내 파일 목록 조회 | `isLoggedIn` + `isChatEnabled` |
@@ -713,6 +714,9 @@ POST /api/chats/rooms/:roomId/messages
 | 이벤트 | 대상 | 페이로드 |
 |--------|------|----------|
 | `new_message` | 발신자를 제외한 모든 참가자 | `{ room, roomType, message }` |
+| `message_reaction` | 토글한 사용자를 제외한 참가자 | `{ room, messageId, reactions }` |
+
+리액션은 `new_message`로 보내지 않습니다(미읽음 뱃지·알림음 방지).
 
 ---
 
@@ -834,6 +838,55 @@ PUT /api/chats/rooms/:roomId/read
 |-----------|--------|------|
 | `403` | `PERMISSION_DENIED` | 채팅방 참가자가 아닌 경우 |
 | `404` | `__NOT_FOUND(room)` | 채팅방을 찾을 수 없음 |
+
+### WebSocket 이벤트
+
+| 이벤트 | 대상 | 페이로드 |
+|--------|------|----------|
+| `room_read` | 읽음 처리한 사용자를 제외한 참가자 | `{ room, userId, lastReadAt }` |
+
+---
+
+## 메시지 리액션 토글
+
+참여자가 메시지에 유니코드 이모지 리액션을 추가하거나 취소합니다. 같은 이모지를 다시 보내면 취소됩니다. 삭제·시스템 메시지에는 사용할 수 없습니다.
+
+```
+PUT /api/chats/rooms/:roomId/messages/:messageId/reactions
+```
+
+**권한**: `isLoggedIn` + `isChatEnabled`
+
+보드 채팅은 `PUT /api/boards/:_id/chat/rooms/:roomId/messages/:messageId/reactions` 입니다.
+
+### 요청 본문
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `emoji` | `string` | O | 그래핌 1개의 이모지 |
+
+### 응답 (200)
+
+```json
+{
+  "reactions": [
+    {
+      "emoji": "👍",
+      "users": [
+        { "user": "507f1f77bcf86cd799439000", "userId": "admin01", "userName": "관리자" }
+      ]
+    }
+  ]
+}
+```
+
+### 에러 응답
+
+| 상태 코드 | 메시지 | 설명 |
+|-----------|--------|------|
+| `400` | `FIELD_INVALID(emoji)` | 이모지가 아니거나 메시지당 종류 한도(24) 초과 |
+| `403` | `PERMISSION_DENIED` | 참가자가 아니거나 삭제/시스템 메시지 |
+| `404` | `__NOT_FOUND(room\|message)` | 방 또는 메시지 없음 |
 
 ---
 
@@ -1193,6 +1246,7 @@ GET /api/chats/users?q=홍길&sid=507f1f77bcf86cd799439099
 | `CChatRoomParticipants` | POST | `/api/chats/rooms/:roomId/participants` | 참가자 추가 |
 | `DChatRoomParticipant` | DELETE | `/api/chats/rooms/:roomId/participants/:participantId` | 참가자 제거 |
 | `CChatMessage` | POST | `/api/chats/rooms/:roomId/messages` | 메시지 전송 |
+| `UChatMessageReaction` | PUT | `/api/chats/rooms/:roomId/messages/:messageId/reactions` | 리액션 토글 |
 | `RChatMessages` | GET | `/api/chats/rooms/:roomId/messages` | 메시지 목록 조회 |
 | `UChatRoomRead` | PUT | `/api/chats/rooms/:roomId/read` | 읽음 처리 |
 | `CChatFileUpload` | POST | `/api/chats/rooms/:roomId/upload` | 파일 업로드 |

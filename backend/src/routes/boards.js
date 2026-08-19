@@ -75,6 +75,12 @@ router.delete(
   boardChats.deleteBoardChatRoomMessage
 );
 router.put(
+  "/:_id/chat/rooms/:roomId/messages/:messageId/reactions",
+  isLoggedIn,
+  isBoardEnabled,
+  boardChats.toggleBoardChatRoomReaction
+);
+router.put(
   "/:_id/chat/rooms/:roomId/read",
   isLoggedIn,
   isBoardEnabled,

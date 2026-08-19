@@ -244,7 +244,6 @@ const FormAiChatField = ({
             <ChatMessageBubble
               key={msg._id}
               variant={msg.senderType === "student" ? "own" : "other"}
-              wide={msg.senderType !== "student"}
               sender={
                 msg.senderType === "student"
                   ? disabled
@@ -267,7 +266,7 @@ const FormAiChatField = ({
             </ChatMessageBubble>
           ))}
           {sending && (
-            <ChatMessageBubble variant="other" sender="Alter" wide>
+            <ChatMessageBubble variant="other" sender="Alter">
               답변을 작성하는 중…
             </ChatMessageBubble>
           )}

@@ -19,6 +19,7 @@ export const MESSAGE = new Map<string, string>([
   ["SNSID.GOOGLE_IN_USE", "사용 중인 구글 로그인 이메일입니다."],
   ["LIMIT_FILE_SIZE", "파일 사이즈가 커서 업로드할 수 없습니다."],
   ["INVALID_FILE_TYPE", "파일 형식이 맞지 않아 업로드할 수 없습니다."],
+  ["EMOJI_INVALID", "사용할 수 없는 이모지입니다."],
   [
     "SITE_FILE_LIMIT",
     "공개 웹사이트 파일 개수 한도를 초과했습니다.",
