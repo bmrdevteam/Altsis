@@ -255,6 +255,30 @@
   opacity: 0.7;
 }
 
+.message_time_row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  min-width: 0;
+}
+
+.message_time_meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.mine .message_time_row {
+  justify-content: flex-end;
+}
+
+.mine .message_time {
+  margin-top: 0;
+}
+
 .system_msg {
   text-align: center;
   font-size: 12px;

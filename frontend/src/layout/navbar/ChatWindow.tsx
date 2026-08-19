@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, DragEvent, ClipboardEvent } from "react";
+import { useCallback, useEffect, useRef, useState, DragEvent, ClipboardEvent } from "react";
 import { Socket } from "socket.io-client";
 import { useAuth } from "contexts/authContext";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
@@ -17,8 +17,21 @@ import {
   ChatEmptyState,
   ChatInputBar,
   ChatMessageBubble,
+  ChatMessageActions,
+  ChatReactionBar,
+  ChatEmojiPicker,
   chatUiStyle,
 } from "./chatUi";
+import {
+  canQuoteOrReact,
+  countUnreadForMessage,
+  formatQuotePrefix,
+} from "./chatUi/chatMessageExtras";
+import {
+  patchParticipantsReadAt,
+  useChatExtrasSocket,
+  useChatReactionToggle,
+} from "./chatUi/useChatExtras";
 import style from "./chat.module.scss";
 import defaultProfilePic from "assets/img/default_profile.png";
 
@@ -76,13 +89,30 @@ const ChatWindow = ({ room: initialRoom, rooms, boardRooms = [], archivedRooms =
   } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [inputFocusNonce, setInputFocusNonce] = useState(0);
+  const [emojiPicker, setEmojiPicker] = useState<{
+    messageId: string;
+    anchor: DOMRect;
+  } | null>(null);
+  const [activeActionId, setActiveActionId] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const longPressTimerRef = useRef<number | null>(null);
+  const longPressTriggeredRef = useRef(false);
 
   const canChat = true;
+
+  useEffect(
+    () => () => {
+      if (longPressTimerRef.current != null) {
+        window.clearTimeout(longPressTimerRef.current);
+      }
+    },
+    []
+  );
 
   // Close menu on outside click
   useEffect(() => {
@@ -198,6 +228,49 @@ const ChatWindow = ({ room: initialRoom, rooms, boardRooms = [], archivedRooms =
       socket.off("message_deleted", handleMessageDeleted);
     };
   }, [socket, room?._id, currentUser?.userId]);
+
+  useChatExtrasSocket({
+    socket,
+    roomId: room?._id,
+    setMessages,
+    onRoomRead: (userId, lastReadAt) => {
+      patchParticipantsReadAt(setRoom, userId, lastReadAt);
+    },
+  });
+
+  const requestToggleReaction = useCallback(
+    async (messageId: string, emoji: string) => {
+      if (!room) return {};
+      return ChatAPI.UChatMessageReaction({
+        params: { roomId: room._id, messageId },
+        data: { emoji },
+      });
+    },
+    [ChatAPI, room]
+  );
+
+  const handleToggleReaction = useChatReactionToggle({
+    currentUser: currentUser
+      ? {
+          _id: currentUser._id,
+          userId: currentUser.userId,
+          userName: currentUser.userName,
+        }
+      : undefined,
+    setMessages,
+    requestToggle: requestToggleReaction,
+  });
+
+  const handleReply = (message: TChatMessage) => {
+    const prefix = formatQuotePrefix(
+      message.senderName,
+      message,
+      message.createdAt
+    );
+    setNewMessage((prev) => (prev.startsWith(prefix) ? prev : prefix + prev));
+    setInputFocusNonce((n) => n + 1);
+    setActiveActionId(null);
+  };
 
   const scrollToBottom = (instant?: boolean) => {
     setTimeout(() => {
@@ -361,7 +434,6 @@ const ChatWindow = ({ room: initialRoom, rooms, boardRooms = [], archivedRooms =
 
   const handleDeleteMessage = async (messageId: string) => {
     if (!room) return;
-    if (!window.confirm("메시지를 삭제하시겠습니까?")) return;
     try {
       await ChatAPI.DChatMessage({
         params: { roomId: room._id, messageId },
@@ -725,7 +797,33 @@ const ChatWindow = ({ room: initialRoom, rooms, boardRooms = [], archivedRooms =
                 <div
                   className={`${style.message_wrapper} ${isOwn ? style.own : ""} ${
                     groupStart ? style.group_start : style.group_continuation
+                  } ${chatUiStyle.messageExtras} ${
+                    activeActionId === msg._id ? chatUiStyle.actionsVisible : ""
                   }`}
+                  onPointerDown={() => {
+                    if (canQuoteOrReact(msg) || (isOwn && !msg.isDeleted)) {
+                      longPressTriggeredRef.current = false;
+                      if (longPressTimerRef.current != null) {
+                        window.clearTimeout(longPressTimerRef.current);
+                      }
+                      longPressTimerRef.current = window.setTimeout(() => {
+                        longPressTriggeredRef.current = true;
+                        setActiveActionId(msg._id);
+                      }, 450);
+                    }
+                  }}
+                  onPointerUp={() => {
+                    if (longPressTimerRef.current != null) {
+                      window.clearTimeout(longPressTimerRef.current);
+                      longPressTimerRef.current = null;
+                    }
+                  }}
+                  onPointerLeave={() => {
+                    if (longPressTimerRef.current != null) {
+                      window.clearTimeout(longPressTimerRef.current);
+                      longPressTimerRef.current = null;
+                    }
+                  }}
                 >
                   {!isOwn && groupStart && (
                     <img
@@ -734,42 +832,74 @@ const ChatWindow = ({ room: initialRoom, rooms, boardRooms = [], archivedRooms =
                       className={style.sender_avatar}
                     />
                   )}
-                  {isOwn && !msg.isDeleted && (
-                    <button
-                      className={style.delete_btn}
-                      onClick={() => handleDeleteMessage(msg._id)}
-                      title="삭제"
-                    >
-                      <Svg type="trash" width="14px" height="14px" />
-                    </button>
-                  )}
-                  <ChatMessageBubble
-                    variant={isOwn ? "own" : "other"}
-                    time={formatMessageTime(msg.createdAt)}
-                    sender={
-                      !isOwn && groupStart ? (
-                        <>
-                          {msg.senderName}
-                          <span className={style.sender_id}>
-                            ({msg.senderId})
-                          </span>
-                        </>
-                      ) : undefined
-                    }
-                    className={msg.isDeleted ? chatUiStyle.bubbleDeleted : ""}
+                  <div
+                    className={`${chatUiStyle.messageStack} ${style.message_stack} ${
+                      isOwn ? chatUiStyle.messageStackOwn : ""
+                    }`}
                   >
-                    {msg.isDeleted ? (
-                      <span className={style.deleted_text}>
-                        삭제된 메시지입니다
-                      </span>
-                    ) : (
-                      <ChatMessageContent
-                        message={msg}
-                        onImageClick={(url) => setLightboxImage(url)}
-                        onFileDownload={handleFileDownload}
-                      />
-                    )}
-                  </ChatMessageBubble>
+                    <ChatMessageBubble
+                      variant={isOwn ? "own" : "other"}
+                      time={formatMessageTime(msg.createdAt)}
+                      unreadCount={
+                        isOwn && room
+                          ? countUnreadForMessage(msg, room.participants)
+                          : 0
+                      }
+                      sender={
+                        !isOwn && groupStart ? (
+                          <>
+                            {msg.senderName}
+                            <span className={style.sender_id}>
+                              ({msg.senderId})
+                            </span>
+                          </>
+                        ) : undefined
+                      }
+                      className={msg.isDeleted ? chatUiStyle.bubbleDeleted : ""}
+                      actions={
+                        canQuoteOrReact(msg) || (isOwn && !msg.isDeleted) ? (
+                          <ChatMessageActions
+                            isOwn={isOwn}
+                            onReply={() => handleReply(msg)}
+                            onPresetEmoji={(emoji) =>
+                              handleToggleReaction(msg, emoji)
+                            }
+                            onOpenPicker={(anchor) =>
+                              setEmojiPicker({ messageId: msg._id, anchor })
+                            }
+                            onDelete={
+                              isOwn && !msg.isDeleted
+                                ? () => handleDeleteMessage(msg._id)
+                                : undefined
+                            }
+                          />
+                        ) : undefined
+                      }
+                    >
+                      {msg.isDeleted ? (
+                        <span className={style.deleted_text}>
+                          삭제된 메시지입니다
+                        </span>
+                      ) : (
+                        <ChatMessageContent
+                          message={msg}
+                          onImageClick={(url) => setLightboxImage(url)}
+                          onFileDownload={handleFileDownload}
+                          tone={isOwn ? "own" : "other"}
+                        />
+                      )}
+                    </ChatMessageBubble>
+                    <ChatReactionBar
+                      reactions={msg.reactions}
+                      currentUserId={currentUser?._id}
+                      disabled={!canQuoteOrReact(msg)}
+                      alignEnd={isOwn}
+                      onToggle={(emoji) => handleToggleReaction(msg, emoji)}
+                      onAdd={(anchor) =>
+                        setEmojiPicker({ messageId: msg._id, anchor })
+                      }
+                    />
+                  </div>
                 </div>
               </div>
             );
@@ -850,6 +980,7 @@ const ChatWindow = ({ room: initialRoom, rooms, boardRooms = [], archivedRooms =
               sendDisabled={isSending || !newMessage.trim()}
               sendActive={!!newMessage.trim()}
               sendTitle="전송"
+              focusNonce={inputFocusNonce}
               onKeyUp={handleTyping}
               onPaste={handlePaste}
               leftSlot={
@@ -1014,6 +1145,17 @@ const ChatWindow = ({ room: initialRoom, rooms, boardRooms = [], archivedRooms =
         <ImageLightbox
           imageUrl={lightboxImage}
           onClose={() => setLightboxImage(null)}
+        />
+      )}
+
+      {emojiPicker && (
+        <ChatEmojiPicker
+          anchor={emojiPicker.anchor}
+          onClose={() => setEmojiPicker(null)}
+          onSelect={(emoji) => {
+            const msg = messages.find((m) => m._id === emojiPicker.messageId);
+            if (msg) handleToggleReaction(msg, emoji);
+          }}
         />
       )}
     </>

@@ -26,6 +26,8 @@ type Props = {
   onPaste?: (e: ClipboardEvent<HTMLTextAreaElement>) => void;
   /** true면 바깥 padding/border 없이 필 바만 렌더 (Chat 드래그 컨테이너용) */
   bare?: boolean;
+  /** 값이 바뀌면 textarea에 포커스하고 인용 다음으로 커서를 둔다 */
+  focusNonce?: number;
 };
 
 const TEXTAREA_MAX_HEIGHT_PX = 240;
@@ -46,6 +48,7 @@ const ChatInputBar = ({
   onKeyUp,
   onPaste,
   bare,
+  focusNonce,
 }: Props) => {
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -59,6 +62,17 @@ const ChatInputBar = ({
   useEffect(() => {
     adjustHeight();
   }, [value, showTextarea]);
+
+  useEffect(() => {
+    if (!focusNonce) return;
+    const el = inputRef.current;
+    if (!el) return;
+    el.focus();
+    const blank = value.indexOf("\n\n");
+    const pos = blank >= 0 ? blank + 2 : value.length;
+    el.setSelectionRange(pos, pos);
+    adjustHeight();
+  }, [focusNonce]);
 
   const handleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     onChange(e.target.value);

@@ -810,6 +810,11 @@
         }
       }
 
+      .message_stack {
+        max-width: 100%;
+        min-width: 0;
+      }
+
       .sender_avatar {
         width: 32px;
         height: 32px;
@@ -1561,6 +1566,22 @@
   &:hover {
     color: var(--accent-1);
   }
+}
+
+.quote_block {
+  display: block;
+  margin: 0 0 6px;
+  padding: 4px 8px;
+  border-left: 3px solid var(--accent-3);
+  color: var(--accent-2);
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.quote_block_own {
+  border-left-color: var(--accent-2);
 }
 
 // Image message

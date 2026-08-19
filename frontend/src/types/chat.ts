@@ -63,6 +63,10 @@ export type TChatMessage = {
     key?: string;
   };
   readBy: { user: string; readAt: string }[];
+  reactions?: {
+    emoji: string;
+    users: { user: string; userId: string; userName: string }[];
+  }[];
   isDeleted: boolean;
   createdAt: string;
   updatedAt: string;

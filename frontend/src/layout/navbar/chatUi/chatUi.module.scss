@@ -380,7 +380,10 @@
 }
 
 .bubble {
-  max-width: 75%;
+  max-width: 100%;
+  width: fit-content;
+  min-width: 0;
+  box-sizing: border-box;
   padding: 8px 12px;
   border-radius: 8px;
   border: none;
@@ -426,9 +429,33 @@
 .bubbleTime {
   font-size: 10px;
   color: var(--accent-3);
-  margin-top: 3px;
+  margin-top: 0;
   text-align: right;
   font-weight: 400;
+}
+
+.bubbleTimeRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 3px;
+  min-width: 0;
+}
+
+.bubbleTimeMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.unreadCount {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary-color, #4a90d9);
+  line-height: 1;
 }
 
 .inputContainer {
@@ -601,5 +628,222 @@
   padding: 24px;
   text-align: center;
   font-size: 14px;
+  color: var(--accent-3);
+}
+
+.messageStack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.messageStackOwn {
+  align-items: flex-end;
+}
+
+.messageActions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 24px;
+  flex-shrink: 0;
+  opacity: 0;
+  pointer-events: none;
+  overflow: visible;
+  transition: opacity 0.15s;
+}
+
+.actionsVisible .messageActions,
+.messageExtras:hover .messageActions,
+.messageActionsOpen {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.actionMenu {
+  position: fixed;
+  right: auto;
+  bottom: auto;
+  z-index: 2010;
+  display: block;
+  width: 180px;
+  height: auto;
+  min-height: 72px;
+  padding: 4px;
+  box-sizing: border-box;
+  background: var(--component-color, #fff);
+  border: var(--border-default, 1px solid #e0e0e0);
+  border-radius: 8px;
+  box-shadow: var(--component-box-shadow, 0 2px 8px rgba(0, 0, 0, 0.08));
+}
+
+.actionMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 20px;
+  font-family: inherit;
+  color: var(--accent-1);
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+  white-space: nowrap;
+  appearance: none;
+
+  &:hover {
+    background-color: var(--background-secondary, #f5f5f5);
+  }
+}
+
+.actionMenuItemDanger {
+  color: var(--status-error, #f44336);
+}
+
+.actionMenuWarn {
+  margin: 0;
+  padding: 8px 12px 4px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--accent-1);
+  white-space: nowrap;
+}
+
+.actionBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-3);
+  font-size: 13px;
+  line-height: 1;
+  font-family: inherit;
+
+  svg {
+    fill: currentColor;
+  }
+
+  &:hover {
+    background-color: var(--background-secondary, #f5f5f5);
+  }
+}
+
+.actionBtnReact {
+  font-size: 14px;
+}
+
+.actionBtnDanger {
+  color: var(--status-error, #f44336);
+
+  &:hover {
+    color: var(--status-error, #f44336);
+  }
+}
+
+.presetRow {
+  position: fixed;
+  right: auto;
+  bottom: auto;
+  z-index: 2010;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  width: auto;
+  height: auto;
+  min-height: 36px;
+  box-sizing: border-box;
+  background: var(--component-color, #fff);
+  border: var(--border-default, 1px solid #e0e0e0);
+  border-radius: 8px;
+  box-shadow: var(--component-box-shadow, 0 2px 8px rgba(0, 0, 0, 0.08));
+}
+
+.presetEmoji {
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0;
+
+  &:hover {
+    background-color: var(--background-secondary, #f5f5f5);
+  }
+}
+
+.reactionBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+  max-width: 100%;
+}
+
+.reactionBarEnd {
+  justify-content: flex-end;
+}
+
+.reactionChip {
+  border: 1px solid var(--border-default-color, rgba(0, 0, 0, 0.12));
+  background: var(--background-color);
+  color: var(--accent-1);
+  border-radius: 12px;
+  padding: 1px 7px;
+  font-size: 12px;
+  line-height: 1.4;
+  cursor: pointer;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  &:hover {
+    background: var(--background-hover-color, var(--component-color));
+  }
+}
+
+.reactionChipMine {
+  border-color: var(--primary-color, #4a90d9);
+  background: color-mix(in srgb, var(--primary-color, #4a90d9) 12%, transparent);
+}
+
+.reactionAdd {
+  border: 1px dashed var(--border-default-color, rgba(0, 0, 0, 0.2));
+  background: transparent;
+  color: var(--accent-3);
+  border-radius: 12px;
+  padding: 1px 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.emojiPickerPortal {
+  position: fixed;
+  z-index: 2000;
+}
+
+.emojiPickerFallback {
+  padding: 12px;
+  font-size: 13px;
   color: var(--accent-3);
 }
