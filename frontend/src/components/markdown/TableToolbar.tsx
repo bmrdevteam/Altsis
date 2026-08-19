@@ -153,7 +153,7 @@ const TableToolbar = ({ editor }: Props) => {
 
   return (
     <div
-      className={style.contextToolbar}
+      className={style.toolbarButtons}
       role="toolbar"
       aria-label="표 도구"
       onMouseDown={(e) => e.preventDefault()}
