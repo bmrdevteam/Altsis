@@ -11,6 +11,10 @@ import {
   PERMISSION_DENIED,
   __NOT_FOUND,
 } from "../messages/index.js";
+import {
+  canManageSchoolCalendar,
+  personalCalendarListFilter,
+} from "../utils/calendarAuth.js";
 
 /**
  * @memberof APIs.UserCalendarAPI
@@ -26,7 +30,7 @@ export const create = async (req, res) => {
     const scope = req.body.scope || "personal";
 
     if (scope === "school") {
-      if (req.user.auth !== "admin" && req.user.auth !== "manager") {
+      if (!canManageSchoolCalendar(req.user)) {
         return res.status(403).send({ message: PERMISSION_DENIED });
       }
       if (!req.body.school) {
@@ -41,6 +45,7 @@ export const create = async (req, res) => {
       color: req.body.color || "#4285f4",
       scope,
       isDefault: false,
+      isPrivate: scope === "personal" && req.body.isPrivate === true,
     });
 
     return res.status(200).send({ userCalendar: calendar });
@@ -58,16 +63,19 @@ export const create = async (req, res) => {
 export const find = async (req, res) => {
   try {
     const targetUserId = req.query.user || req.user._id;
+    const schoolQuery = { scope: "school" };
+    if (req.query.school) {
+      schoolQuery.school = req.query.school;
+    }
     const query = {
       $or: [
-        { user: targetUserId, scope: "personal" },
-        { scope: "school" },
+        personalCalendarListFilter({
+          viewerId: req.user._id,
+          targetUserId,
+        }),
+        schoolQuery,
       ],
     };
-
-    if (req.query.school) {
-      query.$or[1].school = req.query.school;
-    }
 
     const calendars = await UserCalendar(req.user.academyId)
       .find(query)
@@ -95,16 +103,24 @@ export const update = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("userCalendar") });
     }
 
-    if (
+    if (calendar.scope === "school") {
+      if (!canManageSchoolCalendar(req.user)) {
+        return res.status(403).send({ message: PERMISSION_DENIED });
+      }
+    } else if (
       String(calendar.user) !== String(req.user._id) &&
-      req.user.auth !== "admin" &&
-      req.user.auth !== "manager"
+      !canManageSchoolCalendar(req.user)
     ) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
     if (req.body.name !== undefined) calendar.name = req.body.name;
     if (req.body.color !== undefined) calendar.color = req.body.color;
+    if (calendar.scope === "school") {
+      calendar.isPrivate = false;
+    } else if (req.body.isPrivate !== undefined) {
+      calendar.isPrivate = req.body.isPrivate === true;
+    }
 
     await calendar.save();
     return res.status(200).send({ userCalendar: calendar });
@@ -134,10 +150,13 @@ export const remove = async (req, res) => {
         .send({ message: "기본 캘린더는 삭제할 수 없습니다." });
     }
 
-    if (
+    if (calendar.scope === "school") {
+      if (!canManageSchoolCalendar(req.user)) {
+        return res.status(403).send({ message: PERMISSION_DENIED });
+      }
+    } else if (
       String(calendar.user) !== String(req.user._id) &&
-      req.user.auth !== "admin" &&
-      req.user.auth !== "manager"
+      !canManageSchoolCalendar(req.user)
     ) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }

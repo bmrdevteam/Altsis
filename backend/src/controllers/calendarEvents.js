@@ -6,7 +6,7 @@
 
 import mongoose from "mongoose";
 import { logger } from "../log/logger.js";
-import { CalendarEvent, Enrollment, Syllabus, Registration } from "../models/index.js";
+import { CalendarEvent, Enrollment, Syllabus, Registration, UserCalendar } from "../models/index.js";
 import {
   FIELD_REQUIRED,
   FIELD_INVALID,
@@ -19,6 +19,31 @@ import {
   registerEventReminder,
   removeEventReminder,
 } from "../services/schedulerQueue.js";
+import {
+  canAssignEventToCalendar,
+  canManageSchoolCalendar,
+  personalEventVisibilityFilter,
+} from "../utils/calendarAuth.js";
+
+/**
+ * 학교 캘린더 calendarId를 비관리자가 쓰지 못하게 하고,
+ * 타인 개인 캘린더에 일정을 붙이지 못하게 한다.
+ * @returns {Promise<{ error?: { status: number, message: string } }>}
+ */
+const assertAssignableCalendar = async (academyId, user, calendarId) => {
+  if (!calendarId) return {};
+  if (!mongoose.Types.ObjectId.isValid(calendarId)) {
+    return { error: { status: 400, message: FIELD_INVALID("calendarId") } };
+  }
+  const calendar = await UserCalendar(academyId).findById(calendarId);
+  if (!calendar) {
+    return { error: { status: 404, message: __NOT_FOUND("userCalendar") } };
+  }
+  if (!canAssignEventToCalendar(user, calendar)) {
+    return { error: { status: 403, message: PERMISSION_DENIED } };
+  }
+  return {};
+};
 
 const DAY_MAP = { "일": 0, "월": 1, "화": 2, "수": 3, "목": 4, "금": 5, "토": 6 };
 
@@ -40,11 +65,19 @@ export const create = async (req, res) => {
       return res.status(400).send({ message: FIELD_INVALID("scope") });
     }
 
-    // school scope requires admin or manager
-    if (req.body.scope === "school") {
-      if (req.user.auth !== "admin" && req.user.auth !== "manager") {
-        return res.status(403).send({ message: PERMISSION_DENIED });
-      }
+    if (req.body.scope === "school" && !canManageSchoolCalendar(req.user)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    const calendarCheck = await assertAssignableCalendar(
+      req.user.academyId,
+      req.user,
+      req.body.calendarId
+    );
+    if (calendarCheck.error) {
+      return res
+        .status(calendarCheck.error.status)
+        .send({ message: calendarCheck.error.message });
     }
 
     const eventData = {
@@ -174,6 +207,25 @@ export const find = async (req, res) => {
           ],
         },
       ];
+
+      if (String(targetUser) !== String(req.user._id)) {
+        const privateCals = await UserCalendar(req.user.academyId)
+          .find({
+            user: targetUser,
+            scope: "personal",
+            isPrivate: true,
+          })
+          .select("_id")
+          .lean();
+        const visFilter = personalEventVisibilityFilter({
+          viewerId: req.user._id,
+          targetUserId: targetUser,
+          privateCalendarIds: privateCals.map((c) => c._id),
+        });
+        if (visFilter) {
+          query.$and.push(visFilter);
+        }
+      }
     } else if (scope === "personal" && !userId) {
       query.user = req.user._id;
     }
@@ -213,13 +265,25 @@ export const update = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("calendarEvent") });
     }
 
-    // Permission check
     if (event.scope === "school") {
-      if (req.user.auth !== "admin" && req.user.auth !== "manager") {
+      if (!canManageSchoolCalendar(req.user)) {
         return res.status(403).send({ message: PERMISSION_DENIED });
       }
     } else if (String(event.user) !== String(req.user._id)) {
       return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    if ("calendarId" in req.body) {
+      const calendarCheck = await assertAssignableCalendar(
+        req.user.academyId,
+        req.user,
+        req.body.calendarId
+      );
+      if (calendarCheck.error) {
+        return res
+          .status(calendarCheck.error.status)
+          .send({ message: calendarCheck.error.message });
+      }
     }
 
     const allowedFields = [
@@ -311,9 +375,8 @@ export const remove = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("calendarEvent") });
     }
 
-    // Permission check
     if (event.scope === "school") {
-      if (req.user.auth !== "admin" && req.user.auth !== "manager") {
+      if (!canManageSchoolCalendar(req.user)) {
         return res.status(403).send({ message: PERMISSION_DENIED });
       }
     } else if (String(event.user) !== String(req.user._id)) {

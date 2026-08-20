@@ -25,6 +25,7 @@ import { conn } from "../_database/mongodb/index.js";
  * @prop {string} color - 캘린더 색상
  * @prop {string} scope - "school" | "personal"
  * @prop {boolean} isDefault - 기본 캘린더 여부 (삭제 불가)
+ * @prop {boolean} isPrivate - 본인만 보기 (타인 일정 조회에서 숨김, personal만)
  */
 const userCalendarSchema = mongoose.Schema(
   {
@@ -38,6 +39,7 @@ const userCalendarSchema = mongoose.Schema(
       default: "personal",
     },
     isDefault: { type: Boolean, default: false },
+    isPrivate: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
