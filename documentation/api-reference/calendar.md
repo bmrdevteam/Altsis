@@ -14,20 +14,20 @@
 
 | 메서드 | 경로 | 설명 | 권한 |
 |--------|------|------|------|
-| `POST` | `/api/calendar-events` | 일정 생성 | `isLoggedIn` (`admin`\|`manager` - 학교 범위) |
+| `POST` | `/api/calendar-events` | 일정 생성 | `isLoggedIn` (`owner`\|`admin`\|`manager` - 학교 범위) |
 | `GET` | `/api/calendar-events` | 일정 목록 조회 | `isLoggedIn` |
-| `PUT` | `/api/calendar-events/:_id` | 일정 수정 | `isLoggedIn` (소유자 또는 `admin`\|`manager`) |
-| `DELETE` | `/api/calendar-events/:_id` | 일정 삭제 | `isLoggedIn` (소유자 또는 `admin`\|`manager`) |
+| `PUT` | `/api/calendar-events/:_id` | 일정 수정 | `isLoggedIn` (개인: 소유자, 학교: `owner`\|`admin`\|`manager`) |
+| `DELETE` | `/api/calendar-events/:_id` | 일정 삭제 | `isLoggedIn` (개인: 소유자, 학교: `owner`\|`admin`\|`manager`) |
 | `POST` | `/api/calendar-events/sync` | 수업 일정 동기화 | `isLoggedIn` |
 
 ### UserCalendar
 
 | 메서드 | 경로 | 설명 | 권한 |
 |--------|------|------|------|
-| `POST` | `/api/user-calendars` | 사용자 캘린더 생성 | `isLoggedIn` (`admin`\|`manager` - 학교 범위) |
+| `POST` | `/api/user-calendars` | 사용자 캘린더 생성 | `isLoggedIn` (`owner`\|`admin`\|`manager` - 학교 범위) |
 | `GET` | `/api/user-calendars` | 사용자 캘린더 목록 조회 | `isLoggedIn` |
-| `PUT` | `/api/user-calendars/:_id` | 사용자 캘린더 수정 | `isLoggedIn` (소유자 또는 `admin`\|`manager`) |
-| `DELETE` | `/api/user-calendars/:_id` | 사용자 캘린더 삭제 | `isLoggedIn` (소유자 또는 `admin`\|`manager`) |
+| `PUT` | `/api/user-calendars/:_id` | 사용자 캘린더 수정 | `isLoggedIn` (개인: 소유자 또는 `owner`\|`admin`\|`manager`, 학교: `owner`\|`admin`\|`manager`) |
+| `DELETE` | `/api/user-calendars/:_id` | 사용자 캘린더 삭제 | `isLoggedIn` (개인: 소유자 또는 `owner`\|`admin`\|`manager`, 학교: `owner`\|`admin`\|`manager`) |
 
 ### Registration Memo (`/api/memos`)
 
@@ -43,13 +43,13 @@
 
 ## 일정 생성
 
-캘린더 일정을 생성합니다. `scope`가 `"school"`인 경우 `admin` 또는 `manager` 권한이 필요하며, `school` 필드가 필수입니다.
+캘린더 일정을 생성합니다. `scope`가 `"school"`인 경우 `owner`, `admin` 또는 `manager` 권한이 필요하며, `school` 필드가 필수입니다. 학교 캘린더(`UserCalendar.scope === "school"`)의 `calendarId`를 지정할 때도 동일한 권한이 필요합니다.
 
 ```
 POST /api/calendar-events
 ```
 
-**권한**: `isLoggedIn` (학교 범위 일정 생성 시 `admin` 또는 `manager`)
+**권한**: `isLoggedIn` (학교 범위 일정 생성 시 `owner`, `admin` 또는 `manager`)
 
 ### 요청 본문
 
@@ -140,7 +140,7 @@ POST /api/calendar-events
 
 ## 일정 목록 조회
 
-지정된 날짜 범위 내의 일정을 조회합니다. 반복 일정은 자동으로 개별 인스턴스로 확장됩니다. `scope`를 지정하지 않으면 개인 일정과 학교 일정을 모두 조회합니다.
+지정된 날짜 범위 내의 일정을 조회합니다. 반복 일정은 자동으로 개별 인스턴스로 확장됩니다. `scope`를 지정하지 않으면 개인 일정과 학교 일정을 모두 조회합니다. 다른 사용자의 `user`를 지정하면 그 사용자의 `isPrivate` 사용자 캘린더에 속한 일정은 제외됩니다.
 
 ```
 GET /api/calendar-events
@@ -221,13 +221,13 @@ GET /api/calendar-events?startDate=2024-03-01T00:00:00.000Z&endDate=2024-03-31T2
 
 ## 일정 수정
 
-기존 캘린더 일정을 수정합니다. 개인 일정은 소유자만, 학교 일정은 `admin` 또는 `manager`만 수정할 수 있습니다.
+기존 캘린더 일정을 수정합니다. 개인 일정은 소유자만, 학교 일정은 `owner`, `admin` 또는 `manager`만 수정할 수 있습니다. 학교 캘린더 `calendarId`로 바꾸려면 같은 권한이 필요합니다.
 
 ```
 PUT /api/calendar-events/:_id
 ```
 
-**권한**: `isLoggedIn` (개인 일정: 소유자, 학교 일정: `admin` 또는 `manager`)
+**권한**: `isLoggedIn` (개인 일정: 소유자, 학교 일정: `owner` \| `admin` \| `manager`)
 
 ### 경로 파라미터
 
@@ -303,13 +303,13 @@ PUT /api/calendar-events/:_id
 
 ## 일정 삭제
 
-캘린더 일정을 삭제합니다. 개인 일정은 소유자만, 학교 일정은 `admin` 또는 `manager`만 삭제할 수 있습니다.
+캘린더 일정을 삭제합니다. 개인 일정은 소유자만, 학교 일정은 `owner`, `admin` 또는 `manager`만 삭제할 수 있습니다.
 
 ```
 DELETE /api/calendar-events/:_id
 ```
 
-**권한**: `isLoggedIn` (개인 일정: 소유자, 학교 일정: `admin` 또는 `manager`)
+**권한**: `isLoggedIn` (개인 일정: 소유자, 학교 일정: `owner` \| `admin` \| `manager`)
 
 ### 경로 파라미터
 
@@ -411,7 +411,7 @@ POST /api/calendar-events/sync
 POST /api/user-calendars
 ```
 
-**권한**: `isLoggedIn` (학교 범위 캘린더 생성 시 `admin` 또는 `manager`)
+**권한**: `isLoggedIn` (학교 범위 캘린더 생성 시 `owner`, `admin` 또는 `manager`)
 
 ### 요청 본문
 
@@ -421,6 +421,7 @@ POST /api/user-calendars
 | `color` | `string` | X | 캘린더 색상 (기본값: `"#4285f4"`) |
 | `scope` | `string` | X | `"school"` 또는 `"personal"` (기본값: `"personal"`) |
 | `school` | `ObjectId` | 조건부 | 학교 ID (`scope`가 `"school"`일 때 필수) |
+| `isPrivate` | `boolean` | X | 본인만 보기 (`personal`만, 기본값: `false`) |
 
 ### 요청 예시
 
@@ -442,6 +443,7 @@ POST /api/user-calendars
     "color": "#e91e63",
     "scope": "personal",
     "isDefault": false,
+    "isPrivate": false,
     "createdAt": "2024-03-10T09:00:00.000Z",
     "updatedAt": "2024-03-10T09:00:00.000Z"
   }
@@ -460,7 +462,7 @@ POST /api/user-calendars
 
 ## 사용자 캘린더 목록 조회
 
-로그인 사용자의 개인 캘린더와 학교 캘린더를 조회합니다. 기본 캘린더(`isDefault`)가 먼저 정렬되며, 이후 생성일시 순으로 정렬됩니다.
+로그인 사용자의 개인 캘린더와 학교 캘린더를 조회합니다. 기본 캘린더(`isDefault`)가 먼저 정렬되며, 이후 생성일시 순으로 정렬됩니다. 다른 사용자의 `user`를 지정하면 그 사용자의 `isPrivate` 개인 캘린더는 제외됩니다.
 
 ```
 GET /api/user-calendars
@@ -473,6 +475,7 @@ GET /api/user-calendars
 | 파라미터 | 타입 | 필수 | 설명 |
 |----------|------|------|------|
 | `school` | `ObjectId` | X | 학교 ID (학교 범위 캘린더 필터) |
+| `user` | `ObjectId` | X | 대상 사용자 ID (미지정 시 로그인 사용자) |
 
 ### 요청 예시
 
@@ -524,13 +527,13 @@ GET /api/user-calendars?school=507f1f77bcf86cd799439033
 
 ## 사용자 캘린더 수정
 
-사용자 캘린더의 이름과 색상을 수정합니다.
+사용자 캘린더의 이름, 색상, 본인만 보기 여부를 수정합니다. 학교 캘린더는 `owner`/`admin`/`manager`만 수정할 수 있습니다.
 
 ```
 PUT /api/user-calendars/:_id
 ```
 
-**권한**: `isLoggedIn` (소유자 또는 `admin`/`manager`)
+**권한**: `isLoggedIn` (개인: 소유자 또는 `owner`/`admin`/`manager`, 학교: `owner`/`admin`/`manager`)
 
 ### 경로 파라미터
 
@@ -544,6 +547,7 @@ PUT /api/user-calendars/:_id
 |------|------|------|------|
 | `name` | `string` | X | 캘린더 이름 |
 | `color` | `string` | X | 캘린더 색상 |
+| `isPrivate` | `boolean` | X | 본인만 보기 (`personal`만) |
 
 ### 요청 예시
 
@@ -588,7 +592,7 @@ PUT /api/user-calendars/:_id
 DELETE /api/user-calendars/:_id
 ```
 
-**권한**: `isLoggedIn` (소유자 또는 `admin`/`manager`)
+**권한**: `isLoggedIn` (개인: 소유자 또는 `owner`/`admin`/`manager`, 학교: `owner`/`admin`/`manager`)
 
 ### 경로 파라미터
 
@@ -662,6 +666,7 @@ DELETE /api/user-calendars/:_id
 | `color` | `string` | X | `"#4285f4"` | 캘린더 색상 |
 | `scope` | `string` | X | `"personal"` | `"school"` \| `"personal"` |
 | `isDefault` | `boolean` | X | `false` | 기본 캘린더 여부 (삭제 불가) |
+| `isPrivate` | `boolean` | X | `false` | 본인만 보기 (`personal`만, 타인 일정 조회에서 숨김) |
 | `createdAt` | `Date` | 자동 | - | 생성 일시 |
 | `updatedAt` | `Date` | 자동 | - | 수정 일시 |
 
