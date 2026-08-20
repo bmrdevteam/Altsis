@@ -8,6 +8,7 @@ import ColorPicker from "components/colorPicker/ColorPicker";
 import style from "./style.module.scss";
 import { useAuth } from "contexts/authContext";
 import useAPIv2 from "hooks/useAPIv2";
+import { canManageSchoolCalendar } from "components/calendarV2/calendarAuth";
 
 type Props = {
   setPopupActive: (active: boolean) => void;
@@ -48,8 +49,7 @@ export type EventFormData = {
 const Index = (props: Props) => {
   const { currentUser, currentSchool } = useAuth();
   const { UserCalendarAPI, NotificationAPI } = useAPIv2();
-  const isManager =
-    currentUser?.auth === "admin" || currentUser?.auth === "manager";
+  const canManageSchool = canManageSchoolCalendar(currentUser);
 
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(
@@ -162,10 +162,12 @@ const Index = (props: Props) => {
     const options: { text: string; value: string }[] = [
       { text: "개인 캘린더", value: "__personal" },
     ];
-    if (isManager) {
+    if (canManageSchool) {
       options.push({ text: "학교 캘린더", value: "__school" });
     }
-    const schoolCalendars = userCalendars.filter((c) => c.scope === "school");
+    const schoolCalendars = canManageSchool
+      ? userCalendars.filter((c) => c.scope === "school")
+      : [];
     const personalCalendars = userCalendars.filter(
       (c) => c.scope === "personal"
     );

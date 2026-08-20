@@ -4,6 +4,7 @@ import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import Button from "components/button/Button";
 import Input from "components/input/Input";
 import { DEFAULT_CATEGORY_COLORS } from "components/calendarV2/calendarData";
+import { canManageSchoolCalendar } from "components/calendarV2/calendarAuth";
 import ColorPicker from "components/colorPicker/ColorPicker";
 
 type CalendarSettings = {
@@ -66,8 +67,7 @@ const CalendarTab = (props: Props) => {
   const { UserCalendarAPI, CalendarSettingAPI } = useAPIv2();
 
   const isTeacher = currentRegistration?.role === "teacher";
-  const isManager =
-    currentUser?.auth === "admin" || currentUser?.auth === "manager";
+  const canManageSchool = canManageSchoolCalendar(currentUser);
 
   const [visibility, setVisibility] = useState<TVisibility>(getVisibility());
   const [userCalendars, setUserCalendars] = useState<any[]>([]);
@@ -75,9 +75,11 @@ const CalendarTab = (props: Props) => {
   const [newName, setNewName] = useState("");
   const [newColor, setNewColor] = useState("#4285f4");
   const [newScope, setNewScope] = useState<"personal" | "school">("personal");
+  const [newIsPrivate, setNewIsPrivate] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editColor, setEditColor] = useState("");
+  const [editIsPrivate, setEditIsPrivate] = useState(false);
 
   // Calendar settings
   const [visibleDays, setVisibleDays] = useState<number[]>(
@@ -174,12 +176,14 @@ const CalendarTab = (props: Props) => {
           name: newName,
           color: newColor,
           scope: newScope,
+          isPrivate: newScope === "personal" && newIsPrivate,
           ...(newScope === "school" ? { school: currentSchool?._id } : {}),
         },
       });
       setNewName("");
       setNewColor("#4285f4");
       setNewScope("personal");
+      setNewIsPrivate(false);
       setIsAdding(false);
       loadCalendars();
     } catch (err) {
@@ -188,10 +192,15 @@ const CalendarTab = (props: Props) => {
   };
 
   const handleUpdateCalendar = async (id: string) => {
+    const cal = userCalendars.find((c) => c._id === id);
     try {
       await UserCalendarAPI.UUserCalendar({
         params: { _id: id },
-        data: { name: editName, color: editColor },
+        data: {
+          name: editName,
+          color: editColor,
+          ...(cal?.scope === "personal" ? { isPrivate: editIsPrivate } : {}),
+        },
       });
       setEditingId(null);
       loadCalendars();
@@ -233,6 +242,7 @@ const CalendarTab = (props: Props) => {
             alignItems: "center",
             gap: "8px",
             padding: "4px",
+            flexWrap: "wrap",
           }}
         >
           <ColorPicker value={editColor} onChange={setEditColor} />
@@ -249,6 +259,24 @@ const CalendarTab = (props: Props) => {
               outline: "none",
             }}
           />
+          {cal.scope === "personal" && (
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                fontSize: "12px",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={editIsPrivate}
+                onChange={(e) => setEditIsPrivate(e.target.checked)}
+              />
+              본인만 보기
+            </label>
+          )}
           <Button
             type="solid"
             onClick={() => handleUpdateCalendar(cal._id)}
@@ -293,6 +321,17 @@ const CalendarTab = (props: Props) => {
             onClick={() => toggleVisibility(`custom_${cal._id}`)}
           >
             {cal.name}
+            {cal.isPrivate && (
+              <span
+                style={{
+                  marginLeft: "6px",
+                  fontSize: "11px",
+                  color: "var(--accent-4)",
+                }}
+              >
+                본인만
+              </span>
+            )}
           </span>
           {canManage && (
             <>
@@ -302,6 +341,7 @@ const CalendarTab = (props: Props) => {
                   setEditingId(cal._id);
                   setEditName(cal.name);
                   setEditColor(cal.color);
+                  setEditIsPrivate(!!cal.isPrivate);
                 }}
                 style={{ fontSize: "11px", padding: "2px 6px" }}
               >
@@ -389,7 +429,7 @@ const CalendarTab = (props: Props) => {
       </div>
 
       {/* School calendars section */}
-      {(schoolCalendars.length > 0 || isManager) && (
+      {(schoolCalendars.length > 0 || canManageSchool) && (
         <div>
           <div
             style={{
@@ -403,11 +443,12 @@ const CalendarTab = (props: Props) => {
             }}
           >
             학교 캘린더
-            {isManager && (
+            {canManageSchool && (
               <Button
                 type="ghost"
                 onClick={() => {
                   setNewScope("school");
+                  setNewIsPrivate(false);
                   setIsAdding(true);
                 }}
                 style={{ fontSize: "12px", padding: "2px 8px" }}
@@ -416,7 +457,7 @@ const CalendarTab = (props: Props) => {
               </Button>
             )}
           </div>
-          {schoolCalendars.map((cal) => renderCalendarItem(cal, isManager))}
+          {schoolCalendars.map((cal) => renderCalendarItem(cal, canManageSchool))}
           {schoolCalendars.length === 0 && !isAdding && (
             <div
               style={{
@@ -450,6 +491,7 @@ const CalendarTab = (props: Props) => {
               type="ghost"
               onClick={() => {
                 setNewScope("personal");
+                setNewIsPrivate(false);
                 setIsAdding(true);
               }}
               style={{ fontSize: "12px", padding: "2px 8px" }}
@@ -469,6 +511,7 @@ const CalendarTab = (props: Props) => {
               gap: "8px",
               padding: "4px",
               marginTop: "4px",
+              flexWrap: "wrap",
             }}
           >
             <ColorPicker value={newColor} onChange={setNewColor} />
@@ -486,12 +529,32 @@ const CalendarTab = (props: Props) => {
                 outline: "none",
               }}
             />
-            {isManager && (
+            {newScope === "personal" && (
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  fontSize: "12px",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={newIsPrivate}
+                  onChange={(e) => setNewIsPrivate(e.target.checked)}
+                />
+                본인만 보기
+              </label>
+            )}
+            {canManageSchool && (
               <select
                 value={newScope}
-                onChange={(e) =>
-                  setNewScope(e.target.value as "personal" | "school")
-                }
+                onChange={(e) => {
+                  const next = e.target.value as "personal" | "school";
+                  setNewScope(next);
+                  if (next === "school") setNewIsPrivate(false);
+                }}
                 style={{
                   padding: "4px 8px",
                   fontSize: "13px",
@@ -517,6 +580,8 @@ const CalendarTab = (props: Props) => {
               onClick={() => {
                 setIsAdding(false);
                 setNewName("");
+                setNewScope("personal");
+                setNewIsPrivate(false);
               }}
               style={{ fontSize: "12px", padding: "2px 8px" }}
             >

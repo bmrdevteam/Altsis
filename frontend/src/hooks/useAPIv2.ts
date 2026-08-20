@@ -1625,6 +1625,7 @@ export default function useAPIv2() {
       color?: string;
       scope?: "school" | "personal";
       school?: string;
+      isPrivate?: boolean;
     };
   }) {
     const { userCalendar } = await database.C({
@@ -1639,7 +1640,7 @@ export default function useAPIv2() {
    * @description 사용자 캘린더 목록 조회 API
    */
   async function RUserCalendars(props?: {
-    query?: { school?: string };
+    query?: { school?: string; user?: string };
   }) {
     const { userCalendars } = await database.R({
       location: "user-calendars" + QUERY_BUILDER(props?.query),
@@ -1653,7 +1654,7 @@ export default function useAPIv2() {
    */
   async function UUserCalendar(props: {
     params: { _id: string };
-    data: { name?: string; color?: string };
+    data: { name?: string; color?: string; isPrivate?: boolean };
   }) {
     const { userCalendar } = await database.U({
       location: `user-calendars/${props.params._id}`,

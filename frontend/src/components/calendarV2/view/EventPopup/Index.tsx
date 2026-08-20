@@ -14,6 +14,7 @@ import Svg from "assets/svg/Svg";
 import Button from "components/button/Button";
 import { useAuth } from "contexts/authContext";
 import { useAppNavigate } from "hooks/useAppNavigate";
+import { canManageSchoolCalendar } from "components/calendarV2/calendarAuth";
 
 type Props = {
   setPopupActive: any;
@@ -113,8 +114,6 @@ const Description = ({
 
 const Index = (props: Props) => {
   const { currentUser } = useAuth();
-  const isManager =
-    currentUser?.auth === "admin" || currentUser?.auth === "manager";
   const isOwner =
     props.event.userId && String(props.event.userId) === String(currentUser?._id);
 
@@ -123,9 +122,12 @@ const Index = (props: Props) => {
     props.event.sourceType === "syllabus";
 
   const canModify =
+    !props.readOnly &&
     props.event.type === "custom" &&
     !isSyncedEvent &&
-    (isOwner || (props.event.scope === "school" && isManager));
+    (props.event.scope === "school"
+      ? canManageSchoolCalendar(currentUser)
+      : isOwner);
 
   const eventColor = resolveEventColor(props.event, props.customCategoryColors);
 
