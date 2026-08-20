@@ -2661,10 +2661,10 @@ const AlterPanel = ({ onClose }: Props) => {
         <Svg type="plus" width="20px" height="20px" />
       </button>
       {attachMenuOpen && (
-        <div className={chatUiStyle.actionMenu} role="menu">
+        <div className={chatUiStyle.composerMenu} role="menu">
           <button
             type="button"
-            className={`${chatUiStyle.actionMenuItem} ${style.attachMenuItem}`}
+            className={`${chatUiStyle.composerMenuItem} ${style.attachMenuItem}`}
             role="menuitem"
             disabled={attachDisabled}
             onClick={() => imageInputRef.current?.click()}
@@ -2674,7 +2674,7 @@ const AlterPanel = ({ onClose }: Props) => {
           </button>
           <button
             type="button"
-            className={`${chatUiStyle.actionMenuItem} ${style.attachMenuItem}`}
+            className={`${chatUiStyle.composerMenuItem} ${style.attachMenuItem}`}
             role="menuitem"
             disabled={attachDisabled}
             onClick={() => fileInputRef.current?.click()}
