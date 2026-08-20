@@ -27,6 +27,10 @@ import {
   resolveSelectedIds,
   writeSelectedGoalItemIds,
 } from "./goalSidebarPrefs";
+import {
+  canManageSchoolGoals,
+  schoolGoalsSettingsPath,
+} from "./goalSidebarVisibility";
 import style from "./goals.module.scss";
 
 type Section = {
@@ -313,6 +317,8 @@ const GoalsDashboard = () => {
   };
 
   if (currentSchool?.goalsEnabled === false) {
+    const showSettings =
+      canManageSchoolGoals(currentUser?.auth) && !!currentSchool._id;
     return (
       <div className={style.page}>
         <div className={style.header}>
@@ -320,6 +326,17 @@ const GoalsDashboard = () => {
         </div>
         <div className={style.empty}>
           이 학교에서는 목표 기능을 사용하지 않습니다.
+          {showSettings && (
+            <button
+              type="button"
+              className={style.emptyAction}
+              onClick={() =>
+                navigate(schoolGoalsSettingsPath(currentSchool._id))
+              }
+            >
+              학교 설정에서 다시 켜기
+            </button>
+          )}
         </div>
       </div>
     );

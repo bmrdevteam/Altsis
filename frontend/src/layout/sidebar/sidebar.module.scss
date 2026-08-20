@@ -542,6 +542,37 @@
         padding: 4px 0;
     }
 
+    .goals_empty {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        padding: 12px;
+    }
+
+    .goals_empty_text {
+        margin: 0;
+        font-size: 12px;
+        line-height: 1.45;
+        color: var(--accent-3);
+    }
+
+    .goals_empty_btn {
+        border: var(--border-default);
+        background: var(--component-color);
+        color: var(--accent-1);
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        text-align: center;
+
+        &:hover {
+            background: var(--component-hover-color);
+        }
+    }
+
     .goals_row {
         display: flex;
         flex-direction: column;

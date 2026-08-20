@@ -229,6 +229,25 @@
   font-size: 13px;
   color: var(--accent-3);
   padding: 32px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.emptyAction {
+  border: var(--border-default);
+  background: var(--component-color);
+  color: var(--accent-1);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--component-hover-color);
+  }
 }
 
 @media (max-width: 640px) {
