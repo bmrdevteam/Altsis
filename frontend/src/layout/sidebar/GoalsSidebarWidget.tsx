@@ -17,6 +17,10 @@ import {
   subscribeGoalSidebarPrefs,
   TGoalSidebarChip,
 } from "pages/goals/goalSidebarPrefs";
+import {
+  goalsSidebarMode,
+  schoolGoalsSettingsPath,
+} from "pages/goals/goalSidebarVisibility";
 import { useEffect, useMemo, useState } from "react";
 import {
   appendEvaluationSummary,
@@ -341,11 +345,24 @@ const GoalsSidebarWidget = ({ open, onNavigate }: Props) => {
     [chips]
   );
 
-  const hasContent = chips.length > 0;
+  const mode = goalsSidebarMode({
+    schoolId: currentSchool?._id,
+    goalsEnabled: currentSchool?.goalsEnabled,
+    auth: currentUser?.auth,
+  });
 
   const goGoals = () => {
     navigate("/goals");
     onNavigate?.();
+  };
+
+  const goPrimary = () => {
+    if (mode === "disabled" && currentSchool?._id) {
+      navigate(schoolGoalsSettingsPath(currentSchool._id));
+      onNavigate?.();
+      return;
+    }
+    goGoals();
   };
 
   const toggleCollapsed = () => {
@@ -355,24 +372,27 @@ const GoalsSidebarWidget = ({ open, onNavigate }: Props) => {
     writeCollapsed(currentSchool._id, currentUser._id, next);
   };
 
-  if (
-    !currentSchool?._id ||
-    currentSchool.goalsEnabled === false ||
-    !hasContent
-  ) {
+  if (mode === "hidden") {
     return null;
   }
+
+  const primaryTitle = mode === "disabled" ? "목표 설정" : "목표";
+  const allTitle =
+    mode === "disabled" ? "학교 설정에서 다시 켜기" : "목표 전체 보기";
 
   if (!open) {
     return (
       <div
         className={style.goals_collapsed}
-        onClick={goGoals}
-        title="목표"
+        onClick={goPrimary}
+        title={primaryTitle}
         role="button"
         tabIndex={0}
         onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") goGoals();
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            goPrimary();
+          }
         }}
       >
         <span className={style.goals_collapsed_ring}>
@@ -399,7 +419,9 @@ const GoalsSidebarWidget = ({ open, onNavigate }: Props) => {
             <Svg type={collapsed ? "chevronRight" : "chevronDown"} />
             <span>목표</span>
           </span>
-          {totalRemaining > 0 ? (
+          {mode === "disabled" ? (
+            <span className={style.goals_widget_count_muted}>꺼짐</span>
+          ) : totalRemaining > 0 ? (
             <span className={style.goals_widget_count}>{totalRemaining}</span>
           ) : (
             <span className={style.goals_widget_count_muted}>{chips.length}</span>
@@ -408,14 +430,30 @@ const GoalsSidebarWidget = ({ open, onNavigate }: Props) => {
         <button
           type="button"
           className={style.goals_widget_all}
-          onClick={goGoals}
-          title="목표 전체 보기"
-          aria-label="목표 전체 보기"
+          onClick={goPrimary}
+          title={allTitle}
+          aria-label={allTitle}
         >
           <Svg type="openInNew" />
         </button>
       </div>
-      {!collapsed && (
+      {!collapsed && chips.length === 0 && (
+        <div className={style.goals_empty}>
+          <p className={style.goals_empty_text}>
+            {mode === "disabled"
+              ? "구성원에게는 보이지 않습니다."
+              : "표시할 항목이 없습니다."}
+          </p>
+          <button
+            type="button"
+            className={style.goals_empty_btn}
+            onClick={goPrimary}
+          >
+            {mode === "disabled" ? "설정에서 다시 켜기" : "항목 고르기"}
+          </button>
+        </div>
+      )}
+      {!collapsed && chips.length > 0 && (
         <div className={style.goals_list}>
           {chips.map((c) => {
             const hasBar = c.total != null && c.total > 0;

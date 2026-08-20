@@ -643,7 +643,7 @@ function GoalForm(props: Props) {
     <SchoolFeatureToggle
       featureKey="goalsEnabled"
       label="목표 기능 활성화"
-      description="이 학교에서 목표 사이드바와 목표 페이지를 사용합니다."
+      description="끄면 구성원 사이드바와 목표 페이지가 숨겨집니다. 다시 쓰려면 이 스위치만 켜면 됩니다."
       schoolData={props.schoolData}
       setSchoolData={(data) => props.setSchoolData(data)}
     >
