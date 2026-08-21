@@ -1,6 +1,7 @@
 import { TAltSheetRow } from "types/altSheet";
 import {
   canCreateAdditionalDraft,
+  canSubmitReviewDraft,
   isDraftSheetRow,
   remainingDraftSlots,
   sortMyRowsForReview,
@@ -85,5 +86,29 @@ describe("remainingDraftSlots / canCreateAdditionalDraft", () => {
     expect(canCreateAdditionalDraft(form, 0, 0)).toBe(true);
     expect(canCreateAdditionalDraft(form, 0, 1)).toBe(false);
     expect(canCreateAdditionalDraft(form, 1, 0)).toBe(false);
+  });
+});
+
+describe("canSubmitReviewDraft", () => {
+  test("allows a saved draft when submit is open", () => {
+    expect(
+      canSubmitReviewDraft(row("d1", { isDraft: true }), { canSubmit: true })
+    ).toBe(true);
+  });
+
+  test("rejects submitted rows, closed window, and quota", () => {
+    expect(
+      canSubmitReviewDraft(row("s1"), { canSubmit: true })
+    ).toBe(false);
+    expect(
+      canSubmitReviewDraft(row("d1", { isDraft: true }), { canSubmit: false })
+    ).toBe(false);
+    expect(
+      canSubmitReviewDraft(row("d1", { isDraft: true }), {
+        canSubmit: true,
+        allowMultipleResponses: true,
+        quotaReached: true,
+      })
+    ).toBe(false);
   });
 });

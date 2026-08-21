@@ -124,3 +124,33 @@ export function defaultApprovalLine(): TApprovalLine {
     steps: [{ order: 0, label: "1차 승인", mode: "pick" }],
   };
 }
+
+/**
+ * 필수 승인 필드의 응답자 입력 오류. 결재선이 전부 고정이면 값이 없어도 통과한다.
+ */
+export function getRequiredApprovalError(
+  field: Pick<TAltFormField, "approvalLine">,
+  value: any
+): string | null {
+  const line = getApprovalLineSteps(field);
+  const pickCount = line.filter((s) => s.mode === "pick").length;
+  if (pickCount === 0) return null;
+
+  if (value?.version === 2 && Array.isArray(value.steps)) {
+    const missing = value.steps.some(
+      (s: { mode?: string; approver?: { userId?: string } }) =>
+        s.mode === "pick" && !s.approver?.userId
+    );
+    const filledPicks = value.steps.filter(
+      (s: { mode?: string }) => s.mode === "pick"
+    ).length;
+    if (missing || filledPicks < pickCount) {
+      return "승인자를 모두 선택해주세요.";
+    }
+    return null;
+  }
+  if (!value?.approver?.userId) {
+    return "승인자를 선택해주세요.";
+  }
+  return null;
+}
