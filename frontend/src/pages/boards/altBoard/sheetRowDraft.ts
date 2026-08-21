@@ -68,3 +68,18 @@ export const canCreateAdditionalDraft = (
   if (left == null) return true;
   return left > 0;
 };
+
+/** 내 응답(개별 보기)에서 저장본을 바로 제출할 수 있는지 */
+export const canSubmitReviewDraft = (
+  row: Pick<TAltSheetRow, "isDraft"> | null | undefined,
+  opts: {
+    canSubmit: boolean;
+    allowMultipleResponses?: boolean;
+    quotaReached?: boolean;
+  }
+): boolean => {
+  if (!isDraftSheetRow(row)) return false;
+  if (!opts.canSubmit) return false;
+  if (opts.allowMultipleResponses && opts.quotaReached) return false;
+  return true;
+};
