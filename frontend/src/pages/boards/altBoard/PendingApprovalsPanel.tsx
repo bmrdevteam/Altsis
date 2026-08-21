@@ -4,7 +4,7 @@ import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import Button from "components/button/Button";
 import Popup from "components/popup/Popup";
 import Svg from "assets/svg/Svg";
-import { MarkdownViewer } from "components/markdown";
+import { MarkdownViewer, MarkdownWysiwygView } from "components/markdown";
 import {
   normalizeApprovalValue,
   TApprovalStepRuntime,
@@ -431,7 +431,7 @@ const PendingApprovalsPanel = ({
     if (f.type === "docResponse" && val) {
       return (
         <div className={style.contentFieldBody}>
-          <MarkdownViewer content={String(val)} allowHtmlApp />
+          <MarkdownWysiwygView content={String(val)} />
         </div>
       );
     }

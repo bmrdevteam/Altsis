@@ -2,12 +2,19 @@ import { MouseEvent, useLayoutEffect, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { MarkdownViewer } from "components/markdown";
 import { useAuth } from "contexts/authContext";
+import useRegisterAlterSnapshot from "hooks/useRegisterAlterSnapshot";
+import {
+  ALTER_CHAT_SNAPSHOT_LIMITS,
+  clipText,
+  finalizeChatSnapshot,
+} from "utils/alterChatSnapshot";
 import { GUIDE_DOCS } from "./guideDocs.generated";
 import {
   allowedGuideSet,
   defaultGuidePath,
   docKeyFromSearch,
   guideBaseFromPathname,
+  guideDocTitle,
   guideHref,
   isGuideInternalHref,
   parseGuideToc,
@@ -45,6 +52,36 @@ const Guide = () => {
       guideBase
     );
   }, [docKey, guideBase]);
+
+  const pageTitle = useMemo(
+    () => guideDocTitle(GUIDE_DOCS[docKey || ""] || "", "Altsis 안내"),
+    [docKey]
+  );
+
+  useRegisterAlterSnapshot({
+    enabled: !!currentUser && !!docKey,
+    pageType: "guide",
+    label: pageTitle,
+    getChatSnapshot: () => {
+      const body = clipText(
+        markdown,
+        ALTER_CHAT_SNAPSHOT_LIMITS.DOCUMENT_CHARS
+      );
+      return finalizeChatSnapshot({
+        summary: `Altsis 안내 — ${pageTitle}`,
+        items: [
+          {
+            title: pageTitle,
+            fields: body ? { 내용: body } : {},
+          },
+        ],
+        totalCount: 1,
+        isPartial:
+          String(markdown || "").length >
+          ALTER_CHAT_SNAPSHOT_LIMITS.DOCUMENT_CHARS,
+      });
+    },
+  });
 
   const goTo = (key: string) => {
     navigate(guideHref(guideBase, key));

@@ -598,11 +598,14 @@ const AltFormBuilder = ({
   }, [getSnapshot, isLoading]);
 
   useEffect(() => {
-    BoardAPI.RBoardMemberList({ params: { _id: board._id } })
+    BoardAPI.RBoardMemberList({
+      params: { _id: board._id },
+      query: currentSeason?._id ? { season: currentSeason._id } : undefined,
+    })
       .then(({ users }) => setBoardMembers(users || []))
       .catch(() => setBoardMembers([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- BoardAPI identity changes
-  }, [board._id]);
+  }, [board._id, currentSeason?._id]);
 
   useEffect(() => {
     if (!restrictMembers) return;

@@ -462,6 +462,7 @@ export const runAlter = async (req, res) => {
           tokenUsage: result.tokenUsage,
           review: result.review || null,
           draft: result.draft || null,
+          links: result.links || [],
           markWorking: false,
         });
         savedConversationId = String(saved.conversation._id);
@@ -476,6 +477,7 @@ export const runAlter = async (req, res) => {
         review: result.review || null,
         draft: result.draft || null,
         message: result.text,
+        links: result.links || [],
         conversationId: savedConversationId,
       });
       return res.end();
@@ -486,6 +488,7 @@ export const runAlter = async (req, res) => {
       message: result.text,
       review: result.review,
       draft: result.draft || null,
+      links: result.links || [],
       conversationId: savedConversationId,
     });
   } catch (err) {

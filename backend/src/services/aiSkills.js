@@ -89,6 +89,8 @@ import {
   detectAlterHowtoIntent,
   withAlterSafety,
 } from "./alterCorePrompt.js";
+import { retrieveAlterGuide } from "./alterGuideRetrieve.js";
+import { buildAlterGuideLinks } from "./alterGuideLinks.js";
 import {
   ensureChunksForItems,
   retrieveLibraryChunks,
@@ -1566,7 +1568,13 @@ export const buildHowtoCoachBlocks = (suggestedSkills) => {
   return { availableSkillsText, examplePromptsText };
 };
 
-const buildAlterChatSystem = (promptPack, context, boardTitle, message = "") => {
+const buildAlterChatSystem = (
+  promptPack,
+  context,
+  boardTitle,
+  message = "",
+  guideReferences = []
+) => {
   const howtoMode = detectAlterHowtoIntent(message);
   const coach = howtoMode
     ? buildHowtoCoachBlocks(context?.suggestedSkills)
@@ -1580,6 +1588,7 @@ const buildAlterChatSystem = (promptPack, context, boardTitle, message = "") => 
     howtoMode,
     availableSkillsText: coach.availableSkillsText,
     examplePromptsText: coach.examplePromptsText,
+    guideReferences,
   });
 };
 
@@ -5682,11 +5691,28 @@ export const runAlterSkill = async ({
       logger.error(`chat library retrieve: ${retrieveErr.message}`);
     }
   }
+  const howtoMode = detectAlterHowtoIntent(message);
+  const guideHits = howtoMode
+    ? retrieveAlterGuide({ query: message, auth: user?.auth })
+    : [];
+  const guideReferences = guideHits.map((h) => ({
+    title: h.title,
+    content: h.content,
+  }));
+  const links = howtoMode
+    ? buildAlterGuideLinks(guideHits, {
+        user,
+        school,
+        registration,
+        message,
+      })
+    : [];
   const systemInstruction = buildAlterChatSystem(
     { ...chatPromptPack, references: chatReferences },
     context,
     boardTitle,
-    message
+    message,
+    guideReferences
   );
 
   const attachments = Array.isArray(context?.attachments)
@@ -5760,6 +5786,7 @@ export const runAlterSkill = async ({
       draft: null,
       tokenUsage,
       citations: chatCitations,
+      links,
     };
   } catch (err) {
     if (!err.code) err.code = mapProviderError(err);

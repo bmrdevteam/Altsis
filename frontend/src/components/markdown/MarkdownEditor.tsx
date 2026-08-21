@@ -2,28 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import { getMarkRange } from "@tiptap/core";
 import { NodeSelection, TextSelection } from "@tiptap/pm/state";
-import StarterKit from "@tiptap/starter-kit";
-import { Markdown } from "tiptap-markdown";
-import TaskList from "@tiptap/extension-task-list";
-import TaskItem from "@tiptap/extension-task-item";
-import Link from "@tiptap/extension-link";
-import { ResizableImage } from "./extensions/resizableImage";
-import { InlineCheckbox } from "./extensions/inlineCheckbox";
-import { SlashCommand, type SlashDialogActions } from "./extensions/slashCommand";
-import Placeholder from "@tiptap/extension-placeholder";
-import Youtube from "@tiptap/extension-youtube";
-import TextAlign from "@tiptap/extension-text-align";
-import Color from "@tiptap/extension-color";
-import Highlight from "@tiptap/extension-highlight";
-import { TableRow, TableCell, TableHeader } from "@tiptap/extension-table";
-import { HtmlEmbed } from "./extensions/htmlEmbed";
-import {
-  MathInline,
-  MathBlock,
-  MathEditRequest,
-} from "./extensions/mathExtension";
-import Mention from "@tiptap/extension-mention";
-import { createMentionSuggestion } from "./extensions/mentionSuggestion";
+import { type SlashDialogActions } from "./extensions/slashCommand";
+import { type MathEditRequest } from "./extensions/mathExtension";
 import TipTapToolbar from "./TipTapToolbar";
 import type { MoreMenuItem } from "./ToolbarMoreMenu";
 import ToolbarContextTabs from "./ToolbarContextTabs";
@@ -35,19 +15,16 @@ import ImageInsertDialog from "./ImageInsertDialog";
 import YouTubeInsertDialog from "./YouTubeInsertDialog";
 import LinkInsertDialog from "./LinkInsertDialog";
 import MathInsertDialog from "./MathInsertDialog";
-import MarkdownViewer from "./MarkdownViewer";
+import MarkdownWysiwygView from "./MarkdownWysiwygView";
 import {
   postprocessMarkdown,
   transformSpecialNodes,
 } from "./extensions/youtube";
 import { useEditorDraft } from "./hooks/useEditorDraft";
-import { tableCellStyleAttributes } from "./tableCellAttributes";
 import { handleAtomNodeClick } from "./atomNodeClick";
 import { handleTableCellClick } from "./tableCellClick";
-import { StyledTable } from "./tableMarkdown";
 import { serializeClipboardPlainText } from "./clipboardPlainText";
-import { AlignedHeading, AlignedParagraph } from "./extensions/alignedBlocks";
-import { StyledTextStyle } from "./extensions/styledTextStyle";
+import { createMarkdownExtensions } from "./createMarkdownExtensions";
 import {
   activeToolbarPanel,
   detectEditorContext,
@@ -147,98 +124,11 @@ const MarkdownEditor = ({
   } = useEditorDraft(draftKey);
 
   const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        heading: false,
-        paragraph: false,
-      }),
-      AlignedParagraph,
-      AlignedHeading,
-      Markdown.configure({
-        html: true,
-        tightLists: true,
-        bulletListMarker: "-",
-        transformPastedText: true,
-        transformCopiedText: false,
-      }),
-      TaskList,
-      TaskItem.configure({ nested: true }),
-      InlineCheckbox,
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: { rel: "noopener noreferrer", target: "_blank" },
-      }),
-      ResizableImage,
-      Placeholder.configure({ placeholder }),
-      Youtube.extend({
-        addStorage() {
-          return {
-            markdown: {
-              serialize(state: any, node: any) {
-                state.write(`![youtube](${node.attrs.src})`);
-                state.closeBlock(node);
-              },
-              parse: {},
-            },
-          };
-        },
-      }).configure({
-        controls: true,
-        nocookie: true,
-      }),
-      TextAlign.configure({
-        types: ["heading", "paragraph"],
-        alignments: ["left", "center", "right", "justify"],
-      }),
-      StyledTextStyle,
-      Color,
-      Highlight.configure({ multicolor: true }),
-      // StyledTable: 셀 스타일이 있으면 HTML로 직렬화해 저장 시 스타일 유지
-      // TipTap ≥3.6: TableView.ignoreMutation 수정으로 resizable과 CellSelection 병행 가능
-      StyledTable.configure({ resizable: true }),
-      TableRow,
-      TableCell.extend({
-        addAttributes() {
-          return {
-            ...this.parent?.(),
-            ...tableCellStyleAttributes,
-          };
-        },
-      }),
-      TableHeader.extend({
-        addAttributes() {
-          return {
-            ...this.parent?.(),
-            ...tableCellStyleAttributes,
-          };
-        },
-      }),
-      HtmlEmbed,
-      MathInline,
-      MathBlock,
-      SlashCommand.configure({
-        getActions: () => slashActionsRef.current,
-      }),
-      ...(searchMentionUsers
-        ? [
-            Mention.extend({
-              addStorage() {
-                return {
-                  markdown: {
-                    serialize(state: any, node: any) {
-                      state.write(`@[${node.attrs.label || ""}](${node.attrs.id || ""})`);
-                    },
-                    parse: {},
-                  },
-                };
-              },
-            }).configure({
-              HTMLAttributes: { class: "mention-chip" },
-              suggestion: createMentionSuggestion(searchMentionUsers),
-            }),
-          ]
-        : []),
-    ],
+    extensions: createMarkdownExtensions({
+      placeholder,
+      searchMentionUsers,
+      getSlashActions: () => slashActionsRef.current,
+    }),
     content: value,
     editorProps: {
       clipboardTextSerializer: serializeClipboardPlainText,
@@ -790,7 +680,7 @@ const MarkdownEditor = ({
           />
           <div className={style.splitDivider} />
           <div className={style.splitPreview}>
-            <MarkdownViewer content={value} allowHtmlApp />
+            <MarkdownWysiwygView content={value} />
           </div>
         </div>
       )}

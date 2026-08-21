@@ -5,6 +5,7 @@ import {
   docKeyFromSearch,
   elementIdFromHash,
   guideBaseFromPathname,
+  guideDocTitle,
   guideHref,
   guideKeyToUrl,
   isGuideInternalHref,
@@ -214,6 +215,13 @@ describe("in-page hash targets", () => {
     expect(queryByHashId(root, "#개요")?.id).toBe("개요");
     expect(queryByHashId(root, "#dm-11-채팅")?.textContent).toBe("DM");
     expect(queryByHashId(root, "#없는-제목")).toBe(null);
+  });
+});
+
+describe("guideDocTitle", () => {
+  test("첫 제목에서 장식 문자를 뺀다", () => {
+    expect(guideDocTitle("# 문서 ⚪\n\n본문")).toBe("문서");
+    expect(guideDocTitle("", "안내")).toBe("안내");
   });
 });
 

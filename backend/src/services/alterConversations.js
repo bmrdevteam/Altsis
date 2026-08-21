@@ -10,6 +10,7 @@ import {
   __NOT_FOUND,
 } from "../messages/index.js";
 import { signUrlForView } from "../_s3/fileBucket.js";
+import { normalizeAlterGuideLinks } from "./alterGuideLinks.js";
 
 const normalizeStoredAttachments = (attachments = []) =>
   (Array.isArray(attachments) ? attachments : [])
@@ -80,6 +81,7 @@ const ALLOWED_PAGE_TYPES = new Set([
   "activity",
   "form-editor",
   "assessment-grade",
+  "guide",
   "general",
   "",
 ]);
@@ -424,6 +426,7 @@ export const appendAlterTurn = async ({
   tokenUsage,
   review,
   draft,
+  links,
   attachments,
   markWorking = false,
 }) => {
@@ -488,6 +491,7 @@ export const appendAlterTurn = async ({
       skill,
       review: review || null,
       draft: draft || null,
+      links: normalizeAlterGuideLinks(links),
       tokenUsage: tokenUsage || undefined,
     });
     created.push(aiDoc.toObject());

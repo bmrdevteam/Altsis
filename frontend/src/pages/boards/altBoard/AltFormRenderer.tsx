@@ -14,7 +14,11 @@ import useRegisterAlterFormResponse from "hooks/useRegisterAlterFormResponse";
 import { useAuth } from "contexts/authContext";
 import Button from "components/button/Button";
 import Svg from "assets/svg/Svg";
-import { MarkdownEditor, MarkdownViewer } from "components/markdown";
+import {
+  MarkdownEditor,
+  MarkdownViewer,
+  MarkdownWysiwygView,
+} from "components/markdown";
 import {
   getApprovalLineSteps,
   normalizeApprovalValue,
@@ -1084,7 +1088,7 @@ const AltFormRenderer = ({
         if (disabled) {
           return (
             <div className={style.contentFieldBody}>
-              <MarkdownViewer content={docValue} allowHtmlApp />
+              <MarkdownWysiwygView content={docValue} />
               {resources}
             </div>
           );

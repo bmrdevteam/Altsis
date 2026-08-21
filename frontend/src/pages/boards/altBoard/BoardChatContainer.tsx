@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useLocation } from "react-router-dom";
 import { io, Socket } from "socket.io-client";
-import { TBoard, TAltBoardRole } from "types/board";
+import { TBoard, TAltBoardRole, TMemberUser } from "types/board";
 import { TChatRoom } from "types/chat";
 import { useAuth } from "contexts/authContext";
 import useAPIv2 from "hooks/useAPIv2";
@@ -12,20 +12,13 @@ import BoardDMPanel from "./BoardDMPanel";
 import MemberInvitePicker from "./MemberInvitePicker";
 import style from "./boardChatContainer.module.scss";
 
-type Member = {
-  user: string;
-  userId: string;
-  userName: string;
-  profile?: string;
-};
-
 type Props = {
   board: TBoard;
   onNewMessage?: () => void;
 };
 
 const BoardChatContainer = ({ board, onNewMessage }: Props) => {
-  const { currentUser } = useAuth();
+  const { currentUser, currentSeason } = useAuth();
   const { BoardAPI, BoardChatAPI } = useAPIv2();
   const [searchParams] = useSearchParams();
   const location = useLocation();
@@ -35,7 +28,7 @@ const BoardChatContainer = ({ board, onNewMessage }: Props) => {
   const suppressEnterUnreadRef = useRef(true);
 
   const [socket, setSocket] = useState<Socket | null>(null);
-  const [members, setMembers] = useState<Member[]>([]);
+  const [members, setMembers] = useState<TMemberUser[]>([]);
   const [rooms, setRooms] = useState<TChatRoom[]>([]);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [chatMode, setChatMode] = useState<"group" | "dm">("group");
@@ -47,7 +40,7 @@ const BoardChatContainer = ({ board, onNewMessage }: Props) => {
 
   // DM state
   const [dmRoomId, setDmRoomId] = useState<string | null>(null);
-  const [dmPartner, setDmPartner] = useState<Member | null>(null);
+  const [dmPartner, setDmPartner] = useState<TMemberUser | null>(null);
   const [navOpen, setNavOpen] = useState(false);
 
   const myRole: TAltBoardRole | null = (() => {
@@ -160,10 +153,13 @@ const BoardChatContainer = ({ board, onNewMessage }: Props) => {
 
   useEffect(() => {
     if (!board._id) return;
-    BoardAPI.RBoardMemberList({ params: { _id: board._id } })
+    BoardAPI.RBoardMemberList({
+      params: { _id: board._id },
+      query: currentSeason?._id ? { season: currentSeason._id } : undefined,
+    })
       .then(({ users }) => setMembers(users))
       .catch(() => {});
-  }, [board._id]);
+  }, [board._id, currentSeason?._id]);
 
   // 채팅 탭에 들어올 때마다 사이드바 stale unread 제거 후 목록 로드
   useEffect(() => {
@@ -207,7 +203,7 @@ const BoardChatContainer = ({ board, onNewMessage }: Props) => {
     );
   };
 
-  const handleDMClick = (member: Member) => {
+  const handleDMClick = (member: TMemberUser) => {
     if (member.user === currentUser?._id) return;
     setDmRoomId(null);
     setDmPartner(member);

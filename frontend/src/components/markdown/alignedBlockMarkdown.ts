@@ -1,3 +1,5 @@
+import { DOMSerializer, type Node as PMNode } from "prosemirror-model";
+
 export const hasNonDefaultTextAlign = (align: unknown): align is string =>
   typeof align === "string" &&
   (align === "center" || align === "right" || align === "justify");
@@ -10,6 +12,43 @@ type MdState = {
 
 type AlignableNode = {
   attrs: { textAlign?: string | null; level?: number };
+  content?: PMNode["content"];
+  type?: { schema?: PMNode["type"]["schema"] };
+};
+
+const headingLevel = (raw: unknown): number => {
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 1 || n > 6) return 1;
+  return n;
+};
+
+/**
+ * HTML 블록 안은 마크다운(**)이 파싱되지 않으므로 인라인 서식도 HTML로 둔다.
+ */
+export const alignedInlineHtml = (node: AlignableNode): string => {
+  const schema = node.type?.schema;
+  if (!schema || node.content == null) return "";
+  const fragment = DOMSerializer.fromSchema(schema).serializeFragment(
+    node.content
+  );
+  const doc = document.implementation.createHTMLDocument("");
+  const container = doc.createElement("div");
+  container.appendChild(fragment);
+  return (container.innerHTML || "").trim();
+};
+
+export const wrapAlignedBlockHtml = (
+  kind: "paragraph" | "heading",
+  align: string,
+  innerHtml: string,
+  level = 1
+): string => {
+  if (!hasNonDefaultTextAlign(align)) return innerHtml;
+  if (kind === "heading") {
+    const tag = `h${headingLevel(level)}`;
+    return `<${tag} style="text-align: ${align}">${innerHtml}</${tag}>`;
+  }
+  return `<p style="text-align: ${align}">${innerHtml}</p>`;
 };
 
 /** 가운데/오른쪽/양쪽 정렬이면 HTML로, 아니면 기본 마크다운으로 직렬화 */
@@ -20,22 +59,19 @@ export const serializeAlignedBlock = (
 ): void => {
   const align = node.attrs.textAlign;
   if (hasNonDefaultTextAlign(align)) {
-    if (kind === "heading") {
-      const level = node.attrs.level || 1;
-      state.write(`<h${level} style="text-align: ${align}">`);
-      state.renderInline(node);
-      state.write(`</h${level}>`);
-    } else {
-      state.write(`<p style="text-align: ${align}">`);
-      state.renderInline(node);
-      state.write("</p>");
-    }
+    state.write(
+      wrapAlignedBlockHtml(
+        kind,
+        align,
+        alignedInlineHtml(node),
+        node.attrs.level
+      )
+    );
     state.closeBlock(node);
     return;
   }
   if (kind === "heading") {
-    const level = node.attrs.level || 1;
-    state.write(`${"#".repeat(level)} `);
+    state.write(`${"#".repeat(headingLevel(node.attrs.level))} `);
   }
   state.renderInline(node);
   state.closeBlock(node);

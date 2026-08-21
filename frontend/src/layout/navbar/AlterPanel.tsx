@@ -53,6 +53,8 @@ import {
   activityFormTypeLabel,
   adminFormTypeLabel,
   useAlterGuidelineLibrary,
+  AlterGuideLinks,
+  type TAlterGuideLink,
   type TAlterDraftResult,
   type TAlterDocumentReviewResult,
 } from "./alterUi";
@@ -103,6 +105,7 @@ type ChatMessage = {
   skill?: string;
   draft?: TAlterDraftResult | null;
   review?: TAlterDocumentReviewResult | null;
+  links?: TAlterGuideLink[];
   createdAt?: string;
   /** 전송 직후 말풍선에 바로 보이는 첨부(미리보기) */
   attachments?: TAlterAttachment[];
@@ -1099,6 +1102,7 @@ const AlterPanel = ({ onClose }: Props) => {
         skill?: string;
         review?: any;
         draft?: any;
+        links?: TAlterGuideLink[];
         createdAt?: string;
         attachments?: Array<{
           kind: "text" | "image";
@@ -1140,6 +1144,7 @@ const AlterPanel = ({ onClose }: Props) => {
             skill: m.skill,
             review: m.review || null,
             draft: m.draft || null,
+            links: m.links,
             createdAt: m.createdAt,
             attachments: attachments.length > 0 ? attachments : undefined,
           };
@@ -1324,6 +1329,7 @@ const AlterPanel = ({ onClose }: Props) => {
     message?: string;
     skill?: string;
     conversationId?: string | null;
+    links?: TAlterGuideLink[];
   }> => {
     if (!response.ok || !response.body) {
       throw new Error("AI 요청에 실패했습니다.");
@@ -1337,6 +1343,7 @@ const AlterPanel = ({ onClose }: Props) => {
       message?: string;
       skill?: string;
       conversationId?: string | null;
+      links?: TAlterGuideLink[];
     } = {};
     let errMsg = "";
 
@@ -1369,6 +1376,7 @@ const AlterPanel = ({ onClose }: Props) => {
                 message: data.message || data.text || "",
                 skill: data.skill,
                 conversationId: data.conversationId || null,
+                links: data.links || [],
               };
             }
           } catch {
@@ -1801,6 +1809,7 @@ const AlterPanel = ({ onClose }: Props) => {
             skill: result.skill || skill,
             draft: result.draft,
             review: result.review || null,
+            links: result.links,
             createdAt: new Date().toISOString(),
           },
         ]);
@@ -1826,6 +1835,7 @@ const AlterPanel = ({ onClose }: Props) => {
             skill: data.skill || skill,
             draft: data.draft,
             review: data.review || null,
+            links: data.links,
             createdAt: new Date().toISOString(),
           },
         ]);
@@ -2674,7 +2684,9 @@ const AlterPanel = ({ onClose }: Props) => {
                           ? "캘린더"
                           : pageContext?.pageType === "sheet"
                             ? "응답 기록"
-                            : "일반");
+                            : pageContext?.pageType === "guide"
+                              ? "Altsis 안내"
+                              : "일반");
 
   const inSyllabusPrep = showPrep && selectedSkill === "syllabus-draft";
   const inEvalPrep = showPrep && selectedSkill === "evaluation-draft";
@@ -3356,6 +3368,9 @@ const AlterPanel = ({ onClose }: Props) => {
               pageContext={pageContext}
               onApply={applyDraft}
             />
+            {msg.role === "assistant" ? (
+              <AlterGuideLinks links={msg.links} />
+            ) : null}
           </ChatMessageBubble>
         ))}
 

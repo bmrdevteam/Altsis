@@ -1,8 +1,15 @@
 import { ReactNode } from "react";
 import Svg from "assets/svg/Svg";
-import mergeStyle from "components/mergeFilter/mergeFilter.module.scss";
+import { DateRange } from "components/dateRangeFilter/DateRangeFilterDropdown";
+import MergeStyleFilterBar, {
+  type MergeFilterField,
+} from "components/mergeFilter/MergeStyleFilterBar";
 import bStyle from "../boards.module.scss";
 import style from "./altBoard.module.scss";
+import {
+  hasSheetFieldFilters,
+  RESPONDENT_FILTER_KEY,
+} from "./sheetRowFilter";
 
 export type TSheetColumnChip = {
   fieldId: string;
@@ -30,6 +37,12 @@ type Props = {
   keyword: string;
   onKeywordChange: (value: string) => void;
   keywordPlaceholder?: string;
+  filterFields: MergeFilterField[];
+  textFilters: Record<string, string>;
+  onTextFilterChange: (key: string, value: string) => void;
+  dateFilters: Record<string, DateRange>;
+  onDateFilterChange: (key: string, range: DateRange) => void;
+  onClearKeywordAndFieldFilters: () => void;
   columns: TSheetColumnChip[];
   /** 숨긴 필드 id 집합 — 칩이 꺼진 상태 */
   hiddenColumns: Set<string>;
@@ -47,13 +60,19 @@ const ChipIcon = ({ type }: { type: string }) => (
 );
 
 /**
- * 검색 + 항목 표시 on/off 칩 + 정렬
+ * 검색 + 항목별 세부 필터 + 항목 표시 칩 + 정렬
  * 칩은 행 필터가 아니라 컬럼(항목) 표시 여부를 토글한다.
  */
 const SheetDetailFilterBar = ({
   keyword,
   onKeywordChange,
   keywordPlaceholder = "키워드 검색",
+  filterFields,
+  textFilters,
+  onTextFilterChange,
+  dateFilters,
+  onDateFilterChange,
+  onClearKeywordAndFieldFilters,
   columns,
   hiddenColumns,
   onToggleColumn,
@@ -64,24 +83,23 @@ const SheetDetailFilterBar = ({
 }: Props) => {
   const hasHidden = hiddenColumns.size > 0;
   const allVisible = !hasHidden;
+  const hasFieldFilters = hasSheetFieldFilters(textFilters, dateFilters);
 
   return (
     <div className={bStyle.activityFilterBlock}>
-      <div className={mergeStyle.mergeSearchBar}>
-        <div className={mergeStyle.mergeSearchInputWrap}>
-          <span className={mergeStyle.mergeSearchIcon}>
-            <Svg type="search" width="18px" height="18px" />
-          </span>
-          <input
-            className={mergeStyle.mergeSearchInput}
-            type="search"
-            aria-label="키워드 검색"
-            placeholder={keywordPlaceholder}
-            value={keyword}
-            onChange={(e) => onKeywordChange(e.target.value)}
-          />
-        </div>
-      </div>
+      <MergeStyleFilterBar
+        keyword={keyword}
+        onKeywordChange={onKeywordChange}
+        keywordPlaceholder={keywordPlaceholder}
+        textFilters={textFilters}
+        onTextFilterChange={onTextFilterChange}
+        dateFilters={dateFilters}
+        onDateFilterChange={onDateFilterChange}
+        fields={filterFields}
+        respondentFilterKey={RESPONDENT_FILTER_KEY}
+        showRespondentFilter
+        onClear={onClearKeywordAndFieldFilters}
+      />
 
       <div className={style.sheetFilterChipRow}>
         <div
@@ -122,7 +140,7 @@ const SheetDetailFilterBar = ({
               </button>
             );
           })}
-          {(hasSearchOrSort || hasHidden) && (
+          {(hasSearchOrSort || hasHidden || hasFieldFilters) && (
             <button
               type="button"
               className={bStyle.filterChipReset}

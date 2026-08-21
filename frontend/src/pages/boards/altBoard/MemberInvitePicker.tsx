@@ -1,15 +1,10 @@
 import { useMemo, useState } from "react";
+import { TMemberUser } from "types/board";
+import { formatMemberIdentity, memberMatchesQuery } from "./memberLabel";
 import style from "./boardChatContainer.module.scss";
 
-type Member = {
-  user: string;
-  userId: string;
-  userName: string;
-  profile?: string;
-};
-
 type Props = {
-  members: Member[];
+  members: TMemberUser[];
   selectedIds: string[];
   onChange: (ids: string[]) => void;
   emptyText?: string;
@@ -24,13 +19,8 @@ const MemberInvitePicker = ({
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return members;
-    return members.filter(
-      (m) =>
-        m.userName.toLowerCase().includes(q) ||
-        m.userId.toLowerCase().includes(q)
-    );
+    if (!query.trim()) return members;
+    return members.filter((m) => memberMatchesQuery(m, query));
   }, [members, query]);
 
   const filteredIds = filtered.map((m) => m.user);
@@ -72,8 +62,8 @@ const MemberInvitePicker = ({
         type="search"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="이름 검색"
-        aria-label="멤버 검색"
+        placeholder="이름·아이디·역할·학년·그룹 검색"
+        aria-label="멤버 검색 (이름, 아이디, 역할, 학년, 그룹)"
       />
       <div className={style.member_picker_toolbar}>
         <label className={style.member_check_item}>
@@ -106,7 +96,7 @@ const MemberInvitePicker = ({
                 checked={selectedIds.includes(member.user)}
                 onChange={() => toggleOne(member.user)}
               />
-              <span>{member.userName}</span>
+              <span>{formatMemberIdentity(member)}</span>
             </label>
           ))
         )}

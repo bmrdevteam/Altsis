@@ -1,6 +1,7 @@
 import {
   detectAlterHowtoIntent,
   hasAlterConsultIntent,
+  hasAlterProductIntent,
   hasAlterWorkIntent,
 } from "../../src/services/alterCorePrompt.js";
 
@@ -49,6 +50,20 @@ describe("hasAlterConsultIntent", () => {
   });
 });
 
+describe("hasAlterProductIntent", () => {
+  test("Altsis·메뉴·차이·위치 질문이면 true", () => {
+    expect(hasAlterProductIntent("Altsis가 뭐야")).toBe(true);
+    expect(hasAlterProductIntent("보드랑 문서 차이")).toBe(true);
+    expect(hasAlterProductIntent("기록은 어디서")).toBe(true);
+    expect(hasAlterProductIntent("문서 메뉴는 뭐야")).toBe(true);
+  });
+
+  test("초안 실행만 있으면 false", () => {
+    expect(hasAlterProductIntent("평가 초안 작성해 줘")).toBe(false);
+    expect(hasAlterProductIntent("문서 다듬어줘")).toBe(false);
+  });
+});
+
 describe("detectAlterHowtoIntent", () => {
   test("강한 사용법 신호면 true", () => {
     expect(detectAlterHowtoIntent("Alter 사용법")).toBe(true);
@@ -58,6 +73,12 @@ describe("detectAlterHowtoIntent", () => {
     expect(detectAlterHowtoIntent("/도움말")).toBe(true);
     expect(detectAlterHowtoIntent("/사용법")).toBe(true);
     expect(detectAlterHowtoIntent("Alter가 뭐야")).toBe(true);
+  });
+
+  test("제품 질문이면 true", () => {
+    expect(detectAlterHowtoIntent("Altsis가 뭐야")).toBe(true);
+    expect(detectAlterHowtoIntent("보드랑 문서 차이")).toBe(true);
+    expect(detectAlterHowtoIntent("기록은 어디서")).toBe(true);
   });
 
   test("업무 해결 상담이면 true", () => {
