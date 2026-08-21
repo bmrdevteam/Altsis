@@ -604,6 +604,23 @@ const useEditorStore = create<EditorStore>()(
       }
       return 1;
     },
+
+    applyFormDraft: ({ title, blocks }) => {
+      if (!Array.isArray(blocks) || blocks.length === 0) {
+        return { applied: false };
+      }
+      set((state) => {
+        const nextTitle = String(title || "").trim();
+        if (nextTitle) state.title = nextTitle;
+        state.blocks = blocks;
+        state.selectedBlockId = null;
+        state.selectedCellPosition = null;
+        state.selectedCellRange = null;
+        state.isDirty = true;
+      });
+      get().saveSnapshot();
+      return { applied: true };
+    },
   }))
 );
 

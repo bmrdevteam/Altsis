@@ -29,8 +29,9 @@ cd Altsis
 ```bash
 cd backend
 yarn install
-yarn global add cross-env && yarn global add nodemon
 ```
+
+`nodemon`이 없으면 `yarn global add nodemon` 또는 `npx`로 실행합니다. `cross-env`는 백엔드 의존성에 있습니다.
 
 `backend/.env` 파일을 생성합니다.
 

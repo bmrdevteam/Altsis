@@ -39,6 +39,7 @@ import {
   isAssessmentGradeDraft,
   isDocumentDraft,
   isEvalDraft,
+  isFormDraft,
   isFormResponseDraft,
   isSyllabusDraft,
   prepKindFromSkill,
@@ -50,6 +51,7 @@ import {
   shouldDefaultCollapsePrep,
   docTypeLabel,
   activityFormTypeLabel,
+  adminFormTypeLabel,
   useAlterGuidelineLibrary,
   type TAlterDraftResult,
   type TAlterDocumentReviewResult,
@@ -115,6 +117,7 @@ const SKILL_LABEL: Record<TAlterSkillId, string> = {
   "document-review": "문서 점검",
   "form-response-draft": "응답",
   "activity-draft": "활동",
+  "form-draft": "양식",
   "assessment-grade": "채점",
 };
 
@@ -126,6 +129,7 @@ const isDraftPrepSkill = (skill: TAlterSkillId) =>
   skill === "document-review" ||
   skill === "form-response-draft" ||
   skill === "activity-draft" ||
+  skill === "form-draft" ||
   skill === "assessment-grade";
 
 const formatBubbleTime = (dateString?: string) => {
@@ -210,8 +214,13 @@ const wantsFormResponseDraftText = (text: string) =>
 const wantsActivityDraftText = (text: string) =>
   /활동.*(초안|작성|다듬|양식)/.test(text) ||
   /(초안|작성|다듬).*활동/.test(text) ||
-  /양식.*(초안|작성)/.test(text) ||
-  /\/(활동|양식|activity[-_]?draft)/i.test(text);
+  /\/(활동|activity[-_]?draft)/i.test(text);
+
+const wantsFormDraftText = (text: string) =>
+  /\/(양식|form[-_]?draft)/i.test(text) ||
+  /(시간표|출력)\s*양식/.test(text) ||
+  /강의계획서\s*양식/.test(text) ||
+  (/양식.*(초안|작성|다듬)/.test(text) && !/활동/.test(text));
 
 /** 요청 Skill에 맞게 history를 줄여 문맥 오염을 막는다 */
 const buildHistoryForSkill = (
@@ -347,6 +356,10 @@ const AlterPanel = ({ onClose }: Props) => {
   >("create");
   const [activityFormType, setActivityFormType] = useState("general");
 
+  const [formWriteMode, setFormWriteMode] = useState<"create" | "refine">(
+    "create"
+  );
+
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [conversationTitle, setConversationTitle] = useState("새 대화");
   const [conversations, setConversations] = useState<TAlterConversation[]>([]);
@@ -426,6 +439,9 @@ const AlterPanel = ({ onClose }: Props) => {
     activityGuidelineItems,
     activitySelectedGuidelineIds,
     setActivitySelectedGuidelineIds,
+    formGuidelineItems,
+    formSelectedGuidelineIds,
+    setFormSelectedGuidelineIds,
   } = useAlterGuidelineLibrary({
     isOpen,
     seasonId: currentSeason?._id,
@@ -526,6 +542,24 @@ const AlterPanel = ({ onClose }: Props) => {
     setActivityWriteMode("create");
     setActivityFormType("general");
     setActivitySelectedGuidelineIds([]);
+    const formSnapAdmin = pageContext?.getForm?.();
+    const hasFormBlocks = (formSnapAdmin?.blocks || []).some((b) => {
+      if (b?.type === "table") {
+        return Array.isArray((b.data as { table?: unknown[] })?.table)
+          ? ((b.data as { table?: unknown[] }).table || []).length > 0
+          : false;
+      }
+      if (b?.type === "paragraph") {
+        return !!String((b.data as { text?: string })?.text || "").trim();
+      }
+      return b?.type && b.type !== "paragraph";
+    });
+    setFormWriteMode(
+      pageContext?.pageType === "form-editor" && hasFormBlocks
+        ? "refine"
+        : "create"
+    );
+    setFormSelectedGuidelineIds([]);
     setGradeFillEmptyOnly(false);
   }, [
     allEvalLabels,
@@ -930,6 +964,26 @@ const AlterPanel = ({ onClose }: Props) => {
         currentSettings: current.settings || {},
         currentRubrics: current.rubrics || [],
         currentAccess: current.access || undefined,
+        sourceText: attachmentText,
+        attachments,
+      };
+    }
+    if (skill === "form-draft") {
+      const current = pageContext?.getForm?.() || {
+        formId: "",
+        title: "",
+        formType: "timetable",
+        blocks: [],
+      };
+      return {
+        pageType: "form-editor",
+        label: pageContext?.label || "",
+        writeMode: formWriteMode,
+        formType: current.formType || "timetable",
+        formId: current.formId || "",
+        guidelineItemIds: formSelectedGuidelineIds,
+        currentTitle: current.title || "",
+        currentBlocks: current.blocks || [],
         sourceText: attachmentText,
         attachments,
       };
@@ -1505,6 +1559,40 @@ const AlterPanel = ({ onClose }: Props) => {
       }
     }
 
+    if (skill === "form-draft") {
+      if (pageContext?.pageType !== "form-editor") {
+        setError("관리자 양식 화면에서 초안을 작성할 수 있습니다.");
+        return;
+      }
+      if (!pageContext?.applyFormDraft) {
+        setError("양식 문서를 연 뒤 초안을 작성할 수 있습니다.");
+        return;
+      }
+      const current = pageContext?.getForm?.() || {
+        title: "",
+        blocks: [],
+      };
+      if (
+        formWriteMode === "create" &&
+        !userText.trim() &&
+        sourceAttachments.length === 0
+      ) {
+        setError("초안에 쓸 정보를 입력하거나 파일을 첨부해 주세요.");
+        return;
+      }
+      if (
+        formWriteMode === "refine" &&
+        !(current.blocks || []).length &&
+        !userText.trim() &&
+        sourceAttachments.length === 0
+      ) {
+        setError(
+          "다듬을 양식이 없습니다. 에디터에 내용을 쓰거나 요청을 입력해 주세요."
+        );
+        return;
+      }
+    }
+
     if (skill === "assessment-grade") {
       if (pageContext?.pageType !== "assessment-grade") {
         setError("평가 기록 문서 보기에서 채점할 수 있습니다.");
@@ -1864,6 +1952,21 @@ const AlterPanel = ({ onClose }: Props) => {
       return;
     }
     if (
+      selectedSkill === "form-draft" ||
+      (showPrep && pageContext?.pageType === "form-editor")
+    ) {
+      const text = combinedSourceText();
+      void runSkill(
+        "form-draft",
+        text ||
+          (formWriteMode === "refine"
+            ? "요청한 부분만 수정해 주세요."
+            : "양식 문서 초안을 작성해 주세요.")
+      );
+      setDraft("");
+      return;
+    }
+    if (
       selectedSkill === "assessment-grade" ||
       (showPrep && pageContext?.pageType === "assessment-grade")
     ) {
@@ -1911,6 +2014,9 @@ const AlterPanel = ({ onClose }: Props) => {
       if (wantsActivityDraftText(text) && pageType === "activity") {
         return "activity-draft";
       }
+      if (wantsFormDraftText(text) && pageType === "form-editor") {
+        return "form-draft";
+      }
       if (/채점/.test(text) && pageType === "assessment-grade") {
         return "assessment-grade";
       }
@@ -1955,6 +2061,9 @@ const AlterPanel = ({ onClose }: Props) => {
     }
     if (selectedSkill === "activity-draft" && pageType === "activity") {
       return "activity-draft";
+    }
+    if (selectedSkill === "form-draft" && pageType === "form-editor") {
+      return "form-draft";
     }
     if (
       selectedSkill === "assessment-grade" &&
@@ -2315,6 +2424,40 @@ const AlterPanel = ({ onClose }: Props) => {
       return;
     }
 
+    if (isFormDraft(draftResult)) {
+      if (!pageContext?.applyFormDraft) {
+        setError("양식 문서를 연 뒤 초안을 반영할 수 있습니다.");
+        return;
+      }
+      const result = pageContext.applyFormDraft({
+        title: draftResult.title,
+        writeMode: draftResult.writeMode,
+        formType: draftResult.formType,
+        blocks: draftResult.blocks,
+        ops: draftResult.ops,
+      });
+      setAppliedDraftIds((prev) => new Set(prev).add(msgId));
+      if (!result.applied) {
+        setError("반영할 양식 초안이 없었습니다.");
+      } else {
+        setError("");
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `a-applied-${Date.now()}`,
+            role: "assistant",
+            content:
+              draftResult.writeMode === "refine"
+                ? "요청한 부분만 에디터에 반영했습니다. 확인한 뒤 저장해 주세요."
+                : "양식 초안을 에디터에 반영했습니다. 확인·수정한 뒤 저장해 주세요.",
+            skill: "form-draft",
+            createdAt: new Date().toISOString(),
+          },
+        ]);
+      }
+      return;
+    }
+
     if (isAssessmentGradeDraft(draftResult)) {
       if (!pageContext?.applyGradeDraft) return;
       const result = pageContext.applyGradeDraft(
@@ -2521,7 +2664,9 @@ const AlterPanel = ({ onClose }: Props) => {
                   ? "응답"
                   : pageContext?.pageType === "activity"
                     ? "활동"
-                    : pageContext?.pageType === "assessment-grade"
+                    : pageContext?.pageType === "form-editor"
+                      ? "양식"
+                      : pageContext?.pageType === "assessment-grade"
                       ? "채점"
                       : pageContext?.pageType === "course-list"
                         ? "수업 목록"
@@ -2539,6 +2684,7 @@ const AlterPanel = ({ onClose }: Props) => {
   const inFormResponsePrep =
     showPrep && selectedSkill === "form-response-draft";
   const inActivityPrep = showPrep && selectedSkill === "activity-draft";
+  const inFormPrep = showPrep && selectedSkill === "form-draft";
   const inGradePrep = showPrep && selectedSkill === "assessment-grade";
   const inPrep =
     inSyllabusPrep ||
@@ -2548,6 +2694,7 @@ const AlterPanel = ({ onClose }: Props) => {
     inDocReviewPrep ||
     inFormResponsePrep ||
     inActivityPrep ||
+    inFormPrep ||
     inGradePrep;
 
   const prepKind = prepKindFromSkill(showPrep, selectedSkill);
@@ -2614,6 +2761,10 @@ const AlterPanel = ({ onClose }: Props) => {
     formResponseFillEmptyOnly,
     activityFormTypeLabel: activityFormTypeLabel(activityFormType),
     activityWriteMode,
+    formWriteMode,
+    formTypeLabel: adminFormTypeLabel(
+      pageContext?.getForm?.()?.formType || ""
+    ),
     gradeFillEmptyOnly,
     gradeLabel: pageContext?.label,
     guidelineCount:
@@ -3359,6 +3510,14 @@ const AlterPanel = ({ onClose }: Props) => {
               activityGuidelineItems={activityGuidelineItems}
               activitySelectedGuidelineIds={activitySelectedGuidelineIds}
               setActivitySelectedGuidelineIds={setActivitySelectedGuidelineIds}
+              formWriteMode={formWriteMode}
+              setFormWriteMode={setFormWriteMode}
+              formTypeLabel={adminFormTypeLabel(
+                pageContext?.getForm?.()?.formType || ""
+              )}
+              formGuidelineItems={formGuidelineItems}
+              formSelectedGuidelineIds={formSelectedGuidelineIds}
+              setFormSelectedGuidelineIds={setFormSelectedGuidelineIds}
               gradeFillEmptyOnly={gradeFillEmptyOnly}
               setGradeFillEmptyOnly={setGradeFillEmptyOnly}
             />
@@ -3384,7 +3543,8 @@ const AlterPanel = ({ onClose }: Props) => {
             (inSyllabusPrep ||
             (inDocPrep && docWriteMode === "create") ||
             (inFormResponsePrep && formResponseWriteMode === "create") ||
-            (inActivityPrep && activityWriteMode === "create")
+            (inActivityPrep && activityWriteMode === "create") ||
+            (inFormPrep && formWriteMode === "create")
               ? isWorking ||
                 attachUploading ||
                 (!draft.trim() && sourceAttachments.length === 0)
@@ -3399,7 +3559,8 @@ const AlterPanel = ({ onClose }: Props) => {
             (inSyllabusPrep ||
             (inDocPrep && docWriteMode === "create") ||
             (inFormResponsePrep && formResponseWriteMode === "create") ||
-            (inActivityPrep && activityWriteMode === "create")
+            (inActivityPrep && activityWriteMode === "create") ||
+            (inFormPrep && formWriteMode === "create")
               ? !isWorking &&
                 !attachUploading &&
                 (!!draft.trim() || sourceAttachments.length > 0)
@@ -3420,6 +3581,7 @@ const AlterPanel = ({ onClose }: Props) => {
             inDocReviewPrep ||
             inFormResponsePrep ||
             inActivityPrep ||
+            inFormPrep ||
             inGradePrep
           }
           centerHint={undefined}
@@ -3432,7 +3594,11 @@ const AlterPanel = ({ onClose }: Props) => {
                   ? activityWriteMode === "refine"
                     ? "예: 객관식 3문항 추가, 서술형 필드 하나 더"
                     : "예: 수학 복습 퀴즈 5문항, 객관식+단답, 필수 응답"
-                  : inFormResponsePrep
+                  : inFormPrep
+                    ? formWriteMode === "refine"
+                      ? "예: 목요일 저녁만 자율로 바꿔 주세요"
+                      : "예: 월~금 0~10교시, 점심 12:10, 선택 칸은 체크박스"
+                    : inFormResponsePrep
                     ? formResponseWriteMode === "refine"
                       ? "예: 문장을 공손하게, 빈 칸 위주로 채워 주세요"
                       : "예: 목적·일정·필요 내용을 적어 주세요"

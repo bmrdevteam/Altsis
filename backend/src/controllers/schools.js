@@ -71,6 +71,7 @@ const VALID_SKILL_IDS = [
   "document-review",
   "form-response-draft",
   "activity-draft",
+  "form-draft",
   "assessment-grade",
 ];
 const LEGACY_SKILL_IDS = { "syllabus-review": "syllabus-draft" };

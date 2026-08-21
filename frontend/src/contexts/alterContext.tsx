@@ -19,6 +19,7 @@ import type {
   TAlterChatSnapshotItem,
 } from "utils/alterChatSnapshot";
 import type { TActivityDraftAccess } from "utils/activityDraft";
+import type { TFormDraftOp } from "utils/formDraftApply";
 
 export type { TAlterChatSnapshot, TAlterChatSnapshotItem };
 
@@ -31,6 +32,7 @@ export type TAlterSkillId =
   | "document-review"
   | "form-response-draft"
   | "activity-draft"
+  | "form-draft"
   | "assessment-grade";
 
 export type TAlterReviewDocument = {
@@ -158,6 +160,21 @@ export type TAlterFormResponseDraft = {
   writeMode?: "create" | "refine";
 };
 
+export type TAlterFormDraft = {
+  title?: string;
+  writeMode?: "create" | "refine";
+  formType?: string;
+  blocks?: any[];
+  ops?: TFormDraftOp[];
+};
+
+export type TAlterFormSnapshot = {
+  formId: string;
+  title: string;
+  formType: "timetable" | "syllabus" | "print" | "other" | string;
+  blocks: any[];
+};
+
 export type TAlterPageContext = {
   pageType:
     | "syllabus-edit"
@@ -168,6 +185,7 @@ export type TAlterPageContext = {
     | "docs"
     | "form-response"
     | "activity"
+    | "form-editor"
     | "assessment-grade"
     | "course-list"
     | "calendar"
@@ -226,6 +244,8 @@ export type TAlterPageContext = {
   applyActivityDraft?: (
     draft: TAlterActivityDraft
   ) => { applied: boolean };
+  getForm?: () => TAlterFormSnapshot;
+  applyFormDraft?: (draft: TAlterFormDraft) => { applied: boolean };
   getAssessmentGradeContext?: () => TAlterAssessmentGradeContext;
   applyGradeDraft?: (
     draft: TAlterAssessmentGradeDraft,

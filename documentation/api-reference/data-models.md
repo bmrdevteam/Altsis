@@ -549,16 +549,16 @@ FormArchiveItem과 동일한 구조에 `deletedAt` 필드가 추가됩니다.
 | `school` | `ObjectId` | O | - | 학교 `_id` |
 | `schoolId` | `String` | O | - | 학교 ID |
 | `schoolName` | `String` | O | - | 학교 이름 |
-| `name` | `String` | O | - | 게시판 이름 |
+| `name` | `String` | O | - | 보드 이름 |
 | `slug` | `String` | O | - | URL 슬러그 |
-| `description` | `String` | X | `""` | 게시판 설명 |
+| `description` | `String` | X | `""` | 보드 설명 |
 | `creator` | `ObjectId` | X | - | 생성자 `_id` |
 | `creatorId` | `String` | X | - | 생성자 사용자 ID |
 | `creatorName` | `String` | X | - | 생성자 이름 |
 | `permissionWrite` | `Object` | X | `{manager:true, teacher:true, student:false}` | 게시글 작성 권한 |
 | `permissionRead` | `Object` | X | `{manager:true, teacher:true, student:true}` | 게시글 읽기 권한 |
 | `permissionComment` | `Object` | X | `{manager:true, teacher:true, student:true}` | 댓글 작성 권한 |
-| `isDefault` | `Boolean` | X | `false` | 기본 게시판 (공지사항) 여부 |
+| `isDefault` | `Boolean` | X | `false` | 기본 보드 여부 |
 | `isActive` | `Boolean` | X | `true` | 활성화 상태 |
 | `order` | `Number` | X | `0` | 정렬 순서 |
 | `postCount` | `Number` | X | `0` | 게시글 수 |
@@ -578,7 +578,7 @@ FormArchiveItem과 동일한 구조에 `deletedAt` 필드가 추가됩니다.
 
 ## Post (게시글)
 
-게시판의 게시글을 관리합니다.
+보드의 게시글을 관리합니다.
 
 > **파일**: `backend/src/models/Post.js`
 > **DB**: 아카데미 데이터베이스
@@ -596,7 +596,7 @@ FormArchiveItem과 동일한 구조에 `deletedAt` 필드가 추가됩니다.
 | 필드 | 타입 | 필수 | 기본값 | 설명 |
 |------|------|------|--------|------|
 | `_id` | `ObjectId` | 자동 | - | MongoDB 기본 키 |
-| `board` | `ObjectId` | O | - | 게시판 `_id` |
+| `board` | `ObjectId` | O | - | 보드 `_id` |
 | `author` | `ObjectId` | O | - | 작성자 `_id` |
 | `authorId` | `String` | O | - | 작성자 사용자 ID |
 | `authorName` | `String` | O | - | 작성자 이름 |

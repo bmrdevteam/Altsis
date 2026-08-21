@@ -6,6 +6,7 @@ import ApplyDraftButton from "./ApplyDraftButton";
 import DraftResultCard, { draftMetaVariantClass } from "./DraftResultCard";
 import {
   activityFormTypeLabel,
+  adminFormTypeLabel,
   docTypeLabel,
   REVIEW_LEVEL_LABEL,
   reviewLevelToVariant,
@@ -20,6 +21,7 @@ import {
   isAssessmentGradeDraft,
   isDocumentDraft,
   isEvalDraft,
+  isFormDraft,
   isFormResponseDraft,
   isSyllabusDraft,
   TAlterDraftResult,
@@ -599,6 +601,60 @@ const SkillDraftResult = ({
         />
         {fields.length > 12 ? (
           <p className={style.prepMuted}>외 {fields.length - 12}개 필드</p>
+        ) : null}
+      </DraftResultCard>
+    );
+  }
+
+  if (draft && isFormDraft(draft)) {
+    const typeLabel = adminFormTypeLabel(draft.formType);
+    const blockCount = (draft.blocks || []).length;
+    const opCount = (draft.ops || []).length;
+    const isRefine = draft.writeMode === "refine";
+    const lines = isRefine
+      ? (draft.ops || []).slice(0, 12).map((op, i) => {
+          const name = String((op as { op?: string }).op || "수정");
+          const blockId = String((op as { blockId?: string }).blockId || "");
+          return `${i + 1}. ${name}${blockId ? ` · ${blockId.slice(0, 10)}` : ""}`;
+        })
+      : (draft.blocks || []).slice(0, 12).map((b, i) => {
+          const t = String(b.type || "block");
+          return `${i + 1}. ${t}`;
+        });
+    return (
+      <DraftResultCard
+        title="양식 초안 미리보기"
+        meta={{
+          label: isRefine ? "부분 수정" : "새 작성",
+          variant: "neutral",
+        }}
+        summary={
+          <>
+            제목: {draft.title || "-"}
+            {typeLabel ? ` · ${typeLabel}` : ""}
+            {isRefine ? ` · ${opCount}곳` : ` · 블록 ${blockCount}개`}
+          </>
+        }
+        actions={
+          <ApplyDraftButton
+            draft={draft}
+            applied={applied}
+            visible={!!pageContext?.applyFormDraft}
+            onClick={() => onApply(msgId, draft)}
+          />
+        }
+      >
+        <div className={style.draftPreviewList}>
+          {lines.map((line) => (
+            <p key={line} className={style.draftFieldValue}>
+              {line}
+            </p>
+          ))}
+        </div>
+        {(isRefine ? opCount : blockCount) > 12 ? (
+          <p className={style.prepMuted}>
+            외 {(isRefine ? opCount : blockCount) - 12}개
+          </p>
         ) : null}
       </DraftResultCard>
     );

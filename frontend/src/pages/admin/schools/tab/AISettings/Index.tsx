@@ -57,6 +57,11 @@ const SKILLS: Array<{ id: TAlterSkillId; label: string; hint: string }> = [
     label: "활동",
     hint: "보드 활동(양식) 초안 작성에 적용할 라이브러리 항목을 선택합니다.",
   },
+  {
+    id: "form-draft",
+    label: "양식",
+    hint: "관리자 양식(시간표·강의계획서·출력) 초안 작성에 적용할 라이브러리 항목을 선택합니다.",
+  },
 ];
 
 const defaultAiConfig = (): TSchoolAiConfig => ({

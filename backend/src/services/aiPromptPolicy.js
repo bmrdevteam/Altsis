@@ -132,6 +132,12 @@ export const PROMPT_LIMITS = {
   ACTIVITY_DRAFT_TITLE_CHARS: 120,
   /** 활동 초안: 설명 최대 글자 */
   ACTIVITY_DRAFT_DESCRIPTION_CHARS: 2000,
+  /** 관리자 양식 초안: 현재 문서 compact JSON 최대 글자 */
+  FORM_DRAFT_CURRENT_CHARS: 18000,
+  /** 관리자 양식 초안: 첨부/자료 최대 글자 */
+  FORM_DRAFT_SOURCE_CHARS: 12000,
+  /** 관리자 양식 초안: 교사 요청 문구 최대 글자 */
+  FORM_DRAFT_USER_HINT_CHARS: 2000,
   /** 채점 초안: 응답/루브릭 컨텍스트 최대 글자 */
   ASSESSMENT_GRADE_CONTEXT_CHARS: 14000,
   /** 채점 초안: 교사 요청 문구 최대 글자 */
@@ -194,6 +200,11 @@ export const FEATURE_PROFILES = {
     feature: "activity_draft",
     temperature: 0.4,
     maxTokens: 8192,
+  },
+  formDraft: {
+    feature: "form_draft",
+    temperature: 0.35,
+    maxTokens: 12288,
   },
   assessmentGrade: {
     feature: "assessment_grade",

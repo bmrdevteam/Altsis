@@ -78,6 +78,7 @@ const ALLOWED_PAGE_TYPES = new Set([
   "document",
   "form-response",
   "activity",
+  "form-editor",
   "assessment-grade",
   "general",
   "",

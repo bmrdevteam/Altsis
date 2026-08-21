@@ -220,6 +220,8 @@ describe("in-page hash targets", () => {
 describe("generated snapshot", () => {
   test("includes INDEX and extra manuals", () => {
     expect(GUIDE_DOCS["INDEX.md"]).toContain("Altsis 공식 문서");
+    expect(GUIDE_DOCS["user-guide/docs.md"]).toBeTruthy();
+    expect(GUIDE_DOCS["user-guide/goals.md"]).toBeTruthy();
     expect(GUIDE_DOCS["docs/alt-board-form-manual.md"]).toBeTruthy();
     expect(GUIDE_DOCS["docs/reservation-feature-design.md"]).toBeTruthy();
   });
@@ -234,6 +236,8 @@ describe("generated snapshot", () => {
       expect.arrayContaining(["시작하기", "관리자 가이드", "사용자 가이드"])
     );
     const extra = toc.flatMap((s) => s.items).map((i) => i.key);
+    expect(extra).toContain("user-guide/docs.md");
+    expect(extra).toContain("user-guide/goals.md");
     expect(extra).toContain("docs/alt-board-form-manual.md");
   });
 });

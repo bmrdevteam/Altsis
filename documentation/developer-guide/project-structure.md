@@ -72,7 +72,7 @@ backend/src/
 │   ├── archives.js           # 기록물 관리
 │   ├── boardChats.js         # 보드 채팅
 │   ├── boardFavorites.js     # 보드 즐겨찾기
-│   ├── boards.js             # 게시판 관리
+│   ├── boards.js             # 보드 관리
 │   ├── calendarEvents.js     # 캘린더 이벤트
 │   ├── chats.js              # 채팅
 │   ├── comments.js           # 댓글
@@ -134,7 +134,7 @@ backend/src/
 │   ├── AltSheetRow.js        # Alt Sheet Row (시트 행)
 │   ├── Apps.js               # 외부 앱
 │   ├── Archive.js            # 기록물
-│   ├── Board.js              # 게시판
+│   ├── Board.js              # 보드
 │   ├── BoardFavorite.js      # 보드 즐겨찾기
 │   ├── CalendarEvent.js      # 캘린더 이벤트
 │   ├── ChatFile.js           # 채팅 파일
@@ -167,7 +167,7 @@ backend/src/
 │   ├── aiUsage.js            # AIUsageLog 기록 헬퍼
 │   ├── altForms.js           # Alt Form 서비스
 │   ├── boardChat.js          # 보드 채팅 서비스
-│   ├── boards.js             # 게시판 서비스
+│   ├── boards.js             # 보드 서비스
 │   ├── notifications.js      # 알림 발송 서비스
 │   ├── registrations.js      # 등록 권한/처리 서비스
 │   ├── scheduler.js          # 스케줄러 (cron 작업)
@@ -296,7 +296,7 @@ frontend/src/
 │   │   ├── List.tsx          #   수업 목록
 │   │   ├── tab/              #   수업 탭 (Created/Enrolled/Mentoring)
 │   │   └── view/             #   수업 상세 뷰
-│   ├── boards/               # 게시판
+│   ├── boards/               # 보드
 │   │   ├── altBoard/         #   Alt 보드 (양식/시트 기반 보드)
 │   │   └── survey/           #   설문 관리
 │   ├── notifications/        # 알림
@@ -305,7 +305,7 @@ frontend/src/
 │   ├── archiveViewer/        # 기록물 뷰어 (학생용)
 │   ├── docs/                 # 문서
 │   ├── settings/             # 설정 (테마 등)
-│   ├── myaccount/            # 내 계정
+│   ├── myaccount/            # 나의 정보
 │   ├── teacher/              # 교사 페이지
 │   ├── apps/                 # 외부 앱
 │   ├── userSearchResult/     # 사용자 검색 결과
@@ -434,7 +434,7 @@ React Router v6 기반의 전체 라우트를 정의합니다. URL 구조는 다
 | `/:academyId/:schoolId/` | 인증된 사용자 메인 (UrlContextSync) |
 | `/:academyId/:schoolId/admin/...` | 관리자 페이지 |
 | `/:academyId/:schoolId/courses/...` | 수업 관련 |
-| `/:academyId/:schoolId/boards/...` | 게시판 |
+| `/:academyId/:schoolId/boards/...` | 보드 |
 | `/:academyId/:schoolId/settings` | 설정 |
 
 #### `contexts/authContext.tsx` - 인증 Context

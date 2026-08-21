@@ -58,6 +58,7 @@ export type TAlterSkillId =
   | "document-review"
   | "form-response-draft"
   | "activity-draft"
+  | "form-draft"
   | "assessment-grade";
 
 export type TAiLibraryKind = "instruction" | "learning";

@@ -40,26 +40,28 @@ Altsis를 처음 접하는 사용자를 위한 가이드입니다.
 
 | 문서 | 설명 |
 |------|------|
-| [아카데미 관리](admin-guide/academy-management.md) | 아카데미 생성, 설정, 백업 |
-| [학교 관리](admin-guide/school-management.md) | 학교 생성 및 설정 |
+| [아카데미 관리](admin-guide/academy-management.md) | 아카데미 생성, 설정, 플랜, 백업 |
+| [학교 관리](admin-guide/school-management.md) | 학교 생성, 기능(채팅·보드·AI·목표), 기록 양식 |
 | [사용자 관리](admin-guide/user-management.md) | 계정 생성, 역할 할당, 등록 |
 | [학기 관리](admin-guide/season-management.md) | 학기 생성, 복사, 활성화 |
 | [양식 관리](admin-guide/form-management.md) | 평가, 기록, 시간표, 출력 양식 |
-| [권한 설정](admin-guide/permission-settings.md) | 수업 개설, 수강신청, 평가 권한 |
+| [권한 설정](admin-guide/permission-settings.md) | 수업 개설, 수강신청, 평가, 학기 AI on/off |
 
 ### 4. [사용자 가이드](user-guide/README.md)
 교사와 학생을 위한 기능별 사용 가이드입니다.
 
 | 문서 | 설명 |
 |------|------|
-| [수업 관리](user-guide/courses.md) | 강의계획서, 수강신청, 수업 관리 |
-| [평가](user-guide/evaluation.md) | 평가 입력, 동기화, 조회 |
+| [수업 관리](user-guide/courses.md) | 강의계획서, 수강신청, 전체 목록, 강의실 현황 |
+| [평가](user-guide/evaluation.md) | 평가 입력, 동기화, Alter 초안 |
 | [학생 기록](user-guide/archive.md) | 누적 기록, 단일 기록 관리 |
-| [캘린더](user-guide/calendar.md) | 일정 관리, 이벤트, 캘린더 설정 |
-| [보드](user-guide/boards.md) | Alt Board, 게시글, 양식(Form), 시트(Sheet), 설문, 즐겨찾기 |
-| [채팅](user-guide/chat.md) | DM, 그룹채팅, 보드채팅, Alter(전역 AI) |
-| [알림](user-guide/notifications.md) | 알림 수신, 설정, 관리 |
-| [설정](user-guide/settings.md) | 개인 설정, 테마, 보안, 기능 활성화 |
+| [문서](user-guide/docs.md) | 출력 양식 미리보기·인쇄 (사이드바 문서) |
+| [일정](user-guide/calendar.md) | 일정 홈, 이벤트, 캘린더 설정 |
+| [보드](user-guide/boards.md) | 할 일, 활동(양식), 문서, 채팅, 학교/시즌 보드 |
+| [목표](user-guide/goals.md) | 사이드바 진행 요약, 목표 페이지 |
+| [채팅](user-guide/chat.md) | DM, 그룹채팅, 보드채팅, Alter(상단 네비) |
+| [알림](user-guide/notifications.md) | 알림 수신, 잠금화면(Web Push), 설정 |
+| [설정](user-guide/settings.md) | 개인 설정, 테마, 보안 |
 
 ### 5. [개발자 가이드](developer-guide/README.md)
 Altsis 개발에 참여하고자 하는 개발자를 위한 가이드입니다.
@@ -148,7 +150,7 @@ INDEX에 포함되지 않은 기능 설계·매뉴얼입니다. 구현 세부와
 
 ## 버전 정보
 
-- **문서 버전**: 2.0
+- **문서 버전**: 2.1
 - **대상 시스템 버전**: Altsis v2.0
 - **최종 업데이트**: 2026년 8월
 - **라이선스**: MIT
