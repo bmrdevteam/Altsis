@@ -330,6 +330,11 @@ export interface EditorActions {
   getSelectedBlock: () => EditorBlock | undefined;
   getSelectedCell: () => CellData | null;
   getCellColumn: (blockId: string, colIndex: number) => number;
+
+  applyFormDraft: (next: {
+    title: string;
+    blocks: EditorBlock[];
+  }) => { applied: boolean };
 }
 
 export type EditorStore = EditorState & EditorActions;

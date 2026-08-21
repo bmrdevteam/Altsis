@@ -29,7 +29,7 @@ Altsis(Alternative School Information System)의 프로젝트 역사, 기술 스
 | 기술 | 용도 | 비고 |
 |------|------|------|
 | **React 18** | UI 라이브러리 | 함수형 컴포넌트, Hooks 패턴 |
-| **TypeScript** | 타입 안전성 | 점진적 마이그레이션 진행 중 |
+| **TypeScript** | 타입 안전성 | `frontend/src` 기준. 신규 코드는 TypeScript |
 | **SCSS Modules** | 스타일링 | `.module.scss` 확장자, CSS 변수 기반 테마 |
 | **Zustand** | 전역 상태 관리 | 경량 상태 관리 라이브러리 |
 | **React Router v6** | 라우팅 | 중첩 라우트, 인증 보호 라우트 |

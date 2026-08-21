@@ -5,6 +5,7 @@ import {
   isAssessmentGradeDraft,
   isDocumentDraft,
   isEvalDraft,
+  isFormDraft,
   isFormResponseDraft,
   isSyllabusDraft,
   TAlterDraftResult,
@@ -65,6 +66,7 @@ export const applyPolicyForDraft = (
     isDocumentDraft(draft) ||
     isFormResponseDraft(draft) ||
     isActivityDraft(draft) ||
+    isFormDraft(draft) ||
     isAssessmentGradeDraft(draft)
   ) {
     return "reapply";
@@ -87,6 +89,7 @@ export const applyLabelForDraft = (
   if (isDocumentDraft(draft)) return "문서에 반영";
   if (isFormResponseDraft(draft)) return "응답에 반영";
   if (isActivityDraft(draft)) return "양식에 반영";
+  if (isFormDraft(draft)) return "에디터에 반영";
   if (isAssessmentGradeDraft(draft)) return "채점에 반영";
   return "반영";
 };
@@ -107,6 +110,7 @@ export type PrepKind =
   | "document-review"
   | "form-response"
   | "activity"
+  | "form"
   | "assessment-grade"
   | null;
 
@@ -130,6 +134,8 @@ export const prepKindFromSkill = (
       return "form-response";
     case "activity-draft":
       return "activity";
+    case "form-draft":
+      return "form";
     case "assessment-grade":
       return "assessment-grade";
     default:
@@ -162,6 +168,8 @@ const messageMatchesPrep = (
       return isFormResponseDraft(m.draft);
     case "activity":
       return isActivityDraft(m.draft);
+    case "form":
+      return isFormDraft(m.draft);
     case "assessment-grade":
       return isAssessmentGradeDraft(m.draft);
     default:
@@ -190,6 +198,15 @@ export const docTypeLabel = (docType?: string) =>
 export const activityFormTypeLabel = (formType?: string) =>
   ACTIVITY_FORM_TYPES.find((t) => t.id === formType)?.label || formType || "";
 
+export const adminFormTypeLabel = (formType?: string) =>
+  formType === "syllabus"
+    ? "강의계획서"
+    : formType === "print"
+      ? "출력"
+      : formType === "timetable"
+        ? "시간표"
+        : formType || "";
+
 export const SKILL_CHIP_HINT: Record<TAlterSkillId, string> = {
   chat: "페이지 데이터를 참고해 질문·설명에 답합니다",
   "syllabus-draft": "학습 계획서 항목 초안을 만듭니다",
@@ -199,6 +216,7 @@ export const SKILL_CHIP_HINT: Record<TAlterSkillId, string> = {
   "document-review": "문서 내용을 지침 기준으로 점검합니다",
   "form-response-draft": "양식 응답·기안문 초안을 채웁니다",
   "activity-draft": "활동 양식(필드·설정) 초안을 만듭니다",
+  "form-draft": "시간표·강의계획서·출력 양식 문서를 작성·다듬습니다",
   "assessment-grade": "평가 활동 응답을 채점 초안으로 채웁니다",
 };
 
@@ -215,6 +233,7 @@ export type SkillToneKey =
   | "skillToneDocumentReview"
   | "skillToneFormResponse"
   | "skillToneActivity"
+  | "skillToneForm"
   | "skillToneAssessmentGrade";
 
 export const SKILL_TONE_KEY: Record<TAlterSkillId, SkillToneKey> = {
@@ -226,6 +245,7 @@ export const SKILL_TONE_KEY: Record<TAlterSkillId, SkillToneKey> = {
   "document-review": "skillToneDocumentReview", // Closed
   "form-response-draft": "skillToneFormResponse", // Submitted
   "activity-draft": "skillToneActivity", // Direct
+  "form-draft": "skillToneForm",
   "assessment-grade": "skillToneAssessmentGrade", // Approval
 };
 
@@ -248,6 +268,8 @@ export const buildPrepSummaryParts = (input: {
   formResponseFillEmptyOnly?: boolean;
   activityFormTypeLabel?: string;
   activityWriteMode?: "create" | "refine";
+  formWriteMode?: "create" | "refine";
+  formTypeLabel?: string;
   gradeFillEmptyOnly?: boolean;
   gradeLabel?: string;
   guidelineCount?: number;
@@ -288,6 +310,9 @@ export const buildPrepSummaryParts = (input: {
   } else if (prepKind === "activity") {
     parts.push(input.activityWriteMode === "refine" ? "다듬기" : "새 작성");
     if (input.activityFormTypeLabel) parts.push(input.activityFormTypeLabel);
+  } else if (prepKind === "form") {
+    parts.push(input.formWriteMode === "refine" ? "다듬기" : "새 작성");
+    if (input.formTypeLabel) parts.push(input.formTypeLabel);
   } else if (prepKind === "assessment-grade") {
     if (input.gradeLabel) parts.push(input.gradeLabel);
     parts.push(input.gradeFillEmptyOnly ? "빈 칸만" : "덮어쓰기");

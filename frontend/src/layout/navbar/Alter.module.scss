@@ -663,6 +663,13 @@
   color: var(--status-warning);
 }
 
+.historyFilterChip.skillToneForm,
+.skillChip.skillToneForm,
+.skillTag.skillToneForm {
+  background: var(--status-info-bg);
+  color: var(--status-info);
+}
+
 .historyFilterChip.skillToneAssessmentGrade,
 .skillChip.skillToneAssessmentGrade,
 .skillTag.skillToneAssessmentGrade {

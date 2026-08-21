@@ -411,7 +411,7 @@ userSchema.plugin(encrypt, {
 | `notifications.js` | 알림 발송 로직 |
 | `registrations.js` | 학기 등록 권한/처리 |
 | `seasons.js` | 학기 비즈니스 로직 (권한 예외 처리 등) |
-| `boards.js` | 게시판 서비스 |
+| `boards.js` | 보드 서비스 |
 | `users.js` | 사용자 관련 서비스 |
 | `themeSettings.js` | 테마 설정 CRUD |
 

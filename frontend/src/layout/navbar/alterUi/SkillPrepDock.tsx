@@ -121,6 +121,14 @@ export type SkillPrepDockProps = {
   activitySelectedGuidelineIds: string[];
   setActivitySelectedGuidelineIds: (next: string[]) => void;
 
+  // form (admin)
+  formWriteMode: "create" | "refine";
+  setFormWriteMode: (v: "create" | "refine") => void;
+  formTypeLabel: string;
+  formGuidelineItems: TGuidelineItem[];
+  formSelectedGuidelineIds: string[];
+  setFormSelectedGuidelineIds: (next: string[]) => void;
+
   // grade
   gradeFillEmptyOnly: boolean;
   setGradeFillEmptyOnly: (v: boolean) => void;
@@ -499,6 +507,60 @@ const SkillPrepDock = (p: SkillPrepDockProps) => {
           />
         </PrepSection>
         <PrepHintRow text="초안은 양식 필드·설정을 덮어씁니다. 미리보기 확인 후 「양식에 반영」하고 저장하세요." />
+      </>
+    );
+  }
+
+  if (prepKind === "form") {
+    const canApply = !!p.pageContext?.applyFormDraft;
+    return (
+      <>
+        <PrepSection label="작성 모드">
+          <RadioList
+            name="formWriteMode"
+            value={p.formWriteMode}
+            onChange={(id) => p.setFormWriteMode(id as "create" | "refine")}
+            options={[
+              { id: "create", label: "새로 작성" },
+              { id: "refine", label: "해당 부분만 수정" },
+            ]}
+          />
+        </PrepSection>
+        <PrepSection
+          label="양식 유형"
+          hint="현재 열린 문서 유형입니다. 시간표·강의계획서·출력 규칙이 각각 다릅니다."
+        >
+          <p className={style.prepText}>{p.formTypeLabel || "양식"}</p>
+        </PrepSection>
+        <PrepSection
+          label="작성 지침"
+          hint="학교 AI 라이브러리의 지침 중 이번 양식에 쓸 항목을 고릅니다."
+        >
+          <GuidelinePicker
+            items={p.formGuidelineItems}
+            selectedIds={p.formSelectedGuidelineIds}
+            expandedId={p.expandedGuidelineId}
+            loading={p.skillSettingsLoading}
+            emptyText="선택 가능한 지침이 없습니다. 관리 → 학교 AI → 라이브러리에서 「양식」 지침을 추가해 주세요. 기본 기준으로 작성합니다."
+            onToggleChecked={(id) =>
+              p.toggleLabel(
+                id,
+                p.formSelectedGuidelineIds,
+                p.setFormSelectedGuidelineIds
+              )
+            }
+            onToggleExpanded={(key) =>
+              p.setExpandedGuidelineId((cur) => (cur === key ? null : key))
+            }
+          />
+        </PrepSection>
+        <PrepHintRow
+          text={
+            canApply
+              ? "초안은 에디터에만 반영됩니다. 미리보기 확인 후 「에디터에 반영」하고 저장하세요. 다듬기는 요청한 칸만 바꿉니다."
+              : "양식 문서를 연 뒤 초안을 작성할 수 있습니다."
+          }
+        />
       </>
     );
   }

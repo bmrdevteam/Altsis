@@ -22,11 +22,11 @@
 
 | 도구 | 최소 버전 | 설치 방법 |
 | --- | --- | --- |
-| **Node.js** | LTS (18.x 이상) | [nodejs.org](https://nodejs.org/) 또는 `nvm install --lts` |
-| **Yarn** | 1.22.x 이상 | `npm install -g yarn` |
+| **Node.js** | 20.x LTS | [nodejs.org](https://nodejs.org/) 또는 `nvm install 20` |
+| **Yarn** | 3.2.x | `corepack enable` 후 저장소가 지정한 버전 사용 |
 | **Git** | 2.x 이상 | [git-scm.com](https://git-scm.com/) |
-| **MongoDB** | 6.x 이상 | [mongodb.com](https://www.mongodb.com/try/download/community) |
-| **Redis** | 7.x 이상 | [redis.io](https://redis.io/download/) |
+| **MongoDB** | 6.x 이상 | Atlas 또는 [mongodb.com](https://www.mongodb.com/try/download/community) |
+| **Redis** | 7.x 이상 | Redis Cloud 또는 [redis.io](https://redis.io/download/) |
 
 ### 선택 (권장)
 
@@ -42,7 +42,7 @@
 ```bash
 # Node.js 버전 확인
 node --version
-# v18.x.x 이상이어야 합니다
+# v20.x.x LTS여야 합니다
 
 # Yarn 버전 확인
 yarn --version

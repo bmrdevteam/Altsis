@@ -14,6 +14,7 @@ export {
   applyLabelForDraft,
   applyPolicyForDraft,
   activityFormTypeLabel,
+  adminFormTypeLabel,
   buildPrepSummaryParts,
   docTypeLabel,
   isApplyDisabled,
@@ -29,6 +30,7 @@ export {
   isAssessmentGradeDraft,
   isDocumentDraft,
   isEvalDraft,
+  isFormDraft,
   isFormResponseDraft,
   isSyllabusDraft,
 } from "./types";
@@ -40,6 +42,7 @@ export type {
   TAlterDocumentReviewResult,
   TAlterDraftResult,
   TAlterEvalDraftResult,
+  TAlterFormDraftResult,
   TAlterFormResponseDraftResult,
   TAlterSyllabusDraftResult,
   TGuidelineItem,

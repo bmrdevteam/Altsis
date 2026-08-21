@@ -10,12 +10,12 @@ Altsis를 설치하고 실행하기 위해 필요한 소프트웨어, 외부 서
 
 | 소프트웨어 | 최소 버전 | 권장 버전 | 비고 |
 |-----------|----------|----------|------|
-| **Node.js** | 16.x | 18.x LTS 이상 | [공식 다운로드](https://nodejs.org/) |
-| **Yarn** | 1.22.x | 1.22.x | `npm install -g yarn`으로 설치 |
+| **Node.js** | 20.x LTS | 20.x LTS | [공식 다운로드](https://nodejs.org/) |
+| **Yarn** | 3.2.x | 3.2.3 (`backend/package.json`의 `packageManager`) | [yarnpkg.com](https://yarnpkg.com/) Corepack 권장: `corepack enable` |
 | **Git** | 2.x | 최신 버전 | 소스 코드 클론용 |
 
 > [!IMPORTANT]
-> Node.js는 반드시 **LTS(Long Term Support)** 버전을 사용하세요. 최신 Current 버전에서는 일부 의존성이 호환되지 않을 수 있습니다.
+> Node.js는 **20 LTS**를 사용하세요. Yarn 1을 `npm install -g yarn`으로 설치하면 이 저장소의 Yarn Berry(3.x)와 맞지 않을 수 있습니다.
 
 ### 전역 npm 패키지
 
