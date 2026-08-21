@@ -442,6 +442,8 @@ export const create = async (req, res) => {
         }
         continue;
       }
+      // 승인: 응답값이 비어 있어도 고정 결재선이면 아래에서 초기화한다.
+      if (field.type === "approval") continue;
       if (!field.required) continue;
       if (value === undefined || value === null || value === "") {
         return res

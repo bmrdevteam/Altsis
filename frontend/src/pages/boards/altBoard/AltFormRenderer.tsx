@@ -21,6 +21,7 @@ import {
 } from "components/markdown";
 import {
   getApprovalLineSteps,
+  getRequiredApprovalError,
   normalizeApprovalValue,
 } from "utils/approvalLine";
 import { getRequiredResponseCount } from "./activityStatusVisual";
@@ -54,6 +55,7 @@ import FormAiChatField from "./FormAiChatField";
 import { isAiChatRequiredMet } from "./formAiChat";
 import {
   canCreateAdditionalDraft,
+  canSubmitReviewDraft,
   isDraftSheetRow,
   sortMyRowsForReview,
   splitMyRows,
@@ -742,6 +744,12 @@ const AltFormRenderer = ({
           newErrors[field._id] = "AI 챗봇과 한 번 이상 대화해 주세요.";
         }
         continue;
+      } else if (field.type === "approval") {
+        if (field.required) {
+          const msg = getRequiredApprovalError(field, value);
+          if (msg) newErrors[field._id] = msg;
+        }
+        continue;
       } else if (field.required) {
         if (field.type === "file") {
           const hasAttachment =
@@ -772,23 +780,6 @@ const AltFormRenderer = ({
         !data[field._id]?.userId
       ) {
         newErrors[field._id] = "사용자를 선택해주세요.";
-      }
-      if (field.type === "approval" && field.required) {
-        const line = getApprovalLineSteps(field);
-        const pickCount = line.filter((s) => s.mode === "pick").length;
-        const v = data[field._id];
-        if (pickCount === 0) {
-          // 전부 고정 — 설정 오류만 서버에서 걸러짐
-        } else if (v?.version === 2 && Array.isArray(v.steps)) {
-          const missing = v.steps.some(
-            (s: any) => s.mode === "pick" && !s.approver?.userId
-          );
-          if (missing || v.steps.filter((s: any) => s.mode === "pick").length < pickCount) {
-            newErrors[field._id] = "승인자를 모두 선택해주세요.";
-          }
-        } else if (!v?.approver?.userId) {
-          newErrors[field._id] = "승인자를 선택해주세요.";
-        }
       }
       // 날짜 필드 제한 검증
       if (field.type === "date" && value) {
@@ -831,15 +822,39 @@ const AltFormRenderer = ({
   };
 
   const handleSubmit = async () => {
-    if (!form || !validate()) return;
+    if (!form) return;
+    const targetRow = isReviewMode ? activeRow : myRow;
+    if (isReviewMode) {
+      if (
+        !canSubmitReviewDraft(targetRow, {
+          canSubmit,
+          allowMultipleResponses: !!form.settings.allowMultipleResponses,
+          quotaReached: multipleQuotaReached,
+        })
+      ) {
+        return;
+      }
+    }
+    if (!validate()) {
+      if (isReviewMode && targetRow) {
+        window.alert("필수 항목을 확인한 뒤 제출해 주세요.");
+        skipNextExternalViewMode.current = true;
+        setMyRow(targetRow);
+        setData(withDocResponseDefaults(form.fields, targetRow.data || {}));
+        setIsSubmitted(false);
+        setViewMode("compose");
+        onViewModeChange?.("compose");
+      }
+      return;
+    }
 
     setIsSubmitting(true);
     try {
       const submitData = withDocResponseDefaults(form.fields, data);
-      const editingDraft = !!(myRow && isDraftSheetRow(myRow));
+      const editingDraft = !!(targetRow && isDraftSheetRow(targetRow));
       const editingSubmitted = !!(
-        myRow &&
-        !isDraftSheetRow(myRow) &&
+        targetRow &&
+        !isDraftSheetRow(targetRow) &&
         form.settings.allowResubmit
       );
       const editingExisting = editingDraft || editingSubmitted;
@@ -847,16 +862,16 @@ const AltFormRenderer = ({
         data: {
           form: form._id,
           data: submitData,
-          ...(editingExisting ? { row: myRow._id } : {}),
+          ...(editingExisting && targetRow ? { row: targetRow._id } : {}),
         },
       });
       if (currentUser?._id) {
         clearFormResponseDraft(
           formResponseDraftStorageKey(currentUser._id, form._id, "new")
         );
-        if (myRow?._id) {
+        if (targetRow?._id) {
           clearFormResponseDraft(
-            formResponseDraftStorageKey(currentUser._id, form._id, myRow._id)
+            formResponseDraftStorageKey(currentUser._id, form._id, targetRow._id)
           );
         }
         clearFormResponseDraft(
@@ -873,6 +888,8 @@ const AltFormRenderer = ({
         setMyRow(row);
         setData(withDocResponseDefaults(form.fields, row.data || submitData));
         setIsSubmitted(true);
+        const idx = nextRows.findIndex((r) => r._id === row._id);
+        setReviewIndex(idx >= 0 ? idx : 0);
         if (form.settings.allowMultipleResponses) {
           alert(
             editingDraft
@@ -883,10 +900,14 @@ const AltFormRenderer = ({
                 ? "과제가 수정되었습니다."
                 : "응답이 수정되었습니다."
           );
-          const idx = nextRows.findIndex((r) => r._id === row._id);
-          setReviewIndex(idx >= 0 ? idx : 0);
           setViewMode("review");
           onViewModeChange?.("review");
+        } else if (isReviewMode) {
+          alert(
+            form.settings.assessmentMode
+              ? "과제가 제출되었습니다."
+              : "응답이 제출되었습니다."
+          );
         }
       } else if (form.settings.allowMultipleResponses) {
         // 다중 응답: 제출 후 목록에 추가하고 작성 폼 초기화
@@ -2521,7 +2542,7 @@ const AltFormRenderer = ({
         </div>
       )}
 
-      {/* 개별 보기: 안내 카드 (수정·재사용은 박스 안) */}
+      {/* 개별 보기: 안내 카드 (수정·제출·재사용은 박스 안) */}
       {isReviewMode && (
         <div className={style.readonlyBanner}>
           <div className={style.readonlyBannerText}>
@@ -2555,9 +2576,26 @@ const AltFormRenderer = ({
                   type="button"
                   className={style.reviewReuseBtn}
                   onClick={editCurrentResponse}
+                  disabled={isSubmitting}
                   title={activeIsDraft ? "저장본 수정" : "이 응답 수정"}
                 >
                   수정
+                </button>
+              )}
+              {canEditReviewRow &&
+                canSubmitReviewDraft(activeRow, {
+                  canSubmit,
+                  allowMultipleResponses: !!form?.settings.allowMultipleResponses,
+                  quotaReached: multipleQuotaReached,
+                }) && (
+                <button
+                  type="button"
+                  className={style.reviewReuseBtn}
+                  onClick={handleSubmit}
+                  disabled={isSubmitting || isSavingDraft}
+                  title="저장본 제출"
+                >
+                  {isSubmitting ? "제출 중..." : "제출"}
                 </button>
               )}
               {canEditReviewRow && (
@@ -2565,6 +2603,7 @@ const AltFormRenderer = ({
                   type="button"
                   className={style.reviewReuseBtn}
                   onClick={handleWithdraw}
+                  disabled={isSubmitting}
                   title={activeIsDraft ? "저장본 삭제" : "이 응답 삭제"}
                 >
                   삭제
