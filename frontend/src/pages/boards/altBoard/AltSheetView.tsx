@@ -8,9 +8,13 @@ import useOutsideClick from "hooks/useOutsideClick";
 import Button from "components/button/Button";
 import Popup from "components/popup/Popup";
 import Svg from "assets/svg/Svg";
-import { MarkdownEditor, MarkdownViewer } from "components/markdown";
+import {
+  MarkdownEditor,
+  MarkdownWysiwygView,
+} from "components/markdown";
 import { isCurrentApprover, normalizeApprovalValue } from "utils/approvalLine";
 import { NO_PRINT_CLASS, printArea } from "utils/printArea";
+import { DateRange } from "components/dateRangeFilter/DateRangeFilterDropdown";
 import RecordsListFilterBar, {
   TRecordsViewCounts,
   TRecordsViewFilter,
@@ -18,6 +22,11 @@ import RecordsListFilterBar, {
 import SheetDetailFilterBar, {
   TSheetColumnChip,
 } from "./SheetDetailFilterBar";
+import {
+  hasSheetFieldFilters,
+  rowMatchesFieldFilters,
+  SUBMITTED_AT_FILTER_KEY,
+} from "./sheetRowFilter";
 import SheetTimetableView, {
   getTimetableAxisFields,
 } from "./SheetTimetableView";
@@ -258,6 +267,11 @@ const AltSheetView = ({
   const [docIndex, setDocIndex] = useState(0);
   /** 문서 보기: 키워드 검색 (머지 UI와 동일) */
   const [docKeyword, setDocKeyword] = useState("");
+  /** 항목별 세부 필터 (응답자·필드 텍스트 / 날짜 기간) */
+  const [textFilters, setTextFilters] = useState<Record<string, string>>({});
+  const [dateFilters, setDateFilters] = useState<Record<string, DateRange>>(
+    {}
+  );
   /** 기록 목록: 검색·칩 필터 */
   const [recordsKeyword, setRecordsKeyword] = useState("");
   const [recordsFilter, setRecordsFilter] = useState<TRecordsViewFilter>("");
@@ -426,6 +440,8 @@ const AltSheetView = ({
     }
     setSortConfig(null);
     setDocKeyword("");
+    setTextFilters({});
+    setDateFilters({});
   }, [selectedFormId]);
 
   useEffect(() => {
@@ -618,10 +634,28 @@ const AltSheetView = ({
     return `키워드 검색 (${labels.join(", ")} 등)`;
   }, [allVisibleFields]);
 
-  const clearSearchAndSort = () => {
+  const clearKeywordAndFieldFilters = () => {
     setDocKeyword("");
+    setTextFilters({});
+    setDateFilters({});
+  };
+
+  const clearSearchAndSort = () => {
+    clearKeywordAndFieldFilters();
     setSortConfig(null);
   };
+
+  const sheetFilterFields = useMemo(
+    () => [
+      ...allVisibleFields.map((f) => ({
+        key: f._id,
+        label: f.label || "항목",
+        type: f.type,
+      })),
+      { key: SUBMITTED_AT_FILTER_KEY, label: "제출일", type: "date" },
+    ],
+    [allVisibleFields]
+  );
 
   const toggleColumnVisibility = (fieldId: string) => {
     setHiddenColumns((prev) => {
@@ -698,9 +732,20 @@ const AltSheetView = ({
     });
   }, [rows, docKeyword, allVisibleFields]);
 
-  // 검색·정렬된 행 (표시 칩은 컬럼만 제어)
+  // 검색·항목 필터·정렬된 행 (표시 칩은 컬럼만 제어)
   const filteredRows = useMemo(() => {
     let result = keywordRows;
+    if (hasSheetFieldFilters(textFilters, dateFilters)) {
+      result = result.filter((row) =>
+        rowMatchesFieldFilters(
+          row,
+          textFilters,
+          dateFilters,
+          allVisibleFields,
+          formatCellValue
+        )
+      );
+    }
 
     if (sortConfig) {
       const { fieldId, direction } = sortConfig;
@@ -741,7 +786,7 @@ const AltSheetView = ({
     }
 
     return result;
-  }, [keywordRows, sortConfig, allVisibleFields]);
+  }, [keywordRows, sortConfig, allVisibleFields, textFilters, dateFilters]);
 
   const handleDocBatchPrint = () => {
     if (filteredRows.length === 0) {
@@ -777,7 +822,14 @@ const AltSheetView = ({
       return;
     }
     setDocIndex((prev) => Math.min(Math.max(0, prev), filteredRows.length - 1));
-  }, [filteredRows.length, rows.length, sortConfig, docKeyword]);
+  }, [
+    filteredRows.length,
+    rows.length,
+    sortConfig,
+    docKeyword,
+    textFilters,
+    dateFilters,
+  ]);
 
   // 폼 변경 시 문서 index 초기화
   useEffect(() => {
@@ -1536,7 +1588,7 @@ const AltSheetView = ({
     if (field.type === "docResponse") {
       return (
         <div className={style.contentFieldBody}>
-          <MarkdownViewer content={String(value)} allowHtmlApp />
+          <MarkdownWysiwygView content={String(value)} />
         </div>
       );
     }
@@ -1938,6 +1990,8 @@ const AltSheetView = ({
               setHiddenColumns(new Set());
               setSortConfig(null);
               setDocKeyword("");
+              setTextFilters({});
+              setDateFilters({});
               onFormDeselect?.();
             }}
           >
@@ -2194,6 +2248,16 @@ const AltSheetView = ({
           keyword={docKeyword}
           onKeywordChange={setDocKeyword}
           keywordPlaceholder={docKeywordPlaceholder}
+          filterFields={sheetFilterFields}
+          textFilters={textFilters}
+          onTextFilterChange={(key, value) =>
+            setTextFilters((prev) => ({ ...prev, [key]: value }))
+          }
+          dateFilters={dateFilters}
+          onDateFilterChange={(key, range) =>
+            setDateFilters((prev) => ({ ...prev, [key]: range }))
+          }
+          onClearKeywordAndFieldFilters={clearKeywordAndFieldFilters}
           columns={columnChips}
           hiddenColumns={hiddenColumns}
           onToggleColumn={toggleColumnVisibility}
@@ -2381,7 +2445,9 @@ const AltSheetView = ({
                           : "-"}
                       </span>
                     )}
-                    <span className={`${style.noPrint} ${NO_PRINT_CLASS}`}>
+                    <span
+                      className={`${style.docViewHeaderActions} ${style.noPrint} ${NO_PRINT_CLASS}`}
+                    >
                       {canEditRowDoc(currentDocRow) &&
                         editingRowId !== currentDocRow._id && (
                           <button

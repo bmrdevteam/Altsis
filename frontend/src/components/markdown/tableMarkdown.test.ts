@@ -1,3 +1,5 @@
+import { readFileSync } from "fs";
+import { join } from "path";
 import { Schema } from "prosemirror-model";
 import { tableHasCellStyles } from "./tableHasCellStyles";
 
@@ -45,5 +47,25 @@ describe("tableHasCellStyles", () => {
   test("셀 배경이 있으면 HTML 표다", () => {
     const table = tableFromCells([cellWith("left", "#fff")]);
     expect(tableHasCellStyles(table)).toBe(true);
+  });
+});
+
+describe("StyledTable node view", () => {
+  test("조회에서도 colgroup을 쓰도록 TableView를 등록한다", () => {
+    const src = readFileSync(join(__dirname, "tableMarkdown.ts"), "utf8");
+    expect(src).toContain("addNodeView");
+    expect(src).toContain("new TableView");
+  });
+});
+
+describe("createMarkdownExtensions", () => {
+  test("조회 모드에서는 슬래시·플레이스홀더를 넣지 않는다", () => {
+    const src = readFileSync(
+      join(__dirname, "createMarkdownExtensions.ts"),
+      "utf8"
+    );
+    expect(src).toContain("if (editable)");
+    expect(src).toContain("SlashCommand");
+    expect(src).toContain("Placeholder");
   });
 });

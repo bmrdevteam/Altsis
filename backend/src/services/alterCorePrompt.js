@@ -150,6 +150,48 @@ export const hasAlterConsultIntent = (message = "") => {
  * @param {string} [message]
  * @returns {boolean}
  */
+/**
+ * Altsis 제품·메뉴 질문 (실행 요청과 구분).
+ * @param {string} [message]
+ * @returns {boolean}
+ */
+export const hasAlterProductIntent = (message = "") => {
+  const text = String(message || "").trim();
+  if (!text) return false;
+  if (/(Altsis|알트시스)/i.test(text)) return true;
+  if (
+    /문서\s*(메뉴|함|페이지|화면)/.test(text) ||
+    /(사이드바|설정).{0,16}(안내|문서|보드)/.test(text)
+  ) {
+    return true;
+  }
+  if (
+    /(보드|기록|일정|목표|학기|양식|수강|안내).{0,12}(뭐|무엇|어떤|어디|차이)/.test(
+      text
+    )
+  ) {
+    return true;
+  }
+  if (
+    /(뭐|무엇|어떤|어디|차이).{0,12}(보드|기록|일정|목표|학기|양식|수강|안내)/.test(
+      text
+    )
+  ) {
+    return true;
+  }
+  if (
+    /(보드|기록|일정|목표|수업|문서|학기|양식).{0,8}(은|는|을|를)?\s*어디(서|로)/.test(
+      text
+    )
+  ) {
+    return true;
+  }
+  if (/차이가/.test(text) && /(보드|문서|기록|채팅|Alter|알터)/i.test(text)) {
+    return true;
+  }
+  return false;
+};
+
 export const detectAlterHowtoIntent = (message = "") => {
   const text = String(message || "").trim();
   if (!text) return false;
@@ -163,8 +205,9 @@ export const detectAlterHowtoIntent = (message = "") => {
     /(스킬|기능).{0,12}(뭐|무엇|어떤|고르|선택)/.test(text) ||
     /(뭐|무엇|어떤|고르|선택).{0,12}(스킬|기능)/.test(text);
 
-  // 명시적 사용법·상담은 실행 동사보다 우선
+  // 명시적 사용법·제품·상담은 실행 동사보다 우선
   if (strongHowto) return true;
+  if (hasAlterProductIntent(text)) return true;
   if (hasAlterConsultIntent(text) && !hasAlterWorkIntent(text)) return true;
   if (hasAlterWorkIntent(text)) return false;
   return false;
@@ -180,7 +223,13 @@ export const ALTER_PAGE_DATA_POLICY = `「현재 페이지 데이터」가 있�
 export const ALTER_LIBRARY_REF_POLICY = `「참고 자료」가 있으면 그 조각만 근거로 답하세요. 참고에 없는 내용은 추측하지 말고 없다고 말하세요.`;
 
 /** howto 모드: 참고는 보조, 제품 경로 안내 우선 */
-export const ALTER_LIBRARY_REF_POLICY_HOWTO = `「참고 자료」는 보조입니다. 참고에 없는 학교 내부 절차·규정은 추측하지 마세요. 다만 제품 사용 경로(화면·스킬·chat 도움)는 「제품 경로」와 코칭 지침에 따라 안내하세요. 참고에 절차가 없다고 선생님 문의만으로 끝내지 마세요.`;
+export const ALTER_LIBRARY_REF_POLICY_HOWTO = `「참고 자료」는 보조입니다. 참고에 없는 학교 내부 절차·규정은 추측하지 마세요. 다만 제품 사용 경로(화면·스킬·chat 도움)는 「Altsis 공식 안내」·「제품 경로」와 코칭 지침에 따라 안내하세요. 참고에 절차가 없다고 선생님 문의만으로 끝내지 마세요.`;
+
+/** 공식 안내 조각 — 제품 질문만. URL은 시스템이 붙임 */
+export const ALTER_GUIDE_REF_POLICY = `「Altsis 공식 안내」가 있으면 제품 사용법·메뉴·절차 질문에 그 문서를 우선 근거로 답하세요. 「제품 경로」와 안내가 다르면 안내 본문을 따르세요.
+현재 페이지 데이터(학생·평가·목록 등) 질문에는 공식 안내를 쓰지 마세요.
+안내에 없는 학교 내부 규정은 추측하지 마세요.
+본문에 URL·경로를 쓰지 마세요. 바로가기는 시스템이 붙입니다.`;
 
 /** pageType → 화면 유형 표시명 (사실 전달용, 행동 유도 없음) */
 export const PAGE_TYPE_LABELS = {
@@ -198,6 +247,7 @@ export const PAGE_TYPE_LABELS = {
   calendar: "캘린더",
   sheet: "응답 기록",
   "board-chat": "보드 채팅",
+  guide: "Altsis 안내",
   general: "일반",
 };
 
@@ -348,6 +398,7 @@ export const withAlterSafety = (systemInstruction) => {
  *   howtoMode?: boolean,
  *   availableSkillsText?: string,
  *   examplePromptsText?: string,
+ *   guideReferences?: Array<{ title?: string, content?: string }>,
  * }} [opts]
  */
 export const buildAlterChatSystemPrompt = ({
@@ -359,6 +410,7 @@ export const buildAlterChatSystemPrompt = ({
   howtoMode = false,
   availableSkillsText = "",
   examplePromptsText = "",
+  guideReferences,
 } = {}) => {
   const guideText = normalizeGuidelines(guidelines || "");
   const refs = Array.isArray(references) ? references : [];
@@ -374,11 +426,22 @@ export const buildAlterChatSystemPrompt = ({
         .join("\n\n");
   }
 
+  const official = Array.isArray(guideReferences) ? guideReferences : [];
+  let officialBlock = "";
+  if (official.length > 0) {
+    officialBlock =
+      `\n${ALTER_GUIDE_REF_POLICY}\n## Altsis 공식 안내\n` +
+      official
+        .map((r) => `### ${r.title || "안내"}\n${r.content || ""}`)
+        .join("\n\n");
+  }
+
   const schoolBlock = guideText
     ? `\n## 학교 작성 지침\n${guideText}${refBlock}\n`
     : refBlock
       ? `${refBlock}\n`
       : "";
+  const officialSection = officialBlock ? `${officialBlock}\n` : "";
 
   const snapshot =
     chatSnapshot ??
@@ -406,7 +469,7 @@ export const buildAlterChatSystemPrompt = ({
 한국어로 친절하고 구체적으로 답하세요.
 ${ALTER_SAFETY_ETHICS}
 ${steerOrCoach}
-${schoolBlock}
+${schoolBlock}${officialSection}
 ${buildAlterChatPageContext(pageContext)}${pageDataSection}`.trim();
 };
 

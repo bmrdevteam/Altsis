@@ -5,6 +5,7 @@ import {
   ALTER_HOWTO_PRODUCT_NAV,
   ALTER_LIBRARY_REF_POLICY,
   ALTER_LIBRARY_REF_POLICY_HOWTO,
+  ALTER_GUIDE_REF_POLICY,
   ALTER_PAGE_DATA_POLICY,
   buildAlterChatPageContext,
   buildAlterChatPageData,
@@ -120,6 +121,29 @@ describe("buildAlterChatSystemPrompt", () => {
     expect(page).toContain("문서함");
     expect(page).not.toMatch(/기안/);
     expect(page).not.toMatch(/영수증/);
+  });
+
+  test("공식 안내는 학교 참고와 분리되고 URL 금지 문구가 있다", () => {
+    const text = buildAlterChatSystemPrompt({
+      pageContext: { pageType: "general" },
+      howtoMode: true,
+      references: [{ title: "교육계획서", content: "수업 시수 안내" }],
+      guideReferences: [
+        { title: "문서 · 조각 1", content: "사이드바 문서 메뉴" },
+      ],
+    });
+    expect(text).toContain(ALTER_GUIDE_REF_POLICY);
+    expect(text).toContain("## Altsis 공식 안내");
+    expect(text).toContain("사이드바 문서 메뉴");
+    expect(text).toContain("본문에 URL");
+    expect(text).toContain("## 참고 자료");
+    expect(text).toContain("교육계획서");
+  });
+
+  test("guide pageContext 유형명이 나타난다", () => {
+    expect(
+      buildAlterChatPageContext({ pageType: "guide", label: "문서" })
+    ).toContain("Altsis 안내");
   });
 });
 

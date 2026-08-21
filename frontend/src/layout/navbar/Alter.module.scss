@@ -1160,9 +1160,48 @@
   opacity: 0.7;
 }
 
-.msgText {
-  white-space: pre-wrap;
-  word-break: break-word;
+.guideLinkRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.guideLinkChip {
+  flex-shrink: 0;
+  border: 1px solid
+    color-mix(in srgb, var(--primary-color, var(--alter-brand-2)) 28%, transparent);
+  background: var(--component-color);
+  color: var(--accent-1);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  line-height: 1.4;
+
+  &:hover {
+    border-color: color-mix(
+      in srgb,
+      var(--primary-color, var(--alter-brand-2)) 45%,
+      transparent
+    );
+    background: color-mix(
+      in srgb,
+      var(--primary-color, var(--alter-brand-2)) 10%,
+      var(--component-color)
+    );
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color, var(--alter-brand-2));
+    outline-offset: 2px;
+  }
+}
+
+.guideLinkChipGuide {
+  color: var(--accent-2);
 }
 
 .attachChipRow {

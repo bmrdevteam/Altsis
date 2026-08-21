@@ -1175,6 +1175,31 @@
   text-align: center;
 }
 
+.tiptapReadonly {
+  :global(.ProseMirror) {
+    min-height: 0;
+    caret-color: transparent;
+  }
+
+  :global(.column-resize-handle),
+  :global(.image-resize-handle) {
+    display: none !important;
+  }
+
+  :global(.ProseMirror td.selectedCell),
+  :global(.ProseMirror th.selectedCell),
+  :global(.ProseMirror td.currentCell),
+  :global(.ProseMirror th.currentCell) {
+    background-color: transparent !important;
+    box-shadow: none !important;
+  }
+
+  :global(.ProseMirror td.selectedCell::after),
+  :global(.ProseMirror th.selectedCell::after) {
+    display: none;
+  }
+}
+
 .tiptapContent {
   background-color: var(--background-color);
   overflow-x: auto;

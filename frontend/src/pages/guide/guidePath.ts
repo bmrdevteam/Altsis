@@ -18,6 +18,16 @@ export function defaultGuidePath(auth?: string | null): string {
   return "user-guide/README.md";
 }
 
+export function guideDocTitle(
+  markdown: string,
+  fallback = "Altsis 안내"
+): string {
+  const m = /^#\s+(.+)$/m.exec(String(markdown || ""));
+  if (!m) return fallback;
+  const title = m[1].replace(/⚪/g, "").replace(/\s+/g, " ").trim();
+  return title || fallback;
+}
+
 export function allowedGuideSet(
   docs: Record<string, string>
 ): Set<string> {
