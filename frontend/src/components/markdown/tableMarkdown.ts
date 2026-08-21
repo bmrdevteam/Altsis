@@ -1,6 +1,6 @@
 import { getHTMLFromFragment } from "@tiptap/core";
 import { Fragment, type Node as PMNode } from "@tiptap/pm/model";
-import { Table } from "@tiptap/extension-table";
+import { Table, TableView } from "@tiptap/extension-table";
 import { currentTableCellHighlight } from "./currentTableCellHighlight";
 import { tableHasCellStyles } from "./tableHasCellStyles";
 
@@ -94,5 +94,13 @@ export const StyledTable = Table.extend({
   },
   addProseMirrorPlugins() {
     return [...(this.parent?.() || []), currentTableCellHighlight()];
+  },
+  /**
+   * columnResizing은 editable일 때만 TableView를 붙인다.
+   * 조회(editable:false)에서도 colgroup·tableWrapper가 같아야
+   * 편집 화면과 표 너비가 맞는다.
+   */
+  addNodeView() {
+    return ({ node }) => new TableView(node, this.options.cellMinWidth);
   },
 });

@@ -55,6 +55,7 @@ const MergeStyleFilterBar = ({
         <input
           className={style.mergeSearchInput}
           type="search"
+          aria-label="키워드 검색"
           placeholder={keywordPlaceholder}
           value={keyword}
           onChange={(e) => onKeywordChange(e.target.value)}
@@ -68,6 +69,7 @@ const MergeStyleFilterBar = ({
             : ""
         }`}
         title="세부 필터"
+        aria-label="세부 필터"
         aria-expanded={filterMenu.active}
         onClick={() => filterMenu.setActive(!filterMenu.active)}
       >

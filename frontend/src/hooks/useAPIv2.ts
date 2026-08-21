@@ -39,7 +39,7 @@ import { TSyllabus } from "types/syllabuses";
 import { TEnrollment } from "types/enrollments";
 import { TNotification, TNotificationSettings } from "types/notification";
 import { TChatRoom, TChatMessage, TChatUser, TChatRoomSettings, TChatFile } from "types/chat";
-import { TBoard, TBoardFavorite, TBoardMembers, TBoardNotificationEvents } from "types/board";
+import { TBoard, TBoardFavorite, TBoardMembers, TBoardNotificationEvents, TMemberUser } from "types/board";
 import { TPost, TPostAttachment } from "types/post";
 
 import {
@@ -3703,7 +3703,7 @@ export default function useAPIv2() {
         QUERY_BUILDER(props.query),
     });
     return {
-      users: users as { user: string; userId: string; userName: string; profile?: string }[],
+      users: users as TMemberUser[],
     };
   }
 

@@ -3,6 +3,13 @@ export type TMemberUser = {
   user: string;
   userId: string;
   userName: string;
+  profile?: string;
+  /** 학기 등록 역할. 표시용이며 권한 저장에는 넣지 않음 */
+  role?: "teacher" | "student";
+  /** 학기 등록 학년. 표시용 */
+  grade?: string;
+  /** 학기 등록 그룹. 표시용 */
+  group?: string;
 };
 
 export type TBoardMembers = {

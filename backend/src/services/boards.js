@@ -312,7 +312,7 @@ export const isBoardWriter = (board, user, role) => {
  * @param {Object} board - 게시판 문서
  * @param {string} [seasonId] - 특정 학기 ID (전달 시 해당 학기 사용자만 반환)
  *
- * @returns {Promise<Array>} 멤버 사용자 목록 [{user, userId, userName}]
+ * @returns {Promise<Array>} 멤버 사용자 목록 [{user, userId, userName, role?, grade?, group?}]
  */
 export const getBoardMembers = async (academyId, board, seasonId) => {
   const users = [];
@@ -441,17 +441,48 @@ export const getBoardMembers = async (academyId, board, seasonId) => {
     }
   }
 
-  // 프로필 이미지 조회
+  // 프로필 이미지·학기 역할/학년/그룹
   if (users.length > 0) {
+    const userOids = users.map((u) => u.user);
     const profileData = await User(academyId)
-      .find({ _id: { $in: users.map((u) => u.user) } })
+      .find({ _id: { $in: userOids } })
       .select("_id profile")
       .lean();
     const profileMap = new Map(
       profileData.map((u) => [u._id.toString(), u.profile || null])
     );
+
+    const regQuery = {
+      schoolId: board.schoolId,
+      isActivated: true,
+      user: { $in: userOids },
+    };
+    if (effectiveSeasonId) {
+      regQuery.season = effectiveSeasonId;
+    }
+    const registrations = await Registration(academyId)
+      .find(regQuery)
+      .select("user role group grade")
+      .lean();
+    const filledScore = (r) =>
+      (r.role ? 1 : 0) + (r.grade ? 1 : 0) + (r.group ? 1 : 0);
+    const regByUser = new Map();
+    for (const reg of registrations) {
+      const key = reg.user.toString();
+      const prev = regByUser.get(key);
+      if (!prev || filledScore(reg) >= filledScore(prev)) {
+        regByUser.set(key, reg);
+      }
+    }
+
     for (const u of users) {
-      u.profile = profileMap.get(u.user.toString()) || null;
+      const uid = u.user.toString();
+      u.profile = profileMap.get(uid) || null;
+      const reg = regByUser.get(uid);
+      if (!reg) continue;
+      if (reg.role) u.role = reg.role;
+      if (reg.grade) u.grade = reg.grade;
+      if (reg.group) u.group = reg.group;
     }
   }
 

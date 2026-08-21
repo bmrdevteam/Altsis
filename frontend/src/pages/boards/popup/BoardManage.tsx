@@ -34,6 +34,10 @@ import {
 import bStyle from "../boards.module.scss";
 import { BoardLinkSyllabusPicker } from "./BoardDuplicateFlow";
 import { useAppNavigate } from "hooks/useAppNavigate";
+import {
+  formatMemberIdentity,
+  memberMatchesQuery,
+} from "../altBoard/memberLabel";
 
 type Props = {
   board: TBoard;
@@ -452,9 +456,39 @@ const BoardManagePopup = ({
     cursor: "pointer",
   };
 
+  const attachRegistrationIdentity = (users: TMemberUser[]): TMemberUser[] => {
+    if (registrationList.length === 0) return users;
+    const byId = new Map(
+      registrationList.map((r: { userId: string }) => [r.userId, r])
+    );
+    return users.map((u) => {
+      const reg = byId.get(u.userId) as
+        | { role?: string; grade?: string; group?: string }
+        | undefined;
+      if (!reg) return u;
+      return {
+        ...u,
+        role:
+          u.role ||
+          (reg.role === "teacher" || reg.role === "student"
+            ? reg.role
+            : undefined),
+        grade: u.grade || reg.grade,
+        group: u.group || reg.group,
+      };
+    });
+  };
+
   /** 체크박스 리스트 렌더링 */
   const renderCheckboxList = (
-    items: { user: string; userId: string; userName: string; role?: string }[],
+    items: {
+      user: string;
+      userId: string;
+      userName: string;
+      role?: string;
+      grade?: string;
+      group?: string;
+    }[],
     selectedIds: Set<string>,
     onToggle: (
       u: { user: string; userId: string; userName: string },
@@ -468,10 +502,7 @@ const BoardManagePopup = ({
     grouped?: boolean
   ) => {
     const filtered = items.filter(
-      (u) =>
-        !searchTerm ||
-        u.userName.includes(searchTerm) ||
-        u.userId.includes(searchTerm)
+      (u) => !searchTerm || memberMatchesQuery(u, searchTerm)
     );
 
     if (filtered.length === 0) {
@@ -493,6 +524,9 @@ const BoardManagePopup = ({
       user: string;
       userId: string;
       userName: string;
+      role?: string;
+      grade?: string;
+      group?: string;
     }) => (
       <label
         key={u.userId}
@@ -510,7 +544,7 @@ const BoardManagePopup = ({
           onChange={(e) => onToggle(u, e.target.checked)}
         />
         <span style={{ fontSize: "13px" }}>
-          {u.userName}({u.userId})
+          {formatMemberIdentity(u)}
         </span>
       </label>
     );
@@ -943,7 +977,7 @@ const BoardManagePopup = ({
 
           <input
             type="text"
-            placeholder="이름 또는 아이디로 검색"
+            placeholder="이름·아이디·역할·학년·그룹 검색"
             value={memberSearch}
             onChange={(e) => setMemberSearch(e.target.value)}
             style={{
@@ -1013,7 +1047,7 @@ const BoardManagePopup = ({
             <>
               <input
                 type="text"
-                placeholder="이름 또는 아이디로 검색"
+                placeholder="이름·아이디·역할·학년·그룹 검색"
                 value={writerSearch}
                 onChange={(e) => setWriterSearch(e.target.value)}
                 style={{
@@ -1037,7 +1071,7 @@ const BoardManagePopup = ({
                 }}
               >
                 {renderCheckboxList(
-                  members.users,
+                  attachRegistrationIdentity(members.users),
                   new Set(writers.users.map((u) => u.userId)),
                   handleToggleWriter,
                   handleToggleAllWriters,

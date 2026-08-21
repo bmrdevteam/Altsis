@@ -4621,6 +4621,12 @@ tbody tr:hover .actionCell {
   gap: 8px;
 }
 
+.docViewHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
 .docViewOwnerBadge {
   font-size: 10px;
   color: var(--accent-1);
