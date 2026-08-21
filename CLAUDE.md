@@ -31,7 +31,7 @@ yarn test         # Jest test runner
 
 ### Environment
 - Backend reads `.env` by default, `.env.local` for `yarn local`, `.env.test` for tests
-- Frontend uses `REACT_APP_BACKEND_URL` in `.env`
+- Frontend uses `REACT_APP_SERVER_URL` in `.env` (not `REACT_APP_BACKEND_URL`)
 - Requires: Node.js 20 LTS, Yarn 3.2.3
 
 ## Architecture
@@ -68,7 +68,8 @@ Socket.IO for chat, notifications, and live updates. Server-side setup in `backe
 - **Syllabus**: Course/lecture plan
 - **Enrollment**: Student participation in a course (includes grades)
 - **AltForm**: Customizable evaluation/record forms
-- **Board**: Discussion boards with permission-based access
+- **Board**: Discussion boards with permission-based access (UI name: 보드; tabs: 활동, 문서, 채팅)
+- **Goals**: Sidebar progress summary (학교 목표 설정)
 - **CalendarEvent**: Events synced from multiple sources (manual, enrollment, syllabus, memo). Multi-day events use `duration` (total days) and `sequence` (1-based day index). `sourceType` distinguishes origin.
 
 ## Code Style

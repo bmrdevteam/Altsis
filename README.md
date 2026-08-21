@@ -59,7 +59,7 @@
 
 > [!IMPORTANT]
 > 안녕하세요!
-> **Altsis(Alternative School Infomation System)는** 모든 학교를 위한 대안적인 학교 정보 시스템입니다!
+> **Altsis(Alternative School Information System)는** 모든 학교를 위한 대안적인 학교 정보 시스템입니다!
 
 > [!TIP]
 > <img width="100px" src="https://github.com/user-attachments/assets/5ca2ed76-8aca-400c-900e-97d065690102" align="center" alt="GitHub Readme Stats" />
@@ -88,7 +88,9 @@
 > - :school: **아카데미 시스템** : 단 하나의 아카데미에서 복수의 학교 단위 교육 과정 운영 가능
 > - :computer: **맞춤형 시스템** : 시스템 설정과 에디터를 이용해 필요에 맞는 맞춤형 시스템 구성 가능 
 > - :student: **학생 중심 시스템** : 학생이 수업 개설 및 평가 등에도 참여 할 수 있는 학생 중심 시스템
-> - :motorway: **통합 시스템** : 학생의 수업, 평가, 기록, 출력을 하나의 시스템에서 관리
+> - :motorway: **통합 시스템** : 수업, 평가, 기록, 출력, **일정**, **보드**(활동·문서·채팅), **목표**, Alter(AI)를 한 시스템에서 관리
+>
+> 설치·운영·기능별 최신 설명은 [`documentation/INDEX.md`](./documentation/INDEX.md)와 앱 **안내**(`/guide`)를 보세요. 아래 사용법은 개요이며, 메뉴 이름은 앱과 맞춰 공식 가이드가 우선입니다.
 
 # 설치해 봅시다!
 
@@ -387,7 +389,7 @@ export { local2 };
 
 # 어떻게 사용하나요?
 > [!IMPORTANT]
-> 시스템을 운영하기 위한 관리자 기능과 데이터를 활용하는 사용자 기능이 있습니다.
+> 시스템을 운영하기 위한 관리자 기능과 데이터를 활용하는 사용자 기능이 있습니다. 단계별 화면 이름은 [사용자 가이드](./documentation/user-guide/README.md)·[관리자 가이드](./documentation/admin-guide/README.md)가 현재 앱과 같습니다.
 
 ## 관리자 기능
 
@@ -560,6 +562,8 @@ export { local2 };
 ## 사용자 기능
 > [!IMPORTANT]
 > :smile: 사용자 : 학생(student), 교사(teacher)
+>
+> 사이드바: **일정**, **수업**(개설·수강 신청·전체 목록·강의실 현황), **기록**, **문서**, **보드**, (관리자) **관리**. 상단: 검색, 학기, 알림, 채팅, **Alter**.
 
 ## 수업
 ### 강의계획서 생성 ⚪
@@ -648,6 +652,9 @@ export { local2 };
 > https://github.com/bmrdevteam/school-information-system/assets/19641212/1006af77-a1d3-422a-9362-26da06421450
 >  
 > </details>
+
+### 보드 ⚪
+활동(양식·퀴즈·평가 모드), 문서, 채팅, 전역 할 일. 학기 없이 학교 보드만 쓸 수 있습니다. → [보드 가이드](./documentation/user-guide/boards.md)
 
 ### 사용자 검색 ⚪
 > [!TIP]

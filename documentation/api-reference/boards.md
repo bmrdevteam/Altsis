@@ -1,6 +1,6 @@
-# 게시판 API
+# 보드 API
 
-게시판(Board), 게시글(Post), 댓글(Comment) API입니다. 학교별 게시판 생성, 게시글 작성/조회, 댓글 관리 기능을 제공합니다.
+앱 UI 이름은 **보드**입니다. 아래 엔드포인트 설명에 남은 「게시판」은 같은 `Board` 리소스입니다.
 
 > **라우트 파일**: `backend/src/routes/boards.js`, `backend/src/routes/posts.js`, `backend/src/routes/comments.js`
 > **컨트롤러 파일**: `backend/src/controllers/boards.js`, `backend/src/controllers/posts.js`, `backend/src/controllers/comments.js`

@@ -1,4 +1,6 @@
 import { useEffect } from "react";
+import { useAuth } from "contexts/authContext";
+import useRegisterAlterForm from "hooks/useRegisterAlterForm";
 
 import style from "./editor.module.scss";
 import useEditorStore from "./store/useEditorStore";
@@ -14,10 +16,33 @@ type Props = { id: string };
 
 function Editor(props: Props) {
   const { FormAPI } = useAPIv2();
+  const { currentUser } = useAuth();
   const mode = useEditorStore((s) => s.mode);
   const sidebarOpen = useEditorStore((s) => s.sidebarOpen);
   const isLoading = useEditorStore((s) => s.isLoading);
   const loadForm = useEditorStore((s) => s.loadForm);
+  const formType = useEditorStore((s) => s.formType);
+  const title = useEditorStore((s) => s.title);
+  const canManage =
+    currentUser?.auth === "admin" || currentUser?.auth === "manager";
+
+  useRegisterAlterForm({
+    enabled: !isLoading && canManage,
+    formId: props.id,
+    formType,
+    label: title || "양식 문서",
+    getForm: () => {
+      const s = useEditorStore.getState();
+      return {
+        formId: s.formId || props.id,
+        title: s.title,
+        formType: s.formType,
+        blocks: s.blocks,
+      };
+    },
+    applyFormDraft: (next) =>
+      useEditorStore.getState().applyFormDraft(next),
+  });
 
   useEffect(() => {
     loadForm(props.id, FormAPI);

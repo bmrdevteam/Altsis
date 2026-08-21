@@ -1,4 +1,5 @@
 import {
+  adminFormTypeLabel,
   alterModeLabel,
   applyLabelForDraft,
   applyPolicyForDraft,
@@ -68,11 +69,18 @@ describe("applyPolicyForDraft", () => {
     expect(applyPolicyForDraft(archive)).toBe("once");
   });
 
-  test("reapply for document, form-response, activity, grade", () => {
+  test("reapply for document, form-response, activity, form, grade", () => {
     expect(applyPolicyForDraft(document)).toBe("reapply");
     expect(applyPolicyForDraft(formResponse)).toBe("reapply");
     expect(applyPolicyForDraft(activity)).toBe("reapply");
     expect(applyPolicyForDraft(grade)).toBe("reapply");
+    expect(
+      applyPolicyForDraft({
+        kind: "form",
+        title: "시간표",
+        blocks: [],
+      })
+    ).toBe("reapply");
   });
 });
 
@@ -89,6 +97,12 @@ describe("applyLabelForDraft / isApplyDisabled", () => {
     expect(applyLabelForDraft(document, false)).toBe("문서에 반영");
     expect(applyLabelForDraft(formResponse, false)).toBe("응답에 반영");
     expect(applyLabelForDraft(activity, false)).toBe("양식에 반영");
+    expect(
+      applyLabelForDraft(
+        { kind: "form", title: "시간표", blocks: [] },
+        false
+      )
+    ).toBe("에디터에 반영");
     expect(applyLabelForDraft(grade, false)).toBe("채점에 반영");
     expect(applyLabelForDraft(document, true)).toBe("다시 반영");
     expect(isApplyDisabled(document, true)).toBe(false);
@@ -119,6 +133,7 @@ describe("prepPrimaryLabel", () => {
   test("prepKindFromSkill", () => {
     expect(prepKindFromSkill(false, "document-draft")).toBeNull();
     expect(prepKindFromSkill(true, "document-draft")).toBe("document");
+    expect(prepKindFromSkill(true, "form-draft")).toBe("form");
     expect(prepKindFromSkill(true, "chat")).toBeNull();
   });
 });
@@ -163,5 +178,18 @@ describe("alterModeLabel / prep summary", () => {
         archiveWriteMode: "sameText",
       })
     ).toEqual(["항목 1", "학생 5", "동일 문구", "빈 칸만"]);
+    expect(
+      buildPrepSummaryParts({
+        prepKind: "form",
+        formWriteMode: "refine",
+        formTypeLabel: "시간표",
+      })
+    ).toEqual(["다듬기", "시간표"]);
+  });
+
+  test("adminFormTypeLabel", () => {
+    expect(adminFormTypeLabel("timetable")).toBe("시간표");
+    expect(adminFormTypeLabel("syllabus")).toBe("강의계획서");
+    expect(adminFormTypeLabel("print")).toBe("출력");
   });
 });

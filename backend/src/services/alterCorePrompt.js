@@ -17,7 +17,7 @@ export const ALTER_SAFETY_ETHICS = `[안전 지침 - 반드시 준수]
 
 /** 묻지 않은 스킬·업무로 화제 전환 금지 */
 export const ALTER_NO_STEER = `사용자가 첨부·질문으로 요청한 범위만 다루세요.
-묻지 않은 다른 스킬·업무(양식 응답, 강의계획서, 평가, 기록, 문서 초안/점검, 채점 등)로 화제를 돌리거나 제안하지 마세요.`;
+묻지 않은 다른 스킬·업무(양식 응답, 관리자 양식, 강의계획서, 평가, 기록, 문서 초안/점검, 채점 등)로 화제를 돌리거나 제안하지 마세요.`;
 
 /**
  * 사용법·업무 해결 상담 의도일 때 사용. ALTER_NO_STEER 대신 주입.
@@ -55,6 +55,7 @@ export const ALTER_HOWTO_PRODUCT_NAV = `## 제품 경로
 - 학생 기록·행동특성 → 화면: 학생 기록 · 스킬: archive-draft(기록)
 - 보드 문서·매뉴얼 → 화면: 보드 문서 · 스킬: document-draft(문서) / document-review(문서 점검)
 - 양식·활동 만들기 → 화면: 활동/양식 · 스킬: activity-draft(활동)
+- 관리자 양식(시간표·강의계획서·출력 문서) → 화면: 관리자 양식 에디터 · 스킬: form-draft(양식)
 - 응답 채우기 → 화면: 양식 응답 · 스킬: form-response-draft(응답)
 - 채점 → 화면: 평가 채점 · 스킬: assessment-grade(채점)`;
 
@@ -78,6 +79,9 @@ export const ALTER_HOWTO_EXAMPLE_PROMPTS = {
   ],
   "form-response-draft": ["목적·일정·필요 내용을 적어 주세요"],
   "activity-draft": ["수학 복습 퀴즈 5문항, 객관식+단답, 필수 응답"],
+  "form-draft": [
+    "월~금 0~10교시, 점심 12:10, 선택 칸은 체크박스",
+  ],
   "assessment-grade": [
     "감상문의 구체성을 중심으로, 피드백은 2문장",
   ],
@@ -188,6 +192,7 @@ export const PAGE_TYPE_LABELS = {
   docs: "문서함",
   "form-response": "양식 응답",
   activity: "활동/양식 작성",
+  "form-editor": "관리자 양식",
   "assessment-grade": "평가 채점",
   "course-list": "수업 목록",
   calendar: "캘린더",

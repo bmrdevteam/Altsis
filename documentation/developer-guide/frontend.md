@@ -56,13 +56,18 @@ Altsis 프론트엔드는 **React 18 + TypeScript** 기반의 SPA(Single Page Ap
 | `/login` | 아카데미 선택 화면 |
 | `/myAcademy/login` | 특정 아카데미 로그인 |
 | `/register` | 회원가입 |
-| `/myAcademy/mySchool/` | 홈 페이지 |
-| `/myAcademy/mySchool/courses` | 수업 목록 |
-| `/myAcademy/mySchool/courses/design` | 수업 설계 |
+| `/myAcademy/mySchool/` | 홈 (**일정**) |
+| `/myAcademy/mySchool/courses` | 수업 홈 (시간표·수강·개설·담당) |
+| `/myAcademy/mySchool/courses/design` | 수업 개설 |
 | `/myAcademy/mySchool/courses/enroll` | 수강 신청 |
+| `/myAcademy/mySchool/courses/list` | 전체 목록 |
+| `/myAcademy/mySchool/courses/classrooms` | 강의실 현황 |
+| `/myAcademy/mySchool/docs` | 출력 문서 |
+| `/myAcademy/mySchool/boards` | 보드 |
+| `/myAcademy/mySchool/goals` | 목표 |
 | `/myAcademy/mySchool/admin/schools/list` | 학교 관리 |
-| `/myAcademy/mySchool/boards` | 게시판 |
 | `/myAcademy/mySchool/settings` | 설정 |
+| `/guide` | 앱 안 안내 (documentation 동기화) |
 
 ### UrlContextSync
 

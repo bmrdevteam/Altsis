@@ -33,6 +33,7 @@ describe("buildAlterChatPageContext", () => {
       "docs",
       "form-response",
       "activity",
+      "form-editor",
       "assessment-grade",
       "general",
     ];
@@ -56,6 +57,9 @@ describe("buildAlterChatPageContext", () => {
     expect(buildAlterChatPageContext({ pageType: "calendar" })).toContain(
       "캘린더"
     );
+    expect(
+      buildAlterChatPageContext({ pageType: "form-editor" })
+    ).toContain("관리자 양식");
   });
 
   test("강의계획서 화면은 교과·수업명을 사실로 포함한다", () => {

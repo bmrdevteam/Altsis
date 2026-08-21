@@ -1,3 +1,5 @@
+import type { TFormDraftOp } from "utils/formDraftApply";
+
 export type TAlterEvalDraftResult = {
   kind?: "evaluation";
   targetLabels: string[];
@@ -86,6 +88,19 @@ export type TAlterActivityDraftResult = {
   }>;
 };
 
+export type TAlterFormDraftResult = {
+  kind: "form";
+  writeMode?: "create" | "refine";
+  formType?: string;
+  title: string;
+  blocks?: Array<{
+    id?: string;
+    type?: string;
+    data?: Record<string, unknown>;
+  }>;
+  ops?: TFormDraftOp[];
+};
+
 export type TAlterAssessmentGradeDraftResult = {
   kind: "assessment-grade";
   fillEmptyOnly?: boolean;
@@ -113,6 +128,7 @@ export type TAlterDraftResult =
   | TAlterDocumentDraftResult
   | TAlterFormResponseDraftResult
   | TAlterActivityDraftResult
+  | TAlterFormDraftResult
   | TAlterAssessmentGradeDraftResult
   | TAlterSyllabusDraftResult;
 
@@ -162,6 +178,13 @@ export const isActivityDraft = (
   return (draft as { kind?: string }).kind === "activity";
 };
 
+export const isFormDraft = (
+  draft?: TAlterDraftResult | null
+): draft is TAlterFormDraftResult => {
+  if (!draft) return false;
+  return (draft as { kind?: string }).kind === "form";
+};
+
 export const isAssessmentGradeDraft = (
   draft?: TAlterDraftResult | null
 ): draft is TAlterAssessmentGradeDraftResult => {
@@ -178,6 +201,7 @@ export const isEvalDraft = (
     isDocumentDraft(draft) ||
     isFormResponseDraft(draft) ||
     isActivityDraft(draft) ||
+    isFormDraft(draft) ||
     isAssessmentGradeDraft(draft)
   )
     return false;

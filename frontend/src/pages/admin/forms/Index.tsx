@@ -54,6 +54,7 @@ import { useAuth } from "contexts/authContext";
 import Svg from "assets/svg/Svg";
 import useOutsideClick from "hooks/useOutsideClick";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import useRegisterAlterForm from "hooks/useRegisterAlterForm";
 import FormPermissionPopup from "./FormPermissionPopup";
 
 type Props = {};
@@ -70,6 +71,27 @@ const Forms = (props: Props) => {
   const search = useSearch(formList);
   const { FormAPI } = useAPIv2();
   const { currentUser } = useAuth();
+  const canManageForm =
+    currentUser?.auth === "admin" || currentUser?.auth === "manager";
+  const hashLabel = decodeURI(location.hash).replace("#", "");
+  const listFormType =
+    hashLabel === "강의계획서"
+      ? "syllabus"
+      : hashLabel === "출력"
+        ? "print"
+        : "timetable";
+
+  useRegisterAlterForm({
+    enabled: canManageForm,
+    formType: listFormType,
+    label: "양식 목록",
+    getForm: () => ({
+      formId: "",
+      title: "",
+      formType: listFormType,
+      blocks: [],
+    }),
+  });
 
   const [jsonData, setJsonData] = useState(null);
   const fileInput = useRef<HTMLInputElement | null>(null);

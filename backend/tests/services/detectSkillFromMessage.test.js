@@ -41,4 +41,24 @@ describe("detectSkillFromMessage", () => {
       SKILL_IDS.CHAT
     );
   });
+
+  test("routes admin form phrases to form-draft, activity phrases stay activity", () => {
+    expect(detectSkillFromMessage("/양식")).toBe(SKILL_IDS.FORM_DRAFT);
+    expect(detectSkillFromMessage("시간표 양식 만들어 줘")).toBe(
+      SKILL_IDS.FORM_DRAFT
+    );
+    expect(detectSkillFromMessage("강의계획서 양식")).toBe(
+      SKILL_IDS.FORM_DRAFT
+    );
+    expect(detectSkillFromMessage("출력 양식 초안을 작성해 주세요")).toBe(
+      SKILL_IDS.FORM_DRAFT
+    );
+    expect(detectSkillFromMessage("양식 초안을 작성해 주세요")).toBe(
+      SKILL_IDS.FORM_DRAFT
+    );
+    expect(detectSkillFromMessage("활동 양식 초안을 작성해 주세요")).toBe(
+      SKILL_IDS.ACTIVITY_DRAFT
+    );
+    expect(detectSkillFromMessage("/활동")).toBe(SKILL_IDS.ACTIVITY_DRAFT);
+  });
 });

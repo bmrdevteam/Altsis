@@ -12,6 +12,7 @@ const GUIDELINE_PICKER_SKILLS: TAlterSkillId[] = [
   "document-review",
   "form-response-draft",
   "activity-draft",
+  "form-draft",
 ];
 
 type GuidelineMap = Record<
@@ -21,7 +22,8 @@ type GuidelineMap = Record<
   | "document"
   | "documentReview"
   | "formResponse"
-  | "activity",
+  | "activity"
+  | "form",
   TGuidelineItem[]
 >;
 
@@ -33,7 +35,8 @@ type SelectedMap = Record<
   | "documentReview"
   | "documentReviewLearning"
   | "formResponse"
-  | "activity",
+  | "activity"
+  | "form",
   string[]
 >;
 
@@ -45,6 +48,7 @@ const emptyItems = (): GuidelineMap => ({
   documentReview: [],
   formResponse: [],
   activity: [],
+  form: [],
 });
 
 const emptySelected = (): SelectedMap => ({
@@ -56,6 +60,7 @@ const emptySelected = (): SelectedMap => ({
   documentReviewLearning: [],
   formResponse: [],
   activity: [],
+  form: [],
 });
 
 const mapItems = (raw: unknown): TGuidelineItem[] => {
@@ -149,6 +154,7 @@ const useAlterGuidelineLibrary = ({
         else if (selectedSkill === "document-draft") apply("document");
         else if (selectedSkill === "form-response-draft") apply("formResponse");
         else if (selectedSkill === "activity-draft") apply("activity");
+        else if (selectedSkill === "form-draft") apply("form");
         else if (selectedSkill === "document-review") {
           apply("documentReview");
           const learning = mapItems(data.learningItems).map((it) => ({
@@ -186,6 +192,8 @@ const useAlterGuidelineLibrary = ({
           setItems((p) => ({ ...p, formResponse: [] }));
         } else if (selectedSkill === "activity-draft") {
           setItems((p) => ({ ...p, activity: [] }));
+        } else if (selectedSkill === "form-draft") {
+          setItems((p) => ({ ...p, form: [] }));
         }
       } finally {
         if (!cancelled) setSkillSettingsLoading(false);
@@ -233,6 +241,10 @@ const useAlterGuidelineLibrary = ({
     activitySelectedGuidelineIds: selected.activity,
     setActivitySelectedGuidelineIds: (next: string[]) =>
       setSelectedKey("activity", next),
+    formGuidelineItems: items.form,
+    formSelectedGuidelineIds: selected.form,
+    setFormSelectedGuidelineIds: (next: string[]) =>
+      setSelectedKey("form", next),
   };
 };
 

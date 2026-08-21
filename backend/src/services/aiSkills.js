@@ -64,6 +64,15 @@ import {
   parseFormResponseDraftResponse,
 } from "./formResponseDraft.js";
 import {
+  buildFormDraftDataCatalog,
+  compactFormSnapshot,
+  formDraftTypeRules,
+  FORM_DRAFT_TYPE_LABELS,
+  normalizeFormDraft,
+  parseFormDraftResponse,
+  resolveFormDraftType,
+} from "./formDraft.js";
+import {
   describeDocResponseSlotsForPrompt,
   isAcceptableMergedDocResponse,
   isBrokenDocResponseImageDump,
@@ -147,6 +156,7 @@ export const SKILL_IDS = {
   DOCUMENT_REVIEW: "document-review",
   FORM_RESPONSE_DRAFT: "form-response-draft",
   ACTIVITY_DRAFT: "activity-draft",
+  FORM_DRAFT: "form-draft",
   ASSESSMENT_GRADE: "assessment-grade",
 };
 
@@ -200,6 +210,13 @@ export const SKILL_CATALOG = {
     name: "활동",
     description: "보드 활동(양식) 구조·안내 초안을 작성·다듬습니다",
     profile: "activityDraft",
+  },
+  [SKILL_IDS.FORM_DRAFT]: {
+    id: SKILL_IDS.FORM_DRAFT,
+    name: "양식",
+    description:
+      "시간표·강의계획서·출력 양식 문서를 규칙과 데이터 연결에 맞게 작성·수정합니다",
+    profile: "formDraft",
   },
   [SKILL_IDS.ASSESSMENT_GRADE]: {
     id: SKILL_IDS.ASSESSMENT_GRADE,
@@ -261,6 +278,9 @@ const defaultSkillGuide = (skill) => {
   }
   if (skill === SKILL_IDS.ACTIVITY_DRAFT) {
     return "활동 목적에 맞는 양식 구조를 만드세요. 제출·채점이 필요한 답은 text/textarea/radio/select 등 일반 필드로 만드세요. html-app은 제출이 필요 없는 데모·게임·시각 안내일 때만 쓰고, 퀴즈와 평가 모드는 동시에 켜지 마세요. 복수 응답과 응답 수정(allowResubmit)은 함께 켤 수 있습니다. 참고 자료는 content/docResponse의 links(http/https)로 넣고, 양식 멤버·작성 권한은 access에 역할 그룹만 지정하세요.";
+  }
+  if (skill === SKILL_IDS.FORM_DRAFT) {
+    return "관리자 양식 에디터에서 바로 검토할 문서를 만드세요. 빈 뼈대가 아니라 실제 작성 분량(문장·표 칸)을 채우세요. 헤더·라벨 칸은 배경색·굵기로 구분하고, 유형(시간표·강의계획서·출력) 규칙과 카탈로그 location만 지키세요. 수정 요청은 해당 블록·셀만 바꾸고 나머지 id·레이아웃·요청하지 않은 스타일은 유지하세요. 이미지 블록은 만들지 마세요.";
   }
   if (skill === SKILL_IDS.ASSESSMENT_GRADE) {
     return "학생을 존중하는 공손한 문어체로, 응답과 루브릭 설명에 근거해 수준·점수를 고르고 짧은 피드백을 작성하세요. 추측·낙인·민감정보는 피하세요.";
@@ -459,7 +479,8 @@ export const resolveSkillPrepSettings = async (
     skill === SKILL_IDS.DOCUMENT_DRAFT ||
     skill === SKILL_IDS.DOCUMENT_REVIEW ||
     skill === SKILL_IDS.FORM_RESPONSE_DRAFT ||
-    skill === SKILL_IDS.ACTIVITY_DRAFT;
+    skill === SKILL_IDS.ACTIVITY_DRAFT ||
+    skill === SKILL_IDS.FORM_DRAFT;
 
   const hasInstructionPicker =
     skill === SKILL_IDS.SYLLABUS_DRAFT ||
@@ -468,7 +489,8 @@ export const resolveSkillPrepSettings = async (
     skill === SKILL_IDS.DOCUMENT_DRAFT ||
     skill === SKILL_IDS.DOCUMENT_REVIEW ||
     skill === SKILL_IDS.FORM_RESPONSE_DRAFT ||
-    skill === SKILL_IDS.ACTIVITY_DRAFT;
+    skill === SKILL_IDS.ACTIVITY_DRAFT ||
+    skill === SKILL_IDS.FORM_DRAFT;
 
   /** 지침 선택 스킬은 관리에서 연결·태그한 항목만 prep에 노출 */
   const loadLibraryChoicesByKind = async (kind, emptyTitle) => {
@@ -779,6 +801,20 @@ const resolveActivityGuidelines = async (
     school,
     season,
     SKILL_IDS.ACTIVITY_DRAFT,
+    context
+  );
+
+const resolveFormDraftGuidelines = async (
+  academyId,
+  school,
+  season,
+  context = {}
+) =>
+  resolveLibraryGuidelines(
+    academyId,
+    school,
+    season,
+    SKILL_IDS.FORM_DRAFT,
     context
   );
 
@@ -4674,6 +4710,317 @@ ${currentSnapshot}
   }
 };
 
+/**
+ * form-draft Skill 실행 (관리자 양식 문서 초안)
+ */
+export const executeFormDraftSkill = async ({
+  academyId,
+  user,
+  academy,
+  season,
+  school,
+  context = {},
+  message = "",
+  onEvent,
+}) => {
+  const profile = FEATURE_PROFILES.formDraft;
+  const emit = typeof onEvent === "function" ? onEvent : () => {};
+
+  if (user?.auth !== "admin" && user?.auth !== "manager") {
+    const err = new Error(PERMISSION_DENIED);
+    err.status = 403;
+    err.code = PERMISSION_DENIED;
+    throw err;
+  }
+
+  emit("step", { message: "양식 문서 작성 준비 중..." });
+
+  const writeMode = context.writeMode === "refine" ? "refine" : "create";
+  const formType = resolveFormDraftType(context.formType);
+  const formTypeLabel = FORM_DRAFT_TYPE_LABELS[formType];
+  const currentTitle = String(
+    context.currentTitle || context.title || ""
+  ).trim();
+  const currentBlocks = Array.isArray(context.currentBlocks)
+    ? context.currentBlocks
+    : Array.isArray(context.blocks)
+      ? context.blocks
+      : [];
+
+  const currentSnapshot = truncateText(
+    JSON.stringify(compactFormSnapshot(currentBlocks)),
+    PROMPT_LIMITS.FORM_DRAFT_CURRENT_CHARS || 18000
+  );
+  const sourceText = mergeContextSourceText(
+    context,
+    "",
+    PROMPT_LIMITS.FORM_DRAFT_SOURCE_CHARS || 12000
+  );
+  const userHint = truncateText(
+    String(message || "").trim(),
+    PROMPT_LIMITS.FORM_DRAFT_USER_HINT_CHARS || 2000
+  );
+  const attachments = Array.isArray(context.attachments)
+    ? context.attachments
+    : [];
+
+  if (
+    writeMode === "create" &&
+    !userHint &&
+    !sourceText &&
+    !hasImageAttachments(context)
+  ) {
+    const err = new Error(
+      "초안에 쓸 정보를 입력하거나 파일을 첨부해 주세요."
+    );
+    err.status = 400;
+    err.code = AI_ERRORS.GENERATION_FAILED;
+    throw err;
+  }
+  if (writeMode === "refine" && !currentBlocks.length && !userHint) {
+    const err = new Error(
+      "다듬을 양식이 없습니다. 에디터에 내용을 쓰거나 요청을 입력해 주세요."
+    );
+    err.status = 400;
+    err.code = AI_ERRORS.GENERATION_FAILED;
+    throw err;
+  }
+
+  const guidelines = await resolveFormDraftGuidelines(
+    academyId,
+    school,
+    season,
+    context
+  );
+
+  let seasonsForCatalog = [];
+  try {
+    if (school?._id) {
+      seasonsForCatalog = await Season(academyId)
+        .find({ school: school._id })
+        .select("term subjects formEvaluation")
+        .lean();
+    }
+  } catch (err) {
+    logger.warn(`form-draft: season catalog lookup failed: ${err.message}`);
+    seasonsForCatalog = [];
+  }
+  const catalog = buildFormDraftDataCatalog(school, seasonsForCatalog);
+
+  const provider = resolveProvider(academy.aiProvider);
+  const modelName = resolveModel(provider, academy.aiModel);
+  assertVisionIfNeeded(modelName, context);
+
+  const schemaHint = `허용 블록 type: paragraph, table, divider. image는 만들지 마세요.
+표 셀 type: paragraph, data, time, timeRange, checkbox, input, select
+- timeRange: timeRangeStart, timeRangeEnd (HH:mm), timeRangeDisplayText(교시명)
+- checkbox: name이 저장 키
+- input: id가 저장 키, name은 라벨, required
+- data: dataText 배열. DATA는 { "tag": "DATA", "location": "카탈로그 경로" }
+- 표 반복: dataRepeat { by, index, max }, dataFilter/dataOrFilter/dataCellFilter, dataOrder
+- 셀 스타일: backgroundColor(#hex 또는 rgb/rgba), fontSize(10-36px), fontWeight(400|500|600|700), align(left|center|right), isHeader, borderWidth(0-8), borderColor, borderStyle(solid|none|dashed|dotted)
+- 표는 최대 24행 × 10열, 블록은 최대 20개. 셀 본문은 최대 2000자.`;
+
+  const taskRules =
+    writeMode === "refine"
+      ? `역할: 기존 양식에서 요청된 부분만 고칩니다.
+- 출력은 ops 배열만. 요청하지 않은 블록·셀·id는 건드리지 마세요.
+- 스타일은 요청한 칸만 패치하세요. 요청이 없으면 기존 스타일을 유지하세요.
+- 없는 blockId/row/col은 넣지 마세요.
+- 강의계획서 input 셀의 기존 id는 변경하지 마세요.
+- image 블록은 삭제하지 마세요.`
+      : `역할: 요청·자료를 바탕으로 새 양식 문서 JSON을 만듭니다.
+- ${formTypeLabel} 유형에 맞는 표·셀을 구성하세요.
+- 빈 뼈대·한 줄짜리 칸으로 끝내지 마세요. 실제 문서 분량으로 작성하세요.
+- 헤더 행은 backgroundColor·fontWeight로 라벨/입력 칸과 구분하세요.
+- 근거 없는 사실·개인정보·민감정보는 넣지 마세요.
+- 데이터 연결은 아래 카탈로그에 있는 location만 쓰세요.`;
+
+  const outputFormat =
+    writeMode === "refine"
+      ? `## 출력 형식 (필수)
+<<<JSON>>>
+{
+  "writeMode": "refine",
+  "formType": "${formType}",
+  "title": "제목(바꿀 때만)",
+  "ops": [
+    { "op": "updateCell", "blockId": "기존id", "row": 0, "col": 1, "patch": { "data": { "text": "새 문구" }, "backgroundColor": "#eef2ff", "fontWeight": 600 } },
+    { "op": "setDataText", "blockId": "기존id", "row": 0, "col": 2, "dataText": [{ "tag": "DATA", "location": "학교ID//archive//기록//필드" }] },
+    { "op": "updateBlockData", "blockId": "기존id", "patch": { "dataRepeat": { "by": "학교ID//evaluation", "index": 1, "max": 20 } } },
+    { "op": "addRow", "blockId": "기존id", "after": 3 },
+    { "op": "addColumn", "blockId": "기존id", "after": 2 },
+    { "op": "addBlock", "afterId": "기존id", "block": { "type": "paragraph", "data": { "text": "안내" } } },
+    { "op": "removeBlock", "blockId": "기존id" }
+  ]
+}
+<<<END>>>
+- 설명·머리말 없이 위 형식만 출력하세요.
+- 요청과 관련 없는 op는 넣지 마세요.`
+      : `## 출력 형식 (필수)
+<<<JSON>>>
+{
+  "writeMode": "create",
+  "formType": "${formType}",
+  "title": "양식 제목",
+  "blocks": [
+    { "id": "b1", "type": "paragraph", "data": { "text": "제목과 안내를 문장으로 충분히 작성" } },
+    {
+      "id": "b2",
+      "type": "table",
+      "data": {
+        "columns": [1, 1, 1],
+        "table": [
+          [
+            { "id": "c1", "type": "paragraph", "isHeader": true, "fontWeight": 700, "backgroundColor": "#eef2ff", "align": "center", "data": { "text": "시간" } },
+            { "id": "c2", "type": "checkbox", "name": "월1", "data": { "text": "" } }
+          ]
+        ]
+      }
+    }
+  ]
+}
+<<<END>>>
+- 설명·머리말 없이 위 형식만 출력하세요.
+- 모든 블록·셀에 고유 id를 넣으세요.`;
+
+  const prompt = `당신은 학교 관리자 양식(시간표·강의계획서·출력 문서) 작성 보조입니다. 에디터에서 바로 검토·반영할 JSON만 작성합니다.
+
+${taskRules}
+
+## 작성 지침
+${guidelines || defaultSkillGuide(SKILL_IDS.FORM_DRAFT)}
+
+## 양식 유형
+${formTypeLabel}
+${formDraftTypeRules(formType)}
+
+## 스키마
+${schemaHint}
+
+## 내부 데이터 연결 카탈로그
+${catalog.catalogText}
+
+## 교사 요청
+${userHint || "(없음)"}
+
+## 첨부·참고 자료
+${sourceText || "(없음)"}
+
+${IMAGE_HINT}
+
+## 현재 양식 (compact, 셀 스타일 포함·화이트리스트)
+${currentSnapshot || "(비어 있음)"}
+
+${outputFormat}`;
+
+  emit("step", {
+    message:
+      writeMode === "refine"
+        ? "AI가 양식 문서를 다듬고 있습니다..."
+        : "AI가 양식 문서 초안을 작성하고 있습니다...",
+  });
+
+  let tokenUsage = null;
+  try {
+    const userContent = await buildMultimodalUserContent(prompt, attachments);
+    const generated = await runEvaluationGeneration({
+      provider,
+      apiKey: academy.aiApiKey,
+      modelName,
+      profile,
+      systemInstruction: `You are Alter, a school admin form-document drafting assistant. Output only <<<JSON>>> / <<<END>>> with valid JSON. For refine mode output ops only; never rewrite untouched cells. Use DATA locations only from the catalog. Do not create image blocks.`,
+      messages: [{ role: "user", content: userContent }],
+      onEvent: emit,
+      progressLabel:
+        writeMode === "refine"
+          ? "양식 문서 다듬는 중"
+          : "양식 문서 초안 작성 중",
+    });
+    tokenUsage = mergeTokenUsage(tokenUsage, generated.tokenUsage);
+
+    const parsed = parseFormDraftResponse(generated.text || "");
+    if (!parsed) {
+      const err = new Error(
+        "양식 초안 형식을 해석하지 못했습니다. 다시 시도해 주세요."
+      );
+      err.status = 502;
+      err.code = AI_ERRORS.EMPTY_RESPONSE;
+      throw err;
+    }
+    const draft = normalizeFormDraft(parsed, {
+      formType,
+      writeMode,
+      currentBlocks,
+      currentTitle,
+      allowedLocations: catalog.allowedLocations,
+      allowedRepeatBy: catalog.allowedRepeatBy,
+    });
+    if (draft.writeMode === "create" && !draft.blocks.length) {
+      const err = new Error(
+        "생성 가능한 양식 블록이 없습니다. 다시 시도해 주세요."
+      );
+      err.status = 502;
+      err.code = AI_ERRORS.EMPTY_RESPONSE;
+      throw err;
+    }
+    if (draft.writeMode === "refine" && !draft.ops.length) {
+      const err = new Error(
+        "수정할 부분을 찾지 못했습니다. 요청을 더 구체적으로 적어 주세요."
+      );
+      err.status = 502;
+      err.code = AI_ERRORS.EMPTY_RESPONSE;
+      throw err;
+    }
+    if (!draft.title) {
+      draft.title = currentTitle || formTypeLabel || "새 양식";
+    }
+
+    const summary =
+      draft.writeMode === "refine"
+        ? `「${draft.title}」 양식에서 ${draft.ops.length}곳을 다듬었습니다.`
+        : `「${draft.title}」 ${formTypeLabel} 초안을 만들었습니다.`;
+
+    logAIUsage(academyId, {
+      user,
+      provider,
+      model: modelName,
+      feature: profile.feature,
+      success: true,
+      tokenUsage,
+    });
+
+    return {
+      skill: SKILL_IDS.FORM_DRAFT,
+      provider,
+      modelName,
+      tokenUsage,
+      text: summary,
+      draft: {
+        kind: "form",
+        writeMode: draft.writeMode,
+        formType: draft.formType,
+        title: draft.title,
+        ...(draft.writeMode === "refine"
+          ? { ops: draft.ops }
+          : { blocks: draft.blocks }),
+      },
+    };
+  } catch (err) {
+    if (!err.code) err.code = mapProviderError(err);
+    logAIUsage(academyId, {
+      user,
+      provider,
+      model: modelName,
+      feature: profile.feature,
+      success: false,
+      errorCode: err.code,
+      tokenUsage,
+    });
+    throw err;
+  }
+};
+
 const fieldIdOf = (field) => String(field?._id || field?.id || "");
 
 const getFieldRubricIds = (field) => {
@@ -5263,6 +5610,26 @@ export const runAlterSkill = async ({
     };
   }
 
+  if (skill === SKILL_IDS.FORM_DRAFT) {
+    const result = await executeFormDraftSkill({
+      academyId,
+      user,
+      academy,
+      season,
+      school,
+      context,
+      message,
+      onEvent,
+    });
+    return {
+      skill,
+      text: result.text,
+      review: null,
+      draft: result.draft,
+      tokenUsage: result.tokenUsage,
+    };
+  }
+
   if (skill === SKILL_IDS.ASSESSMENT_GRADE) {
     const result = await executeAssessmentGradeSkill({
       academyId,
@@ -5460,10 +5827,17 @@ export const detectSkillFromMessage = (message = "") => {
     return SKILL_IDS.FORM_RESPONSE_DRAFT;
   }
   if (
+    /\/(양식|form[-_]?draft)/i.test(text) ||
+    /(시간표|출력)\s*양식/.test(text) ||
+    /강의계획서\s*양식/.test(text) ||
+    (/양식.*(초안|작성|다듬)/.test(text) && !/활동/.test(text))
+  ) {
+    return SKILL_IDS.FORM_DRAFT;
+  }
+  if (
     /활동.*(초안|작성|다듬|양식)/.test(text) ||
     /(초안|작성|다듬).*활동/.test(text) ||
-    /양식.*(초안|작성)/.test(text) ||
-    /\/(활동|양식|activity[-_]?draft)/i.test(text)
+    /\/(활동|activity[-_]?draft)/i.test(text)
   ) {
     return SKILL_IDS.ACTIVITY_DRAFT;
   }

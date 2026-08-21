@@ -48,19 +48,13 @@ yarn install
 
 ### 2.2 전역 패키지 설치
 
-개발 서버 실행에 필요한 전역 패키지를 설치합니다.
+개발 서버 실행에 `cross-env`와 `nodemon`이 필요합니다. `cross-env`는 백엔드 의존성에 포함되어 있습니다. `nodemon`은 백엔드 `package.json`에 없으므로 전역 설치하거나 `npx nodemon`을 사용합니다.
 
 ```bash
-yarn global add cross-env && yarn global add nodemon
+yarn global add nodemon
 ```
 
-| 패키지 | 용도 |
-|--------|------|
-| `cross-env` | Windows/macOS/Linux에서 동일하게 환경변수를 설정 |
-| `nodemon` | 소스 파일 변경 시 서버를 자동으로 재시작 |
-
-> [!TIP]
-> 전역 패키지 설치 후 `cross-env --version`, `nodemon --version` 명령으로 정상 설치를 확인할 수 있습니다.
+Yarn 3 환경에서는 전역 설치 대신 `yarn dlx`/`npx`를 쓸 수도 있습니다. `yarn dev`가 `nodemon`을 찾지 못하면 위 전역 설치를 확인하세요.
 
 ### 2.3 환경변수 파일 생성
 

@@ -14,7 +14,7 @@ Altsis 학교 정보 시스템의 백엔드 RESTful API에 대한 종합 문서�
 | [수업 API](./courses.md) | 강의계획서, 수강신청, 평가, 학기 등록 |
 | [등록 API](./registrations.md) | 학기 등록 생성, 복사, 조회, 수정, 삭제 |
 | [수강 API](./enrollments.md) | 수강 등록, 평가 입력, 메모, 캘린더 동기화 |
-| [게시판 API](./boards.md) | 게시판/게시글/댓글 CRUD, 역할 기반 권한 |
+| [보드 API](./boards.md) | Alt Board, 게시글, 댓글, 즐겨찾기 |
 | [캘린더 API](./calendar.md) | 일정 생성/조회, 반복 일정, 사용자 캘린더 |
 | [채팅 API](./chat.md) | 채팅방, 메시지, 파일 업로드, 실시간 이벤트 |
 | [알림 API](./notifications.md) | 알림 생성/조회/확인, 알림 설정 |
@@ -76,7 +76,7 @@ Content-Type: application/json
 |-----------|------|-----------|
 | `owner` | 최고 관리자 | 아카데미 생성/삭제, 전체 시스템 관리 |
 | `admin` | 아카데미 관리자 | 사용자/학교 관리, 백업/복원 |
-| `manager` | 운영자 | 학기/수업 관리, 게시판 관리 |
+| `manager` | 운영자 | 학기/수업 관리, 보드 관리 |
 | `member` | 일반 사용자 | 수업 참여, 게시글 작성 |
 
 ### API 명명 규칙
