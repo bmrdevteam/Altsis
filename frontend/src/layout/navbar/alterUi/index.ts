@@ -1,3 +1,6 @@
+export { default as AlterGuideLinks } from "./GuideLinkChips";
+export { normalizeClientGuideLinks } from "./normalizeGuideLinks";
+export type { TAlterGuideLink } from "./normalizeGuideLinks";
 export { default as SkillDraftResult } from "./SkillDraftResult";
 export { default as SkillPrepDock } from "./SkillPrepDock";
 export {

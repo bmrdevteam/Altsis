@@ -27,6 +27,7 @@ export type TAlterStoredMessage = {
   skill?: string;
   review?: any;
   draft?: any;
+  links?: Array<{ kind: "page" | "guide"; title: string; path: string }>;
   tokenUsage?: {
     promptTokens?: number;
     candidatesTokens?: number;
