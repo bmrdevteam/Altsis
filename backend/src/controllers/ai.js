@@ -57,6 +57,7 @@ import {
 import { alterMulter } from "../_s3/alterMulter.js";
 import { fileBucket, fileS3 } from "../_s3/fileBucket.js";
 import { processAlterUpload } from "../services/alterAttachments.js";
+import { refineAlterPrompt as refineAlterPromptSvc } from "../services/refineAlterPrompt.js";
 
 const mapProviderError = (err) => {
   if (err.status === 404) return AI_ERRORS.MODEL_NOT_FOUND;
@@ -529,6 +530,62 @@ export const runAlter = async (req, res) => {
       return res.end();
     }
     return res.status(err.status || 500).send({ message, conversationId });
+  }
+};
+
+/**
+ * Alter 요청문 다듬기 (대화 저장·스킬 실행 없음)
+ * @memberof APIs.AIAPI
+ * @route POST /ai/alter/refine-prompt
+ */
+export const refineAlterPrompt = async (req, res) => {
+  const {
+    season: seasonId,
+    skill: rawSkill,
+    message = "",
+    context = {},
+  } = req.body || {};
+
+  try {
+    if (!seasonId) {
+      return res.status(400).send({ message: FIELD_REQUIRED("season") });
+    }
+
+    const slimContext = {
+      pageType: context?.pageType || "general",
+      label: context?.label || "",
+      classTitle: context?.classTitle || "",
+      writeMode: context?.writeMode || "",
+      currentTitle: context?.currentTitle || "",
+      currentExcerpt: context?.currentExcerpt || "",
+    };
+
+    const result = await refineAlterPromptSvc({
+      academyId: req.user.academyId,
+      user: req.user,
+      seasonId,
+      skill: rawSkill,
+      message,
+      context: slimContext,
+    });
+
+    return res.status(200).send({ prompt: result.prompt });
+  } catch (err) {
+    logger.error(err.message);
+    const code =
+      err.code ||
+      (err.message && Object.values(AI_ERRORS).includes(err.message)
+        ? err.message
+        : mapProviderError(err));
+    const rawMessage = String(err.message || "").trim();
+    const isKoreanHint =
+      /[가-힣]/.test(rawMessage) && !Object.values(AI_ERRORS).includes(rawMessage);
+    const message =
+      (isKoreanHint ? rawMessage : null) ||
+      AI_ERROR_MESSAGES[code] ||
+      rawMessage ||
+      AI_ERRORS.GENERATION_FAILED;
+    return res.status(err.status || 500).send({ message });
   }
 };
 

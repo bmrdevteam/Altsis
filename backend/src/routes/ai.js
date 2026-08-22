@@ -43,6 +43,9 @@ router.delete(
 // Alter attachment upload (text extract / image key)
 router.post("/alter/attachment", isLoggedIn, ai.uploadAlterAttachment);
 
+// Alter request-prompt refine (no persist / no skill run)
+router.post("/alter/refine-prompt", isLoggedIn, ai.refineAlterPrompt);
+
 // Alter unified turn (skill router)
 router.post("/alter", isLoggedIn, ai.runAlter);
 
