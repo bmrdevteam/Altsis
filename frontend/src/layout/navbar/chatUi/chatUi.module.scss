@@ -541,6 +541,14 @@
   }
 }
 
+.refineButton {
+  margin-right: 2px;
+}
+
+.refineActive {
+  color: var(--alter-brand-2, #60a5fa);
+}
+
 .inputHint {
   flex: 1;
   align-self: center;

@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import { useAuth } from "contexts/authContext";
 import { TAlterSkillId, useAlter } from "contexts/alterContext";
 import { MESSAGE } from "hooks/_message";
@@ -48,6 +49,9 @@ import {
   SKILL_TONE_KEY,
   alterModeLabel,
   buildPrepSummaryParts,
+  buildRefineContentExcerpt,
+  canActivateRefinePrompt,
+  fullscreenToggleLabel,
   shouldDefaultCollapsePrep,
   docTypeLabel,
   activityFormTypeLabel,
@@ -272,9 +276,9 @@ const AlterPanel = ({ onClose }: Props) => {
   const { AIAPI } = useAPIv2();
   const {
     pageContext,
-    isExpanded,
+    isFullscreen,
     isOpen,
-    toggleExpanded,
+    toggleFullscreen,
     setIsWorking: setAlterWorking,
     setHasBackgroundResult,
   } = useAlter();
@@ -294,6 +298,8 @@ const AlterPanel = ({ onClose }: Props) => {
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
   const [isWorking, setIsWorking] = useState(false);
+  const [isRefining, setIsRefining] = useState(false);
+  const [composerFocusNonce, setComposerFocusNonce] = useState(0);
   const [steps, setSteps] = useState<string[]>([]);
   const [myUsage, setMyUsage] = useState<TMyAiUsage | null>(null);
   const [sourceAttachments, setSourceAttachments] = useState<
@@ -639,6 +645,18 @@ const AlterPanel = ({ onClose }: Props) => {
   useEffect(() => {
     setAlterWorking(isWorking);
   }, [isWorking, setAlterWorking]);
+
+  useEffect(() => {
+    if (!isOpen || !isFullscreen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        toggleFullscreen();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isOpen, isFullscreen, toggleFullscreen]);
 
   useEffect(() => {
     if (pageContext?.pageType !== "evaluation") return;
@@ -1062,7 +1080,7 @@ const AlterPanel = ({ onClose }: Props) => {
   };
 
   const selectSkill = (skill: TAlterSkillId) => {
-    if (isWorking) return;
+    if (isWorking || isRefining) return;
     // 한 대화에서 여러 Skill 허용 — 칩만 전환
     setSelectedSkill(skill);
     setExpandedGuidelineId(null);
@@ -1879,6 +1897,7 @@ const AlterPanel = ({ onClose }: Props) => {
   };
 
   const startSuggested = () => {
+    if (isWorking || isRefining || attachUploading || usageLimitExceeded) return;
     if (
       selectedSkill === "evaluation-draft" ||
       (showPrep && pageContext?.pageType === "evaluation")
@@ -2095,11 +2114,126 @@ const AlterPanel = ({ onClose }: Props) => {
     if (
       (!text && sourceAttachments.length === 0) ||
       isWorking ||
+      isRefining ||
       attachUploading
     )
       return;
     setDraft("");
     void runSkill(resolveSendSkill(text), text);
+  };
+
+  const refineWriteMode = (() => {
+    if (selectedSkill === "document-draft") return docWriteMode;
+    if (selectedSkill === "form-response-draft") return formResponseWriteMode;
+    if (selectedSkill === "activity-draft") return activityWriteMode;
+    if (selectedSkill === "form-draft") return formWriteMode;
+    if (selectedSkill === "archive-draft") return archiveWriteMode;
+    return "";
+  })();
+
+  const refineDraftPrompt = async () => {
+    if (
+      !canActivateRefinePrompt({
+        usageLimitExceeded,
+        isWorking,
+        isRefining,
+        attachUploading,
+      })
+    ) {
+      return;
+    }
+    if (!currentSeason?._id) {
+      setError("학기 정보가 없어 Alter를 사용할 수 없습니다.");
+      return;
+    }
+    setError("");
+    setIsRefining(true);
+    try {
+      const res = await fetch(`${alterApiBase()}/alter/refine-prompt`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          season: currentSeason._id,
+          skill: selectedSkill,
+          message: draft.trim(),
+          context: {
+            pageType: pageContext?.pageType || "general",
+            label: pageContext?.label || "",
+            classTitle: pageContext?.classTitle || "",
+            writeMode: refineWriteMode,
+            currentTitle:
+              pageContext?.getDocument?.()?.title ||
+              pageContext?.getReviewDocument?.()?.title ||
+              pageContext?.getFormResponse?.()?.formTitle ||
+              pageContext?.getActivity?.()?.title ||
+              pageContext?.getForm?.()?.title ||
+              "",
+            currentExcerpt: buildRefineContentExcerpt({
+              skill: selectedSkill,
+              document: pageContext?.getDocument?.() || null,
+              reviewDocument: pageContext?.getReviewDocument?.() || null,
+              formResponse: (() => {
+                const snap = pageContext?.getFormResponse?.();
+                if (!snap) return null;
+                const writable = (snap.fields || []).filter((f) =>
+                  FORM_RESPONSE_WRITABLE_TYPES.has(String(f.type))
+                );
+                return {
+                  formTitle: snap.formTitle,
+                  fields: snap.fields,
+                  responses: snap.responses,
+                  targetFieldIds:
+                    formResponseTargetFieldIds.length > 0
+                      ? formResponseTargetFieldIds
+                      : writable.map((f) => f.fieldId),
+                };
+              })(),
+              activity: pageContext?.getActivity?.() || null,
+              form: pageContext?.getForm?.() || null,
+              syllabusInfo: pageContext?.getCurrentInfo?.() || null,
+              evaluationTargets:
+                evalTargetLabels.length > 0
+                  ? evalTargetLabels
+                  : defaultTargetLabels,
+              archiveTargets:
+                archiveTargetLabels.length > 0
+                  ? archiveTargetLabels
+                  : defaultArchiveTargetLabels,
+              grade: (() => {
+                const grade = pageContext?.getAssessmentGradeContext?.();
+                if (!grade) return null;
+                return {
+                  formTitle: grade.formTitle,
+                  fields: grade.fields,
+                  responses: grade.responses,
+                };
+              })(),
+              chatSummary: pageContext?.getChatSnapshot?.()?.summary || "",
+            }),
+          },
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(
+          MESSAGE.get(data.message) ||
+            data.message ||
+            "요청문을 다듬지 못했습니다."
+        );
+      }
+      const prompt = String(data.prompt || "").trim();
+      if (!prompt) {
+        throw new Error("요청문이 비어 있습니다. 다시 시도해 주세요.");
+      }
+      setDraft(prompt);
+      setComposerFocusNonce((n) => n + 1);
+      refreshMyUsage();
+    } catch (err: any) {
+      setError(err.message || "요청문을 다듬지 못했습니다.");
+    } finally {
+      setIsRefining(false);
+    }
   };
 
   const guessAttachKind = (file: File): "image" | "file" => {
@@ -2731,11 +2865,12 @@ const AlterPanel = ({ onClose }: Props) => {
     <button
       type="button"
       className={chatUiStyle.iconBtn}
-      onClick={toggleExpanded}
-      aria-label={isExpanded ? "작게 보기" : "크게 보기"}
-      title={isExpanded ? "작게 보기" : "크게 보기"}
+      onClick={toggleFullscreen}
+      aria-pressed={isFullscreen}
+      aria-label={fullscreenToggleLabel(isFullscreen)}
+      title={fullscreenToggleLabel(isFullscreen)}
     >
-      {isExpanded ? (
+      {isFullscreen ? (
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
           <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z" />
         </svg>
@@ -3548,13 +3683,34 @@ const AlterPanel = ({ onClose }: Props) => {
           value={draft}
           onChange={setDraft}
           onSend={() => {
-            if (usageLimitExceeded) return;
+            if (usageLimitExceeded || isRefining) return;
             if (inPrep) startSuggested();
             else sendDraft();
           }}
-          disabled={isWorking || attachUploading || usageLimitExceeded}
+          onRefine={() => {
+            void refineDraftPrompt();
+          }}
+          refineDisabled={
+            !canActivateRefinePrompt({
+              usageLimitExceeded,
+              isWorking,
+              isRefining,
+              attachUploading,
+            })
+          }
+          refineActive={canActivateRefinePrompt({
+            usageLimitExceeded,
+            isWorking,
+            isRefining,
+            attachUploading,
+          })}
+          refineTitle={isRefining ? "요청문을 다듬는 중" : "요청 다듬기"}
+          disabled={
+            isWorking || isRefining || attachUploading || usageLimitExceeded
+          }
           sendDisabled={
             usageLimitExceeded ||
+            isRefining ||
             (inSyllabusPrep ||
             (inDocPrep && docWriteMode === "create") ||
             (inFormResponsePrep && formResponseWriteMode === "create") ||
@@ -3571,6 +3727,7 @@ const AlterPanel = ({ onClose }: Props) => {
           }
           sendActive={
             !usageLimitExceeded &&
+            !isRefining &&
             (inSyllabusPrep ||
             (inDocPrep && docWriteMode === "create") ||
             (inFormResponsePrep && formResponseWriteMode === "create") ||
@@ -3587,6 +3744,7 @@ const AlterPanel = ({ onClose }: Props) => {
           }
           sendTitle={inPrep ? prepPrimaryLabel : "보내기"}
           leftSlot={attachButton}
+          focusNonce={composerFocusNonce}
           showTextarea={
             !inPrep ||
             inEvalPrep ||
@@ -3640,6 +3798,7 @@ const AlterPanel = ({ onClose }: Props) => {
                     if (
                       !usageLimitExceeded &&
                       !isWorking &&
+                      !isRefining &&
                       !attachUploading
                     ) {
                       startSuggested();
@@ -3653,13 +3812,37 @@ const AlterPanel = ({ onClose }: Props) => {
     </>
   );
 
+  const panelBody = showHistory ? historyListView : conversationView;
+
+  if (isOpen && isFullscreen && typeof document !== "undefined") {
+    return createPortal(
+      <div className={style.fullscreenRoot}>
+        <button
+          type="button"
+          className={style.fullscreenBackdrop}
+          aria-label="원래 크기로"
+          onClick={toggleFullscreen}
+        />
+        <div
+          className={style.fullscreenPanel}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Alter 전체 화면"
+        >
+          {panelBody}
+        </div>
+      </div>,
+      document.body
+    );
+  }
+
   return (
     <ChatPanelShell
-      variant={isExpanded ? "expanded" : "default"}
+      variant="expanded"
       showOverlay={isOpen}
       onOverlayClick={onClose}
     >
-      {showHistory ? historyListView : conversationView}
+      {panelBody}
     </ChatPanelShell>
   );
 };

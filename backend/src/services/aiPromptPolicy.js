@@ -102,6 +102,12 @@ export const PROMPT_LIMITS = {
   DOCUMENT_DRAFT_SOURCE_CHARS: 12000,
   /** 문서 초안: 교사 요청 문구 최대 글자 */
   DOCUMENT_DRAFT_USER_HINT_CHARS: 2000,
+  /** 요청 다듬기: 사용자 원문 최대 글자 */
+  REFINE_PROMPT_INPUT_CHARS: 2000,
+  /** 요청 다듬기: 현재 내용 발췌 최대 글자 */
+  REFINE_PROMPT_EXCERPT_CHARS: 2500,
+  /** 요청 다듬기: 결과 요청문 최대 글자 */
+  REFINE_PROMPT_CHARS: 800,
   /** 문서 초안: 제목 최대 글자 */
   DOCUMENT_DRAFT_TITLE_CHARS: 120,
   /** 문서 점검: 본문 상한 (문서함 직렬화·chat 스냅샷과 맞춤) */
@@ -215,6 +221,11 @@ export const FEATURE_PROFILES = {
     feature: "document_review",
     temperature: 0.3,
     maxTokens: 8192,
+  },
+  promptRefine: {
+    feature: "prompt_refine",
+    temperature: 0.35,
+    maxTokens: 400,
   },
 };
 

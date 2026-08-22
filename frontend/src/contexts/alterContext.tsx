@@ -257,14 +257,15 @@ export type TAlterPageContext = {
 
 type AlterContextValue = {
   isOpen: boolean;
-  isExpanded: boolean;
+  /** 활동 AI 챗봇과 같은 전체 화면 오버레이 */
+  isFullscreen: boolean;
   /** 패널이 닫혀 있어도 진행 중인 작업이 있으면 true */
   isWorking: boolean;
   /** 닫힌 동안 결과가 도착했는지 (다시 열면 확인) */
   hasBackgroundResult: boolean;
   close: () => void;
   toggle: () => void;
-  toggleExpanded: () => void;
+  toggleFullscreen: () => void;
   setIsWorking: (v: boolean) => void;
   setHasBackgroundResult: (v: boolean) => void;
   pageContext: TAlterPageContext | null;
@@ -279,7 +280,7 @@ const AlterContext = createContext<AlterContextValue | null>(null);
 
 export const AlterProvider = ({ children }: { children: ReactNode }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [isWorking, setIsWorking] = useState(false);
   const [hasBackgroundResult, setHasBackgroundResult] = useState(false);
   const [pageContext, setPageContext] = useState<TAlterPageContext | null>(
@@ -289,17 +290,17 @@ export const AlterProvider = ({ children }: { children: ReactNode }) => {
 
   const close = useCallback(() => {
     setIsOpen(false);
-    setIsExpanded(false);
+    setIsFullscreen(false);
   }, []);
   const toggle = useCallback(() => {
     setIsOpen((v) => {
-      if (v) setIsExpanded(false);
+      if (v) setIsFullscreen(false);
       else setHasBackgroundResult(false);
       return !v;
     });
   }, []);
-  const toggleExpanded = useCallback(
-    () => setIsExpanded((v) => !v),
+  const toggleFullscreen = useCallback(
+    () => setIsFullscreen((v) => !v),
     []
   );
   const registerPageContext = useCallback((ctx: TAlterPageContext) => {
@@ -315,12 +316,12 @@ export const AlterProvider = ({ children }: { children: ReactNode }) => {
   const value = useMemo(
     () => ({
       isOpen,
-      isExpanded,
+      isFullscreen,
       isWorking,
       hasBackgroundResult,
       close,
       toggle,
-      toggleExpanded,
+      toggleFullscreen,
       setIsWorking,
       setHasBackgroundResult,
       pageContext,
@@ -328,12 +329,12 @@ export const AlterProvider = ({ children }: { children: ReactNode }) => {
     }),
     [
       isOpen,
-      isExpanded,
+      isFullscreen,
       isWorking,
       hasBackgroundResult,
       close,
       toggle,
-      toggleExpanded,
+      toggleFullscreen,
       pageContext,
       registerPageContext,
     ]

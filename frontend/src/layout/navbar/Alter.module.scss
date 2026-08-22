@@ -43,6 +43,42 @@
   display: none;
 }
 
+.fullscreenRoot {
+  position: fixed;
+  inset: 0;
+  z-index: 2020;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.fullscreenBackdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  padding: 0;
+  background: var(--overlay-bg, rgba(0, 0, 0, 0.35));
+  cursor: pointer;
+}
+
+.fullscreenPanel {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: min(960px, 100%);
+  height: 100%;
+  max-height: 100%;
+  border-radius: 12px;
+  background: var(--background-color);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+  box-sizing: border-box;
+  overflow: hidden;
+  border: var(--border-default);
+}
+
 /* 패널 등에서 쓰는 mask 기반 아이콘 (단일 span) */
 .iconStar {
   display: block;
