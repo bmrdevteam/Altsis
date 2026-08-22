@@ -2125,20 +2125,6 @@ const AltSheetView = ({
             )}
           </div>
 
-          <button
-            type="button"
-            className={style.formCardIconBtn}
-            title="인쇄"
-            aria-label="인쇄"
-            onClick={() => {
-              viewModeMenu.setActive(false);
-              moreMenu.setActive(false);
-              handleSheetPrint();
-            }}
-          >
-            <Svg type="print" width="18px" height="18px" />
-          </button>
-
           <div className={style.sheetMenuWrap} ref={moreMenu.RefObject}>
             <button
               type="button"
@@ -2158,6 +2144,18 @@ const AltSheetView = ({
             </button>
             {moreMenu.active && (
               <div className={style.formActionMenu} role="menu">
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={style.formActionItem}
+                  onClick={() => {
+                    handleSheetPrint();
+                    moreMenu.setActive(false);
+                  }}
+                >
+                  <Svg type="print" width="16px" height="16px" />
+                  인쇄
+                </button>
                 {viewMode === "doc" && (
                   <button
                     type="button"
@@ -2168,7 +2166,7 @@ const AltSheetView = ({
                       moreMenu.setActive(false);
                     }}
                   >
-                    <Svg type="printBatch" width="16px" height="16px" />
+                    <Svg type="print" width="16px" height="16px" />
                     일괄 인쇄
                   </button>
                 )}
