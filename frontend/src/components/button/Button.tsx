@@ -126,7 +126,7 @@ const Button = ({
       }}
     >
       {children}
-      {loading && <Svg type={"loader"} />}
+      {loading && <Svg type={"loading"} />}
     </div>
   );
 };
