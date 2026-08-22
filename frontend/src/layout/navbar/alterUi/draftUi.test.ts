@@ -4,6 +4,10 @@ import {
   applyLabelForDraft,
   applyPolicyForDraft,
   buildPrepSummaryParts,
+  buildRefineContentExcerpt,
+  canActivateRefinePrompt,
+  clipRefineExcerpt,
+  fullscreenToggleLabel,
   isApplyDisabled,
   prepKindFromSkill,
   prepPrimaryLabel,
@@ -191,5 +195,45 @@ describe("alterModeLabel / prep summary", () => {
     expect(adminFormTypeLabel("timetable")).toBe("시간표");
     expect(adminFormTypeLabel("syllabus")).toBe("강의계획서");
     expect(adminFormTypeLabel("print")).toBe("출력");
+  });
+
+  test("canActivateRefinePrompt and fullscreenToggleLabel", () => {
+    expect(canActivateRefinePrompt()).toBe(true);
+    expect(canActivateRefinePrompt({ isRefining: true })).toBe(false);
+    expect(canActivateRefinePrompt({ usageLimitExceeded: true })).toBe(false);
+    expect(canActivateRefinePrompt({ isWorking: true })).toBe(false);
+    expect(canActivateRefinePrompt({ attachUploading: true })).toBe(false);
+    expect(fullscreenToggleLabel(false)).toBe("전체 화면");
+    expect(fullscreenToggleLabel(true)).toBe("원래 크기");
+  });
+
+  test("buildRefineContentExcerpt uses outline and omits student names", () => {
+    expect(
+      buildRefineContentExcerpt({
+        skill: "document-draft",
+        document: {
+          title: "저녁활동 안내",
+          content: "# 공간\n본문\n## 수칙\n금지",
+        },
+      })
+    ).toMatch(/목차: 공간 · 수칙/);
+    expect(
+      buildRefineContentExcerpt({
+        skill: "evaluation-draft",
+        evaluationTargets: ["멘토평가"],
+      })
+    ).toBe("작성 항목: 멘토평가");
+    expect(
+      buildRefineContentExcerpt({
+        skill: "form-response-draft",
+        formResponse: {
+          formTitle: "기안",
+          fields: [{ fieldId: "a", label: "목적" }],
+          responses: { a: "체험학습" },
+          targetFieldIds: ["a"],
+        },
+      })
+    ).toMatch(/목적: 체험학습/);
+    expect(clipRefineExcerpt("가".repeat(10), 4)).toBe("가가가가…");
   });
 });

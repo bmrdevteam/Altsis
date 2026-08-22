@@ -28,7 +28,28 @@ type Props = {
   bare?: boolean;
   /** 값이 바뀌면 textarea에 포커스하고 인용 다음으로 커서를 둔다 */
   focusNonce?: number;
+  onRefine?: () => void;
+  refineDisabled?: boolean;
+  refineActive?: boolean;
+  refineTitle?: string;
 };
+
+const RefineSparkle = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden>
+    <path
+      fill="currentColor"
+      d="M11.5 9.5 9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5z"
+    />
+    <path
+      fill="currentColor"
+      d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9z"
+    />
+    <path
+      fill="currentColor"
+      d="M19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"
+    />
+  </svg>
+);
 
 const TEXTAREA_MAX_HEIGHT_PX = 240;
 
@@ -49,6 +70,10 @@ const ChatInputBar = ({
   onPaste,
   bare,
   focusNonce,
+  onRefine,
+  refineDisabled,
+  refineActive,
+  refineTitle = "요청 다듬기",
 }: Props) => {
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -109,6 +134,20 @@ const ChatInputBar = ({
       ) : (
         <span className={style.inputHint}>{centerHint}</span>
       )}
+      {onRefine ? (
+        <button
+          type="button"
+          className={`${style.sendButton} ${style.refineButton} ${
+            refineActive && !refineDisabled ? style.refineActive : ""
+          }`}
+          disabled={refineDisabled || disabled}
+          onClick={onRefine}
+          aria-label={refineTitle}
+          title={refineTitle}
+        >
+          <RefineSparkle />
+        </button>
+      ) : null}
       <button
         type="button"
         className={`${style.sendButton} ${

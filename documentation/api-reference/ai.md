@@ -25,6 +25,7 @@ UI에서의 Alter 사용법은 [사용자 가이드 — Alter](../user-guide/cha
 | `PATCH` | `/api/ai/alter/conversations/:id` | 대화 제목 변경 | `isLoggedIn` (본인) |
 | `DELETE` | `/api/ai/alter/conversations/:id` | 대화 삭제(소프트) | `isLoggedIn` (본인) |
 | `POST` | `/api/ai/alter/attachment` | 첨부 업로드(텍스트 추출/이미지 키) | `isLoggedIn` (+ 학기 AI 접근) |
+| `POST` | `/api/ai/alter/refine-prompt` | 보낼 요청문만 다듬기(대화 미저장·스킬 미실행) | `isLoggedIn` (+ 학기 AI 접근) |
 | `POST` | `/api/ai/alter` | Alter 통합 턴(Skill 라우팅) | `isLoggedIn` (+ 학기 AI 접근) |
 | `POST` | `/api/ai/syllabus/review` | 강의계획서 초안(SSE, 하위 호환) | `isLoggedIn` (+ 학기 AI 접근) |
 | `POST` | `/api/ai/syllabus/guidelines-template` | 학기 AI 지침 템플릿 생성 | `isAdManager` |
@@ -98,6 +99,33 @@ GET /api/ai/skills
 | `assessment-grade` | 채점 | SSE |
 
 `form-response-draft`의 `docResponse`(기안문)는 양식 전체를 다시 쓰지 않고 칸만 채웁니다. 양식에 `(작성)` / `(본문 작성)` / `(기입)` 등 작성 칸이 있으면 해당 칸에 `<<<SLOT>>>` 채우기가 **필수**입니다. 작성 칸이 없으면 마크다운 빈 셀·HTML 표 빈 `td`(에디터 `&nbsp;`/빈 `p` 포함)·`라벨:`·밑줄 등 빈칸을 추론해 같은 SLOT 경로로 채우며, 추론이 부족하면 양식에 `(작성)`을 명시하는 것을 권장합니다. 선택 필드 누락·전체 양식 재작성은 서버에서 1회 재시도합니다.
+
+---
+
+## 요청문 다듬기
+
+사용자가 입력창에 넣을 요청문만 정리합니다. 대화에 저장하지 않고, 평가·문서 등 Skill도 실행하지 않습니다. 결과는 `{ prompt }` 한 줄이며 프론트가 입력창에 채웁니다.
+
+```
+POST /api/ai/alter/refine-prompt
+```
+
+**권한**: `isLoggedIn` (+ 학기 AI 접근)
+
+### 요청 본문
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `season` | `string` | O | 학기 ObjectId |
+| `skill` | `string` | X | 현재 고른 Skill ID. 없으면 `chat` |
+| `message` | `string` | X | 사용자가 적은 메모. 비어 있으면 화면·스킬 시드로 시작문 작성 |
+| `context` | `object` | X | `pageType`, `label`, `classTitle`, `writeMode`, 짧은 `currentTitle`·`currentExcerpt`. 학생 명단·문서 전문은 보내지 않음 |
+
+### 응답 (200)
+
+```json
+{ "prompt": "멘토 의견은 학생별 2~3문장, 성장과 다음 과제를 중심으로 작성해 주세요." }
+```
 
 ---
 

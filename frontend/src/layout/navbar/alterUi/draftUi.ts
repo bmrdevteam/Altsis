@@ -327,3 +327,227 @@ export const buildPrepSummaryParts = (input: {
 /** dense prep(평가·기록)은 기본 접기 */
 export const shouldDefaultCollapsePrep = (skill: TAlterSkillId): boolean =>
   skill === "evaluation-draft" || skill === "archive-draft";
+
+export const canActivateRefinePrompt = ({
+  usageLimitExceeded = false,
+  isWorking = false,
+  isRefining = false,
+  attachUploading = false,
+}: {
+  usageLimitExceeded?: boolean;
+  isWorking?: boolean;
+  isRefining?: boolean;
+  attachUploading?: boolean;
+} = {}) =>
+  !usageLimitExceeded && !isWorking && !isRefining && !attachUploading;
+
+export const fullscreenToggleLabel = (isFullscreen: boolean) =>
+  isFullscreen ? "원래 크기" : "전체 화면";
+
+/** 요청 다듬기용 현재 내용 발췌 상한 (서버 REFINE_PROMPT_EXCERPT_CHARS와 맞춤) */
+export const REFINE_CONTENT_EXCERPT_MAX = 2500;
+
+export const clipRefineExcerpt = (
+  text: string,
+  max = REFINE_CONTENT_EXCERPT_MAX
+) => {
+  const value = String(text || "").trim();
+  if (!value) return "";
+  return value.length <= max ? value : `${value.slice(0, max)}…`;
+};
+
+const markdownOutline = (content: string, limit = 12) =>
+  String(content || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => /^#{1,3}\s+\S/.test(line))
+    .map((line) => line.replace(/^#{1,3}\s+/, "").trim())
+    .filter(Boolean)
+    .slice(0, limit);
+
+const collectPlainStrings = (
+  value: unknown,
+  out: string[],
+  depth = 0
+) => {
+  if (out.length >= 36 || depth > 4) return;
+  if (typeof value === "string") {
+    const text = value.trim();
+    if (
+      text &&
+      !text.startsWith("data:") &&
+      !/^https?:\/\//i.test(text) &&
+      text.length < 1600
+    ) {
+      out.push(text);
+    }
+    return;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectPlainStrings(item, out, depth + 1));
+    return;
+  }
+  if (value && typeof value === "object") {
+    Object.entries(value as Record<string, unknown>).forEach(([key, item]) => {
+      if (/^(id|_id|key|src|url|file|mime)/i.test(key)) return;
+      collectPlainStrings(item, out, depth + 1);
+    });
+  }
+};
+
+const formatResponseValue = (value: unknown): string => {
+  if (value == null) return "";
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => formatResponseValue(item))
+      .filter(Boolean)
+      .join(", ");
+  }
+  return "";
+};
+
+export type RefineContentExcerptInput = {
+  skill: TAlterSkillId;
+  document?: { title?: string; content?: string } | null;
+  reviewDocument?: {
+    title?: string;
+    content?: string;
+    fieldNames?: string[];
+  } | null;
+  formResponse?: {
+    formTitle?: string;
+    fields?: Array<{ fieldId: string; label?: string }>;
+    responses?: Record<string, unknown>;
+    targetFieldIds?: string[];
+  } | null;
+  activity?: {
+    title?: string;
+    description?: string;
+    fields?: Array<{ label?: string; type?: string }>;
+  } | null;
+  form?: {
+    title?: string;
+    formType?: string;
+    blocks?: unknown[];
+  } | null;
+  syllabusInfo?: Record<string, unknown> | null;
+  evaluationTargets?: string[];
+  archiveTargets?: string[];
+  grade?: {
+    formTitle?: string;
+    fields?: Array<{ label?: string }>;
+    responses?: Record<string, string>;
+  } | null;
+  chatSummary?: string;
+};
+
+/**
+ * 요청 다듬기가 현재 화면 내용을 이해하도록 짧은 발췌를 만든다.
+ * 학생 이름·파일 URL은 넣지 않는다.
+ */
+export const buildRefineContentExcerpt = (
+  input: RefineContentExcerptInput
+) => {
+  const lines: string[] = [];
+  const skill = input.skill;
+
+  if (skill === "document-review") {
+    const doc = input.reviewDocument || input.document;
+    if (doc?.title) lines.push(`제목: ${doc.title}`);
+    const fields = input.reviewDocument?.fieldNames || [];
+    if (fields.length) lines.push(`항목: ${fields.slice(0, 16).join(", ")}`);
+    const outline = markdownOutline(doc?.content || "");
+    if (outline.length) lines.push(`목차: ${outline.join(" · ")}`);
+    if (doc?.content) lines.push(doc.content);
+  } else if (skill === "document-draft") {
+    const doc = input.document;
+    if (doc?.title) lines.push(`제목: ${doc.title}`);
+    const outline = markdownOutline(doc?.content || "");
+    if (outline.length) lines.push(`목차: ${outline.join(" · ")}`);
+    if (doc?.content) lines.push(doc.content);
+  } else if (skill === "form-response-draft" && input.formResponse) {
+    const snap = input.formResponse;
+    if (snap.formTitle) lines.push(`양식: ${snap.formTitle}`);
+    const fields = snap.fields || [];
+    const targets = new Set(snap.targetFieldIds || []);
+    const picked = targets.size
+      ? fields.filter((f) => targets.has(f.fieldId))
+      : fields;
+    if (picked.length) {
+      lines.push(
+        `필드: ${picked
+          .map((f) => f.label || f.fieldId)
+          .filter(Boolean)
+          .slice(0, 20)
+          .join(", ")}`
+      );
+    }
+    const replies = picked
+      .map((f) => {
+        const value = formatResponseValue(snap.responses?.[f.fieldId]);
+        return value ? `- ${f.label || f.fieldId}: ${value}` : "";
+      })
+      .filter(Boolean)
+      .slice(0, 12);
+    if (replies.length) {
+      lines.push("현재 응답:");
+      lines.push(...replies);
+    }
+  } else if (skill === "activity-draft" && input.activity) {
+    const act = input.activity;
+    if (act.title) lines.push(`제목: ${act.title}`);
+    if (act.description) lines.push(act.description);
+    const labels = (act.fields || [])
+      .map((f) => f.label)
+      .filter(Boolean)
+      .slice(0, 20);
+    if (labels.length) lines.push(`필드: ${labels.join(", ")}`);
+  } else if (skill === "form-draft" && input.form) {
+    const form = input.form;
+    if (form.title) lines.push(`제목: ${form.title}`);
+    if (form.formType) lines.push(`유형: ${form.formType}`);
+    const texts: string[] = [];
+    collectPlainStrings(form.blocks || [], texts);
+    if (texts.length) lines.push(texts.join("\n"));
+  } else if (skill === "syllabus-draft" && input.syllabusInfo) {
+    const entries = Object.entries(input.syllabusInfo)
+      .map(([key, value]) => {
+        const text = formatResponseValue(value);
+        return text ? `- ${key}: ${text}` : "";
+      })
+      .filter(Boolean)
+      .slice(0, 16);
+    if (entries.length) {
+      lines.push("현재 강의계획서:");
+      lines.push(...entries);
+    }
+  } else if (skill === "evaluation-draft" && input.evaluationTargets?.length) {
+    lines.push(`작성 항목: ${input.evaluationTargets.slice(0, 12).join(", ")}`);
+  } else if (skill === "archive-draft" && input.archiveTargets?.length) {
+    lines.push(`작성 항목: ${input.archiveTargets.slice(0, 12).join(", ")}`);
+  } else if (skill === "assessment-grade" && input.grade) {
+    const grade = input.grade;
+    if (grade.formTitle) lines.push(`양식: ${grade.formTitle}`);
+    const labels = (grade.fields || [])
+      .map((f) => f.label)
+      .filter(Boolean)
+      .slice(0, 16);
+    if (labels.length) lines.push(`채점 항목: ${labels.join(", ")}`);
+    const replies = Object.entries(grade.responses || {})
+      .map(([, value]) => formatResponseValue(value))
+      .filter(Boolean)
+      .slice(0, 6);
+    if (replies.length) {
+      lines.push("응답 발췌:");
+      lines.push(...replies.map((text) => `- ${text}`));
+    }
+  } else if (input.chatSummary) {
+    lines.push(input.chatSummary);
+  }
+
+  return clipRefineExcerpt(lines.filter(Boolean).join("\n"));
+};
