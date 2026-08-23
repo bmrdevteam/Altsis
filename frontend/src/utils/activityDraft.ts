@@ -72,6 +72,7 @@ export type TActivityBuilderSettings = {
     daysOfWeek: number[];
     startTime: string;
     endTime: string;
+    endDayOffset: number;
   };
   quizMode: boolean;
   quizSettings: TQuizSettings;
@@ -118,6 +119,7 @@ export const defaultActivitySettings = (): TActivityBuilderSettings => ({
     daysOfWeek: [1, 2, 3, 4, 5],
     startTime: "09:00",
     endTime: "18:00",
+    endDayOffset: 0,
   },
   quizMode: false,
   quizSettings: {
@@ -297,6 +299,7 @@ export const normalizeActivityDraftSettings = (
         daysOfWeek: [1, 2, 3, 4, 5],
         startTime: "09:00",
         endTime: "18:00",
+        endDayOffset: 0,
       };
       if (!ws || typeof ws !== "object") return fallback;
       const days = Array.isArray(ws.daysOfWeek)
@@ -304,6 +307,11 @@ export const normalizeActivityDraftSettings = (
             .map((d: unknown) => Number(d))
             .filter((d: number) => Number.isInteger(d) && d >= 0 && d <= 6)
         : fallback.daysOfWeek;
+      const offsetRaw = Number((ws as { endDayOffset?: unknown }).endDayOffset);
+      const endDayOffset =
+        Number.isInteger(offsetRaw) && offsetRaw >= 0 && offsetRaw <= 14
+          ? offsetRaw
+          : fallback.endDayOffset ?? 0;
       return {
         enabled: !!ws.enabled,
         daysOfWeek: days.length ? days : fallback.daysOfWeek,
@@ -315,6 +323,7 @@ export const normalizeActivityDraftSettings = (
           typeof ws.endTime === "string" && ws.endTime
             ? ws.endTime
             : fallback.endTime,
+        endDayOffset,
       };
     })(),
     quizMode,

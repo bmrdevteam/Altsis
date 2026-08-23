@@ -204,7 +204,7 @@ export const assembleSchoolTodos = ({
       }
 
       const target = getRequiredResponseCount(form);
-      const effectiveClose = getEffectiveTodoCloseAt(form, now);
+      const effectiveClose = getEffectiveTodoCloseAt(form, now, formMyRows);
       todos.push({
         kind: "unsubmitted",
         boardId,

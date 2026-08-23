@@ -36,6 +36,7 @@ import {
   canEnableWeekdaySchedule,
   defaultWeekdaySchedule,
   estimateWeekdayOccurrenceCount,
+  MAX_END_DAY_OFFSET,
   type TWeekdaySchedule,
 } from "./weekdaySchedule";
 import { toLocalDatetimeString } from "utils/activityDraft";
@@ -533,6 +534,16 @@ const AltFormBuilder = ({
                 endTime:
                   form.settings.weekdaySchedule.endTime ||
                   defaultWeekdaySchedule().endTime,
+                endDayOffset:
+                  Number.isInteger(form.settings.weekdaySchedule.endDayOffset)
+                    ? Math.max(
+                        0,
+                        Math.min(
+                          MAX_END_DAY_OFFSET,
+                          form.settings.weekdaySchedule.endDayOffset ?? 0
+                        )
+                      )
+                    : 0,
               }
             : defaultWeekdaySchedule(),
           quizMode: form.settings.quizMode || false,
@@ -667,15 +678,20 @@ const AltFormBuilder = ({
         alert("요일마다: 요일을 하나 이상 선택하세요.");
         return;
       }
+      const offset = Number(settings.weekdaySchedule.endDayOffset);
+      if (!Number.isInteger(offset) || offset < 0 || offset > 14) {
+        alert("요일마다: 일수는 0~14여야 합니다.");
+        return;
+      }
       const [sh, sm] = settings.weekdaySchedule.startTime
         .split(":")
         .map(Number);
       const [eh, em] = settings.weekdaySchedule.endTime.split(":").map(Number);
-      if (
-        !Number.isFinite(sh) ||
-        !Number.isFinite(eh) ||
-        eh * 60 + em <= sh * 60 + sm
-      ) {
+      if (!Number.isFinite(sh) || !Number.isFinite(eh)) {
+        alert("요일마다: 시작·종료 시각은 HH:mm 형식이어야 합니다.");
+        return;
+      }
+      if (offset === 0 && eh * 60 + em <= sh * 60 + sm) {
         alert("요일마다: 종료 시각은 시작 시각보다 뒤여야 합니다.");
         return;
       }
@@ -708,8 +724,18 @@ const AltFormBuilder = ({
                   daysOfWeek: settings.weekdaySchedule.daysOfWeek,
                   startTime: settings.weekdaySchedule.startTime,
                   endTime: settings.weekdaySchedule.endTime,
+                  endDayOffset: Math.max(
+                    0,
+                    Math.min(14, Number(settings.weekdaySchedule.endDayOffset) || 0)
+                  ),
                 }
-              : { enabled: false, daysOfWeek: [], startTime: "", endTime: "" },
+              : {
+                  enabled: false,
+                  daysOfWeek: [],
+                  startTime: "",
+                  endTime: "",
+                  endDayOffset: 0,
+                },
           quizMode: settings.quizMode,
           quizSettings: settings.quizMode ? settings.quizSettings : undefined,
           assessmentMode: settings.assessmentMode,
@@ -2946,7 +2972,7 @@ const AltFormBuilder = ({
                     <div className={style.settingsItemText}>
                       <div className={style.settingsLabelRow}>
                         <span className={style.settingsLabel}>요일마다</span>
-                        <SettingsHint text="선택한 요일의 시작~종료 시각에만 할 일에 뜨고 제출할 수 있습니다. 회차당 1회이며, 목표 제출 횟수는 전체 합계입니다. 필수·복수 응답·시작일·마감일이 필요합니다." />
+                        <SettingsHint text="선택한 출제 요일의 시작 시각에 열리고, N일 뒤 종료 시각까지 제출할 수 있습니다. 회차당 1회이며, 겹치면 회차가 동시에 열립니다. 목표 제출 횟수는 출제일 기준 전체 합계입니다. 필수·복수 응답·시작일·마감일이 필요합니다." />
                       </div>
                       {!canEnableWeekdaySchedule(settings) && (
                         <p className={style.settingsInlineNote}>
@@ -2978,7 +3004,7 @@ const AltFormBuilder = ({
                       <div className={style.weekdaySchedulePanel}>
                         <div className={style.settingsItem}>
                           <div className={style.settingsLabelRow}>
-                            <span className={style.settingsLabel}>요일</span>
+                            <span className={style.settingsLabel}>출제 요일</span>
                           </div>
                           <div className={style.weekdayChipRow}>
                             {WEEKDAY_LABELS_MON_FIRST.map(({ day, label }) => {
@@ -3043,24 +3069,53 @@ const AltFormBuilder = ({
                           </div>
                           <div className={style.settingsItem}>
                             <div className={style.settingsLabelRow}>
-                              <span className={style.settingsLabel}>
-                                종료 시각
-                              </span>
+                              <span className={style.settingsLabel}>종료</span>
                             </div>
-                            <input
-                              type="time"
-                              className={style.settingsDateInput}
-                              value={settings.weekdaySchedule.endTime}
-                              onChange={(e) =>
-                                setSettings((s) => ({
-                                  ...s,
-                                  weekdaySchedule: {
-                                    ...s.weekdaySchedule,
-                                    endTime: e.target.value,
-                                  },
-                                }))
-                              }
-                            />
+                            <div className={style.weekdayEndRow}>
+                              <label className={style.weekdayOffsetField}>
+                                <span className={style.weekdayOffsetPrefix}>+</span>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  max={MAX_END_DAY_OFFSET}
+                                  className={style.weekdayOffsetInput}
+                                  value={
+                                    settings.weekdaySchedule.endDayOffset ?? 0
+                                  }
+                                  aria-label="종료까지 일수"
+                                  onChange={(e) => {
+                                    const n = Number(e.target.value);
+                                    setSettings((s) => ({
+                                      ...s,
+                                      weekdaySchedule: {
+                                        ...s.weekdaySchedule,
+                                        endDayOffset: Number.isInteger(n)
+                                          ? Math.max(
+                                              0,
+                                              Math.min(MAX_END_DAY_OFFSET, n)
+                                            )
+                                          : 0,
+                                      },
+                                    }));
+                                  }}
+                                />
+                                <span>일</span>
+                              </label>
+                              <input
+                                type="time"
+                                className={style.settingsDateInput}
+                                value={settings.weekdaySchedule.endTime}
+                                onChange={(e) =>
+                                  setSettings((s) => ({
+                                    ...s,
+                                    weekdaySchedule: {
+                                      ...s.weekdaySchedule,
+                                      endTime: e.target.value,
+                                    },
+                                  }))
+                                }
+                              />
+                            </div>
                           </div>
                         </div>
                       </div>

@@ -202,7 +202,7 @@ export type TAltFormSettings = {
    */
   requiredMode?: boolean;
   /**
-   * 요일마다: 선택 요일의 startTime~endTime에서만 할 일·제출 (회차당 1회).
+   * 요일마다: 출제 요일 startTime부터 +endDayOffset일 endTime까지 (회차당 1회).
    * 전제: requiredMode + allowMultipleResponses + openAt + closeAt
    */
   weekdaySchedule?: {
@@ -213,6 +213,8 @@ export type TAltFormSettings = {
     startTime: string;
     /** HH:mm */
     endTime: string;
+    /** 0=당일, 최대 14 */
+    endDayOffset?: number;
   };
   quizMode?: boolean;
   quizSettings?: TQuizSettings;

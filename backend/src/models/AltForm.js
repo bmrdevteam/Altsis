@@ -197,7 +197,7 @@ const altFormSettingsSchema = mongoose.Schema(
     requiredMode: { type: Boolean, default: false },
 
     /**
-     * 요일마다: 선택 요일의 startTime~endTime 회차 창에서만 할 일·제출.
+     * 요일마다: 출제 요일의 startTime부터 +endDayOffset일 endTime까지 회차 창.
      * 전제: requiredMode + allowMultipleResponses + openAt + closeAt
      */
     weekdaySchedule: {
@@ -206,6 +206,8 @@ const altFormSettingsSchema = mongoose.Schema(
         daysOfWeek: [{ type: Number, min: 0, max: 6 }],
         startTime: { type: String },
         endTime: { type: String },
+        /** 0=당일, 최대 14. 출제일 시작 시각 ~ N일 뒤 종료 시각 */
+        endDayOffset: { type: Number, min: 0, max: 14, default: 0 },
       },
       default: undefined,
     },

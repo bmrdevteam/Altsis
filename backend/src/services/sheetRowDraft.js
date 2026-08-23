@@ -4,8 +4,8 @@
  */
 import { getRequiredResponseCount, isFieldVisible } from "./altForms.js";
 import {
-  hasSubmittedCurrentOccurrence,
   isWeekdayScheduleEnabled,
+  resolveOccurrenceKey,
 } from "./weekdaySchedule.js";
 
 /**
@@ -39,7 +39,7 @@ export const checkDraftSaveLimit = (
   form,
   submittedRows = [],
   draftRows = [],
-  { updatingDraftId } = {}
+  { updatingDraftId, now = new Date(), occurrenceKey = null } = {}
 ) => {
   if (updatingDraftId) {
     return { allowed: true };
@@ -69,14 +69,26 @@ export const checkDraftSaveLimit = (
       message: `목표 제출 횟수(${target}회)를 모두 채웠습니다.`,
     };
   }
-  if (
-    isWeekdayScheduleEnabled(form) &&
-    hasSubmittedCurrentOccurrence(form, submittedRows)
-  ) {
-    return {
-      allowed: false,
-      message: "오늘 회차 제출을 이미 완료했습니다.",
-    };
+  if (isWeekdayScheduleEnabled(form)) {
+    const resolved = resolveOccurrenceKey(
+      form,
+      now,
+      occurrenceKey,
+      submittedRows
+    );
+    if (resolved.error) {
+      return { allowed: false, message: resolved.error };
+    }
+    if (resolved.occurrence) {
+      const existingForOcc = draftRows.find(
+        (row) =>
+          typeof row?._weekdayOccurrenceKey === "string" &&
+          row._weekdayOccurrenceKey.trim() === resolved.occurrence.key
+      );
+      if (existingForOcc) {
+        return { allowed: true, existingDraft: existingForOcc };
+      }
+    }
   }
   return { allowed: true };
 };
