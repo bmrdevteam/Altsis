@@ -192,7 +192,7 @@ const enrichFormsWithListMeta = async (
     const mine = myRowsByForm.get(id) || [];
     const { draftRows, submittedRows } = splitSheetRows(mine);
     const now = new Date();
-    const effectiveClose = getEffectiveTodoCloseAt(plain, now);
+    const effectiveClose = getEffectiveTodoCloseAt(plain, now, submittedRows);
     const meta = {
       ...plain,
       isFavorited: favoritedFormIds.has(id),

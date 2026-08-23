@@ -26,10 +26,11 @@ import {
 } from "utils/approvalLine";
 import { getRequiredResponseCount } from "./activityStatusVisual";
 import {
+  formatOccurrenceStatusLabel,
+  getOpenOccurrences,
   hasSubmittedCurrentOccurrence,
-  isInOccurrenceWindow,
+  hasSubmittedOccurrence,
   isWeekdayScheduleEnabled,
-  getOccurrenceWindow,
 } from "./weekdaySchedule";
 import FieldRubricPanel, {
   getFieldRubrics,
@@ -216,6 +217,7 @@ const AltFormRenderer = ({
     Record<string, boolean>
   >({});
   const [fileLinkFieldId, setFileLinkFieldId] = useState<string | null>(null);
+  const [selectedOccurrenceKey, setSelectedOccurrenceKey] = useState("");
 
   // link 필드용 OG 메타데이터 로딩
   const [fetchingOg, setFetchingOg] = useState<Record<string, boolean>>({});
@@ -535,16 +537,32 @@ const AltFormRenderer = ({
 
   const nowForSchedule = new Date();
   const weekdayOn = form ? isWeekdayScheduleEnabled(form) : false;
-  const occurrenceWin = form ? getOccurrenceWindow(form, nowForSchedule) : null;
-  const outsideWeekdayDay = weekdayOn && !occurrenceWin;
-  const outsideWeekdayHours =
-    weekdayOn &&
-    !!occurrenceWin &&
-    !isInOccurrenceWindow(form!, nowForSchedule);
+  const openOccurrences =
+    form && weekdayOn ? getOpenOccurrences(form, nowForSchedule) : [];
+  const outsideWeekdayPeriod = weekdayOn && openOccurrences.length === 0;
   const submittedThisOccurrence =
     weekdayOn &&
-    form &&
+    !!form &&
     hasSubmittedCurrentOccurrence(form, submittedRows, nowForSchedule);
+  const unsubmittedOpenOccurrences = form
+    ? openOccurrences.filter(
+        (occ) => !hasSubmittedOccurrence(form, submittedRows, occ)
+      )
+    : [];
+  const unsubmittedOpenKeys = unsubmittedOpenOccurrences
+    .map((occ) => occ.key)
+    .join(",");
+
+  useEffect(() => {
+    if (!unsubmittedOpenKeys) {
+      setSelectedOccurrenceKey("");
+      return;
+    }
+    const keys = unsubmittedOpenKeys.split(",");
+    setSelectedOccurrenceKey((prev) =>
+      keys.includes(prev) ? prev : keys[0]
+    );
+  }, [unsubmittedOpenKeys]);
 
   const schoolRole =
     currentUser?.auth === "manager"
@@ -559,11 +577,10 @@ const AltFormRenderer = ({
     canRespondAsMember &&
     !isClosed &&
     !isNotOpen &&
-    !outsideWeekdayDay &&
-    !outsideWeekdayHours &&
+    !outsideWeekdayPeriod &&
     !submittedThisOccurrence;
   const windowOpen =
-    !isClosed && !isNotOpen && !outsideWeekdayDay && !outsideWeekdayHours;
+    !isClosed && !isNotOpen && !outsideWeekdayPeriod;
   const requiredTarget = getRequiredResponseCount(form);
   const multipleQuotaReached =
     requiredTarget != null && submittedRows.length >= requiredTarget;
@@ -863,6 +880,9 @@ const AltFormRenderer = ({
           form: form._id,
           data: submitData,
           ...(editingExisting && targetRow ? { row: targetRow._id } : {}),
+          ...(!editingExisting && selectedOccurrenceKey
+            ? { weekdayOccurrenceKey: selectedOccurrenceKey }
+            : {}),
         },
       });
       if (currentUser?._id) {
@@ -954,6 +974,9 @@ const AltFormRenderer = ({
           form: form._id,
           data: saveData,
           ...(myRow && isDraftSheetRow(myRow) ? { row: myRow._id } : {}),
+          ...(!(myRow && isDraftSheetRow(myRow)) && selectedOccurrenceKey
+            ? { weekdayOccurrenceKey: selectedOccurrenceKey }
+            : {}),
         },
       });
       if (currentUser?._id) {
@@ -2379,8 +2402,7 @@ const AltFormRenderer = ({
 
       {(isClosed ||
         isNotOpen ||
-        outsideWeekdayDay ||
-        outsideWeekdayHours ||
+        outsideWeekdayPeriod ||
         submittedThisOccurrence ||
         (!isReviewMode && isSubmitted) ||
         isReviewMode) && (
@@ -2395,14 +2417,9 @@ const AltFormRenderer = ({
               아직 시작 전
             </span>
           )}
-          {!isClosed && !isNotOpen && outsideWeekdayDay && (
+          {!isClosed && !isNotOpen && outsideWeekdayPeriod && (
             <span className={`${style.formCardBadge} ${style.badgeClosed}`}>
-              오늘은 제출일이 아닙니다
-            </span>
-          )}
-          {!isClosed && !isNotOpen && outsideWeekdayHours && (
-            <span className={`${style.formCardBadge} ${style.badgeClosed}`}>
-              오늘 제출 시간이 아닙니다
+              지금은 제출 기간이 아닙니다
             </span>
           )}
           {!isClosed &&
@@ -2410,7 +2427,7 @@ const AltFormRenderer = ({
             submittedThisOccurrence &&
             !multipleQuotaReached && (
               <span className={`${style.formCardBadge} ${style.badgeOpen}`}>
-                오늘 회차 제출 완료
+                이번 회차 제출 완료
               </span>
             )}
           {!isReviewMode && isSubmitted && (
@@ -2429,6 +2446,41 @@ const AltFormRenderer = ({
           )}
         </div>
       )}
+
+      {weekdayOn &&
+        !isReviewMode &&
+        windowOpen &&
+        openOccurrences.length > 0 &&
+        form && (
+          <div className={style.occurrenceList} role="list">
+            {openOccurrences.map((occ) => {
+              const done = hasSubmittedOccurrence(form, submittedRows, occ);
+              const selectable =
+                !done && unsubmittedOpenOccurrences.length > 1;
+              const selected = selectedOccurrenceKey === occ.key;
+              return (
+                <button
+                  key={occ.key}
+                  type="button"
+                  role="listitem"
+                  className={`${style.occurrenceChip} ${
+                    selected && selectable ? style.occurrenceChipSelected : ""
+                  } ${done ? style.occurrenceChipDone : ""}`}
+                  aria-pressed={selectable ? selected : undefined}
+                  disabled={done || !selectable}
+                  onClick={() => {
+                    if (selectable) setSelectedOccurrenceKey(occ.key);
+                  }}
+                >
+                  <span>{formatOccurrenceStatusLabel(occ)}</span>
+                  <span className={style.occurrenceChipStatus}>
+                    {done ? "제출완료" : "남음"}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
       {isReviewMode && myRows.length > 0 && (
         <div className={style.reviewNav}>

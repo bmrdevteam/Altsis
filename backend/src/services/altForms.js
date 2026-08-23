@@ -5,6 +5,7 @@
 
 import {
   getOccurrenceWindow,
+  getOpenOccurrences,
   hasSubmittedCurrentOccurrence,
   isInOccurrenceWindow,
   isWeekdayScheduleEnabled,
@@ -13,17 +14,24 @@ import {
   shouldShowUnsubmittedTodo as shouldShowUnsubmittedTodoCore,
   getEffectiveTodoCloseAt,
   estimateWeekdayOccurrenceCount,
+  resolveOccurrenceKey,
+  listOccurrences,
+  hasSubmittedOccurrence,
 } from "./weekdaySchedule.js";
 
 export {
   isWeekdayScheduleEnabled,
   getOccurrenceWindow,
+  getOpenOccurrences,
   isInOccurrenceWindow,
   hasSubmittedCurrentOccurrence,
+  hasSubmittedOccurrence,
   isWithinFormPeriod,
   getEffectiveTodoCloseAt,
   estimateWeekdayOccurrenceCount,
   normalizeWeekdayScheduleInput,
+  resolveOccurrenceKey,
+  listOccurrences,
 };
 
 /**
@@ -288,7 +296,12 @@ export const getRequiredResponseCount = (form) => {
  * @param {Array} myRows
  * @returns {{ allowed: boolean, message?: string }}
  */
-export const checkMultipleResponseLimit = (form, myRows = [], now = new Date()) => {
+export const checkMultipleResponseLimit = (
+  form,
+  myRows = [],
+  now = new Date(),
+  occurrenceKey = null
+) => {
   if (!form?.settings?.allowMultipleResponses) {
     return { allowed: true };
   }
@@ -302,14 +315,11 @@ export const checkMultipleResponseLimit = (form, myRows = [], now = new Date()) 
       message: `목표 제출 횟수(${target}회)를 모두 채웠습니다.`,
     };
   }
-  if (
-    isWeekdayScheduleEnabled(form) &&
-    hasSubmittedCurrentOccurrence(form, myRows, now)
-  ) {
-    return {
-      allowed: false,
-      message: "오늘 회차 제출을 이미 완료했습니다.",
-    };
+  if (isWeekdayScheduleEnabled(form)) {
+    const resolved = resolveOccurrenceKey(form, now, occurrenceKey, myRows);
+    if (resolved.error) {
+      return { allowed: false, message: resolved.error };
+    }
   }
   return { allowed: true };
 };
@@ -368,13 +378,8 @@ export const canRespondForm = (form, board, user, now = new Date(), schoolRole =
   }
 
   if (isWeekdayScheduleEnabled(form)) {
-    const win = getOccurrenceWindow(form, now);
-    if (!win) {
-      return { allowed: false, message: "오늘은 제출일이 아닙니다." };
-    }
-    const t = now.getTime();
-    if (t < win.windowStart.getTime() || t > win.windowEnd.getTime()) {
-      return { allowed: false, message: "오늘 제출 시간이 아닙니다." };
+    if (getOpenOccurrences(form, now).length === 0) {
+      return { allowed: false, message: "지금은 제출 기간이 아닙니다." };
     }
   }
 

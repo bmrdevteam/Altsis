@@ -3885,6 +3885,7 @@ const DEFAULT_DRAFT_WEEKDAY_SCHEDULE = {
   daysOfWeek: [1, 2, 3, 4, 5],
   startTime: "09:00",
   endTime: "18:00",
+  endDayOffset: 0,
 };
 
 /**
@@ -3910,12 +3911,18 @@ const normalizeDraftWeekdaySchedule = (raw, { openAt, closeAt }) => {
     typeof raw.endTime === "string" && parseHhMm(raw.endTime.trim())
       ? raw.endTime.trim()
       : fallback.endTime;
+  const offsetRaw = Number(raw.endDayOffset);
+  const endDayOffset =
+    Number.isInteger(offsetRaw) && offsetRaw >= 0 && offsetRaw <= 14
+      ? offsetRaw
+      : fallback.endDayOffset;
 
   const base = {
     enabled: false,
     daysOfWeek: daysOfWeek.length ? daysOfWeek : fallback.daysOfWeek,
     startTime,
     endTime,
+    endDayOffset,
   };
 
   if (!raw.enabled) return base;
@@ -3924,13 +3931,18 @@ const normalizeDraftWeekdaySchedule = (raw, { openAt, closeAt }) => {
   const end = parseHhMm(endTime);
   const openOk = !!openAt && !Number.isNaN(new Date(openAt).getTime());
   const closeOk = !!closeAt && !Number.isNaN(new Date(closeAt).getTime());
+  const sameDayInvalid =
+    endDayOffset === 0 &&
+    start &&
+    end &&
+    end.hours * 60 + end.minutes <= start.hours * 60 + start.minutes;
   if (
     !daysOfWeek.length ||
     !start ||
     !end ||
     !openOk ||
     !closeOk ||
-    end.hours * 60 + end.minutes <= start.hours * 60 + start.minutes
+    sameDayInvalid
   ) {
     return base;
   }
@@ -4489,17 +4501,18 @@ text, textarea, number, date, multiDate, time, file, select, multiSelect, checkb
   · rubrics 배열에 루브릭을 정의하세요. 각 항목: { "key": "r1", "title": "...", "levels": [{ "label", "description", "points" }] }
   · 채점할 필드에 "gradingMethod": "rubric" 과 "rubricKeys": ["r1"] (또는 rubricIndexes: [0]) 를 넣으세요.
   · 루브릭이 비어 있으면 서버가 기본 루브릭을 만들고 서술형/응답 문서 필드에 연결합니다.
-- 설정 키: allowResubmit, allowMultipleResponses, requiredMode, requiredResponseCount, openAt, closeAt, weekdaySchedule{enabled, daysOfWeek, startTime, endTime}, quizMode, quizSettings{scoreReveal,answerReveal,showWrongMarks}, assessmentMode, directInputMode, shareResponses, showOwnerFields, showOwnResponse
+- 설정 키: allowResubmit, allowMultipleResponses, requiredMode, requiredResponseCount, openAt, closeAt, weekdaySchedule{enabled, daysOfWeek, startTime, endTime, endDayOffset}, quizMode, quizSettings{scoreReveal,answerReveal,showWrongMarks}, assessmentMode, directInputMode, shareResponses, showOwnerFields, showOwnResponse
 - allowResubmit 와 allowMultipleResponses 는 동시에 true 가능. allowResubmit=true 이면 응답자가 제출한 건을 수정·삭제할 수 있음(복수 응답이면 건별).
 - permission: respondent(제출자 작성) | owner(관리자 필드). 관리자 전용 항목은 owner.
 - content/docResponse 에 links: [{ "url": "https://...", "title": "선택 제목" }] (http/https만, 최대 10). attachments(파일 키)는 출력하지 마세요 — 교사가 빌더에서 업로드합니다.
 - 양식 멤버·작성 권한은 settings가 아니라 루트 access. "board" 또는 { "groups": ["student"] } (manager|teacher|student). 사람 id/userId는 넣지 마세요. writers 그룹은 members 그룹의 부분집합. 생략 시 새 작성은 보드와 동일, 다듬기는 현재 값 유지.
-- weekdaySchedule.daysOfWeek: 0=일 … 6=토 (월요일=1). startTime/endTime은 HH:mm (Asia/Seoul)
+- weekdaySchedule.daysOfWeek: 0=일 … 6=토 (월요일=1). startTime/endTime은 HH:mm (Asia/Seoul). endDayOffset은 출제일로부터 며칠 뒤 마감인지(0=당일, 최대 14).
 - 반복·매주·요일마다 제출 요청:
   · 필드로 회차/주차를 만들지 마세요(예: 「1주차」「제출 요일」 select/radio 금지).
   · openAt·closeAt(기간) + weekdaySchedule.enabled=true 로 설정하세요.
   · 이 경우 requiredMode=true, allowMultipleResponses=true 필수. allowResubmit는 별개(회차 제출을 고치게 하려면 true).
-  · 회차 시각이 없으면 startTime="09:00", endTime="23:59".
+  · 회차 시각이 없으면 startTime="09:00", endTime="23:59", endDayOffset=0.
+  · 「매주 월요일 내고 수요일까지」처럼 N일 숙제면 daysOfWeek에 출제일만 넣고 endDayOffset=2.
   · openAt/closeAt은 ISO 8601 또는 YYYY-MM-DDTHH:mm (KST 의미). 「오늘부터 N주/한달」은 아래 기준 시각으로 계산.
   · requiredResponseCount는 대략 넣거나 생략 가능(서버가 기간·요일로 보정).`;
 
@@ -4594,7 +4607,8 @@ ${currentSnapshot}
       "enabled": false,
       "daysOfWeek": [1, 2, 3, 4, 5],
       "startTime": "09:00",
-      "endTime": "18:00"
+      "endTime": "18:00",
+      "endDayOffset": 0
     },
     "quizMode": false,
     "quizSettings": {

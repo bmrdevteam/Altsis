@@ -164,6 +164,7 @@ describe("normalizeActivityDraft", () => {
       daysOfWeek: [1],
       startTime: "09:00",
       endTime: "23:59",
+      endDayOffset: 0,
     });
     expect(draft.settings.requiredResponseCount).toBeGreaterThanOrEqual(4);
     expect(draft.settings.requiredResponseCount).toBeLessThanOrEqual(5);

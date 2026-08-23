@@ -28,6 +28,7 @@ import { conn } from "../_database/mongodb/index.js";
  * @prop {Map<string, Mixed>} data - 필드별 데이터 (필드 _id → 값)
  * @prop {Date} _submittedAt - 최초 제출 시각 (초안은 비움)
  * @prop {Date} _updatedAt - 마지막 수정 시각
+ * @prop {string} [_weekdayOccurrenceKey] - 요일마다 회차 키 (출제일 KST YYYY-MM-DD)
  * @prop {boolean} isDraft - 미제출 초안. AltForm.isDraft(양식 비공개)와 다름
  * @prop {boolean} isActive - 활성화 상태
  */
@@ -49,6 +50,8 @@ const altSheetRowSchema = mongoose.Schema(
 
     _submittedAt: Date,
     _updatedAt: Date,
+    /** 요일마다 회차 출제일 (KST YYYY-MM-DD) */
+    _weekdayOccurrenceKey: { type: String },
 
     /** 미제출 저장본. 양식 AltForm.isDraft와 다른 개념 */
     isDraft: { type: Boolean, default: false },
