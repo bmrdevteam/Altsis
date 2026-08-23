@@ -26,6 +26,7 @@ import BoardChatContainer from "./BoardChatContainer";
 import style from "./altBoard.module.scss";
 import { markAllBoardChatRoomsRead } from "utils/markAllBoardChatRoomsRead";
 import { canViewAllRowsForm, isFormRespondent } from "./formAccess";
+import { shouldShowUnsubmittedTodoForm } from "./weekdaySchedule";
 
 export type TAltBoardSurface = "활동" | "문서" | "채팅";
 
@@ -203,12 +204,7 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
     const now = new Date();
     const unsubmitted = forms.filter((f) => {
       if (!isFormRespondent(f, currentUser, myRole, schoolRole)) return false;
-      if (f.isDraft) return false;
-      if (f.settings?.requiredMode !== true) return false;
-      if (f.settings?.directInputMode) return false;
-      if (f.settings?.closeAt && new Date(f.settings.closeAt) < now) return false;
-      if (f.settings?.openAt && new Date(f.settings.openAt) > now) return false;
-      return !f.mySubmitted;
+      return shouldShowUnsubmittedTodoForm(f, now);
     }).length;
     return unsubmitted + pendingApprovalCount + gradeTodoCount;
   })();
