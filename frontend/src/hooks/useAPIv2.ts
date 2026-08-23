@@ -5243,6 +5243,8 @@ export default function useAPIv2() {
       data: Record<string, any>;
       /** 응답 수정: 기존 행 _id (본인 행 + allowResubmit) */
       row?: string;
+      /** 요일마다 회차 키 (출제일 KST YYYY-MM-DD) */
+      weekdayOccurrenceKey?: string;
     };
   }) {
     const { row } = await database.C({
@@ -5257,6 +5259,7 @@ export default function useAPIv2() {
       form: string;
       data: Record<string, any>;
       row?: string;
+      weekdayOccurrenceKey?: string;
     };
   }) {
     const { row } = await database.C({

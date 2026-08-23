@@ -14,6 +14,8 @@ import {
   getFormViewerRole,
   resolveFormMemberUsers,
   checkMultipleResponseLimit,
+  isWeekdayScheduleEnabled,
+  resolveOccurrenceKey,
   getVisibleFields,
   isFieldVisible,
   gradeQuizRow,
@@ -205,8 +207,14 @@ export const saveDraft = async (req, res) => {
       }
     }
 
+    const requestedOccurrenceKey =
+      typeof req.body.weekdayOccurrenceKey === "string"
+        ? req.body.weekdayOccurrenceKey
+        : null;
     const limitCheck = checkDraftSaveLimit(form, submittedRows, draftRows, {
       updatingDraftId: existing?._id?.toString?.(),
+      now: new Date(),
+      occurrenceKey: requestedOccurrenceKey,
     });
     if (!limitCheck.allowed) {
       return res.status(409).send({ message: limitCheck.message });
@@ -219,6 +227,23 @@ export const saveDraft = async (req, res) => {
 
     const { data } = collectRespondentFieldData(form, req.body.data);
     const now = new Date();
+    let occurrenceKeyToStamp;
+    if (isWeekdayScheduleEnabled(form)) {
+      if (existing?._weekdayOccurrenceKey) {
+        occurrenceKeyToStamp = existing._weekdayOccurrenceKey;
+      } else {
+        const resolved = resolveOccurrenceKey(
+          form,
+          now,
+          requestedOccurrenceKey,
+          submittedRows
+        );
+        if (resolved.error) {
+          return res.status(403).send({ message: resolved.error });
+        }
+        occurrenceKeyToStamp = resolved.occurrence?.key;
+      }
+    }
 
     if (existing) {
       for (const [fieldId, value] of Object.entries(data)) {
@@ -227,6 +252,9 @@ export const saveDraft = async (req, res) => {
       existing.isDraft = true;
       existing._submittedAt = undefined;
       existing._updatedAt = now;
+      if (occurrenceKeyToStamp && !existing._weekdayOccurrenceKey) {
+        existing._weekdayOccurrenceKey = occurrenceKeyToStamp;
+      }
       existing.markModified("data");
       await existing.save();
       return res.status(200).send({ row: existing });
@@ -242,6 +270,9 @@ export const saveDraft = async (req, res) => {
       data,
       isDraft: true,
       _updatedAt: now,
+      ...(occurrenceKeyToStamp
+        ? { _weekdayOccurrenceKey: occurrenceKeyToStamp }
+        : {}),
     });
 
     return res.status(200).send({ row });
@@ -336,10 +367,19 @@ export const create = async (req, res) => {
           _respondent: req.user._id,
           ...submittedSheetRowFilter(),
         })
-        .select("createdAt _submittedAt")
+        .select("createdAt _submittedAt _weekdayOccurrenceKey")
         .sort({ createdAt: -1 })
         .lean();
-      const limitCheck = checkMultipleResponseLimit(form, myRows);
+      const requestedOccurrenceKey =
+        typeof req.body.weekdayOccurrenceKey === "string"
+          ? req.body.weekdayOccurrenceKey
+          : null;
+      const limitCheck = checkMultipleResponseLimit(
+        form,
+        myRows,
+        new Date(),
+        requestedOccurrenceKey
+      );
       if (!limitCheck.allowed) {
         return res.status(409).send({ message: limitCheck.message });
       }
@@ -715,6 +755,34 @@ export const create = async (req, res) => {
     }
 
     const now = new Date();
+    let occurrenceKeyToStamp;
+    if (isWeekdayScheduleEnabled(form)) {
+      if (existing?._weekdayOccurrenceKey) {
+        occurrenceKeyToStamp = existing._weekdayOccurrenceKey;
+      } else {
+        const submittedForOcc = await AltSheetRow(req.user.academyId)
+          .find({
+            form: form._id,
+            _respondent: req.user._id,
+            isActive: true,
+            ...submittedSheetRowFilter(),
+          })
+          .select("createdAt _submittedAt _weekdayOccurrenceKey isDraft")
+          .lean();
+        const resolved = resolveOccurrenceKey(
+          form,
+          now,
+          typeof req.body.weekdayOccurrenceKey === "string"
+            ? req.body.weekdayOccurrenceKey
+            : null,
+          submittedForOcc
+        );
+        if (resolved.error) {
+          return res.status(403).send({ message: resolved.error });
+        }
+        occurrenceKeyToStamp = resolved.occurrence?.key;
+      }
+    }
     const rowData = { ...data };
 
     // 승인(결재선) 필드: 제출값 검증·v2 초기화
@@ -751,6 +819,9 @@ export const create = async (req, res) => {
         existing.isDraft = false;
         existing._submittedAt = now;
         existing._updatedAt = now;
+        if (occurrenceKeyToStamp) {
+          existing._weekdayOccurrenceKey = occurrenceKeyToStamp;
+        }
         existing.markModified("data");
         await existing.save();
         row = existing;
@@ -766,6 +837,9 @@ export const create = async (req, res) => {
           isDraft: false,
           _submittedAt: now,
           _updatedAt: now,
+          ...(occurrenceKeyToStamp
+            ? { _weekdayOccurrenceKey: occurrenceKeyToStamp }
+            : {}),
         });
       }
     } catch (createErr) {
