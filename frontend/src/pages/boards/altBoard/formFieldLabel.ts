@@ -9,7 +9,7 @@ export const FIELD_TYPE_LABELS: Record<TAltFormFieldType, string> = {
   time: "시간",
   file: "파일",
   select: "드롭다운",
-  multiSelect: "복수 선택",
+  multiSelect: "체크박스",
   checkbox: "체크박스",
   radio: "객관식",
   userSelect: "사용자 선택",
