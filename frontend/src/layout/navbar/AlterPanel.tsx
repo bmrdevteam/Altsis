@@ -564,10 +564,16 @@ const AlterPanel = ({ onClose }: Props) => {
     [isWorking, resetPrepDefaultsForPage, revokeMessagePreviews, suggested]
   );
 
-  // Prep 기본값만 갱신 (빈 대화일 때 추천 스킬도 맞춤). page 전환 시에만 실행.
+  const lastSkillPageTypeRef = useRef<string | undefined>(undefined);
+
+  // Prep 기본값 갱신. 추천 스킬은 pageType이 바뀔 때만 (label만 바뀌면 칩 유지).
   useEffect(() => {
-    const next = suggested[0] || "chat";
-    if (!isWorking && messages.length === 0) {
+    const pageType = pageContext?.pageType;
+    const pageTypeChanged = lastSkillPageTypeRef.current !== pageType;
+    lastSkillPageTypeRef.current = pageType;
+
+    if (pageTypeChanged && !isWorking && messages.length === 0) {
+      const next = suggested[0] || "chat";
       setSelectedSkill(next);
       setShowPrep(isDraftPrepSkill(next));
     }
