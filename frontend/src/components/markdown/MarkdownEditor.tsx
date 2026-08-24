@@ -10,7 +10,7 @@ import ToolbarContextTabs from "./ToolbarContextTabs";
 import TableToolbar from "./TableToolbar";
 import ImageToolbar from "./ImageToolbar";
 import LinkBubbleMenu from "./LinkBubbleMenu";
-import { DEFAULT_CANVAS_HEIGHT } from "./canvas/canvasModel";
+import { DEFAULT_CANVAS_HEIGHT, repairCanvasMarkdown } from "./canvas/canvasModel";
 import ImageInsertDialog from "./ImageInsertDialog";
 import YouTubeInsertDialog from "./YouTubeInsertDialog";
 import LinkInsertDialog from "./LinkInsertDialog";
@@ -129,7 +129,7 @@ const MarkdownEditor = ({
       searchMentionUsers,
       getSlashActions: () => slashActionsRef.current,
     }),
-    content: value,
+    content: repairCanvasMarkdown(value || ""),
     editorProps: {
       clipboardTextSerializer: serializeClipboardPlainText,
       handleKeyDown: (_view, event) => {
@@ -403,8 +403,9 @@ const MarkdownEditor = ({
     if (viewModeRef.current !== "wysiwyg") return;
     // 에디터→부모로 올라온 값이면 재주입하지 않음 (커서 점프/루프 방지)
     if (value === lastEmittedRef.current) return;
+    const next = repairCanvasMarkdown(value || "");
     const currentMd = postprocessMarkdown(getMarkdownFromEditor(editor));
-    if (value === currentMd) {
+    if (value === currentMd || next === currentMd) {
       lastEmittedRef.current = value;
       return;
     }
@@ -416,7 +417,7 @@ const MarkdownEditor = ({
         tr.setMeta("addToHistory", false);
         return true;
       })
-      .setContent(value)
+      .setContent(next)
       .run();
     // setContent → onUpdate가 lastEmitted를 직렬화 결과로 갱신함
     // 직렬화가 value와 달라도 루프를 막기 위해 외부 주입값을 기준으로 맞춤
@@ -442,7 +443,7 @@ const MarkdownEditor = ({
           tr.setMeta("addToHistory", false);
           return true;
         })
-        .setContent(value)
+        .setContent(repairCanvasMarkdown(value || ""))
         .run();
       // transformSpecialNodes는 useEffect에서 viewMode 변경 후 실행됨
       // (EditorContent가 DOM에 마운트된 후 안전하게 실행)

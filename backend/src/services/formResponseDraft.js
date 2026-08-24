@@ -11,10 +11,42 @@ const unwrapOuterMarkdownFence = (text) => {
   return m ? m[1].trim() : t;
 };
 
+const CANVAS_JSON_START_RE = /\{\s*"(?:v|html)"\s*:/;
+
+const looksLikeCanvasJson = (text) => {
+  const s = String(text || "").trim();
+  if (!s) return false;
+  const fenced = s.match(
+    /^```(?:html-app|canvas)(?::\d+)?[ \t]*\r?\n([\s\S]*?)\r?\n```[ \t]*$/
+  );
+  const body = fenced ? fenced[1].trim() : s;
+  const start = body.search(CANVAS_JSON_START_RE);
+  if (start < 0) return false;
+  const json = body.slice(start);
+  const end = json.lastIndexOf("}");
+  if (end < 0) return false;
+  try {
+    const parsed = JSON.parse(json.slice(0, end + 1));
+    return Boolean(
+      parsed &&
+        typeof parsed === "object" &&
+        !Array.isArray(parsed) &&
+        (parsed.v === 1 ||
+          "html" in parsed ||
+          "css" in parsed ||
+          "javascript" in parsed ||
+          "js" in parsed)
+    );
+  } catch {
+    return false;
+  }
+};
+
 const normalizeDocumentDraftContent = (content) => {
   const text = unwrapOuterMarkdownFence(content);
   if (!text.trim()) return text;
-  if (/```html-app(?::\d+)?\b/.test(text)) return text;
+  if (/```(?:html-app|canvas)(?::\d+)?\b/.test(text)) return text;
+  if (looksLikeCanvasJson(text)) return text;
 
   const looksLikeHtmlApp =
     /<script[\s>]/i.test(text) ||

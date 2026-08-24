@@ -10,6 +10,7 @@ import {
   parseFenceLanguage,
   payloadFromAttrs,
   preserveInteractiveFences,
+  repairCanvasMarkdown,
   restoreInteractiveFences,
   serializeCanvasFence,
   serializeCanvasPayload,
@@ -202,6 +203,88 @@ describe("canvasModel", () => {
     expect(withPlaceholders).toContain("__HTMLAPP_PRESERVE_1__");
     expect(withPlaceholders).not.toContain("<script>");
     expect(restoreInteractiveFences(withPlaceholders, preserved)).toBe(content);
+  });
+
+  test("does not put canvas JSON into srcdoc", () => {
+    const payload = {
+      v: 1 as const,
+      title: "HTML로 만든 타이머 화면",
+      html: "<!DOCTYPE html>\n<html><body><h1>타이머</h1></body></html>",
+      css: "",
+      javascript: "",
+    };
+    const json = serializeCanvasPayload(payload);
+    const fromJson = parseCanvasContent(json);
+    expect(fromJson.html).toBe(payload.html);
+    const src = buildCanvasSrcDoc(fromJson);
+    expect(src).not.toContain('{"v":1');
+    expect(src).toContain("<h1>타이머</h1>");
+
+    const fromFence = parseCanvasContent(serializeCanvasFence(payload));
+    expect(fromFence.html).toBe(payload.html);
+    expect(buildCanvasSrcDoc(fromFence)).not.toContain('{"v":1');
+  });
+
+  test("unwraps canvas JSON stored in the html field", () => {
+    const inner = {
+      v: 1 as const,
+      title: "타이머",
+      html: "<!DOCTYPE html><html><body><h1>타이머</h1></body></html>",
+      css: "",
+      javascript: "",
+    };
+    const json = serializeCanvasPayload(inner);
+    const doubled = serializeCanvasPayload({
+      v: 1,
+      html: json,
+      css: "",
+      javascript: "",
+      title: inner.title,
+    });
+    expect(parseCanvasContent(doubled).html).toBe(inner.html);
+    expect(buildCanvasSrcDoc(parseCanvasContent(doubled))).not.toContain(
+      '{"v":1'
+    );
+    expect(
+      payloadFromAttrs({ html: json, css: "", javascript: "" }).html
+    ).toBe(inner.html);
+  });
+
+  test("repairCanvasMarkdown restores leaked and sliced canvas JSON", () => {
+    const payload = {
+      v: 1 as const,
+      title: "HTML로 만든 타이머 화면",
+      html: "<!DOCTYPE html><html><body><h1>타이머</h1></body></html>",
+      css: "",
+      javascript: "",
+    };
+    const json = serializeCanvasPayload(payload);
+    const repairedBare = repairCanvasMarkdown(`${json}\n\`\`\``);
+    expect(repairedBare).toContain("```canvas");
+    expect(parseCanvasContent(repairedBare).html).toBe(payload.html);
+
+    const sliced = [
+      '{"v":1,"html":"',
+      "```html-app",
+      "<!DOCTYPE html><html><body><h1>타이머</h1></body></html>",
+      '","css":"","javascript":"","title":"HTML로 만든 타이머 화면"}',
+      "```",
+    ].join("\n");
+    const repairedSliced = repairCanvasMarkdown(sliced);
+    expect(repairedSliced.trim().startsWith("```")).toBe(true);
+    expect(parseCanvasContent(repairedSliced).html).toContain("<h1>타이머</h1>");
+    expect(buildCanvasSrcDoc(parseCanvasContent(repairedSliced))).not.toContain(
+      '{"v":1'
+    );
+  });
+
+  test("preserves canvas fences that use CRLF after the language", () => {
+    const json = '{"v":1,"html":"<div/>","css":"","javascript":""}';
+    const content = "```canvas\r\n" + json + "\r\n```";
+    const { preserved, withPlaceholders } = preserveInteractiveFences(content);
+    expect(preserved).toHaveLength(1);
+    expect(withPlaceholders).toContain("__HTMLAPP_PRESERVE_0__");
+    expect(withPlaceholders).not.toContain("<div/>");
   });
 
   test("parseFenceLanguage reads html-app and canvas", () => {

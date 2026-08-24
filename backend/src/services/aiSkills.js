@@ -2788,14 +2788,46 @@ const unwrapOuterMarkdownFence = (text) => {
   return m ? m[1].trim() : t;
 };
 
+const CANVAS_JSON_START_RE = /\{\s*"(?:v|html)"\s*:/;
+
+const looksLikeCanvasJson = (text) => {
+  const s = String(text || "").trim();
+  if (!s) return false;
+  const fenced = s.match(
+    /^```(?:html-app|canvas)(?::\d+)?[ \t]*\r?\n([\s\S]*?)\r?\n```[ \t]*$/
+  );
+  const body = fenced ? fenced[1].trim() : s;
+  const start = body.search(CANVAS_JSON_START_RE);
+  if (start < 0) return false;
+  const json = body.slice(start);
+  const end = json.lastIndexOf("}");
+  if (end < 0) return false;
+  try {
+    const parsed = JSON.parse(json.slice(0, end + 1));
+    return Boolean(
+      parsed &&
+        typeof parsed === "object" &&
+        !Array.isArray(parsed) &&
+        (parsed.v === 1 ||
+          "html" in parsed ||
+          "css" in parsed ||
+          "javascript" in parsed ||
+          "js" in parsed)
+    );
+  } catch {
+    return false;
+  }
+};
+
 /**
  * 에디터가 렌더할 수 있도록, 펜스 없이 나온 인터랙티브 HTML을 ```html-app```으로 감싼다.
+ * ```canvas``` JSON은 자르지 않는다.
  */
 export const normalizeDocumentDraftContent = (content) => {
   const text = unwrapOuterMarkdownFence(content);
   if (!text.trim()) return text;
-  // 이미 html-app을 쓰면 그대로 (모델이 올바르게 작성한 경우)
-  if (/```html-app(?::\d+)?\b/.test(text)) return text;
+  if (/```(?:html-app|canvas)(?::\d+)?\b/.test(text)) return text;
+  if (looksLikeCanvasJson(text)) return text;
 
   const looksLikeHtmlApp =
     /<script[\s>]/i.test(text) ||
