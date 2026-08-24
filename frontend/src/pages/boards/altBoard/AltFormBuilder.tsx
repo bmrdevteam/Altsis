@@ -141,7 +141,7 @@ const FIELD_TYPE_ICONS: Record<TAltFormFieldType, string> = {
   time: "schedule",
   file: "attach_file",
   select: "arrow_drop_down_circle",
-  multiSelect: "checklist",
+  multiSelect: "check_box",
   checkbox: "check_box",
   radio: "radio_button_checked",
   userSelect: "person_search",
@@ -157,7 +157,7 @@ const FIELD_TYPE_ICONS: Record<TAltFormFieldType, string> = {
 
 const FIELD_TYPE_GROUPS: { label: string; types: TAltFormFieldType[] }[] = [
   { label: "텍스트", types: ["text", "textarea", "number"] },
-  { label: "선택", types: ["radio", "checkbox", "select", "multiSelect"] },
+  { label: "선택", types: ["radio", "select", "multiSelect"] },
   { label: "날짜/시간", types: ["date", "multiDate", "time"] },
   { label: "문서", types: ["content", "docResponse", "aiChat"] },
   { label: "평가 입력", types: ["rating", "scale", "counter"] },
@@ -2499,6 +2499,13 @@ const AltFormBuilder = ({
             const types = group.types.filter(
               (t) => t !== "aiChat" || canAddAiChat || field.type === "aiChat"
             );
+            if (
+              group.label === "선택" &&
+              field.type === "checkbox" &&
+              !types.includes("checkbox")
+            ) {
+              types.unshift("checkbox");
+            }
             if (types.length === 0) return null;
             return (
               <optgroup key={group.label} label={group.label}>
@@ -2709,7 +2716,7 @@ const AltFormBuilder = ({
         type="button"
         className={style.toolbarBtn}
         onMouseDown={(e) => e.preventDefault()}
-        onClick={() => addFieldOfType("checkbox")}
+        onClick={() => addFieldOfType("multiSelect")}
         title="체크박스"
       >
         <MI icon="check_box" size={22} />

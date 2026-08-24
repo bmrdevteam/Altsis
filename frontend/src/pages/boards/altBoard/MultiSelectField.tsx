@@ -39,7 +39,7 @@ const MultiSelectField = ({
   onChange,
 }: Props) => {
   const [query, setQuery] = useState("");
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const [checkFilter, setCheckFilter] = useState<TCheckFilter>("all");
 
   const selectedSet = useMemo(() => new Set(selected), [selected]);
@@ -119,7 +119,7 @@ const MultiSelectField = ({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="항목 검색"
-            aria-label="복수 선택 항목 검색"
+            aria-label="체크박스 항목 검색"
             autoComplete="off"
           />
           <div className={style.multiSelectToolbar}>
