@@ -100,7 +100,7 @@ const explicitDraftSkill = (
 
 /**
  * 전송 시 실행할 Alter 스킬.
- * 챗봇 칩에서는 문서 점검으로 승격하지 않는다.
+ * 챗봇 칩에서는 메시지·화면과 관계없이 승격하지 않는다.
  */
 export const resolveSendSkill = ({
   selectedSkill,
@@ -108,14 +108,9 @@ export const resolveSendSkill = ({
   text,
   hasSourceAttachments = false,
 }: ResolveSendSkillArgs): TAlterSkillId => {
+  if (selectedSkill === "chat") return "chat";
+
   const upgraded = explicitDraftSkill(text, pageType, hasSourceAttachments);
-
-  // 챗봇: 명시적 작성 의도만 승격. 문서 점검은 「문서 점검」칩에서만 실행
-  if (selectedSkill === "chat") {
-    if (!upgraded || upgraded === "document-review") return "chat";
-    return upgraded;
-  }
-
   if (upgraded) return upgraded;
 
   if (selectedSkill === "syllabus-draft" && pageType === "syllabus-edit") {

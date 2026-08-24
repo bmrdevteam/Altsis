@@ -35,13 +35,13 @@ describe("resolveSendSkill", () => {
     ).toBe("document-review");
   });
 
-  test("chat still upgrades other explicit draft intents", () => {
+  test("chat never upgrades other explicit draft intents", () => {
     expect(
       resolveSendSkill({
         selectedSkill: "chat",
         pageType: "evaluation",
         text: "평가 초안 작성",
       })
-    ).toBe("evaluation-draft");
+    ).toBe("chat");
   });
 });
