@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type DragEvent,
+} from "react";
 import style from "./altBoard.module.scss";
 import { TBoard, TMemberUser } from "types/board";
 import {
@@ -40,6 +47,11 @@ import {
   type TWeekdaySchedule,
 } from "./weekdaySchedule";
 import { toLocalDatetimeString } from "utils/activityDraft";
+import {
+  parseFormRubricImportText,
+  serializeFormRubricsExport,
+} from "utils/formRubricJson";
+import { objectDownloadAsJson } from "functions/functions";
 import FilePreviewModal from "./FilePreviewModal";
 import MemberInvitePicker from "./MemberInvitePicker";
 import FieldDocResources from "./FieldDocResources";
@@ -355,6 +367,7 @@ const AltFormBuilder = ({
     index: number;
   } | null>(null);
   const rubricTemplateRef = useRef<HTMLDivElement>(null);
+  const rubricImportRef = useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(!!formId);
   const [isSaving, setIsSaving] = useState(false);
   const [showTracker, setShowTracker] = useState(false);
@@ -1032,6 +1045,25 @@ const AltFormBuilder = ({
       return next;
     });
     setShowRubricTemplates(false);
+  };
+
+  const exportRubrics = () => {
+    if (rubrics.length === 0) return;
+    objectDownloadAsJson(serializeFormRubricsExport(title, rubrics));
+  };
+
+  const importRubrics = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const imported = parseFormRubricImportText(text);
+      setRubrics((prev) => [...prev, ...imported]);
+      setExpandedRubricIds(new Set(imported.map((r) => r.id)));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "루브릭을 가져오지 못했습니다.");
+    }
+    if (rubricImportRef.current) rubricImportRef.current.value = "";
   };
 
   const duplicateRubric = (ri: number) => {
@@ -3390,6 +3422,29 @@ const AltFormBuilder = ({
                             className={style.settingsRubricsHeaderActions}
                             ref={rubricTemplateRef}
                           >
+                            <input
+                              ref={rubricImportRef}
+                              type="file"
+                              accept=".json,application/json"
+                              style={{ display: "none" }}
+                              onChange={importRubrics}
+                            />
+                            <button
+                              type="button"
+                              className={style.settingsRubricsAddBtn}
+                              onClick={() => rubricImportRef.current?.click()}
+                            >
+                              가져오기
+                            </button>
+                            {rubrics.length > 0 && (
+                              <button
+                                type="button"
+                                className={style.settingsRubricsAddBtn}
+                                onClick={exportRubrics}
+                              >
+                                내보내기
+                              </button>
+                            )}
                             <button
                               type="button"
                               className={style.settingsRubricsAddBtn}
