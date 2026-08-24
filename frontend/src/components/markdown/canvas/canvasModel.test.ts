@@ -278,6 +278,27 @@ describe("canvasModel", () => {
     );
   });
 
+  test("keeps markdown before a canvas fence", () => {
+    const payload = {
+      v: 1 as const,
+      title: "타이머",
+      html: "<h1>타이머</h1>",
+      css: "",
+      javascript: "",
+    };
+    const content = [
+      "타이머 설명입니다.",
+      "",
+      serializeCanvasFence(payload),
+    ].join("\n");
+    const repaired = repairCanvasMarkdown(content);
+    expect(repaired).toContain("타이머 설명입니다.");
+    expect(repaired).toContain("```canvas");
+    expect(parseCanvasContent(repaired.slice(repaired.indexOf("```"))).html).toBe(
+      payload.html
+    );
+  });
+
   test("preserves canvas fences that use CRLF after the language", () => {
     const json = '{"v":1,"html":"<div/>","css":"","javascript":""}';
     const content = "```canvas\r\n" + json + "\r\n```";
