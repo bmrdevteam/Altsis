@@ -269,13 +269,25 @@ export function repairCanvasMarkdown(content: string): string {
   );
 
   const trimmed = repairedFences.trim();
-  if (/^```(?:html-app|canvas)(?::\d+)?\b/.test(trimmed)) {
+  const hasInteractiveFence = /```(?:html-app|canvas)(?::\d+)?\b/.test(
+    repairedFences
+  );
+
+  // 앞 문단 + 이미 펜스된 캔버스는 그대로 둔다.
+  if (hasInteractiveFence && !trimmed.startsWith("{")) {
     return repairedFences;
   }
 
-  const whole = parseCanvasJson(trimmed);
-  if (whole) {
-    return serializeCodeEmbed(whole);
+  // 문서 전체가 펜스 없는 JSON(끝 ``` 허용)일 때만 통째 교체
+  if (trimmed.startsWith("{")) {
+    const whole = parseCanvasJson(trimmed);
+    if (whole) {
+      return serializeCodeEmbed(whole);
+    }
+  }
+
+  if (hasInteractiveFence) {
+    return repairedFences;
   }
 
   const jsonStart = repairedFences.search(CANVAS_JSON_START_RE);
