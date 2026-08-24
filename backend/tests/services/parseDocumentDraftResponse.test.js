@@ -68,4 +68,13 @@ describe("normalizeDocumentDraftContent", () => {
     const raw = "```html-app\n<div>a</div>\n```";
     expect(normalizeDocumentDraftContent(raw)).toBe(raw);
   });
+
+  it("does not split canvas JSON at doctype inside the html field", () => {
+    const json =
+      '{"v":1,"html":"<!DOCTYPE html><html><body><h1>타이머</h1></body></html>","css":"","javascript":"","title":"HTML로 만든 타이머 화면"}';
+    expect(normalizeDocumentDraftContent(json)).toBe(json);
+
+    const fenced = "```canvas\n" + json + "\n```";
+    expect(normalizeDocumentDraftContent(fenced)).toBe(fenced);
+  });
 });

@@ -22,6 +22,7 @@ import {
   parseCanvasContent,
   parseFenceLanguage,
   preserveInteractiveFences,
+  repairCanvasMarkdown,
   restoreInteractiveFences,
 } from "./canvas/canvasModel";
 
@@ -250,20 +251,6 @@ const baseComponents = {
       : children;
     return <p {...props}>{processed}</p>;
   },
-  // ```html-app / ```canvas 코드 블록을 임베드로 렌더링
-  code: ({ className, children, ...props }: any) => {
-    const fence = parseFenceLanguage(className);
-    if (fence) {
-      const raw = String(children).replace(/\n$/, "");
-      const html = buildCanvasSrcDoc(parseCanvasContent(raw));
-      return <HtmlAppEmbed html={html} height={fence.height} />;
-    }
-    return (
-      <code className={className} {...props}>
-        {children}
-      </code>
-    );
-  },
   // pre 태그에서 html-app 코드 블록 감지
   pre: ({ children, ...props }: any) => {
     // children이 code 엘리먼트이고 language-html-app 클래스를 가지면
@@ -327,10 +314,9 @@ const MarkdownViewer = ({
   allowHtmlApp = false,
 }: Props) => {
   const sanitizedContent = useMemo(() => {
-    // 인터랙티브 펜스를 DOMPurify 처리 전에 추출 (script 태그 보존)
-    const { withPlaceholders, preserved } = allowHtmlApp
-      ? preserveInteractiveFences(content)
-      : { withPlaceholders: content, preserved: [] as string[] };
+    const repaired = repairCanvasMarkdown(content);
+    // JSON 안 HTML이 DOMPurify에 먹히지 않게 펜스는 항상 추출한다.
+    const { withPlaceholders, preserved } = preserveInteractiveFences(repaired);
 
     // 콜아웃 마크다운 → HTML (sanitize 전에 변환)
     const withCallouts = preprocessCallouts(withPlaceholders);
@@ -393,14 +379,27 @@ const MarkdownViewer = ({
     sanitized = restoreInteractiveFences(sanitized, preserved);
 
     return sanitized;
-  }, [content, allowHtmlApp]);
+  }, [content]);
 
   const components = useMemo(
     () => ({
       ...baseComponents,
       ...headingComponents(createGithubSlugger()),
+      code: ({ className, children, ...props }: any) => {
+        const fence = parseFenceLanguage(className);
+        if (fence && allowHtmlApp) {
+          const raw = String(children).replace(/\n$/, "");
+          const html = buildCanvasSrcDoc(parseCanvasContent(raw));
+          return <HtmlAppEmbed html={html} height={fence.height} />;
+        }
+        return (
+          <code className={className} {...props}>
+            {children}
+          </code>
+        );
+      },
     }),
-    [sanitizedContent]
+    [sanitizedContent, allowHtmlApp]
   );
 
   return (
