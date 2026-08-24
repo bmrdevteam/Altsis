@@ -30,6 +30,8 @@ export {
   shouldDefaultCollapsePrep,
 } from "./draftUi";
 export type { PrepKind } from "./draftUi";
+export { resolveSendSkill } from "./resolveSendSkill";
+export type { ResolveSendSkillArgs } from "./resolveSendSkill";
 export { default as useAlterGuidelineLibrary } from "./useAlterGuidelineLibrary";
 export {
   isActivityDraft,
