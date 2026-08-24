@@ -20,5 +20,7 @@ describe("nextFieldLabel", () => {
     expect(FIELD_TYPE_LABELS.docResponse).toBe("응답 문서");
     expect(FIELD_TYPE_LABELS.approval).toBe("승인");
     expect(FIELD_TYPE_LABELS.aiChat).toBe("AI 챗봇");
+    expect(FIELD_TYPE_LABELS.multiSelect).toBe("체크박스");
+    expect(FIELD_TYPE_LABELS.checkbox).toBe("체크박스");
   });
 });
