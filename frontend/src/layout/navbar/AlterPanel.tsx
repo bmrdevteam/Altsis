@@ -3365,6 +3365,7 @@ const AlterPanel = ({ onClose }: Props) => {
                 <MarkdownViewer
                   content={normalizeAlterMarkdown(msg.content)}
                   className={style.mdContent}
+                  escapeRawHtml
                 />
               ) : (
                 <div className={style.msgText}>{msg.content}</div>

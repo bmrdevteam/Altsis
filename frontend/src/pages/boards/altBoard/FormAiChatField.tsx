@@ -260,6 +260,7 @@ const FormAiChatField = ({
                   <MarkdownViewer
                     content={normalizeAlterMarkdown(msg.content)}
                     allowHtmlApp
+                    escapeRawHtml
                   />
                 </div>
               )}
