@@ -6,12 +6,7 @@ import rehypeRaw from "rehype-raw";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
-import DOMPurify, {
-  type UponSanitizeAttributeHookEvent,
-} from "dompurify";
 import style from "./markdown.module.scss";
-import { preprocessCallouts } from "./extensions/callout";
-import { sanitizeMarkdownInlineStyle } from "./sanitizeMarkdownInlineStyle";
 import {
   createGithubSlugger,
   flattenHeadingText,
@@ -21,10 +16,8 @@ import {
   CANVAS_IFRAME_SANDBOX,
   parseCanvasContent,
   parseFenceLanguage,
-  preserveInteractiveFences,
-  repairCanvasMarkdown,
-  restoreInteractiveFences,
 } from "./canvas/canvasModel";
+import { preprocessMarkdownForViewer } from "./preprocessMarkdownForViewer";
 
 // @[이름](id) 멘션 패턴을 React 요소로 변환
 const renderMentions = (text: string): (string | JSX.Element)[] => {
@@ -306,80 +299,23 @@ export type Props = {
    * 응답자 작성 본문에는 false (기본) — 저장 XSS 방지.
    */
   allowHtmlApp?: boolean;
+  /**
+   * true면 코드 밖 HTML 태그를 이스케이프한다 (챗봇 답변).
+   * 문서 본문은 false — 에디터 HTML·콜아웃을 유지한다.
+   */
+  escapeRawHtml?: boolean;
 };
 
 const MarkdownViewer = ({
   content,
   className,
   allowHtmlApp = false,
+  escapeRawHtml = false,
 }: Props) => {
-  const sanitizedContent = useMemo(() => {
-    const repaired = repairCanvasMarkdown(content);
-    // JSON 안 HTML이 DOMPurify에 먹히지 않게 펜스는 항상 추출한다.
-    const { withPlaceholders, preserved } = preserveInteractiveFences(repaired);
-
-    // 콜아웃 마크다운 → HTML (sanitize 전에 변환)
-    const withCallouts = preprocessCallouts(withPlaceholders);
-
-    // 표·문단 레이아웃 스타일만 허용 (url/position 등은 차단)
-    const styleHook = (node: Element, data: UponSanitizeAttributeHookEvent) => {
-      if (data.attrName !== "style") return;
-      const tag = node.nodeName?.toLowerCase() || "";
-      const next = sanitizeMarkdownInlineStyle(tag, data.attrValue || "");
-      if (!next) {
-        data.keepAttr = false;
-        return;
-      }
-      data.attrValue = next;
-    };
-    DOMPurify.addHook("uponSanitizeAttribute", styleHook);
-
-    let sanitized = "";
-    try {
-      sanitized = DOMPurify.sanitize(withCallouts, {
-        ADD_TAGS: [
-          "iframe",
-          "math", "semantics", "mrow", "mi", "mn", "mo", "msup", "msub", "mfrac", "annotation",
-          "svg",
-          "path",
-        ],
-        ADD_ATTR: [
-          "allow",
-          "allowfullscreen",
-          "frameborder",
-          "scrolling",
-          "sandbox",
-          "srcdoc",
-          "style",
-          "data-youtube-video",
-          "data-html-embed",
-          "data-embed-type",
-          "data-embed-content",
-          "data-embed-height",
-          "data-mention",
-          "data-id",
-          "data-color",
-          "data-align",
-          "data-inline-checkbox",
-          "data-checked",
-          "data-callout",
-          "viewBox",
-          "xmlns",
-          "fill",
-          "d",
-          "aria-hidden",
-          "aria-label",
-          "title",
-        ],
-      });
-    } finally {
-      DOMPurify.removeHook("uponSanitizeAttribute", styleHook);
-    }
-
-    sanitized = restoreInteractiveFences(sanitized, preserved);
-
-    return sanitized;
-  }, [content]);
+  const sanitizedContent = useMemo(
+    () => preprocessMarkdownForViewer(content, { escapeRawHtml }),
+    [content, escapeRawHtml]
+  );
 
   const components = useMemo(
     () => ({

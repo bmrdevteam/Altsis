@@ -4,16 +4,18 @@
  * 모델이 자주 쓰는 `•` 불릿과 `3. 짧은 제목` + 목록 조합은
  * 파서가 한 listItem 안의 일반 텍스트로 합쳐 버려 구조·강조가 깨진다.
  */
+import {
+  preserveMarkdownCode,
+  restoreMarkdownCode,
+} from "components/markdown/preserveMarkdownCode";
+
 const normalizeAlterMarkdown = (content: string): string => {
   if (!content) return content;
 
   let text = content.replace(/\r\n/g, "\n");
 
-  const codeBlocks: string[] = [];
-  text = text.replace(/```[\s\S]*?```/g, (block) => {
-    codeBlocks.push(block);
-    return `\0CODE${codeBlocks.length - 1}\0`;
-  });
+  const { withPlaceholders, preserved } = preserveMarkdownCode(text);
+  text = withPlaceholders;
 
   // 유니코드 불릿 → 마크다운 목록
   text = text.replace(/^(\s*)[•·▪◦]\s+/gm, "$1- ");
@@ -38,14 +40,13 @@ const normalizeAlterMarkdown = (content: string): string => {
     "$1\n\n"
   );
 
-  // `** 텍스트 **`처럼 공백이 끼면 emphasis로 안 잡히는 경우 보정
+  // `** 텍스트 **`처럼 공백이 끼면 emphasis로 안 잡히는 경우 보정.
+  // 코드는 이미 placeholder라 `` `</a>` ``가 <strong> 안에서 태그로 안 열림.
   text = text.replace(/\*\*\s*([^*]+?)\s*\*\*/g, (_, inner: string) => {
     return `<strong>${inner.trim()}</strong>`;
   });
 
-  text = text.replace(/\0CODE(\d+)\0/g, (_, i: string) => codeBlocks[Number(i)]);
-
-  return text;
+  return restoreMarkdownCode(text, preserved);
 };
 
 export default normalizeAlterMarkdown;
