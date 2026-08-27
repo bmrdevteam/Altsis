@@ -2,6 +2,7 @@ import {
   copyRowDataForReuse,
   mergeRowDataForEdit,
   shouldApplyExternalViewMode,
+  shouldStartNewMultipleCompose,
 } from "./reuseResponseDraft";
 
 const fields = [
@@ -50,6 +51,55 @@ describe("shouldApplyExternalViewMode", () => {
         externalMode: "review",
       })
     ).toEqual({ apply: false, nextSkip: false });
+  });
+});
+
+describe("shouldStartNewMultipleCompose", () => {
+  test("starts new when leaving review on a multiple-response form", () => {
+    expect(
+      shouldStartNewMultipleCompose({
+        allowMultiple: true,
+        viewMode: "review",
+        hasEditingRow: false,
+      })
+    ).toBe(true);
+  });
+
+  test("starts new when already composing an existing row", () => {
+    expect(
+      shouldStartNewMultipleCompose({
+        allowMultiple: true,
+        viewMode: "compose",
+        hasEditingRow: true,
+      })
+    ).toBe(true);
+  });
+
+  test("does not restart when already composing a new response", () => {
+    expect(
+      shouldStartNewMultipleCompose({
+        allowMultiple: true,
+        viewMode: "compose",
+        hasEditingRow: false,
+      })
+    ).toBe(false);
+  });
+
+  test("is false for single-response forms", () => {
+    expect(
+      shouldStartNewMultipleCompose({
+        allowMultiple: false,
+        viewMode: "review",
+        hasEditingRow: true,
+      })
+    ).toBe(false);
+    expect(
+      shouldStartNewMultipleCompose({
+        allowMultiple: false,
+        viewMode: "compose",
+        hasEditingRow: true,
+      })
+    ).toBe(false);
   });
 });
 
