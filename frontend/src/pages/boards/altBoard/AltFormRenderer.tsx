@@ -55,6 +55,7 @@ import {
   copyRowDataForReuse,
   mergeRowDataForEdit,
   shouldApplyExternalViewMode,
+  shouldStartNewMultipleCompose,
 } from "./reuseResponseDraft";
 import FormAiChatField from "./FormAiChatField";
 import { isAiChatRequiredMet } from "./formAiChat";
@@ -279,18 +280,16 @@ const AltFormRenderer = ({
               setViewMode("review");
             }
           } else {
-            const local = currentUser?._id
-              ? readFormResponseDraft(
-                  formResponseDraftStorageKey(
-                    currentUser._id,
-                    loadedForm._id,
-                    "new"
-                  )
+            if (currentUser?._id) {
+              clearFormResponseDraft(
+                formResponseDraftStorageKey(
+                  currentUser._id,
+                  loadedForm._id,
+                  "new"
                 )
-              : null;
-            setData(
-              withDocResponseDefaults(loadedForm.fields, local?.data || {})
-            );
+              );
+            }
+            setData(withDocResponseDefaults(loadedForm.fields));
           }
         } else if (loadedRows[0]) {
           const row = loadedRows[0];
@@ -427,9 +426,39 @@ const AltFormRenderer = ({
 
   const isReviewMode = viewMode === "review";
 
+  const startNewMultipleCompose = () => {
+    if (!form?.settings.allowMultipleResponses) return;
+    const target = getRequiredResponseCount(form);
+    if (target != null && submittedRows.length >= target) return;
+    if (currentUser?._id) {
+      clearFormResponseDraft(
+        formResponseDraftStorageKey(currentUser._id, form._id, "new")
+      );
+    }
+    skipNextExternalViewMode.current = true;
+    setMyRow(null);
+    setIsSubmitted(false);
+    setErrors({});
+    setData(withDocResponseDefaults(form.fields));
+    setViewMode("compose");
+    onViewModeChange?.("compose");
+  };
+
   const switchViewMode = (mode: TViewMode) => {
     if (!form) return;
-    if (mode === viewMode) return;
+    if (mode === viewMode) {
+      if (
+        mode === "compose" &&
+        shouldStartNewMultipleCompose({
+          allowMultiple: !!form.settings.allowMultipleResponses,
+          viewMode,
+          hasEditingRow: !!myRow,
+        })
+      ) {
+        startNewMultipleCompose();
+      }
+      return;
+    }
     if (mode === "review") {
       if (!canShowOwnResponses) return;
       const idx = Math.min(reviewIndex, Math.max(0, myRows.length - 1));
@@ -444,24 +473,17 @@ const AltFormRenderer = ({
       return;
     }
     // compose
-    const target = getRequiredResponseCount(form);
     if (
-      form.settings.allowMultipleResponses &&
-      target != null &&
-      submittedRows.length >= target
+      shouldStartNewMultipleCompose({
+        allowMultiple: !!form.settings.allowMultipleResponses,
+        viewMode,
+        hasEditingRow: !!myRow,
+      })
     ) {
-      return; // 목표 횟수 달성 시 추가 작성 불가
+      startNewMultipleCompose();
+      return;
     }
-    if (form.settings.allowMultipleResponses) {
-      const local = currentUser?._id
-        ? readFormResponseDraft(
-            formResponseDraftStorageKey(currentUser._id, form._id, "new")
-          )
-        : null;
-      setData(withDocResponseDefaults(form.fields, local?.data || {}));
-      setMyRow(null);
-      setIsSubmitted(false);
-    } else if (myRow) {
+    if (myRow) {
       setData(withDocResponseDefaults(form.fields, myRow.data || {}));
       setIsSubmitted(!isDraftSheetRow(myRow));
     } else if (myRows[0]) {
@@ -656,7 +678,8 @@ const AltFormRenderer = ({
       !isLoading &&
       !!form &&
       !isSubmitting &&
-      !isSavingDraft,
+      !isSavingDraft &&
+      !(!!form.settings.allowMultipleResponses && !myRow),
     storageKey: localDraftKey,
     data,
   });
@@ -2381,6 +2404,10 @@ const AltFormRenderer = ({
               title={
                 multipleQuotaReached
                   ? "목표 제출 횟수를 모두 채웠습니다."
+                  : !isReviewMode &&
+                    !!myRow &&
+                    !!form.settings.allowMultipleResponses
+                  ? "새 응답 작성"
                   : undefined
               }
             >
@@ -2581,6 +2608,16 @@ const AltFormRenderer = ({
             >
               취소
             </button>
+            {canComposeMultiple && (
+              <button
+                type="button"
+                className={style.reviewReuseBtn}
+                onClick={startNewMultipleCompose}
+                title="새 응답 작성"
+              >
+                새 응답
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -2602,6 +2639,16 @@ const AltFormRenderer = ({
             >
               취소
             </button>
+            {canComposeMultiple && (
+              <button
+                type="button"
+                className={style.reviewReuseBtn}
+                onClick={startNewMultipleCompose}
+                title="새 응답 작성"
+              >
+                새 응답
+              </button>
+            )}
           </div>
         </div>
       )}
