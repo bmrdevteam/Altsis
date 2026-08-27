@@ -27,6 +27,21 @@ export const shouldApplyExternalViewMode = ({
   };
 };
 
+/** 복수 응답에서 작성=새 건인지. 단건·이미 새 작성 중이면 false. */
+export const shouldStartNewMultipleCompose = ({
+  allowMultiple,
+  viewMode,
+  hasEditingRow,
+}: {
+  allowMultiple: boolean;
+  viewMode: TFormViewMode;
+  hasEditingRow: boolean;
+}): boolean => {
+  if (!allowMultiple) return false;
+  if (viewMode === "review") return true;
+  return hasEditingRow;
+};
+
 /** 수정 초안: 행 값이 있으면 덮고, 비어 있으면 조회 중 화면 값을 유지. */
 export const mergeRowDataForEdit = (
   rowData: Record<string, any> | null | undefined,
