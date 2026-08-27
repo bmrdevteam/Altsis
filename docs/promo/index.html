@@ -1,0 +1,1719 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Altsis · 모든 학교를 위한 대안적인 학교 정보 시스템</title>
+    <meta
+      name="description"
+      content="Altsis는 AEG가 운영하는 대안적인 학교 정보 시스템입니다. ALT 학사, SHIFT 채팅·보드·활동, CTRL Alter를 학교에 맞게 조합합니다."
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
+    />
+    <style>
+      :root {
+        --primary: rgb(49, 55, 117);
+        --primary-soft: rgb(220, 222, 252);
+        --highlight: #007aff;
+        --bg: #ffffff;
+        --canvas: #f5f5f5;
+        --page: #07070e;
+        --line: rgba(255, 255, 255, 0.1);
+        --panel: rgba(255, 255, 255, 0.06);
+        --text: #f4f4f6;
+        --muted: rgba(255, 255, 255, 0.72);
+        --dim: #9a9a9a;
+        --ink: #07070e;
+        --stage-w: 1920px;
+        --stage-h: 1080px;
+        --nav-h: 56px;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      html,
+      body {
+        overflow-x: hidden;
+      }
+
+      body {
+        font-family: Pretendard, "Apple SD Gothic Neo", "Noto Sans KR",
+          system-ui, sans-serif;
+        color: var(--text);
+        background: var(--page);
+        line-height: 1.5;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      img {
+        max-width: 100%;
+      }
+
+      .skip {
+        position: absolute;
+        left: -999px;
+        top: 0;
+        background: #fff;
+        color: #000;
+        padding: 8px 12px;
+        z-index: 100;
+      }
+
+      .skip:focus {
+        left: 12px;
+        top: 12px;
+      }
+
+      .site-nav {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        height: var(--nav-h);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        background: rgba(7, 7, 14, 0.92);
+        color: #fff;
+        backdrop-filter: blur(10px);
+      }
+
+      .nav-brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+        letter-spacing: -0.4px;
+        text-decoration: none;
+      }
+
+      .nav-brand img {
+        width: 28px;
+        height: 28px;
+        object-fit: contain;
+      }
+
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        list-style: none;
+      }
+
+      .nav-links a {
+        text-decoration: none;
+        font-size: 14px;
+        padding: 8px 10px;
+        border-radius: 8px;
+        color: rgba(255, 255, 255, 0.86);
+      }
+
+      .nav-links a:hover,
+      .nav-links a:focus-visible {
+        background: rgba(255, 255, 255, 0.1);
+        outline: 2px solid var(--highlight);
+        outline-offset: 2px;
+      }
+
+      /* —— Hero / stages —— */
+      .hero {
+        position: relative;
+        min-height: calc(100svh - var(--nav-h));
+        background: var(--ink);
+        color: #fff;
+      }
+
+      .stage-frame {
+        position: relative;
+        height: calc(100svh - var(--nav-h));
+        min-height: 420px;
+        overflow: hidden;
+      }
+
+      .stage {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: var(--stage-w);
+        height: var(--stage-h);
+        margin-left: calc(var(--stage-w) / -2);
+        margin-top: calc(var(--stage-h) / -2);
+        background: #07070e;
+        overflow: hidden;
+        transform: scale(var(--scale, 1));
+        transform-origin: center center;
+      }
+
+      .app {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        grid-template-columns: 232px 1fr;
+        grid-template-rows: 56px 1fr;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      .hero-stage .app {
+        opacity: 0;
+        transform: scale(1.04);
+        filter: blur(8px);
+      }
+
+      .close-stage .app {
+        filter: blur(1.2px);
+      }
+
+      .sidebar {
+        grid-row: 1 / span 2;
+        background: var(--canvas);
+        border-right: 1px solid var(--line);
+      }
+
+      .side-brand {
+        height: 56px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 14px;
+        border-bottom: 1px solid var(--line);
+        font-weight: 600;
+        font-size: 15px;
+      }
+
+      .burger {
+        width: 18px;
+        height: 12px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+
+      .burger span {
+        display: block;
+        height: 2px;
+        background: #222;
+      }
+
+      .nav-list {
+        padding: 10px 8px;
+      }
+
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        height: 40px;
+        padding: 0 12px;
+        border-radius: 8px;
+        font-size: 14px;
+      }
+
+      .nav-item.active {
+        background: var(--primary-soft);
+        color: var(--primary);
+        font-weight: 600;
+      }
+
+      .nav-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
+        opacity: 0.45;
+      }
+
+      .nav-item.active .nav-dot {
+        opacity: 1;
+        background: var(--primary);
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .search {
+        height: 34px;
+        padding: 0 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        color: var(--dim);
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        min-width: 200px;
+      }
+
+      .top-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13px;
+      }
+
+      .chip,
+      .icon-btn {
+        height: 32px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        padding: 0 12px;
+      }
+
+      .icon-btn {
+        width: 32px;
+        padding: 0;
+        color: #444;
+      }
+
+      .alter {
+        height: 32px;
+        padding: 0 12px;
+        border-radius: 8px;
+        background: var(--primary);
+        color: #fff;
+        font-weight: 600;
+        display: grid;
+        place-items: center;
+      }
+
+      .main {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        background: #fff;
+      }
+
+      .cal-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 18px 24px 8px;
+      }
+
+      .cal-head h2 {
+        font-size: 22px;
+        letter-spacing: -0.4px;
+      }
+
+      .views {
+        display: flex;
+        gap: 6px;
+        font-size: 13px;
+        color: #555;
+      }
+
+      .views span {
+        height: 30px;
+        padding: 0 12px;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+      }
+
+      .views span.on {
+        background: var(--primary-soft);
+        color: var(--primary);
+        font-weight: 600;
+      }
+
+      .dow,
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+      }
+
+      .dow {
+        padding: 0 16px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .dow span {
+        text-align: center;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .grid {
+        flex: 1;
+        padding: 0 16px 16px;
+      }
+
+      .cell {
+        border-right: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        padding: 8px;
+        min-height: 0;
+      }
+
+      .cell:nth-child(7n) {
+        border-right: none;
+      }
+
+      .date {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        font-size: 13px;
+        color: #888;
+        margin-bottom: 6px;
+      }
+
+      .cell.in .date {
+        color: #111;
+        font-weight: 500;
+      }
+
+      .cell.today .date {
+        background: var(--highlight);
+        color: #fff;
+        font-weight: 700;
+      }
+
+      .ev {
+        height: 20px;
+        border-radius: 4px;
+        font-size: 11px;
+        line-height: 20px;
+        padding: 0 6px;
+        margin-bottom: 3px;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+
+      .ev.b {
+        background: #cadedf;
+      }
+      .ev.i {
+        background: #cad2ff;
+      }
+      .ev.g {
+        background: #cfe8d4;
+      }
+      .ev.a {
+        background: #f3e2c0;
+      }
+      .ev.p {
+        background: #e4d4f2;
+      }
+
+      .veil {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .hero-stage .veil {
+        background: #07070e;
+      }
+
+      .close-stage .veil {
+        background: rgba(7, 7, 14, 0.42);
+      }
+
+      .brand {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        pointer-events: none;
+      }
+
+      .hero-stage .logo {
+        width: 148px;
+        height: 148px;
+        object-fit: contain;
+        opacity: 0;
+        transform: scale(0.72) translateY(12px);
+      }
+
+      .wordmark {
+        margin-top: 22px;
+        font-size: 72px;
+        font-weight: 700;
+        letter-spacing: -1.8px;
+        line-height: 1;
+        opacity: 0;
+        transform: translateY(14px);
+      }
+
+      .line {
+        margin-top: 16px;
+        min-height: 32px;
+        position: relative;
+        width: min(920px, 90%);
+      }
+
+      .line p {
+        position: absolute;
+        left: 0;
+        right: 0;
+        font-size: 22px;
+        color: rgba(255, 255, 255, 0.78);
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      .line .ko {
+        font-size: 24px;
+        font-weight: 500;
+        color: #fff;
+      }
+
+      .hero-stage.is-playing .logo {
+        animation: logoIn 1.1s cubic-bezier(0.16, 1, 0.3, 1) 0.35s both;
+      }
+      .hero-stage.is-playing .wordmark {
+        animation: riseIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 1.45s both;
+      }
+      .hero-stage.is-playing .en {
+        animation: enIn 2.35s cubic-bezier(0.16, 1, 0.3, 1) 1.95s both;
+      }
+      .hero-stage.is-playing .ko {
+        animation: riseIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 3.65s both;
+      }
+      .hero-stage.is-playing .app {
+        animation: appIn 1.5s cubic-bezier(0.16, 1, 0.3, 1) 3s both;
+      }
+      .hero-stage.is-playing .veil {
+        animation: veilLift 1.8s ease 3s both;
+      }
+
+      .hero-stage.is-done .logo,
+      .hero-stage.is-done .wordmark,
+      .hero-stage.is-done .ko,
+      .hero-stage.is-done .app {
+        opacity: 1;
+        transform: none;
+        filter: none;
+        animation: none;
+      }
+
+      .hero-stage.is-done .en {
+        opacity: 0;
+        animation: none;
+      }
+
+      .hero-stage.is-done .veil {
+        animation: none;
+        background: linear-gradient(
+          180deg,
+          rgba(7, 7, 14, 0.22) 0%,
+          rgba(7, 7, 14, 0.5) 42%,
+          rgba(7, 7, 14, 0.62) 100%
+        );
+      }
+
+      .simple-hero,
+      .simple-close {
+        display: none;
+      }
+
+      /* closing keys */
+      .close-stage .brand {
+        gap: 28px;
+      }
+
+      .keys {
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        gap: 28px;
+      }
+
+      .key {
+        width: 176px;
+        height: 176px;
+        padding: 8px 8px 16px;
+        border-radius: 28px;
+        background: linear-gradient(180deg, #4a4a52 0%, #1a1a20 100%);
+        box-shadow: 0 16px 0 #0b0b10, 0 28px 48px rgba(0, 0, 0, 0.55);
+      }
+
+      .close-stage .key {
+        opacity: 0;
+        transform: translateY(28px) scale(0.88);
+        filter: saturate(0.7);
+      }
+
+      .key-shift {
+        width: 236px;
+      }
+
+      .face {
+        height: 100%;
+        border-radius: 20px;
+        background: linear-gradient(180deg, #c8c8c6 0%, #9e9e9c 100%);
+        color: #3a3a3a;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        padding: 22px 24px;
+        font-weight: 650;
+      }
+
+      .face .name {
+        font-size: 28px;
+      }
+
+      .key-shift .face .name {
+        font-size: 26px;
+      }
+
+      .face .sym {
+        font-size: 26px;
+        opacity: 0.8;
+      }
+
+      .close-stage .wordmark,
+      .close-stage .tagline {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+
+      .tagline {
+        font-size: 24px;
+        font-weight: 500;
+        letter-spacing: -0.4px;
+      }
+
+      .close-stage.is-playing .app {
+        animation: appDim 2.4s ease 0.1s both;
+      }
+      .close-stage.is-playing .veil {
+        animation: veilDeepen 2.2s ease 0.1s both;
+      }
+      .close-stage.is-playing .key-alt {
+        animation: keyOn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.7s both,
+          keyPress 0.38s ease 1.28s forwards;
+      }
+      .close-stage.is-playing .key-alt .face {
+        animation: faceLit 0.35s ease 1.28s forwards;
+      }
+      .close-stage.is-playing .key-shift {
+        animation: keyOn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 1.35s both,
+          keyPress 0.38s ease 1.93s forwards;
+      }
+      .close-stage.is-playing .key-shift .face {
+        animation: faceLit 0.35s ease 1.93s forwards;
+      }
+      .close-stage.is-playing .key-ctrl {
+        animation: keyOn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 2s both,
+          keyPress 0.38s ease 2.58s forwards;
+      }
+      .close-stage.is-playing .key-ctrl .face {
+        animation: faceLit 0.35s ease 2.58s forwards;
+      }
+      .close-stage.is-playing .keys {
+        animation: keysSettle 0.9s cubic-bezier(0.16, 1, 0.3, 1) 3.35s both;
+      }
+      .close-stage.is-playing .wordmark {
+        animation: riseIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 3.85s both;
+      }
+      .close-stage.is-playing .tagline {
+        animation: riseIn 0.75s cubic-bezier(0.16, 1, 0.3, 1) 4.55s both;
+      }
+
+      .close-stage.is-done .key,
+      .close-stage.is-done .wordmark,
+      .close-stage.is-done .tagline {
+        opacity: 1;
+        transform: none;
+        filter: saturate(1);
+        animation: none;
+      }
+
+      .close-stage.is-done .face {
+        background: linear-gradient(180deg, #f7f7f5 0%, #e4e4e1 100%);
+        color: #222;
+        animation: none;
+      }
+
+      .close-stage.is-done .veil {
+        animation: none;
+        background: linear-gradient(
+          180deg,
+          rgba(7, 7, 14, 0.58) 0%,
+          rgba(7, 7, 14, 0.78) 48%,
+          rgba(7, 7, 14, 0.88) 100%
+        );
+      }
+
+      .close-stage.is-done .app {
+        filter: blur(5px);
+        transform: scale(1.04);
+        animation: none;
+      }
+
+      @keyframes logoIn {
+        0% {
+          opacity: 0;
+          transform: scale(0.72) translateY(12px);
+        }
+        70% {
+          opacity: 1;
+          transform: scale(1.04) translateY(0);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1) translateY(0);
+        }
+      }
+      @keyframes riseIn {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes enIn {
+        0% {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        18%,
+        78% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        100% {
+          opacity: 0;
+          transform: translateY(-8px);
+        }
+      }
+      @keyframes appIn {
+        to {
+          opacity: 1;
+          transform: scale(1);
+          filter: blur(0);
+        }
+      }
+      @keyframes veilLift {
+        to {
+          background: linear-gradient(
+            180deg,
+            rgba(7, 7, 14, 0.22) 0%,
+            rgba(7, 7, 14, 0.5) 42%,
+            rgba(7, 7, 14, 0.62) 100%
+          );
+        }
+      }
+      @keyframes appDim {
+        to {
+          filter: blur(5px);
+          transform: scale(1.04);
+        }
+      }
+      @keyframes veilDeepen {
+        to {
+          background: linear-gradient(
+            180deg,
+            rgba(7, 7, 14, 0.58) 0%,
+            rgba(7, 7, 14, 0.78) 48%,
+            rgba(7, 7, 14, 0.88) 100%
+          );
+        }
+      }
+      @keyframes keyOn {
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+          filter: saturate(1);
+          box-shadow: 0 16px 0 #0b0b10, 0 0 36px rgba(220, 222, 252, 0.28),
+            0 28px 48px rgba(0, 0, 0, 0.55);
+        }
+      }
+      @keyframes keyPress {
+        40% {
+          transform: translateY(8px) scale(0.98);
+        }
+        100% {
+          opacity: 1;
+          filter: saturate(1);
+          transform: translateY(0) scale(1);
+        }
+      }
+      @keyframes faceLit {
+        to {
+          background: linear-gradient(180deg, #f7f7f5 0%, #e4e4e1 100%);
+          color: #222;
+        }
+      }
+      @keyframes keysSettle {
+        to {
+          transform: translateY(-18px);
+        }
+      }
+
+      /* —— Page sections —— */
+      .wrap {
+        width: min(1120px, calc(100% - 40px));
+        margin: 0 auto;
+      }
+
+      .section {
+        padding: 88px 0;
+      }
+
+      #features,
+      #pricing,
+      #aeg,
+      #apply {
+        scroll-margin-top: var(--nav-h);
+      }
+
+      .section h2 {
+        font-size: 32px;
+        letter-spacing: -0.8px;
+        margin-bottom: 8px;
+      }
+
+      .lede {
+        color: var(--muted);
+        font-size: 17px;
+        max-width: 640px;
+        margin-bottom: 40px;
+      }
+
+      .note {
+        font-size: 13px;
+        color: var(--muted);
+        margin-top: 16px;
+      }
+
+      .plan-block {
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        gap: 40px;
+        align-items: start;
+        padding: 36px 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .plan-block:first-of-type {
+        border-top: none;
+        padding-top: 0;
+      }
+
+      .mini-key {
+        width: 132px;
+        height: 132px;
+        padding: 6px 6px 12px;
+        border-radius: 22px;
+        background: linear-gradient(180deg, #4a4a52 0%, #1a1a20 100%);
+        box-shadow: 0 10px 0 #0b0b10, 0 16px 28px rgba(0, 0, 0, 0.18);
+      }
+
+      .mini-key .face {
+        padding: 14px 16px;
+        border-radius: 16px;
+        background: linear-gradient(180deg, #f7f7f5 0%, #e4e4e1 100%);
+        color: #222;
+      }
+
+      .mini-key .name {
+        font-size: 20px;
+      }
+
+      .mini-key .sym {
+        font-size: 18px;
+      }
+
+      .mini-key.wide {
+        width: 168px;
+      }
+
+      .kicker {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        color: var(--primary-soft);
+        margin-bottom: 6px;
+      }
+
+      .plan-block h3 {
+        font-size: 26px;
+        letter-spacing: -0.5px;
+        margin-bottom: 8px;
+      }
+
+      .plan-block .copy {
+        color: var(--muted);
+        margin-bottom: 18px;
+      }
+
+      .features {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        list-style: none;
+      }
+
+      .features li {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 14px 16px;
+      }
+
+      .features strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .features span {
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      .aside-line {
+        margin-top: 14px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      .quote {
+        margin-top: 16px;
+        font-weight: 600;
+      }
+
+      .mock {
+        margin-top: 20px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        overflow: hidden;
+        min-height: 160px;
+      }
+
+      .board-tabs {
+        display: flex;
+        gap: 0;
+        border-bottom: 1px solid var(--line);
+        font-size: 14px;
+      }
+
+      .board-tabs span {
+        padding: 12px 16px;
+        color: var(--muted);
+      }
+
+      .board-tabs span.on {
+        color: var(--primary-soft);
+        font-weight: 700;
+        border-bottom: 2px solid var(--primary-soft);
+      }
+
+      .board-body {
+        padding: 16px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .row {
+        height: 36px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.05);
+        display: flex;
+        align-items: center;
+        padding: 0 12px;
+        font-size: 13px;
+      }
+
+      .alter-mock {
+        display: grid;
+        grid-template-columns: 1fr 280px;
+        min-height: 180px;
+      }
+
+      .alter-page {
+        padding: 16px;
+        background: rgba(255, 255, 255, 0.04);
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .alter-panel {
+        border-left: 1px solid var(--line);
+        padding: 14px;
+        font-size: 13px;
+      }
+
+      .bubble {
+        background: var(--primary-soft);
+        color: var(--primary);
+        border-radius: 10px;
+        padding: 10px 12px;
+        margin-top: 10px;
+      }
+
+      .price-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .card.featured {
+        border-color: var(--primary-soft);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+      }
+
+      .price {
+        font-size: 28px;
+        font-weight: 750;
+        letter-spacing: -0.8px;
+      }
+
+      .price small {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--muted);
+      }
+
+      .card ul {
+        list-style: none;
+        font-size: 14px;
+        color: var(--muted);
+        display: grid;
+        gap: 8px;
+        margin: 8px 0 4px;
+      }
+
+      .card ul li::before {
+        content: "· ";
+        color: var(--primary-soft);
+        font-weight: 700;
+      }
+
+      .combo {
+        margin-top: 28px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+
+      .combo div {
+        background: var(--panel);
+        border-radius: 12px;
+        padding: 16px;
+        border: 1px dashed var(--line);
+        font-size: 14px;
+      }
+
+      .combo strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .example {
+        margin-top: 20px;
+        padding: 16px 18px;
+        background: var(--primary-soft);
+        color: var(--primary);
+        border-radius: 12px;
+        font-size: 15px;
+      }
+
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        list-style: none;
+      }
+
+      .steps li {
+        background: var(--panel);
+        border-radius: 12px;
+        padding: 16px;
+        border: 1px solid var(--line);
+        font-size: 14px;
+      }
+
+      .steps b {
+        display: block;
+        font-size: 12px;
+        color: var(--primary-soft);
+        margin-bottom: 6px;
+      }
+
+      .closing {
+        background: var(--ink);
+        color: #fff;
+      }
+
+      .closing .stage-frame {
+        height: min(72vh, 720px);
+        min-height: 360px;
+      }
+
+      .site-footer {
+        padding: 28px 20px 40px;
+        text-align: center;
+        font-size: 13px;
+        color: var(--muted);
+        background: var(--ink);
+      }
+
+      .site-footer a {
+        color: var(--primary-soft);
+      }
+
+      @media (max-width: 900px) {
+        .plan-block,
+        .alter-mock,
+        .price-grid,
+        .combo,
+        .steps {
+          grid-template-columns: 1fr;
+        }
+
+        .features {
+          grid-template-columns: 1fr;
+        }
+
+        .hero,
+        .hero .stage-frame,
+        .closing .stage-frame {
+          height: auto;
+          min-height: 70svh;
+          overflow: visible;
+        }
+
+        .hero .stage,
+        .closing .stage {
+          display: none;
+        }
+
+        .simple-hero,
+        .simple-close {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          gap: 16px;
+          min-height: 70svh;
+          padding: 32px 20px;
+        }
+
+        .simple-hero img {
+          width: 96px;
+          height: 96px;
+          object-fit: contain;
+        }
+
+        .simple-hero .wordmark,
+        .simple-close .wordmark {
+          margin-top: 0;
+          font-size: 40px;
+          opacity: 1;
+          transform: none;
+        }
+
+        .simple-hero p,
+        .simple-close .tagline {
+          font-size: 16px;
+          font-weight: 500;
+          color: rgba(255, 255, 255, 0.86);
+          opacity: 1;
+          transform: none;
+          max-width: 20em;
+        }
+
+        .simple-close .keys {
+          flex-wrap: wrap;
+          gap: 12px;
+          transform: none;
+        }
+
+        .simple-close .key {
+          opacity: 1;
+          transform: none;
+          filter: saturate(1);
+          width: 88px;
+          height: 88px;
+          padding: 5px 5px 10px;
+          border-radius: 16px;
+        }
+
+        .simple-close .key-shift {
+          width: 112px;
+        }
+
+        .simple-close .face {
+          padding: 10px 12px;
+          background: linear-gradient(180deg, #f7f7f5 0%, #e4e4e1 100%);
+          color: #222;
+        }
+
+        .simple-close .face .name,
+        .simple-close .face .sym {
+          font-size: 14px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+
+        .hero-stage.is-playing .logo,
+        .hero-stage.is-playing .wordmark,
+        .hero-stage.is-playing .en,
+        .hero-stage.is-playing .ko,
+        .hero-stage.is-playing .app,
+        .hero-stage.is-playing .veil,
+        .close-stage.is-playing .app,
+        .close-stage.is-playing .veil,
+        .close-stage.is-playing .key,
+        .close-stage.is-playing .face,
+        .close-stage.is-playing .keys,
+        .close-stage.is-playing .wordmark,
+        .close-stage.is-playing .tagline {
+          animation: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip" href="#features">본문으로 건너뛰기</a>
+    <header class="site-nav">
+      <a class="nav-brand" href="#top">
+        <img src="altsis-logo.png" alt="" width="28" height="28" />
+        Altsis
+      </a>
+      <nav aria-label="페이지 구역">
+        <ul class="nav-links">
+          <li><a href="#features">기능</a></li>
+          <li><a href="#pricing">요금</a></li>
+          <li><a href="#aeg">신청</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <section class="hero" id="top">
+      <div class="stage-frame" id="heroFrame">
+        <div
+          class="stage hero-stage"
+          id="heroStage"
+          role="img"
+          aria-label="Altsis. Alternative School Information System. 모든 학교를 위한 대안적인 학교 정보 시스템."
+        >
+          <div class="app" aria-hidden="true">
+            <aside class="sidebar">
+              <div class="side-brand">
+                <div class="burger"><span></span><span></span><span></span></div>
+                한빛학교
+              </div>
+              <div class="nav-list">
+                <div class="nav-item active"><span class="nav-dot"></span>일정</div>
+                <div class="nav-item"><span class="nav-dot"></span>수업</div>
+                <div class="nav-item"><span class="nav-dot"></span>기록</div>
+                <div class="nav-item"><span class="nav-dot"></span>문서</div>
+                <div class="nav-item"><span class="nav-dot"></span>보드</div>
+              </div>
+            </aside>
+            <header class="topbar">
+              <div class="search">검색 &nbsp; ⌘K</div>
+              <div class="top-right">
+                <div class="chip">2026 2학기</div>
+                <div class="alter">Alter</div>
+              </div>
+            </header>
+            <div class="main">
+              <div class="cal-head">
+                <h2>2026년 8월</h2>
+                <div class="views"><span class="on">월</span><span>주</span><span>일</span></div>
+              </div>
+              <div class="dow">
+                <span>일</span><span>월</span><span>화</span><span>수</span>
+                <span>목</span><span>금</span><span>토</span>
+              </div>
+              <div class="grid" data-cal></div>
+            </div>
+          </div>
+          <div class="veil"></div>
+          <div class="brand">
+            <img class="logo" src="altsis-logo.png" alt="" width="148" height="148" />
+            <div class="wordmark">Altsis</div>
+            <div class="line">
+              <p class="en">Alternative School Information System</p>
+              <p class="ko">모든 학교를 위한 대안적인 학교 정보 시스템</p>
+            </div>
+          </div>
+        </div>
+        <div class="simple-hero">
+          <img src="altsis-logo.png" alt="" width="96" height="96" />
+          <div class="wordmark">Altsis</div>
+          <p>모든 학교를 위한 대안적인 학교 정보 시스템</p>
+        </div>
+      </div>
+    </section>
+
+    <main id="features">
+      <section class="section">
+        <div class="wrap">
+          <h2>세 가지 키, 세 가지 플랜</h2>
+          <p class="lede">
+            영상과 같은 메시지입니다. Alt는 학사, Shift는 소통과 활동, Ctrl은
+            Alter입니다. 학교는 필요한 모듈만 켭니다.
+          </p>
+
+          <article class="plan-block" id="plan-alt">
+            <div>
+              <div class="mini-key" aria-hidden="true">
+                <div class="face"><span class="name">Alt</span><span class="sym">⌥</span></div>
+              </div>
+            </div>
+            <div>
+              <p class="kicker">ALT · 기본 학사</p>
+              <h3>교육적 시스템</h3>
+              <p class="copy">
+                대안적이고 수준 높은 교육을 지향하는 기본 학사입니다. 일정, 수업,
+                기록, 문서를 한 학교에서 운영합니다.
+              </p>
+              <ul class="features">
+                <li>
+                  <strong>일정</strong>
+                  <span>월·주·일 보기. 수업과 행사가 캘린더에 모입니다.</span>
+                </li>
+                <li>
+                  <strong>수업</strong>
+                  <span>시간표, 개설, 수강. 학기의 수업을 한 흐름으로 봅니다.</span>
+                </li>
+                <li>
+                  <strong>기록</strong>
+                  <span>학교 양식 기반 생활기록. 앱 메뉴 이름은 기록입니다.</span>
+                </li>
+                <li>
+                  <strong>문서</strong>
+                  <span>출력 양식을 미리보고 인쇄합니다.</span>
+                </li>
+              </ul>
+              <p class="aside-line">
+                학기 설정과 양식 에디터는 ALT를 쓰기 위한 도구입니다.
+              </p>
+            </div>
+          </article>
+
+          <article class="plan-block" id="plan-shift">
+            <div>
+              <div class="mini-key wide" aria-hidden="true">
+                <div class="face">
+                  <span class="name">Shift</span><span class="sym">⇧</span>
+                </div>
+              </div>
+            </div>
+            <div>
+              <p class="kicker">SHIFT · 소통과 활동</p>
+              <h3>맞춤형 시스템</h3>
+              <p class="copy">
+                직접 다양한 기능을 구현할 수 있는 맞춤형 층입니다. 채팅, 보드,
+                활동으로 학교 안의 일을 모읍니다.
+              </p>
+              <ul class="features">
+                <li>
+                  <strong>채팅</strong>
+                  <span>DM, 그룹, 보드 채팅으로 구성원이 바로 이야기합니다.</span>
+                </li>
+                <li>
+                  <strong>보드</strong>
+                  <span>학교·수업 단위 공간. 활동, 문서, 채팅 탭이 한 보드에 있습니다.</span>
+                </li>
+                <li>
+                  <strong>활동</strong>
+                  <span>설문, 퀴즈, 평가 등 양식 응답과 할 일을 처리합니다.</span>
+                </li>
+              </ul>
+              <div class="mock" aria-hidden="true">
+                <div class="board-tabs">
+                  <span class="on">활동</span><span>문서</span><span>채팅</span>
+                </div>
+                <div class="board-body">
+                  <div class="row">현장학습 신청 · 미제출 3</div>
+                  <div class="row">프로젝트 평가 · 채점 대기</div>
+                  <div class="row">주간 성찰 · 승인됨</div>
+                </div>
+              </div>
+              <p class="aside-line">
+                학교 소개 페이지를 외부에 공개할 수도 있습니다.
+              </p>
+            </div>
+          </article>
+
+          <article class="plan-block" id="plan-ctrl">
+            <div>
+              <div class="mini-key" aria-hidden="true">
+                <div class="face"><span class="name">Ctrl</span><span class="sym">⌃</span></div>
+              </div>
+            </div>
+            <div>
+              <p class="kicker">CTRL · Alter</p>
+              <h3>지능형 시스템</h3>
+              <p class="copy">
+                인공지능을 교육에 활용하는 층입니다. 상단 Alter로 질문하고, 화면
+                맥락에 맞는 스킬로 초안을 받습니다.
+              </p>
+              <ul class="features">
+                <li>
+                  <strong>챗봇</strong>
+                  <span>지금 보고 있는 화면을 바탕으로 질문하고 설명을 듣습니다.</span>
+                </li>
+                <li>
+                  <strong>작성 스킬</strong>
+                  <span>수업(강의계획서), 평가, 기록, 문서, 활동·응답 초안.</span>
+                </li>
+                <li>
+                  <strong>점검·채점</strong>
+                  <span>문서 점검과 채점 초안. 미리보기 후 확인해야 반영됩니다.</span>
+                </li>
+              </ul>
+              <div class="mock alter-mock" aria-hidden="true">
+                <div class="alter-page">기록 · 학생 활동 문장</div>
+                <div class="alter-panel">
+                  Alter · 기록 초안
+                  <div class="bubble">
+                    이번 학기 활동 기록 초안입니다. 확인 후 반영하세요.
+                  </div>
+                </div>
+              </div>
+              <p class="quote">교사의 판단을 대신하지 않습니다. 기록을 돕습니다.</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="pricing">
+        <div class="wrap">
+          <h2>요금과 제공 기능</h2>
+          <p class="lede">
+            ALT가 기본입니다. SHIFT와 CTRL은 필요할 때 더합니다. 아래는 AEG 기본
+            단가이며, 아카데미마다 한도와 단가를 조정할 수 있습니다.
+          </p>
+          <div class="price-grid">
+            <article class="card featured">
+              <p class="kicker">ALT</p>
+              <h3>좌석</h3>
+              <p class="price">30,000원 <small>/ 100명 · 월</small></p>
+              <p class="note" style="margin-top: 0">연 360,000원 · 활성 학기 고유 사용자</p>
+              <ul>
+                <li>일정, 수업, 기록, 문서</li>
+                <li>학기 · 양식 · 권한 등 기본 학사</li>
+              </ul>
+              <p>
+                <strong>AEG 연회비 (선입금, 중단 시 1할 환불)</strong>
+              </p>
+              <ul>
+                <li>100명 이하 · 연 360,000원</li>
+                <li>101–200명 · 연 720,000원</li>
+                <li>201–300명 · 연 1,200,000원</li>
+              </ul>
+            </article>
+            <article class="card">
+              <p class="kicker">SHIFT</p>
+              <h3>저장 용량</h3>
+              <p class="price">10,000원 <small>/ 100GB · 월</small></p>
+              <ul>
+                <li>채팅, 보드, 활동</li>
+                <li>공개 웹사이트 (보조)</li>
+              </ul>
+              <p class="note">
+                켠 뒤에도 채팅·보드·사이트는 아카데미와 학교에서 따로 켭니다.
+                기록·프로필 파일은 SHIFT가 꺼져도 올릴 수 있고, 용량 한도가 있으면
+                그 한도는 적용됩니다.
+              </p>
+            </article>
+            <article class="card">
+              <p class="kicker">CTRL</p>
+              <h3>Alter 사용량</h3>
+              <p class="price">10,000원 <small>/ 10,000 Alt · 월</small></p>
+              <ul>
+                <li>Alter 챗봇과 스킬</li>
+                <li>초안 · 점검 · 채점 (확인 후 반영)</li>
+              </ul>
+              <p class="note">
+                1 Alt = 10,000 토큰. API 키와 모델은 관리자가 등록합니다. 학교 AI
+                탭에서 교사·학생 권한과 1인당 일일 Alt 한도를 정합니다.
+              </p>
+            </article>
+          </div>
+          <div class="combo" aria-label="모듈 조합">
+            <div>
+              <strong>ALT만</strong>
+              학사 운영
+            </div>
+            <div>
+              <strong>ALT + SHIFT</strong>
+              학사 + 채팅 · 보드 · 활동
+            </div>
+            <div>
+              <strong>ALT + SHIFT + CTRL</strong>
+              위 + Alter
+            </div>
+          </div>
+          <p class="example">
+            예시 산식 · 100명 + SHIFT 100GB + CTRL 10,000 Alt = 월 30,000원 +
+            10,000원 + 10,000원
+          </p>
+        </div>
+      </section>
+
+      <section class="section" id="aeg">
+        <div class="wrap">
+          <h2>AEG 이용 안내</h2>
+          <p class="lede">
+            AEG(Altsis Educator Group)는 별무리학교가 운영하는 Altsis
+            서버(altsis.org)를 학교에 임대합니다.
+          </p>
+          <ol class="steps">
+            <li><b>1</b>AEG 담당자에게 서비스 신청을 요청합니다.</li>
+            <li><b>2</b>학교 관리자로 AEG 관리자 연수 이수자를 둡니다.</li>
+            <li><b>3</b>규모에 맞는 연회비를 입금합니다.</li>
+            <li><b>4</b>아카데미를 만들고 관리자 계정을 발급받습니다.</li>
+          </ol>
+          <p class="note">
+            관리자 연수는 30차시, 1인 300,000원입니다. 시스템을 학교에 맞게
+            설계하고 운영하기 위한 과정입니다. 운영·오류 문의는 AEG 담당자 구본길
+            (bmrlove@bmrschool.org)에게 합니다. 입금 안내는 문의 이후 전달합니다.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <section class="closing" id="apply">
+      <div class="stage-frame" id="closeFrame">
+        <div
+          class="stage close-stage"
+          id="closeStage"
+          role="img"
+          aria-label="Alt, Shift, Ctrl. Altsis. 모든 학교를 위한 대안적인 학교 정보 시스템."
+        >
+          <div class="app" aria-hidden="true">
+            <aside class="sidebar">
+              <div class="side-brand">
+                <div class="burger"><span></span><span></span><span></span></div>
+                한빛학교
+              </div>
+              <div class="nav-list">
+                <div class="nav-item active"><span class="nav-dot"></span>일정</div>
+                <div class="nav-item"><span class="nav-dot"></span>수업</div>
+                <div class="nav-item"><span class="nav-dot"></span>기록</div>
+              </div>
+            </aside>
+            <header class="topbar">
+              <div class="search">검색</div>
+              <div class="alter">Alter</div>
+            </header>
+            <div class="main">
+              <div class="cal-head"><h2>2026년 8월</h2></div>
+              <div class="dow">
+                <span>일</span><span>월</span><span>화</span><span>수</span>
+                <span>목</span><span>금</span><span>토</span>
+              </div>
+              <div class="grid" data-cal></div>
+            </div>
+          </div>
+          <div class="veil"></div>
+          <div class="brand">
+            <div class="keys">
+              <div class="key key-alt">
+                <div class="face"><span class="name">Alt</span><span class="sym">⌥</span></div>
+              </div>
+              <div class="key key-shift">
+                <div class="face"><span class="name">Shift</span><span class="sym">⇧</span></div>
+              </div>
+              <div class="key key-ctrl">
+                <div class="face"><span class="name">Ctrl</span><span class="sym">⌃</span></div>
+              </div>
+            </div>
+            <div class="wordmark">Altsis</div>
+            <p class="tagline">모든 학교를 위한 대안적인 학교 정보 시스템</p>
+          </div>
+        </div>
+        <div class="simple-close">
+          <div class="keys">
+            <div class="key key-alt">
+              <div class="face"><span class="name">Alt</span><span class="sym">⌥</span></div>
+            </div>
+            <div class="key key-shift">
+              <div class="face"><span class="name">Shift</span><span class="sym">⇧</span></div>
+            </div>
+            <div class="key key-ctrl">
+              <div class="face"><span class="name">Ctrl</span><span class="sym">⌃</span></div>
+            </div>
+          </div>
+          <div class="wordmark">Altsis</div>
+          <p class="tagline">모든 학교를 위한 대안적인 학교 정보 시스템</p>
+        </div>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      GitHub 오픈소스로 직접 설치할 수 있습니다. 설치·개발 지원은 하지 않습니다.
+      <a href="https://github.com/bmrdevteam/Altsis">github.com/bmrdevteam/Altsis</a>
+    </footer>
+
+    <script>
+      const DAYS = [
+        { n: 26, in: false },
+        { n: 27, in: false },
+        { n: 28, in: false },
+        { n: 29, in: false },
+        { n: 30, in: false },
+        { n: 31, in: false },
+        { n: 1, in: true, ev: [["동아리", "g"]] },
+        { n: 2, in: true },
+        { n: 3, in: true, ev: [["멘토링", "i"]] },
+        { n: 4, in: true },
+        { n: 5, in: true, ev: [["수업", "b"]] },
+        { n: 6, in: true },
+        { n: 7, in: true, ev: [["발표회", "p"]] },
+        { n: 8, in: true },
+        { n: 9, in: true },
+        { n: 10, in: true, ev: [["기록 입력", "a"]] },
+        { n: 11, in: true },
+        { n: 12, in: true, ev: [["학부모 상담", "a"]] },
+        { n: 13, in: true },
+        { n: 14, in: true, ev: [["현장학습", "g"]] },
+        { n: 15, in: true, ev: [["현장학습", "g"]] },
+        { n: 16, in: true },
+        { n: 17, in: true, ev: [["보드 활동", "p"]] },
+        { n: 18, in: true },
+        { n: 19, in: true, ev: [["수업 개강", "i"]] },
+        { n: 20, in: true },
+        { n: 21, in: true, ev: [["프로젝트", "b"]] },
+        { n: 22, in: true },
+        { n: 23, in: true },
+        { n: 24, in: true, ev: [["멘토링", "i"]] },
+        { n: 25, in: true },
+        {
+          n: 26,
+          in: true,
+          today: true,
+          ev: [
+            ["전체 조회", "b"],
+            ["프로젝트 점검", "i"],
+          ],
+        },
+        { n: 27, in: true, ev: [["캠프", "g"]] },
+        { n: 28, in: true, ev: [["캠프", "g"]] },
+        { n: 29, in: true },
+        { n: 30, in: true },
+        { n: 31, in: true, ev: [["학기 평가", "a"]] },
+        { n: 1, in: false },
+        { n: 2, in: false },
+        { n: 3, in: false },
+        { n: 4, in: false },
+        { n: 5, in: false },
+      ];
+
+      const reduceMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+      ).matches;
+
+      function fillCalendars() {
+        document.querySelectorAll("[data-cal]").forEach((grid) => {
+          DAYS.forEach((day) => {
+            const cell = document.createElement("div");
+            cell.className =
+              "cell" + (day.in ? " in" : "") + (day.today ? " today" : "");
+            const date = document.createElement("div");
+            date.className = "date";
+            date.textContent = String(day.n);
+            cell.appendChild(date);
+            (day.ev || []).forEach(([label, tone]) => {
+              const ev = document.createElement("div");
+              ev.className = "ev " + tone;
+              ev.textContent = label;
+              cell.appendChild(ev);
+            });
+            grid.appendChild(cell);
+          });
+        });
+      }
+
+      function isNarrow() {
+        return window.matchMedia("(max-width: 900px)").matches;
+      }
+
+      function fitStage(frame, stage) {
+        if (!frame || !stage || isNarrow()) return;
+        const sx = frame.clientWidth / 1920;
+        const sy = frame.clientHeight / 1080;
+        stage.style.setProperty("--scale", String(Math.min(sx, sy)));
+      }
+
+      const heroFrame = document.getElementById("heroFrame");
+      const heroStage = document.getElementById("heroStage");
+      const closeFrame = document.getElementById("closeFrame");
+      const closeStage = document.getElementById("closeStage");
+
+      function fitAll() {
+        fitStage(heroFrame, heroStage);
+        fitStage(closeFrame, closeStage);
+      }
+
+      fillCalendars();
+      fitAll();
+      window.addEventListener("resize", fitAll);
+
+      if (reduceMotion) {
+        heroStage.classList.add("is-done");
+        closeStage.classList.add("is-done");
+      } else {
+        heroStage.classList.add("is-playing");
+        window.setTimeout(() => {
+          heroStage.classList.add("is-done");
+        }, 8000);
+
+        const io = new IntersectionObserver(
+          (entries) => {
+            if (!entries.some((entry) => entry.isIntersecting)) return;
+            closeStage.classList.add("is-playing");
+            window.setTimeout(() => {
+              closeStage.classList.add("is-done");
+            }, 8000);
+            io.disconnect();
+          },
+          { threshold: 0.35 }
+        );
+        io.observe(closeFrame);
+      }
+    </script>
+  </body>
+</html>
