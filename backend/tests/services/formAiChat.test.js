@@ -2,6 +2,7 @@ import {
   annotateSessionsWithRowStatus,
   buildAiChatRowSummary,
   buildFormAiChatSystemPrompt,
+  canReadFormAiChatSession,
   hasSchoolSkillConfig,
   isAiChatFieldType,
   isAiChatRequiredMet,
@@ -142,5 +143,51 @@ describe("formAiChat helpers", () => {
       rowSummaryPointsToSession({ sessionId: "abc" }, "other")
     ).toBe(false);
     expect(rowSummaryPointsToSession(null, "abc")).toBe(false);
+  });
+
+  test("canReadFormAiChatSession allows teacher, owner, and shared members", () => {
+    expect(
+      canReadFormAiChatSession({
+        canViewAll: true,
+        isOwner: false,
+        shareResponses: false,
+        isMember: false,
+      })
+    ).toBe(true);
+    expect(
+      canReadFormAiChatSession({
+        canViewAll: false,
+        isOwner: true,
+        shareResponses: false,
+        isMember: true,
+      })
+    ).toBe(true);
+    expect(
+      canReadFormAiChatSession({
+        canViewAll: false,
+        isOwner: false,
+        shareResponses: true,
+        isMember: true,
+      })
+    ).toBe(true);
+  });
+
+  test("canReadFormAiChatSession denies non-shared peer and non-member", () => {
+    expect(
+      canReadFormAiChatSession({
+        canViewAll: false,
+        isOwner: false,
+        shareResponses: false,
+        isMember: true,
+      })
+    ).toBe(false);
+    expect(
+      canReadFormAiChatSession({
+        canViewAll: false,
+        isOwner: false,
+        shareResponses: true,
+        isMember: false,
+      })
+    ).toBe(false);
   });
 });

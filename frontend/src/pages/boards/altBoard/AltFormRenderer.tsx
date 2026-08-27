@@ -51,7 +51,11 @@ import {
   sanitizeHttpUrl,
   youtubeThumbnailUrl,
 } from "./formDocLink";
-import { copyRowDataForReuse } from "./reuseResponseDraft";
+import {
+  copyRowDataForReuse,
+  mergeRowDataForEdit,
+  shouldApplyExternalViewMode,
+} from "./reuseResponseDraft";
 import FormAiChatField from "./FormAiChatField";
 import { isAiChatRequiredMet } from "./formAiChat";
 import {
@@ -434,6 +438,7 @@ const AltFormRenderer = ({
       if (row) {
         setData(withDocResponseDefaults(form.fields, row.data || {}));
       }
+      skipNextExternalViewMode.current = true;
       setViewMode("review");
       onViewModeChange?.("review");
       return;
@@ -473,21 +478,23 @@ const AltFormRenderer = ({
       setIsSubmitted(false);
     }
     setErrors({});
+    skipNextExternalViewMode.current = true;
     setViewMode("compose");
     onViewModeChange?.("compose");
   };
 
   useEffect(() => {
     if (!form) return;
-    if (skipNextExternalViewMode.current) {
-      skipNextExternalViewMode.current = false;
-      return;
-    }
-    if (initialViewMode === viewMode) return;
-    switchViewMode(initialViewMode);
-    // 부모 URL/딥링크 모드만 따라감. 내부 재사용·수정 초안은 skip ref로 보존.
+    const { apply, nextSkip } = shouldApplyExternalViewMode({
+      skipInternal: skipNextExternalViewMode.current,
+      internalMode: viewMode,
+      externalMode: initialViewMode,
+    });
+    skipNextExternalViewMode.current = nextSkip;
+    if (apply) switchViewMode(initialViewMode);
+    // 부모 URL/딥링크만 따라감. 재사용·수정 초안은 skip이 모드가 맞을 때까지 유지.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialViewMode]);
+  }, [initialViewMode, viewMode]);
 
   const goReview = (nextIndex: number) => {
     if (!form || nextIndex < 0 || nextIndex >= myRows.length) return;
@@ -623,7 +630,12 @@ const AltFormRenderer = ({
     if (!isDraftSheetRow(row) && !form.settings.allowResubmit) return;
     skipNextExternalViewMode.current = true;
     setMyRow(row);
-    setData(withDocResponseDefaults(form.fields, row.data || {}));
+    setData(
+      withDocResponseDefaults(
+        form.fields,
+        mergeRowDataForEdit(row.data, data)
+      )
+    );
     setIsSubmitted(!isDraftSheetRow(row));
     setErrors({});
     setViewMode("compose");

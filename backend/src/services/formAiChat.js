@@ -114,6 +114,17 @@ export const rowSummaryPointsToSession = (raw, sessionId) => {
   return !!summary && summary.sessionId === String(sessionId || "");
 };
 
+/**
+ * AI 챗봇 세션 메시지 열람 권한.
+ * 교사(기록 전체)·본인 세션·결과 공유된 양식 멤버만 읽기 가능.
+ */
+export const canReadFormAiChatSession = ({
+  canViewAll,
+  isOwner,
+  shareResponses,
+  isMember,
+}) => canViewAll || isOwner || (!!shareResponses && isMember);
+
 const throwHttp = (status, message, code) => {
   const err = new Error(message);
   err.status = status;
@@ -655,7 +666,8 @@ export const listFormAiChatMessages = async ({
   limit = 200,
 }) => {
   const canViewAll = canViewAllRows(form, board, user, schoolRole);
-  if (!canViewAll && !isFormMember(form, board, user, schoolRole)) {
+  const isMember = isFormMember(form, board, user, schoolRole);
+  if (!canViewAll && !isMember) {
     throwHttp(403, PERMISSION_DENIED);
   }
 
@@ -663,7 +675,15 @@ export const listFormAiChatMessages = async ({
   if (!session || String(session.form) !== String(form._id)) {
     throwHttp(404, __NOT_FOUND("session"));
   }
-  if (!canViewAll && String(session.student) !== String(user._id)) {
+  const isOwner = String(session.student) === String(user._id);
+  if (
+    !canReadFormAiChatSession({
+      canViewAll,
+      isOwner,
+      shareResponses: form.settings?.shareResponses,
+      isMember,
+    })
+  ) {
     throwHttp(403, PERMISSION_DENIED);
   }
 

@@ -104,7 +104,9 @@ const FormAiChatField = ({
         if (!cancelled) setMessages(next || []);
       })
       .catch((err) => {
-        if (!cancelled) ALERT_ERROR(err);
+        if (cancelled) return;
+        setMessages([]);
+        if (!disabled) ALERT_ERROR(err);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -113,7 +115,7 @@ const FormAiChatField = ({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- useAPIv2 refs are unstable
-  }, [formId, loadedSessionId]);
+  }, [formId, loadedSessionId, disabled]);
 
   useEffect(() => {
     const el = logRef.current;
