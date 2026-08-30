@@ -33,7 +33,8 @@ export type TAlterSkillId =
   | "form-response-draft"
   | "activity-draft"
   | "form-draft"
-  | "assessment-grade";
+  | "assessment-grade"
+  | "search";
 
 export type TAlterReviewDocument = {
   title: string;

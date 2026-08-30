@@ -131,7 +131,7 @@ POST /api/ai/alter/refine-prompt
 
 ## Alter 통합 턴
 
-페이지 문맥과 Skill에 따라 초안·점검·일반 대화를 수행합니다. 초안/점검 Skill은 **SSE(`text/event-stream`)**, `chat`은 **JSON**을 반환합니다.
+페이지 문맥과 Skill에 따라 초안·점검·일반 대화·검색을 수행합니다. 초안/점검/`search` Skill은 **SSE(`text/event-stream`)**, `chat`은 **JSON**을 반환합니다.
 
 ```
 POST /api/ai/alter
@@ -147,7 +147,7 @@ POST /api/ai/alter
 | `message` | `string` | X | 사용자 메시지 |
 | `skill` | `string` | X | Skill ID. 없으면 `autoDetectSkill`로 추정, 기본 `chat` |
 | `autoDetectSkill` | `boolean` | X | 메시지에서 Skill 자동 감지 (기본 `true`) |
-| `context` | `object` | X | 페이지 문맥(`pageType`, `syllabusId`, `attachments` 등) |
+| `context` | `object` | X | 페이지 문맥(`pageType`, `syllabusId`, `attachments` 등). 검색 스킬은 `seasonScope`(`current` 기본, `activated`). 레거시 `school`은 `activated`로 처리. 학년·이름은 질문/SQL에서 지정. 비활성 학기는 검색하지 않음. SQL 작성 전 서버가 범위의 실제 `grade`/`student_grade`·평가 양식 라벨을 확인하고, 그 목록에 없는 등호는 Mongo 선필터에 넣지 않음. 평가 항목은 `enrollment_evaluations`의 한글 열. 보드 활동은 멤버 보드의 양식별 `form_*` 표(필드 라벨 열, 최대 80개). 검색 요약의 합·평균은 결과 행을 서버가 합산한 값을 쓰며, 모델이 표본을 다시 더하지 않음 |
 | `history` | `object[]` | X | 직전 대화 이력 |
 | `conversationId` | `string` | X | 기존 대화에 이어서 저장 |
 | `persist` | `boolean` | X | 대화 저장 여부 (기본 `true`) |

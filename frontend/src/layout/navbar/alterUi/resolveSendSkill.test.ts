@@ -35,13 +35,13 @@ describe("resolveSendSkill", () => {
     ).toBe("document-review");
   });
 
-  test("chat never upgrades other explicit draft intents", () => {
+  test("search chip stays on search from any page", () => {
     expect(
       resolveSendSkill({
-        selectedSkill: "chat",
-        pageType: "evaluation",
-        text: "평가 초안 작성",
+        selectedSkill: "search",
+        pageType: "calendar",
+        text: "미평가 학생 명단",
       })
-    ).toBe("chat");
+    ).toBe("search");
   });
 });
