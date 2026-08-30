@@ -53,7 +53,7 @@ const KEY_HINTS = [
   { re: /설정|테마/, keys: ["user-guide/settings.md"] },
   { re: /학기|시즌|쿼터/, keys: ["admin-guide/season-management.md"] },
   { re: /양식\s*관리|출력\s*양식/, keys: ["admin-guide/form-management.md"] },
-  { re: /아카데미/, keys: ["admin-guide/academy-management.md"] },
+  { re: /아카데미|공개\s*웹사이트|사이트\s*게시/, keys: ["admin-guide/academy-management.md"] },
   { re: /사용자\s*관리|계정/, keys: ["admin-guide/user-management.md"] },
   { re: /권한/, keys: ["admin-guide/permission-settings.md"] },
   { re: /학교\s*관리/, keys: ["admin-guide/school-management.md"] },

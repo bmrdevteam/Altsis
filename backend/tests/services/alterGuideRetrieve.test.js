@@ -31,6 +31,17 @@ describe("retrieveAlterGuide", () => {
     expect(hits.some((h) => h.key === "user-guide/docs.md")).toBe(true);
   });
 
+  test("공개 웹사이트는 아카데미 관리 안내를 찾는다", () => {
+    const hits = retrieveAlterGuide({
+      query: "공개 웹사이트 어떻게 게시하나요",
+      auth: "admin",
+    });
+    expect(hits.length).toBeGreaterThan(0);
+    expect(hits.some((h) => h.key === "admin-guide/academy-management.md")).toBe(
+      true
+    );
+  });
+
   test("API 레퍼런스 키는 결과에 없다", () => {
     const hits = retrieveAlterGuide({
       query: "보드 API",

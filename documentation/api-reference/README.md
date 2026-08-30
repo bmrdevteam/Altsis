@@ -21,7 +21,7 @@ Altsis 학교 정보 시스템의 백엔드 RESTful API에 대한 종합 문서�
 | [리마인더 API](./reminders.md) | 독립 리마인더, upcoming 통합 조회 |
 | [Goals API](./goals.md) | 홈/목표 위젯 진행 요약 |
 | [테마 설정 API](./theme-settings.md) | 사용자 테마·커스텀 색상 |
-| [AI API](./ai.md) | Alter(전역 어시스턴트), 강의계획서 검토, 모델/키 관리 |
+| [AI API](./ai.md) | Alter(전역 어시스턴트), Skill·대화, 모델/키 관리 |
 | [양식 API](./forms.md) | 양식 CRUD, 복사, 보관/복원, 열람 권한 |
 | [학생 기록 API](./archives.md) | 학생 기록 조회, 수정, 파일 첨부 |
 | [파일 API](./files.md) | S3 파일 업로드/다운로드, Pre-Signed URL |
