@@ -1,5 +1,6 @@
 import { FIELD_TYPE_LABELS } from "pages/boards/altBoard/formFieldLabel";
 import { TAltFormFieldType } from "types/altForm";
+import { normalizeApprovalValue } from "utils/approvalLine";
 import { TAlterSearchDraftResult } from "./types";
 
 const UUID_RE =
@@ -124,4 +125,57 @@ export const stringifyDraftValue = (val: unknown) => {
   } catch {
     return String(val);
   }
+};
+
+const personName = (person: unknown) => {
+  if (!person || typeof person !== "object") return "";
+  const p = person as { userName?: string; userId?: string; user?: string };
+  return String(p.userName || p.userId || p.user || "").trim();
+};
+
+export const looksLikeApprovalValue = (value: unknown) => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const steps = (value as { steps?: unknown }).steps;
+  if (!Array.isArray(steps) || steps.length === 0) return false;
+  return steps.some(
+    (step) => step && typeof step === "object" && "approver" in step
+  );
+};
+
+const looksLikeUserSelectValue = (value: unknown): boolean => {
+  if (Array.isArray(value)) return value.some(looksLikeUserSelectValue);
+  if (!value || typeof value !== "object") return false;
+  if (looksLikeApprovalValue(value)) return false;
+  const p = value as { userName?: unknown; userId?: unknown };
+  return Boolean(p.userName || p.userId);
+};
+
+const formatUserSelectText = (value: unknown): string => {
+  if (Array.isArray(value)) {
+    return value.map(formatUserSelectText).filter(Boolean).join(", ");
+  }
+  return personName(value);
+};
+
+export const formatDraftFieldText = (
+  value: unknown,
+  field?: { type?: string; approvalLine?: unknown } | null
+) => {
+  const asApproval =
+    field?.type === "approval" || looksLikeApprovalValue(value);
+  if (asApproval) {
+    const normalized = normalizeApprovalValue(value);
+    const steps = normalized?.steps || [];
+    const lines = steps.map((step, i) => {
+      const label = String(step.label || `${i + 1}차 승인`).trim();
+      const name = personName(step.approver);
+      return name ? `${label} · ${name}` : label;
+    });
+    if (lines.length) return lines.join("\n");
+  }
+  if (field?.type === "userSelect" || looksLikeUserSelectValue(value)) {
+    const names = formatUserSelectText(value);
+    if (names) return names;
+  }
+  return stringifyDraftValue(value);
 };

@@ -329,8 +329,10 @@ const AlterPanel = ({ onClose }: Props) => {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [conversationTitle, setConversationTitle] = useState("새 대화");
   const [conversations, setConversations] = useState<TAlterConversation[]>([]);
+  const [historyHasMore, setHistoryHasMore] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyLoadingMore, setHistoryLoadingMore] = useState(false);
   const [historySkillFilter, setHistorySkillFilter] = useState<
     "all" | TAlterSkillId
   >("all");
@@ -1029,23 +1031,37 @@ const AlterPanel = ({ onClose }: Props) => {
     };
   };
 
-  const loadConversations = async () => {
+  const loadConversations = async (opts?: { append?: boolean }) => {
     if (!schoolIdForAlter) return;
-    setHistoryLoading(true);
+    const append = Boolean(opts?.append);
+    if (append) setHistoryLoadingMore(true);
+    else setHistoryLoading(true);
     try {
+      const params = new URLSearchParams({ school: schoolIdForAlter });
+      if (append && conversations.length > 0) {
+        const last = conversations[conversations.length - 1];
+        const before = last.lastMessageAt || last.updatedAt;
+        if (before) params.set("before", before);
+        if (last._id) params.set("beforeId", last._id);
+      }
       const res = await fetch(
-        `${alterApiBase()}/alter/conversations?school=${encodeURIComponent(
-          schoolIdForAlter
-        )}`,
+        `${alterApiBase()}/alter/conversations?${params.toString()}`,
         { credentials: "include" }
       );
       if (!res.ok) throw new Error("대화 목록을 불러오지 못했습니다.");
       const data = await res.json();
-      setConversations(data.conversations || []);
+      const next = (data.conversations || []) as TAlterConversation[];
+      setHistoryHasMore(Boolean(data.hasMore));
+      setConversations((prev) => {
+        if (!append) return next;
+        const seen = new Set(prev.map((c) => c._id));
+        return prev.concat(next.filter((c) => !seen.has(c._id)));
+      });
     } catch (err: any) {
       setError(err.message || "대화 목록을 불러오지 못했습니다.");
     } finally {
-      setHistoryLoading(false);
+      if (append) setHistoryLoadingMore(false);
+      else setHistoryLoading(false);
     }
   };
 
@@ -3258,14 +3274,26 @@ const AlterPanel = ({ onClose }: Props) => {
               ) : null}
             </>
           ) : (
-            <Button
-              type="ghost"
-              onClick={startNewConversation}
-              disabled={isWorking}
-              style={{ width: "100%" }}
-            >
-              새 대화
-            </Button>
+            <>
+              {historyHasMore ? (
+                <Button
+                  type="ghost"
+                  onClick={() => void loadConversations({ append: true })}
+                  disabled={historyLoadingMore}
+                  style={{ width: "100%" }}
+                >
+                  {historyLoadingMore ? "불러오는 중…" : "이전 대화 더 보기"}
+                </Button>
+              ) : null}
+              <Button
+                type="ghost"
+                onClick={startNewConversation}
+                disabled={isWorking}
+                style={{ width: "100%" }}
+              >
+                새 대화
+              </Button>
+            </>
           )}
         </div>
       </div>
