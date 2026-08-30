@@ -17,8 +17,6 @@ import { TMyAiUsage } from "types/dashboard";
 import AiUsageBar from "components/ai/AiUsageBar";
 import Button from "components/button/Button";
 import { getUsageMeter } from "utils/aiUsageMeter";
-import { MarkdownViewer } from "components/markdown";
-import normalizeAlterMarkdown from "utils/normalizeAlterMarkdown";
 import { FORM_RESPONSE_WRITABLE_TYPES } from "utils/formResponseDraft";
 import Svg from "assets/svg/Svg";
 import {
@@ -31,6 +29,7 @@ import {
   chatUiStyle,
 } from "./chatUi";
 import {
+  AlterAssistantBody,
   EVAL_DRAFT_DEFAULT_BATCH,
   EVAL_DRAFT_MAX,
   SkillDraftResult,
@@ -3391,11 +3390,7 @@ const AlterPanel = ({ onClose }: Props) => {
               : null}
             {msg.content ? (
               msg.role === "assistant" ? (
-                <MarkdownViewer
-                  content={normalizeAlterMarkdown(msg.content)}
-                  className={style.mdContent}
-                  escapeRawHtml
-                />
+                <AlterAssistantBody content={msg.content} />
               ) : (
                 <div className={style.msgText}>{msg.content}</div>
               )

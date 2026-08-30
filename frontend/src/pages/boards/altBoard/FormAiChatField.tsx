@@ -6,13 +6,13 @@ import { TAIChatMessage, TFormAiChatSummary } from "types/aiChat";
 import { TAltSheetRow } from "types/altSheet";
 import { TMyAiUsage } from "types/dashboard";
 import { MarkdownViewer } from "components/markdown";
+import { AlterAssistantBody } from "layout/navbar/alterUi";
 import AiUsageBar from "components/ai/AiUsageBar";
 import {
   ChatInputBar,
   ChatMessageBubble,
 } from "layout/navbar/chatUi";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
-import normalizeAlterMarkdown from "utils/normalizeAlterMarkdown";
 import { getUsageMeter } from "utils/aiUsageMeter";
 import FieldDocResources from "./FieldDocResources";
 import { TFormFileRef } from "./formFilePreview";
@@ -259,10 +259,9 @@ const FormAiChatField = ({
                 <div className={style.aiChatMsgText}>{msg.content}</div>
               ) : (
                 <div className={style.aiChatMd}>
-                  <MarkdownViewer
-                    content={normalizeAlterMarkdown(msg.content)}
-                    allowHtmlApp
-                    escapeRawHtml
+                  <AlterAssistantBody
+                    content={msg.content}
+                    className={style.aiChatMd}
                   />
                 </div>
               )}

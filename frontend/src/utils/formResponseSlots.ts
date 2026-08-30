@@ -23,6 +23,14 @@ export const redactImagesForPreview = (text: string) => {
     /data:image\/[a-zA-Z0-9+.-]*;base64,[A-Za-z0-9+/=\s]{40,}/gi,
     "[이미지]"
   );
+  t = t.replace(
+    /<img\b[^>]*\bsrc\s*=\s*(["'])data:image\/[\s\S]*?\1[^>]*>/gi,
+    "[이미지]"
+  );
+  t = t.replace(
+    /<img\b[^>]*\bsrc\s*=\s*(["'])https?:\/\/[^"']{180,}\1[^>]*>/gi,
+    "[이미지]"
+  );
   return t.replace(/\n{3,}/g, "\n\n").trim();
 };
 

@@ -114,6 +114,12 @@ svg {
     visibility: visible !important;
   }
 
+  /* 숨긴 화면이 문서 높이를 남기지 않게 하고, absolute 루트만 쪽을 만든다 */
+  body.altsis-printing {
+    height: 0 !important;
+    overflow: visible !important;
+  }
+
   body.altsis-printing [data-print-root] {
     position: absolute !important;
     left: 0 !important;

@@ -1,26 +1,42 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { TAlterPageContext } from "contexts/alterContext";
+import EditorParser from "editor/EditorParser";
 import { isEmptyEval } from "utils/evaluationCsv";
+import {
+  applyFormDraftToBlocks,
+  TFormDraftApplyInput,
+} from "utils/formDraftApply";
 import { redactImagesForPreview } from "utils/formResponseSlots";
 import { NO_PRINT_CLASS, printArea } from "utils/printArea";
-import ApplyDraftButton from "./ApplyDraftButton";
-import DraftResultCard, { draftMetaVariantClass } from "./DraftResultCard";
-import {
-  activityFormTypeLabel,
-  adminFormTypeLabel,
-  docTypeLabel,
-  fullscreenToggleLabel,
-  REVIEW_LEVEL_LABEL,
-  reviewLevelToVariant,
-  searchCodeToggleLabel,
-  searchHasCode,
-  searchPdfLabel,
-} from "./draftUi";
 import {
   formatActivityAccessGroups,
   normalizeActivityDraftAccess,
 } from "utils/activityDraft";
+import ApplyDraftButton from "./ApplyDraftButton";
+import DraftDataTable from "./DraftDataTable";
+import DraftPreviewShell from "./DraftPreviewShell";
+import DraftRichBody from "./DraftRichBody";
+import { draftMetaVariantClass } from "./DraftResultCard";
+import {
+  buildCsv,
+  buildSearchCsv,
+  downloadCsv,
+  fieldTypeLabel,
+  formParserType,
+  looksLikeRichDraftText,
+  looksLikeUuid,
+  previewFieldLabel,
+  stringifyDraftValue,
+} from "./draftPreview";
+import {
+  activityFormTypeLabel,
+  adminFormTypeLabel,
+  docTypeLabel,
+  REVIEW_LEVEL_LABEL,
+  reviewLevelToVariant,
+  searchCodeToggleLabel,
+  searchHasCode,
+} from "./draftUi";
 import {
   isActivityDraft,
   isArchiveDraft,
@@ -53,9 +69,6 @@ type Props = {
   onApply: (msgId: string, draft: TAlterDraftResult) => void;
 };
 
-const PREVIEW_LIMIT = 900;
-const DOC_PREVIEW_LIMIT = 1200;
-
 const FieldBlocks = ({
   entries,
 }: {
@@ -65,98 +78,13 @@ const FieldBlocks = ({
     {entries.map((e) => (
       <div key={e.key} className={style.draftFieldBlock}>
         <p className={style.draftFieldLabel}>{e.label}</p>
-        <p className={style.draftFieldValue}>{e.value}</p>
+        {looksLikeRichDraftText(e.value) ? (
+          <DraftRichBody content={e.value} />
+        ) : (
+          <p className={style.draftFieldValue}>{e.value}</p>
+        )}
       </div>
     ))}
-  </div>
-);
-
-const ExpandableText = ({
-  label,
-  text,
-  limit = PREVIEW_LIMIT,
-}: {
-  label: string;
-  text: string;
-  limit?: number;
-}) => {
-  const [expanded, setExpanded] = useState(false);
-  const long = text.length > limit;
-  const shown =
-    expanded || !long ? text : text.slice(0, limit) + (long ? "…" : "");
-  return (
-    <div className={style.draftFieldBlock}>
-      <p className={style.draftFieldLabel}>{label}</p>
-      <p className={style.draftFieldValue}>{shown}</p>
-      {long ? (
-        <button
-          type="button"
-          className={style.prepActionBtn}
-          onClick={() => setExpanded((v) => !v)}
-        >
-          {expanded ? "접기" : "본문 더보기"}
-        </button>
-      ) : null}
-    </div>
-  );
-};
-
-const StudentRowsPreview = ({
-  msgId,
-  rows,
-  targetLabels,
-  resolveMeta,
-}: {
-  msgId: string;
-  rows: Array<{
-    studentId: string;
-    studentName?: string;
-    studentGrade?: string;
-    values: Record<string, string>;
-  }>;
-  targetLabels?: string[];
-  resolveMeta: (studentId: string) => {
-    name?: string;
-    grade?: string;
-  };
-}) => (
-  <div className={style.draftPreviewList}>
-    {rows.map((row) => {
-      const fromCtx = resolveMeta(row.studentId);
-      const name = row.studentName || fromCtx.name || row.studentId;
-      const grade = row.studentGrade || fromCtx.grade || "";
-      const labels =
-        targetLabels && targetLabels.length > 0
-          ? targetLabels
-          : Object.keys(row.values || {});
-      return (
-        <div
-          key={`${msgId}-${row.studentId}`}
-          className={style.draftStudentCard}
-        >
-          <div className={style.draftStudentMeta}>
-            <span>
-              {grade ? `${grade} ` : ""}
-              {name}
-            </span>
-            <span className={style.draftStudentId}>{row.studentId}</span>
-          </div>
-          {labels.map((label) => {
-            const value = row.values?.[label];
-            if (value == null || String(value).trim() === "") return null;
-            return (
-              <div
-                key={`${row.studentId}-${label}`}
-                className={style.draftFieldBlock}
-              >
-                <p className={style.draftFieldLabel}>{label}</p>
-                <p className={style.draftFieldValue}>{value}</p>
-              </div>
-            );
-          })}
-        </div>
-      );
-    })}
   </div>
 );
 
@@ -183,32 +111,30 @@ const countStudentDraftCells = (
   return { fill, skip };
 };
 
-const csvEscape = (v: unknown) => {
-  const s = v == null ? "" : String(v);
-  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
-};
-
-export const buildSearchCsv = (draft: TAlterSearchDraftResult) => {
-  const cols = (draft.columns || []).map((c) => c.key);
-  const header = cols.map(csvEscape).join(",");
-  const lines = (draft.rows || []).map((row) =>
-    cols.map((k) => csvEscape(row[k])).join(",")
-  );
-  return [header, ...lines].join("\n");
-};
-
-const downloadSearchCsv = (draft: TAlterSearchDraftResult) => {
-  const blob = new Blob(["\uFEFF" + buildSearchCsv(draft)], {
-    type: "text/csv;charset=utf-8",
+const studentTableRows = (
+  rows: Array<{
+    studentId: string;
+    studentName?: string;
+    studentGrade?: string;
+    values: Record<string, string>;
+  }>,
+  resolveMeta: (studentId: string) => { name?: string; grade?: string }
+) =>
+  rows.map((row) => {
+    const fromCtx = resolveMeta(row.studentId);
+    return {
+      _grade: row.studentGrade || fromCtx.grade || "",
+      _name: row.studentName || fromCtx.name || row.studentId,
+      _id: row.studentId,
+      ...(row.values || {}),
+    };
   });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "alter-search.csv";
-  a.click();
-  URL.revokeObjectURL(url);
-};
+
+const studentTableColumns = (targetLabels?: string[]) => [
+  { key: "_grade", label: "학년" },
+  { key: "_name", label: "이름" },
+  ...(targetLabels || []).map((label) => ({ key: label, label })),
+];
 
 const SearchVizFrame = ({
   rows,
@@ -273,22 +199,8 @@ ${buildSearchVizSnapshotTailScript(token)}
   );
 };
 
-const SearchFullscreenIcon = ({ expanded }: { expanded: boolean }) =>
-  expanded ? (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-      <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z" />
-    </svg>
-  ) : (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-      <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" />
-    </svg>
-  );
-
 const SearchResultCard = ({ draft }: { draft: TAlterSearchDraftResult }) => {
-  const [codeOpen, setCodeOpen] = useState(false);
-  const [fullscreen, setFullscreen] = useState(false);
   const [snapshotUrl, setSnapshotUrl] = useState("");
-  const printRef = useRef<HTMLDivElement>(null);
   const snapshotUrlRef = useRef("");
   const snapshotFailedRef = useRef(false);
   const snapshotToken = useMemo(
@@ -301,7 +213,6 @@ const SearchResultCard = ({ draft }: { draft: TAlterSearchDraftResult }) => {
       : Object.keys(draft.rows?.[0] || {}).map((key) => ({ key, label: key }));
   const count = draft.rowCount ?? draft.rows?.length ?? 0;
   const hasCode = searchHasCode(draft);
-  const hasTable = columns.length > 0;
 
   useEffect(() => {
     snapshotUrlRef.current = "";
@@ -318,26 +229,8 @@ const SearchResultCard = ({ draft }: { draft: TAlterSearchDraftResult }) => {
     snapshotFailedRef.current = true;
   }, []);
 
-  const handlePdf = async () => {
-    if (draft.vizCode && !snapshotUrlRef.current && !snapshotFailedRef.current) {
-      await waitForSearchVizSnapshot(
-        () => Boolean(snapshotUrlRef.current || snapshotFailedRef.current)
-      );
-    }
-    printArea(printRef.current);
-  };
-
-  useEffect(() => {
-    if (!fullscreen) return undefined;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setFullscreen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [fullscreen]);
-
-  const card = (
-    <DraftResultCard
+  return (
+    <DraftPreviewShell
       title="검색 결과"
       meta={{
         label: draft.truncated ? `${count}건 · 일부` : `${count}건`,
@@ -348,131 +241,67 @@ const SearchResultCard = ({ draft }: { draft: TAlterSearchDraftResult }) => {
           ? "표시·저장된 행은 일부입니다. 조건을 좁히면 더 정확히 볼 수 있습니다."
           : null
       }
+      sourceOpenLabel={searchCodeToggleLabel(false)}
+      sourceCloseLabel={searchCodeToggleLabel(true)}
+      source={
+        hasCode ? (
+          <>
+            {draft.sql ? <pre className={style.searchSql}>{draft.sql}</pre> : null}
+            {draft.vizCode ? (
+              <pre className={style.searchSql}>{draft.vizCode}</pre>
+            ) : null}
+          </>
+        ) : undefined
+      }
       actions={
-        <>
-          {hasCode ? (
-            <button
-              type="button"
-              className={style.applyBtn}
-              onClick={() => setCodeOpen((v) => !v)}
-            >
-              {searchCodeToggleLabel(codeOpen)}
-            </button>
-          ) : null}
-          {hasTable ? (
-            <button
-              type="button"
-              className={style.applyBtn}
-              onClick={() => downloadSearchCsv(draft)}
-            >
-              CSV 받기
-            </button>
-          ) : null}
-          {hasTable || hasCode ? (
-            <button
-              type="button"
-              className={style.applyBtn}
-              onClick={() => {
-                void handlePdf();
-              }}
-            >
-              {searchPdfLabel()}
-            </button>
-          ) : null}
+        columns.length > 0 ? (
           <button
             type="button"
-            className={style.searchFsIconBtn}
-            onClick={() => setFullscreen((v) => !v)}
-            aria-pressed={fullscreen}
-            aria-label={fullscreenToggleLabel(fullscreen)}
-            title={fullscreenToggleLabel(fullscreen)}
+            className={style.applyBtn}
+            onClick={() => downloadCsv(buildSearchCsv(draft), "alter-search.csv")}
           >
-            <SearchFullscreenIcon expanded={fullscreen} />
+            CSV 받기
           </button>
-        </>
+        ) : null
       }
+      onPrint={async (root) => {
+        if (draft.vizCode && !snapshotUrlRef.current && !snapshotFailedRef.current) {
+          await waitForSearchVizSnapshot(() =>
+            Boolean(snapshotUrlRef.current || snapshotFailedRef.current)
+          );
+        }
+        printArea(root);
+      }}
+      fullscreenAriaLabel="검색 결과 전체 화면"
     >
-      <div ref={printRef}>
-        <h2 className={style.searchPrintTitle}>검색 결과</h2>
-        {codeOpen && draft.sql ? (
-          <pre className={style.searchSql}>{draft.sql}</pre>
-        ) : null}
-        {codeOpen && draft.vizCode ? (
-          <pre className={style.searchSql}>{draft.vizCode}</pre>
-        ) : null}
-        {snapshotUrl ? (
-          <img
-            className={style.searchVizPrintImg}
-            src={snapshotUrl}
-            alt="검색 시각화"
-          />
-        ) : null}
-        {draft.vizCode ? (
-          <div className={snapshotUrl ? NO_PRINT_CLASS : undefined}>
-            <SearchVizFrame
-              rows={draft.rows || []}
-              vizCode={draft.vizCode}
-              token={snapshotToken}
-              onSnapshot={handleVizSnapshot}
-              onSnapshotFailed={handleVizSnapshotFailed}
+      {({ fullscreen }) => (
+        <>
+          {snapshotUrl ? (
+            <img
+              className={style.searchVizPrintImg}
+              src={snapshotUrl}
+              alt="검색 시각화"
             />
-          </div>
-        ) : null}
-        <div
-          className={`${style.searchTableWrap}${
-            fullscreen ? ` ${style.searchTableWrapTall}` : ""
-          }`}
-        >
-          {columns.length === 0 || !(draft.rows || []).length ? (
-            <p className={style.draftFieldValue}>행이 없습니다.</p>
-          ) : (
-            <table className={style.searchTable}>
-              <thead>
-                <tr>
-                  {columns.map((c) => (
-                    <th key={c.key}>{c.label || c.key}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {(draft.rows || []).map((row, i) => (
-                  <tr key={i}>
-                    {columns.map((c) => (
-                      <td key={c.key}>
-                        {row[c.key] == null ? "" : String(row[c.key])}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </div>
-    </DraftResultCard>
-  );
-
-  if (!fullscreen) return card;
-  if (typeof document === "undefined") return card;
-
-  return createPortal(
-    <div className={style.searchFsRoot}>
-      <button
-        type="button"
-        className={style.searchFsBackdrop}
-        onClick={() => setFullscreen(false)}
-        aria-label="닫기"
-      />
-      <div
-        className={style.searchFsPanel}
-        role="dialog"
-        aria-modal="true"
-        aria-label="검색 결과 전체 화면"
-      >
-        {card}
-      </div>
-    </div>,
-    document.body
+          ) : null}
+          {draft.vizCode ? (
+            <div className={snapshotUrl ? NO_PRINT_CLASS : undefined}>
+              <SearchVizFrame
+                rows={draft.rows || []}
+                vizCode={draft.vizCode}
+                token={snapshotToken}
+                onSnapshot={handleVizSnapshot}
+                onSnapshotFailed={handleVizSnapshotFailed}
+              />
+            </div>
+          ) : null}
+          <DraftDataTable
+            columns={columns}
+            rows={(draft.rows || []) as Array<Record<string, unknown>>}
+            compact={!fullscreen}
+          />
+        </>
+      )}
+    </DraftPreviewShell>
   );
 };
 
@@ -499,7 +328,7 @@ const SkillDraftResult = ({
       else fill += 1;
     }
     return (
-      <DraftResultCard
+      <DraftPreviewShell
         title="수업 초안 미리보기"
         meta={{
           label: `${filled.length}/${(draft.items || []).length}항목`,
@@ -512,6 +341,11 @@ const SkillDraftResult = ({
             {skip > 0 ? `이미 있는 칸 ${skip}` : null}
             {fill === 0 && skip === 0 ? "미리보기 확인 후 반영하세요" : null}
           </>
+        }
+        source={
+          <pre>
+            {filled.map((it) => `${it.field}\n${it.value}`).join("\n\n")}
+          </pre>
         }
         actions={
           <ApplyDraftButton
@@ -529,7 +363,7 @@ const SkillDraftResult = ({
             value: item.value,
           }))}
         />
-      </DraftResultCard>
+      </DraftPreviewShell>
     );
   }
 
@@ -546,8 +380,15 @@ const SkillDraftResult = ({
       },
       fillEmptyOnly
     );
+    const columns = studentTableColumns(draft.targetLabels);
+    const tableRows = studentTableRows(draft.rows || [], (studentId) => {
+      const fromCtx = (pageContext?.getEvaluationRows?.() || []).find(
+        (r) => r.studentId === studentId
+      );
+      return { name: fromCtx?.studentName, grade: fromCtx?.studentGrade };
+    });
     return (
-      <DraftResultCard
+      <DraftPreviewShell
         title="평가 초안 미리보기"
         meta={{
           label: `${draft.rows?.length || 0}명`,
@@ -574,17 +415,7 @@ const SkillDraftResult = ({
               <button
                 type="button"
                 className={style.applyBtn}
-                onClick={() => {
-                  const blob = new Blob(["\uFEFF" + draft.csv], {
-                    type: "text/csv;charset=utf-8",
-                  });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = "evaluation-draft.csv";
-                  a.click();
-                  URL.revokeObjectURL(url);
-                }}
+                onClick={() => downloadCsv(draft.csv, "evaluation-draft.csv")}
               >
                 CSV 받기
               </button>
@@ -592,21 +423,25 @@ const SkillDraftResult = ({
           </>
         }
       >
-        <StudentRowsPreview
-          msgId={msgId}
-          rows={draft.rows || []}
-          targetLabels={draft.targetLabels}
-          resolveMeta={(studentId) => {
-            const fromCtx = (pageContext?.getEvaluationRows?.() || []).find(
-              (r) => r.studentId === studentId
-            );
-            return {
-              name: fromCtx?.studentName,
-              grade: fromCtx?.studentGrade,
-            };
-          }}
-        />
-      </DraftResultCard>
+        {({ fullscreen }) => (
+          <DraftDataTable
+            columns={
+              (draft.targetLabels || []).length
+                ? columns
+                : [
+                    ...columns.slice(0, 2),
+                    ...Object.keys(draft.rows?.[0]?.values || {}).map((k) => ({
+                      key: k,
+                      label: k,
+                    })),
+                  ]
+            }
+            rows={tableRows}
+            compact={!fullscreen}
+            rowKey={(row) => String(row._id || "")}
+          />
+        )}
+      </DraftPreviewShell>
     );
   }
 
@@ -623,8 +458,15 @@ const SkillDraftResult = ({
       },
       fillEmptyOnly
     );
+    const columns = studentTableColumns(draft.targetLabels);
+    const tableRows = studentTableRows(draft.rows || [], (studentId) => {
+      const fromCtx = (pageContext?.getArchiveRows?.() || []).find(
+        (r) => r.studentId === studentId
+      );
+      return { name: fromCtx?.studentName, grade: fromCtx?.studentGrade };
+    });
     return (
-      <DraftResultCard
+      <DraftPreviewShell
         title="기록 초안 미리보기"
         meta={{
           label: `${draft.rows?.length || 0}명`,
@@ -641,36 +483,55 @@ const SkillDraftResult = ({
           </>
         }
         actions={
-          <ApplyDraftButton
-            draft={draft}
-            applied={applied}
-            visible={!!pageContext?.applyArchiveDraft}
-            onClick={() => onApply(msgId, draft)}
-          />
+          <>
+            <ApplyDraftButton
+              draft={draft}
+              applied={applied}
+              visible={!!pageContext?.applyArchiveDraft}
+              onClick={() => onApply(msgId, draft)}
+            />
+            <button
+              type="button"
+              className={style.applyBtn}
+              onClick={() =>
+                downloadCsv(
+                  buildCsv(columns, tableRows),
+                  "archive-draft.csv"
+                )
+              }
+            >
+              CSV 받기
+            </button>
+          </>
         }
       >
-        <StudentRowsPreview
-          msgId={`arch-${msgId}`}
-          rows={draft.rows || []}
-          targetLabels={draft.targetLabels}
-          resolveMeta={(studentId) => {
-            const fromCtx = (pageContext?.getArchiveRows?.() || []).find(
-              (r) => r.studentId === studentId
-            );
-            return {
-              name: fromCtx?.studentName,
-              grade: fromCtx?.studentGrade,
-            };
-          }}
-        />
-      </DraftResultCard>
+        {({ fullscreen }) => (
+          <DraftDataTable
+            columns={
+              (draft.targetLabels || []).length
+                ? columns
+                : [
+                    ...columns.slice(0, 2),
+                    ...Object.keys(draft.rows?.[0]?.values || {}).map((k) => ({
+                      key: k,
+                      label: k,
+                    })),
+                  ]
+            }
+            rows={tableRows}
+            compact={!fullscreen}
+            rowKey={(row) => String(row._id || "")}
+          />
+        )}
+      </DraftPreviewShell>
     );
   }
 
   if (draft && isDocumentDraft(draft)) {
     const typeLabel = docTypeLabel(draft.docType);
+    const content = draft.content || "";
     return (
-      <DraftResultCard
+      <DraftPreviewShell
         title="문서 초안 미리보기"
         meta={{
           label: draft.writeMode === "refine" ? "다듬기" : "새 작성",
@@ -683,6 +544,7 @@ const SkillDraftResult = ({
             {" · 전체에 덮어쓰기"}
           </>
         }
+        source={<pre>{content}</pre>}
         actions={
           <ApplyDraftButton
             draft={draft}
@@ -693,31 +555,39 @@ const SkillDraftResult = ({
         }
       >
         <div className={style.draftPreviewList}>
-          <ExpandableText
-            label="본문"
-            text={draft.content || ""}
-            limit={DOC_PREVIEW_LIMIT}
-          />
+          {looksLikeRichDraftText(content) ? (
+            <DraftRichBody content={content} />
+          ) : (
+            <p className={style.draftFieldValue}>{content}</p>
+          )}
         </div>
-      </DraftResultCard>
+      </DraftPreviewShell>
     );
   }
 
   if (review && Array.isArray(review.items)) {
     return (
-      <div className={style.reviewList}>
-        <DraftResultCard
-          wrapList={false}
-          title="문서 점검 리포트"
-          meta={{
-            label:
-              REVIEW_LEVEL_LABEL[review.overallLevel] ||
-              review.overallLevel ||
-              "점검",
-            variant: reviewLevelToVariant(review.overallLevel),
-          }}
-          summary={review.summary || undefined}
-        />
+      <DraftPreviewShell
+        title="문서 점검 리포트"
+        meta={{
+          label:
+            REVIEW_LEVEL_LABEL[review.overallLevel] ||
+            review.overallLevel ||
+            "점검",
+          variant: reviewLevelToVariant(review.overallLevel),
+        }}
+        summary={review.summary || undefined}
+        source={
+          <pre>
+            {(review.items || [])
+              .map(
+                (item) =>
+                  `${item.field || "항목"} · ${item.level}\n${item.comment || ""}\n${item.quote || ""}`
+              )
+              .join("\n\n")}
+          </pre>
+        }
+      >
         {review.items.map((item, idx) => (
           <div
             key={`${item.field || "item"}-${idx}`}
@@ -737,24 +607,36 @@ const SkillDraftResult = ({
               <p className={style.reviewComment}>{item.comment}</p>
             ) : null}
             {item.quote ? (
-              <p className={style.reviewQuote}>
+              <div className={style.reviewQuote}>
                 <span className={style.reviewMetaLabel}>원문</span>
-                {item.quote}
-              </p>
+                {looksLikeRichDraftText(item.quote) ? (
+                  <DraftRichBody content={item.quote} />
+                ) : (
+                  item.quote
+                )}
+              </div>
             ) : null}
             {item.exampleBefore || item.exampleAfter ? (
               <div className={style.reviewExampleBox}>
                 {item.exampleBefore ? (
-                  <p className={style.reviewExampleRow}>
+                  <div className={style.reviewExampleRow}>
                     <span className={style.reviewMetaLabel}>변경 전</span>
-                    {item.exampleBefore}
-                  </p>
+                    {looksLikeRichDraftText(item.exampleBefore) ? (
+                      <DraftRichBody content={item.exampleBefore} />
+                    ) : (
+                      item.exampleBefore
+                    )}
+                  </div>
                 ) : null}
                 {item.exampleAfter ? (
-                  <p className={style.reviewExampleRow}>
+                  <div className={style.reviewExampleRow}>
                     <span className={style.reviewMetaLabel}>변경 후</span>
-                    {item.exampleAfter}
-                  </p>
+                    {looksLikeRichDraftText(item.exampleAfter) ? (
+                      <DraftRichBody content={item.exampleAfter} />
+                    ) : (
+                      item.exampleAfter
+                    )}
+                  </div>
                 ) : null}
               </div>
             ) : null}
@@ -763,15 +645,13 @@ const SkillDraftResult = ({
             ) : null}
           </div>
         ))}
-      </div>
+      </DraftPreviewShell>
     );
   }
 
   if (draft && isFormResponseDraft(draft)) {
     const snap = pageContext?.getFormResponse?.();
-    const labelById = new Map(
-      (snap?.fields || []).map((f) => [f.fieldId, f.label || f.fieldId])
-    );
+    const fieldById = new Map((snap?.fields || []).map((f) => [f.fieldId, f]));
     const entries = Object.entries(draft.byField || {});
     let fill = 0;
     let skip = 0;
@@ -787,8 +667,15 @@ const SkillDraftResult = ({
       if (draft.fillEmptyOnly && !empty) skip += 1;
       else fill += 1;
     }
+    const sourceText = entries
+      .map(([fid, val]) => {
+        const raw = stringifyDraftValue(val);
+        const label = previewFieldLabel(fid, raw, fieldById.get(fid));
+        return `${label}\n${redactImagesForPreview(raw)}`;
+      })
+      .join("\n\n");
     return (
-      <DraftResultCard
+      <DraftPreviewShell
         title="응답 초안 미리보기"
         meta={{
           label: draft.writeMode === "refine" ? "양식 채우기" : "새 작성",
@@ -803,6 +690,7 @@ const SkillDraftResult = ({
               : ""}
           </>
         }
+        source={<pre>{sourceText}</pre>}
         actions={
           <ApplyDraftButton
             draft={draft}
@@ -813,24 +701,26 @@ const SkillDraftResult = ({
         }
       >
         <div className={style.draftPreviewList}>
-          {entries.slice(0, 12).map(([fid, val]) => {
-            const raw =
-              typeof val === "string" ? val : JSON.stringify(val, null, 2);
+          {entries.map(([fid, val]) => {
+            const raw = stringifyDraftValue(val);
             const text = redactImagesForPreview(raw || "");
+            const field = fieldById.get(fid);
+            const label = previewFieldLabel(fid, raw, field);
+            const rich =
+              field?.type === "docResponse" || looksLikeRichDraftText(text);
             return (
-              <ExpandableText
-                key={fid}
-                label={labelById.get(fid) || fid}
-                text={text}
-                limit={PREVIEW_LIMIT}
-              />
+              <div key={fid} className={style.draftFieldBlock}>
+                <p className={style.draftFieldLabel}>{label}</p>
+                {rich ? (
+                  <DraftRichBody content={text} />
+                ) : (
+                  <p className={style.draftFieldValue}>{text}</p>
+                )}
+              </div>
             );
           })}
-          {entries.length > 12 ? (
-            <p className={style.prepMuted}>외 {entries.length - 12}개 필드</p>
-          ) : null}
         </div>
-      </DraftResultCard>
+      </DraftPreviewShell>
     );
   }
 
@@ -849,7 +739,7 @@ const SkillDraftResult = ({
     const writerAccess = formatActivityAccessGroups(access?.writers);
     const fields = draft.fields || [];
     return (
-      <DraftResultCard
+      <DraftPreviewShell
         title="활동 초안 미리보기"
         meta={{
           label: draft.writeMode === "refine" ? "다듬기" : "새 작성",
@@ -868,6 +758,18 @@ const SkillDraftResult = ({
             {" · 전체에 덮어쓰기"}
           </>
         }
+        source={
+          <pre>
+            {fields
+              .map(
+                (f) =>
+                  `${f.label || "(제목 없음)"} · ${f.type || ""}\n${
+                    Array.isArray(f.options) ? f.options.join(", ") : ""
+                  }\n${f.content || ""}`
+              )
+              .join("\n\n")}
+          </pre>
+        }
         actions={
           <ApplyDraftButton
             draft={draft}
@@ -878,7 +780,11 @@ const SkillDraftResult = ({
         }
       >
         {draft.description ? (
-          <p className={style.reviewComment}>{draft.description}</p>
+          looksLikeRichDraftText(draft.description) ? (
+            <DraftRichBody content={draft.description} />
+          ) : (
+            <p className={style.reviewComment}>{draft.description}</p>
+          )
         ) : null}
         {modeBits.length > 0 || memberAccess || writerAccess ? (
           <div className={style.draftModeChips}>
@@ -895,46 +801,77 @@ const SkillDraftResult = ({
             ) : null}
           </div>
         ) : null}
-        <FieldBlocks
-          entries={fields.slice(0, 12).map((f, i) => ({
-            key: `${msgId}-f-${i}`,
-            label: String(f.label || "(제목 없음)"),
-            value: [
-              f.type ? `유형: ${f.type}` : null,
-              f.required ? "필수" : null,
-              Array.isArray(f.options) && f.options.length
-                ? `옵션 ${f.options.length}개`
-                : null,
-              f.gradingMethod ? `채점: ${f.gradingMethod}` : null,
-            ]
-              .filter(Boolean)
-              .join(" · "),
-          }))}
-        />
-        {fields.length > 12 ? (
-          <p className={style.prepMuted}>외 {fields.length - 12}개 필드</p>
+        <div className={style.draftPreviewList}>
+          {fields.map((f, i) => (
+            <div key={`${msgId}-f-${i}`} className={style.draftFieldBlock}>
+              <p className={style.draftFieldLabel}>
+                {String(f.label || "(제목 없음)")}
+              </p>
+              <p className={style.draftFieldValue}>
+                {[
+                  fieldTypeLabel(f.type) || f.type,
+                  f.required ? "필수" : null,
+                  f.gradingMethod ? `채점: ${f.gradingMethod}` : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+              {Array.isArray(f.options) && f.options.length ? (
+                <div className={style.draftOptionList}>
+                  {f.options.map((opt) => (
+                    <span key={String(opt)} className={style.skillTag}>
+                      {opt}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+              {f.content ? <DraftRichBody content={String(f.content)} /> : null}
+            </div>
+          ))}
+        </div>
+        {(draft.rubrics || []).length > 0 ? (
+          <div className={style.draftPreviewList}>
+            {(draft.rubrics || []).map((r, i) => (
+              <div key={`${msgId}-r-${i}`} className={style.draftFieldBlock}>
+                <p className={style.draftFieldLabel}>
+                  {r.title || `루브릭 ${i + 1}`}
+                </p>
+                <div className={style.draftOptionList}>
+                  {(r.levels || []).map((lv, li) => (
+                    <span key={`${i}-${li}`} className={style.skillTag}>
+                      {lv.label || "수준"}
+                      {lv.points != null ? ` ${lv.points}` : ""}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         ) : null}
-      </DraftResultCard>
+      </DraftPreviewShell>
     );
   }
 
   if (draft && isFormDraft(draft)) {
     const typeLabel = adminFormTypeLabel(draft.formType);
-    const blockCount = (draft.blocks || []).length;
-    const opCount = (draft.ops || []).length;
     const isRefine = draft.writeMode === "refine";
-    const lines = isRefine
-      ? (draft.ops || []).slice(0, 12).map((op, i) => {
-          const name = String((op as { op?: string }).op || "수정");
-          const blockId = String((op as { blockId?: string }).blockId || "");
-          return `${i + 1}. ${name}${blockId ? ` · ${blockId.slice(0, 10)}` : ""}`;
-        })
-      : (draft.blocks || []).slice(0, 12).map((b, i) => {
-          const t = String(b.type || "block");
-          return `${i + 1}. ${t}`;
-        });
+    const current = pageContext?.getForm?.();
+    const preview = applyFormDraftToBlocks(
+      {
+        title: current?.title || draft.title || "",
+        blocks: current?.blocks || [],
+      },
+      {
+        writeMode: draft.writeMode,
+        title: draft.title,
+        formType: draft.formType,
+        blocks: draft.blocks,
+        ops: draft.ops,
+      } as TFormDraftApplyInput
+    );
+    const blocks = preview.blocks || [];
     return (
-      <DraftResultCard
+      <DraftPreviewShell
         title="양식 초안 미리보기"
         meta={{
           label: isRefine ? "부분 수정" : "새 작성",
@@ -942,10 +879,23 @@ const SkillDraftResult = ({
         }}
         summary={
           <>
-            제목: {draft.title || "-"}
+            제목: {draft.title || preview.title || "-"}
             {typeLabel ? ` · ${typeLabel}` : ""}
-            {isRefine ? ` · ${opCount}곳` : ` · 블록 ${blockCount}개`}
+            {isRefine
+              ? ` · ${(draft.ops || []).length}곳`
+              : ` · 블록 ${blocks.length}개`}
           </>
+        }
+        source={
+          <pre>
+            {isRefine
+              ? (draft.ops || [])
+                  .map((op, i) => `${i + 1}. ${String(op.op || "수정")}`)
+                  .join("\n")
+              : (draft.blocks || [])
+                  .map((b, i) => `${i + 1}. ${String(b.type || "block")}`)
+                  .join("\n")}
+          </pre>
         }
         actions={
           <ApplyDraftButton
@@ -956,19 +906,18 @@ const SkillDraftResult = ({
           />
         }
       >
-        <div className={style.draftPreviewList}>
-          {lines.map((line) => (
-            <p key={line} className={style.draftFieldValue}>
-              {line}
-            </p>
-          ))}
-        </div>
-        {(isRefine ? opCount : blockCount) > 12 ? (
-          <p className={style.prepMuted}>
-            외 {(isRefine ? opCount : blockCount) - 12}개
-          </p>
-        ) : null}
-      </DraftResultCard>
+        {blocks.length ? (
+          <div className={style.draftFormPreview}>
+            <EditorParser
+              auth="view"
+              type={formParserType(draft.formType || current?.formType)}
+              data={{ data: blocks }}
+            />
+          </div>
+        ) : (
+          <p className={style.draftFieldValue}>미리볼 블록이 없습니다.</p>
+        )}
+      </DraftPreviewShell>
     );
   }
 
@@ -993,28 +942,8 @@ const SkillDraftResult = ({
       if (draft.fillEmptyOnly && occupied) skip += 1;
       else fill += 1;
     }
-    const blocks = fieldEntries.slice(0, 12).map(([fid, g]) => {
-      const fieldMeta = gradeFields.find((f) => f.fieldId === fid);
-      const label = fieldMeta?.label || fid.slice(0, 8);
-      const levelBits: string[] = [];
-      if (g.score != null) levelBits.push(`점수 ${g.score}`);
-      for (const [rid, rg] of Object.entries(g.byRubric || {})) {
-        const rubric = fieldMeta?.rubrics?.find((r) => r.id === rid);
-        const lv = rubric?.levels?.find((l) => l.id === rg.levelId);
-        if (lv?.label) levelBits.push(lv.label);
-        else if (rg.levelId) levelBits.push(rg.levelId);
-      }
-      const comment = String(g.comment || "").trim();
-      const value = [
-        levelBits.join(", ") || "초안",
-        comment ? comment.slice(0, 120) + (comment.length > 120 ? "…" : "") : "",
-      ]
-        .filter(Boolean)
-        .join("\n");
-      return { key: fid, label, value };
-    });
     return (
-      <DraftResultCard
+      <DraftPreviewShell
         title="채점 초안 미리보기"
         meta={{
           label: draft.fillEmptyOnly ? "빈 칸만" : "덮어쓰기",
@@ -1026,11 +955,17 @@ const SkillDraftResult = ({
             {fill > 0 || skip > 0
               ? ` · 반영 예정 ${fill}${skip > 0 ? ` · 건너뜀 ${skip}` : ""}`
               : ""}
-            {draft.final?.comment
-              ? ` · 총평 ${String(draft.final.comment).slice(0, 40)}`
-              : ""}
-            {fieldEntries.length > 12 ? " · 일부만 표시" : ""}
           </>
+        }
+        source={
+          <pre>
+            {draft.final?.comment
+              ? `총평\n${draft.final.comment}\n\n`
+              : ""}
+            {fieldEntries
+              .map(([fid, g]) => `${fid}\n${g.comment || ""}`)
+              .join("\n\n")}
+          </pre>
         }
         actions={
           <ApplyDraftButton
@@ -1044,15 +979,56 @@ const SkillDraftResult = ({
         {draft.final?.comment ? (
           <div className={style.draftFieldBlock}>
             <p className={style.draftFieldLabel}>총평</p>
-            <p className={style.draftFieldValue}>{draft.final.comment}</p>
+            {looksLikeRichDraftText(draft.final.comment) ? (
+              <DraftRichBody content={draft.final.comment} />
+            ) : (
+              <p className={style.draftFieldValue}>{draft.final.comment}</p>
+            )}
           </div>
         ) : null}
-        <FieldBlocks entries={blocks} />
-      </DraftResultCard>
+        <div className={style.draftPreviewList}>
+          {fieldEntries.map(([fid, g], idx) => {
+            const fieldMeta = gradeFields.find((f) => f.fieldId === fid);
+            const rawLabel = fieldMeta?.label || "";
+            const label =
+              rawLabel && !looksLikeUuid(rawLabel)
+                ? rawLabel
+                : rawLabel || `문항 ${idx + 1}`;
+            const comment = String(g.comment || "").trim();
+            return (
+              <div key={fid} className={style.draftFieldBlock}>
+                <p className={style.draftFieldLabel}>{label}</p>
+                <div className={style.draftOptionList}>
+                  {g.score != null ? (
+                    <span className={style.skillTag}>점수 {g.score}</span>
+                  ) : null}
+                  {Object.entries(g.byRubric || {}).map(([rid, rg]) => {
+                    const rubric = fieldMeta?.rubrics?.find((r) => r.id === rid);
+                    const lv = rubric?.levels?.find((l) => l.id === rg.levelId);
+                    return (
+                      <span key={rid} className={style.skillTag}>
+                        {lv?.label || rg.levelId || "수준"}
+                      </span>
+                    );
+                  })}
+                </div>
+                {comment ? (
+                  looksLikeRichDraftText(comment) ? (
+                    <DraftRichBody content={comment} />
+                  ) : (
+                    <p className={style.draftFieldValue}>{comment}</p>
+                  )
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      </DraftPreviewShell>
     );
   }
 
   return null;
 };
 
+export { buildSearchCsv };
 export default SkillDraftResult;
