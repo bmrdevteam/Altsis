@@ -364,6 +364,9 @@ export const fullscreenToggleLabel = (isFullscreen: boolean) =>
 export const searchCodeToggleLabel = (open: boolean) =>
   open ? "코드 접기" : "코드 보기";
 
+export const sourceToggleLabel = (open: boolean) =>
+  open ? "원문 접기" : "원문 보기";
+
 export const searchPdfLabel = () => "PDF 받기";
 
 export const searchHasCode = (draft?: {

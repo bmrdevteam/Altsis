@@ -1,7 +1,9 @@
 export { default as AlterGuideLinks } from "./GuideLinkChips";
 export { normalizeClientGuideLinks } from "./normalizeGuideLinks";
 export type { TAlterGuideLink } from "./normalizeGuideLinks";
+export { AlterAssistantBody } from "./AlterAssistantBody";
 export { default as SkillDraftResult } from "./SkillDraftResult";
+export { buildSearchCsv } from "./draftPreview";
 export { default as SkillPrepDock } from "./SkillPrepDock";
 export {
   EVAL_DRAFT_DEFAULT_BATCH,
@@ -27,6 +29,7 @@ export {
   searchCodeToggleLabel,
   searchHasCode,
   searchPdfLabel,
+  sourceToggleLabel,
   isApplyDisabled,
   prepKindFromSkill,
   prepPrimaryLabel,

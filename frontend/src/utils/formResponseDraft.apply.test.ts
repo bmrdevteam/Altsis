@@ -84,6 +84,11 @@ describe("applyFormResponseByField", () => {
     expect(redactImagesForPreview(filled)).toContain("[이미지]");
     expect(redactImagesForPreview(filled)).toContain("본문입니다.");
     expect(redactImagesForPreview(filled)).not.toContain("base64");
+    const htmlImg =
+      "<p>본문입니다.</p><img src=\"data:image/png;base64,AAAABBBB\" />";
+    expect(redactImagesForPreview(htmlImg)).toContain("[이미지]");
+    expect(redactImagesForPreview(htmlImg)).toContain("본문입니다.");
+    expect(redactImagesForPreview(htmlImg)).not.toContain("base64");
 
     const current: Record<string, unknown> = {
       doc1: "![logo](data:image/png;base64,AAA)\n| 수신 |\n\n(본문 작성)\n",
