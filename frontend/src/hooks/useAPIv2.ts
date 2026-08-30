@@ -2333,6 +2333,7 @@ export default function useAPIv2() {
   async function RSyllabuses(props: {
     query: {
       season?: string;
+      school?: string;
       classroom?: string;
       confirmed?: boolean;
       user?: string;
