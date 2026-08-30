@@ -33,6 +33,7 @@ import {
   importEvaluationFromCsv,
 } from "../services/evaluationImport.js";
 import { getCourseTodosForUser } from "../services/schoolCourseTodos.js";
+import { buildSyllabusListQuery } from "../utils/syllabusListQuery.js";
 import _ from "lodash";
 
 const isFullyConfirmed = (syllabus) =>
@@ -222,6 +223,7 @@ export const findCourseTodos = async (req, res) => {
  *
  * @param {Object} req.query
  * @param {string?} req.query.season - ObjectId of season
+ * @param {string?} req.query.school - ObjectId of school
  * @param {string?} req.query.classroom
  * @param {string?} req.query.confirmed
  * @param {string?} req.query.user
@@ -265,32 +267,7 @@ export const find = async (req, res) => {
       return res.status(200).send({ syllabus });
     }
 
-    const query = {};
-
-    // find by season
-    if ("season" in req.query) {
-      query["season"] = req.query.season;
-    }
-
-    // find by classroom
-    if ("classroom" in req.query) {
-      query["classroom"] = req.query.classroom;
-    }
-
-    // find fully-confirmed syllabuses
-    if ("confirmed" in req.query) {
-      query["teachers.confirmed"] = { $ne: false };
-    }
-
-    // find by teacher
-    if ("teacher" in req.query) {
-      query["teachers._id"] = req.query.teacher;
-    }
-
-    // find by user
-    if ("user" in req.query) {
-      query["user"] = req.query.user;
-    }
+    const query = buildSyllabusListQuery(req.query);
 
     // find by student with enrollments
     if ("student" in req.query) {
