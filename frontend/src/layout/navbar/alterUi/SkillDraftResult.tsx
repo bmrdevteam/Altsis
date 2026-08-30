@@ -23,10 +23,10 @@ import {
   downloadCsv,
   fieldTypeLabel,
   formParserType,
+  formatDraftFieldText,
   looksLikeRichDraftText,
   looksLikeUuid,
   previewFieldLabel,
-  stringifyDraftValue,
 } from "./draftPreview";
 import {
   activityFormTypeLabel,
@@ -669,8 +669,9 @@ const SkillDraftResult = ({
     }
     const sourceText = entries
       .map(([fid, val]) => {
-        const raw = stringifyDraftValue(val);
-        const label = previewFieldLabel(fid, raw, fieldById.get(fid));
+        const field = fieldById.get(fid);
+        const raw = formatDraftFieldText(val, field);
+        const label = previewFieldLabel(fid, raw, field);
         return `${label}\n${redactImagesForPreview(raw)}`;
       })
       .join("\n\n");
@@ -702,9 +703,9 @@ const SkillDraftResult = ({
       >
         <div className={style.draftPreviewList}>
           {entries.map(([fid, val]) => {
-            const raw = stringifyDraftValue(val);
-            const text = redactImagesForPreview(raw || "");
             const field = fieldById.get(fid);
+            const raw = formatDraftFieldText(val, field);
+            const text = redactImagesForPreview(raw || "");
             const label = previewFieldLabel(fid, raw, field);
             const rich =
               field?.type === "docResponse" || looksLikeRichDraftText(text);

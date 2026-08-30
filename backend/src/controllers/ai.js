@@ -226,20 +226,22 @@ export const getAlterSkillSettings = async (req, res) => {
 
 /**
  * Alter 대화 목록
- * @route GET /ai/alter/conversations?school=&season=
+ * @route GET /ai/alter/conversations?school=&season=&before=&beforeId=
  * school 우선. season만 있으면 해당 학기의 학교로 조회 (하위 호환).
  * 학기와 무관하게 학교 단위로 대화를 모은다.
  */
 export const listAlterConversations = async (req, res) => {
   try {
-    const conversations = await listAlterConversationsSvc({
+    const { conversations, hasMore } = await listAlterConversationsSvc({
       academyId: req.user.academyId,
       userId: req.user._id,
       schoolId: req.query.school,
       seasonId: req.query.season,
       limit: req.query.limit,
+      before: req.query.before,
+      beforeId: req.query.beforeId,
     });
-    return res.status(200).send({ conversations });
+    return res.status(200).send({ conversations, hasMore });
   } catch (err) {
     logger.error(err.message);
     return res.status(err.status || 500).send({ message: err.message });
