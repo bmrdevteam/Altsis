@@ -1,15 +1,21 @@
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { TAlterPageContext } from "contexts/alterContext";
 import { isEmptyEval } from "utils/evaluationCsv";
 import { redactImagesForPreview } from "utils/formResponseSlots";
+import { NO_PRINT_CLASS, printArea } from "utils/printArea";
 import ApplyDraftButton from "./ApplyDraftButton";
 import DraftResultCard, { draftMetaVariantClass } from "./DraftResultCard";
 import {
   activityFormTypeLabel,
   adminFormTypeLabel,
   docTypeLabel,
+  fullscreenToggleLabel,
   REVIEW_LEVEL_LABEL,
   reviewLevelToVariant,
+  searchCodeToggleLabel,
+  searchHasCode,
+  searchPdfLabel,
 } from "./draftUi";
 import {
   formatActivityAccessGroups,
@@ -23,10 +29,19 @@ import {
   isEvalDraft,
   isFormDraft,
   isFormResponseDraft,
+  isSearchDraft,
   isSyllabusDraft,
   TAlterDraftResult,
   TAlterDocumentReviewResult,
+  TAlterSearchDraftResult,
 } from "./types";
+import { CANVAS_IFRAME_SANDBOX } from "components/markdown/canvas/canvasModel";
+import {
+  buildSearchVizSnapshotTailScript,
+  createSearchVizSnapshotToken,
+  readSearchVizSnapshotMessage,
+  waitForSearchVizSnapshot,
+} from "./searchVizSnapshot";
 import style from "../Alter.module.scss";
 
 type Props = {
@@ -168,6 +183,299 @@ const countStudentDraftCells = (
   return { fill, skip };
 };
 
+const csvEscape = (v: unknown) => {
+  const s = v == null ? "" : String(v);
+  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+};
+
+export const buildSearchCsv = (draft: TAlterSearchDraftResult) => {
+  const cols = (draft.columns || []).map((c) => c.key);
+  const header = cols.map(csvEscape).join(",");
+  const lines = (draft.rows || []).map((row) =>
+    cols.map((k) => csvEscape(row[k])).join(",")
+  );
+  return [header, ...lines].join("\n");
+};
+
+const downloadSearchCsv = (draft: TAlterSearchDraftResult) => {
+  const blob = new Blob(["\uFEFF" + buildSearchCsv(draft)], {
+    type: "text/csv;charset=utf-8",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "alter-search.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+const SearchVizFrame = ({
+  rows,
+  vizCode,
+  token,
+  onSnapshot,
+  onSnapshotFailed,
+}: {
+  rows: TAlterSearchDraftResult["rows"];
+  vizCode: string;
+  token: string;
+  onSnapshot: (dataUrl: string) => void;
+  onSnapshotFailed: () => void;
+}) => {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [failed, setFailed] = useState(false);
+  const safeCode = String(vizCode || "").replace(/<\/script/gi, "<\\/script");
+  const srcDoc = `<!DOCTYPE html><html><head><meta charset="utf-8"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:;">
+<style>html,body{margin:0;padding:8px;font-family:sans-serif;font-size:13px;color:#222;background:transparent}</style>
+</head><body><div id="root"></div>
+<script>
+const rows = ${JSON.stringify(rows)};
+try {
+${safeCode}
+if (typeof render === "function") render(rows);
+} catch (e) {
+  document.body.textContent = "시각화를 표시하지 못했습니다.";
+}
+${buildSearchVizSnapshotTailScript(token)}
+</script></body></html>`;
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (event.source !== iframeRef.current?.contentWindow) return;
+      const parsed = readSearchVizSnapshotMessage(event.data, token);
+      if (!parsed) return;
+      if ("failed" in parsed) {
+        onSnapshotFailed();
+        return;
+      }
+      onSnapshot(parsed.dataUrl);
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [token, onSnapshot, onSnapshotFailed]);
+
+  if (failed) {
+    return (
+      <p className={style.draftFieldValue}>시각화를 표시하지 못했습니다.</p>
+    );
+  }
+  return (
+    <iframe
+      ref={iframeRef}
+      className={style.searchVizFrame}
+      title="검색 시각화"
+      sandbox={CANVAS_IFRAME_SANDBOX}
+      srcDoc={srcDoc}
+      onError={() => setFailed(true)}
+    />
+  );
+};
+
+const SearchFullscreenIcon = ({ expanded }: { expanded: boolean }) =>
+  expanded ? (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z" />
+    </svg>
+  ) : (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" />
+    </svg>
+  );
+
+const SearchResultCard = ({ draft }: { draft: TAlterSearchDraftResult }) => {
+  const [codeOpen, setCodeOpen] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
+  const [snapshotUrl, setSnapshotUrl] = useState("");
+  const printRef = useRef<HTMLDivElement>(null);
+  const snapshotUrlRef = useRef("");
+  const snapshotFailedRef = useRef(false);
+  const snapshotToken = useMemo(
+    () => createSearchVizSnapshotToken(),
+    [draft.vizCode, draft.rowCount]
+  );
+  const columns =
+    draft.columns?.length > 0
+      ? draft.columns
+      : Object.keys(draft.rows?.[0] || {}).map((key) => ({ key, label: key }));
+  const count = draft.rowCount ?? draft.rows?.length ?? 0;
+  const hasCode = searchHasCode(draft);
+  const hasTable = columns.length > 0;
+
+  useEffect(() => {
+    snapshotUrlRef.current = "";
+    snapshotFailedRef.current = false;
+    setSnapshotUrl("");
+  }, [snapshotToken]);
+
+  const handleVizSnapshot = useCallback((dataUrl: string) => {
+    snapshotUrlRef.current = dataUrl;
+    setSnapshotUrl(dataUrl);
+  }, []);
+
+  const handleVizSnapshotFailed = useCallback(() => {
+    snapshotFailedRef.current = true;
+  }, []);
+
+  const handlePdf = async () => {
+    if (draft.vizCode && !snapshotUrlRef.current && !snapshotFailedRef.current) {
+      await waitForSearchVizSnapshot(
+        () => Boolean(snapshotUrlRef.current || snapshotFailedRef.current)
+      );
+    }
+    printArea(printRef.current);
+  };
+
+  useEffect(() => {
+    if (!fullscreen) return undefined;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setFullscreen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [fullscreen]);
+
+  const card = (
+    <DraftResultCard
+      title="검색 결과"
+      meta={{
+        label: draft.truncated ? `${count}건 · 일부` : `${count}건`,
+        variant: "neutral",
+      }}
+      summary={
+        draft.truncated
+          ? "표시·저장된 행은 일부입니다. 조건을 좁히면 더 정확히 볼 수 있습니다."
+          : null
+      }
+      actions={
+        <>
+          {hasCode ? (
+            <button
+              type="button"
+              className={style.applyBtn}
+              onClick={() => setCodeOpen((v) => !v)}
+            >
+              {searchCodeToggleLabel(codeOpen)}
+            </button>
+          ) : null}
+          {hasTable ? (
+            <button
+              type="button"
+              className={style.applyBtn}
+              onClick={() => downloadSearchCsv(draft)}
+            >
+              CSV 받기
+            </button>
+          ) : null}
+          {hasTable || hasCode ? (
+            <button
+              type="button"
+              className={style.applyBtn}
+              onClick={() => {
+                void handlePdf();
+              }}
+            >
+              {searchPdfLabel()}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className={style.searchFsIconBtn}
+            onClick={() => setFullscreen((v) => !v)}
+            aria-pressed={fullscreen}
+            aria-label={fullscreenToggleLabel(fullscreen)}
+            title={fullscreenToggleLabel(fullscreen)}
+          >
+            <SearchFullscreenIcon expanded={fullscreen} />
+          </button>
+        </>
+      }
+    >
+      <div ref={printRef}>
+        <h2 className={style.searchPrintTitle}>검색 결과</h2>
+        {codeOpen && draft.sql ? (
+          <pre className={style.searchSql}>{draft.sql}</pre>
+        ) : null}
+        {codeOpen && draft.vizCode ? (
+          <pre className={style.searchSql}>{draft.vizCode}</pre>
+        ) : null}
+        {snapshotUrl ? (
+          <img
+            className={style.searchVizPrintImg}
+            src={snapshotUrl}
+            alt="검색 시각화"
+          />
+        ) : null}
+        {draft.vizCode ? (
+          <div className={snapshotUrl ? NO_PRINT_CLASS : undefined}>
+            <SearchVizFrame
+              rows={draft.rows || []}
+              vizCode={draft.vizCode}
+              token={snapshotToken}
+              onSnapshot={handleVizSnapshot}
+              onSnapshotFailed={handleVizSnapshotFailed}
+            />
+          </div>
+        ) : null}
+        <div
+          className={`${style.searchTableWrap}${
+            fullscreen ? ` ${style.searchTableWrapTall}` : ""
+          }`}
+        >
+          {columns.length === 0 || !(draft.rows || []).length ? (
+            <p className={style.draftFieldValue}>행이 없습니다.</p>
+          ) : (
+            <table className={style.searchTable}>
+              <thead>
+                <tr>
+                  {columns.map((c) => (
+                    <th key={c.key}>{c.label || c.key}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {(draft.rows || []).map((row, i) => (
+                  <tr key={i}>
+                    {columns.map((c) => (
+                      <td key={c.key}>
+                        {row[c.key] == null ? "" : String(row[c.key])}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </DraftResultCard>
+  );
+
+  if (!fullscreen) return card;
+  if (typeof document === "undefined") return card;
+
+  return createPortal(
+    <div className={style.searchFsRoot}>
+      <button
+        type="button"
+        className={style.searchFsBackdrop}
+        onClick={() => setFullscreen(false)}
+        aria-label="닫기"
+      />
+      <div
+        className={style.searchFsPanel}
+        role="dialog"
+        aria-modal="true"
+        aria-label="검색 결과 전체 화면"
+      >
+        {card}
+      </div>
+    </div>,
+    document.body
+  );
+};
+
 const SkillDraftResult = ({
   msgId,
   draft,
@@ -176,6 +484,10 @@ const SkillDraftResult = ({
   pageContext,
   onApply,
 }: Props) => {
+  if (draft && isSearchDraft(draft)) {
+    return <SearchResultCard draft={draft} />;
+  }
+
   if (draft && isSyllabusDraft(draft)) {
     const filled = (draft.items || []).filter((it) => it.value);
     const current = pageContext?.getCurrentInfo?.() || {};

@@ -8,6 +8,9 @@ import {
   canActivateRefinePrompt,
   clipRefineExcerpt,
   fullscreenToggleLabel,
+  searchCodeToggleLabel,
+  searchHasCode,
+  searchPdfLabel,
   isApplyDisabled,
   prepKindFromSkill,
   prepPrimaryLabel,
@@ -22,7 +25,10 @@ import {
   TAlterEvalDraftResult,
   TAlterFormResponseDraftResult,
   TAlterSyllabusDraftResult,
+  isEvalDraft,
+  isSearchDraft,
 } from "./types";
+import { buildSearchCsv } from "./SkillDraftResult";
 
 const syllabus: TAlterSyllabusDraftResult = {
   kind: "syllabus",
@@ -85,6 +91,9 @@ describe("applyPolicyForDraft", () => {
         blocks: [],
       })
     ).toBe("reapply");
+    expect(
+      applyPolicyForDraft({ kind: "search", columns: [], rows: [] })
+    ).toBeNull();
   });
 });
 
@@ -132,12 +141,14 @@ describe("prepPrimaryLabel", () => {
     expect(prepPrimaryLabel("document", [{ draft: document }])).toBe(
       "다시 작성"
     );
+    expect(prepPrimaryLabel("search", [])).toBe("검색");
   });
 
   test("prepKindFromSkill", () => {
     expect(prepKindFromSkill(false, "document-draft")).toBeNull();
     expect(prepKindFromSkill(true, "document-draft")).toBe("document");
     expect(prepKindFromSkill(true, "form-draft")).toBe("form");
+    expect(prepKindFromSkill(true, "search")).toBe("search");
     expect(prepKindFromSkill(true, "chat")).toBeNull();
   });
 });
@@ -189,6 +200,24 @@ describe("alterModeLabel / prep summary", () => {
         formTypeLabel: "시간표",
       })
     ).toEqual(["다듬기", "시간표"]);
+    expect(
+      buildPrepSummaryParts({
+        prepKind: "search",
+        searchSeasonScope: "current",
+      })
+    ).toEqual(["현재 학기"]);
+    expect(
+      buildPrepSummaryParts({
+        prepKind: "search",
+        searchSeasonScope: "activated",
+      })
+    ).toEqual(["활성 학기 전부"]);
+    expect(
+      buildPrepSummaryParts({
+        prepKind: "search",
+        searchSeasonScope: "season",
+      })
+    ).toEqual(["현재 학기"]);
   });
 
   test("adminFormTypeLabel", () => {
@@ -205,6 +234,12 @@ describe("alterModeLabel / prep summary", () => {
     expect(canActivateRefinePrompt({ attachUploading: true })).toBe(false);
     expect(fullscreenToggleLabel(false)).toBe("전체 화면");
     expect(fullscreenToggleLabel(true)).toBe("원래 크기");
+    expect(searchCodeToggleLabel(false)).toBe("코드 보기");
+    expect(searchCodeToggleLabel(true)).toBe("코드 접기");
+    expect(searchPdfLabel()).toBe("PDF 받기");
+    expect(searchHasCode({ sql: "SELECT 1" })).toBe(true);
+    expect(searchHasCode({ vizCode: "function render(){}" })).toBe(true);
+    expect(searchHasCode({ sql: "  ", vizCode: "" })).toBe(false);
   });
 
   test("buildRefineContentExcerpt uses outline and omits student names", () => {
@@ -235,5 +270,34 @@ describe("alterModeLabel / prep summary", () => {
       })
     ).toMatch(/목적: 체험학습/);
     expect(clipRefineExcerpt("가".repeat(10), 4)).toBe("가가가가…");
+  });
+});
+
+describe("search draft guards and CSV", () => {
+  const searchDraft = {
+    kind: "search" as const,
+    sql: "SELECT student_name FROM enrollments",
+    columns: [
+      { key: "student_name", label: "이름" },
+      { key: "note", label: "비고" },
+    ],
+    rows: [
+      { student_name: "김학생", note: "a,b" },
+      { student_name: "이학생", note: null },
+    ],
+    rowCount: 2,
+  };
+
+  test("isSearchDraft recognizes search and isEvalDraft does not", () => {
+    expect(isSearchDraft(searchDraft)).toBe(true);
+    expect(isEvalDraft(searchDraft)).toBe(false);
+    expect(isSearchDraft(evaluation)).toBe(false);
+    expect(isEvalDraft(evaluation)).toBe(true);
+  });
+
+  test("buildSearchCsv quotes commas and empty cells", () => {
+    expect(buildSearchCsv(searchDraft)).toBe(
+      'student_name,note\n김학생,"a,b"\n이학생,'
+    );
   });
 });

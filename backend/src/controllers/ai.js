@@ -58,6 +58,7 @@ import { alterMulter } from "../_s3/alterMulter.js";
 import { fileBucket, fileS3 } from "../_s3/fileBucket.js";
 import { processAlterUpload } from "../services/alterAttachments.js";
 import { refineAlterPrompt as refineAlterPromptSvc } from "../services/refineAlterPrompt.js";
+import { buildSearchScopeOptions } from "../services/alterSearchCatalog.js";
 
 const mapProviderError = (err) => {
   if (err.status === 404) return AI_ERRORS.MODEL_NOT_FOUND;
@@ -210,6 +211,12 @@ export const getAlterSkillSettings = async (req, res) => {
       season,
       skill
     );
+    if (skill === SKILL_IDS.SEARCH) {
+      settings.searchScope = await buildSearchScopeOptions({
+        academyId: req.user.academyId,
+        school,
+      });
+    }
     return res.status(200).send(settings);
   } catch (err) {
     logger.error(err.message);
@@ -376,7 +383,8 @@ export const runAlter = async (req, res) => {
     skill === SKILL_IDS.FORM_RESPONSE_DRAFT ||
     skill === SKILL_IDS.ACTIVITY_DRAFT ||
     skill === SKILL_IDS.FORM_DRAFT ||
-    skill === SKILL_IDS.ASSESSMENT_GRADE;
+    skill === SKILL_IDS.ASSESSMENT_GRADE ||
+    skill === SKILL_IDS.SEARCH;
 
   if (wantsSse) {
     res.setHeader("Content-Type", "text/event-stream");

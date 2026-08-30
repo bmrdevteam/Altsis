@@ -217,6 +217,11 @@ export const FEATURE_PROFILES = {
     temperature: 0.3,
     maxTokens: 4096,
   },
+  search: {
+    feature: "search",
+    temperature: 0.15,
+    maxTokens: 4096,
+  },
   documentReview: {
     feature: "document_review",
     temperature: 0.3,

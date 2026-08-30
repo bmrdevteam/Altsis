@@ -7,6 +7,7 @@ import {
   isEvalDraft,
   isFormDraft,
   isFormResponseDraft,
+  isSearchDraft,
   isSyllabusDraft,
   TAlterDraftResult,
   TAlterDocumentReviewResult,
@@ -112,6 +113,7 @@ export type PrepKind =
   | "activity"
   | "form"
   | "assessment-grade"
+  | "search"
   | null;
 
 export const prepKindFromSkill = (
@@ -138,6 +140,8 @@ export const prepKindFromSkill = (
       return "form";
     case "assessment-grade":
       return "assessment-grade";
+    case "search":
+      return "search";
     default:
       return null;
   }
@@ -172,6 +176,8 @@ const messageMatchesPrep = (
       return isFormDraft(m.draft);
     case "assessment-grade":
       return isAssessmentGradeDraft(m.draft);
+    case "search":
+      return isSearchDraft(m.draft);
     default:
       return false;
   }
@@ -188,6 +194,9 @@ export const prepPrimaryLabel = (
   }
   if (prepKind === "assessment-grade") {
     return hasResult ? "다시 작성" : "채점 초안 작성";
+  }
+  if (prepKind === "search") {
+    return hasResult ? "다시 검색" : "검색";
   }
   return hasResult ? "다시 작성" : "초안 작성";
 };
@@ -218,11 +227,12 @@ export const SKILL_CHIP_HINT: Record<TAlterSkillId, string> = {
   "activity-draft": "활동 양식(필드·설정) 초안을 만듭니다",
   "form-draft": "시간표·강의계획서·출력 양식 문서를 작성·다듬습니다",
   "assessment-grade": "평가 활동 응답을 채점 초안으로 채웁니다",
+  search: "권한 있는 학사 데이터를 찾아 표·통계로 보여 줍니다",
 };
 
 /**
- * Alter.module.scss skillTone* — 보드 BoardListFilterBar filterChipTone* 매핑
- * @see frontend/src/pages/boards/boards.module.scss
+ * Alter.module.scss skillTone* — 스킬마다 고유 색 (일부는 보드 필터 톤과 같음)
+ * @see frontend/src/layout/navbar/Alter.module.scss
  */
 export type SkillToneKey =
   | "skillToneChat"
@@ -234,7 +244,8 @@ export type SkillToneKey =
   | "skillToneFormResponse"
   | "skillToneActivity"
   | "skillToneForm"
-  | "skillToneAssessmentGrade";
+  | "skillToneAssessmentGrade"
+  | "skillToneSearch";
 
 export const SKILL_TONE_KEY: Record<TAlterSkillId, SkillToneKey> = {
   chat: "skillToneChat", // Optional · 일반
@@ -243,10 +254,11 @@ export const SKILL_TONE_KEY: Record<TAlterSkillId, SkillToneKey> = {
   "archive-draft": "skillToneArchive", // Draft
   "document-draft": "skillToneDocument", // Scheduled
   "document-review": "skillToneDocumentReview", // Closed
-  "form-response-draft": "skillToneFormResponse", // Submitted
-  "activity-draft": "skillToneActivity", // Direct
-  "form-draft": "skillToneForm",
-  "assessment-grade": "skillToneAssessmentGrade", // Approval
+  "form-response-draft": "skillToneFormResponse", // 초록 · Submitted
+  "activity-draft": "skillToneActivity", // 로즈
+  "form-draft": "skillToneForm", // 하늘
+  "assessment-grade": "skillToneAssessmentGrade", // 딥오렌지
+  search: "skillToneSearch", // 인디고
 };
 
 export const alterModeLabel = (inPrep: boolean): "질문" | "작성·점검" =>
@@ -273,6 +285,7 @@ export const buildPrepSummaryParts = (input: {
   gradeFillEmptyOnly?: boolean;
   gradeLabel?: string;
   guidelineCount?: number;
+  searchSeasonScope?: "current" | "activated" | "season" | "school";
 }): string[] => {
   const parts: string[] = [];
   const { prepKind } = input;
@@ -320,6 +333,10 @@ export const buildPrepSummaryParts = (input: {
     if (input.guidelineCount != null) {
       parts.push(`지침 ${input.guidelineCount}`);
     }
+  } else if (prepKind === "search") {
+    parts.push(
+      input.searchSeasonScope === "activated" ? "활성 학기 전부" : "현재 학기"
+    );
   }
   return parts;
 };
@@ -343,6 +360,17 @@ export const canActivateRefinePrompt = ({
 
 export const fullscreenToggleLabel = (isFullscreen: boolean) =>
   isFullscreen ? "원래 크기" : "전체 화면";
+
+export const searchCodeToggleLabel = (open: boolean) =>
+  open ? "코드 접기" : "코드 보기";
+
+export const searchPdfLabel = () => "PDF 받기";
+
+export const searchHasCode = (draft?: {
+  sql?: string;
+  vizCode?: string;
+} | null) =>
+  Boolean(String(draft?.sql || "").trim() || String(draft?.vizCode || "").trim());
 
 /** 요청 다듬기용 현재 내용 발췌 상한 (서버 REFINE_PROMPT_EXCERPT_CHARS와 맞춤) */
 export const REFINE_CONTENT_EXCERPT_MAX = 2500;
