@@ -40,7 +40,7 @@ Altsis를 처음 접하는 사용자를 위한 가이드입니다.
 
 | 문서 | 설명 |
 |------|------|
-| [아카데미 관리](admin-guide/academy-management.md) | 아카데미 생성, 설정, 플랜, 백업 |
+| [아카데미 관리](admin-guide/academy-management.md) | 아카데미 생성, 설정, 플랜, 백업, 공개 웹사이트 |
 | [학교 관리](admin-guide/school-management.md) | 학교 생성, 기능(채팅·보드·AI·목표), 기록 양식 |
 | [사용자 관리](admin-guide/user-management.md) | 계정 생성, 역할 할당, 등록 |
 | [학기 관리](admin-guide/season-management.md) | 학기 생성, 복사, 활성화 |
@@ -59,7 +59,7 @@ Altsis를 처음 접하는 사용자를 위한 가이드입니다.
 | [일정](user-guide/calendar.md) | 일정 홈, 이벤트, 캘린더 설정 |
 | [보드](user-guide/boards.md) | 할 일, 활동(양식), 문서, 채팅, 학교/시즌 보드 |
 | [목표](user-guide/goals.md) | 사이드바 진행 요약, 목표 페이지 |
-| [채팅](user-guide/chat.md) | DM, 그룹채팅, 보드채팅, Alter(상단 네비) |
+| [채팅](user-guide/chat.md) | DM, 그룹채팅, 보드채팅, Alter(대화·초안·검색) |
 | [알림](user-guide/notifications.md) | 알림 수신, 잠금화면(Web Push), 설정 |
 | [설정](user-guide/settings.md) | 개인 설정, 테마, 보안 |
 
@@ -105,7 +105,7 @@ INDEX에 포함되지 않은 기능 설계·매뉴얼입니다. 구현 세부와
 | [리마인더 API](api-reference/reminders.md) | 독립 리마인더, upcoming 통합 조회 |
 | [Goals API](api-reference/goals.md) | 홈/목표 위젯 진행 요약 |
 | [테마 설정 API](api-reference/theme-settings.md) | 사용자 테마·커스텀 색상 |
-| [AI API](api-reference/ai.md) | Alter(전역 어시스턴트), 강의계획서 검토, 모델/키 관리 |
+| [AI API](api-reference/ai.md) | Alter(전역 어시스턴트), Skill·대화, 모델/키 관리 |
 | [학생 기록 API](api-reference/archives.md) | 학생 기록 조회 및 수정 |
 | [파일 API](api-reference/files.md) | 파일 업로드, 다운로드, Pre-Signed URL |
 | [데이터 모델](api-reference/data-models.md) | MongoDB 스키마 정의 |
@@ -150,9 +150,9 @@ INDEX에 포함되지 않은 기능 설계·매뉴얼입니다. 구현 세부와
 
 ## 버전 정보
 
-- **문서 버전**: 2.1
+- **문서 버전**: 2.2
 - **대상 시스템 버전**: Altsis v2.0
-- **최종 업데이트**: 2026년 8월
+- **최종 업데이트**: 2026년 8월 30일
 - **라이선스**: MIT
 
 ---
