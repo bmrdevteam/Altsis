@@ -160,7 +160,7 @@ backend/src/
 │
 ├── services/                 # 비즈니스 로직
 │   ├── aiChat.js             # AI 채팅 서비스
-│   ├── aiSkills.js           # Alter Skill 라우터 (chat, syllabus-review; Navbar Alter 연동)
+│   ├── aiSkills.js           # Alter Skill 라우터 (chat, syllabus-draft, search 등; Navbar Alter)
 │   ├── aiProvider.js         # AI 제공자 추상화 (OpenAI/Anthropic/Gemini)
 │   ├── aiPromptPolicy.js     # 프롬프트 한도·작업 프로필·JSON 파싱
 │   ├── aiSafety.js           # AI 입출력 개인정보 마스킹

@@ -96,7 +96,9 @@ GET /api/ai/skills
 | `document-review` | 문서 점검 | SSE |
 | `form-response-draft` | 응답 | SSE |
 | `activity-draft` | 활동 | SSE |
+| `form-draft` | 양식 | SSE |
 | `assessment-grade` | 채점 | SSE |
+| `search` | 검색 | JSON |
 
 `form-response-draft`의 `docResponse`(기안문)는 양식 전체를 다시 쓰지 않고 칸만 채웁니다. 양식에 `(작성)` / `(본문 작성)` / `(기입)` 등 작성 칸이 있으면 해당 칸에 `<<<SLOT>>>` 채우기가 **필수**입니다. 작성 칸이 없으면 마크다운 빈 셀·HTML 표 빈 `td`(에디터 `&nbsp;`/빈 `p` 포함)·`라벨:`·밑줄 등 빈칸을 추론해 같은 SLOT 경로로 채우며, 추론이 부족하면 양식에 `(작성)`을 명시하는 것을 권장합니다. 선택 필드 누락·전체 양식 재작성은 서버에서 1회 재시도합니다.
 
@@ -225,10 +227,11 @@ data: {"skill":"syllabus-draft","message":"…","draft":{…},"review":null,"con
 ### 목록
 
 ```
-GET /api/ai/alter/conversations?school=&season=&limit=
+GET /api/ai/alter/conversations?school=&season=&limit=&before=&beforeId=
 ```
 
-`school`이 우선입니다. `season`만 있으면 해당 학기의 학교로 조회합니다.
+`school`이 우선입니다. `season`만 있으면 해당 학기의 학교로 조회합니다.  
+`before`+`beforeId`는 목록의 마지막 행을 가리키는 커서로, 그보다 오래된 대화를 이어서 불러옵니다(`이전 대화 더 보기`). `limit` 기본 30, 최대 100입니다. 응답에 `hasMore`가 있습니다.
 
 ### 생성
 

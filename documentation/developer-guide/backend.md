@@ -41,7 +41,7 @@ AI 기능(OpenAI / Anthropic / Google Gemini)은 별도 SDK 없이 Node.js 내�
 
 관련 모듈:
 - `src/services/aiPromptPolicy.js` — 프롬프트 한도, 작업별 프로필(`syllabusReview`/`chat`), JSON 파싱
-- `src/services/aiSkills.js` — Alter Skill 라우터 (`chat`, `syllabus-review`)
+- `src/services/aiSkills.js` — Alter Skill 라우터 (`chat`, `syllabus-draft`, `form-draft`, `search` 등)
 - `src/services/aiSafety.js` — 개인정보 패턴 마스킹
 - `src/services/aiUsage.js` — `AIUsageLog` 기록 헬퍼 (`provider`, `feature`, `success`, `errorCode`)
 - 강의계획서 생성은 JSON 검증 실패 시 1회 재시도하며, 빈 응답/`raw` 성공 처리는 하지 않습니다.
