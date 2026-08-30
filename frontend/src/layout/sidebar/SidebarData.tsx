@@ -1,6 +1,5 @@
 import Svg from "../../assets/svg/Svg";
 import { useAuth } from "contexts/authContext";
-import { schoolGoalsSettingsPath } from "pages/goals/goalSidebarVisibility";
 
 export interface INavLink {
   title: string;
@@ -20,18 +19,6 @@ export interface INavSubLink {
   path: string;
   icon: JSX.Element;
   type?: "default" | "link";
-}
-
-function goalsSettingsSubLink(schoolId?: string): INavSubLink[] {
-  if (!schoolId) return [];
-  return [
-    {
-      title: "goals",
-      name: "목표",
-      path: schoolGoalsSettingsPath(schoolId),
-      icon: <Svg type="analyze" />,
-    },
-  ];
 }
 
 export const SidebarData = (auth: string, role?: string): any => {
@@ -206,7 +193,6 @@ export const SidebarData = (auth: string, role?: string): any => {
           path: "/forms",
           icon: <Svg type="description" />,
         },
-        ...goalsSettingsSubLink(currentSchool?._id),
       ],
     });
   } else if (auth === "admin") {
@@ -223,7 +209,6 @@ export const SidebarData = (auth: string, role?: string): any => {
           path: "/forms",
           icon: <Svg type="description" />,
         },
-        ...goalsSettingsSubLink(currentSchool?._id),
         {
           title: "users",
           name: "사용자",
