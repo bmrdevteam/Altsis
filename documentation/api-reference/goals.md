@@ -36,6 +36,8 @@ GET /api/goals/me?school=&season=
 1. 학교의 `goalsEnabled`가 `false`이면 `403`입니다.
 2. 등록 역할(`teacher` / `student`)에 맞는 `goalDisplay`를 병합합니다.
 3. 표시가 켜진 항목에 대해 기록(archive) 라벨별 건수, 필수 Alt Form 진행 등을 담아 반환합니다.
+4. `board.submitted` / `board.total`은 **필수 양식** 제출 완료 수 / 대상 수입니다. 선택 양식은 넣지 않습니다.
+5. `board.forms[]`는 양식별 진행입니다. 필수 양식은 제출 횟수 / 목표 횟수입니다. 응답자용 체크박스 칸이 2개 이상이면 필수 여부와 관계없이 **체크된 칸 / 전체 칸**으로 바꿉니다. 칸은 boolean `checkbox` 문항과 양식 도구 「체크박스」(`multiSelect` 선택지)를 합칩니다. 같은 `formId`면 체크 수 항목이 대체합니다. 마감(`closeAt`)이 지나도 체크박스 진행은 남고, 시작 전(`openAt`)이면 빠집니다.
 
 ### 응답 (200)
 
