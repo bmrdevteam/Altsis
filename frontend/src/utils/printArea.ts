@@ -11,6 +11,8 @@ type PrintAreaOptions = {
 
 /**
  * 지정한 루트만 인쇄한다. 나머지는 body.altsis-printing 규칙으로 숨긴다.
+ * overflow 조상에 가두면 body height:0 인쇄에서 빈 장이 되므로, 같은 노드를
+ * 잠시 body로 옮겼다가 정리 때 되돌린다.
  */
 export function printArea(
   root: HTMLElement | null | undefined,
@@ -23,13 +25,29 @@ export function printArea(
   }
 
   let cleaned = false;
+  const homeParent = root.parentNode;
+  const homeNext = root.nextSibling;
+  const shouldHoist = homeParent != null && homeParent !== document.body;
 
   root.setAttribute("data-print-root", "true");
   document.body.classList.add(PRINT_BODY_CLASS);
+  if (shouldHoist) {
+    document.body.appendChild(root);
+  }
+
+  const restoreHome = () => {
+    if (!shouldHoist || !homeParent?.isConnected) return;
+    if (homeNext && homeNext.parentNode === homeParent) {
+      homeParent.insertBefore(root, homeNext);
+      return;
+    }
+    homeParent.appendChild(root);
+  };
 
   const cleanup = () => {
     if (cleaned) return;
     cleaned = true;
+    restoreHome();
     document.body.classList.remove(PRINT_BODY_CLASS);
     root.removeAttribute("data-print-root");
     window.removeEventListener("afterprint", cleanup);

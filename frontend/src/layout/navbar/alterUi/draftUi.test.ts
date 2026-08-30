@@ -11,6 +11,7 @@ import {
   searchCodeToggleLabel,
   searchHasCode,
   searchPdfLabel,
+  sourceToggleLabel,
   isApplyDisabled,
   prepKindFromSkill,
   prepPrimaryLabel,
@@ -28,7 +29,7 @@ import {
   isEvalDraft,
   isSearchDraft,
 } from "./types";
-import { buildSearchCsv } from "./SkillDraftResult";
+import { buildSearchCsv } from "./draftPreview";
 
 const syllabus: TAlterSyllabusDraftResult = {
   kind: "syllabus",
@@ -237,6 +238,8 @@ describe("alterModeLabel / prep summary", () => {
     expect(searchCodeToggleLabel(false)).toBe("코드 보기");
     expect(searchCodeToggleLabel(true)).toBe("코드 접기");
     expect(searchPdfLabel()).toBe("PDF 받기");
+    expect(sourceToggleLabel(false)).toBe("원문 보기");
+    expect(sourceToggleLabel(true)).toBe("원문 접기");
     expect(searchHasCode({ sql: "SELECT 1" })).toBe(true);
     expect(searchHasCode({ vizCode: "function render(){}" })).toBe(true);
     expect(searchHasCode({ sql: "  ", vizCode: "" })).toBe(false);
