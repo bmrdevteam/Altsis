@@ -116,6 +116,26 @@ const seasonIdsForSchool = async (academyId, schoolId) => {
 };
 
 /**
+ * lastMessageAt + _id 커서보다 오래된 대화만 (최신순 목록의 다음 페이지).
+ */
+export const olderThanConversationCursor = (before, beforeId) => {
+  if (!before) return null;
+  const at = new Date(before);
+  if (Number.isNaN(at.getTime())) return null;
+  const id = beforeId ? String(beforeId) : "";
+  if (id && mongoose.Types.ObjectId.isValid(id)) {
+    const oid = new mongoose.Types.ObjectId(id);
+    return {
+      $or: [
+        { lastMessageAt: { $lt: at } },
+        { lastMessageAt: at, _id: { $lt: oid } },
+      ],
+    };
+  }
+  return { lastMessageAt: { $lt: at } };
+};
+
+/**
  * 목록: 사용자 × 학교 (학기 무관). seasonLabel 은 표시용으로 붙인다.
  */
 export const listAlterConversations = async ({
@@ -124,6 +144,8 @@ export const listAlterConversations = async ({
   schoolId,
   seasonId,
   limit = 30,
+  before,
+  beforeId,
 }) => {
   let school = schoolId ? String(schoolId) : "";
   if (!school && seasonId) {
@@ -137,6 +159,7 @@ export const listAlterConversations = async ({
   }
 
   const seasonIds = await seasonIdsForSchool(academyId, school);
+  const cursor = olderThanConversationCursor(before, beforeId);
   const filter = {
     user: userId,
     isDeleted: false,
@@ -155,16 +178,20 @@ export const listAlterConversations = async ({
           ]
         : []),
     ],
+    ...(cursor ? { $and: [cursor] } : {}),
   };
 
+  const pageSize = Math.min(100, Math.max(1, Number(limit) || 30));
   const rows = await AlterConversation(academyId)
     .find(filter)
-    .sort({ lastMessageAt: -1, updatedAt: -1 })
-    .limit(Math.min(100, Math.max(1, Number(limit) || 30)))
+    .sort({ lastMessageAt: -1, updatedAt: -1, _id: -1 })
+    .limit(pageSize + 1)
     .lean();
+  const hasMore = rows.length > pageSize;
+  const page = hasMore ? rows.slice(0, pageSize) : rows;
 
   const labelSeasonIds = [
-    ...new Set(rows.map((r) => String(r.season || "")).filter(Boolean)),
+    ...new Set(page.map((r) => String(r.season || "")).filter(Boolean)),
   ];
   const seasons =
     labelSeasonIds.length > 0
@@ -177,12 +204,15 @@ export const listAlterConversations = async ({
     seasons.map((s) => [String(s._id), seasonLabelOf(s)])
   );
 
-  return rows.map((row) => ({
-    ...row,
-    school: row.school ? String(row.school) : school,
-    season: row.season ? String(row.season) : "",
-    seasonLabel: labelById.get(String(row.season)) || "",
-  }));
+  return {
+    conversations: page.map((row) => ({
+      ...row,
+      school: row.school ? String(row.school) : school,
+      season: row.season ? String(row.season) : "",
+      seasonLabel: labelById.get(String(row.season)) || "",
+    })),
+    hasMore,
+  };
 };
 
 export const createAlterConversation = async ({

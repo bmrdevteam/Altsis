@@ -4,12 +4,14 @@ import {
   buildSearchCsv,
   fieldTypeLabel,
   firstHeadingFromContent,
+  formatDraftFieldText,
   formParserType,
   hasInteractiveFence,
   looksLikeDocumentHtml,
   looksLikeRichDraftText,
   looksLikeUuid,
   previewFieldLabel,
+  stringifyDraftValue,
 } from "./draftPreview";
 
 describe("draftPreview helpers", () => {
@@ -69,6 +71,67 @@ describe("draftPreview helpers", () => {
   test("sourceToggleLabel", () => {
     expect(sourceToggleLabel(false)).toBe("원문 보기");
     expect(sourceToggleLabel(true)).toBe("원문 접기");
+  });
+
+  test("formatDraftFieldText renders approval steps, not JSON", () => {
+    const value = {
+      version: 2,
+      currentStep: 0,
+      overallStatus: "pending",
+      status: "pending",
+      steps: [
+        {
+          order: 0,
+          label: "담당",
+          mode: "pick",
+          approver: {
+            user: "u1",
+            userId: "mrgoodway",
+            userName: "조은길",
+          },
+        },
+        {
+          order: 1,
+          label: "팀장",
+          mode: "pick",
+          approver: { user: "u2", userId: "lead1", userName: "이팀장" },
+        },
+        {
+          order: 2,
+          label: "학교장",
+          mode: "pick",
+          approver: { userId: "principal" },
+        },
+      ],
+    };
+    expect(formatDraftFieldText(value, { type: "approval" })).toBe(
+      "담당 · 조은길\n팀장 · 이팀장\n학교장 · principal"
+    );
+    expect(formatDraftFieldText(value)).toBe(
+      "담당 · 조은길\n팀장 · 이팀장\n학교장 · principal"
+    );
+    expect(stringifyDraftValue(value)).toContain('"version": 2');
+  });
+
+  test("formatDraftFieldText keeps plain and userSelect text", () => {
+    expect(formatDraftFieldText("본문입니다", { type: "text" })).toBe(
+      "본문입니다"
+    );
+    expect(
+      formatDraftFieldText(
+        { user: "u1", userId: "mrgoodway", userName: "조은길" },
+        { type: "userSelect" }
+      )
+    ).toBe("조은길");
+    expect(
+      formatDraftFieldText(
+        [
+          { userName: "조은길", userId: "a" },
+          { userName: "이팀장", userId: "b" },
+        ],
+        { type: "userSelect" }
+      )
+    ).toBe("조은길, 이팀장");
   });
 
   test("buildSearchCsv uses column keys", () => {
