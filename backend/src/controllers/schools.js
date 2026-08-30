@@ -73,6 +73,7 @@ const VALID_SKILL_IDS = [
   "activity-draft",
   "form-draft",
   "assessment-grade",
+  "search",
 ];
 const LEGACY_SKILL_IDS = { "syllabus-review": "syllabus-draft" };
 const VALID_LIBRARY_KINDS = ["instruction", "learning"];

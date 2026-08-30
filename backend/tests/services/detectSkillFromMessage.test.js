@@ -61,4 +61,17 @@ describe("detectSkillFromMessage", () => {
     );
     expect(detectSkillFromMessage("/활동")).toBe(SKILL_IDS.ACTIVITY_DRAFT);
   });
+
+  test("routes search phrases to search", () => {
+    expect(detectSkillFromMessage("/검색")).toBe(SKILL_IDS.SEARCH);
+    expect(detectSkillFromMessage("미평가 학생 명단 찾아 줘")).toBe(
+      SKILL_IDS.SEARCH
+    );
+    expect(detectSkillFromMessage("학년별 수강 학점 통계")).toBe(
+      SKILL_IDS.SEARCH
+    );
+    expect(detectSkillFromMessage("문서 초안을 작성해 주세요")).toBe(
+      SKILL_IDS.DOCUMENT_DRAFT
+    );
+  });
 });

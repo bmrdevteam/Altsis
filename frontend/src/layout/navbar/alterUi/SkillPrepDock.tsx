@@ -10,7 +10,7 @@ import {
 import GuidelinePicker from "./GuidelinePicker";
 import PrepHintRow from "./PrepHintRow";
 import PrepSection from "./PrepSection";
-import { TGuidelineItem } from "./types";
+import { TGuidelineItem, TSearchSeasonScope } from "./types";
 import style from "../Alter.module.scss";
 
 export const EVAL_DRAFT_MAX = 30;
@@ -132,6 +132,10 @@ export type SkillPrepDockProps = {
   // grade
   gradeFillEmptyOnly: boolean;
   setGradeFillEmptyOnly: (v: boolean) => void;
+
+  // search
+  searchSeasonScope: TSearchSeasonScope;
+  setSearchSeasonScope: (v: TSearchSeasonScope) => void;
 };
 
 const RadioList = ({
@@ -244,6 +248,32 @@ const StudentPicker = ({
 const SkillPrepDock = (p: SkillPrepDockProps) => {
   const { prepKind } = p;
   if (!prepKind) return null;
+
+  if (prepKind === "search") {
+    return (
+      <>
+        <PrepSection
+          label="학기 범위"
+          hint="현재 학기는 상단에서 고른 학기입니다. 여러 학기가 필요하면 활성 학기 전부를 고르세요. 학년·이름은 질문에 적으면 됩니다."
+        >
+          <RadioList
+            name="searchSeasonScope"
+            value={
+              p.searchSeasonScope === "activated" ? "activated" : "current"
+            }
+            onChange={(id) =>
+              p.setSearchSeasonScope(id === "activated" ? "activated" : "current")
+            }
+            options={[
+              { id: "current", label: "현재 학기" },
+              { id: "activated", label: "활성 학기 전부" },
+            ]}
+          />
+        </PrepSection>
+        <PrepHintRow text="수업·수강·평가·기록·양식·캘린더·보드 글 등 권한이 있는 데이터를 찾아 표로 보여 줍니다. 통계나 차트를 요청하면 결과 위에 시각화가 붙습니다." />
+      </>
+    );
+  }
 
   if (prepKind === "document") {
     return (

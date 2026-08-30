@@ -62,6 +62,11 @@ const SKILLS: Array<{ id: TAlterSkillId; label: string; hint: string }> = [
     label: "양식",
     hint: "관리자 양식(시간표·강의계획서·출력) 초안 작성에 적용할 라이브러리 항목을 선택합니다.",
   },
+  {
+    id: "search",
+    label: "검색",
+    hint: "권한 있는 학사 데이터 검색(SQL)에 적용할 라이브러리 항목을 선택합니다. 지침이 있으면 조회 범위·표현 규칙을 안내합니다.",
+  },
 ];
 
 const defaultAiConfig = (): TSchoolAiConfig => ({

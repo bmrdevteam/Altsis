@@ -63,6 +63,7 @@ import {
   type TAlterDraftResult,
   type TAlterDocumentReviewResult,
 } from "./alterUi";
+import type { TSearchSeasonScope } from "./alterUi/types";
 import { ALTER_CHAT_SNAPSHOT_PROFILES } from "utils/alterChatSnapshot";
 import style from "./Alter.module.scss";
 
@@ -127,6 +128,7 @@ const SKILL_LABEL: Record<TAlterSkillId, string> = {
   "activity-draft": "활동",
   "form-draft": "양식",
   "assessment-grade": "채점",
+  search: "검색",
 };
 
 const isDraftPrepSkill = (skill: TAlterSkillId) =>
@@ -139,6 +141,9 @@ const isDraftPrepSkill = (skill: TAlterSkillId) =>
   skill === "activity-draft" ||
   skill === "form-draft" ||
   skill === "assessment-grade";
+
+const showsPrepDock = (skill: TAlterSkillId) =>
+  isDraftPrepSkill(skill) || skill === "search";
 
 const formatBubbleTime = (dateString?: string) => {
   if (!dateString) return "";
@@ -268,7 +273,7 @@ const AlterPanel = ({ onClose }: Props) => {
   );
   const [showPrep, setShowPrep] = useState(() => {
     const first = suggested[0] || "chat";
-    return isDraftPrepSkill(first);
+    return showsPrepDock(first);
   });
   /** 데이터 확대 — 패널 세션 동안만 유지 (localStorage 없음) */
   const [dataExpand, setDataExpand] = useState(false);
@@ -278,6 +283,8 @@ const AlterPanel = ({ onClose }: Props) => {
   // 기본: 자기평가·기존 멘토평가를 종합해 멘토평가를 덮어쓰는 흐름
   const [evalFillEmptyOnly, setEvalFillEmptyOnly] = useState(false);
   const [gradeFillEmptyOnly, setGradeFillEmptyOnly] = useState(false);
+  const [searchSeasonScope, setSearchSeasonScope] =
+    useState<TSearchSeasonScope>("current");
   const [evalScope, setEvalScope] = useState<"empty" | "all">("all");
   const [evalSelectedStudentIds, setEvalSelectedStudentIds] = useState<
     string[]
@@ -557,7 +564,7 @@ const AlterPanel = ({ onClose }: Props) => {
           ? preferSkill
           : suggested[0] || "chat";
       setSelectedSkill(next);
-      const prep = isDraftPrepSkill(next);
+      const prep = showsPrepDock(next);
       setShowPrep(prep);
       if (prep) setPrepCollapsed(shouldDefaultCollapsePrep(next));
     },
@@ -575,7 +582,7 @@ const AlterPanel = ({ onClose }: Props) => {
     if (pageTypeChanged && !isWorking && messages.length === 0) {
       const next = suggested[0] || "chat";
       setSelectedSkill(next);
-      setShowPrep(isDraftPrepSkill(next));
+      setShowPrep(showsPrepDock(next));
     }
     resetPrepDefaultsForPage();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- pageType/label 전환만 (대화 중 prep 유지)
@@ -775,6 +782,13 @@ const AlterPanel = ({ onClose }: Props) => {
   }, [archiveSelectedStudentIds, archiveCandidateStudents]);
 
   const buildContext = (skill: TAlterSkillId) => {
+    if (skill === "search") {
+      return {
+        pageType: pageContext?.pageType || "search",
+        label: pageContext?.label || "",
+        seasonScope: searchSeasonScope,
+      };
+    }
     if (skill === "evaluation-draft") {
       const targets =
         evalTargetLabels.length > 0 ? evalTargetLabels : defaultTargetLabels;
@@ -1041,7 +1055,7 @@ const AlterPanel = ({ onClose }: Props) => {
     // 한 대화에서 여러 Skill 허용 — 칩만 전환
     setSelectedSkill(skill);
     setExpandedGuidelineId(null);
-    const prep = isDraftPrepSkill(skill);
+    const prep = showsPrepDock(skill);
     setShowPrep(prep);
     if (prep) setPrepCollapsed(shouldDefaultCollapsePrep(skill));
   };
@@ -1128,7 +1142,7 @@ const AlterPanel = ({ onClose }: Props) => {
       setShowHistory(false);
       const restored = normalizeSkillId(meta?.lastSkill);
       setSelectedSkill(restored);
-      const prep = isDraftPrepSkill(restored);
+      const prep = showsPrepDock(restored);
       setShowPrep(prep);
       if (prep) setPrepCollapsed(shouldDefaultCollapsePrep(restored));
     } catch (err: any) {
@@ -1710,7 +1724,7 @@ const AlterPanel = ({ onClose }: Props) => {
     const inactivityTimeoutMs =
       skill === "form-response-draft" && sourceAttachments.length > 0
         ? 150_000
-        : isDraftPrepSkill(skill)
+        : skill === "search" || isDraftPrepSkill(skill)
           ? 90_000
           : 60_000;
     let timeoutId = window.setTimeout(() => {
@@ -1855,6 +1869,13 @@ const AlterPanel = ({ onClose }: Props) => {
 
   const startSuggested = () => {
     if (isWorking || isRefining || attachUploading || usageLimitExceeded) return;
+    if (selectedSkill === "search") {
+      const text = draft.trim();
+      if (!text) return;
+      setDraft("");
+      void runSkill("search", text);
+      return;
+    }
     if (
       selectedSkill === "evaluation-draft" ||
       (showPrep && pageContext?.pageType === "evaluation")
@@ -2707,6 +2728,7 @@ const AlterPanel = ({ onClose }: Props) => {
   const inActivityPrep = showPrep && selectedSkill === "activity-draft";
   const inFormPrep = showPrep && selectedSkill === "form-draft";
   const inGradePrep = showPrep && selectedSkill === "assessment-grade";
+  const inSearchPrep = showPrep && selectedSkill === "search";
   const inPrep =
     inSyllabusPrep ||
     inEvalPrep ||
@@ -2716,7 +2738,8 @@ const AlterPanel = ({ onClose }: Props) => {
     inFormResponsePrep ||
     inActivityPrep ||
     inFormPrep ||
-    inGradePrep;
+    inGradePrep ||
+    inSearchPrep;
 
   const prepKind = prepKindFromSkill(showPrep, selectedSkill);
 
@@ -2734,6 +2757,7 @@ const AlterPanel = ({ onClose }: Props) => {
   };
   if (conversationId) pushSkillChip(selectedSkill);
   suggested.forEach(pushSkillChip);
+  pushSkillChip("search");
   pushSkillChip("chat");
 
   const expandToggleBtn = (
@@ -2789,6 +2813,7 @@ const AlterPanel = ({ onClose }: Props) => {
     ),
     gradeFillEmptyOnly,
     gradeLabel: pageContext?.label,
+    searchSeasonScope,
     guidelineCount:
       prepKind === "syllabus"
         ? syllabusSelectedGuidelineIds.length
@@ -3331,7 +3356,11 @@ const AlterPanel = ({ onClose }: Props) => {
             }
             title={`${SKILL_LABEL[selectedSkill]} 준비`}
             subtitle={
-              prepCollapsed
+              inSearchPrep
+                ? prepCollapsed
+                  ? "학기 범위가 접혀 있습니다. 질문을 입력한 뒤 「검색」을 누르세요."
+                  : "학기 범위를 확인한 뒤, 찾을 내용을 입력하고 「검색」을 누르세요."
+                : prepCollapsed
                 ? "설정이 접혀 있습니다. 요약이 맞으면 「초안 작성」을 누르거나, 「설정 펼치기」로 옵션을 조정하세요."
                 : "아래 설정을 확인한 뒤 「초안 작성」또는 「문서 점검」으로 시작하세요. 결과는 미리보기로 확인 후 반영합니다."
             }
@@ -3419,7 +3448,7 @@ const AlterPanel = ({ onClose }: Props) => {
                 type="button"
                 className={`${style.skillChip} ${skillToneClass(skill)} ${
                   (
-                    isDraftPrepSkill(skill)
+                    showsPrepDock(skill)
                       ? showPrep && selectedSkill === skill
                       : selectedSkill === skill && !showPrep
                   )
@@ -3546,6 +3575,8 @@ const AlterPanel = ({ onClose }: Props) => {
               setFormSelectedGuidelineIds={setFormSelectedGuidelineIds}
               gradeFillEmptyOnly={gradeFillEmptyOnly}
               setGradeFillEmptyOnly={setGradeFillEmptyOnly}
+              searchSeasonScope={searchSeasonScope}
+              setSearchSeasonScope={setSearchSeasonScope}
             />
           </div>
         )}
@@ -3588,6 +3619,7 @@ const AlterPanel = ({ onClose }: Props) => {
             usageLimitExceeded ||
             isRefining ||
             (inSyllabusPrep ||
+            inSearchPrep ||
             (inDocPrep && docWriteMode === "create") ||
             (inFormResponsePrep && formResponseWriteMode === "create") ||
             (inActivityPrep && activityWriteMode === "create") ||
@@ -3605,6 +3637,7 @@ const AlterPanel = ({ onClose }: Props) => {
             !usageLimitExceeded &&
             !isRefining &&
             (inSyllabusPrep ||
+            inSearchPrep ||
             (inDocPrep && docWriteMode === "create") ||
             (inFormResponsePrep && formResponseWriteMode === "create") ||
             (inActivityPrep && activityWriteMode === "create") ||
@@ -3631,11 +3664,14 @@ const AlterPanel = ({ onClose }: Props) => {
             inFormResponsePrep ||
             inActivityPrep ||
             inFormPrep ||
-            inGradePrep
+            inGradePrep ||
+            inSearchPrep
           }
           centerHint={undefined}
           placeholder={
-            inDocReviewPrep
+            inSearchPrep
+              ? "예: 이번 학기 미평가 학생 명단, 학년별 수강 학점 평균"
+              : inDocReviewPrep
               ? "예: 총평·구체성 위주, 낙인 표현이 있는지 봐 주세요 (비워도 점검 가능)"
               : inGradePrep
                 ? "예: 감상문의 구체성을 중심으로, 피드백은 2문장"

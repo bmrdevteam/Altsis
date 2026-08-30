@@ -1,5 +1,7 @@
 import type { TFormDraftOp } from "utils/formDraftApply";
 
+export type TSearchSeasonScope = "current" | "activated";
+
 export type TAlterEvalDraftResult = {
   kind?: "evaluation";
   targetLabels: string[];
@@ -122,6 +124,18 @@ export type TAlterSyllabusDraftResult = {
   items: Array<{ field: string; value: string }>;
 };
 
+export type TAlterSearchColumn = { key: string; label: string };
+
+export type TAlterSearchDraftResult = {
+  kind: "search";
+  sql?: string;
+  columns: TAlterSearchColumn[];
+  rows: Array<Record<string, string | number | boolean | null>>;
+  rowCount?: number;
+  truncated?: boolean;
+  vizCode?: string;
+};
+
 export type TAlterDraftResult =
   | TAlterEvalDraftResult
   | TAlterArchiveDraftResult
@@ -130,7 +144,8 @@ export type TAlterDraftResult =
   | TAlterActivityDraftResult
   | TAlterFormDraftResult
   | TAlterAssessmentGradeDraftResult
-  | TAlterSyllabusDraftResult;
+  | TAlterSyllabusDraftResult
+  | TAlterSearchDraftResult;
 
 export type TGuidelineItem = {
   _id: string;
@@ -192,6 +207,13 @@ export const isAssessmentGradeDraft = (
   return (draft as { kind?: string }).kind === "assessment-grade";
 };
 
+export const isSearchDraft = (
+  draft?: TAlterDraftResult | null
+): draft is TAlterSearchDraftResult => {
+  if (!draft) return false;
+  return (draft as { kind?: string }).kind === "search";
+};
+
 export const isEvalDraft = (
   draft?: TAlterDraftResult | null
 ): draft is TAlterEvalDraftResult => {
@@ -202,7 +224,8 @@ export const isEvalDraft = (
     isFormResponseDraft(draft) ||
     isActivityDraft(draft) ||
     isFormDraft(draft) ||
-    isAssessmentGradeDraft(draft)
+    isAssessmentGradeDraft(draft) ||
+    isSearchDraft(draft)
   )
     return false;
   const anyDraft = draft as unknown as { rows?: unknown; kind?: string };
