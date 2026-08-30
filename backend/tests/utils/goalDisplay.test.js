@@ -288,4 +288,431 @@ describe("countRequiredFormProgress", () => {
     });
     expect(result).toEqual({ submitted: 0, total: 0 });
   });
+
+  const checkboxFields = (ids, extra = []) => [
+    ...ids.map((id) => ({ _id: id, type: "checkbox", label: id })),
+    ...extra,
+  ];
+
+  test("optional form with several checkboxes reports checked/total", () => {
+    const forms = [
+      {
+        _id: "bible",
+        board: "board1",
+        title: "통독표",
+        settings: { requiredMode: false },
+        fields: checkboxFields(["c1", "c2", "c3", "c4", "c5"]),
+      },
+    ];
+    const result = listRequiredFormProgress({
+      boards: [board],
+      forms,
+      myRows: [
+        {
+          form: "bible",
+          _submittedAt: "2026-05-01T00:00:00.000Z",
+          data: { c1: true, c2: true, c3: true, c4: false },
+        },
+      ],
+      user,
+      now,
+    });
+    expect(result).toEqual({
+      submitted: 0,
+      total: 0,
+      forms: [
+        {
+          formId: "bible",
+          boardId: "board1",
+          title: "통독표",
+          submitted: 3,
+          required: 5,
+        },
+      ],
+    });
+  });
+
+  test("required form without checkboxes stays submission 0/1", () => {
+    const forms = [
+      {
+        _id: "f1",
+        board: "board1",
+        title: "필수1",
+        settings: { requiredMode: true },
+        fields: [{ _id: "t1", type: "text", label: "이름" }],
+      },
+    ];
+    const result = listRequiredFormProgress({
+      boards: [board],
+      forms,
+      myRows: [],
+      user,
+      now,
+    });
+    expect(result.submitted).toBe(0);
+    expect(result.total).toBe(1);
+    expect(result.forms).toEqual([
+      {
+        formId: "f1",
+        boardId: "board1",
+        title: "필수1",
+        submitted: 0,
+        required: 1,
+      },
+    ]);
+  });
+
+  test("optional checkbox form is not in 전체 할 일 totals", () => {
+    const forms = [
+      {
+        _id: "req",
+        board: "board1",
+        title: "필수",
+        settings: { requiredMode: true },
+      },
+      {
+        _id: "opt",
+        board: "board1",
+        title: "선택 통독",
+        settings: { requiredMode: false },
+        fields: checkboxFields(["a", "b", "c"]),
+      },
+    ];
+    const counted = countRequiredFormProgress({
+      boards: [board],
+      forms,
+      myRows: [],
+      user,
+      now,
+    });
+    const listed = listRequiredFormProgress({
+      boards: [board],
+      forms,
+      myRows: [],
+      user,
+      now,
+    });
+    expect(counted).toEqual({ submitted: 0, total: 1 });
+    expect(listed.forms.map((f) => f.formId)).toEqual(["req", "opt"]);
+    expect(listed.forms.find((f) => f.formId === "opt")).toEqual({
+      formId: "opt",
+      boardId: "board1",
+      title: "선택 통독",
+      submitted: 0,
+      required: 3,
+    });
+  });
+
+  test("multiple responses union checked checkbox ids", () => {
+    const forms = [
+      {
+        _id: "bible",
+        board: "board1",
+        title: "통독표",
+        settings: { allowMultipleResponses: true },
+        fields: checkboxFields(["c1", "c2", "c3", "c4"]),
+      },
+    ];
+    const result = listRequiredFormProgress({
+      boards: [board],
+      forms,
+      myRows: [
+        {
+          form: "bible",
+          _submittedAt: "2026-05-01T00:00:00.000Z",
+          data: { c1: true, c2: false },
+        },
+        {
+          form: "bible",
+          _submittedAt: "2026-05-10T00:00:00.000Z",
+          data: { c2: true, c3: true },
+        },
+      ],
+      user,
+      now,
+    });
+    expect(result.forms).toEqual([
+      {
+        formId: "bible",
+        boardId: "board1",
+        title: "통독표",
+        submitted: 3,
+        required: 4,
+      },
+    ]);
+  });
+
+  test("closed checkbox form still appears in forms", () => {
+    const forms = [
+      {
+        _id: "bible",
+        board: "board1",
+        title: "통독표",
+        settings: {
+          requiredMode: false,
+          closeAt: "2026-01-01T00:00:00.000Z",
+        },
+        fields: checkboxFields(["c1", "c2"]),
+      },
+    ];
+    const result = listRequiredFormProgress({
+      boards: [board],
+      forms,
+      myRows: [
+        {
+          form: "bible",
+          _submittedAt: "2025-12-01T00:00:00.000Z",
+          data: { c1: true },
+        },
+      ],
+      user,
+      now,
+    });
+    expect(result.total).toBe(0);
+    expect(result.forms).toEqual([
+      {
+        formId: "bible",
+        boardId: "board1",
+        title: "통독표",
+        submitted: 1,
+        required: 2,
+      },
+    ]);
+  });
+
+  test("owner-only checkboxes are excluded from the denominator", () => {
+    const forms = [
+      {
+        _id: "bible",
+        board: "board1",
+        title: "통독표",
+        fields: checkboxFields(
+          ["c1", "c2", "c3"],
+          [{ _id: "ownerBox", type: "checkbox", permission: "owner" }]
+        ),
+      },
+    ];
+    const result = listRequiredFormProgress({
+      boards: [board],
+      forms,
+      myRows: [
+        {
+          form: "bible",
+          _submittedAt: "2026-05-01T00:00:00.000Z",
+          data: { c1: true, ownerBox: true },
+        },
+      ],
+      user,
+      now,
+    });
+    expect(result.forms).toEqual([
+      {
+        formId: "bible",
+        boardId: "board1",
+        title: "통독표",
+        submitted: 1,
+        required: 3,
+      },
+    ]);
+  });
+
+  test("single-response form uses the latest submission only", () => {
+    const forms = [
+      {
+        _id: "bible",
+        board: "board1",
+        title: "통독표",
+        settings: { allowMultipleResponses: false },
+        fields: checkboxFields(["c1", "c2", "c3"]),
+      },
+    ];
+    const result = listRequiredFormProgress({
+      boards: [board],
+      forms,
+      myRows: [
+        {
+          form: "bible",
+          _submittedAt: "2026-05-01T00:00:00.000Z",
+          data: { c1: true, c2: true },
+        },
+        {
+          form: "bible",
+          _submittedAt: "2026-05-10T00:00:00.000Z",
+          data: { c3: true },
+        },
+      ],
+      user,
+      now,
+    });
+    expect(result.forms[0]).toMatchObject({ submitted: 1, required: 3 });
+  });
+
+  test("checkbox progress is hidden before openAt", () => {
+    const forms = [
+      {
+        _id: "bible",
+        board: "board1",
+        title: "통독표",
+        settings: { openAt: "2026-12-01T00:00:00.000Z" },
+        fields: checkboxFields(["c1", "c2"]),
+      },
+    ];
+    const result = listRequiredFormProgress({
+      boards: [board],
+      forms,
+      myRows: [],
+      user,
+      now,
+    });
+    expect(result.forms).toEqual([]);
+  });
+
+  test("optional multiSelect (양식 도구 체크박스) counts selected options", () => {
+    const forms = [
+      {
+        _id: "bible",
+        board: "board1",
+        title: "통독표",
+        settings: { requiredMode: false },
+        fields: [
+          {
+            _id: "chapters",
+            type: "multiSelect",
+            options: ["창1", "창2", "출1", "출2", "출3"],
+          },
+        ],
+      },
+    ];
+    const result = listRequiredFormProgress({
+      boards: [board],
+      forms,
+      myRows: [
+        {
+          form: "bible",
+          _submittedAt: "2026-05-01T00:00:00.000Z",
+          data: { chapters: ["창1", "출1", "출3"] },
+        },
+      ],
+      user,
+      now,
+    });
+    expect(result).toEqual({
+      submitted: 0,
+      total: 0,
+      forms: [
+        {
+          formId: "bible",
+          boardId: "board1",
+          title: "통독표",
+          submitted: 3,
+          required: 5,
+        },
+      ],
+    });
+  });
+
+  test("multiple multiSelect fields sum options; owner multiSelect is excluded", () => {
+    const forms = [
+      {
+        _id: "bible",
+        board: "board1",
+        title: "통독표",
+        fields: [
+          { _id: "a", type: "multiSelect", options: ["1", "2"] },
+          { _id: "b", type: "multiSelect", options: ["3", "4"] },
+          {
+            _id: "staff",
+            type: "multiSelect",
+            permission: "owner",
+            options: ["x", "y"],
+          },
+        ],
+      },
+    ];
+    const result = listRequiredFormProgress({
+      boards: [board],
+      forms,
+      myRows: [
+        {
+          form: "bible",
+          _submittedAt: "2026-05-01T00:00:00.000Z",
+          data: { a: ["1"], b: ["3", "4"], staff: ["x"] },
+        },
+      ],
+      user,
+      now,
+    });
+    expect(result.forms[0]).toMatchObject({ submitted: 3, required: 4 });
+  });
+
+  test("multiSelect multiple responses union selected options", () => {
+    const forms = [
+      {
+        _id: "bible",
+        board: "board1",
+        title: "통독표",
+        settings: { allowMultipleResponses: true },
+        fields: [
+          {
+            _id: "chapters",
+            type: "multiSelect",
+            options: ["a", "b", "c", "d"],
+          },
+        ],
+      },
+    ];
+    const result = listRequiredFormProgress({
+      boards: [board],
+      forms,
+      myRows: [
+        {
+          form: "bible",
+          _submittedAt: "2026-05-01T00:00:00.000Z",
+          data: { chapters: ["a"] },
+        },
+        {
+          form: "bible",
+          _submittedAt: "2026-05-10T00:00:00.000Z",
+          data: { chapters: ["b", "c"] },
+        },
+      ],
+      user,
+      now,
+    });
+    expect(result.forms[0]).toMatchObject({ submitted: 3, required: 4 });
+  });
+
+  test("required form with many checkboxes uses checkbox counts on the form line", () => {
+    const forms = [
+      {
+        _id: "bible",
+        board: "board1",
+        title: "필수 통독",
+        settings: { requiredMode: true },
+        fields: checkboxFields(["c1", "c2", "c3"]),
+      },
+    ];
+    const result = listRequiredFormProgress({
+      boards: [board],
+      forms,
+      myRows: [
+        {
+          form: "bible",
+          _submittedAt: "2026-05-01T00:00:00.000Z",
+          data: { c1: true, c2: true },
+        },
+      ],
+      user,
+      now,
+    });
+    expect(result.submitted).toBe(1);
+    expect(result.total).toBe(1);
+    expect(result.forms[0]).toEqual({
+      formId: "bible",
+      boardId: "board1",
+      title: "필수 통독",
+      submitted: 2,
+      required: 3,
+    });
+  });
 });
