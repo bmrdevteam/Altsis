@@ -64,10 +64,16 @@ export type TAlterSkillId =
 
 export type TAiLibraryKind = "instruction" | "learning";
 
+export type TAiLibraryVisibility = "school" | "shared" | "personal";
+
 export type TAiLibraryItem = {
   _id: string;
   school: string;
   kind: TAiLibraryKind;
+  visibility?: TAiLibraryVisibility;
+  owner?: string;
+  ownerId?: string;
+  ownerName?: string;
   title: string;
   content: string;
   fileName?: string;

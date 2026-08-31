@@ -132,7 +132,7 @@ Altsis는 OpenAI, Anthropic, Google Gemini(테스트용) API를 활용한 AI 기
 | `aiEnabled` | AI 기능 전체 활성화 | `false` |
 | `aiProvider` | AI 제공자 (`openai` / `anthropic` / `gemini`) | `gemini` |
 | `aiApiKey` | 선택한 제공자의 API 키 | 없음 |
-| `aiModel` | 사용할 AI 모델 | 제공자별 기본 모델 |
+| `aiModel` | 사용할 AI 모델 | 제공자별 기본 모델. OpenAI는 GPT-4o·GPT-5 계열(예: `gpt-5.6-luna`) 모두 선택 가능 |
 | `aiUsageLimits.enabled` | 사용자별 일일 Alt 한도 사용 | `false` |
 | `aiUsageLimits.dailyUserAlts` | 1인당 일(UTC) Alt 한도 | `0` |
 

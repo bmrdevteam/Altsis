@@ -8,6 +8,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { useAuth } from "contexts/authContext";
+import { useAppNavigate } from "hooks/useAppNavigate";
 import { TAlterSkillId, useAlter } from "contexts/alterContext";
 import { MESSAGE } from "hooks/_message";
 import useAPIv2 from "hooks/useAPIv2";
@@ -18,6 +19,7 @@ import AiUsageBar from "components/ai/AiUsageBar";
 import Button from "components/button/Button";
 import { getUsageMeter } from "utils/aiUsageMeter";
 import { FORM_RESPONSE_WRITABLE_TYPES } from "utils/formResponseDraft";
+import { canAccessAlterLibrary } from "pages/alterLibrary/libraryAccess";
 import Svg from "assets/svg/Svg";
 import {
   ChatPanelShell,
@@ -227,7 +229,13 @@ const buildHistoryForSkill = (
 };
 
 const AlterPanel = ({ onClose }: Props) => {
-  const { currentSeason, currentRegistration, currentSchool } = useAuth();
+  const navigate = useAppNavigate();
+  const {
+    currentSeason,
+    currentRegistration,
+    currentSchool,
+    currentUser,
+  } = useAuth();
   const { AIAPI } = useAPIv2();
   const {
     pageContext,
@@ -2796,6 +2804,26 @@ const AlterPanel = ({ onClose }: Props) => {
     </button>
   );
 
+  const showLibraryEntry = canAccessAlterLibrary({
+    auth: currentUser?.auth,
+    role: currentRegistration?.role,
+    school: currentSchool,
+    season: currentSeason,
+  });
+  const libraryBtn = showLibraryEntry ? (
+    <button
+      type="button"
+      className={style.actionBtn}
+      onClick={() => {
+        onClose();
+        navigate("/library");
+      }}
+      title="라이브러리"
+    >
+      라이브러리
+    </button>
+  ) : null;
+
   const prepPrimaryLabel = prepPrimaryLabelFor(prepKind, messages);
 
   const prepSummaryParts = buildPrepSummaryParts({
@@ -3042,6 +3070,7 @@ const AlterPanel = ({ onClose }: Props) => {
                 {historySelectMode ? "선택 취소" : "선택"}
               </button>
             ) : null}
+            {libraryBtn}
             {expandToggleBtn}
           </>
         }

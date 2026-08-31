@@ -46,6 +46,13 @@ import { logAIUsage } from "./aiUsage.js";
 import { assertAiUserQuota } from "./aiUsageQuota.js";
 import { assertCtrlEnabled } from "./entitlement.js";
 import {
+  isSchoolOfficialVisibility,
+  isStaffAuth,
+  schoolOfficialMatch,
+  teacherExtraLearningQuery,
+  TEACHER_CHAT_LEARNING_CAP,
+} from "./aiLibraryAcl.js";
+import {
   parseEvaluationCsv,
   buildEvaluationCsv,
   isEmptyEval,
@@ -329,6 +336,7 @@ const loadSchoolSkillLibraryParts = async (
       .find({
         _id: { $in: ids },
         school: school._id,
+        ...schoolOfficialMatch,
       })
       .lean();
     const byId = new Map(items.map((it) => [String(it._id), it]));
@@ -481,11 +489,14 @@ export const resolveSkillPrepSettings = async (
   academyId,
   school,
   season,
-  skillId
+  skillId,
+  opts = {}
 ) => {
   const skill = resolveSkillId(skillId);
   const skillConfig = school?.aiConfig?.skills?.[skill] || null;
   const useSchool = hasSchoolSkillConfig(school);
+  const prepUserId = opts.userId;
+  const prepIsTeacher = !!opts.isTeacher;
 
   const skipRefs =
     skill === SKILL_IDS.SYLLABUS_DRAFT ||
@@ -515,12 +526,23 @@ export const resolveSkillPrepSettings = async (
       ? skillConfig.libraryItemIds.map(String).filter(Boolean)
       : [];
     const linkedSet = new Set(linkedIds);
+    const query = { school: school._id, kind };
+    if (kind === "instruction" || !prepIsTeacher || !prepUserId) {
+      Object.assign(query, schoolOfficialMatch);
+    } else {
+      query.$or = [
+        ...schoolOfficialMatch.$or,
+        { visibility: "shared" },
+        { visibility: "personal", owner: prepUserId },
+      ];
+    }
     const items = await AiLibraryItem(academyId)
-      .find({ school: school._id, kind })
-      .select("_id title content skillTags")
+      .find(query)
+      .select("_id title content skillTags visibility")
       .lean();
     const byId = new Map();
     const tagged = [];
+    const extra = [];
     for (const it of items || []) {
       const id = String(it._id);
       const tags = Array.isArray(it.skillTags)
@@ -533,11 +555,16 @@ export const resolveSkillPrepSettings = async (
       };
       byId.set(id, row);
       if (linkedSet.has(id)) continue;
-      if (tags.includes(skill)) tagged.push(row);
+      const official = isSchoolOfficialVisibility(it.visibility);
+      if (official) {
+        if (tags.includes(skill)) tagged.push(row);
+      } else if (kind === "learning") {
+        if (tags.length === 0 || tags.includes(skill)) extra.push(row);
+      }
     }
     // 관리 화면 연결 순서 유지
     const linked = linkedIds.map((id) => byId.get(id)).filter(Boolean);
-    const list = [...linked, ...tagged];
+    const list = [...linked, ...tagged, ...extra];
     const defaultIds =
       linked.length > 0
         ? linked.map((r) => r._id)
@@ -637,6 +664,7 @@ const resolveLibraryGuidelines = async (
         _id: { $in: ids },
         school: school._id,
         kind: "instruction",
+        ...schoolOfficialMatch,
       })
       .lean();
     const byId = new Map(items.map((it) => [String(it._id), it]));
@@ -742,7 +770,8 @@ const resolveDocumentReviewGuidelines = async (
 const resolveDocumentReviewLearningRefs = async (
   academyId,
   school,
-  context = {}
+  context = {},
+  userId
 ) => {
   const skillConfig =
     school?.aiConfig?.skills?.[SKILL_IDS.DOCUMENT_REVIEW] || null;
@@ -757,13 +786,22 @@ const resolveDocumentReviewLearningRefs = async (
   const ids = hasSelection ? requested : fallbackLinked;
   if (!ids.length || !school?._id) return [];
 
-  const items = await AiLibraryItem(academyId)
-    .find({
-      _id: { $in: ids },
-      school: school._id,
-      kind: "learning",
-    })
-    .lean();
+  const query = {
+    _id: { $in: ids },
+    school: school._id,
+    kind: "learning",
+  };
+  if (userId) {
+    query.$or = [
+      ...schoolOfficialMatch.$or,
+      { visibility: "shared" },
+      { visibility: "personal", owner: userId },
+    ];
+  } else {
+    Object.assign(query, schoolOfficialMatch);
+  }
+
+  const items = await AiLibraryItem(academyId).find(query).lean();
   const byId = new Map(items.map((it) => [String(it._id), it]));
   const refs = ids
     .map((id) => byId.get(id))
@@ -3208,7 +3246,8 @@ export const executeDocumentReviewSkill = async ({
   const learningRefs = await resolveDocumentReviewLearningRefs(
     academyId,
     school,
-    context
+    context,
+    user?._id
   );
   const learningBlock =
     learningRefs.length > 0
@@ -5761,7 +5800,26 @@ export const runAlterSkill = async ({
   );
   let chatReferences = chatPromptPack.references || [];
   let chatCitations = [];
-  const retrieveIds = chatPromptPack.learningLibraryItemIds || [];
+  let retrieveIds = chatPromptPack.learningLibraryItemIds || [];
+  const chatIsTeacher =
+    isStaffAuth(user?.auth) || registration?.role === "teacher";
+  if (chatIsTeacher && school?._id && user?._id) {
+    try {
+      const extra = await AiLibraryItem(academyId)
+        .find(teacherExtraLearningQuery(school._id, user._id))
+        .select("_id")
+        .limit(TEACHER_CHAT_LEARNING_CAP)
+        .lean();
+      retrieveIds = [
+        ...new Set([
+          ...retrieveIds.map(String),
+          ...extra.map((it) => String(it._id)),
+        ]),
+      ];
+    } catch (extraErr) {
+      logger.error(`chat teacher library extra: ${extraErr.message}`);
+    }
+  }
   if (school?._id && retrieveIds.length > 0 && message?.trim()) {
     try {
       await ensureChunksForItems(academyId, retrieveIds);

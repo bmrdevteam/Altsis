@@ -688,8 +688,9 @@ const AISettings = (props: Props) => {
         <h3 className={style.sectionTitle}>AI 모델</h3>
         <p className={style.sectionDesc}>
           API 키를 저장하거나 이 화면을 열면, 해당 키로 실제 사용 가능한 모델
-          목록을 자동으로 불러옵니다. 필요하면 &quot;모델 다시 불러오기&quot;로
-          갱신하세요.
+          목록을 자동으로 불러옵니다. OpenAI는 GPT-4o뿐 아니라 GPT-5 계열(예:
+          gpt-5.6-luna)도 선택할 수 있습니다. 필요하면 &quot;모델 다시
+          불러오기&quot;로 갱신하세요.
         </p>
 
         <div className={style.card}>

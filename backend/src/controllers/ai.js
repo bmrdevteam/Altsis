@@ -44,6 +44,7 @@ import {
   resolveSkillPrepSettings,
   resolveSkillId,
 } from "../services/aiSkills.js";
+import { isStaffAuth } from "../services/aiLibraryAcl.js";
 import {
   listAlterConversations as listAlterConversationsSvc,
   createAlterConversation as createAlterConversationSvc,
@@ -200,7 +201,7 @@ export const getAlterSkillSettings = async (req, res) => {
   try {
     const seasonId = req.query.season;
     const skill = resolveSkillId(req.query.skill || SKILL_IDS.CHAT);
-    const { season, school } = await assertSeasonAiAccess(
+    const { season, school, registration } = await assertSeasonAiAccess(
       req.user.academyId,
       req.user,
       seasonId
@@ -209,7 +210,12 @@ export const getAlterSkillSettings = async (req, res) => {
       req.user.academyId,
       school,
       season,
-      skill
+      skill,
+      {
+        userId: req.user._id,
+        isTeacher:
+          isStaffAuth(req.user.auth) || registration?.role === "teacher",
+      }
     );
     if (skill === SKILL_IDS.SEARCH) {
       settings.searchScope = await buildSearchScopeOptions({

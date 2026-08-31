@@ -8,6 +8,9 @@
  *
  * Gemini는 Google 약관(18세 미만 접근 가능 서비스에 사용 금지)상
  * 운영 환경에서 사용할 수 없으므로 테스트 용도로만 제공한다.
+ *
+ * OpenAI GPT-5 / o 계열은 Chat Completions의 max_tokens·temperature를
+ * 거부하므로 max_completion_tokens로 맞춘다.
  */
 
 /** OpenAI Chat Completions content */
@@ -220,8 +223,59 @@ async function* iterateSSE(response) {
 
 /* ==========================================================================
  * OpenAI (Chat Completions API)
+ * GPT-5 / o-series는 max_tokens·temperature를 거부한다.
+ * max_completion_tokens를 쓰고 temperature는 생략한다.
  * ========================================================================== */
 
+const OPENAI_COMPLETIONS_URL = "https://api.openai.com/v1/chat/completions";
+const OPENAI_REASONING_TOKEN_FLOOR = 4096;
+const OPENAI_REASONING_PROBE_FLOOR = 256;
+
+/**
+ * GPT-5·o 계열은 Chat Completions에서 max_completion_tokens를 요구한다.
+ * gpt-4o / gpt-4.1 / chatgpt-* 는 기존 max_tokens를 유지한다.
+ * @param {string} [model]
+ * @returns {boolean}
+ */
+export const openaiUsesCompletionTokens = (model) => {
+  const id = String(model || "");
+  if (/^gpt-4/i.test(id) || /^chatgpt/i.test(id)) return false;
+  return /^(gpt-5|o[1-9])/i.test(id);
+};
+
+/**
+ * 추론 토큰이 답변 예산을 잠식하지 않도록 하한을 둔다.
+ * 키 테스트(32 토큰)처럼 작은 프로브는 소폭만 올린다.
+ * @param {number} maxTokens
+ * @returns {number}
+ */
+export const openaiReasoningCompletionCap = (maxTokens) => {
+  if (maxTokens < 256) return Math.max(maxTokens, OPENAI_REASONING_PROBE_FLOOR);
+  return Math.max(maxTokens, OPENAI_REASONING_TOKEN_FLOOR);
+};
+
+/**
+ * message.content / delta.content 가 문자열 또는 part 배열일 수 있다.
+ * @param {unknown} content
+ * @returns {string}
+ */
+export const openaiContentText = (content) => {
+  if (content == null) return "";
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return "";
+  return content
+    .map((part) => {
+      if (typeof part === "string") return part;
+      if (part?.text != null) return String(part.text);
+      return "";
+    })
+    .join("");
+};
+
+/**
+ * GPT-5 / o-series용 Chat Completions 본문.
+ * chat 전용 모델(id에 chat)에는 reasoning_effort를 넣지 않는다.
+ */
 export const openaiBuildBody = ({
   model,
   systemInstruction,
@@ -241,9 +295,63 @@ export const openaiBuildBody = ({
       })),
     ],
   };
-  if (typeof temperature === "number") body.temperature = temperature;
-  if (typeof maxTokens === "number") body.max_tokens = maxTokens;
+  const reasoning = openaiUsesCompletionTokens(model);
+  if (!reasoning && typeof temperature === "number") {
+    body.temperature = temperature;
+  }
+  if (typeof maxTokens === "number") {
+    if (reasoning) {
+      body.max_completion_tokens = openaiReasoningCompletionCap(maxTokens);
+    } else {
+      body.max_tokens = maxTokens;
+    }
+  }
+  if (reasoning && !/chat/i.test(String(model || ""))) {
+    body.reasoning_effort = "low";
+  }
   return body;
+};
+
+/**
+ * 400 unsupported_parameter 에 맞춰 본문을 한 번 보정한다.
+ * @param {Record<string, unknown>} body
+ * @param {{status?: number, apiMessage?: string, message?: string}} err
+ * @returns {Record<string, unknown>|null}
+ */
+export const openaiBodyForUnsupportedParams = (body, err) => {
+  if (err?.status !== 400 || !body || typeof body !== "object") return null;
+  const msg = String(err.apiMessage || err.message || "").toLowerCase();
+  if (!msg) return null;
+
+  const next = { ...body };
+  let changed = false;
+
+  if (next.max_tokens != null && /\bmax_tokens\b/.test(msg)) {
+    next.max_completion_tokens = next.max_tokens;
+    delete next.max_tokens;
+    delete next.temperature;
+    changed = true;
+  } else if (
+    next.max_completion_tokens != null &&
+    /max_completion_tokens/.test(msg) &&
+    /unsupported/.test(msg) &&
+    !/\bmax_tokens\b/.test(msg)
+  ) {
+    next.max_tokens = next.max_completion_tokens;
+    delete next.max_completion_tokens;
+    changed = true;
+  }
+
+  if (next.temperature != null && /temperature/.test(msg)) {
+    delete next.temperature;
+    changed = true;
+  }
+  if (next.reasoning_effort != null && /reasoning_effort/.test(msg)) {
+    delete next.reasoning_effort;
+    changed = true;
+  }
+
+  return changed ? next : null;
 };
 
 const openaiUsage = (usage) => {
@@ -256,6 +364,35 @@ const openaiUsage = (usage) => {
   };
 };
 
+const openaiCompletionsHeaders = (apiKey) => ({
+  "Content-Type": "application/json",
+  Authorization: `Bearer ${apiKey}`,
+});
+
+const openaiPostCompletions = async (apiKey, body, timeoutMs) => {
+  const send = async (payload) => {
+    const response = await fetchWithTimeout(
+      OPENAI_COMPLETIONS_URL,
+      {
+        method: "POST",
+        headers: openaiCompletionsHeaders(apiKey),
+        body: JSON.stringify(payload),
+      },
+      timeoutMs
+    );
+    if (!response.ok) await throwHttpError(response, "openai");
+    return response;
+  };
+
+  try {
+    return await send(body);
+  } catch (err) {
+    const retried = openaiBodyForUnsupportedParams(body, err);
+    if (!retried) throw err;
+    return send(retried);
+  }
+};
+
 const openaiGenerate = async ({
   apiKey,
   model,
@@ -264,30 +401,20 @@ const openaiGenerate = async ({
   temperature,
   maxTokens,
 }) => {
-  const response = await fetchWithTimeout(
-    "https://api.openai.com/v1/chat/completions",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify(
-        openaiBuildBody({
-          model,
-          systemInstruction,
-          messages,
-          temperature,
-          maxTokens,
-        })
-      ),
-    }
+  const response = await openaiPostCompletions(
+    apiKey,
+    openaiBuildBody({
+      model,
+      systemInstruction,
+      messages,
+      temperature,
+      maxTokens,
+    })
   );
-  if (!response.ok) await throwHttpError(response, "openai");
 
   const data = await response.json();
   return {
-    text: data.choices?.[0]?.message?.content || "",
+    text: openaiContentText(data.choices?.[0]?.message?.content),
     tokenUsage: openaiUsage(data.usage),
   };
 };
@@ -306,19 +433,7 @@ const openaiGenerateStream = async (
   body.stream = true;
   body.stream_options = { include_usage: true };
 
-  const response = await fetchWithTimeout(
-    "https://api.openai.com/v1/chat/completions",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify(body),
-    },
-    120_000
-  );
-  if (!response.ok) await throwHttpError(response, "openai");
+  const response = await openaiPostCompletions(apiKey, body, 120_000);
 
   let fullText = "";
   let tokenUsage = null;
@@ -330,7 +445,7 @@ const openaiGenerateStream = async (
     } catch (_) {
       continue;
     }
-    const delta = parsed.choices?.[0]?.delta?.content;
+    const delta = openaiContentText(parsed.choices?.[0]?.delta?.content);
     if (delta) {
       fullText += delta;
       onText(delta);

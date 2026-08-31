@@ -309,7 +309,7 @@ const SkillPrepDock = (p: SkillPrepDockProps) => {
             selectedIds={p.docSelectedGuidelineIds}
             expandedId={p.expandedGuidelineId}
             loading={p.skillSettingsLoading}
-            emptyText="선택 가능한 지침이 없습니다. 관리 → 학교 AI → 라이브러리에서 「문서」 지침을 추가해 주세요. 기본 기준으로 작성합니다."
+            emptyText="선택 가능한 지침이 없습니다. Alter 라이브러리에서 「문서」 지침을 추가해 주세요. 기본 기준으로 작성합니다."
             onToggleChecked={(id) =>
               p.toggleLabel(
                 id,
@@ -332,7 +332,7 @@ const SkillPrepDock = (p: SkillPrepDockProps) => {
       <>
         <PrepSection
           label="점검 지침"
-          hint="관리 → 학교 AI → 「문서 점검」에 연결한 지침만 표시됩니다. 선택한 지침을 기준으로 점검합니다."
+          hint="학교 AI 스킬 설정에서 「문서 점검」에 연결한 지침만 표시됩니다. 선택한 지침을 기준으로 점검합니다."
         >
           <GuidelinePicker
             items={p.docReviewGuidelineItems}
@@ -340,7 +340,7 @@ const SkillPrepDock = (p: SkillPrepDockProps) => {
             expandedId={p.expandedGuidelineId}
             loading={p.skillSettingsLoading}
             scroll
-            emptyText="연결된 지침이 없습니다. 관리 → 학교 AI → 문서 점검에서 지침을 연결해 주세요. 기본 기준으로 점검합니다."
+            emptyText="연결된 지침이 없습니다. Alter 라이브러리에 지침을 만든 뒤 학교 AI에서 문서 점검에 연결해 주세요. 기본 기준으로 점검합니다."
             onToggleChecked={(id) =>
               p.toggleLabel(
                 id,
@@ -355,7 +355,7 @@ const SkillPrepDock = (p: SkillPrepDockProps) => {
         </PrepSection>
         <PrepSection
           label="학습정보"
-          hint="관리 → 학교 AI → 「문서 점검」에 연결한 학습정보를 참고 자료로 넣을 수 있습니다."
+          hint="학교 AI 스킬 설정에서 「문서 점검」에 연결한 학습정보를 참고 자료로 넣을 수 있습니다."
         >
           <GuidelinePicker
             items={p.docReviewLearningItems}
@@ -365,7 +365,7 @@ const SkillPrepDock = (p: SkillPrepDockProps) => {
             loadingText="학습정보를 불러오는 중..."
             scroll
             expandKeyPrefix="learning-"
-            emptyText="연결된 학습정보가 없습니다. 관리 → 학교 AI → 문서 점검에서 학습정보를 연결해 주세요."
+            emptyText="연결된 학습정보가 없습니다. Alter 라이브러리에 학습정보를 만든 뒤 학교 AI에서 문서 점검에 연결해 주세요."
             onToggleChecked={(id) =>
               p.toggleLabel(
                 id,
@@ -469,7 +469,7 @@ const SkillPrepDock = (p: SkillPrepDockProps) => {
             selectedIds={p.formResponseSelectedGuidelineIds}
             expandedId={p.expandedGuidelineId}
             loading={p.skillSettingsLoading}
-            emptyText="선택 가능한 지침이 없습니다. 관리 → 학교 AI → 라이브러리에서 「응답」 지침을 추가해 주세요. 기본 기준으로 작성합니다."
+            emptyText="선택 가능한 지침이 없습니다. Alter 라이브러리에서 「응답」 지침을 추가해 주세요. 기본 기준으로 작성합니다."
             onToggleChecked={(id) =>
               p.toggleLabel(
                 id,
@@ -523,7 +523,7 @@ const SkillPrepDock = (p: SkillPrepDockProps) => {
             selectedIds={p.activitySelectedGuidelineIds}
             expandedId={p.expandedGuidelineId}
             loading={p.skillSettingsLoading}
-            emptyText="선택 가능한 지침이 없습니다. 관리 → 학교 AI → 라이브러리에서 「활동」 지침을 추가해 주세요. 기본 기준으로 작성합니다."
+            emptyText="선택 가능한 지침이 없습니다. Alter 라이브러리에서 「활동」 지침을 추가해 주세요. 기본 기준으로 작성합니다."
             onToggleChecked={(id) =>
               p.toggleLabel(
                 id,
@@ -571,7 +571,7 @@ const SkillPrepDock = (p: SkillPrepDockProps) => {
             selectedIds={p.formSelectedGuidelineIds}
             expandedId={p.expandedGuidelineId}
             loading={p.skillSettingsLoading}
-            emptyText="선택 가능한 지침이 없습니다. 관리 → 학교 AI → 라이브러리에서 「양식」 지침을 추가해 주세요. 기본 기준으로 작성합니다."
+            emptyText="선택 가능한 지침이 없습니다. Alter 라이브러리에서 「양식」 지침을 추가해 주세요. 기본 기준으로 작성합니다."
             onToggleChecked={(id) =>
               p.toggleLabel(
                 id,
@@ -633,7 +633,7 @@ const SkillPrepDock = (p: SkillPrepDockProps) => {
             expandedId={p.expandedGuidelineId}
             loading={p.skillSettingsLoading}
             scroll
-            emptyText="선택 가능한 지침이 없습니다. 관리 → 학교 AI → 라이브러리에서 「수업」 지침을 추가해 주세요. 기본 기준으로 작성합니다."
+            emptyText="선택 가능한 지침이 없습니다. Alter 라이브러리에서 「수업」 지침을 추가해 주세요. 기본 기준으로 작성합니다."
             onToggleChecked={(id) =>
               p.toggleLabel(
                 id,
@@ -776,7 +776,7 @@ const SkillPrepDock = (p: SkillPrepDockProps) => {
             selectedIds={p.evalSelectedGuidelineIds}
             expandedId={p.expandedGuidelineId}
             loading={p.skillSettingsLoading}
-            emptyText="선택 가능한 지침이 없습니다. 관리 → 학교 AI → 라이브러리에서 「평가」 지침을 추가해 주세요. 기본 기준으로 작성합니다."
+            emptyText="선택 가능한 지침이 없습니다. Alter 라이브러리에서 「평가」 지침을 추가해 주세요. 기본 기준으로 작성합니다."
             onToggleChecked={(id) =>
               p.toggleLabel(
                 id,
@@ -879,7 +879,7 @@ const SkillPrepDock = (p: SkillPrepDockProps) => {
             selectedIds={p.archiveSelectedGuidelineIds}
             expandedId={p.expandedGuidelineId}
             loading={p.skillSettingsLoading}
-            emptyText="선택 가능한 지침이 없습니다. 관리 → 학교 AI → 라이브러리에서 「기록」 지침을 추가해 주세요. 기본 기준으로 작성합니다."
+            emptyText="선택 가능한 지침이 없습니다. Alter 라이브러리에서 「기록」 지침을 추가해 주세요. 기본 기준으로 작성합니다."
             onToggleChecked={(id) =>
               p.toggleLabel(
                 id,
