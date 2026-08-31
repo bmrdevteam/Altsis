@@ -2,6 +2,7 @@ import express from "express";
 const router = express.Router();
 import { isLoggedIn, isOwAdmin, isAdManager } from "../middleware/auth.js";
 import * as ai from "../controllers/ai.js";
+import * as aiLibrary from "../controllers/aiLibrary.js";
 
 //=================================
 //             AI / Alter
@@ -15,6 +16,15 @@ router.get("/skills", isLoggedIn, ai.listAiSkills);
 
 // Alter prep settings (school library / season fallback)
 router.get("/alter/skill-settings", isLoggedIn, ai.getAlterSkillSettings);
+
+// Alter library (school official + teacher personal/shared)
+router.get("/library", isLoggedIn, aiLibrary.list);
+router.post("/library", isLoggedIn, aiLibrary.create);
+router.post("/library/upload", isLoggedIn, aiLibrary.upload);
+router.get("/library/:itemId", isLoggedIn, aiLibrary.findOne);
+router.put("/library/:itemId", isLoggedIn, aiLibrary.update);
+router.delete("/library/:itemId", isLoggedIn, aiLibrary.remove);
+router.get("/library/:itemId/download", isLoggedIn, aiLibrary.download);
 
 // Alter conversation persistence
 router.get("/alter/conversations", isLoggedIn, ai.listAlterConversations);

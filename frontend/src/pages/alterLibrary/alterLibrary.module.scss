@@ -1,0 +1,101 @@
+.sectionHint {
+  margin: 12px 0 4px;
+  font-size: 12px;
+  color: var(--text-color-2);
+  line-height: 1.5;
+}
+
+.cardPad {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px 22px 20px;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.preview {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  white-space: pre-wrap;
+  font-size: 14px;
+  line-height: 1.6;
+  font-family: inherit;
+  color: var(--accent-1);
+}
+
+.markdownWrap {
+  min-width: 0;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 200px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-default-color, var(--border-color));
+  border-radius: 8px;
+  background: var(--background-color);
+  color: var(--accent-1);
+  font-size: 14px;
+  font-family: inherit;
+  line-height: 1.55;
+  resize: vertical;
+}
+
+.hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--accent-3);
+  line-height: 1.5;
+}
+
+.composeFileAction {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+
+  button svg {
+    fill: currentColor;
+  }
+
+  button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+.saveBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.badgeAll {
+  background: color-mix(in srgb, var(--accent-1) 12%, var(--background-color));
+  color: var(--accent-1);
+}
+
+.chipToneActivity,
+.badgeActivity {
+  background: color-mix(in srgb, #c026d3 16%, var(--background-color));
+  color: #a21caf;
+}
+
+.chipToneForm,
+.badgeForm {
+  background: color-mix(in srgb, #4f46e5 16%, var(--background-color));
+  color: #4338ca;
+}
+
+.chipToneGrade,
+.badgeGrade {
+  background: color-mix(in srgb, var(--color-y4, #e6a23c) 18%, var(--background-color));
+  color: var(--color-y4, #c48820);
+}

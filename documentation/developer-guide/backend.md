@@ -37,7 +37,7 @@ Altsis 백엔드는 **Express.js** 기반의 REST API 서버입니다. 이 문�
 | node-cron | 4.x | 스케줄러 (cron) |
 | mongoose-encryption | 2.x | 필드 암호화 |
 
-AI 기능(OpenAI / Anthropic / Google Gemini)은 별도 SDK 없이 Node.js 내장 `fetch`로 각 제공자의 REST API를 직접 호출합니다 (`src/services/aiProvider.js`).
+AI 기능(OpenAI / Anthropic / Google Gemini)은 별도 SDK 없이 Node.js 내장 `fetch`로 각 제공자의 REST API를 직접 호출합니다 (`src/services/aiProvider.js`). OpenAI GPT-5 / o 계열은 Chat Completions에서 `max_completion_tokens`를 쓰고 `temperature`는 생략합니다.
 
 관련 모듈:
 - `src/services/aiPromptPolicy.js` — 프롬프트 한도, 작업별 프로필(`syllabusReview`/`chat`), JSON 파싱

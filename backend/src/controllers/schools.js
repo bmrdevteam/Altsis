@@ -14,7 +14,6 @@ import { logger } from "../log/logger.js";
 import _ from "lodash";
 import {
   Academy,
-  AiLibraryItem,
   AIUsageLog,
   Archive,
   Enrollment,
@@ -25,12 +24,8 @@ import {
   Syllabus,
   User,
 } from "../models/index.js";
-import {
-  deleteChunksForItem,
-  rebuildChunksForItem,
-} from "../services/aiLibraryChunks.js";
 import { profileS3, profileBucket } from "../_s3/profileBucket.js";
-import { fileS3, fileBucket, signUrl } from "../_s3/fileBucket.js";
+import { fileS3, fileBucket } from "../_s3/fileBucket.js";
 import { schoolAiLibraryMulter } from "../_s3/aiRefMulter.js";
 import { tryCommitUpload } from "../services/academyStorage.js";
 import { normalizePlans } from "../services/entitlement.js";
@@ -40,6 +35,14 @@ import {
   PROMPT_LIMITS,
   truncateText,
 } from "../services/aiPromptPolicy.js";
+import {
+  assertSchoolOfficialLibraryIds,
+  createLibraryItemDoc,
+  deleteLibraryItemDoc,
+  downloadLibraryItemUrl,
+  listLibraryItems,
+  updateLibraryItemDoc,
+} from "../services/aiLibrary.js";
 import {
   aggregateAiDaily,
   aggregateAiPeriodDetails,
@@ -76,7 +79,6 @@ const VALID_SKILL_IDS = [
   "search",
 ];
 const LEGACY_SKILL_IDS = { "syllabus-review": "syllabus-draft" };
-const VALID_LIBRARY_KINDS = ["instruction", "learning"];
 const MAX_LIBRARY_ITEMS_PER_SKILL = 20;
 
 const defaultAiConfig = () => ({
@@ -108,8 +110,6 @@ const migrateLegacySkillIds = (aiConfig) => {
   return changed;
 };
 
-const normalizeSkillTag = (tag) => LEGACY_SKILL_IDS[tag] || tag;
-
 const ensureAiConfig = (school) => {
   if (!school.aiConfig) {
     school.aiConfig = defaultAiConfig();
@@ -139,73 +139,6 @@ const ensureSkillSlot = (aiConfig, skillId) => {
   return aiConfig.skills[skillId];
 };
 
-/**
- * 라이브러리 항목의 skillTags → 스킬 libraryItemIds 동기화.
- * - skillTags 비어 있음: 노출만. libraryItemIds는 스킬 설정 체크박스가 담당 (변경 없음)
- * - mode "create": 태그된 스킬에 자동 체크(추가)
- * - mode "update": 태그에서 빠진 스킬만 해제, 새로 추가된 태그만 자동 체크.
- *   기존 태그에 대해 수동 해제한 항목은 다시 넣지 않음.
- *   태그에 없던 스킬에 체크박스로만 연결한 항목은 유지
- * @param {"create"|"update"} [mode]
- * @param {string[]} [previousTags] update 시 이전 skillTags
- * @returns {boolean} 변경 여부
- */
-const syncLibraryItemToSkills = (
-  school,
-  item,
-  mode = "create",
-  previousTags = []
-) => {
-  const aiConfig = ensureAiConfig(school);
-  const itemId = String(item._id);
-  const tags = Array.isArray(item.skillTags)
-    ? item.skillTags
-        .map(normalizeSkillTag)
-        .filter((t) => VALID_SKILL_IDS.includes(t))
-    : [];
-  if (tags.length === 0) {
-    // 태그를 모두 제거한 update → 기존 자동 연결은 유지(수동 체크 상태 존중)
-    return false;
-  }
-
-  const targetSkills = new Set(tags);
-  const prevSkills = new Set(
-    (Array.isArray(previousTags) ? previousTags : [])
-      .map(normalizeSkillTag)
-      .filter((t) => VALID_SKILL_IDS.includes(t))
-  );
-  let changed = false;
-
-  for (const skillId of VALID_SKILL_IDS) {
-    const slot = ensureSkillSlot(aiConfig, skillId);
-    const ids = slot.libraryItemIds.map(String);
-    const shouldHave = targetSkills.has(skillId);
-    const newlyTagged = shouldHave && !prevSkills.has(skillId);
-    const shouldAdd =
-      mode === "create" ? shouldHave : newlyTagged;
-
-    if (shouldAdd && !ids.includes(itemId)) {
-      slot.libraryItemIds = [...ids, itemId].slice(0, MAX_LIBRARY_ITEMS_PER_SKILL);
-      changed = true;
-    } else if (
-      !shouldHave &&
-      ids.includes(itemId) &&
-      // update: 태그에서 빠진 스킬만 해제 (체크박스로 다른 스킬에 수동 연결한 항목은 유지)
-      // create: 태그 밖 스킬에 남지 않도록 정리
-      (mode === "create" || prevSkills.has(skillId))
-    ) {
-      slot.libraryItemIds = ids.filter((id) => id !== itemId);
-      changed = true;
-    }
-  }
-
-  if (changed) {
-    school.aiConfig = aiConfig;
-    school.markModified("aiConfig");
-  }
-  return changed;
-};
-
 const normalizeSkillConfig = async (academyId, schoolId, skillId, raw = {}) => {
   const instructions = normalizeGuidelines(raw.instructions || "");
   const libraryItemIds = Array.isArray(raw.libraryItemIds)
@@ -219,15 +152,7 @@ const normalizeSkillConfig = async (academyId, schoolId, skillId, raw = {}) => {
     : [];
 
   if (libraryItemIds.length > 0) {
-    const count = await AiLibraryItem(academyId).countDocuments({
-      _id: { $in: libraryItemIds },
-      school: schoolId,
-    });
-    if (count !== libraryItemIds.length) {
-      const err = new Error(FIELD_INVALID("libraryItemIds"));
-      err.status = 400;
-      throw err;
-    }
+    await assertSchoolOfficialLibraryIds(academyId, schoolId, libraryItemIds);
   }
 
   return { instructions, libraryItemIds };
@@ -1276,10 +1201,17 @@ export const updateAiConfig = async (req, res) => {
   }
 };
 
+const sendLibraryError = (res, err) => {
+  logger.error(err.message);
+  return res
+    .status(err.status || 500)
+    .send({ message: err.message || "서버 오류가 발생했습니다." });
+};
+
 /**
  * @memberof APIs.SchoolAPI
  * @function RSchoolAiLibrary API
- * @description 학교 AI 라이브러리 목록
+ * @description 학교 AI 라이브러리 목록 (공식·공유·본인 개인)
  */
 export const listAiLibrary = async (req, res) => {
   try {
@@ -1287,28 +1219,23 @@ export const listAiLibrary = async (req, res) => {
     if (!school) {
       return res.status(404).send({ message: __NOT_FOUND("school") });
     }
-
-    const filter = { school: school._id };
-    if (VALID_LIBRARY_KINDS.includes(req.query.kind)) {
-      filter.kind = req.query.kind;
-    }
-
-    const items = await AiLibraryItem(req.user.academyId)
-      .find(filter)
-      .sort({ updatedAt: -1 })
-      .lean();
-
+    const items = await listLibraryItems({
+      academyId: req.user.academyId,
+      schoolId: school._id,
+      userId: req.user._id,
+      kind: req.query.kind,
+      visibility: req.query.visibility,
+    });
     return res.status(200).send({ items });
   } catch (err) {
-    logger.error(err.message);
-    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+    return sendLibraryError(res, err);
   }
 };
 
 /**
  * @memberof APIs.SchoolAPI
  * @function CSchoolAiLibraryItem API
- * @description 학교 AI 라이브러리 텍스트 항목 추가
+ * @description 학교 공식 AI 라이브러리 텍스트 항목 추가
  */
 export const createAiLibraryItem = async (req, res) => {
   try {
@@ -1316,50 +1243,16 @@ export const createAiLibraryItem = async (req, res) => {
     if (!school) {
       return res.status(404).send({ message: __NOT_FOUND("school") });
     }
-
-    const kind = VALID_LIBRARY_KINDS.includes(req.body.kind)
-      ? req.body.kind
-      : "learning";
-    const title = truncateText(
-      req.body.title || "제목 없음",
-      PROMPT_LIMITS.REFERENCE_TITLE_CHARS
-    );
-    const content = truncateText(
-      req.body.content || "",
-      PROMPT_LIMITS.LIBRARY_CONTENT_CHARS || 200000
-    );
-    const skillTags = Array.isArray(req.body.skillTags)
-      ? [
-          ...new Set(
-            req.body.skillTags
-              .map((t) => normalizeSkillTag(String(t || "").trim()))
-              .filter((t) => VALID_SKILL_IDS.includes(t))
-          ),
-        ]
-      : [];
-
-    const item = await AiLibraryItem(req.user.academyId).create({
-      school: school._id,
-      kind,
-      title,
-      content,
-      skillTags,
+    const item = await createLibraryItemDoc({
+      academyId: req.user.academyId,
+      school,
+      user: req.user,
+      isStaff: true,
+      body: { ...(req.body || {}), visibility: "school" },
     });
-
-    if (syncLibraryItemToSkills(school, item, "create")) {
-      await school.save();
-    }
-
-    try {
-      await rebuildChunksForItem(req.user.academyId, item);
-    } catch (chunkErr) {
-      logger.error(chunkErr.message);
-    }
-
     return res.status(200).send({ item, aiConfig: school.aiConfig });
   } catch (err) {
-    logger.error(err.message);
-    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+    return sendLibraryError(res, err);
   }
 };
 
@@ -1374,58 +1267,17 @@ export const updateAiLibraryItem = async (req, res) => {
     if (!school) {
       return res.status(404).send({ message: __NOT_FOUND("school") });
     }
-
-    const item = await AiLibraryItem(req.user.academyId).findOne({
-      _id: req.params.itemId,
-      school: req.params._id,
+    const item = await updateLibraryItemDoc({
+      academyId: req.user.academyId,
+      school,
+      user: req.user,
+      isStaff: true,
+      itemId: req.params.itemId,
+      body: req.body || {},
     });
-    if (!item) {
-      return res.status(404).send({ message: __NOT_FOUND("library item") });
-    }
-
-    if (VALID_LIBRARY_KINDS.includes(req.body.kind)) {
-      item.kind = req.body.kind;
-    }
-    if ("title" in req.body) {
-      item.title = truncateText(
-        req.body.title || "",
-        PROMPT_LIMITS.REFERENCE_TITLE_CHARS
-      );
-    }
-    if ("content" in req.body) {
-      item.content = truncateText(
-        req.body.content || "",
-        PROMPT_LIMITS.LIBRARY_CONTENT_CHARS || 200000
-      );
-    }
-    const previousTags = Array.isArray(item.skillTags)
-      ? item.skillTags.map(String)
-      : [];
-    if (Array.isArray(req.body.skillTags)) {
-      item.skillTags = [
-        ...new Set(
-          req.body.skillTags
-            .map((t) => normalizeSkillTag(String(t || "").trim()))
-            .filter((t) => VALID_SKILL_IDS.includes(t))
-        ),
-      ];
-    }
-
-    await item.save();
-    if (syncLibraryItemToSkills(school, item, "update", previousTags)) {
-      await school.save();
-    }
-    if ("content" in req.body || "title" in req.body || "kind" in req.body) {
-      try {
-        await rebuildChunksForItem(req.user.academyId, item);
-      } catch (chunkErr) {
-        logger.error(chunkErr.message);
-      }
-    }
     return res.status(200).send({ item, aiConfig: school.aiConfig });
   } catch (err) {
-    logger.error(err.message);
-    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+    return sendLibraryError(res, err);
   }
 };
 
@@ -1436,61 +1288,27 @@ export const updateAiLibraryItem = async (req, res) => {
  */
 export const deleteAiLibraryItem = async (req, res) => {
   try {
-    const item = await AiLibraryItem(req.user.academyId).findOne({
-      _id: req.params.itemId,
-      school: req.params._id,
-    });
-    if (!item) {
-      return res.status(404).send({ message: __NOT_FOUND("library item") });
-    }
-
-    if (item.fileKey) {
-      try {
-        await fileS3
-          .deleteObject({ Bucket: fileBucket, Key: item.fileKey })
-          .promise();
-      } catch (s3Err) {
-        logger.error("Failed to delete S3 file: " + s3Err.message);
-      }
-    }
-
-    // 스킬 선택 목록에서 제거
     const school = await School(req.user.academyId).findById(req.params._id);
-    if (school?.aiConfig?.skills) {
-      const itemId = String(item._id);
-      let changed = false;
-      for (const skillId of Object.keys(school.aiConfig.skills)) {
-        const cfg = school.aiConfig.skills[skillId];
-        if (!cfg?.libraryItemIds?.length) continue;
-        const next = cfg.libraryItemIds.filter((id) => String(id) !== itemId);
-        if (next.length !== cfg.libraryItemIds.length) {
-          cfg.libraryItemIds = next;
-          changed = true;
-        }
-      }
-      if (changed) {
-        school.markModified("aiConfig");
-        await school.save();
-      }
+    if (!school) {
+      return res.status(404).send({ message: __NOT_FOUND("school") });
     }
-
-    try {
-      await deleteChunksForItem(req.user.academyId, item._id);
-    } catch (chunkErr) {
-      logger.error(chunkErr.message);
-    }
-    await item.deleteOne();
+    await deleteLibraryItemDoc({
+      academyId: req.user.academyId,
+      school,
+      user: req.user,
+      isStaff: true,
+      itemId: req.params.itemId,
+    });
     return res.status(200).send({ success: true });
   } catch (err) {
-    logger.error(err.message);
-    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+    return sendLibraryError(res, err);
   }
 };
 
 /**
  * @memberof APIs.SchoolAPI
  * @function CSchoolAiLibraryUpload API
- * @description 학교 AI 라이브러리 파일 업로드
+ * @description 학교 공식 AI 라이브러리 파일 업로드
  */
 export const uploadAiLibraryItem = async (req, res) => {
   try {
@@ -1545,44 +1363,25 @@ export const uploadAiLibraryItem = async (req, res) => {
           extractWarning = `본문이 저장 상한(${contentLimit}자)을 넘어 앞부분만 저장했습니다.`;
         }
 
-        const kind = VALID_LIBRARY_KINDS.includes(req.body.kind)
-          ? req.body.kind
-          : "learning";
-        const skillTags = req.body.skillTags
-          ? [
-              ...new Set(
-                String(req.body.skillTags)
-                  .split(",")
-                  .map((t) => normalizeSkillTag(t.trim()))
-                  .filter((t) => VALID_SKILL_IDS.includes(t))
-              ),
-            ]
-          : [];
-
-        const item = await AiLibraryItem(req.user.academyId).create({
-          school: school._id,
-          kind,
-          title: truncateText(
-            req.body.title || req.file.originalname,
-            PROMPT_LIMITS.REFERENCE_TITLE_CHARS
-          ),
-          content,
-          fileName: req.file.originalname,
-          fileKey: req.tmp.key,
-          fileSize: req.file.size,
-          mimeType: req.file.mimetype,
-          skillTags,
+        const item = await createLibraryItemDoc({
+          academyId: req.user.academyId,
+          school,
+          user: req.user,
+          isStaff: true,
+          body: {
+            kind: req.body.kind,
+            visibility: "school",
+            title: req.body.title || req.file.originalname,
+            content,
+            skillTags: req.body.skillTags,
+          },
+          fileMeta: {
+            fileName: req.file.originalname,
+            fileKey: req.tmp.key,
+            fileSize: req.file.size,
+            mimeType: req.file.mimetype,
+          },
         });
-
-        if (syncLibraryItemToSkills(school, item, "create")) {
-          await school.save();
-        }
-
-        try {
-          await rebuildChunksForItem(req.user.academyId, item);
-        } catch (chunkErr) {
-          logger.error(chunkErr.message);
-        }
 
         return res.status(200).send({
           item,
@@ -1591,13 +1390,11 @@ export const uploadAiLibraryItem = async (req, res) => {
           extractWarning,
         });
       } catch (innerErr) {
-        logger.error(innerErr.message);
-        return res.status(500).send({ message: innerErr.message });
+        return sendLibraryError(res, innerErr);
       }
     });
   } catch (err) {
-    logger.error(err.message);
-    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+    return sendLibraryError(res, err);
   }
 };
 
@@ -1608,18 +1405,15 @@ export const uploadAiLibraryItem = async (req, res) => {
  */
 export const downloadAiLibraryItem = async (req, res) => {
   try {
-    const item = await AiLibraryItem(req.user.academyId).findOne({
-      _id: req.params.itemId,
-      school: req.params._id,
+    const url = await downloadLibraryItemUrl({
+      academyId: req.user.academyId,
+      schoolId: req.params._id,
+      userId: req.user._id,
+      itemId: req.params.itemId,
     });
-    if (!item || !item.fileKey) {
-      return res.status(404).send({ message: __NOT_FOUND("library file") });
-    }
-
-    const { preSignedUrl } = signUrl(item.fileKey, item.fileName, 300);
-    return res.status(200).send({ url: preSignedUrl });
+    return res.status(200).send({ url });
   } catch (err) {
-    logger.error(err.message);
-    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+    return sendLibraryError(res, err);
   }
 };
+

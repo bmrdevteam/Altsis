@@ -1,7 +1,7 @@
 /**
  * AiLibraryItem namespace
  * @namespace Models.AiLibraryItem
- * @description 학교 공용 AI 지침·학습정보 라이브러리 항목
+ * @description 학교 공용·공유·개인 AI 지침·학습정보 라이브러리 항목
  */
 import mongoose from "mongoose";
 import { conn } from "../_database/mongodb/index.js";
@@ -13,6 +13,10 @@ import { conn } from "../_database/mongodb/index.js";
  * @prop {ObjectId} _id
  * @prop {ObjectId} school - school._id
  * @prop {"instruction"|"learning"} kind - 지침 | 학습정보
+ * @prop {"school"|"shared"|"personal"} visibility
+ * @prop {ObjectId} [owner]
+ * @prop {string} [ownerId]
+ * @prop {string} [ownerName]
  * @prop {string} title
  * @prop {string} content
  * @prop {string} [fileName]
@@ -34,6 +38,15 @@ const aiLibraryItemSchema = mongoose.Schema(
       required: true,
       default: "learning",
     },
+    visibility: {
+      type: String,
+      enum: ["school", "shared", "personal"],
+      default: "school",
+      index: true,
+    },
+    owner: { type: mongoose.Types.ObjectId },
+    ownerId: String,
+    ownerName: String,
     title: { type: String, default: "" },
     content: { type: String, default: "" },
     fileName: String,
@@ -46,6 +59,7 @@ const aiLibraryItemSchema = mongoose.Schema(
 );
 
 aiLibraryItemSchema.index({ school: 1, kind: 1, createdAt: -1 });
+aiLibraryItemSchema.index({ school: 1, visibility: 1, owner: 1 });
 
 export const AiLibraryItem = (dbName) => {
   return conn[dbName].model("AiLibraryItem", aiLibraryItemSchema);

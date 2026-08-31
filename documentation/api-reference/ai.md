@@ -4,7 +4,7 @@ Alter(전역 AI 어시스턴트), Skill 카탈로그, 강의계획서 검토(하
 
 > **라우트 파일**: `backend/src/routes/ai.js`  
 > **컨트롤러 파일**: `backend/src/controllers/ai.js`  
-> **관련 서비스**: `backend/src/services/aiSkills.js`, `aiPromptPolicy.js`, `aiProvider.js` 등
+> **관련 서비스**: `backend/src/services/aiSkills.js`, `aiLibrary.js`, `aiLibraryAcl.js`, `aiPromptPolicy.js`, `aiProvider.js` 등
 
 기본 경로: `/api/ai`
 
@@ -18,6 +18,13 @@ UI에서의 Alter 사용법은 [사용자 가이드 — Alter](../user-guide/cha
 |--------|------|------|------|
 | `GET` | `/api/ai/skills` | Skill 카탈로그 조회 | `isLoggedIn` |
 | `GET` | `/api/ai/alter/skill-settings` | Skill별 준비 설정(지침·참고자료) | `isLoggedIn` (+ 학기 AI 접근) |
+| `GET` | `/api/ai/library` | Alter 라이브러리 목록 | `isLoggedIn` (관리자 또는 교사 AI) |
+| `POST` | `/api/ai/library` | 라이브러리 텍스트 항목 추가 | 동일 |
+| `POST` | `/api/ai/library/upload` | 라이브러리 파일 업로드 | 동일 |
+| `GET` | `/api/ai/library/:itemId` | 항목 상세 | 동일 |
+| `PUT` | `/api/ai/library/:itemId` | 항목 수정·학교 공식 전환 | 동일 |
+| `DELETE` | `/api/ai/library/:itemId` | 항목 삭제 | 동일 |
+| `GET` | `/api/ai/library/:itemId/download` | 원본 파일 URL | 동일 |
 | `GET` | `/api/ai/alter/conversations` | Alter 대화 목록 | `isLoggedIn` |
 | `POST` | `/api/ai/alter/conversations` | Alter 대화 생성 | `isLoggedIn` |
 | `POST` | `/api/ai/alter/conversations/bulk-delete` | 대화 일괄 삭제(소프트) | `isLoggedIn` (본인) |

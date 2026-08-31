@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Button from "components/button/Button";
 import Input from "components/input/Input";
 import Table from "components/tableV2/Table";
 import SchoolFeatureToggle from "../FeatureSettings";
 import { useAuth } from "contexts/authContext";
+import { useAppNavigate } from "hooks/useAppNavigate";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import { isSchoolOfficialItem } from "pages/alterLibrary/libraryFilters";
 import {
   TAiLibraryItem,
   TAlterSkillId,
@@ -78,9 +80,6 @@ const emptySkill = (): TSchoolAiSkillConfig => ({
   libraryItemIds: [],
 });
 
-const skillLabel = (id: string) =>
-  SKILLS.find((s) => s.id === id)?.label || id;
-
 type Props = {
   schoolData: TSchool;
   setSchoolData?: (data: TSchool) => void;
@@ -89,6 +88,7 @@ type Props = {
 
 const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
   const { currentUser, currentSchool, patchCurrentSchool } = useAuth();
+  const navigate = useAppNavigate();
   const { SchoolAPI, AcademyAPI } = useAPIv2();
   const canEditUsageLimits =
     currentUser?.auth === "admin" ||
@@ -97,25 +97,7 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
   const [loading, setLoading] = useState(true);
   const [aiConfig, setAiConfig] = useState<TSchoolAiConfig>(defaultAiConfig());
   const [library, setLibrary] = useState<TAiLibraryItem[]>([]);
-  const [kindFilter, setKindFilter] = useState<"all" | "instruction" | "learning">(
-    "all"
-  );
   const [activeSkill, setActiveSkill] = useState<TAlterSkillId>("chat");
-
-  const [newKind, setNewKind] = useState<"instruction" | "learning">("learning");
-  const [newTitle, setNewTitle] = useState("");
-  const [newContent, setNewContent] = useState("");
-  const [newSkillTags, setNewSkillTags] = useState<TAlterSkillId[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
-  const [editingItem, setEditingItem] = useState<TAiLibraryItem | null>(null);
-  const [editKind, setEditKind] = useState<"instruction" | "learning">(
-    "learning"
-  );
-  const [editTitle, setEditTitle] = useState("");
-  const [editContent, setEditContent] = useState("");
-  const [editSkillTags, setEditSkillTags] = useState<TAlterSkillId[]>([]);
-  const [editMode, setEditMode] = useState<"view" | "edit">("view");
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [limitEnabled, setLimitEnabled] = useState(false);
   const [dailyUserAlts, setDailyUserAlts] = useState("1");
   const [showCompliance, setShowCompliance] = useState(false);
@@ -181,20 +163,6 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
     }
   };
 
-  const openItem = (item: TAiLibraryItem, mode: "view" | "edit" = "view") => {
-    setEditingItem(item);
-    setEditKind(item.kind);
-    setEditTitle(item.title || "");
-    setEditContent(item.content || "");
-    setEditSkillTags((item.skillTags || []) as TAlterSkillId[]);
-    setEditMode(mode);
-  };
-
-  const closeItemPanel = () => {
-    setEditingItem(null);
-    setEditMode("view");
-  };
-
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -213,24 +181,11 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schoolData._id, currentUser?.academyId]);
 
-  const filteredLibrary = useMemo(() => {
-    if (kindFilter === "all") return library;
-    return library.filter((i) => i.kind === kindFilter);
-  }, [library, kindFilter]);
-
-  const libraryCounts = useMemo(
-    () => ({
-      all: library.length,
-      instruction: library.filter((i) => i.kind === "instruction").length,
-      learning: library.filter((i) => i.kind === "learning").length,
-    }),
-    [library]
-  );
-
   const skillConfig = aiConfig.skills?.[activeSkill] || emptySkill();
 
   const libraryForSkill = useMemo(() => {
     return library.filter((item) => {
+      if (!isSchoolOfficialItem(item)) return false;
       const tags = item.skillTags || [];
       return tags.length === 0 || tags.includes(activeSkill);
     });
@@ -297,143 +252,6 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
       ? current.filter((x) => x !== id)
       : [...current, id].slice(0, 20);
     void saveSkillConfig({ libraryItemIds: next }, { silent: true });
-  };
-
-  const toggleNewSkillTag = (id: TAlterSkillId) => {
-    setNewSkillTags((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-  };
-
-  const toggleEditSkillTag = (id: TAlterSkillId) => {
-    setEditSkillTags((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-  };
-
-  const handleCreateItem = async () => {
-    try {
-      const { item, aiConfig: nextConfig } = await SchoolAPI.CSchoolAiLibraryItem(
-        {
-          params: { _id: schoolData._id },
-          data: {
-            kind: newKind,
-            title: newTitle.trim() || "제목 없음",
-            content: newContent,
-            skillTags: newSkillTags,
-          },
-        }
-      );
-      setLibrary((prev) => [item, ...prev]);
-      applyAiConfig(nextConfig);
-      setNewTitle("");
-      setNewContent("");
-      setNewSkillTags([]);
-      openItem(item, "view");
-      alert(
-        "저장되었습니다. 선택한 적용 스킬에 자동으로 연결되었습니다."
-      );
-    } catch (err) {
-      ALERT_ERROR(err);
-    }
-  };
-
-  const handleUpload = async (file: File) => {
-    try {
-      setIsUploading(true);
-      const form = new FormData();
-      form.append("file", file);
-      form.append("kind", newKind);
-      form.append("title", newTitle.trim() || file.name);
-      if (newSkillTags.length) {
-        form.append("skillTags", newSkillTags.join(","));
-      }
-      const { item, aiConfig: nextConfig, contentLength, extractWarning } =
-        await SchoolAPI.CSchoolAiLibraryUpload({
-          params: { _id: schoolData._id },
-          data: form,
-        });
-      setLibrary((prev) => [item, ...prev]);
-      applyAiConfig(nextConfig);
-      setNewTitle("");
-      setNewContent("");
-      openItem(item, "view");
-      const lengthNote =
-        typeof contentLength === "number"
-          ? `\n추출된 글자 수: ${contentLength.toLocaleString()}자`
-          : "";
-      alert(
-        extractWarning
-          ? `${extractWarning}${lengthNote}\n\n항목은 저장되었습니다. 선택한 적용 스킬에 자동으로 연결되었습니다.`
-          : `저장되었습니다. 선택한 적용 스킬에 자동으로 연결되었습니다.${lengthNote}`
-      );
-    } catch (err) {
-      ALERT_ERROR(err);
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
-
-  const handleSaveEditItem = async () => {
-    if (!editingItem) return;
-    try {
-      const { item, aiConfig: nextConfig } = await SchoolAPI.USchoolAiLibraryItem(
-        {
-          params: { _id: schoolData._id, itemId: editingItem._id },
-          data: {
-            kind: editKind,
-            title: editTitle.trim() || "제목 없음",
-            content: editContent,
-            skillTags: editSkillTags,
-          },
-        }
-      );
-      setLibrary((prev) =>
-        prev.map((row) => (row._id === item._id ? item : row))
-      );
-      applyAiConfig(nextConfig);
-      openItem(item, "view");
-      alert(SUCCESS_MESSAGE);
-    } catch (err) {
-      ALERT_ERROR(err);
-    }
-  };
-
-  const handleDeleteItem = async (itemId: string) => {
-    if (!window.confirm("이 라이브러리 항목을 삭제할까요?")) return;
-    try {
-      await SchoolAPI.DSchoolAiLibraryItem({
-        params: { _id: schoolData._id, itemId },
-      });
-      setLibrary((prev) => prev.filter((i) => i._id !== itemId));
-      if (editingItem?._id === itemId) closeItemPanel();
-      setAiConfig((prev) => {
-        const skills = { ...prev.skills };
-        for (const key of Object.keys(skills) as TAlterSkillId[]) {
-          const cfg = skills[key];
-          if (!cfg?.libraryItemIds) continue;
-          skills[key] = {
-            ...cfg,
-            libraryItemIds: cfg.libraryItemIds.filter((id) => id !== itemId),
-          };
-        }
-        return { ...prev, skills };
-      });
-    } catch (err) {
-      ALERT_ERROR(err);
-    }
-  };
-
-  const handleDownload = async (itemId: string) => {
-    try {
-      const { url } = await SchoolAPI.RSchoolAiLibraryDownload({
-        params: { _id: schoolData._id, itemId },
-      });
-      window.open(url, "_blank");
-    } catch (err) {
-      ALERT_ERROR(err);
-    }
   };
 
   if (loading) {
@@ -607,437 +425,31 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
         <section className={style.section}>
           <h4 className={style.sectionTitle}>라이브러리</h4>
           <p className={style.sectionHint}>
-            지침(프롬프트성 규칙)과 학습정보(참고 문서)를 등록합니다. 「적용
-            스킬」을 선택하면 해당 스킬에 바로 연결됩니다. 목록의 「보기」로
-            내용을 확인할 수 있습니다.
+            지침·학습정보는 Alter 라이브러리 페이지에서 만들고 고칩니다. 아래
+            스킬 설정에는 학교 공식 항목만 연결할 수 있습니다.
           </p>
-
-          <div className={style.filterRow} role="tablist" aria-label="라이브러리 유형 필터">
-            {(
-              [
-                ["all", "전체"],
-                ["instruction", "지침"],
-                ["learning", "학습정보"],
-              ] as const
-            ).map(([key, label]) => (
-              <button
-                key={key}
-                type="button"
-                role="tab"
-                aria-selected={kindFilter === key}
-                className={`${style.skillTab} ${
-                  kindFilter === key ? style.skillTabActive : ""
-                }`}
-                onClick={() => setKindFilter(key)}
-              >
-                {label}
-                <span className={style.filterCount}>{libraryCounts[key]}</span>
-              </button>
-            ))}
-          </div>
-
-          {filteredLibrary.length > 0 ? (
-            <ul className={style.libraryList}>
-              {filteredLibrary.map((item) => {
-                const isActive = editingItem?._id === item._id;
-                const tags = item.skillTags?.length
-                  ? item.skillTags.map(skillLabel)
-                  : ["모든 스킬"];
-                return (
-                  <li key={item._id}>
-                    <article
-                      className={`${style.libraryCard} ${
-                        isActive ? style.libraryCardActive : ""
-                      }`}
-                    >
-                      <div className={style.libraryCardBody}>
-                        <div className={style.libraryCardBadges}>
-                          <span
-                            className={`${style.kindBadge} ${
-                              item.kind === "instruction"
-                                ? style.kindBadgeInstruction
-                                : style.kindBadgeLearning
-                            }`}
-                          >
-                            {item.kind === "instruction" ? "지침" : "학습정보"}
-                          </span>
-                          <span className={style.sourceBadge}>
-                            {item.fileName ? "파일" : "직접 입력"}
-                          </span>
-                          {item.fileName ? (
-                            <span className={style.fileName} title={item.fileName}>
-                              {item.fileName}
-                            </span>
-                          ) : null}
-                        </div>
-                        <h5 className={style.libraryCardTitle}>
-                          {item.title || "(제목 없음)"}
-                        </h5>
-                        <div className={style.librarySkillChips}>
-                          {tags.map((tag) => (
-                            <span key={tag} className={style.chip}>
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                      <div className={style.libraryCardActions}>
-                        <button
-                          type="button"
-                          className={style.cardAction}
-                          onClick={() => openItem(item, "view")}
-                        >
-                          보기
-                        </button>
-                        <button
-                          type="button"
-                          className={style.cardAction}
-                          disabled={!item.fileKey}
-                          onClick={() => handleDownload(item._id)}
-                          title={
-                            item.fileKey
-                              ? "원본 파일 다운로드"
-                              : "업로드된 파일이 없습니다"
-                          }
-                        >
-                          파일
-                        </button>
-                        <button
-                          type="button"
-                          className={`${style.cardAction} ${style.cardActionDanger}`}
-                          onClick={() => handleDeleteItem(item._id)}
-                        >
-                          삭제
-                        </button>
-                      </div>
-                    </article>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className={style.emptyNote}>
-              {library.length === 0
-                ? "등록된 라이브러리 항목이 없습니다. 아래에서 지침이나 학습정보를 추가해 보세요."
-                : "이 유형의 항목이 없습니다."}
-            </p>
-          )}
-
-          {editingItem && (
-            <div className={style.editPanel}>
-              <p className={style.editPanelTitle}>
-                {editMode === "view" ? "등록된 내용" : "내용 수정"} ·{" "}
-                {editingItem.title || "(제목 없음)"}
-              </p>
-              {editMode === "view" ? (
-                <>
-                  <div className={style.libraryCardBadges}>
-                    <span
-                      className={`${style.kindBadge} ${
-                        editingItem.kind === "instruction"
-                          ? style.kindBadgeInstruction
-                          : style.kindBadgeLearning
-                      }`}
-                    >
-                      {editingItem.kind === "instruction"
-                        ? "지침"
-                        : "학습정보"}
-                    </span>
-                    <span className={style.sourceBadge}>
-                      {editingItem.fileName ? "파일" : "직접 입력"}
-                    </span>
-                  </div>
-                  <div className={style.librarySkillChips}>
-                    {(editingItem.skillTags?.length
-                      ? editingItem.skillTags.map(skillLabel)
-                      : ["모든 스킬"]
-                    ).map((tag) => (
-                      <span key={tag} className={style.chip}>
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                  <pre className={style.previewBox}>
-                    {editingItem.content?.trim()
-                      ? editingItem.content
-                      : "(내용 없음)"}
-                  </pre>
-                  <div className={style.actions}>
-                    <Button type="ghost" onClick={closeItemPanel}>
-                      닫기
-                    </Button>
-                    <Button
-                      type="ghost"
-                      onClick={() => setEditMode("edit")}
-                    >
-                      수정
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className={style.fieldBlock}>
-                    <span className={style.fieldLabel} id="edit-kind-label">
-                      유형
-                    </span>
-                    <div
-                      className={style.kindToggle}
-                      role="radiogroup"
-                      aria-labelledby="edit-kind-label"
-                    >
-                      <button
-                        type="button"
-                        role="radio"
-                        aria-checked={editKind === "instruction"}
-                        className={`${style.kindToggleBtn} ${
-                          editKind === "instruction"
-                            ? style.kindToggleBtnInstruction
-                            : ""
-                        }`}
-                        onClick={() => setEditKind("instruction")}
-                      >
-                        지침
-                      </button>
-                      <button
-                        type="button"
-                        role="radio"
-                        aria-checked={editKind === "learning"}
-                        className={`${style.kindToggleBtn} ${
-                          editKind === "learning"
-                            ? style.kindToggleBtnLearning
-                            : ""
-                        }`}
-                        onClick={() => setEditKind("learning")}
-                      >
-                        학습정보
-                      </button>
-                    </div>
-                  </div>
-                  <div className={style.fieldBlock}>
-                    <label className={style.fieldLabel} htmlFor="ai-lib-edit-title">
-                      제목
-                    </label>
-                    <input
-                      id="ai-lib-edit-title"
-                      className={style.input}
-                      value={editTitle}
-                      onChange={(e) => setEditTitle(e.target.value)}
-                    />
-                  </div>
-                  <div className={style.fieldBlock}>
-                    <label
-                      className={style.fieldLabel}
-                      htmlFor="ai-lib-edit-content"
-                    >
-                      내용
-                    </label>
-                    <textarea
-                      id="ai-lib-edit-content"
-                      className={style.fieldTextarea}
-                      value={editContent}
-                      onChange={(e) => setEditContent(e.target.value)}
-                      style={{ minHeight: 160 }}
-                    />
-                  </div>
-                  <div className={style.fieldBlock}>
-                    <span className={style.fieldLabel}>적용 스킬</span>
-                    <p className={style.fieldHint}>
-                      비우면 모든 스킬에 노출됩니다.
-                    </p>
-                    <div
-                      className={style.skillChipGrid}
-                      role="group"
-                      aria-label="적용 스킬"
-                    >
-                      {SKILLS.map((s) => {
-                        const active = editSkillTags.includes(s.id);
-                        return (
-                          <button
-                            key={s.id}
-                            type="button"
-                            className={`${style.skillChip} ${
-                              active ? style.skillChipActive : ""
-                            }`}
-                            aria-pressed={active}
-                            onClick={() => toggleEditSkillTag(s.id)}
-                          >
-                            {s.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  <div className={style.actions}>
-                    <Button
-                      type="ghost"
-                      onClick={() => openItem(editingItem, "view")}
-                    >
-                      취소
-                    </Button>
-                    <Button type="ghost" onClick={handleSaveEditItem}>
-                      저장
-                    </Button>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-
-          <div className={style.refForm}>
-            <div className={style.refFormHeader}>
-              <h5 className={style.refFormTitle}>항목 추가</h5>
-              <p className={style.refFormHint}>
-                목록에 새 지침·학습정보를 등록합니다.
-              </p>
-            </div>
-
-            <div className={style.fieldBlock}>
-              <span className={style.fieldLabel} id="new-kind-label">
-                유형
-              </span>
-              <div
-                className={style.kindToggle}
-                role="radiogroup"
-                aria-labelledby="new-kind-label"
-              >
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={newKind === "instruction"}
-                  className={`${style.kindToggleBtn} ${
-                    newKind === "instruction"
-                      ? style.kindToggleBtnInstruction
-                      : ""
-                  }`}
-                  onClick={() => setNewKind("instruction")}
-                >
-                  지침
-                </button>
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={newKind === "learning"}
-                  className={`${style.kindToggleBtn} ${
-                    newKind === "learning" ? style.kindToggleBtnLearning : ""
-                  }`}
-                  onClick={() => setNewKind("learning")}
-                >
-                  학습정보
-                </button>
-              </div>
-              <p className={style.fieldHint}>
-                {newKind === "instruction"
-                  ? "작성·점검 규칙으로 AI 지침에 들어갑니다."
-                  : "배경·참고 자료로 AI 프롬프트에 붙습니다."}
-              </p>
-            </div>
-
-            <div className={style.fieldBlock}>
-              <label className={style.fieldLabel} htmlFor="ai-lib-new-title">
-                제목
-              </label>
-              <input
-                id="ai-lib-new-title"
-                className={style.input}
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                placeholder={
-                  newKind === "instruction"
-                    ? "예: 평가 문체 가이드"
-                    : "예: 학교 교육과정 요약"
-                }
-              />
-            </div>
-
-            <div className={style.fieldBlock}>
-              <label className={style.fieldLabel} htmlFor="ai-lib-new-content">
-                내용
-              </label>
-              <textarea
-                id="ai-lib-new-content"
-                className={style.fieldTextarea}
-                value={newContent}
-                onChange={(e) => setNewContent(e.target.value)}
-                placeholder="텍스트로 직접 입력하세요. 파일로 추가하면 이 내용은 사용되지 않습니다."
-                disabled={isUploading}
-              />
-            </div>
-
-            <div className={style.fieldBlock}>
-              <span className={style.fieldLabel}>적용 스킬</span>
-              <p className={style.fieldHint}>
-                선택 시 해당 스킬에 자동 연결됩니다. 비우면 모든 스킬에
-                노출됩니다.
-              </p>
-              <div
-                className={style.skillChipGrid}
-                role="group"
-                aria-label="적용 스킬"
-              >
-                {newSkillTags.length === 0 ? (
-                  <span className={`${style.skillChip} ${style.skillChipMuted}`}>
-                    모든 스킬
-                  </span>
-                ) : null}
-                {SKILLS.map((s) => {
-                  const active = newSkillTags.includes(s.id);
-                  return (
-                    <button
-                      key={s.id}
-                      type="button"
-                      className={`${style.skillChip} ${
-                        active ? style.skillChipActive : ""
-                      }`}
-                      aria-pressed={active}
-                      onClick={() => toggleNewSkillTag(s.id)}
-                    >
-                      {s.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className={style.refFormActions}>
-              <div className={style.refFormFileSide}>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".pdf,.docx,.txt,.hwp"
-                  style={{ display: "none" }}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleUpload(file);
-                  }}
-                />
-                <Button
-                  type="ghost"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading}
-                  loading={isUploading}
-                >
-                  파일로 추가
-                </Button>
-                <p className={style.fileFormatHint}>
-                  PDF, DOCX, TXT, HWP · 최대 10MB · 텍스트 추출 후 저장(긴
-                  문서는 앞부분·검색용 청크로 보관). 스캔 PDF는 추출이 거의 안 될
-                  수 있습니다.
-                </p>
-              </div>
-              <Button type="ghost" onClick={handleCreateItem} disabled={isUploading}>
-                텍스트로 추가
-              </Button>
-            </div>
-          </div>
+          <Button
+            type="ghost"
+            onClick={() => {
+              const academyId = currentUser?.academyId;
+              const schoolId = schoolData.schoolId;
+              if (academyId && schoolId) {
+                navigate(`/${academyId}/${schoolId}/library`);
+              } else {
+                navigate("/library");
+              }
+            }}
+          >
+            라이브러리 열기
+          </Button>
         </section>
 
         <section className={style.section}>
           <h4 className={style.sectionTitle}>스킬 설정</h4>
           <p className={style.sectionHint}>
-            지침과 학습정보는 위 라이브러리에 등록한 뒤, 스킬별로 적용할 항목을
-            선택합니다. 라이브러리 등록 시 적용 스킬을 지정하면 아래에 자동으로
-            체크됩니다. 여기서 체크하거나 적용 스킬 태그가 달린 항목만 Alter
-            작성 지침에 나타납니다.
+            학교 공식 지침·학습정보를 스킬별로 연결합니다. 항목은 Alter
+            라이브러리에서 등록합니다. 여기서 체크하거나 적용 스킬 태그가 달린
+            공식 항목만 Alter 작성 지침에 나타납니다.
           </p>
 
           <div className={style.skillTabs}>
@@ -1063,8 +475,8 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
             <span className={style.fieldLabel}>적용할 라이브러리 항목</span>
             {libraryForSkill.length === 0 ? (
               <p className={style.emptyNote}>
-                이 스킬에 노출된 라이브러리 항목이 없습니다. 위에서 지침·학습정보를
-                등록해 주세요.
+                이 스킬에 연결할 학교 공식 항목이 없습니다. 라이브러리에서
+                지침·학습정보를 등록해 주세요.
               </p>
             ) : (
               <div className={style.listPanel}>
