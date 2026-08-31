@@ -50,13 +50,17 @@ type Props = {
  */
 
 const Select = (props: Props) => {
-  const [selected, setSelected] = useState<number>(
-    props.defaultSelectedValue
-      ? props.options?.findIndex((e) => e.value === props.defaultSelectedValue)
-      : props.defaultSelectedIndex
-      ? props.defaultSelectedIndex
-      : 0
-  );
+  const [selected, setSelected] = useState<number>(() => {
+    const target = props.selectedValue ?? props.defaultSelectedValue;
+    if (target !== undefined && target !== "") {
+      const idx = props.options?.findIndex(
+        (e) => String(e.value) === String(target)
+      );
+      if (idx !== undefined && idx !== -1) return idx;
+    }
+    if (props.defaultSelectedIndex) return props.defaultSelectedIndex;
+    return 0;
+  });
 
   const [edit, setEdit] = useState<boolean>(false);
   const selectRef = useRef<HTMLDivElement>(null);
@@ -76,12 +80,12 @@ const Select = (props: Props) => {
   }, []);
 
   useEffect(() => {
-    if (props.selectedValue) {
-      setSelected(
-        props.options.findIndex((val) => val.value === props.selectedValue)
-      );
-    }
-  }, [props.selectedValue]);
+    if (props.selectedValue === undefined || props.selectedValue === "") return;
+    const idx = props.options.findIndex(
+      (val) => String(val.value) === String(props.selectedValue)
+    );
+    if (idx !== -1) setSelected((prev) => (prev === idx ? prev : idx));
+  }, [props.selectedValue, props.options]);
 
   useEffect(() => {
     if (props.onEdit) {

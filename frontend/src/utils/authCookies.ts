@@ -1,3 +1,5 @@
+import { clearLastContext } from "./lastContext";
+
 export const SESSION_COOKIE_OPTS = {
   path: "/",
   maxAge: 24 * 60 * 60, // 24 hours (seconds)
@@ -16,4 +18,5 @@ export function clearAuthClientCookies(
   for (const name of CLIENT_AUTH_COOKIES) {
     removeCookie(name, { path: "/" });
   }
+  clearLastContext();
 }
