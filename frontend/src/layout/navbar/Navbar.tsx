@@ -34,7 +34,8 @@ const Navbar = (props: Props) => {
         const seasonOptions =
           currentUser?.registrations
             ?.filter(
-              (registration) => registration.school === currentSchool?._id
+              (registration) =>
+                String(registration.school) === String(currentSchool?._id)
             )
             .map((value: any) => ({
               text: `${value.year} ${value.term}`,
@@ -46,7 +47,7 @@ const Navbar = (props: Props) => {
             <Select
               appearence="flat"
               options={seasonOptions}
-              defaultSelectedValue={currentRegistration?._id}
+              selectedValue={currentRegistration?._id}
               onChange={(value: any) => {
                 changeRegistration(value);
               }}

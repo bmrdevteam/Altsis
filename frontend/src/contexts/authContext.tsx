@@ -15,6 +15,13 @@ import useAPIv2 from "hooks/useAPIv2";
 import { TSchool } from "types/schools";
 import { SESSION_COOKIE_OPTS, clearAuthClientCookies } from "utils/authCookies";
 import {
+  lastRegistrationFor,
+  lastSchool,
+  pickRegistration,
+  rememberRegistration,
+  rememberSchool,
+} from "utils/lastContext";
+import {
   decideResumeSessionCheck,
   isSessionAuthFailure,
   loginPathForAcademy,
@@ -82,15 +89,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setCurrentUser({ ...user });
     document.title = user.academyName;
 
-    /* set currentSchool using cookie */
+    /* set currentSchool: localStorage → cookie → first school */
     let schoolIdx = 0;
-    if (cookies.currentSchool) {
+    const savedSchoolId = lastSchool() || cookies.currentSchool;
+    if (savedSchoolId) {
       const idx = user.schools.findIndex(
-        (s: { school: string }) =>
-          String(s.school) === String(cookies.currentSchool)
+        (s: { school: string }) => String(s.school) === String(savedSchoolId)
       );
       if (idx !== -1) schoolIdx = idx;
-      else removeCookie("currentSchool", SESSION_COOKIE_OPTS);
+      else if (cookies.currentSchool) {
+        removeCookie("currentSchool", SESSION_COOKIE_OPTS);
+      }
     }
 
     if (user.schools.length > schoolIdx) {
@@ -99,37 +108,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
       setCurrentSchool({ ...school, school: school._id, academyFeatures });
       setCookie("currentSchool", school._id, SESSION_COOKIE_OPTS);
+      rememberSchool(school._id);
       document.title = school.schoolName;
-    }
 
-    /* set currentRegistration using cookie */
-    const re = user.registrations.filter(
-      (r: any) => r.school === user.schools[schoolIdx].school
-    );
-
-    let registrationIdx = 0;
-    if (cookies.currentRegistration) {
-      const idx = re.findIndex(
-        (r: { _id: string }) =>
-          String(r._id) === String(cookies.currentRegistration)
-      );
-      if (idx !== -1) registrationIdx = idx;
-      else removeCookie("currentRegistration", SESSION_COOKIE_OPTS);
-    }
-
-    if (re.length > registrationIdx) {
-      setCurrentRegistration(re[registrationIdx]);
-      setCookie(
-        "currentRegistration",
-        re[registrationIdx]._id,
-        SESSION_COOKIE_OPTS
+      const schoolKey = String(school._id);
+      const re = user.registrations.filter(
+        (r: any) => String(r.school) === schoolKey
       );
 
-      SeasonAPI.RSeason({ params: { _id: re[registrationIdx].season } }).then(
-        ({ season }) => {
-          setCurrentSeason(season);
-        }
-      );
+      const savedRegId =
+        lastRegistrationFor(schoolKey) || cookies.currentRegistration;
+      const savedReg = savedRegId
+        ? re.find((r: { _id: string }) => String(r._id) === String(savedRegId))
+        : undefined;
+      const nextReg = savedReg ?? pickRegistration(re);
+
+      if (nextReg) {
+        setCurrentRegistration(nextReg);
+        setCookie("currentRegistration", nextReg._id, SESSION_COOKIE_OPTS);
+        rememberRegistration(schoolKey, nextReg._id);
+        SeasonAPI.RSeason({ params: { _id: nextReg.season } }).then(
+          ({ season }) => {
+            setCurrentSeason(season);
+          }
+        );
+      } else if (cookies.currentRegistration) {
+        removeCookie("currentRegistration", SESSION_COOKIE_OPTS);
+      }
     }
   }
 
@@ -188,24 +193,40 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   async function changeSchool(to: string) {
-    const { school, academyFeatures } = await SchoolAPI.RSchool({ params: { _id: to } });
+    const { school, academyFeatures } = await SchoolAPI.RSchool({
+      params: { _id: to },
+    });
+    const schoolKey = String(school._id);
     setCurrentSchool({ ...school, school: school._id, academyFeatures });
     setCookie("currentSchool", school._id, SESSION_COOKIE_OPTS);
-    removeCookie("currentRegistration", SESSION_COOKIE_OPTS);
+    rememberSchool(schoolKey);
     document.title = school.schoolName;
 
-    const re =
-      currentUser?.registrations.filter((reg) => reg.school === school._id) ??
-      [];
+    if (String(currentSchool?._id) === schoolKey) {
+      return;
+    }
 
-    if (re.length > 0) {
-      setCookie("currentRegistration", re[0]._id, SESSION_COOKIE_OPTS);
-      setCurrentRegistration(re[0]);
+    const re =
+      currentUser?.registrations.filter(
+        (reg) => String(reg.school) === schoolKey
+      ) ?? [];
+
+    const savedRegId = lastRegistrationFor(schoolKey);
+    const savedReg = savedRegId
+      ? re.find((reg) => String(reg._id) === String(savedRegId))
+      : undefined;
+    const nextReg = savedReg ?? pickRegistration(re);
+
+    if (nextReg) {
+      setCookie("currentRegistration", nextReg._id, SESSION_COOKIE_OPTS);
+      rememberRegistration(schoolKey, nextReg._id);
+      setCurrentRegistration(nextReg);
       const { season } = await SeasonAPI.RSeason({
-        params: { _id: re[0].season },
+        params: { _id: nextReg.season },
       });
       setCurrentSeason(season);
     } else {
+      removeCookie("currentRegistration", SESSION_COOKIE_OPTS);
       setCurrentRegistration(undefined);
       setCurrentSeason(undefined);
     }
@@ -222,12 +243,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   async function changeRegistration(rid: string) {
     const registration = _.find(
       currentUser?.registrations,
-      (reg) => reg._id === rid
+      (reg) => String(reg._id) === String(rid)
     );
     if (!registration) return;
 
     setCurrentRegistration(registration);
     setCookie("currentRegistration", registration._id, SESSION_COOKIE_OPTS);
+    const schoolKey = String(
+      registration.school || currentSchool?._id || ""
+    );
+    if (schoolKey) {
+      rememberRegistration(schoolKey, registration._id);
+    }
 
     const { season } = await SeasonAPI.RSeason({
       params: { _id: registration.season },
