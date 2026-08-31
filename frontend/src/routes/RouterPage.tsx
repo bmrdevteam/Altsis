@@ -66,6 +66,7 @@ import { AlterProvider } from "contexts/alterContext";
 
 //hooks
 import { useAuth } from "../contexts/authContext";
+import { homeSchoolId } from "utils/lastContext";
 
 import Settings from "../pages/settings/Index";
 import GoalsDashboard from "pages/goals/Index";
@@ -113,8 +114,7 @@ const LegacyRedirect = () => {
   const location = useLocation();
 
   if (currentUser?.academyId) {
-    const schoolId =
-      currentSchool?.schoolId || currentUser.schools?.[0]?.schoolId;
+    const schoolId = homeSchoolId(currentUser, currentSchool);
     if (schoolId) {
       const homePath = `/${currentUser.academyId}/${schoolId}/`;
 
@@ -152,8 +152,7 @@ const AdminFallback = () => {
   if (!currentUser) return <Navigate to="/login" replace />;
 
   // If user has a school available, redirect to the prefixed URL
-  const schoolId =
-    currentSchool?.schoolId || currentUser.schools?.[0]?.schoolId;
+  const schoolId = homeSchoolId(currentUser, currentSchool);
   if (schoolId) {
     return (
       <Navigate
@@ -177,8 +176,7 @@ function RouterPage() {
   /** Home path for authenticated users (used to redirect away from login) */
   const getHomePath = (): string => {
     if (!currentUser) return "/login";
-    const schoolId =
-      currentSchool?.schoolId || currentUser.schools?.[0]?.schoolId;
+    const schoolId = homeSchoolId(currentUser, currentSchool);
     if (schoolId) return `/${currentUser.academyId}/${schoolId}/`;
     if (["admin", "manager"].includes(currentUser.auth))
       return "/admin/schools/list";
