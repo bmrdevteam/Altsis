@@ -509,4 +509,61 @@ describe("resolveSkillPromptPack", () => {
     expect(pack.guidelines).not.toMatch(/학습목표/);
     expect(pack.guidelines).not.toMatch(/평가 정합성/);
   });
+
+  test("스킬 프롬프트 팩은 학교 공식 항목만 조회한다", async () => {
+    mockFindLean.mockResolvedValue([]);
+    await resolveSkillPromptPack(
+      "academy1",
+      {
+        _id: "school1",
+        aiConfig: {
+          skills: {
+            [SKILL_IDS.CHAT]: { libraryItemIds: ["lib1"] },
+          },
+        },
+      },
+      { aiSettings: {} },
+      SKILL_IDS.CHAT
+    );
+    expect(mockFind).toHaveBeenCalledWith(
+      expect.objectContaining({
+        school: "school1",
+        $or: expect.arrayContaining([{ visibility: "school" }]),
+      })
+    );
+  });
+
+  test("prep 학습정보 조회는 교사 본인 personal·shared만 합친다", async () => {
+    mockFindLean.mockResolvedValue([]);
+    await resolveSkillPrepSettings(
+      "academy1",
+      {
+        _id: "school1",
+        aiConfig: {
+          skills: {
+            [SKILL_IDS.DOCUMENT_REVIEW]: { libraryItemIds: [] },
+          },
+        },
+      },
+      { aiSettings: {} },
+      SKILL_IDS.DOCUMENT_REVIEW,
+      { userId: "teacher-1", isTeacher: true }
+    );
+    const learningQuery = mockFind.mock.calls
+      .map((c) => c[0])
+      .find((q) => q && q.kind === "learning");
+    expect(learningQuery.$or).toEqual(
+      expect.arrayContaining([
+        { visibility: "shared" },
+        { visibility: "personal", owner: "teacher-1" },
+      ])
+    );
+    const instructionQuery = mockFind.mock.calls
+      .map((c) => c[0])
+      .find((q) => q && q.kind === "instruction");
+    expect(instructionQuery.$or).toEqual(
+      expect.arrayContaining([{ visibility: "school" }])
+    );
+    expect(JSON.stringify(instructionQuery)).not.toContain("personal");
+  });
 });

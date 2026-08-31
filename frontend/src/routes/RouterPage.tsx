@@ -78,6 +78,7 @@ import ArchiveField from "pages/archive/Pid";
 import ArchiveViewer from "pages/archiveViewer/Index";
 import ArchiveViwerField from "pages/archiveViewer/Pid";
 import Docs from "pages/docs/Index";
+import AlterLibrary from "pages/alterLibrary/Index";
 import Guide from "pages/guide/Index";
 import ChooseAcademy from "pages/login/ChooseAcademy";
 import Dev from "pages/dev/Index";
@@ -324,6 +325,7 @@ function RouterPage() {
             <Route path="archive/*" element={<LegacyRedirect />} />
             <Route path="myArchive/*" element={<LegacyRedirect />} />
             <Route path="docs" element={<LegacyRedirect />} />
+            <Route path="library" element={<LegacyRedirect />} />
             <Route path="notifications" element={<LegacyRedirect />} />
             <Route path="chat" element={<LegacyRedirect />} />
             <Route path="boards/*" element={<LegacyRedirect />} />
@@ -625,6 +627,14 @@ function RouterPage() {
                 element={
                   <RequireAuth>
                     <Docs />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
+                path="library"
+                element={
+                  <RequireAuth>
+                    <AlterLibrary />
                   </RequireAuth>
                 }
               ></Route>

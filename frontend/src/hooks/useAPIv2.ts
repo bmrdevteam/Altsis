@@ -4964,6 +4964,116 @@ export default function useAPIv2() {
     };
   }
 
+  const aiLibraryQs = (query?: {
+    school?: string;
+    season?: string;
+    kind?: string;
+    visibility?: string;
+  }) => {
+    const q = new URLSearchParams();
+    if (query?.school) q.set("school", query.school);
+    if (query?.season) q.set("season", query.season);
+    if (query?.kind) q.set("kind", query.kind);
+    if (query?.visibility) q.set("visibility", query.visibility);
+    const s = q.toString();
+    return s ? `?${s}` : "";
+  };
+
+  async function RAiLibrary(props: {
+    query: {
+      school: string;
+      season?: string;
+      kind?: "instruction" | "learning";
+      visibility?: "school" | "shared" | "personal";
+    };
+  }) {
+    const { items } = await database.R({
+      location: `ai/library${aiLibraryQs(props.query)}`,
+    });
+    return { items: items as TAiLibraryItem[] };
+  }
+
+  async function CAiLibraryItem(props: {
+    data: {
+      school: string;
+      season?: string;
+      kind?: "instruction" | "learning";
+      visibility?: "school" | "shared" | "personal";
+      title?: string;
+      content?: string;
+      skillTags?: string[];
+    };
+  }) {
+    const { item, aiConfig } = await database.C({
+      location: `ai/library`,
+      data: props.data,
+    });
+    return {
+      item: item as TAiLibraryItem,
+      aiConfig: aiConfig as TSchoolAiConfig | undefined,
+    };
+  }
+
+  async function UAiLibraryItem(props: {
+    params: { itemId: string };
+    data: {
+      school: string;
+      season?: string;
+      kind?: "instruction" | "learning";
+      visibility?: "school" | "shared" | "personal";
+      title?: string;
+      content?: string;
+      skillTags?: string[];
+    };
+  }) {
+    const { item, aiConfig } = await database.U({
+      location: `ai/library/${props.params.itemId}`,
+      data: props.data,
+    });
+    return {
+      item: item as TAiLibraryItem,
+      aiConfig: aiConfig as TSchoolAiConfig | undefined,
+    };
+  }
+
+  async function DAiLibraryItem(props: {
+    params: { itemId: string };
+    query: { school: string; season?: string };
+  }) {
+    await database.D({
+      location: `ai/library/${props.params.itemId}${aiLibraryQs(props.query)}`,
+    });
+    return { success: true as const };
+  }
+
+  async function CAiLibraryUpload(props: {
+    query: { school: string; season?: string };
+    data: FormData;
+  }) {
+    const { item, aiConfig, contentLength, extractWarning } = await database.C({
+      location: `ai/library/upload${aiLibraryQs(props.query)}`,
+      data: props.data,
+    });
+    return {
+      item: item as TAiLibraryItem,
+      aiConfig: aiConfig as TSchoolAiConfig | undefined,
+      contentLength: contentLength as number | undefined,
+      extractWarning: extractWarning as string | undefined,
+    };
+  }
+
+  async function RAiLibraryDownload(props: {
+    params: { itemId: string };
+    query: { school: string; season?: string };
+  }) {
+    const { url } = await database.R({
+      location: `ai/library/${props.params.itemId}/download${aiLibraryQs(
+        props.query
+      )}`,
+    });
+    return { url: url as string };
+  }
+
   /**
    * CReminder API
    * @description 리마인더 생성 API
@@ -5887,6 +5997,12 @@ export default function useAPIv2() {
       GenerateGuidelinesTemplate,
       TestAiApiKey,
       ListAiModels,
+      RAiLibrary,
+      CAiLibraryItem,
+      UAiLibraryItem,
+      DAiLibraryItem,
+      CAiLibraryUpload,
+      RAiLibraryDownload,
     },
 
     AltFormAPI: {
