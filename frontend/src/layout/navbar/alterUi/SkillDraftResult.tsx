@@ -923,9 +923,18 @@ const SkillDraftResult = ({
   }
 
   if (draft && isAssessmentGradeDraft(draft)) {
-    const fieldEntries = Object.entries(draft.byField || {});
     const gradeFields =
       pageContext?.getAssessmentGradeContext?.()?.fields || [];
+    const batchRows =
+      Array.isArray(draft.rows) && draft.rows.length > 1 ? draft.rows : null;
+    const single = batchRows
+      ? null
+      : {
+          byField:
+            draft.rows?.[0]?.byField || draft.byField || {},
+          final: draft.rows?.[0]?.final || draft.final,
+        };
+    const fieldEntries = Object.entries(single?.byField || {});
     const current = pageContext?.getAssessmentGradeContext?.()?.currentDraft;
     let fill = 0;
     let skip = 0;
@@ -951,21 +960,40 @@ const SkillDraftResult = ({
           variant: "neutral",
         }}
         summary={
-          <>
-            항목 {fieldEntries.length}개
-            {fill > 0 || skip > 0
-              ? ` · 반영 예정 ${fill}${skip > 0 ? ` · 건너뜀 ${skip}` : ""}`
-              : ""}
-          </>
+          batchRows ? (
+            <>
+              {batchRows.length}명
+            </>
+          ) : (
+            <>
+              항목 {fieldEntries.length}개
+              {fill > 0 || skip > 0
+                ? ` · 반영 예정 ${fill}${skip > 0 ? ` · 건너뜀 ${skip}` : ""}`
+                : ""}
+            </>
+          )
         }
         source={
           <pre>
-            {draft.final?.comment
-              ? `총평\n${draft.final.comment}\n\n`
-              : ""}
-            {fieldEntries
-              .map(([fid, g]) => `${fid}\n${g.comment || ""}`)
-              .join("\n\n")}
+            {batchRows
+              ? batchRows
+                  .map((row) => {
+                    const name = [
+                      row.respondentName,
+                      row.respondentId ? `(${row.respondentId})` : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ");
+                    return `${name || row.rowId}\n${row.final?.comment || ""}`;
+                  })
+                  .join("\n\n")
+              : `${
+                  single?.final?.comment
+                    ? `총평\n${single.final.comment}\n\n`
+                    : ""
+                }${fieldEntries
+                  .map(([fid, g]) => `${fid}\n${g.comment || ""}`)
+                  .join("\n\n")}`}
           </pre>
         }
         actions={
@@ -977,53 +1005,95 @@ const SkillDraftResult = ({
           />
         }
       >
-        {draft.final?.comment ? (
-          <div className={style.draftFieldBlock}>
-            <p className={style.draftFieldLabel}>총평</p>
-            {looksLikeRichDraftText(draft.final.comment) ? (
-              <DraftRichBody content={draft.final.comment} />
-            ) : (
-              <p className={style.draftFieldValue}>{draft.final.comment}</p>
-            )}
-          </div>
-        ) : null}
-        <div className={style.draftPreviewList}>
-          {fieldEntries.map(([fid, g], idx) => {
-            const fieldMeta = gradeFields.find((f) => f.fieldId === fid);
-            const rawLabel = fieldMeta?.label || "";
-            const label =
-              rawLabel && !looksLikeUuid(rawLabel)
-                ? rawLabel
-                : rawLabel || `문항 ${idx + 1}`;
-            const comment = String(g.comment || "").trim();
-            return (
-              <div key={fid} className={style.draftFieldBlock}>
-                <p className={style.draftFieldLabel}>{label}</p>
-                <div className={style.draftOptionList}>
-                  {g.score != null ? (
-                    <span className={style.skillTag}>점수 {g.score}</span>
-                  ) : null}
-                  {Object.entries(g.byRubric || {}).map(([rid, rg]) => {
-                    const rubric = fieldMeta?.rubrics?.find((r) => r.id === rid);
-                    const lv = rubric?.levels?.find((l) => l.id === rg.levelId);
-                    return (
-                      <span key={rid} className={style.skillTag}>
-                        {lv?.label || rg.levelId || "수준"}
+        {batchRows ? (
+          <div className={style.draftPreviewList}>
+            {batchRows.map((row) => {
+              const name = [
+                row.respondentName,
+                row.respondentId ? `(${row.respondentId})` : "",
+              ]
+                .filter(Boolean)
+                .join(" ");
+              const comment = String(row.final?.comment || "").trim();
+              const scores = Object.values(row.byField || {}).filter(
+                (g) => g.score != null
+              );
+              return (
+                <div key={row.rowId} className={style.draftFieldBlock}>
+                  <p className={style.draftFieldLabel}>{name || "응답"}</p>
+                  <div className={style.draftOptionList}>
+                    {scores.map((g, idx) => (
+                      <span key={`${row.rowId}-${idx}`} className={style.skillTag}>
+                        점수 {g.score}
                       </span>
-                    );
-                  })}
+                    ))}
+                  </div>
+                  {comment ? (
+                    looksLikeRichDraftText(comment) ? (
+                      <DraftRichBody content={comment} />
+                    ) : (
+                      <p className={style.draftFieldValue}>{comment}</p>
+                    )
+                  ) : null}
                 </div>
-                {comment ? (
-                  looksLikeRichDraftText(comment) ? (
-                    <DraftRichBody content={comment} />
-                  ) : (
-                    <p className={style.draftFieldValue}>{comment}</p>
-                  )
-                ) : null}
+              );
+            })}
+          </div>
+        ) : (
+          <>
+            {single?.final?.comment ? (
+              <div className={style.draftFieldBlock}>
+                <p className={style.draftFieldLabel}>총평</p>
+                {looksLikeRichDraftText(single.final.comment) ? (
+                  <DraftRichBody content={single.final.comment} />
+                ) : (
+                  <p className={style.draftFieldValue}>{single.final.comment}</p>
+                )}
               </div>
-            );
-          })}
-        </div>
+            ) : null}
+            <div className={style.draftPreviewList}>
+              {fieldEntries.map(([fid, g], idx) => {
+                const fieldMeta = gradeFields.find((f) => f.fieldId === fid);
+                const rawLabel = fieldMeta?.label || "";
+                const label =
+                  rawLabel && !looksLikeUuid(rawLabel)
+                    ? rawLabel
+                    : rawLabel || `문항 ${idx + 1}`;
+                const comment = String(g.comment || "").trim();
+                return (
+                  <div key={fid} className={style.draftFieldBlock}>
+                    <p className={style.draftFieldLabel}>{label}</p>
+                    <div className={style.draftOptionList}>
+                      {g.score != null ? (
+                        <span className={style.skillTag}>점수 {g.score}</span>
+                      ) : null}
+                      {Object.entries(g.byRubric || {}).map(([rid, rg]) => {
+                        const rubric = fieldMeta?.rubrics?.find(
+                          (r) => r.id === rid
+                        );
+                        const lv = rubric?.levels?.find(
+                          (l) => l.id === rg.levelId
+                        );
+                        return (
+                          <span key={rid} className={style.skillTag}>
+                            {lv?.label || rg.levelId || "수준"}
+                          </span>
+                        );
+                      })}
+                    </div>
+                    {comment ? (
+                      looksLikeRichDraftText(comment) ? (
+                        <DraftRichBody content={comment} />
+                      ) : (
+                        <p className={style.draftFieldValue}>{comment}</p>
+                      )
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
       </DraftPreviewShell>
     );
   }

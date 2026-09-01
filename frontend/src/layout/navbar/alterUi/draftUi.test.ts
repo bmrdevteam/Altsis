@@ -172,6 +172,7 @@ describe("alterModeLabel / prep summary", () => {
   test("default collapse for dense prep skills", () => {
     expect(shouldDefaultCollapsePrep("evaluation-draft")).toBe(true);
     expect(shouldDefaultCollapsePrep("archive-draft")).toBe(true);
+    expect(shouldDefaultCollapsePrep("assessment-grade")).toBe(true);
     expect(shouldDefaultCollapsePrep("document-draft")).toBe(false);
     expect(shouldDefaultCollapsePrep("chat")).toBe(false);
   });
@@ -219,6 +220,13 @@ describe("alterModeLabel / prep summary", () => {
         searchSeasonScope: "season",
       })
     ).toEqual(["현재 학기"]);
+    expect(
+      buildPrepSummaryParts({
+        prepKind: "assessment-grade",
+        gradeStudentCount: 8,
+        gradeFillEmptyOnly: true,
+      })
+    ).toEqual(["학생 8", "빈 칸만"]);
   });
 
   test("adminFormTypeLabel", () => {

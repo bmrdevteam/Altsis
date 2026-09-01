@@ -1,4 +1,6 @@
 import {
+  isAssessmentRowEmptyForGrade,
+  isEmptyGradeDraft,
   mergeAssessmentGradeDraft,
   normalizeAssessmentGradeDraft,
 } from "./assessmentGradeDraft";
@@ -83,5 +85,38 @@ describe("mergeAssessmentGradeDraft", () => {
     expect(merged.byField.f1?.byRubric?.r1?.levelId).toBe("lv2");
     expect(merged.byField.f2?.score).toBe(3);
     expect(merged.final.comment).toBe("기존");
+  });
+});
+
+describe("isEmptyGradeDraft / isAssessmentRowEmptyForGrade", () => {
+  test("empty draft and ungraded row", () => {
+    expect(isEmptyGradeDraft({ byField: {}, final: {} })).toBe(true);
+    expect(
+      isEmptyGradeDraft({
+        byField: { f1: { comment: "있음" } },
+        final: {},
+      })
+    ).toBe(false);
+    expect(isAssessmentRowEmptyForGrade({ data: {} })).toBe(true);
+    expect(
+      isAssessmentRowEmptyForGrade({
+        data: {
+          _assessment: { byField: {}, final: { status: "finalized" } },
+        },
+      })
+    ).toBe(false);
+    expect(
+      isAssessmentRowEmptyForGrade({
+        data: {
+          _assessment: {
+            byField: { f1: { score: 2 } },
+            final: { status: "draft" },
+          },
+        },
+      })
+    ).toBe(false);
+    expect(isAssessmentRowEmptyForGrade({ isDraft: true, data: {} })).toBe(
+      false
+    );
   });
 });

@@ -88,6 +88,22 @@ export type TAlterAssessmentGradeDraft = {
   byField?: TAlterAssessmentGradeContext["currentDraft"]["byField"];
   final?: { comment?: string };
   fillEmptyOnly?: boolean;
+  rows?: Array<{
+    rowId: string;
+    respondentName?: string;
+    respondentId?: string;
+    byField?: TAlterAssessmentGradeContext["currentDraft"]["byField"];
+    final?: { comment?: string };
+  }>;
+};
+
+export type TAlterAssessmentGradeRow = {
+  rowId: string;
+  respondentName?: string;
+  respondentId?: string;
+  finalized: boolean;
+  empty: boolean;
+  currentDraft: TAlterAssessmentGradeContext["currentDraft"];
 };
 
 export type TAlterActivitySnapshot = {
@@ -249,10 +265,13 @@ export type TAlterPageContext = {
   getForm?: () => TAlterFormSnapshot;
   applyFormDraft?: (draft: TAlterFormDraft) => { applied: boolean };
   getAssessmentGradeContext?: () => TAlterAssessmentGradeContext;
+  getAssessmentGradeRows?: () => TAlterAssessmentGradeRow[];
   applyGradeDraft?: (
     draft: TAlterAssessmentGradeDraft,
     opts?: { fillEmptyOnly?: boolean }
-  ) => { applied: boolean };
+  ) =>
+    | { applied: boolean; appliedCount?: number; skipped?: number }
+    | Promise<{ applied: boolean; appliedCount?: number; skipped?: number }>;
   suggestedSkills: TAlterSkillId[];
 };
 

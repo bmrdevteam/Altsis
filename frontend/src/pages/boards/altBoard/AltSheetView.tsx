@@ -851,9 +851,8 @@ const AltSheetView = ({
   const inAssessmentGradeMode =
     !!canManageSelected &&
     !!isAssessment &&
-    viewMode === "doc" &&
     !!selectedForm &&
-    !!currentDocRow;
+    filteredRows.some((r) => !r.isDraft);
 
   useRegisterAlterSnapshot({
     enabled: !!selectedForm && !inAssessmentGradeMode,
@@ -882,9 +881,21 @@ const AltSheetView = ({
   useRegisterAlterAssessmentGrade({
     enabled: inAssessmentGradeMode,
     form: selectedForm,
-    row: currentDocRow,
+    rows: filteredRows,
+    currentRow: currentDocRow,
     gradeDraft,
     setGradeDraft,
+    setRows,
+    persistGrade: async (rowId, draft) => {
+      const { row } = await AltSheetRowAPI.UAltSheetRowAssessment({
+        params: { _id: rowId },
+        data: {
+          byField: draft.byField,
+          final: draft.final,
+        },
+      });
+      return row;
+    },
     boardName,
   });
 

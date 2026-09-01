@@ -290,6 +290,8 @@ const AlterPanel = ({ onClose }: Props) => {
   // 기본: 자기평가·기존 멘토평가를 종합해 멘토평가를 덮어쓰는 흐름
   const [evalFillEmptyOnly, setEvalFillEmptyOnly] = useState(false);
   const [gradeFillEmptyOnly, setGradeFillEmptyOnly] = useState(false);
+  const [gradeScope, setGradeScope] = useState<"empty" | "all">("empty");
+  const [gradeSelectedRowIds, setGradeSelectedRowIds] = useState<string[]>([]);
   const [searchSeasonScope, setSearchSeasonScope] =
     useState<TSearchSeasonScope>("current");
   const [evalScope, setEvalScope] = useState<"empty" | "all">("all");
@@ -790,6 +792,48 @@ const AlterPanel = ({ onClose }: Props) => {
       .slice(0, EVAL_DRAFT_MAX);
   }, [archiveSelectedStudentIds, archiveCandidateStudents]);
 
+  const gradeCandidateStudents = useMemo(() => {
+    if (pageContext?.pageType !== "assessment-grade") return [];
+    let rows = (pageContext.getAssessmentGradeRows?.() || []).filter(
+      (r) => r.rowId && !r.finalized
+    );
+    if (gradeScope === "empty") {
+      rows = rows.filter((r) => r.empty);
+    }
+    return rows.map((r) => ({
+      studentId: r.rowId,
+      studentName: r.respondentName || "응답",
+      studentGrade: "",
+      caption: r.respondentId || "",
+    }));
+  }, [pageContext, gradeScope]);
+
+  const gradeCandidateKey = gradeCandidateStudents
+    .map((s) => s.studentId)
+    .join("\0");
+
+  useEffect(() => {
+    if (pageContext?.pageType !== "assessment-grade") {
+      setGradeSelectedRowIds([]);
+      return;
+    }
+    const ids = gradeCandidateKey ? gradeCandidateKey.split("\0") : [];
+    setGradeSelectedRowIds((prev) => {
+      const valid = prev.filter((id) => ids.includes(id));
+      if (valid.length > 0) {
+        return valid.slice(0, EVAL_DRAFT_MAX);
+      }
+      return ids.slice(0, Math.min(EVAL_DRAFT_DEFAULT_BATCH, EVAL_DRAFT_MAX));
+    });
+  }, [pageContext?.pageType, gradeCandidateKey]);
+
+  const gradeSelectedIds = useMemo(() => {
+    const allowed = new Set(gradeCandidateStudents.map((s) => s.studentId));
+    return gradeSelectedRowIds
+      .filter((id) => allowed.has(id))
+      .slice(0, EVAL_DRAFT_MAX);
+  }, [gradeSelectedRowIds, gradeCandidateStudents]);
+
   const buildContext = (skill: TAlterSkillId) => {
     if (skill === "search") {
       return {
@@ -991,20 +1035,26 @@ const AlterPanel = ({ onClose }: Props) => {
     }
     if (skill === "assessment-grade") {
       const gradeCtx = pageContext?.getAssessmentGradeContext?.();
+      const gradeRows = pageContext?.getAssessmentGradeRows?.() || [];
+      const selected = new Set(gradeSelectedIds);
+      const currentDrafts: Record<
+        string,
+        NonNullable<typeof gradeCtx>["currentDraft"]
+      > = {};
+      for (const row of gradeRows) {
+        if (!selected.has(row.rowId)) continue;
+        currentDrafts[row.rowId] = row.currentDraft;
+      }
       return {
         pageType: "assessment-grade",
         label: pageContext?.label || "",
         boardName: pageContext?.boardName || gradeCtx?.boardName || "",
         fillEmptyOnly: gradeFillEmptyOnly,
         formId: gradeCtx?.formId || "",
-        rowId: gradeCtx?.rowId || "",
+        rowId: gradeSelectedIds[0] || gradeCtx?.rowId || "",
+        rowIds: gradeSelectedIds,
         formTitle: gradeCtx?.formTitle || "",
-        respondentName: gradeCtx?.respondentName || "",
-        respondentId: gradeCtx?.respondentId || "",
-        finalized: !!gradeCtx?.finalized,
-        fields: gradeCtx?.fields || [],
-        responses: gradeCtx?.responses || {},
-        currentDraft: gradeCtx?.currentDraft || { byField: {}, final: {} },
+        currentDrafts,
       };
     }
     if (skill === "syllabus-draft") {
@@ -1615,16 +1665,16 @@ const AlterPanel = ({ onClose }: Props) => {
 
     if (skill === "assessment-grade") {
       if (pageContext?.pageType !== "assessment-grade") {
-        setError("평가 기록 문서 보기에서 채점할 수 있습니다.");
+        setError("평가 기록에서 채점할 수 있습니다.");
         return;
       }
       const gradeCtx = pageContext?.getAssessmentGradeContext?.();
-      if (!gradeCtx?.formId || !gradeCtx?.rowId) {
-        setError("채점할 응답을 열어 주세요.");
+      if (!gradeCtx?.formId) {
+        setError("채점할 양식을 열어 주세요.");
         return;
       }
-      if (gradeCtx.finalized) {
-        setError("이미 확정된 평가입니다. 확정을 해제한 뒤 다시 시도해 주세요.");
+      if (gradeSelectedIds.length === 0) {
+        setError("채점할 응답을 선택해 주세요.");
         return;
       }
       if (!(gradeCtx.fields || []).length) {
@@ -2003,7 +2053,10 @@ const AlterPanel = ({ onClose }: Props) => {
       const text = draft.trim();
       void runSkill(
         "assessment-grade",
-        text || "이 응답을 루브릭에 맞게 채점 초안을 작성해 주세요."
+        text ||
+          (gradeSelectedIds.length > 1
+            ? "선택한 응답을 루브릭에 맞게 채점 초안을 작성해 주세요."
+            : "이 응답을 루브릭에 맞게 채점 초안을 작성해 주세요.")
       );
       setDraft("");
       return;
@@ -2522,38 +2575,50 @@ const AlterPanel = ({ onClose }: Props) => {
     }
 
     if (isAssessmentGradeDraft(draftResult)) {
-      if (!pageContext?.applyGradeDraft) return;
-      const result = pageContext.applyGradeDraft(
-        {
-          byField: draftResult.byField,
-          final: draftResult.final,
-        },
-        {
-          fillEmptyOnly:
-            draftResult.fillEmptyOnly !== undefined
-              ? !!draftResult.fillEmptyOnly
-              : gradeFillEmptyOnly,
-        }
-      );
-      setAppliedDraftIds((prev) => new Set(prev).add(msgId));
-      if (!result.applied) {
-        setError(
-          "반영할 채점 초안이 없거나 이미 확정된 평가입니다."
+      const applyGrade = pageContext?.applyGradeDraft;
+      if (!applyGrade) return;
+      void (async () => {
+        const result = await Promise.resolve(
+          applyGrade(
+            {
+              byField: draftResult.byField,
+              final: draftResult.final,
+              rows: draftResult.rows,
+            },
+            {
+              fillEmptyOnly:
+                draftResult.fillEmptyOnly !== undefined
+                  ? !!draftResult.fillEmptyOnly
+                  : gradeFillEmptyOnly,
+            }
+          )
         );
-      } else {
-        setError("");
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `a-applied-${Date.now()}`,
-            role: "assistant",
-            content:
-              "채점 초안을 문서 보기에 반영했습니다. 확인 후 「채점 저장」또는 「평가 확정」을 눌러 주세요.",
-            skill: "assessment-grade",
-            createdAt: new Date().toISOString(),
-          },
-        ]);
-      }
+        setAppliedDraftIds((prev) => new Set(prev).add(msgId));
+        const appliedCount = result.appliedCount ?? (result.applied ? 1 : 0);
+        const skipped = result.skipped ?? 0;
+        if (!result.applied) {
+          setError(
+            "반영할 채점 초안이 없거나 이미 확정된 평가입니다."
+          );
+        } else {
+          setError("");
+          const skipText =
+            skipped > 0 ? ` (${skipped}명은 건너뜀)` : "";
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `a-applied-${Date.now()}`,
+              role: "assistant",
+              content:
+                appliedCount > 1
+                  ? `${appliedCount}명 채점 초안을 저장했습니다${skipText}. 학생에게는 보이지 않습니다. 확인 후 「평가 확정」을 눌러 주세요.`
+                  : `채점 초안을 저장했습니다. 학생에게는 보이지 않습니다. 확인 후 「평가 확정」을 눌러 주세요.`,
+              skill: "assessment-grade",
+              createdAt: new Date().toISOString(),
+            },
+          ]);
+        }
+      })();
       return;
     }
 
@@ -2637,6 +2702,30 @@ const AlterPanel = ({ onClose }: Props) => {
   const selectAllArchiveCandidateStudents = () => {
     setArchiveSelectedStudentIds(
       archiveCandidateStudents.slice(0, EVAL_DRAFT_MAX).map((s) => s.studentId)
+    );
+  };
+
+  const toggleGradeStudentId = (rowId: string) => {
+    setGradeSelectedRowIds((prev) => {
+      if (prev.includes(rowId)) {
+        return prev.filter((id) => id !== rowId);
+      }
+      if (prev.length >= EVAL_DRAFT_MAX) return prev;
+      return [...prev, rowId];
+    });
+  };
+
+  const selectDefaultGradeStudentBatch = () => {
+    setGradeSelectedRowIds(
+      gradeCandidateStudents
+        .slice(0, Math.min(EVAL_DRAFT_DEFAULT_BATCH, EVAL_DRAFT_MAX))
+        .map((s) => s.studentId)
+    );
+  };
+
+  const selectAllGradeCandidateStudents = () => {
+    setGradeSelectedRowIds(
+      gradeCandidateStudents.slice(0, EVAL_DRAFT_MAX).map((s) => s.studentId)
     );
   };
 
@@ -2855,7 +2944,7 @@ const AlterPanel = ({ onClose }: Props) => {
       pageContext?.getForm?.()?.formType || ""
     ),
     gradeFillEmptyOnly,
-    gradeLabel: pageContext?.label,
+    gradeStudentCount: gradeSelectedIds.length,
     searchSeasonScope,
     guidelineCount:
       prepKind === "syllabus"
@@ -3627,6 +3716,14 @@ const AlterPanel = ({ onClose }: Props) => {
               setFormSelectedGuidelineIds={setFormSelectedGuidelineIds}
               gradeFillEmptyOnly={gradeFillEmptyOnly}
               setGradeFillEmptyOnly={setGradeFillEmptyOnly}
+              gradeScope={gradeScope}
+              setGradeScope={setGradeScope}
+              gradeCandidateStudents={gradeCandidateStudents}
+              gradeSelectedIds={gradeSelectedIds}
+              toggleGradeStudentId={toggleGradeStudentId}
+              selectDefaultGradeStudentBatch={selectDefaultGradeStudentBatch}
+              selectAllGradeCandidateStudents={selectAllGradeCandidateStudents}
+              clearGradeStudents={() => setGradeSelectedRowIds([])}
               searchSeasonScope={searchSeasonScope}
               setSearchSeasonScope={setSearchSeasonScope}
             />

@@ -283,6 +283,7 @@ export const buildPrepSummaryParts = (input: {
   formWriteMode?: "create" | "refine";
   formTypeLabel?: string;
   gradeFillEmptyOnly?: boolean;
+  gradeStudentCount?: number;
   gradeLabel?: string;
   guidelineCount?: number;
   searchSeasonScope?: "current" | "activated" | "season" | "school";
@@ -327,7 +328,11 @@ export const buildPrepSummaryParts = (input: {
     parts.push(input.formWriteMode === "refine" ? "다듬기" : "새 작성");
     if (input.formTypeLabel) parts.push(input.formTypeLabel);
   } else if (prepKind === "assessment-grade") {
-    if (input.gradeLabel) parts.push(input.gradeLabel);
+    if (input.gradeStudentCount != null) {
+      parts.push(`학생 ${input.gradeStudentCount}`);
+    } else if (input.gradeLabel) {
+      parts.push(input.gradeLabel);
+    }
     parts.push(input.gradeFillEmptyOnly ? "빈 칸만" : "덮어쓰기");
   } else if (prepKind === "syllabus") {
     if (input.guidelineCount != null) {
@@ -343,7 +348,9 @@ export const buildPrepSummaryParts = (input: {
 
 /** dense prep(평가·기록)은 기본 접기 */
 export const shouldDefaultCollapsePrep = (skill: TAlterSkillId): boolean =>
-  skill === "evaluation-draft" || skill === "archive-draft";
+  skill === "evaluation-draft" ||
+  skill === "archive-draft" ||
+  skill === "assessment-grade";
 
 export const canActivateRefinePrompt = ({
   usageLimitExceeded = false,

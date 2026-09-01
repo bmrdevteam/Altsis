@@ -150,6 +150,10 @@ export const PROMPT_LIMITS = {
   ASSESSMENT_GRADE_USER_HINT_CHARS: 2000,
   /** 채점 초안: 필드 코멘트 최대 글자 */
   ASSESSMENT_GRADE_COMMENT_CHARS: 800,
+  /** 채점 초안: 한 요청 최대 응답 수 */
+  ASSESSMENT_GRADE_MAX_ROWS: 30,
+  /** 채점 초안: 동시에 채점할 응답 수 */
+  ASSESSMENT_GRADE_CONCURRENCY: 2,
 };
 
 const KEY_FIELD_RE =
