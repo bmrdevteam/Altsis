@@ -476,9 +476,10 @@ export const find = async (req, res) => {
                   .filter((f) => f.type === "approval")
                   .map((f) => f._id.toString());
                 if (approvalFieldIds.length > 0) {
-                  const approverConditions = approvalFieldIds.map((fid) => ({
-                    [`data.${fid}.approver.userId`]: req.user.userId,
-                  }));
+                  const approverConditions = approvalFieldIds.flatMap((fid) => [
+                    { [`data.${fid}.approver.userId`]: req.user.userId },
+                    { [`data.${fid}.circulation.userId`]: req.user.userId },
+                  ]);
                   rowQuery.$or = [
                     { _respondent: req.user._id },
                     ...approverConditions,

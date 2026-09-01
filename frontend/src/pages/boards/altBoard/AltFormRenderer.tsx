@@ -20,9 +20,12 @@ import {
   MarkdownWysiwygView,
 } from "components/markdown";
 import {
+  formatCirculationNames,
+  getApprovalCirculation,
   getApprovalLineSteps,
   getRequiredApprovalError,
   normalizeApprovalValue,
+  TApprovalApprover,
 } from "utils/approvalLine";
 import { getRequiredResponseCount } from "./activityStatusVisual";
 import {
@@ -38,6 +41,9 @@ import FieldRubricPanel, {
 } from "./FieldRubricPanel";
 import AssessmentResultBanner from "./AssessmentResultBanner";
 import FilePreviewModal from "./FilePreviewModal";
+import ApprovalCirculationPicker, {
+  uniqueApprovalCandidates,
+} from "./ApprovalCirculationPicker";
 import TimePicker from "components/timePicker/TimePicker";
 import FieldDocResources from "./FieldDocResources";
 import LinkAttachModal from "./LinkAttachModal";
@@ -1875,6 +1881,18 @@ const AltFormRenderer = ({
             waiting: "대기전",
           };
           const hasStepReason = approvalData.steps.some((s) => s.reason);
+          const circNames = formatCirculationNames(approvalData);
+          const circulationLine = circNames ? (
+            <div
+              style={{
+                fontSize: "12px",
+                color: "var(--text-color-2)",
+                marginTop: "8px",
+              }}
+            >
+              회람: {circNames}
+            </div>
+          ) : null;
 
           if (
             approvalData.steps.length === 0 &&
@@ -1887,6 +1905,7 @@ const AltFormRenderer = ({
                 >
                   결재 생략
                 </span>
+                {circulationLine}
               </div>
             );
           }
@@ -1922,6 +1941,7 @@ const AltFormRenderer = ({
                   의견: {approvalData.reason}
                 </div>
               )}
+              {circulationLine}
             </div>
           );
         }
@@ -1929,29 +1949,24 @@ const AltFormRenderer = ({
         // 제출 전: pick 단계만 승인자 선택
         const pickSteps = lineSteps.filter((s) => s.mode === "pick");
         const writerUsers = board.writers?.users || [];
+        const circulationDef = getApprovalCirculation(field);
+        const boardAdmins = (
+          board as {
+            admins?: {
+              users?: { user?: string; userId?: string; userName?: string }[];
+            };
+          }
+        ).admins?.users;
+        const approvalCandidates = uniqueApprovalCandidates(
+          board.writers?.users,
+          boardAdmins
+        );
+        const circulationCandidates = uniqueApprovalCandidates(
+          board.members?.users,
+          board.writers?.users,
+          boardAdmins
+        );
 
-        if (pickSteps.length === 0) {
-          return (
-            <div className={style.userSelectContainer}>
-              <span
-                style={{
-                  fontSize: "12px",
-                  color: "var(--text-color-2)",
-                }}
-              >
-                결재선:{" "}
-                {lineSteps
-                  .map(
-                    (s) =>
-                      `${s.label}(${s.approver?.userName || "고정"})`
-                  )
-                  .join(" → ")}
-              </span>
-            </div>
-          );
-        }
-
-        // 저장 형식: v2 steps with pick approvers filled; fixed filled from field
         const currentPicks: Record<number, any> = {};
         if (value?.version === 2 && Array.isArray(value.steps)) {
           let pickIdx = 0;
@@ -1965,13 +1980,23 @@ const AltFormRenderer = ({
           currentPicks[0] = value.approver;
         }
 
-        const buildValueFromPicks = (picks: Record<number, any>) => {
+        const currentCirculation: TApprovalApprover[] =
+          circulationDef.mode === "off"
+            ? []
+            : circulationDef.mode === "fixed"
+              ? circulationDef.users
+              : Array.isArray(value?.circulation)
+                ? value.circulation
+                : [];
+
+        const buildValueFromPicks = (
+          picks: Record<number, any>,
+          circulation = currentCirculation
+        ) => {
           let pickIdx = 0;
           const steps = lineSteps.map((def) => {
             const approver =
-              def.mode === "fixed"
-                ? def.approver
-                : picks[pickIdx++];
+              def.mode === "fixed" ? def.approver : picks[pickIdx++];
             return {
               order: def.order,
               label: def.label,
@@ -1987,8 +2012,85 @@ const AltFormRenderer = ({
             status: "pending",
             approver: steps[0]?.approver,
             steps,
+            circulation,
           };
         };
+
+        const pickSearchUsers =
+          approvalCandidates.length > 0 ? approvalCandidates : writerUsers;
+
+        const circulationBlock =
+          circulationDef.mode === "off" ? null : circulationDef.mode ===
+            "fixed" ? (
+            currentCirculation.length > 0 ? (
+              <div
+                style={{
+                  fontSize: "12px",
+                  color: "var(--text-color-2)",
+                  marginTop: "8px",
+                }}
+              >
+                회람:{" "}
+                {currentCirculation
+                  .map((u) => u.userName || u.userId)
+                  .join(", ")}
+              </div>
+            ) : null
+          ) : (
+            <div style={{ marginTop: "8px" }}>
+              <span
+                style={{
+                  fontSize: "12px",
+                  color: "var(--text-color-2)",
+                  marginBottom: "4px",
+                  display: "block",
+                }}
+              >
+                회람
+              </span>
+              <div
+                style={{
+                  fontSize: "11px",
+                  color: "var(--text-color-2)",
+                  marginBottom: "6px",
+                  lineHeight: 1.5,
+                }}
+              >
+                결재 없이 이 제출 건을 볼 사람입니다. 비워 둘 수 있습니다.
+              </div>
+              <ApprovalCirculationPicker
+                selected={currentCirculation}
+                candidates={circulationCandidates}
+                disabled={disabled}
+                onChange={(users) =>
+                  setValue(field._id, buildValueFromPicks(currentPicks, users))
+                }
+              />
+            </div>
+          );
+
+        if (pickSteps.length === 0) {
+          return (
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <div className={style.userSelectContainer}>
+                <span
+                  style={{
+                    fontSize: "12px",
+                    color: "var(--text-color-2)",
+                  }}
+                >
+                  결재선:{" "}
+                  {lineSteps
+                    .map(
+                      (s) => `${s.label}(${s.approver?.userName || "고정"})`
+                    )
+                    .join(" → ")}
+                </span>
+              </div>
+              {circulationBlock}
+            </div>
+          );
+        }
 
         return (
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -2023,7 +2125,7 @@ const AltFormRenderer = ({
               const queryKey = `${field._id}_pick_${pickIndex}`;
               const approverQuery = userSearchQuery[queryKey] || "";
               const approverCandidates = approverQuery.trim()
-                ? writerUsers.filter(
+                ? pickSearchUsers.filter(
                     (u) =>
                       u.userName.includes(approverQuery) ||
                       u.userId
@@ -2126,6 +2228,7 @@ const AltFormRenderer = ({
                 </div>
               );
             })}
+            {circulationBlock}
           </div>
         );
       }

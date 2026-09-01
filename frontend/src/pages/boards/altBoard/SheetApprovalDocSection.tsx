@@ -3,6 +3,7 @@ import Button from "components/button/Button";
 import { TAltFormField } from "types/altForm";
 import { TAltSheetRow } from "types/altSheet";
 import {
+  formatCirculationNames,
   isCurrentApprover,
   normalizeApprovalValue,
   TApprovalStepRuntime,
@@ -50,6 +51,11 @@ const SheetApprovalDocSection = ({
   onReject,
 }: Props) => {
   const approvalData = normalizeApprovalValue(row.data[field._id], field);
+  const circNames = formatCirculationNames(approvalData);
+  const circulationLine = circNames ? (
+    <div className={style.docViewValue}>회람: {circNames}</div>
+  ) : null;
+
   if (!approvalData?.steps?.length) {
     const skippedApproved = approvalData?.overallStatus === "approved";
     return (
@@ -65,6 +71,7 @@ const SheetApprovalDocSection = ({
         <div className={style.docViewValue}>
           {skippedApproved ? "결재 생략" : "-"}
         </div>
+        {circulationLine}
       </div>
     );
   }
@@ -151,6 +158,8 @@ const SheetApprovalDocSection = ({
           </div>
         )}
       </div>
+
+      {circulationLine}
 
       {isApprover && status === "pending" && (
         <div

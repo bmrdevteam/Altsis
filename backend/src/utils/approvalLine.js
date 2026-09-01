@@ -60,6 +60,7 @@ export function normalizeApprovalValue(value, field) {
     approver: value.approver,
     reason: value.reason,
     currentApproverUserId: value.approver?.userId,
+    circulation: Array.isArray(value.circulation) ? value.circulation : [],
     steps: [
       {
         order: step0.order,
@@ -105,6 +106,49 @@ function pickApproverFromSubmit(def, lineIndex, lineSteps, submitted) {
 }
 
 /**
+ * Dedupe by userId. Drops entries without userId.
+ * @param {any[]} users
+ * @returns {{ user: any, userId: string, userName: string }[]}
+ */
+export function uniqueApproverList(users) {
+  const seen = new Set();
+  const out = [];
+  for (const u of users || []) {
+    if (!u?.userId || seen.has(u.userId)) continue;
+    seen.add(u.userId);
+    out.push({
+      user: u.user,
+      userId: u.userId,
+      userName: u.userName || "",
+    });
+  }
+  return out;
+}
+
+/**
+ * off/missing → []. Fixed: form users. Pick: submitted list (deduped).
+ * @param {object} field
+ * @param {any} submitted
+ */
+export function resolveCirculation(field, submitted) {
+  const circ = field?.approvalLine?.circulation;
+  if (circ?.mode === "fixed") {
+    return uniqueApproverList(circ?.users);
+  }
+  if (circ?.mode === "pick") {
+    return uniqueApproverList(submitted?.circulation);
+  }
+  return [];
+}
+
+export function isCirculatee(value, userId) {
+  if (!userId) return false;
+  const list = value?.circulation;
+  if (!Array.isArray(list)) return false;
+  return list.some((u) => u?.userId === userId);
+}
+
+/**
  * Build initial v2 approval value at submit time.
  * Empty pick steps are omitted. If nobody remains, the line is auto-approved.
  * @param {object} field
@@ -127,6 +171,8 @@ export function buildApprovalOnSubmit(field, submitted) {
     })
     .filter((s) => s.approver?.userId);
 
+  const circulation = resolveCirculation(field, submitted);
+
   if (steps.length === 0) {
     return {
       version: 2,
@@ -137,6 +183,7 @@ export function buildApprovalOnSubmit(field, submitted) {
       currentApproverUserId: undefined,
       reason: undefined,
       steps: [],
+      circulation,
     };
   }
 
@@ -151,6 +198,7 @@ export function buildApprovalOnSubmit(field, submitted) {
     currentApproverUserId: first.approver?.userId,
     reason: undefined,
     steps,
+    circulation,
   };
 }
 
@@ -222,6 +270,7 @@ export function applyApprovalAction(value, field, userId, status, reason) {
       currentApproverUserId: step.approver?.userId,
       reason: reason || undefined,
       steps,
+      circulation: v.circulation,
     };
     return { ok: true, value: next, finished: true, nextApprover: null };
   }
@@ -238,6 +287,7 @@ export function applyApprovalAction(value, field, userId, status, reason) {
       currentApproverUserId: step.approver?.userId,
       reason: reason || undefined,
       steps,
+      circulation: v.circulation,
     };
     return { ok: true, value: next, finished: true, nextApprover: null };
   }
@@ -253,6 +303,7 @@ export function applyApprovalAction(value, field, userId, status, reason) {
     currentApproverUserId: nextApprover?.userId,
     reason: undefined,
     steps,
+    circulation: v.circulation,
   };
   return { ok: true, value: next, finished: false, nextApprover };
 }
