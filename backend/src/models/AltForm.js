@@ -166,6 +166,24 @@ const altFormFieldSchema = mongoose.Schema({
           },
         },
       ],
+      // 결재 단계와 별도. 제출 행 보기만 (승인 권한 없음)
+      circulation: {
+        type: {
+          mode: {
+            type: String,
+            enum: ["off", "pick", "fixed"],
+            default: "off",
+          },
+          users: [
+            {
+              user: String,
+              userId: String,
+              userName: String,
+            },
+          ],
+        },
+        default: undefined,
+      },
     },
     default: undefined,
   },

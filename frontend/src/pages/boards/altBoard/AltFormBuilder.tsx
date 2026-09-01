@@ -56,6 +56,11 @@ import FilePreviewModal from "./FilePreviewModal";
 import MemberInvitePicker from "./MemberInvitePicker";
 import FieldDocResources from "./FieldDocResources";
 import { TFormFileRef } from "./formFilePreview";
+import { defaultApprovalLine, getApprovalCirculation } from "utils/approvalLine";
+import type { TApprovalCirculationMode } from "utils/approvalLine";
+import ApprovalCirculationPicker, {
+  uniqueApprovalCandidates,
+} from "./ApprovalCirculationPicker";
 
 /** 설정 라벨 옆 설명 — 아이콘 클릭 시 짧은 팝오버 */
 const SettingsHint = ({ text }: { text: string }) => {
@@ -223,10 +228,7 @@ const createEmptyField = (
     type === "content" || type === "docResponse" || type === "aiChat"
       ? []
       : undefined,
-  approvalLine:
-    type === "approval"
-      ? { steps: [{ order: 0, label: "1차 승인", mode: "pick" }] }
-      : undefined,
+  approvalLine: type === "approval" ? defaultApprovalLine() : undefined,
   order: 0,
 });
 
@@ -2169,16 +2171,19 @@ const AltFormBuilder = ({
         const steps = field.approvalLine?.steps?.length
           ? field.approvalLine.steps
           : [{ order: 0, label: "1차 승인", mode: "pick" as const }];
-        const writerUsers = [
-          ...(board.writers?.users || []),
-          ...((board as any).admins?.users || []),
-        ];
-        const seen = new Set<string>();
-        const candidates = writerUsers.filter((u) => {
-          if (seen.has(u.userId)) return false;
-          seen.add(u.userId);
-          return true;
-        });
+        const circulation = getApprovalCirculation(field);
+        const boardAdmins = (
+          board as { admins?: { users?: TMemberUser[] } }
+        ).admins?.users;
+        const candidates = uniqueApprovalCandidates(
+          board.writers?.users,
+          boardAdmins
+        );
+        const circulationCandidates = uniqueApprovalCandidates(
+          board.members?.users,
+          board.writers?.users,
+          boardAdmins
+        );
 
         const setSteps = (
           next: {
@@ -2194,7 +2199,21 @@ const AltFormBuilder = ({
         ) => {
           updateField(fieldIndex, {
             approvalLine: {
+              ...field.approvalLine,
               steps: next.map((s, i) => ({ ...s, order: i })),
+              circulation,
+            },
+          });
+        };
+
+        const setCirculation = (
+          next: typeof circulation
+        ) => {
+          updateField(fieldIndex, {
+            approvalLine: {
+              ...field.approvalLine,
+              steps,
+              circulation: next,
             },
           });
         };
@@ -2213,23 +2232,16 @@ const AltFormBuilder = ({
           >
             <div
               style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
                 fontSize: "12px",
                 fontWeight: 600,
                 color: "var(--text-color-1)",
               }}
             >
               결재선
-            </div>
-            <div
-              style={{
-                fontSize: "11px",
-                color: "var(--text-color-2)",
-                lineHeight: 1.5,
-              }}
-            >
-              단계는 이 양식에 저장되며, 복제·JSON 가져오기 시 함께 이동합니다.
-              「지정」은 제출 시 응답자가 고르며 비우면 그 단계는 건너뜁니다.
-              「고정」은 미리 정한 승인자입니다.
+              <SettingsHint text="단계는 이 양식에 저장되며, 복제·JSON 가져오기 시 함께 이동합니다. 「지정」은 제출 시 응답자가 고르며 비우면 그 단계는 건너뜁니다. 「고정」은 미리 정한 승인자입니다." />
             </div>
             {steps.map((step, si) => (
               <div
@@ -2358,6 +2370,55 @@ const AltFormBuilder = ({
             >
               + 결재 단계 추가
             </button>
+            <div
+              style={{
+                marginTop: "4px",
+                paddingTop: "8px",
+                borderTop: "1px solid var(--border-color)",
+                display: "flex",
+                flexDirection: "column",
+                gap: "8px",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  color: "var(--text-color-1)",
+                }}
+              >
+                회람
+                <SettingsHint text="결재 없이 이 제출 건을 볼 사람입니다. 지정은 제출자가 고르고, 고정은 양식에서 미리 정합니다. 후보는 보드 멤버·작성자·관리자입니다." />
+              </div>
+              <select
+                className={style.selectInput}
+                style={{ fontSize: "12px", padding: "4px 8px" }}
+                value={circulation.mode}
+                onChange={(e) => {
+                  const mode = e.target.value as TApprovalCirculationMode;
+                  setCirculation({
+                    mode,
+                    users: mode === "fixed" ? circulation.users : [],
+                  });
+                }}
+              >
+                <option value="off">사용 안 함</option>
+                <option value="pick">지정(제출 시)</option>
+                <option value="fixed">고정</option>
+              </select>
+              {circulation.mode === "fixed" && (
+                <ApprovalCirculationPicker
+                  selected={circulation.users}
+                  candidates={circulationCandidates}
+                  onChange={(users) =>
+                    setCirculation({ mode: "fixed", users })
+                  }
+                />
+              )}
+            </div>
           </div>
         );
       }
@@ -2518,11 +2579,7 @@ const AltFormBuilder = ({
                 nextType === "approval"
                   ? field.approvalLine?.steps?.length
                     ? field.approvalLine
-                    : {
-                        steps: [
-                          { order: 0, label: "1차 승인", mode: "pick" },
-                        ],
-                      }
+                    : defaultApprovalLine()
                   : field.approvalLine,
             });
           }}

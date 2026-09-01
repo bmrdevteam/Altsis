@@ -17,8 +17,16 @@ export type TApprovalLineStepDef = {
   approver?: TApprovalApprover;
 };
 
+export type TApprovalCirculationMode = "off" | "pick" | "fixed";
+
+export type TApprovalCirculation = {
+  mode: TApprovalCirculationMode;
+  users: TApprovalApprover[];
+};
+
 export type TApprovalLine = {
   steps: TApprovalLineStepDef[];
+  circulation?: TApprovalCirculation;
 };
 
 export type TApprovalStepRuntime = TApprovalLineStepDef & {
@@ -37,6 +45,7 @@ export type TApprovalValueV2 = {
   currentApproverUserId?: string;
   reason?: string;
   steps: TApprovalStepRuntime[];
+  circulation?: TApprovalApprover[];
 };
 
 export function getApprovalLineSteps(
@@ -93,6 +102,7 @@ export function normalizeApprovalValue(
     approver: value.approver,
     reason: value.reason,
     currentApproverUserId: value.approver?.userId,
+    circulation: Array.isArray(value.circulation) ? value.circulation : [],
     steps: [
       {
         order: step0.order,
@@ -122,7 +132,30 @@ export function isCurrentApprover(
 export function defaultApprovalLine(): TApprovalLine {
   return {
     steps: [{ order: 0, label: "1차 승인", mode: "pick" }],
+    circulation: { mode: "off", users: [] },
   };
+}
+
+export function getApprovalCirculation(
+  field: Pick<TAltFormField, "approvalLine"> | TAltFormField
+): TApprovalCirculation {
+  const c = field?.approvalLine?.circulation;
+  const users = c?.users;
+  const mode: TApprovalCirculationMode =
+    c?.mode === "fixed" ? "fixed" : c?.mode === "pick" ? "pick" : "off";
+  return {
+    mode,
+    users: Array.isArray(users) ? users.filter((u) => !!u?.userId) : [],
+  };
+}
+
+export function formatCirculationNames(
+  value: TApprovalValueV2 | null | undefined
+): string {
+  return (value?.circulation || [])
+    .map((u) => u.userName || u.userId)
+    .filter(Boolean)
+    .join(", ");
 }
 
 /**

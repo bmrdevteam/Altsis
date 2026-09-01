@@ -136,4 +136,67 @@ describe("approvalLine submit", () => {
     expect(built.steps[0].approver).toEqual(approver);
     expect(built.steps[0].status).toBe("pending");
   });
+
+  test("fixed circulation uses form users and ignores submitted list", () => {
+    const field = {
+      label: "승인",
+      approvalLine: {
+        steps: [{ order: 0, label: "1차 승인", mode: "fixed", approver }],
+        circulation: { mode: "fixed", users: [approver, approverB] },
+      },
+    };
+    const built = buildApprovalOnSubmit(field, {
+      circulation: [{ user: "x", userId: "other", userName: "다른사람" }],
+    });
+    expect(built.circulation).toEqual([approver, approverB]);
+  });
+
+  test("pick circulation uses submitted list and defaults to empty", () => {
+    const field = {
+      label: "승인",
+      approvalLine: {
+        steps: [{ order: 0, label: "1차 승인", mode: "pick" }],
+        circulation: { mode: "pick", users: [approver] },
+      },
+    };
+    expect(buildApprovalOnSubmit(field, undefined).circulation).toEqual([]);
+    const built = buildApprovalOnSubmit(field, {
+      version: 2,
+      steps: [{ mode: "pick", approver }],
+      circulation: [approverB],
+    });
+    expect(built.circulation).toEqual([approverB]);
+  });
+
+  test("pick circulation drops duplicate userIds", () => {
+    const field = {
+      label: "승인",
+      required: false,
+      approvalLine: {
+        steps: [{ order: 0, label: "1차 승인", mode: "pick" }],
+        circulation: { mode: "pick", users: [] },
+      },
+    };
+    const built = buildApprovalOnSubmit(field, {
+      circulation: [approver, { ...approver, userName: "다른표기" }, approverB],
+    });
+    expect(built.circulation).toEqual([approver, approverB]);
+  });
+
+  test("missing or off circulation ignores submitted list", () => {
+    const submitted = {
+      circulation: [approver],
+    };
+    expect(buildApprovalOnSubmit(fixedField, submitted).circulation).toEqual(
+      []
+    );
+    const offField = {
+      label: "승인",
+      approvalLine: {
+        steps: [{ order: 0, label: "1차 승인", mode: "fixed", approver }],
+        circulation: { mode: "off", users: [approver] },
+      },
+    };
+    expect(buildApprovalOnSubmit(offField, submitted).circulation).toEqual([]);
+  });
 });

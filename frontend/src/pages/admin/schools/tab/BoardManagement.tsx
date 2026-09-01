@@ -51,8 +51,8 @@ const NOTIFICATION_EVENT_LABELS: Record<
     description: "보드에 새 멤버가 초대되면 알림",
   },
   altFormApprovalRequest: {
-    label: "승인 요청 알림",
-    description: "양식 제출·다음 단계 시 승인자에게 알림",
+    label: "승인·회람 알림",
+    description: "양식 제출 시 승인자·회람자, 다음 단계 시 승인자에게 알림",
   },
   altFormApprovalResult: {
     label: "승인 결과 알림",

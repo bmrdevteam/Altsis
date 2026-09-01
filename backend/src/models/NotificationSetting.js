@@ -25,7 +25,7 @@ import { conn } from "../_database/mongodb/index.js";
  * @prop {boolean} chatMessage - 직접 메시지 알림
  * @prop {boolean} soundEnabled - 알림음 활성화
  * @prop {boolean} webPushEnabled - 잠금화면 Web Push (기본 OFF)
- * @prop {boolean} altFormApprovalRequest - Alt 폼 승인 요청 알림
+ * @prop {boolean} altFormApprovalRequest - Alt 폼 승인·회람 알림
  * @prop {boolean} altFormApprovalResult - Alt 폼 승인 결과 알림
  */
 const settingsSchema = mongoose.Schema(

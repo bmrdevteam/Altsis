@@ -3914,6 +3914,25 @@ tbody tr:hover .actionCell {
   }
 }
 
+.circulationChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.circulationChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px 4px 10px;
+  border-radius: 999px;
+  background: var(--background-color);
+  border: 1px solid var(--border-color);
+  font-size: 12px;
+  color: var(--text-color-1);
+  line-height: 1.4;
+}
+
 /* ─── Approval ─── */
 
 .approvalStatus {

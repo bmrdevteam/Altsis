@@ -95,8 +95,8 @@ const notificationSettingGroups: NotificationSettingGroup[] = [
     items: [
       {
         key: "altFormApprovalRequest",
-        label: "승인 요청 알림",
-        description: "승인이 필요할 때 알림을 받습니다",
+        label: "승인·회람 알림",
+        description: "승인 요청·문서 회람 시 알림을 받습니다",
       },
       {
         key: "altFormApprovalResult",
