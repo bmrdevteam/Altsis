@@ -2469,6 +2469,21 @@
   }
 }
 
+.dateInputFilled {
+  color: transparent;
+  caret-color: transparent;
+
+  &::-webkit-datetime-edit,
+  &::-webkit-datetime-edit-fields-wrapper,
+  &::-webkit-datetime-edit-text,
+  &::-webkit-datetime-edit-year-field,
+  &::-webkit-datetime-edit-month-field,
+  &::-webkit-datetime-edit-day-field {
+    color: transparent;
+    background: transparent;
+  }
+}
+
 .textArea {
   width: 100%;
   padding: 10px 14px;
