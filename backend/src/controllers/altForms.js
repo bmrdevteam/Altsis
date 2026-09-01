@@ -450,9 +450,10 @@ export const find = async (req, res) => {
           return res.status(403).send({ message: PERMISSION_DENIED });
         }
         const approverQuery = { form: form._id, ...submittedSheetRowFilter() };
-        approverQuery.$or = approvalFieldIds.map((fid) => ({
-          [`data.${fid}.approver.userId`]: req.user.userId,
-        }));
+        approverQuery.$or = approvalFieldIds.flatMap((fid) => [
+          { [`data.${fid}.approver.userId`]: req.user.userId },
+          { [`data.${fid}.circulation.userId`]: req.user.userId },
+        ]);
         const approverRowCount = await AltSheetRow(req.user.academyId).countDocuments(approverQuery);
         if (approverRowCount === 0) {
           return res.status(403).send({ message: PERMISSION_DENIED });
@@ -511,9 +512,10 @@ export const find = async (req, res) => {
           .map((f) => f._id.toString());
         if (approvalFieldIds.length === 0) continue;
         const approverQuery = { form: form._id, ...submittedSheetRowFilter() };
-        approverQuery.$or = approvalFieldIds.map((fid) => ({
-          [`data.${fid}.approver.userId`]: req.user.userId,
-        }));
+        approverQuery.$or = approvalFieldIds.flatMap((fid) => [
+          { [`data.${fid}.approver.userId`]: req.user.userId },
+          { [`data.${fid}.circulation.userId`]: req.user.userId },
+        ]);
         const count = await AltSheetRow(req.user.academyId).countDocuments(approverQuery);
         if (count > 0) approverForms.push(form);
       }

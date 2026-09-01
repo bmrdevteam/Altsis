@@ -1,4 +1,8 @@
-import { getRequiredApprovalError } from "./approvalLine";
+import {
+  formatCirculationNames,
+  getApprovalCirculation,
+  getRequiredApprovalError,
+} from "./approvalLine";
 
 const approver = {
   user: "u1",
@@ -84,5 +88,30 @@ describe("getRequiredApprovalError", () => {
         ],
       })
     ).toBeNull();
+  });
+});
+
+describe("approval circulation helpers", () => {
+  test("missing circulation defaults to off with empty users", () => {
+    expect(
+      getApprovalCirculation({
+        approvalLine: {
+          steps: [{ order: 0, label: "1차 승인", mode: "pick" }],
+        },
+      })
+    ).toEqual({ mode: "off", users: [] });
+  });
+
+  test("formatCirculationNames joins user names", () => {
+    expect(formatCirculationNames(null)).toBe("");
+    expect(
+      formatCirculationNames({
+        version: 2,
+        currentStep: 0,
+        overallStatus: "pending",
+        steps: [],
+        circulation: [approver, { user: "u2", userId: "kim", userName: "김민수" }],
+      })
+    ).toBe("조은길, 김민수");
   });
 });

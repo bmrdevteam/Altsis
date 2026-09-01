@@ -80,8 +80,17 @@ export type TApprovalLineStepDef = {
   approver?: TApprovalApprover;
 };
 
+export type TApprovalCirculationMode = "off" | "pick" | "fixed";
+
+export type TApprovalCirculation = {
+  mode: TApprovalCirculationMode;
+  users: TApprovalApprover[];
+};
+
 export type TApprovalLine = {
   steps: TApprovalLineStepDef[];
+  /** 결재와 별도. 제출 행 보기만 */
+  circulation?: TApprovalCirculation;
 };
 
 /** 평가 모드 항목 채점 방식 (퀴즈 auto_exact는 퀴즈 전용) */

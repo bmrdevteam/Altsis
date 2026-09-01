@@ -54,6 +54,7 @@ import {
   buildApprovalOnSubmit,
   applyApprovalAction,
   isCurrentApprover,
+  isCirculatee,
   normalizeApprovalValue,
 } from "../utils/approvalLine.js";
 
@@ -881,6 +882,29 @@ export const create = async (req, res) => {
             // 알림 실패는 응답에 영향 없음
           }
         }
+        const skipCirculationIds = new Set();
+        if (approver?.user && approver.userId) {
+          skipCirculationIds.add(approver.userId);
+        }
+        const circulatees = (approvalData?.circulation || []).filter(
+          (u) => u?.user && u.userId && !skipCirculationIds.has(u.userId)
+        );
+        if (circulatees.length > 0) {
+          try {
+            await sendAutoNotification({
+              academyId: req.user.academyId,
+              toUserList: circulatees,
+              notificationType: "altFormApprovalRequest",
+              category: "Alt Board",
+              title: `회람: ${form.title}`,
+              description: `${req.user.userName}님이 문서를 회람했습니다.`,
+              relatedEntity: { type: "altSheetRow", id: row._id },
+              fromUser: req.user,
+            });
+          } catch (e) {
+            // 알림 실패는 응답에 영향 없음
+          }
+        }
       }
     }
 
@@ -943,6 +967,7 @@ export const find = async (req, res) => {
       fieldIds.flatMap((fid) => [
         { [`data.${fid}.currentApproverUserId`]: req.user.userId },
         { [`data.${fid}.approver.userId`]: req.user.userId },
+        { [`data.${fid}.circulation.userId`]: req.user.userId },
       ]);
 
     if (viewAll) {
@@ -1962,8 +1987,13 @@ export const findById = async (req, res) => {
       }
       return v.steps.some((s) => s.approver?.userId === req.user.userId);
     });
+    const wasCirculatee = approvalFields.some((f) => {
+      const raw = row.data?.[f._id.toString()];
+      const v = normalizeApprovalValue(raw, f);
+      return isCirculatee(v || raw, req.user.userId);
+    });
 
-    if (!isAdmin && !isOwner && !isApprover && !wasApprover) {
+    if (!isAdmin && !isOwner && !isApprover && !wasApprover && !wasCirculatee) {
       if (form.settings?.shareResponses && role === "respondent") {
         // ok
       } else {
