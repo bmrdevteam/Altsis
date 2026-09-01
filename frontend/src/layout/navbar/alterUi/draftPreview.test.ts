@@ -113,6 +113,21 @@ describe("draftPreview helpers", () => {
     expect(stringifyDraftValue(value)).toContain('"version": 2');
   });
 
+  test("formatDraftFieldText shows skipped empty approval as 결재 생략", () => {
+    expect(
+      formatDraftFieldText(
+        {
+          version: 2,
+          currentStep: 0,
+          overallStatus: "approved",
+          status: "approved",
+          steps: [],
+        },
+        { type: "approval" }
+      )
+    ).toBe("결재 생략");
+  });
+
   test("formatDraftFieldText keeps plain and userSelect text", () => {
     expect(formatDraftFieldText("본문입니다", { type: "text" })).toBe(
       "본문입니다"

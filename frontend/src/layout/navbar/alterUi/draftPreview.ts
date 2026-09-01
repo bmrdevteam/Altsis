@@ -172,6 +172,7 @@ export const formatDraftFieldText = (
       return name ? `${label} · ${name}` : label;
     });
     if (lines.length) return lines.join("\n");
+    if (normalized?.overallStatus === "approved") return "결재 생략";
   }
   if (field?.type === "userSelect" || looksLikeUserSelectValue(value)) {
     const names = formatUserSelectText(value);

@@ -74,50 +74,73 @@ export function normalizeApprovalValue(value, field) {
   };
 }
 
+function pickApproverFromSubmit(def, lineIndex, lineSteps, submitted) {
+  if (def.mode === "fixed") {
+    return def.approver || null;
+  }
+
+  const submittedSteps = Array.isArray(submitted?.steps)
+    ? submitted.steps
+    : null;
+  if (submittedSteps) {
+    const atIndex = submittedSteps[lineIndex];
+    if (atIndex?.mode !== "fixed" && atIndex?.approver?.userId) {
+      return atIndex.approver;
+    }
+    const pickIndex =
+      lineSteps.slice(0, lineIndex + 1).filter((s) => s.mode === "pick")
+        .length - 1;
+    const submittedPicks = submittedSteps.filter((s) => s.mode !== "fixed");
+    const fromPickSlot = submittedPicks[pickIndex];
+    return fromPickSlot?.approver?.userId ? fromPickSlot.approver : null;
+  }
+
+  if (submitted?.approver?.userId) {
+    const pickIndex =
+      lineSteps.slice(0, lineIndex + 1).filter((s) => s.mode === "pick")
+        .length - 1;
+    if (pickIndex === 0) return submitted.approver;
+  }
+  return null;
+}
+
 /**
  * Build initial v2 approval value at submit time.
+ * Empty pick steps are omitted. If nobody remains, the line is auto-approved.
  * @param {object} field
  * @param {any} submitted - client payload (v1 or partial v2)
  */
 export function buildApprovalOnSubmit(field, submitted) {
   const lineSteps = getApprovalLineSteps(field);
-  const pickApprovers = [];
-
-  if (submitted?.version === 2 && Array.isArray(submitted.steps)) {
-    for (const s of submitted.steps) {
-      if (s?.approver?.userId) pickApprovers.push(s.approver);
-    }
-  } else if (submitted?.approver?.userId) {
-    pickApprovers.push(submitted.approver);
-  }
-
-  let pickIdx = 0;
-  const steps = lineSteps.map((def) => {
-    let approver = null;
-    if (def.mode === "fixed") {
-      approver = def.approver || null;
-    } else {
-      approver = pickApprovers[pickIdx] || null;
-      pickIdx += 1;
-    }
-    return {
-      order: def.order,
-      label: def.label,
-      mode: def.mode,
-      approver,
-      status: "waiting",
-      reason: undefined,
-      actedAt: undefined,
-    };
-  });
+  const steps = lineSteps
+    .map((def, i) => {
+      const approver = pickApproverFromSubmit(def, i, lineSteps, submitted);
+      return {
+        order: def.order,
+        label: def.label,
+        mode: def.mode,
+        approver,
+        status: "waiting",
+        reason: undefined,
+        actedAt: undefined,
+      };
+    })
+    .filter((s) => s.approver?.userId);
 
   if (steps.length === 0) {
-    return null;
+    return {
+      version: 2,
+      currentStep: 0,
+      overallStatus: "approved",
+      status: "approved",
+      approver: undefined,
+      currentApproverUserId: undefined,
+      reason: undefined,
+      steps: [],
+    };
   }
 
-  // first step becomes pending
   steps[0].status = "pending";
-
   const first = steps[0];
   return {
     version: 2,
@@ -132,28 +155,23 @@ export function buildApprovalOnSubmit(field, submitted) {
 }
 
 /**
- * Validate submit payload has approvers for all pick steps.
+ * Validate submit payload. Fixed steps must have a form approver.
+ * Empty pick steps are skipped; a required field needs at least one remaining approver.
  * @returns {string|null} error message
  */
 export function validateApprovalSubmit(field, submitted) {
   const lineSteps = getApprovalLineSteps(field);
-  const pickCount = lineSteps.filter((s) => s.mode === "pick").length;
-  if (pickCount === 0) {
-    // all fixed — ensure fixed have approvers
-    for (const s of lineSteps) {
-      if (!s.approver?.userId) {
-        return `${field.label || "승인"}: 고정 승인자가 설정되지 않았습니다.`;
-      }
+  for (const s of lineSteps) {
+    if (s.mode === "fixed" && !s.approver?.userId) {
+      return `${field.label || "승인"}: 고정 승인자가 설정되지 않았습니다.`;
     }
-    return null;
   }
 
   const built = buildApprovalOnSubmit(field, submitted);
   if (!built) return `${field.label || "승인"}: 결재선을 확인할 수 없습니다.`;
-  for (const s of built.steps) {
-    if (!s.approver?.userId) {
-      return `${field.label || "승인"}: 「${s.label}」승인자를 선택해주세요.`;
-    }
+  const hasApprover = built.steps.some((s) => s.approver?.userId);
+  if (!hasApprover && field.required) {
+    return `${field.label || "승인"}: 승인자를 한 명 이상 선택해주세요.`;
   }
   return null;
 }
