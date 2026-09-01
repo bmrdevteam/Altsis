@@ -35,6 +35,7 @@ jest.mock("../../src/services/altForms.js", () => ({
 import {
   normalizeAssessmentGradeDraft,
   parseAssessmentGradeResponse,
+  resolveAssessmentGradeRowIds,
 } from "../../src/services/aiSkills.js";
 
 describe("parseAssessmentGradeResponse", () => {
@@ -92,5 +93,18 @@ describe("normalizeAssessmentGradeDraft", () => {
       },
     });
     expect(draft.byField.f1.byRubric.r1.levelId).toBeUndefined();
+  });
+});
+
+describe("resolveAssessmentGradeRowIds", () => {
+  test("prefers rowIds then rowId, unique, capped", () => {
+    expect(resolveAssessmentGradeRowIds({ rowId: "a" })).toEqual(["a"]);
+    expect(
+      resolveAssessmentGradeRowIds({ rowIds: ["b", "a", "b"], rowId: "a" })
+    ).toEqual(["b", "a"]);
+    const many = Array.from({ length: 40 }, (_, i) => `r${i}`);
+    expect(resolveAssessmentGradeRowIds({ rowIds: many })).toHaveLength(30);
+    expect(resolveAssessmentGradeRowIds({})).toEqual([]);
+    expect(resolveAssessmentGradeRowIds({ rowIds: ["", "  "] })).toEqual([]);
   });
 });
