@@ -38,6 +38,7 @@ import FieldRubricPanel, {
 } from "./FieldRubricPanel";
 import AssessmentResultBanner from "./AssessmentResultBanner";
 import FilePreviewModal from "./FilePreviewModal";
+import TimePicker from "components/timePicker/TimePicker";
 import FieldDocResources from "./FieldDocResources";
 import LinkAttachModal from "./LinkAttachModal";
 import FileAttachCard from "./FileAttachCard";
@@ -86,6 +87,66 @@ type Props = {
 };
 
 type TViewMode = "compose" | "review";
+
+type DateInputWithOverlayProps = {
+  value: string;
+  min?: string;
+  max?: string;
+  disabled?: boolean;
+  onChange: (dateStr: string) => void;
+};
+
+const DateInputWithOverlay = ({
+  value,
+  min,
+  max,
+  disabled,
+  onChange,
+}: DateInputWithOverlayProps) => {
+  const [focused, setFocused] = useState(false);
+  const showOverlay = Boolean(value) && !focused;
+  const formattedDate = value
+    ? new Date(value + "T00:00:00").toLocaleDateString("ko-KR", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        weekday: "short",
+      })
+    : "";
+
+  return (
+    <div style={{ position: "relative" }}>
+      <input
+        className={`${style.textInput}${
+          showOverlay ? ` ${style.dateInputFilled}` : ""
+        }`}
+        type="date"
+        value={value}
+        min={min}
+        max={max}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+      />
+      {showOverlay && (
+        <span
+          style={{
+            position: "absolute",
+            left: "12px",
+            top: "50%",
+            transform: "translateY(-50%)",
+            pointerEvents: "none",
+            fontSize: "14px",
+            color: "var(--text-color-1)",
+          }}
+        >
+          {formattedDate}
+        </span>
+      )}
+    </div>
+  );
+};
 
 /* ── 시스템 변수 ── */
 
@@ -1290,37 +1351,15 @@ const AltFormRenderer = ({
           setValue(field._id, dateStr);
         };
 
-        const formattedDate = value
-          ? new Date(value + "T00:00:00").toLocaleDateString("ko-KR", {
-              year: "numeric", month: "2-digit", day: "2-digit", weekday: "short",
-            })
-          : "";
-
         return (
           <div>
-            <div style={{ position: "relative" }}>
-              <input
-                className={style.textInput}
-                type="date"
-                value={value}
-                min={effectiveMin}
-                max={effectiveMax}
-                onChange={(e) => handleDateChange(e.target.value)}
-                disabled={disabled || isDateDisabled}
-                style={value ? { color: "transparent" } : undefined}
-              />
-              {value && (
-                <span
-                  style={{
-                    position: "absolute", left: "12px", top: "50%",
-                    transform: "translateY(-50%)", pointerEvents: "none",
-                    fontSize: "14px", color: "var(--primary-text-color)",
-                  }}
-                >
-                  {formattedDate}
-                </span>
-              )}
-            </div>
+            <DateInputWithOverlay
+              value={typeof value === "string" ? value : ""}
+              min={effectiveMin}
+              max={effectiveMax}
+              disabled={disabled || isDateDisabled}
+              onChange={handleDateChange}
+            />
             {allowedDays && allowedDays.length < 7 && (
               <div style={{ fontSize: "11px", color: "var(--text-color-2)", marginTop: "2px" }}>
                 {["일", "월", "화", "수", "목", "금", "토"]
@@ -1521,11 +1560,9 @@ const AltFormRenderer = ({
 
       case "time":
         return (
-          <input
-            className={style.textInput}
-            type="time"
-            value={value}
-            onChange={(e) => setValue(field._id, e.target.value)}
+          <TimePicker
+            value={typeof value === "string" ? value : ""}
+            onChange={(next) => setValue(field._id, next)}
             disabled={disabled}
           />
         );
