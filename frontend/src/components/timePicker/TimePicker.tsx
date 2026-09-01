@@ -19,6 +19,7 @@ type Props = {
 const HOURS = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 const MINUTES = Array.from({ length: 60 }, (_, i) => i);
 const PANEL_HEIGHT = 220;
+const PANEL_WIDTH = 192;
 
 const completeTime = (draft: Draft): TParsedTime => ({
   ampm: draft.ampm ?? "am",
@@ -33,7 +34,7 @@ const TimePicker = ({ value, onChange, disabled }: Props) => {
   const minuteColRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Draft>({});
-  const [panelPos, setPanelPos] = useState({ top: 0, left: 0, width: 220 });
+  const [panelPos, setPanelPos] = useState({ top: 0, left: 0 });
 
   const parsed = useMemo(() => parseTimeValue(value), [value]);
   const display = formatTimeDisplay(value);
@@ -49,16 +50,15 @@ const TimePicker = ({ value, onChange, disabled }: Props) => {
       const el = wrapRef.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
-      const width = Math.max(220, rect.width);
       let top = rect.bottom + 4;
       if (top + PANEL_HEIGHT > window.innerHeight - 8 && rect.top > PANEL_HEIGHT) {
         top = rect.top - PANEL_HEIGHT - 4;
       }
       let left = rect.left;
-      if (left + width > window.innerWidth - 8) {
-        left = Math.max(8, window.innerWidth - width - 8);
+      if (left + PANEL_WIDTH > window.innerWidth - 8) {
+        left = Math.max(8, window.innerWidth - PANEL_WIDTH - 8);
       }
-      setPanelPos({ top, left, width });
+      setPanelPos({ top, left });
     };
     updatePos();
     window.addEventListener("scroll", updatePos, true);
@@ -123,7 +123,6 @@ const TimePicker = ({ value, onChange, disabled }: Props) => {
             style={{
               top: panelPos.top,
               left: panelPos.left,
-              width: panelPos.width,
             }}
           >
             <div className={style.column} role="group" aria-label="오전 오후">

@@ -41,7 +41,7 @@
   position: fixed;
   z-index: 1200;
   display: flex;
-  min-width: 220px;
+  width: 192px;
   height: 220px;
   overflow: hidden;
   border: 1px solid var(--border-default-color, var(--border-color));
@@ -52,7 +52,8 @@
 
 .column {
   position: relative;
-  flex: 1;
+  flex: 0 0 64px;
+  width: 64px;
   overflow-y: auto;
   max-height: 220px;
   padding: 4px 0;
@@ -65,7 +66,7 @@
 .option {
   display: block;
   width: 100%;
-  padding: 6px 10px;
+  padding: 6px 4px;
   border: 0;
   background: transparent;
   color: var(--text-color-1);
