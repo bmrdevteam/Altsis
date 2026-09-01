@@ -1839,6 +1839,21 @@ const AltFormRenderer = ({
           };
           const hasStepReason = approvalData.steps.some((s) => s.reason);
 
+          if (
+            approvalData.steps.length === 0 &&
+            approvalData.overallStatus === "approved"
+          ) {
+            return (
+              <div className={style.approvalStatus}>
+                <span
+                  className={`${style.approvalBadge} ${style.badgeApproved}`}
+                >
+                  결재 생략
+                </span>
+              </div>
+            );
+          }
+
           return (
             <div className={style.approvalStatus}>
               <div className={style.approvalStepBadges}>
@@ -1902,8 +1917,12 @@ const AltFormRenderer = ({
         // 저장 형식: v2 steps with pick approvers filled; fixed filled from field
         const currentPicks: Record<number, any> = {};
         if (value?.version === 2 && Array.isArray(value.steps)) {
-          value.steps.forEach((s: any, i: number) => {
-            if (s?.mode === "pick" && s.approver) currentPicks[i] = s.approver;
+          let pickIdx = 0;
+          value.steps.forEach((s: any) => {
+            if (s?.mode === "pick") {
+              if (s.approver) currentPicks[pickIdx] = s.approver;
+              pickIdx += 1;
+            }
           });
         } else if (value?.approver && pickSteps.length === 1) {
           currentPicks[0] = value.approver;
@@ -1951,6 +1970,16 @@ const AltFormRenderer = ({
                     : `${s.label}(지정)`
                 )
                 .join(" → ")}
+            </div>
+            <div
+              style={{
+                fontSize: "11px",
+                color: "var(--text-color-2)",
+                marginBottom: "8px",
+                lineHeight: 1.5,
+              }}
+            >
+              비워 두면 이 단계는 건너뜁니다.
             </div>
             {pickSteps.map((ps, pickIndex) => {
               const selected = currentPicks[pickIndex];
@@ -2045,6 +2074,16 @@ const AltFormRenderer = ({
                           ))}
                         </div>
                       )}
+                      <span
+                        style={{
+                          fontSize: "11px",
+                          color: "var(--text-color-2)",
+                          marginTop: "4px",
+                          display: "block",
+                        }}
+                      >
+                        지정 안 함
+                      </span>
                     </>
                   )}
                 </div>

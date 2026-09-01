@@ -51,10 +51,20 @@ const SheetApprovalDocSection = ({
 }: Props) => {
   const approvalData = normalizeApprovalValue(row.data[field._id], field);
   if (!approvalData?.steps?.length) {
+    const skippedApproved = approvalData?.overallStatus === "approved";
     return (
       <div className={style.docSection}>
-        <div className={style.docSectionTitle}>{field.label || "결재선"}</div>
-        <div className={style.docViewValue}>-</div>
+        <div className={style.docSectionHeader}>
+          <div className={style.docSectionTitle}>{field.label || "결재선"}</div>
+          {skippedApproved && (
+            <span className={`${style.approvalBadge} ${style.badgeApproved}`}>
+              최종 승인
+            </span>
+          )}
+        </div>
+        <div className={style.docViewValue}>
+          {skippedApproved ? "결재 생략" : "-"}
+        </div>
       </div>
     );
   }
