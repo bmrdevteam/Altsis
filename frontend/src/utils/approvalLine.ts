@@ -126,7 +126,9 @@ export function defaultApprovalLine(): TApprovalLine {
 }
 
 /**
- * 필수 승인 필드의 응답자 입력 오류. 결재선이 전부 고정이면 값이 없어도 통과한다.
+ * 필수 승인 필드의 응답자 입력 오류.
+ * 전부 고정이거나 고정 승인자가 있으면 값이 없어도 통과한다.
+ * 지정 단계는 비울 수 있고, 채워진 지정(또는 고정)이 한 명이면 된다.
  */
 export function getRequiredApprovalError(
   field: Pick<TAltFormField, "approvalLine">,
@@ -136,21 +138,19 @@ export function getRequiredApprovalError(
   const pickCount = line.filter((s) => s.mode === "pick").length;
   if (pickCount === 0) return null;
 
+  const hasFixedApprover = line.some(
+    (s) => s.mode === "fixed" && !!s.approver?.userId
+  );
+  if (hasFixedApprover) return null;
+
   if (value?.version === 2 && Array.isArray(value.steps)) {
-    const missing = value.steps.some(
+    const filledPick = value.steps.some(
       (s: { mode?: string; approver?: { userId?: string } }) =>
-        s.mode === "pick" && !s.approver?.userId
+        s.mode !== "fixed" && !!s.approver?.userId
     );
-    const filledPicks = value.steps.filter(
-      (s: { mode?: string }) => s.mode === "pick"
-    ).length;
-    if (missing || filledPicks < pickCount) {
-      return "승인자를 모두 선택해주세요.";
-    }
-    return null;
+    if (filledPick) return null;
+    return "승인자를 한 명 이상 선택해주세요.";
   }
-  if (!value?.approver?.userId) {
-    return "승인자를 선택해주세요.";
-  }
-  return null;
+  if (value?.approver?.userId) return null;
+  return "승인자를 한 명 이상 선택해주세요.";
 }
