@@ -20,6 +20,7 @@ type StudentCandidate = {
   studentId: string;
   studentName: string;
   studentGrade: string;
+  caption?: string;
 };
 
 export type SkillPrepDockProps = {
@@ -132,6 +133,14 @@ export type SkillPrepDockProps = {
   // grade
   gradeFillEmptyOnly: boolean;
   setGradeFillEmptyOnly: (v: boolean) => void;
+  gradeScope: "empty" | "all";
+  setGradeScope: (v: "empty" | "all") => void;
+  gradeCandidateStudents: StudentCandidate[];
+  gradeSelectedIds: string[];
+  toggleGradeStudentId: (id: string) => void;
+  selectDefaultGradeStudentBatch: () => void;
+  selectAllGradeCandidateStudents: () => void;
+  clearGradeStudents: () => void;
 
   // search
   searchSeasonScope: TSearchSeasonScope;
@@ -168,6 +177,7 @@ const StudentPicker = ({
   candidates,
   selectedIds,
   scopeEmpty,
+  emptyText,
   onToggle,
   onSelectDefault,
   onSelectAll,
@@ -176,6 +186,7 @@ const StudentPicker = ({
   candidates: StudentCandidate[];
   selectedIds: string[];
   scopeEmpty: boolean;
+  emptyText?: string;
   onToggle: (id: string) => void;
   onSelectDefault: () => void;
   onSelectAll: () => void;
@@ -184,9 +195,10 @@ const StudentPicker = ({
   if (candidates.length === 0) {
     return (
       <p className={style.prepText}>
-        {scopeEmpty
-          ? "채울 빈 칸이 있는 학생이 없습니다."
-          : "선택 가능한 학생이 없습니다."}
+        {emptyText ||
+          (scopeEmpty
+            ? "채울 빈 칸이 있는 학생이 없습니다."
+            : "선택 가능한 학생이 없습니다.")}
       </p>
     );
   }
@@ -218,6 +230,10 @@ const StudentPicker = ({
         {candidates.map((student) => {
           const checked = selectedIds.includes(student.studentId);
           const atLimit = !checked && selectedIds.length >= EVAL_DRAFT_MAX;
+          const detail =
+            student.caption !== undefined
+              ? student.caption
+              : student.studentId;
           return (
             <label key={student.studentId} className={style.refRow}>
               <input
@@ -229,7 +245,9 @@ const StudentPicker = ({
               <span>
                 {student.studentGrade ? `${student.studentGrade} · ` : ""}
                 {student.studentName || "(이름 없음)"}
-                <span className={style.prepMuted}> ({student.studentId})</span>
+                {detail ? (
+                  <span className={style.prepMuted}> ({detail})</span>
+                ) : null}
               </span>
             </label>
           );
@@ -598,13 +616,29 @@ const SkillPrepDock = (p: SkillPrepDockProps) => {
   if (prepKind === "assessment-grade") {
     return (
       <>
-        <PrepSection label="채점 대상">
-          <p className={style.prepText}>
-            {p.pageContext?.label || "현재 문서 보기의 응답"}
-          </p>
-        </PrepSection>
-        <PrepSection label="반영 방식">
+        <PrepSection
+          label="범위"
+          hint="확정된 평가는 목록에 없습니다. 반영하면 초안으로 저장되며 학생에게는 보이지 않습니다."
+        >
           <div className={style.refList}>
+            <label className={style.refRow}>
+              <input
+                type="radio"
+                name="gradeScope"
+                checked={p.gradeScope === "empty"}
+                onChange={() => p.setGradeScope("empty")}
+              />
+              <span>미채점만</span>
+            </label>
+            <label className={style.refRow}>
+              <input
+                type="radio"
+                name="gradeScope"
+                checked={p.gradeScope === "all"}
+                onChange={() => p.setGradeScope("all")}
+              />
+              <span>전체 응답</span>
+            </label>
             <label className={style.refRow}>
               <input
                 type="checkbox"
@@ -615,7 +649,26 @@ const SkillPrepDock = (p: SkillPrepDockProps) => {
             </label>
           </div>
         </PrepSection>
-        <PrepHintRow text="초안은 문서 보기 채점 칸에만 반영됩니다. 확인 후 「채점 저장」또는 「평가 확정」을 눌러 주세요." />
+        <PrepSection
+          label="채점 대상"
+          hint={`한 번에 최대 ${EVAL_DRAFT_MAX}명까지 선택해 초안을 만들 수 있습니다. 나눠서 여러 번 실행할 수 있습니다.`}
+        >
+          <StudentPicker
+            candidates={p.gradeCandidateStudents}
+            selectedIds={p.gradeSelectedIds}
+            scopeEmpty={p.gradeScope === "empty"}
+            emptyText={
+              p.gradeScope === "empty"
+                ? "미채점 응답이 없습니다."
+                : "선택 가능한 응답이 없습니다."
+            }
+            onToggle={p.toggleGradeStudentId}
+            onSelectDefault={p.selectDefaultGradeStudentBatch}
+            onSelectAll={p.selectAllGradeCandidateStudents}
+            onClear={p.clearGradeStudents}
+          />
+        </PrepSection>
+        <PrepHintRow text="반영하면 초안으로 저장됩니다. 학생에게는 보이지 않습니다. 확인 후 「평가 확정」을 눌러 주세요." />
       </>
     );
   }

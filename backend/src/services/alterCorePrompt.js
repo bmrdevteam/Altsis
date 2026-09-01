@@ -57,7 +57,7 @@ export const ALTER_HOWTO_PRODUCT_NAV = `## 제품 경로
 - 양식·활동 만들기 → 화면: 활동/양식 · 스킬: activity-draft(활동)
 - 관리자 양식(시간표·강의계획서·출력 문서) → 화면: 관리자 양식 에디터 · 스킬: form-draft(양식)
 - 응답 채우기 → 화면: 양식 응답 · 스킬: form-response-draft(응답)
-- 채점 → 화면: 평가 채점 · 스킬: assessment-grade(채점)
+- 채점 → 화면: 평가 채점(시트) · 스킬: assessment-grade(채점)
 - 데이터 검색·통계·명단 → 스킬: search(검색). 지금 화면이 아니어도 권한 있는 학사 데이터를 찾습니다`;
 
 /**
@@ -85,6 +85,7 @@ export const ALTER_HOWTO_EXAMPLE_PROMPTS = {
   ],
   "assessment-grade": [
     "감상문의 구체성을 중심으로, 피드백은 2문장",
+    "미채점 응답을 루브릭에 맞게 채점 초안",
   ],
   "syllabus-draft": [
     "주제, 목표, 주차별 활동, 평가 방식을 적어 주세요",

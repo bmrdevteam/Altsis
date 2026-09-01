@@ -116,6 +116,13 @@ export type TAlterAssessmentGradeDraftResult = {
     }
   >;
   final?: { comment?: string };
+  rows?: Array<{
+    rowId: string;
+    respondentName?: string;
+    respondentId?: string;
+    byField?: TAlterAssessmentGradeDraftResult["byField"];
+    final?: { comment?: string };
+  }>;
 };
 
 export type TAlterSyllabusDraftResult = {

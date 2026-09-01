@@ -10,7 +10,7 @@ export type TAssessmentGradeDraftPayload = {
 
 const fieldIdOf = (field: TAltFormField) => String(field._id || "");
 
-const isEmptyFieldDraft = (
+export const isEmptyGradeFieldDraft = (
   draft: TGradeDraft["byField"][string] | undefined
 ): boolean => {
   if (!draft) return true;
@@ -23,6 +23,66 @@ const isEmptyFieldDraft = (
     if (String(entry?.comment || "").trim()) return false;
   }
   return true;
+};
+
+const isEmptyFieldDraft = isEmptyGradeFieldDraft;
+
+export const isEmptyGradeDraft = (
+  draft: TGradeDraft | null | undefined
+): boolean => {
+  if (!draft) return true;
+  if (String(draft.final?.comment || "").trim()) return false;
+  for (const g of Object.values(draft.byField || {})) {
+    if (!isEmptyGradeFieldDraft(g)) return false;
+  }
+  return true;
+};
+
+export const gradeDraftFromAssessment = (
+  assessment:
+    | {
+        byField?: TGradeDraft["byField"];
+        final?: { comment?: string; status?: string };
+      }
+    | null
+    | undefined
+): TGradeDraft => {
+  const byField: TGradeDraft["byField"] = {};
+  for (const [fid, g] of Object.entries(assessment?.byField || {})) {
+    const byRubric: Record<string, { levelId?: string; comment?: string }> = {};
+    for (const [rid, rg] of Object.entries(g?.byRubric || {})) {
+      byRubric[rid] = {
+        levelId: rg.levelId,
+        comment: rg.comment,
+      };
+    }
+    byField[fid] = {
+      score: g?.score,
+      levelId: g?.levelId,
+      comment: g?.comment,
+      byRubric: Object.keys(byRubric).length ? byRubric : undefined,
+    };
+  }
+  return {
+    byField,
+    final: { comment: assessment?.final?.comment },
+  };
+};
+
+/** 확정되지 않았고 채점 칸이 비어 있으면 true */
+export const isAssessmentRowEmptyForGrade = (row: {
+  isDraft?: boolean;
+  data?: {
+    _assessment?: {
+      byField?: TGradeDraft["byField"];
+      final?: { comment?: string; status?: string };
+    };
+  };
+}): boolean => {
+  if (row.isDraft) return false;
+  const assessment = row.data?._assessment;
+  if (assessment?.final?.status === "finalized") return false;
+  return isEmptyGradeDraft(gradeDraftFromAssessment(assessment));
 };
 
 /**
