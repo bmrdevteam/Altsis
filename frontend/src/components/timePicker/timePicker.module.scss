@@ -1,0 +1,85 @@
+.wrap {
+  position: relative;
+  width: 100%;
+}
+
+.trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border: 1px solid var(--border-default-color, var(--border-color));
+  border-radius: 6px;
+  font-size: 14px;
+  background: var(--background-color);
+  color: var(--text-color-1);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent-1);
+    box-shadow: 0 0 0 1px var(--accent-1);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: var(--background-color-2);
+  }
+}
+
+.placeholder {
+  color: var(--text-color-2);
+  opacity: 0.6;
+}
+
+.panel {
+  position: fixed;
+  z-index: 1200;
+  display: flex;
+  min-width: 220px;
+  height: 220px;
+  overflow: hidden;
+  border: 1px solid var(--border-default-color, var(--border-color));
+  border-radius: 8px;
+  background: var(--background-color);
+  box-shadow: var(--component-box-shadow, 0 8px 16px rgba(0, 0, 0, 0.12));
+}
+
+.column {
+  position: relative;
+  flex: 1;
+  overflow-y: auto;
+  max-height: 220px;
+  padding: 4px 0;
+
+  & + & {
+    border-left: 1px solid var(--border-default-color, var(--border-color));
+  }
+}
+
+.option {
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--text-color-1);
+  font-size: 13px;
+  font-family: inherit;
+  text-align: center;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--background-hover-color, var(--background-color-2));
+  }
+}
+
+.optionSelected {
+  background: var(--background-color-2);
+  font-weight: 600;
+}
