@@ -42,6 +42,7 @@ import FieldRubricPanel, {
 import AssessmentResultBanner from "./AssessmentResultBanner";
 import FilePreviewModal from "./FilePreviewModal";
 import ApprovalCirculationPicker, {
+  ApprovalUserSearchInput,
   uniqueApprovalCandidates,
 } from "./ApprovalCirculationPicker";
 import TimePicker from "components/timePicker/TimePicker";
@@ -2122,17 +2123,6 @@ const AltFormRenderer = ({
             </div>
             {pickSteps.map((ps, pickIndex) => {
               const selected = currentPicks[pickIndex];
-              const queryKey = `${field._id}_pick_${pickIndex}`;
-              const approverQuery = userSearchQuery[queryKey] || "";
-              const approverCandidates = approverQuery.trim()
-                ? pickSearchUsers.filter(
-                    (u) =>
-                      u.userName.includes(approverQuery) ||
-                      u.userId
-                        .toLowerCase()
-                        .includes(approverQuery.toLowerCase())
-                  )
-                : [];
 
               return (
                 <div
@@ -2171,48 +2161,22 @@ const AltFormRenderer = ({
                     </div>
                   ) : (
                     <>
-                      <input
-                        className={style.textInput}
-                        placeholder="이름 또는 아이디로 검색"
-                        value={approverQuery}
-                        onChange={(e) =>
-                          setUserSearchQuery((p) => ({
-                            ...p,
-                            [queryKey]: e.target.value,
-                          }))
-                        }
+                      <ApprovalUserSearchInput
+                        candidates={pickSearchUsers}
                         disabled={disabled}
+                        ariaLabel={`${ps.label} 승인자 검색`}
+                        onPick={(u) => {
+                          const next = {
+                            ...currentPicks,
+                            [pickIndex]: {
+                              user: u.user,
+                              userId: u.userId,
+                              userName: u.userName,
+                            },
+                          };
+                          setValue(field._id, buildValueFromPicks(next));
+                        }}
                       />
-                      {approverCandidates.length > 0 && (
-                        <div className={style.userSearchDropdown}>
-                          {approverCandidates.map((u) => (
-                            <div
-                              key={u.user}
-                              className={style.userSearchItem}
-                              onClick={() => {
-                                const next = {
-                                  ...currentPicks,
-                                  [pickIndex]: {
-                                    user: u.user,
-                                    userId: u.userId,
-                                    userName: u.userName,
-                                  },
-                                };
-                                setValue(
-                                  field._id,
-                                  buildValueFromPicks(next)
-                                );
-                                setUserSearchQuery((p) => ({
-                                  ...p,
-                                  [queryKey]: "",
-                                }));
-                              }}
-                            >
-                              {u.userName} ({u.userId})
-                            </div>
-                          ))}
-                        </div>
-                      )}
                       <span
                         style={{
                           fontSize: "11px",
