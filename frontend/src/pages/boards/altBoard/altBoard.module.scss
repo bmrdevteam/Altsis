@@ -5760,14 +5760,32 @@ tbody tr:hover .actionCell {
     color: #000;
   }
 
-  .formSectionPanel,
+  /* overflow:auto 박스는 인쇄에서 한 장으로 밀려 제목만 1쪽을 차지함 */
+  .rendererContainer,
+  .rendererBody,
+  .builderBody,
+  .rendererHeader,
+  .titleCard,
+  .contentFieldBody,
+  .sheetTableWrap {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
   .formCard,
-  .docSection,
-  .questionItem,
   .approvalProgressSection,
   .quizScoreBanner,
   .readonlyBanner {
     break-inside: avoid;
+    box-shadow: none !important;
+  }
+
+  /* 긴 안내·기안 카드는 쪼개야 제목 다음이 빈 장이 되지 않음 */
+  .formSectionPanel,
+  .questionItem,
+  .docSection {
+    break-inside: auto;
     box-shadow: none !important;
   }
 

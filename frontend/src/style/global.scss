@@ -93,12 +93,15 @@ svg {
 @media print {
   .content {
     max-width: 100% !important;
-    height: auto;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
   }
 
   body {
     height: auto !important;
     margin: 0 !important;
+    overflow: visible !important;
   }
 
   /*
