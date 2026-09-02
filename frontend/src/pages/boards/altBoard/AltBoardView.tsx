@@ -134,6 +134,7 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
   const urlSheetId = embedded ? null : searchParams.get("sheet");
   const urlMode = embedded ? null : searchParams.get("mode");
   const urlApprovalRowId = embedded ? null : searchParams.get("approval");
+  const urlRowId = embedded ? null : searchParams.get("row");
   const activeSheetFormId = embedded ? embeddedSheetFormId : urlSheetId;
 
   const loadForms = () => {
@@ -328,6 +329,7 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
         (prev) => {
           prev.delete("form");
           prev.delete("mode");
+          prev.delete("row");
           return prev;
         },
         { replace: true }
@@ -352,7 +354,8 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
     const hasActivityDeepLink =
       searchParams.has("form") ||
       searchParams.has("sheet") ||
-      searchParams.has("approval");
+      searchParams.has("approval") ||
+      searchParams.has("row");
     if (!hasActivityDeepLink) return;
     const hash = decodeURIComponent(location.hash.replace("#", ""));
     if (hash) return;
@@ -377,7 +380,8 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
       searchParams.has("sheet") ||
       searchParams.has("form") ||
       searchParams.has("mode") ||
-      searchParams.has("approval");
+      searchParams.has("approval") ||
+      searchParams.has("row");
     if (hasActivityParams) {
       setSearchParams(
         (prev) => {
@@ -385,6 +389,7 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
           prev.delete("form");
           prev.delete("mode");
           prev.delete("approval");
+          prev.delete("row");
           return prev;
         },
         { replace: true }
@@ -572,6 +577,7 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
           formId={rendererFormId}
           onBack={handleBackToList}
           initialViewMode={rendererMode}
+          initialReviewRowId={urlRowId}
           onViewModeChange={handleRendererViewModeChange}
         />
       );
@@ -587,6 +593,7 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
           canViewAllRowsForForm={canViewAllRowsForForm}
           canDeleteAnyRow={canDeleteAnyRow}
           initialFormId={activeSheetFormId}
+          initialRowId={urlRowId}
           onFormSelect={handleOpenSheet}
           onFormDeselect={handleBackToSheetList}
           onCopySheetLink={handleCopySheetLink}
@@ -602,6 +609,7 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
           isLoading={isLoading}
           myRole={myRole}
           canManage={canManage}
+          canDeleteAnyRow={canDeleteAnyRow}
           canModifyForm={canModifyForm}
           onFormClick={handleFormClick}
           onRespondForm={handleOpenRenderer}

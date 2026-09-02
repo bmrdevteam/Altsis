@@ -60,6 +60,8 @@ type Props = {
   /** 양식별 기록 전체 보기. 없으면 canManage */
   canViewAllRowsForForm?: (form: TAltForm) => boolean;
   initialFormId?: string;
+  /** 문서 보기에서 이 행을 연다 */
+  initialRowId?: string | null;
   onFormSelect?: (formId: string) => void;
   onFormDeselect?: () => void;
   onCopySheetLink?: (formId: string) => void;
@@ -160,6 +162,7 @@ const AltSheetView = ({
   canDeleteAnyRow,
   canViewAllRowsForForm,
   initialFormId,
+  initialRowId,
   onFormSelect,
   onFormDeselect,
   onCopySheetLink,
@@ -229,6 +232,7 @@ const AltSheetView = ({
 
   // 뷰 모드: 테이블 / 문서 / 시간표 (양식별 localStorage 기억)
   const [viewMode, setViewMode] = useState<TSheetViewMode>(() => {
+    if (initialRowId) return "doc";
     if (!initialFormId) return "doc";
     const form = forms.find((f) => f._id === initialFormId);
     return resolveViewMode(
@@ -238,6 +242,7 @@ const AltSheetView = ({
       form ? canViewAllRowsForForm?.(form) ?? canManage : false
     );
   });
+  const appliedInitialRowRef = useRef<string | null>(null);
 
   const viewModeMenu = useOutsideClick();
   const moreMenu = useOutsideClick();
@@ -836,7 +841,21 @@ const AltSheetView = ({
     setDocIndex(0);
     setEditingRowId(null);
     setDocEditData({});
+    appliedInitialRowRef.current = null;
   }, [selectedFormId]);
+
+  // 딥링크 row → 문서 보기에서 해당 응답
+  useEffect(() => {
+    if (!initialRowId || filteredRows.length === 0) return;
+    if (appliedInitialRowRef.current === initialRowId) return;
+    const idx = filteredRows.findIndex(
+      (r) => String(r._id) === String(initialRowId)
+    );
+    if (idx < 0) return;
+    appliedInitialRowRef.current = initialRowId;
+    setViewMode("doc");
+    setDocIndex(idx);
+  }, [initialRowId, filteredRows]);
 
   const currentDocRowId = filteredRows[docIndex]?._id ?? null;
 
@@ -1420,7 +1439,7 @@ const AltSheetView = ({
     "aiChat",
   ];
 
-  // 문서 뷰: 행 수정 가능 여부
+  // 문서 뷰: 행 수정 가능 여부 (관리자 · 본인 재제출 · 현재 단계 승인자)
   const canEditRowDoc = (row: TAltSheetRow) => {
     if (canDeleteAnyRow) return true;
     if (
@@ -1428,7 +1447,7 @@ const AltSheetView = ({
       selectedForm?.settings?.allowResubmit
     )
       return true;
-    return false;
+    return (selectedForm?.fields || []).some((f) => isApproverForField(row, f));
   };
 
   // 문서 뷰: 편집 시작
@@ -2408,7 +2427,7 @@ const AltSheetView = ({
                 </div>
                 <div className={style.docViewCardHeader}>
                   <div>
-                    {showRespondentCol ? (
+                    {showRespondentCol && (
                       <>
                         <span style={{ fontWeight: 600 }}>
                           {currentDocRow._respondentName || "응답자"}
@@ -2425,8 +2444,6 @@ const AltSheetView = ({
                           </span>
                         )}
                       </>
-                    ) : (
-                      <span style={{ fontWeight: 600 }}>응답</span>
                     )}
                   </div>
                   <div
@@ -2463,14 +2480,13 @@ const AltSheetView = ({
                     >
                       {canEditRowDoc(currentDocRow) &&
                         editingRowId !== currentDocRow._id && (
-                          <button
-                            type="button"
-                            className={style.formCardIconBtn}
-                            title="수정"
+                          <Button
+                            type="ghost"
                             onClick={() => handleDocEditStart(currentDocRow)}
+                            style={{ padding: "2px 8px", fontSize: "12px" }}
                           >
-                            <Svg type="edit" width="18px" height="18px" />
-                          </button>
+                            수정
+                          </Button>
                         )}
                       {editingRowId === currentDocRow._id && (
                         <>
@@ -2493,14 +2509,17 @@ const AltSheetView = ({
                       {(canDeleteAnyRow ||
                         (currentDocRow._respondent === currentUser?._id &&
                           selectedForm?.settings?.allowResubmit)) && (
-                        <button
-                          className={style.removeBtn}
+                        <Button
+                          type="ghost"
                           onClick={() => requestDeleteRow(currentDocRow)}
-                          title="삭제"
-                          style={{ opacity: 0.5 }}
+                          style={{
+                            padding: "2px 8px",
+                            fontSize: "12px",
+                            color: "var(--status-error)",
+                          }}
                         >
-                          ×
-                        </button>
+                          삭제
+                        </Button>
                       )}
                     </span>
                   </div>
@@ -2971,7 +2990,7 @@ const AltSheetView = ({
               </div>
               <div className={style.docViewCardHeader}>
                 <div>
-                  {showRespondentCol ? (
+                  {showRespondentCol && (
                     <>
                       <span style={{ fontWeight: 600 }}>
                         {row._respondentName || "응답자"}
@@ -2988,8 +3007,6 @@ const AltSheetView = ({
                         </span>
                       )}
                     </>
-                  ) : (
-                    <span style={{ fontWeight: 600 }}>응답</span>
                   )}
                 </div>
                 {showSubmittedAtCol && (

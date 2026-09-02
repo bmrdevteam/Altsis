@@ -20,7 +20,6 @@ import {
   MarkdownWysiwygView,
 } from "components/markdown";
 import {
-  formatCirculationNames,
   getApprovalCirculation,
   getApprovalLineSteps,
   getRequiredApprovalError,
@@ -43,10 +42,13 @@ import AssessmentResultBanner from "./AssessmentResultBanner";
 import FilePreviewModal from "./FilePreviewModal";
 import ApprovalCirculationPicker, {
   ApprovalUserSearchInput,
+  CirculationUserChips,
   uniqueApprovalCandidates,
 } from "./ApprovalCirculationPicker";
+import ApprovalProgressBlock from "./ApprovalProgressBlock";
 import TimePicker from "components/timePicker/TimePicker";
 import FieldDocResources from "./FieldDocResources";
+import SettingsHint from "./SettingsHint";
 import LinkAttachModal from "./LinkAttachModal";
 import FileAttachCard from "./FileAttachCard";
 import LinkPreviewThumb from "./LinkPreviewThumb";
@@ -89,6 +91,8 @@ type Props = {
   onBack: () => void;
   /** URL mode=responses 등으로 개별 보기에서 시작 */
   initialViewMode?: "compose" | "review";
+  /** mode=responses일 때 이 행을 개별 보기로 연다 */
+  initialReviewRowId?: string | null;
   /** standalone에서 URL mode 동기화 */
   onViewModeChange?: (mode: "compose" | "review") => void;
 };
@@ -241,11 +245,25 @@ const withDocResponseDefaults = (
   return next;
 };
 
+const approvalLineSummary = (field: TAltFormField) => {
+  const steps = getApprovalLineSteps(field);
+  const summary = steps
+    .map((s) =>
+      s.mode === "fixed"
+        ? `${s.label}(${s.approver?.userName || "고정"})`
+        : `${s.label}(지정)`
+    )
+    .join(" → ");
+  const hasPick = steps.some((s) => s.mode === "pick");
+  return hasPick ? `결재: ${summary}` : `결재선: ${summary}`;
+};
+
 const AltFormRenderer = ({
   board,
   formId,
   onBack,
   initialViewMode = "compose",
+  initialReviewRowId,
   onViewModeChange,
 }: Props) => {
   const { AltFormAPI, AltSheetRowAPI, ChatAPI, FileAPI, PostAPI } = useAPIv2();
@@ -322,7 +340,15 @@ const AltFormRenderer = ({
         setForm(loadedForm);
         const loadedRows = sortMyRowsForReview(rows || []);
         setMyRows(loadedRows);
-        setReviewIndex(0);
+        const reviewIdx = initialReviewRowId
+          ? Math.max(
+              0,
+              loadedRows.findIndex(
+                (r) => String(r._id) === String(initialReviewRowId)
+              )
+            )
+          : 0;
+        setReviewIndex(reviewIdx);
 
         const { draftRows, submittedRows } = splitMyRows(loadedRows);
         const canReviewSubmitted =
@@ -340,7 +366,7 @@ const AltFormRenderer = ({
           const quotaReached =
             target != null && submittedRows.length >= target;
           if (startInReview || (quotaReached && canReview)) {
-            const row = loadedRows[0];
+            const row = loadedRows[reviewIdx] || loadedRows[0];
             setData(
               withDocResponseDefaults(loadedForm.fields, row?.data || {})
             );
@@ -360,7 +386,7 @@ const AltFormRenderer = ({
             setData(withDocResponseDefaults(loadedForm.fields));
           }
         } else if (loadedRows[0]) {
-          const row = loadedRows[0];
+          const row = loadedRows[reviewIdx] || loadedRows[0];
           setMyRow(row);
           setData(
             withDocResponseDefaults(loadedForm.fields, row.data || {})
@@ -1867,82 +1893,29 @@ const AltFormRenderer = ({
         const lineSteps = getApprovalLineSteps(field);
         const approvalData = normalizeApprovalValue(value, field);
 
-        // 제출 후·개별 보기: 결재 진행 상태
+        // 제출 후·개별 보기: 결재 팝업·기록 문서와 같은 진행 상황
         if ((isSubmitted || isReviewMode) && approvalData) {
-          const statusStyles: Record<string, string> = {
-            pending: style.badgePending,
-            approved: style.badgeApproved,
-            rejected: style.badgeRejected,
-            waiting: style.badgeClosed,
-          };
-          const statusLabels: Record<string, string> = {
-            pending: "대기",
-            approved: "승인",
-            rejected: "반려",
-            waiting: "대기전",
-          };
-          const hasStepReason = approvalData.steps.some((s) => s.reason);
-          const circNames = formatCirculationNames(approvalData);
-          const circulationLine = circNames ? (
-            <div
-              style={{
-                fontSize: "12px",
-                color: "var(--text-color-2)",
-                marginTop: "8px",
-              }}
-            >
-              회람: {circNames}
-            </div>
-          ) : null;
-
-          if (
+          const hasLegacyReason =
+            !approvalData.steps.some((s) => s.reason) && !!approvalData.reason;
+          const skipped =
             approvalData.steps.length === 0 &&
-            approvalData.overallStatus === "approved"
-          ) {
-            return (
-              <div className={style.approvalStatus}>
+            approvalData.overallStatus === "approved";
+          return (
+            <div className={style.approvalStatus}>
+              {skipped && (
                 <span
                   className={`${style.approvalBadge} ${style.badgeApproved}`}
                 >
                   결재 생략
                 </span>
-                {circulationLine}
-              </div>
-            );
-          }
-
-          return (
-            <div className={style.approvalStatus}>
-              <div className={style.approvalStepBadges}>
-                {approvalData.steps.map((s, i) => (
-                  <div key={i} className={style.approvalStepBadgeGroup}>
-                    <span
-                      className={`${style.approvalBadge} ${
-                        statusStyles[s.status] || ""
-                      }`}
-                      title={
-                        s.approver
-                          ? `${s.approver.userName} (${s.approver.userId})`
-                          : undefined
-                      }
-                    >
-                      {s.label}: {statusLabels[s.status] || s.status}
-                      {s.approver ? ` · ${s.approver.userName}` : ""}
-                    </span>
-                    {s.reason && (
-                      <div className={style.approvalStepReason}>
-                        의견: {s.reason}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-              {!hasStepReason && approvalData.reason && (
-                <div className={style.approvalStepReason}>
-                  의견: {approvalData.reason}
-                </div>
               )}
-              {circulationLine}
+              <ApprovalProgressBlock
+                approvalData={approvalData}
+                currentStepIndex={approvalData.currentStep}
+                legacyReason={
+                  hasLegacyReason ? approvalData.reason : undefined
+                }
+              />
             </div>
           );
         }
@@ -2024,40 +1997,16 @@ const AltFormRenderer = ({
           circulationDef.mode === "off" ? null : circulationDef.mode ===
             "fixed" ? (
             currentCirculation.length > 0 ? (
-              <div
-                style={{
-                  fontSize: "12px",
-                  color: "var(--text-color-2)",
-                  marginTop: "8px",
-                }}
-              >
-                회람:{" "}
-                {currentCirculation
-                  .map((u) => u.userName || u.userId)
-                  .join(", ")}
+              <div className={style.approvalCirculationLine}>
+                <span className={style.approvalCirculationLabel}>회람</span>
+                <CirculationUserChips users={currentCirculation} />
               </div>
             ) : null
           ) : (
-            <div style={{ marginTop: "8px" }}>
-              <span
-                style={{
-                  fontSize: "12px",
-                  color: "var(--text-color-2)",
-                  marginBottom: "4px",
-                  display: "block",
-                }}
-              >
-                회람
-              </span>
-              <div
-                style={{
-                  fontSize: "11px",
-                  color: "var(--text-color-2)",
-                  marginBottom: "6px",
-                  lineHeight: 1.5,
-                }}
-              >
-                결재 없이 이 제출 건을 볼 사람입니다. 비워 둘 수 있습니다.
+            <div>
+              <div className={style.approvalPickRow}>
+                <span className={style.approvalPickLabel}>회람</span>
+                <SettingsHint text="결재 없이 이 제출 건을 볼 사람입니다. 비워 둘 수 있습니다." />
               </div>
               <ApprovalCirculationPicker
                 selected={currentCirculation}
@@ -2072,93 +2021,36 @@ const AltFormRenderer = ({
 
         if (pickSteps.length === 0) {
           return (
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <div className={style.userSelectContainer}>
-                <span
-                  style={{
-                    fontSize: "12px",
-                    color: "var(--text-color-2)",
-                  }}
-                >
-                  결재선:{" "}
-                  {lineSteps
-                    .map(
-                      (s) => `${s.label}(${s.approver?.userName || "고정"})`
-                    )
-                    .join(" → ")}
-                </span>
-              </div>
-              {circulationBlock}
-            </div>
+            <div className={style.approvalCompose}>{circulationBlock}</div>
           );
         }
 
         return (
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <div
-              style={{
-                fontSize: "12px",
-                color: "var(--text-color-2)",
-                marginBottom: "8px",
-              }}
-            >
-              결재:{" "}
-              {lineSteps
-                .map((s) =>
-                  s.mode === "fixed"
-                    ? `${s.label}(${s.approver?.userName || "고정"})`
-                    : `${s.label}(지정)`
-                )
-                .join(" → ")}
-            </div>
-            <div
-              style={{
-                fontSize: "11px",
-                color: "var(--text-color-2)",
-                marginBottom: "8px",
-                lineHeight: 1.5,
-              }}
-            >
-              비워 두면 이 단계는 건너뜁니다.
-            </div>
+          <div className={style.approvalCompose}>
             {pickSteps.map((ps, pickIndex) => {
               const selected = currentPicks[pickIndex];
 
               return (
-                <div
-                  key={pickIndex}
-                  className={style.userSelectContainer}
-                  style={{ marginBottom: "10px" }}
-                >
-                  <span
-                    style={{
-                      fontSize: "12px",
-                      color: "var(--text-color-2)",
-                      marginBottom: "4px",
-                      display: "block",
-                    }}
-                  >
-                    {ps.label} 승인자 선택
-                  </span>
+                <div key={pickIndex} className={style.userSelectContainer}>
+                  <div className={style.approvalPickRow}>
+                    <span className={style.approvalPickLabel}>
+                      {ps.label} 승인자 선택
+                    </span>
+                    <SettingsHint text="비워 두면 이 단계는 건너뜁니다." />
+                  </div>
                   {selected?.userName ? (
-                    <div className={style.userSelectSelected}>
-                      <span>
-                        {selected.userName} ({selected.userId})
-                      </span>
-                      {!disabled && (
-                        <button
-                          type="button"
-                          className={style.removeBtn}
-                          onClick={() => {
-                            const next = { ...currentPicks };
-                            delete next[pickIndex];
-                            setValue(field._id, buildValueFromPicks(next));
-                          }}
-                        >
-                          ×
-                        </button>
-                      )}
-                    </div>
+                    <CirculationUserChips
+                      users={[selected]}
+                      onRemove={
+                        disabled
+                          ? undefined
+                          : () => {
+                              const next = { ...currentPicks };
+                              delete next[pickIndex];
+                              setValue(field._id, buildValueFromPicks(next));
+                            }
+                      }
+                    />
                   ) : (
                     <>
                       <ApprovalUserSearchInput
@@ -2177,16 +2069,7 @@ const AltFormRenderer = ({
                           setValue(field._id, buildValueFromPicks(next));
                         }}
                       />
-                      <span
-                        style={{
-                          fontSize: "11px",
-                          color: "var(--text-color-2)",
-                          marginTop: "4px",
-                          display: "block",
-                        }}
-                      >
-                        지정 안 함
-                      </span>
+                      <span className={style.approvalFieldHint}>지정 안 함</span>
                     </>
                   )}
                 </div>
@@ -2570,10 +2453,9 @@ const AltFormRenderer = ({
       </div>
 
       <div className={style.rendererBody}>
-      {/* 양식 정보 — 활동 양식 빌더 titleCard와 동일 톤 */}
+      {/* 양식 제목·설명 */}
       <div className={style.rendererHeader}>
         <div className={style.rendererHeaderBody}>
-          <span className={style.titleCardEyebrow}>양식 정보</span>
           <h2 className={style.rendererTitle}>{form.title}</h2>
           {form.description?.trim() &&
             form.description.trim() !== form.title?.trim() && (
@@ -2844,7 +2726,7 @@ const AltFormRenderer = ({
                 }) && (
                 <button
                   type="button"
-                  className={style.reviewReuseBtn}
+                  className={`${style.reviewReuseBtn} ${style.reviewReuseBtnPrimary}`}
                   onClick={handleSubmit}
                   disabled={isSubmitting || isSavingDraft}
                   title="저장본 제출"
@@ -2967,6 +2849,9 @@ const AltFormRenderer = ({
                   <span className={style.questionLabelText}>{field.label}</span>
                   {field.required && (
                     <span className={style.requiredMark}>*</span>
+                  )}
+                  {field.type === "approval" && !isReviewMode && !isSubmitted && (
+                    <SettingsHint text={approvalLineSummary(field)} />
                   )}
                   {quizMark === true && (
                     <span className={style.quizMarkCorrect}>✓</span>
@@ -3104,7 +2989,7 @@ const AltFormRenderer = ({
               onClick={handleSaveDraft}
               disabled={isSavingDraft || isSubmitting}
             >
-              {isSavingDraft ? "저장 중..." : "저장"}
+              {isSavingDraft ? "저장 중..." : "임시 저장"}
             </Button>
           )}
           {((!isSubmitted &&
@@ -3112,7 +2997,6 @@ const AltFormRenderer = ({
             (!form?.settings.allowMultipleResponses || canComposeMultiple)) ||
             (isSubmitted && canResubmit)) && (
             <Button
-              type="ghost"
               onClick={handleSubmit}
               disabled={isSubmitting || isSavingDraft}
             >
@@ -3121,10 +3005,7 @@ const AltFormRenderer = ({
                 : (() => {
                     const base = isSubmitted
                       ? "수정 제출"
-                      : form?.settings.allowMultipleResponses &&
-                          submittedRows.length > 0
-                        ? "추가 제출"
-                        : "제출";
+                      : "제출";
                     if (requiredTarget == null || !canComposeMultiple) {
                       return base;
                     }

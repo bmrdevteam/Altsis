@@ -1,7 +1,10 @@
 import {
+  formatApproverLabel,
+  formatCirculationLabels,
   formatCirculationNames,
   getApprovalCirculation,
   getRequiredApprovalError,
+  isCurrentApprover,
 } from "./approvalLine";
 
 const approver = {
@@ -113,5 +116,131 @@ describe("approval circulation helpers", () => {
         circulation: [approver, { user: "u2", userId: "kim", userName: "김민수" }],
       })
     ).toBe("조은길, 김민수");
+  });
+
+  test("formatApproverLabel uses name and id", () => {
+    expect(formatApproverLabel(approver)).toBe("조은길 (jo)");
+    expect(formatApproverLabel({ userName: "조은길", userId: "조은길" })).toBe(
+      "조은길"
+    );
+    expect(formatApproverLabel({ userName: "", userId: "jo" })).toBe("jo");
+  });
+
+  test("formatCirculationLabels joins name (id)", () => {
+    expect(formatCirculationLabels(null)).toBe("");
+    expect(
+      formatCirculationLabels({
+        version: 2,
+        currentStep: 0,
+        overallStatus: "pending",
+        steps: [],
+        circulation: [approver, { user: "u2", userId: "kim", userName: "김민수" }],
+      })
+    ).toBe("조은길 (jo), 김민수 (kim)");
+  });
+});
+
+describe("isCurrentApprover", () => {
+  const pendingValue = {
+    version: 2 as const,
+    currentStep: 0,
+    overallStatus: "pending" as const,
+    steps: [
+      {
+        order: 0,
+        label: "1차 승인",
+        mode: "pick" as const,
+        approver,
+        status: "pending" as const,
+      },
+    ],
+  };
+
+  test("true when the user is the pending current-step approver", () => {
+    expect(isCurrentApprover(pendingValue, "jo")).toBe(true);
+  });
+
+  test("false for another user or missing userId", () => {
+    expect(isCurrentApprover(pendingValue, "kim")).toBe(false);
+    expect(isCurrentApprover(pendingValue, undefined)).toBe(false);
+  });
+
+  test("false after the line is approved or rejected", () => {
+    expect(
+      isCurrentApprover(
+        {
+          ...pendingValue,
+          overallStatus: "approved",
+          steps: [{ ...pendingValue.steps[0], status: "approved" }],
+        },
+        "jo"
+      )
+    ).toBe(false);
+    expect(
+      isCurrentApprover(
+        {
+          ...pendingValue,
+          overallStatus: "rejected",
+          currentStep: 0,
+          steps: [{ ...pendingValue.steps[0], status: "rejected" }],
+        },
+        "jo"
+      )
+    ).toBe(false);
+  });
+
+  test("false when a later step is pending for someone else", () => {
+    expect(
+      isCurrentApprover(
+        {
+          version: 2,
+          currentStep: 1,
+          overallStatus: "pending",
+          steps: [
+            {
+              order: 0,
+              label: "1차 승인",
+              mode: "pick" as const,
+              approver,
+              status: "approved" as const,
+            },
+            {
+              order: 1,
+              label: "2차 승인",
+              mode: "pick" as const,
+              approver: { user: "u2", userId: "kim", userName: "김민수" },
+              status: "pending" as const,
+            },
+          ],
+        },
+        "jo"
+      )
+    ).toBe(false);
+    expect(
+      isCurrentApprover(
+        {
+          version: 2,
+          currentStep: 1,
+          overallStatus: "pending",
+          steps: [
+            {
+              order: 0,
+              label: "1차 승인",
+              mode: "pick" as const,
+              approver,
+              status: "approved" as const,
+            },
+            {
+              order: 1,
+              label: "2차 승인",
+              mode: "pick" as const,
+              approver: { user: "u2", userId: "kim", userName: "김민수" },
+              status: "pending" as const,
+            },
+          ],
+        },
+        "kim"
+      )
+    ).toBe(true);
   });
 });

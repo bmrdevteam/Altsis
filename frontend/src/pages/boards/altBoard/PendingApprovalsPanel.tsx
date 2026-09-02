@@ -1,16 +1,15 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 import style from "./altBoard.module.scss";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import { useAuth } from "contexts/authContext";
 import Button from "components/button/Button";
 import Popup from "components/popup/Popup";
 import Svg from "assets/svg/Svg";
 import { MarkdownViewer, MarkdownWysiwygView } from "components/markdown";
-import {
-  normalizeApprovalValue,
-  TApprovalStepRuntime,
-  TApprovalValueV2,
-} from "utils/approvalLine";
-import { TApprovalLine } from "types/altForm";
+import { isCurrentApprover, normalizeApprovalValue } from "utils/approvalLine";
+import { TAltForm, TApprovalLine } from "types/altForm";
+import ApprovalProgressBlock from "./ApprovalProgressBlock";
 import { fileAnswerLabel } from "./formDocLink";
 import FilePreviewModal from "./FilePreviewModal";
 import FormFileAnswerList from "./FormFileAnswerList";
@@ -48,6 +47,8 @@ type ActiveKind = "approve" | "outgoing";
 
 type Props = {
   boardId: string;
+  forms?: TAltForm[];
+  canDeleteAnyRow?: boolean;
   onCountChange?: (count: number) => void;
   /** 첫 조회(또는 board 변경 후 조회) 완료 — 레이아웃 밀림 방지용 */
   onSettled?: () => void;
@@ -169,90 +170,10 @@ const formatFieldDisplay = (value: any, field?: FieldMeta): string => {
   return String(value);
 };
 
-const APPROVAL_STEP_STATUS_LABELS: Record<
-  TApprovalStepRuntime["status"],
-  string
-> = {
-  waiting: "대기 전",
-  pending: "대기",
-  approved: "승인",
-  rejected: "반려",
-};
-
-const APPROVAL_STEP_STATUS_CLASSES: Record<
-  TApprovalStepRuntime["status"],
-  string
-> = {
-  waiting: style.badgeClosed,
-  pending: style.badgePending,
-  approved: style.badgeApproved,
-  rejected: style.badgeRejected,
-};
-
-const renderApprovalProgress = (
-  approvalData: TApprovalValueV2 | null,
-  currentStepIndex: number
-) => {
-  if (!approvalData?.steps?.length) return null;
-
-  return (
-    <div className={style.approvalProgressSection}>
-      <div className={style.approvalProgressTitle}>결재 진행 상황</div>
-      <ol className={style.approvalStepList}>
-        {approvalData.steps.map((step, index) => {
-          const isCurrent =
-            index === currentStepIndex && step.status === "pending";
-          const statusLabel = APPROVAL_STEP_STATUS_LABELS[step.status];
-          const statusClass =
-            APPROVAL_STEP_STATUS_CLASSES[step.status] || style.badgeClosed;
-
-          return (
-            <li
-              key={`${step.order}_${step.label}_${index}`}
-              className={`${style.approvalStepItem} ${
-                isCurrent ? style.approvalStepItemCurrent : ""
-              }`}
-            >
-              <span className={style.approvalStepIndex}>{index + 1}</span>
-              <div className={style.approvalStepBody}>
-                <div className={style.approvalStepMain}>
-                  <span className={style.approvalStepLabel}>{step.label}</span>
-                  {step.approver && (
-                    <span className={style.approvalStepApprover}>
-                      {step.approver.userName}
-                      {step.approver.userId
-                        ? ` (${step.approver.userId})`
-                        : ""}
-                    </span>
-                  )}
-                </div>
-                <span
-                  className={`${style.approvalBadge} ${statusClass} ${style.approvalStepStatus}`}
-                >
-                  {step.status === "approved"
-                    ? "✓ 승인"
-                    : step.status === "rejected"
-                      ? "반려"
-                      : isCurrent
-                        ? "진행 중"
-                        : statusLabel}
-                </span>
-                {step.reason && (
-                  <div className={style.approvalStepReason}>
-                    의견: {step.reason}
-                  </div>
-                )}
-              </div>
-            </li>
-          );
-        })}
-      </ol>
-    </div>
-  );
-};
-
 const PendingApprovalsPanel = ({
   boardId,
+  forms = [],
+  canDeleteAnyRow = false,
   onCountChange,
   onSettled,
   openRowId,
@@ -266,6 +187,8 @@ const PendingApprovalsPanel = ({
   unsubmittedCount = 0,
 }: Props) => {
   const { AltSheetRowAPI } = useAPIv2();
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const [items, setItems] = useState<PendingItem[]>([]);
   const [outgoing, setOutgoing] = useState<PendingItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -493,6 +416,39 @@ const PendingApprovalsPanel = ({
       )
     : null;
 
+  const activeForm = active
+    ? forms.find((f) => String(f._id) === String(active.formId))
+    : undefined;
+  const isOwner =
+    !!currentUser?.userId &&
+    !!active?.respondentId &&
+    active.respondentId === currentUser.userId;
+  const allowResubmit = !!activeForm?.settings.allowResubmit;
+  const isActiveCurrentApprover = isCurrentApprover(
+    activeApprovalData,
+    currentUser?.userId,
+    activeApprovalField
+  );
+  const canEditActive =
+    !!active &&
+    (canDeleteAnyRow ||
+      (isOwner && allowResubmit) ||
+      isActiveCurrentApprover);
+
+  const handleEdit = () => {
+    if (!active) return;
+    const rowId = active.rowId;
+    const formId = active.formId;
+    setActive(null);
+    if (isOwner && allowResubmit) {
+      navigate(
+        `/boards/${boardId}?form=${formId}&mode=responses&row=${rowId}#활동`
+      );
+      return;
+    }
+    navigate(`/boards/${boardId}?sheet=${formId}&row=${rowId}#활동`);
+  };
+
   return (
     <>
       {showTodoSection && (
@@ -661,6 +617,11 @@ const PendingApprovalsPanel = ({
                 width: "100%",
               }}
             >
+              {canEditActive && (
+                <Button type="ghost" disabled={busy} onClick={handleEdit}>
+                  수정
+                </Button>
+              )}
               <Button
                 type="ghost"
                 disabled={busy}
@@ -774,10 +735,10 @@ const PendingApprovalsPanel = ({
                 );
               })}
 
-              {renderApprovalProgress(
-                activeApprovalData,
-                activeApprovalData?.currentStep ?? 0
-              )}
+              <ApprovalProgressBlock
+                approvalData={activeApprovalData}
+                currentStepIndex={activeApprovalData?.currentStep ?? 0}
+              />
 
               {!isReadonly && (
                 <div className={style.approvalReasonSection}>

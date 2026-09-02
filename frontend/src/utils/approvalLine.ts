@@ -158,6 +158,27 @@ export function formatCirculationNames(
     .join(", ");
 }
 
+/** 단계 승인자 표시와 같은 `이름 (아이디)` */
+export function formatApproverLabel(
+  u?: Pick<TApprovalApprover, "userName" | "userId"> | null
+): string {
+  if (!u) return "";
+  const name = u.userName || u.userId || "";
+  if (u.userName && u.userId && u.userName !== u.userId) {
+    return `${u.userName} (${u.userId})`;
+  }
+  return name;
+}
+
+export function formatCirculationLabels(
+  value: TApprovalValueV2 | null | undefined
+): string {
+  return (value?.circulation || [])
+    .map((u) => formatApproverLabel(u))
+    .filter(Boolean)
+    .join(", ");
+}
+
 /**
  * 필수 승인 필드의 응답자 입력 오류.
  * 전부 고정이거나 고정 승인자가 있으면 값이 없어도 통과한다.
