@@ -1,5 +1,6 @@
 import {
   filterApprovalCandidates,
+  searchListPlacement,
   uniqueApprovalCandidates,
 } from "./ApprovalCirculationPicker";
 import { TApprovalApprover } from "utils/approvalLine";
@@ -57,5 +58,25 @@ describe("uniqueApprovalCandidates", () => {
       { user: "1", userId: "kim01", userName: "김교사" },
       { user: "", userId: "lee02", userName: "이학생" },
     ]);
+  });
+});
+
+describe("searchListPlacement", () => {
+  const input = { top: 500, bottom: 536, left: 80, width: 240 };
+
+  test("opens below when the max-height list fits", () => {
+    expect(searchListPlacement(input, 900, 320)).toEqual({
+      left: 80,
+      width: 240,
+      top: 540,
+    });
+  });
+
+  test("anchors to the input bottom when flipping up", () => {
+    expect(searchListPlacement(input, 600, 320)).toEqual({
+      left: 80,
+      width: 240,
+      bottom: 104,
+    });
   });
 });

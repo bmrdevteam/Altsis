@@ -61,45 +61,7 @@ import type { TApprovalCirculationMode } from "utils/approvalLine";
 import ApprovalCirculationPicker, {
   uniqueApprovalCandidates,
 } from "./ApprovalCirculationPicker";
-
-/** 설정 라벨 옆 설명 — 아이콘 클릭 시 짧은 팝오버 */
-const SettingsHint = ({ text }: { text: string }) => {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLSpanElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDoc = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, [open]);
-
-  return (
-    <span className={style.settingsHintWrap} ref={rootRef}>
-      <button
-        type="button"
-        className={style.settingsHintBtn}
-        aria-label="설명 보기"
-        aria-expanded={open}
-        onClick={(e) => {
-          e.stopPropagation();
-          setOpen((v) => !v);
-        }}
-      >
-        <Svg type="info-circle" width="14px" height="14px" />
-      </button>
-      {open && (
-        <span className={style.settingsHintPopover} role="tooltip">
-          {text}
-        </span>
-      )}
-    </span>
-  );
-};
+import SettingsHint from "./SettingsHint";
 
 const ACCESS_GROUP_ITEMS = [
   { id: "manager" as const, label: "관리자" },
@@ -2916,7 +2878,7 @@ const AltFormBuilder = ({
           )}
           <button
             type="button"
-            className={`${style.formCardIconBtn} ${
+            className={`${style.formCardIconBtn} ${style.builderTextAction} ${
               isDirty ? style.formCardIconBtnDirty : ""
             }`}
             title={isSaving ? "저장 중..." : "저장"}
@@ -2929,7 +2891,7 @@ const AltFormBuilder = ({
           {isDraft ? (
             <button
               type="button"
-              className={style.formCardIconBtn}
+              className={`${style.formCardIconBtn} ${style.builderTextAction}`}
               title={isSaving ? "공개 중..." : "공개"}
               onClick={() => handleSave("public")}
               disabled={isSaving || isDeleting || !title.trim()}
@@ -2941,7 +2903,7 @@ const AltFormBuilder = ({
           ) : (
             <button
               type="button"
-              className={style.formCardIconBtn}
+              className={`${style.formCardIconBtn} ${style.builderTextAction}`}
               title={isSaving ? "비공개 전환 중..." : "비공개"}
               onClick={() => handleSave("private")}
               disabled={isSaving || isDeleting || !title.trim()}
@@ -2953,7 +2915,7 @@ const AltFormBuilder = ({
           {currentFormId && isDraft && (
             <button
               type="button"
-              className={`${style.formCardIconBtn} ${style.formCardIconBtnDanger}`}
+              className={`${style.formCardIconBtn} ${style.builderTextAction} ${style.formCardIconBtnDanger}`}
               title="삭제"
               onClick={requestDelete}
               disabled={isSaving || isDeleting}
