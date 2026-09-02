@@ -1,9 +1,35 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import style from "./altBoard.module.scss";
-import { TApprovalApprover } from "utils/approvalLine";
+import { formatApproverLabel, TApprovalApprover } from "utils/approvalLine";
 
 const LIST_MAX_HEIGHT = 320;
+const LIST_GAP = 4;
+
+export type TSearchListPlacement = {
+  left: number;
+  width: number;
+  top?: number;
+  bottom?: number;
+};
+
+/** viewport 좌표. 위로 열 때는 bottom을 입력칸에 붙여 짧은 목록이 동떨어지지 않게 한다. */
+export function searchListPlacement(
+  rect: Pick<DOMRect, "top" | "bottom" | "left" | "width">,
+  viewportHeight: number,
+  maxH = LIST_MAX_HEIGHT
+): TSearchListPlacement {
+  const left = rect.left;
+  const width = rect.width;
+  const topBelow = rect.bottom + LIST_GAP;
+  const wouldOverflowBelow = topBelow + maxH > viewportHeight - 8;
+  const spaceAbove = rect.top - 8;
+  const spaceBelow = viewportHeight - rect.bottom - 8;
+  if (wouldOverflowBelow && spaceAbove > spaceBelow) {
+    return { left, width, bottom: viewportHeight - rect.top + LIST_GAP };
+  }
+  return { left, width, top: topBelow };
+}
 
 export function uniqueApprovalCandidates(
   ...lists: Array<
@@ -79,20 +105,21 @@ export function ApprovalUserSearchInput({
   const canOpen = remainingCount > 0;
   const showList = open && canOpen;
   const wrapRef = useRef<HTMLDivElement>(null);
-  const [listPos, setListPos] = useState({ top: 0, left: 0, width: 0 });
+  const [listPos, setListPos] = useState<TSearchListPlacement>({
+    left: 0,
+    width: 0,
+    top: 0,
+  });
 
   useLayoutEffect(() => {
     if (!showList) return;
     const updatePos = () => {
       const el = wrapRef.current;
       if (!el) return;
-      const rect = el.getBoundingClientRect();
       const maxH = Math.min(window.innerHeight * 0.5, LIST_MAX_HEIGHT);
-      let top = rect.bottom + 4;
-      if (top + maxH > window.innerHeight - 8 && rect.top > maxH + 8) {
-        top = Math.max(8, rect.top - maxH - 4);
-      }
-      setListPos({ top, left: rect.left, width: rect.width });
+      setListPos(
+        searchListPlacement(el.getBoundingClientRect(), window.innerHeight, maxH)
+      );
     };
     updatePos();
     window.addEventListener("scroll", updatePos, true);
@@ -115,7 +142,8 @@ export function ApprovalUserSearchInput({
           className={style.userSearchDropdown}
           role="listbox"
           style={{
-            top: listPos.top,
+            top: listPos.bottom != null ? "auto" : listPos.top,
+            bottom: listPos.bottom != null ? listPos.bottom : "auto",
             left: listPos.left,
             width: listPos.width,
           }}
@@ -175,6 +203,39 @@ export function ApprovalUserSearchInput({
   );
 }
 
+type ChipProps = {
+  users: TApprovalApprover[];
+  onRemove?: (userId: string) => void;
+};
+
+export function CirculationUserChips({ users, onRemove }: ChipProps) {
+  if (!users.length) return null;
+  return (
+    <div className={style.circulationChips}>
+      {users.map((u) => (
+        <span
+          key={u.userId}
+          className={`${style.circulationChip}${
+            onRemove ? ` ${style.circulationChipRemovable}` : ""
+          }`}
+        >
+          {formatApproverLabel(u)}
+          {onRemove && (
+            <button
+              type="button"
+              className={style.removeBtn}
+              aria-label={`${u.userName || u.userId} 제거`}
+              onClick={() => onRemove(u.userId)}
+            >
+              ×
+            </button>
+          )}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 type Props = {
   selected: TApprovalApprover[];
   candidates: TApprovalApprover[];
@@ -194,27 +255,15 @@ const ApprovalCirculationPicker = ({
 
   return (
     <div className={style.userSelectContainer}>
-      {selected.length > 0 && (
-        <div className={style.circulationChips}>
-          {selected.map((u) => (
-            <span key={u.userId} className={style.circulationChip}>
-              {u.userName} ({u.userId})
-              {!disabled && (
-                <button
-                  type="button"
-                  className={style.removeBtn}
-                  aria-label={`${u.userName} 제거`}
-                  onClick={() =>
-                    onChange(selected.filter((s) => s.userId !== u.userId))
-                  }
-                >
-                  ×
-                </button>
-              )}
-            </span>
-          ))}
-        </div>
-      )}
+      <CirculationUserChips
+        users={selected}
+        onRemove={
+          disabled
+            ? undefined
+            : (userId) =>
+                onChange(selected.filter((s) => s.userId !== userId))
+        }
+      />
       {!disabled && (
         <ApprovalUserSearchInput
           candidates={candidates}

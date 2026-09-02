@@ -54,6 +54,7 @@ type Props = {
   /** null이면 Alt Board 멤버가 아님 — 목록·통계 비표시 */
   myRole: TAltBoardRole | null;
   canManage: boolean;
+  canDeleteAnyRow?: boolean;
   /** 양식 빌더 열기 가능 여부 */
   canModifyForm: (form: TAltForm) => boolean;
   onFormClick: (form: TAltForm) => void;
@@ -146,6 +147,7 @@ const AltFormList = ({
   isLoading,
   myRole,
   canManage,
+  canDeleteAnyRow = false,
   canModifyForm,
   onFormClick,
   onRespondForm,
@@ -825,6 +827,8 @@ const AltFormList = ({
       />
       <PendingApprovalsPanel
         boardId={board._id}
+        forms={forms}
+        canDeleteAnyRow={canDeleteAnyRow}
         openRowId={openApprovalRowId}
         onSettled={() => setApprovalsSettled(true)}
         onCountChange={onPendingApprovalCountChange}
