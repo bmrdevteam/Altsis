@@ -2369,7 +2369,8 @@
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
-  overflow-x: auto;
+  /* 승인자 목록이 카드 안 스크롤로 갇히지 않도록. overflow-x: auto면 y도 auto가 됨 */
+  overflow: visible;
   transition: border-color 0.2s, box-shadow 0.2s;
 
   &:hover {
@@ -3884,18 +3885,28 @@ tbody tr:hover .actionCell {
   opacity: 0.6;
 }
 
+.userSearchWrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
 .userSearchDropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  z-index: 30;
+  position: fixed;
+  z-index: 1200;
+  box-sizing: border-box;
   background: var(--background-color);
   border: 1px solid var(--border-color);
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  max-height: 200px;
+  max-height: min(50vh, 320px);
   overflow-y: auto;
+}
+
+.userSearchEmpty {
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--text-color-2);
 }
 
 .userSearchItem {
