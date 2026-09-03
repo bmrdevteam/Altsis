@@ -724,6 +724,16 @@
   }
 }
 
+@media print {
+  :global(.image-caption:empty) {
+    display: none;
+  }
+
+  :global(.image-caption:empty::before) {
+    content: none;
+  }
+}
+
 :global(.resizable-image-wrapper) {
   display: block;
   max-width: 100%;
