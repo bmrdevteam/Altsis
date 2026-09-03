@@ -1,4 +1,8 @@
 import Image from "@tiptap/extension-image";
+import {
+  imageCaptionPlaceholder,
+  shouldRenderImageCaption,
+} from "./imageCaption";
 
 export type ImageAlign = "left" | "center" | "right";
 
@@ -236,13 +240,42 @@ export const ResizableImage = Image.extend({
             : node.attrs.width;
       }
 
+      const handle = document.createElement("div");
+      handle.className = "image-resize-handle";
+      handle.contentEditable = "false";
+
       const captionEl = document.createElement("div");
       captionEl.className = "image-caption";
       captionEl.contentEditable = editor.isEditable ? "true" : "false";
-      captionEl.textContent = node.attrs.caption || "";
-      if (!node.attrs.caption) {
-        captionEl.dataset.placeholder = "캡션 입력…";
-      }
+
+      const mountCaption = () => {
+        if (captionEl.parentNode) return;
+        if (handle.parentNode) {
+          wrapper.insertBefore(captionEl, handle);
+        } else {
+          wrapper.appendChild(captionEl);
+        }
+      };
+
+      const syncCaption = (caption: string) => {
+        if (document.activeElement !== captionEl) {
+          captionEl.textContent = caption || "";
+        }
+        const placeholder = imageCaptionPlaceholder(
+          editor.isEditable,
+          caption
+        );
+        if (placeholder) {
+          captionEl.dataset.placeholder = placeholder;
+        } else {
+          delete captionEl.dataset.placeholder;
+        }
+        if (shouldRenderImageCaption(editor.isEditable, caption)) {
+          mountCaption();
+        } else if (captionEl.parentNode) {
+          captionEl.parentNode.removeChild(captionEl);
+        }
+      };
 
       const commitCaption = () => {
         if (typeof getPos !== "function") return;
@@ -264,10 +297,6 @@ export const ResizableImage = Image.extend({
           captionEl.blur();
         }
       });
-
-      const handle = document.createElement("div");
-      handle.className = "image-resize-handle";
-      handle.contentEditable = "false";
 
       let startX = 0;
       let startWidth = 0;
@@ -317,8 +346,8 @@ export const ResizableImage = Image.extend({
       wrapper.addEventListener("dragstart", onDragStart);
 
       wrapper.appendChild(img);
-      wrapper.appendChild(captionEl);
       if (editor.isEditable) wrapper.appendChild(handle);
+      syncCaption(node.attrs.caption || "");
 
       return {
         dom: wrapper,
@@ -337,9 +366,7 @@ export const ResizableImage = Image.extend({
           img.src = updatedNode.attrs.src;
           img.alt = updatedNode.attrs.alt || "";
           applyAlign(updatedNode.attrs.align || "left");
-          if (document.activeElement !== captionEl) {
-            captionEl.textContent = updatedNode.attrs.caption || "";
-          }
+          syncCaption(updatedNode.attrs.caption || "");
           if (updatedNode.attrs.width) {
             img.style.width =
               typeof updatedNode.attrs.width === "number"
