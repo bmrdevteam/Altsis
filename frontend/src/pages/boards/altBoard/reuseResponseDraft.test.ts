@@ -1,6 +1,7 @@
 import {
   copyRowDataForReuse,
   mergeRowDataForEdit,
+  resolveMultipleComposeData,
   shouldApplyExternalViewMode,
   shouldStartNewMultipleCompose,
 } from "./reuseResponseDraft";
@@ -55,14 +56,14 @@ describe("shouldApplyExternalViewMode", () => {
 });
 
 describe("shouldStartNewMultipleCompose", () => {
-  test("starts new when leaving review on a multiple-response form", () => {
+  test("does not start new when leaving review (restore local compose instead)", () => {
     expect(
       shouldStartNewMultipleCompose({
         allowMultiple: true,
         viewMode: "review",
         hasEditingRow: false,
       })
-    ).toBe(true);
+    ).toBe(false);
   });
 
   test("starts new when already composing an existing row", () => {
@@ -181,5 +182,26 @@ describe("copyRowDataForReuse", () => {
   test("returns empty object for nullish data", () => {
     expect(copyRowDataForReuse(null, fields)).toEqual({});
     expect(copyRowDataForReuse(undefined, fields)).toEqual({});
+  });
+});
+
+describe("resolveMultipleComposeData", () => {
+  test("returns local draft when it has content", () => {
+    expect(
+      resolveMultipleComposeData({ localDraft: { text1: "진행 중" } })
+    ).toEqual({ text1: "진행 중" });
+  });
+
+  test("returns empty object when there is no draft", () => {
+    expect(resolveMultipleComposeData({ localDraft: null })).toEqual({});
+    expect(resolveMultipleComposeData({ localDraft: undefined })).toEqual({});
+    expect(resolveMultipleComposeData({})).toEqual({});
+  });
+
+  test("returns empty object for empty or blank draft values", () => {
+    expect(resolveMultipleComposeData({ localDraft: {} })).toEqual({});
+    expect(resolveMultipleComposeData({ localDraft: { text1: "" } })).toEqual(
+      {}
+    );
   });
 });

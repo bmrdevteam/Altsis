@@ -64,6 +64,7 @@ import {
 import {
   copyRowDataForReuse,
   mergeRowDataForEdit,
+  resolveMultipleComposeData,
   shouldApplyExternalViewMode,
   shouldStartNewMultipleCompose,
 } from "./reuseResponseDraft";
@@ -374,16 +375,21 @@ const AltFormRenderer = ({
               setViewMode("review");
             }
           } else {
-            if (currentUser?._id) {
-              clearFormResponseDraft(
-                formResponseDraftStorageKey(
-                  currentUser._id,
-                  loadedForm._id,
-                  "new"
+            const local = currentUser?._id
+              ? readFormResponseDraft(
+                  formResponseDraftStorageKey(
+                    currentUser._id,
+                    loadedForm._id,
+                    "new"
+                  )
                 )
-              );
-            }
-            setData(withDocResponseDefaults(loadedForm.fields));
+              : null;
+            setData(
+              withDocResponseDefaults(
+                loadedForm.fields,
+                resolveMultipleComposeData({ localDraft: local?.data })
+              )
+            );
           }
         } else if (loadedRows[0]) {
           const row = loadedRows[reviewIdx] || loadedRows[0];
@@ -520,6 +526,27 @@ const AltFormRenderer = ({
 
   const isReviewMode = viewMode === "review";
 
+  const applyMultipleComposeFromLocal = () => {
+    if (!form) return;
+    skipNextExternalViewMode.current = true;
+    setMyRow(null);
+    setIsSubmitted(false);
+    setErrors({});
+    const local = currentUser?._id
+      ? readFormResponseDraft(
+          formResponseDraftStorageKey(currentUser._id, form._id, "new")
+        )
+      : null;
+    setData(
+      withDocResponseDefaults(
+        form.fields,
+        resolveMultipleComposeData({ localDraft: local?.data })
+      )
+    );
+    setViewMode("compose");
+    onViewModeChange?.("compose");
+  };
+
   const startNewMultipleCompose = () => {
     if (!form?.settings.allowMultipleResponses) return;
     const target = getRequiredResponseCount(form);
@@ -567,14 +594,8 @@ const AltFormRenderer = ({
       return;
     }
     // compose
-    if (
-      shouldStartNewMultipleCompose({
-        allowMultiple: !!form.settings.allowMultipleResponses,
-        viewMode,
-        hasEditingRow: !!myRow,
-      })
-    ) {
-      startNewMultipleCompose();
+    if (form.settings.allowMultipleResponses) {
+      applyMultipleComposeFromLocal();
       return;
     }
     if (myRow) {
@@ -772,8 +793,7 @@ const AltFormRenderer = ({
       !isLoading &&
       !!form &&
       !isSubmitting &&
-      !isSavingDraft &&
-      !(!!form.settings.allowMultipleResponses && !myRow),
+      !isSavingDraft,
     storageKey: localDraftKey,
     data,
   });
