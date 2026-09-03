@@ -44,11 +44,21 @@ export function useFormResponseDraft({ enabled, storageKey, data }: Props) {
     return () => window.clearInterval(timer);
   }, [enabled, storageKey, persist]);
 
+  // SPA 이동·탭 숨김·키 변경 시 debounce를 기다리지 않고 현재 값을 남긴다.
+  // data가 바뀔 때마다 돌리지 않는다 (persist는 dataRef).
   useEffect(() => {
     if (!enabled || !storageKey) return;
-    const onLeave = () => persist();
-    window.addEventListener("beforeunload", onLeave);
-    return () => window.removeEventListener("beforeunload", onLeave);
+    const flush = () => persist();
+    const onHide = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    window.addEventListener("beforeunload", flush);
+    document.addEventListener("visibilitychange", onHide);
+    return () => {
+      flush();
+      window.removeEventListener("beforeunload", flush);
+      document.removeEventListener("visibilitychange", onHide);
+    };
   }, [enabled, storageKey, persist]);
 
   return { lastSavedAt, persist, clear };

@@ -1,4 +1,5 @@
 import { TAltFormField } from "types/altForm";
+import { hasFormResponseDraftContent } from "./formResponseLocalDraft";
 
 export type TFormViewMode = "compose" | "review";
 
@@ -27,7 +28,10 @@ export const shouldApplyExternalViewMode = ({
   };
 };
 
-/** 복수 응답에서 작성=새 건인지. 단건·이미 새 작성 중이면 false. */
+/**
+ * 작성 탭에서 기존 행을 고치던 중 다시 새 건을 열지.
+ * 내 응답→작성은 로컬 `new` 초안 복원(resolveMultipleComposeData)이라 여기 해당하지 않는다.
+ */
 export const shouldStartNewMultipleCompose = ({
   allowMultiple,
   viewMode,
@@ -38,8 +42,18 @@ export const shouldStartNewMultipleCompose = ({
   hasEditingRow: boolean;
 }): boolean => {
   if (!allowMultiple) return false;
-  if (viewMode === "review") return true;
+  if (viewMode !== "compose") return false;
   return hasEditingRow;
+};
+
+/** 복수 응답 작성 슬롯: 내용 있는 브라우저 초안만 쓰고, 없으면 빈 양식. */
+export const resolveMultipleComposeData = ({
+  localDraft,
+}: {
+  localDraft?: Record<string, any> | null;
+}): Record<string, any> => {
+  if (!localDraft || !hasFormResponseDraftContent(localDraft)) return {};
+  return { ...localDraft };
 };
 
 /** 수정 초안: 행 값이 있으면 덮고, 비어 있으면 조회 중 화면 값을 유지. */
