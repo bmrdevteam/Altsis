@@ -21,6 +21,7 @@ import {
 } from "components/markdown";
 import {
   getApprovalCirculation,
+  getApprovalComposeRows,
   getApprovalLineSteps,
   getRequiredApprovalError,
   normalizeApprovalValue,
@@ -244,19 +245,6 @@ const withDocResponseDefaults = (
     }
   }
   return next;
-};
-
-const approvalLineSummary = (field: TAltFormField) => {
-  const steps = getApprovalLineSteps(field);
-  const summary = steps
-    .map((s) =>
-      s.mode === "fixed"
-        ? `${s.label}(${s.approver?.userName || "고정"})`
-        : `${s.label}(지정)`
-    )
-    .join(" → ");
-  const hasPick = steps.some((s) => s.mode === "pick");
-  return hasPick ? `결재: ${summary}` : `결재선: ${summary}`;
 };
 
 const AltFormRenderer = ({
@@ -1940,7 +1928,7 @@ const AltFormRenderer = ({
           );
         }
 
-        // 제출 전: pick 단계만 승인자 선택
+        // 제출 전: 고정·지정 단계를 결재선 순서로 표시
         const pickSteps = lineSteps.filter((s) => s.mode === "pick");
         const writerUsers = board.writers?.users || [];
         const circulationDef = getApprovalCirculation(field);
@@ -2039,22 +2027,38 @@ const AltFormRenderer = ({
             </div>
           );
 
-        if (pickSteps.length === 0) {
-          return (
-            <div className={style.approvalCompose}>{circulationBlock}</div>
-          );
-        }
+        const composeRows = getApprovalComposeRows(lineSteps, currentPicks);
 
         return (
           <div className={style.approvalCompose}>
-            {pickSteps.map((ps, pickIndex) => {
-              const selected = currentPicks[pickIndex];
+            {composeRows.map((row) => {
+              if (row.kind === "fixed") {
+                return (
+                  <div key={row.key} className={style.userSelectContainer}>
+                    <div className={style.approvalPickRow}>
+                      <span className={style.approvalPickLabel}>
+                        {row.label}
+                      </span>
+                      <SettingsHint text="양식에서 정해진 결재자입니다." />
+                    </div>
+                    {row.approver?.userName || row.approver?.userId ? (
+                      <CirculationUserChips users={[row.approver]} />
+                    ) : (
+                      <span className={style.approvalFieldHint}>
+                        고정 승인자 없음
+                      </span>
+                    )}
+                  </div>
+                );
+              }
 
+              const selected = row.selected;
+              const pickIndex = row.pickIndex;
               return (
-                <div key={pickIndex} className={style.userSelectContainer}>
+                <div key={row.key} className={style.userSelectContainer}>
                   <div className={style.approvalPickRow}>
                     <span className={style.approvalPickLabel}>
-                      {ps.label} 승인자 선택
+                      {row.label} 승인자 선택
                     </span>
                     <SettingsHint text="비워 두면 이 단계는 건너뜁니다." />
                   </div>
@@ -2076,7 +2080,7 @@ const AltFormRenderer = ({
                       <ApprovalUserSearchInput
                         candidates={pickSearchUsers}
                         disabled={disabled}
-                        ariaLabel={`${ps.label} 승인자 검색`}
+                        ariaLabel={`${row.label} 승인자 검색`}
                         onPick={(u) => {
                           const next = {
                             ...currentPicks,
@@ -2869,9 +2873,6 @@ const AltFormRenderer = ({
                   <span className={style.questionLabelText}>{field.label}</span>
                   {field.required && (
                     <span className={style.requiredMark}>*</span>
-                  )}
-                  {field.type === "approval" && !isReviewMode && !isSubmitted && (
-                    <SettingsHint text={approvalLineSummary(field)} />
                   )}
                   {quizMark === true && (
                     <span className={style.quizMarkCorrect}>✓</span>

@@ -48,6 +48,48 @@ export type TApprovalValueV2 = {
   circulation?: TApprovalApprover[];
 };
 
+export type TApprovalComposeRow =
+  | {
+      kind: "pick";
+      key: string;
+      label: string;
+      pickIndex: number;
+      selected?: TApprovalApprover;
+    }
+  | {
+      kind: "fixed";
+      key: string;
+      label: string;
+      approver?: TApprovalApprover;
+    };
+
+/** 제출 전 결재 칸: 고정·지정을 결재선 순서로 나눈다. */
+export function getApprovalComposeRows(
+  steps: TApprovalLineStepDef[],
+  picks: Record<number, TApprovalApprover | undefined> = {}
+): TApprovalComposeRow[] {
+  let pickIndex = 0;
+  return steps.map((s, i) => {
+    if (s.mode === "fixed") {
+      return {
+        kind: "fixed" as const,
+        key: `fixed-${s.order}-${i}`,
+        label: s.label,
+        approver: s.approver,
+      };
+    }
+    const idx = pickIndex;
+    pickIndex += 1;
+    return {
+      kind: "pick" as const,
+      key: `pick-${s.order}-${idx}`,
+      label: s.label,
+      pickIndex: idx,
+      selected: picks[idx],
+    };
+  });
+}
+
 export function getApprovalLineSteps(
   field: Pick<TAltFormField, "approvalLine"> | TAltFormField
 ): TApprovalLineStepDef[] {
