@@ -3,6 +3,11 @@ import {
   imageCaptionPlaceholder,
   shouldRenderImageCaption,
 } from "./imageCaption";
+import {
+  parseImageWidth,
+  readImageWidthFromElement,
+  serializeResizableImage,
+} from "./imageWidth";
 
 export type ImageAlign = "left" | "center" | "right";
 
@@ -15,20 +20,12 @@ export const ResizableImage = Image.extend({
       ...this.parent?.(),
       width: {
         default: null,
-        parseHTML: (element) => {
-          const el = element as HTMLElement;
-          const img =
-            el.tagName === "FIGURE" ? el.querySelector("img") : el;
-          if (!img) return null;
-          return (
-            img.getAttribute("width") ||
-            (img as HTMLElement).style.width ||
-            null
-          );
-        },
+        parseHTML: (element) =>
+          readImageWidthFromElement(element as HTMLElement),
         renderHTML: (attributes) => {
-          if (!attributes.width) return {};
-          return { width: attributes.width };
+          const width = parseImageWidth(attributes.width);
+          if (!width) return {};
+          return { width: parseInt(width, 10) };
         },
       },
       align: {
@@ -99,10 +96,7 @@ export const ResizableImage = Image.extend({
           return {
             src: img.getAttribute("src"),
             alt: img.getAttribute("alt") || "",
-            width:
-              img.getAttribute("width") ||
-              (img as HTMLElement).style.width ||
-              null,
+            width: readImageWidthFromElement(img as HTMLElement),
             align,
             caption: el.querySelector("figcaption")?.textContent || "",
           };
@@ -117,10 +111,14 @@ export const ResizableImage = Image.extend({
   renderHTML({ node, HTMLAttributes }) {
     const align = node.attrs.align || "left";
     const caption = node.attrs.caption || "";
+    const width = parseImageWidth(node.attrs.width);
     const imgAttrs: Record<string, any> = { ...HTMLAttributes };
-    if (node.attrs.width) imgAttrs.width = node.attrs.width;
+    if (width) imgAttrs.width = parseInt(width, 10);
     if (node.attrs.alt) imgAttrs.alt = node.attrs.alt;
     imgAttrs["data-align"] = align;
+    const sizeStyle = width
+      ? `width:${width};max-width:100%;height:auto;display:block`
+      : "max-width:100%;height:auto;display:block";
 
     if (caption) {
       return [
@@ -134,21 +132,22 @@ export const ResizableImage = Image.extend({
                 ? "display:block;max-width:100%;width:fit-content;text-align:right;margin:12px 0 12px auto"
                 : "display:block;max-width:100%;width:fit-content;text-align:left;margin:12px auto 12px 0",
         },
-        ["img", { ...imgAttrs, style: "max-width:100%;height:auto;display:block" }],
+        ["img", { ...imgAttrs, style: sizeStyle }],
         ["figcaption", {}, caption],
       ];
     }
 
+    const alignStyle =
+      align === "center"
+        ? ";margin-left:auto;margin-right:auto"
+        : align === "right"
+          ? ";margin-left:auto;margin-right:0"
+          : ";margin-right:auto";
     return [
       "img",
       {
         ...imgAttrs,
-        style:
-          align === "center"
-            ? "display:block;max-width:100%;height:auto;margin-left:auto;margin-right:auto"
-            : align === "right"
-              ? "display:block;max-width:100%;height:auto;margin-left:auto;margin-right:0"
-              : "display:block;max-width:100%;height:auto;margin-right:auto",
+        style: `${sizeStyle}${alignStyle}`,
       },
     ];
   },
@@ -157,31 +156,8 @@ export const ResizableImage = Image.extend({
     return {
       markdown: {
         serialize(state: any, node: any) {
-          const src = node.attrs.src || "";
-          const alt = node.attrs.alt || "";
-          const caption = node.attrs.caption || "";
-          const align = node.attrs.align || "left";
-          const width = node.attrs.width
-            ? ` width="${node.attrs.width}"`
-            : "";
-          if (caption || align !== "left") {
-            const style =
-              align === "center"
-                ? ' style="text-align:center;margin:12px auto"'
-                : align === "right"
-                  ? ' style="text-align:right;margin:12px 0 12px auto"'
-                  : "";
-            const cap = caption
-              ? `<figcaption>${caption}</figcaption>`
-              : "";
-            state.write(
-              `<figure data-align="${align}"${style}><img src="${src}" alt="${alt}"${width} data-align="${align}" />${cap}</figure>`
-            );
-            state.closeBlock(node);
-          } else {
-            state.write(`![${alt}](${src})`);
-            state.closeBlock(node);
-          }
+          state.write(serializeResizableImage(node.attrs || {}));
+          state.closeBlock(node);
         },
         parse: {},
       },
@@ -234,10 +210,7 @@ export const ResizableImage = Image.extend({
       img.style.height = "auto";
       img.style.display = "block";
       if (node.attrs.width) {
-        img.style.width =
-          typeof node.attrs.width === "number"
-            ? `${node.attrs.width}px`
-            : node.attrs.width;
+        img.style.width = parseImageWidth(node.attrs.width) || "";
       }
 
       const handle = document.createElement("div");
@@ -367,14 +340,7 @@ export const ResizableImage = Image.extend({
           img.alt = updatedNode.attrs.alt || "";
           applyAlign(updatedNode.attrs.align || "left");
           syncCaption(updatedNode.attrs.caption || "");
-          if (updatedNode.attrs.width) {
-            img.style.width =
-              typeof updatedNode.attrs.width === "number"
-                ? `${updatedNode.attrs.width}px`
-                : updatedNode.attrs.width;
-          } else {
-            img.style.width = "";
-          }
+          img.style.width = parseImageWidth(updatedNode.attrs.width) || "";
           return true;
         },
         destroy: () => {

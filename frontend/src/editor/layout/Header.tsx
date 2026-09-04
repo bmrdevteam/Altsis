@@ -17,7 +17,6 @@ const Header = () => {
   const toggleMode = useEditorStore((s) => s.toggleMode);
   const toggleSidebar = useEditorStore((s) => s.toggleSidebar);
   const saveForm = useEditorStore((s) => s.saveForm);
-  const undo = useEditorStore((s) => s.undo);
   const redo = useEditorStore((s) => s.redo);
   const historyLen = useEditorStore((s) => s.history.length);
   const futureLen = useEditorStore((s) => s.future.length);
@@ -39,11 +38,18 @@ const Header = () => {
 
         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
           <div
-            onClick={() => historyLen > 1 && undo()}
+            onClick={() => {
+              const store = useEditorStore.getState();
+              store.saveSnapshot();
+              store.undo();
+            }}
             title="실행취소 (Ctrl+Z)"
+            role="button"
+            aria-label="실행 취소"
+            aria-disabled={historyLen <= 1 && !isDirty}
             style={{
-              cursor: historyLen <= 1 ? "default" : "pointer",
-              opacity: historyLen <= 1 ? 0.3 : 1,
+              cursor: historyLen <= 1 && !isDirty ? "default" : "pointer",
+              opacity: historyLen <= 1 && !isDirty ? 0.3 : 1,
               padding: "4px 8px",
             }}
           >

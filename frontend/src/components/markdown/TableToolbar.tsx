@@ -7,6 +7,7 @@ import {
   canMergeAdjacentCells,
   mergeAdjacentCells,
 } from "./tableCellSelection";
+import UndoRedoButtons from "./UndoRedoButtons";
 import style from "./markdown.module.scss";
 
 type Props = {
@@ -158,6 +159,8 @@ const TableToolbar = ({ editor }: Props) => {
       aria-label="표 도구"
       onMouseDown={(e) => e.preventDefault()}
     >
+      <UndoRedoButtons editor={editor} />
+      <span className={style.tableBubbleDivider} />
       {buttons.map((btn, idx) =>
         "divider" in btn ? (
           <span key={idx} className={style.tableBubbleDivider} />
