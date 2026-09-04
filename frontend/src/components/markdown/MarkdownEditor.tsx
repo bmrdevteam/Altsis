@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import { getMarkRange } from "@tiptap/core";
 import { NodeSelection, TextSelection } from "@tiptap/pm/state";
 import { type SlashDialogActions } from "./extensions/slashCommand";
@@ -24,6 +24,8 @@ import { useEditorDraft } from "./hooks/useEditorDraft";
 import { handleAtomNodeClick } from "./atomNodeClick";
 import { handleTableCellClick } from "./tableCellClick";
 import { serializeClipboardPlainText } from "./clipboardPlainText";
+import { flattenPastedTableStyles } from "./pasteTableStyles";
+import { applyMarkdownEditorHotkey } from "./markdownEditorHotkeys";
 import { createMarkdownExtensions } from "./createMarkdownExtensions";
 import {
   activeToolbarPanel,
@@ -96,6 +98,10 @@ const MarkdownEditor = ({
   const viewModeRef = useRef(viewMode);
   viewModeRef.current = viewMode;
   const dragCountRef = useRef(0);
+  const editorRef = useRef<Editor | null>(null);
+  const initialContentRef = useRef(repairCanvasMarkdown(value || ""));
+  const searchMentionUsersRef = useRef(searchMentionUsers);
+  searchMentionUsersRef.current = searchMentionUsers;
   const titleRef = useRef(title);
   titleRef.current = title;
   const valueRef = useRef(value);
@@ -123,23 +129,33 @@ const MarkdownEditor = ({
     startAutoSave,
   } = useEditorDraft(draftKey);
 
+  const mentionEnabled = !!searchMentionUsers;
+  const extensions = useMemo(
+    () =>
+      createMarkdownExtensions({
+        placeholder,
+        searchMentionUsers: mentionEnabled
+          ? (query) =>
+              searchMentionUsersRef.current?.(query) ?? Promise.resolve([])
+          : undefined,
+        getSlashActions: () => slashActionsRef.current,
+      }),
+    [placeholder, mentionEnabled]
+  );
+
   const editor = useEditor({
-    extensions: createMarkdownExtensions({
-      placeholder,
-      searchMentionUsers,
-      getSlashActions: () => slashActionsRef.current,
-    }),
-    content: repairCanvasMarkdown(value || ""),
+    extensions,
+    content: initialContentRef.current,
+    shouldRerenderOnTransaction: true,
     editorProps: {
       clipboardTextSerializer: serializeClipboardPlainText,
-      handleKeyDown: (_view, event) => {
-        if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-          event.preventDefault();
-          openLinkDialogRef.current();
-          return true;
-        }
-        return false;
-      },
+      transformPastedHTML: (html) => flattenPastedTableStyles(html),
+      handleKeyDown: (_view, event) =>
+        applyMarkdownEditorHotkey(event, {
+          openLink: () => openLinkDialogRef.current(),
+          undo: () => editorRef.current?.commands.undo() ?? false,
+          redo: () => editorRef.current?.commands.redo() ?? false,
+        }),
       handleDOMEvents: {
         // MouseDown.up보다 먼저 셀 블록을 접어, Chrome·resizable 표의 옛 doc setSelection을 피한다
         mousedown: (view, event) => {
@@ -176,12 +192,13 @@ const MarkdownEditor = ({
         return true;
       },
     },
-    onUpdate: ({ editor }) => {
-      const md = postprocessMarkdown(getMarkdownFromEditor(editor));
+    onUpdate: ({ editor: ed }) => {
+      const md = postprocessMarkdown(getMarkdownFromEditor(ed));
       lastEmittedRef.current = md;
       onChange(md);
     },
   });
+  editorRef.current = editor;
 
   // 수식 더블클릭 → 편집 다이얼로그
   useEffect(() => {

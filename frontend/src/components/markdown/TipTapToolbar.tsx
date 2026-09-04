@@ -9,6 +9,7 @@ import CodeDropdown from "./CodeDropdown";
 import CheckDropdown from "./CheckDropdown";
 import ToolbarMoreMenu, { type MoreMenuItem } from "./ToolbarMoreMenu";
 import MarkdownShortcutsHelp from "./MarkdownShortcutsHelp";
+import UndoRedoButtons from "./UndoRedoButtons";
 import {
   FONT_OPTIONS,
   canonicalFontFamily,
@@ -146,18 +147,7 @@ const TipTapToolbar = ({
 
   return (
     <div className={style.toolbarButtons}>
-      {renderBtn({
-        icon: "undo",
-        title: "실행 취소",
-        action: () => editor.chain().focus().undo().run(),
-        isDisabled: () => !editor.can().undo(),
-      })}
-      {renderBtn({
-        icon: "redo",
-        title: "다시 실행",
-        action: () => editor.chain().focus().redo().run(),
-        isDisabled: () => !editor.can().redo(),
-      })}
+      <UndoRedoButtons editor={editor} />
       <span className={style.divider} />
 
       <div className={style.colorBtnWrapper}>

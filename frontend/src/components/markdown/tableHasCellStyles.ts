@@ -6,6 +6,7 @@ const STYLE_ATTR_KEYS = [
   "borderColor",
   "borderStyle",
   "borderWidth",
+  "padding",
 ] as const;
 
 const hasColWidth = (colwidth: unknown): boolean =>

@@ -32,10 +32,10 @@ describe("sanitizeMarkdownInlineStyle", () => {
     expect(
       sanitizeMarkdownInlineStyle(
         "td",
-        "border: 1px solid #ccc; background-color: #fff; vertical-align: top"
+        "border: 1px solid #ccc; background-color: #fff; vertical-align: top; padding: 8px"
       )
     ).toBe(
-      "border: 1px solid #ccc; background-color: #fff; vertical-align: top"
+      "border: 1px solid #ccc; background-color: #fff; vertical-align: top; padding: 8px"
     );
   });
 

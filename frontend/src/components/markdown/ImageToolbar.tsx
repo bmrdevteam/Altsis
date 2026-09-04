@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Editor } from "@tiptap/react";
 import { NodeSelection } from "@tiptap/pm/state";
+import UndoRedoButtons from "./UndoRedoButtons";
 import style from "./markdown.module.scss";
 
 type Props = {
@@ -47,6 +48,8 @@ const ImageToolbar = ({ editor }: Props) => {
       aria-label="이미지 도구"
       onMouseDown={(e) => e.preventDefault()}
     >
+      <UndoRedoButtons editor={editor} />
+      <span className={style.tableBubbleDivider} />
       <button
         type="button"
         className={`${style.linkBubbleBtn} ${
