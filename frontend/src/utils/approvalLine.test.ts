@@ -3,6 +3,7 @@ import {
   formatCirculationLabels,
   formatCirculationNames,
   getApprovalCirculation,
+  getApprovalComposeRows,
   getRequiredApprovalError,
   isCurrentApprover,
 } from "./approvalLine";
@@ -242,5 +243,72 @@ describe("isCurrentApprover", () => {
         "kim"
       )
     ).toBe(true);
+  });
+});
+
+describe("getApprovalComposeRows", () => {
+  const gubon = { user: "u2", userId: "gubon", userName: "구본길" };
+  const sangchan = { user: "u3", userId: "sangchan", userName: "이상찬" };
+
+  test("keeps pick and fixed in line order and indexes only pick steps", () => {
+    const rows = getApprovalComposeRows(
+      [
+        { order: 0, label: "부장", mode: "pick" },
+        { order: 1, label: "교감/연구소장", mode: "pick" },
+        { order: 2, label: "교육지원실장", mode: "fixed", approver: gubon },
+        { order: 3, label: "교장", mode: "fixed", approver: sangchan },
+      ],
+      { 0: approver }
+    );
+    expect(rows.map((r) => r.kind)).toEqual([
+      "pick",
+      "pick",
+      "fixed",
+      "fixed",
+    ]);
+    expect(rows[0]).toMatchObject({
+      kind: "pick",
+      label: "부장",
+      pickIndex: 0,
+      selected: approver,
+    });
+    expect(rows[1]).toMatchObject({
+      kind: "pick",
+      label: "교감/연구소장",
+      pickIndex: 1,
+    });
+    expect(rows[2]).toMatchObject({
+      kind: "fixed",
+      label: "교육지원실장",
+      approver: gubon,
+    });
+    expect(rows[3]).toMatchObject({
+      kind: "fixed",
+      label: "교장",
+      approver: sangchan,
+    });
+  });
+
+  test("all-fixed line still returns a row per step", () => {
+    const rows = getApprovalComposeRows([
+      { order: 0, label: "교육지원실장", mode: "fixed", approver: gubon },
+      { order: 1, label: "교장", mode: "fixed", approver: sangchan },
+    ]);
+    expect(rows).toHaveLength(2);
+    expect(rows.every((r) => r.kind === "fixed")).toBe(true);
+  });
+
+  test("fixed without approver is still a fixed row", () => {
+    const rows = getApprovalComposeRows([
+      { order: 0, label: "교장", mode: "fixed" },
+    ]);
+    expect(rows).toEqual([
+      {
+        kind: "fixed",
+        key: "fixed-0-0",
+        label: "교장",
+        approver: undefined,
+      },
+    ]);
   });
 });
