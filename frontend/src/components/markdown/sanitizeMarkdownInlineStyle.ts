@@ -89,6 +89,17 @@ export const sanitizeMarkdownInlineStyle = (
       if (family) kept.push(`font-family: ${family}`);
       continue;
     }
+    if (prop === "padding" || prop.startsWith("padding-")) {
+      const tokens = value.split(/\s+/);
+      if (
+        tokens.length > 0 &&
+        tokens.length <= 4 &&
+        tokens.every((t) => MARGIN_TOKEN.test(t))
+      ) {
+        kept.push(`${prop}: ${value}`);
+      }
+      continue;
+    }
     if (prop === "margin" || prop.startsWith("margin-")) {
       const tokens = value.split(/\s+/);
       if (tokens.length > 0 && tokens.length <= 4 && tokens.every((t) => MARGIN_TOKEN.test(t))) {

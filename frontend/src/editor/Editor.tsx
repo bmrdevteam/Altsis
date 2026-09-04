@@ -54,9 +54,13 @@ function Editor(props: Props) {
       const store = useEditorStore.getState();
 
       if (e.key === "z" && (e.ctrlKey || e.metaKey) && e.shiftKey) {
+        if (store.future.length === 0) return;
         e.preventDefault();
         store.redo();
       } else if (e.key === "z" && (e.ctrlKey || e.metaKey)) {
+        // 입력 중에는 blur 전이라 스냅샷이 없을 수 있다. 먼저 찍고 되돌린다.
+        store.saveSnapshot();
+        if (store.history.length <= 1) return;
         e.preventDefault();
         store.undo();
       } else if (e.key === "s" && (e.ctrlKey || e.metaKey)) {

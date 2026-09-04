@@ -18,6 +18,7 @@ import {
   parseFenceLanguage,
 } from "./canvas/canvasModel";
 import { preprocessMarkdownForViewer } from "./preprocessMarkdownForViewer";
+import { widthFromImgProps } from "./extensions/imageWidth";
 
 // @[이름](id) 멘션 패턴을 React 요소로 변환
 const renderMentions = (text: string): (string | JSX.Element)[] => {
@@ -201,7 +202,25 @@ const baseComponents = {
       const height = embedMatch[1] ? parseInt(embedMatch[1], 10) : undefined;
       return <UrlEmbed url={src} height={height} />;
     }
-    return <img src={src} alt={alt} {...props} />;
+    const { style, width, ...rest } = props;
+    const sized = widthFromImgProps({ width, style });
+    const styleObj =
+      style && typeof style === "object" && !Array.isArray(style)
+        ? { ...(style as Record<string, unknown>) }
+        : {};
+    return (
+      <img
+        src={src}
+        alt={alt}
+        {...rest}
+        style={{
+          ...styleObj,
+          maxWidth: "100%",
+          height: "auto",
+          ...(sized ? { width: sized } : {}),
+        }}
+      />
+    );
   },
   // YouTube 링크를 임베드로 변환
   a: ({ href, children, ...props }: any) => {
