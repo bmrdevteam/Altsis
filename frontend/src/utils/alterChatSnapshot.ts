@@ -464,6 +464,14 @@ const formatSheetCellValue = (value: unknown, fieldType?: string): string => {
     const v = value as { userName?: string; userId?: string };
     return v.userName ? `${v.userName}(${v.userId || ""})` : "";
   }
+  if (fieldType === "circulation" && Array.isArray(value)) {
+    return value
+      .map((u: { userName?: string; userId?: string }) =>
+        u?.userName ? `${u.userName}(${u.userId || ""})` : u?.userId || ""
+      )
+      .filter(Boolean)
+      .join(", ");
+  }
   if (fieldType === "file" && Array.isArray(value)) {
     return value
       .map((f: { originalName?: string; key?: string; title?: string; ogTitle?: string; url?: string }) =>

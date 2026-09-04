@@ -3612,6 +3612,7 @@ ${slotDesc.list || "(작성 칸 없음 — 골격 유지하며 빈칸만 채우�
 - link: JSON {"url":"https://..."}
 - userSelect: JSON {"user":"oid","userId":"...","userName":"..."} 또는 배열 (후보 목록에서만)
 - approval: JSON {"steps":[{"order":0,"label":"...","approver":{"user","userId","userName"}}]} (pick 단계만, 후보에서만)
+- circulation: JSON [{"user","userId","userName"}, ...] (후보에서만)
 - file 필드는 출력하지 마세요.`;
 
   const inferredSlotNote = anyInferredSlots
@@ -3909,6 +3910,7 @@ const ACTIVITY_FIELD_TYPES = new Set([
   "scale",
   "counter",
   "approval",
+  "circulation",
   "link",
   "content",
   "docResponse",
@@ -4345,6 +4347,9 @@ export const normalizeActivityDraft = (parsed = {}, opts = {}) => {
         steps: [{ order: 0, label: "1차 승인", mode: "pick" }],
       };
     }
+    if (type === "circulation") {
+      field.circulation = { mode: "pick", users: [] };
+    }
     if (typeof f?.points === "number" && Number.isFinite(f.points)) {
       field.points = Math.max(0, Math.min(100, f.points));
     }
@@ -4571,7 +4576,7 @@ export const executeActivityDraftSkill = async ({
   assertVisionIfNeeded(modelName, context);
 
   const fieldCatalog = `허용 필드 type (정확히 이 값만):
-text, textarea, number, date, multiDate, time, file, select, multiSelect, checkbox, radio, userSelect, rating, scale, counter, approval, link, content, docResponse, aiChat
+text, textarea, number, date, multiDate, time, file, select, multiSelect, checkbox, radio, userSelect, rating, scale, counter, approval, circulation, link, content, docResponse, aiChat
 - select/multiSelect/radio 는 options: string[] 필수
 - content: 읽기 전용 안내 마크다운(제목·목록·표 등). 기본은 일반 마크다운.
 - docResponse: 학생이 마크다운 에디터에서 편집하는 응답 템플릿. 기본은 일반 마크다운 초안(빈칸·소제목·안내 문구).
@@ -4579,6 +4584,7 @@ text, textarea, number, date, multiDate, time, file, select, multiSelect, checkb
 - html-app(\`\`\`html-app ... \`\`\`)은 제출이 필요 없는 데모·게임·시각 효과일 때만 content에 사용. docResponse에는 교사가 명시적으로 요청한 경우에만.
 - 중요: html-app 안의 입력값·퀴즈 점수는 양식 제출 데이터에 저장되지 않습니다. 수집·채점이 필요하면 반드시 text/textarea/radio/select/number 등 일반 필드를 만드세요.
 - approval 은 approvalLine을 넣지 마세요(서버가 기본값 부여)
+- circulation 은 circulation 설정을 넣지 마세요(서버가 기본 지정 회람을 부여)
 - quizMode 와 assessmentMode 는 동시에 true 금지
 - 평가 활동(assessmentMode true 또는 활동 형태가 평가):
   · rubrics 배열에 루브릭을 정의하세요. 각 항목: { "key": "r1", "title": "...", "levels": [{ "label", "description", "points" }] }

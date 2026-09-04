@@ -26,6 +26,7 @@ const FIELD_TYPES = new Set<TAltFormFieldType>([
   "scale",
   "counter",
   "approval",
+  "circulation",
   "link",
   "content",
   "docResponse",
@@ -253,6 +254,8 @@ const createEmptyField = (type: TAltFormFieldType): TAltFormField => ({
     type === "approval"
       ? { steps: [{ order: 0, label: "1차 승인", mode: "pick" }] }
       : undefined,
+  circulation:
+    type === "circulation" ? { mode: "pick", users: [] } : undefined,
   order: 0,
 });
 

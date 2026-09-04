@@ -1,6 +1,10 @@
 import {
   validateApprovalSubmit,
   buildApprovalOnSubmit,
+  validateCirculationSubmit,
+  buildCirculationOnSubmit,
+  collectStoredCirculatees,
+  buildApprovalAccessOr,
 } from "../../src/utils/approvalLine.js";
 
 const approver = {
@@ -198,5 +202,85 @@ describe("approvalLine submit", () => {
       },
     };
     expect(buildApprovalOnSubmit(offField, submitted).circulation).toEqual([]);
+  });
+});
+
+describe("circulation field submit", () => {
+  const circField = {
+    _id: "circ1",
+    label: "회람",
+    type: "circulation",
+    circulation: { mode: "pick", users: [] },
+  };
+
+  test("pick uses submitted list", () => {
+    expect(buildCirculationOnSubmit(circField, undefined)).toEqual([]);
+    expect(buildCirculationOnSubmit(circField, [approver, approverB])).toEqual([
+      approver,
+      approverB,
+    ]);
+  });
+
+  test("fixed uses form users", () => {
+    const field = {
+      ...circField,
+      circulation: { mode: "fixed", users: [approver, approverB] },
+    };
+    expect(
+      buildCirculationOnSubmit(field, [
+        { user: "x", userId: "other", userName: "다른사람" },
+      ])
+    ).toEqual([approver, approverB]);
+  });
+
+  test("required pick with no users is rejected", () => {
+    expect(
+      validateCirculationSubmit({ ...circField, required: true }, [])
+    ).toBe("회람: 회람자를 한 명 이상 선택해주세요.");
+  });
+
+  test("fixed without users is a form error", () => {
+    expect(
+      validateCirculationSubmit({
+        ...circField,
+        circulation: { mode: "fixed", users: [] },
+      })
+    ).toBe("회람: 고정 회람자가 설정되지 않았습니다.");
+  });
+});
+
+describe("collectStoredCirculatees and access or", () => {
+  test("merges nested approval circulation and dedicated field", () => {
+    const form = {
+      fields: [
+        { _id: "appr1", type: "approval" },
+        { _id: "circ1", type: "circulation" },
+      ],
+    };
+    const rowData = {
+      appr1: { circulation: [approver] },
+      circ1: [approverB],
+    };
+    expect(collectStoredCirculatees(form, rowData)).toEqual([
+      approver,
+      approverB,
+    ]);
+  });
+
+  test("buildApprovalAccessOr includes circulation field userId", () => {
+    const form = {
+      fields: [
+        { _id: "appr1", type: "approval" },
+        { _id: "circ1", type: "circulation" },
+      ],
+    };
+    const conds = buildApprovalAccessOr(form, "jo");
+    expect(conds).toEqual(
+      expect.arrayContaining([
+        { "data.appr1.approver.userId": "jo" },
+        { "data.appr1.circulation.userId": "jo" },
+        { "data.circ1.userId": "jo" },
+      ])
+    );
   });
 });

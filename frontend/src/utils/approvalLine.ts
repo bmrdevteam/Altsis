@@ -174,8 +174,28 @@ export function isCurrentApprover(
 export function defaultApprovalLine(): TApprovalLine {
   return {
     steps: [{ order: 0, label: "1차 승인", mode: "pick" }],
-    circulation: { mode: "off", users: [] },
   };
+}
+
+export function defaultCirculation(): TApprovalCirculation {
+  return { mode: "pick", users: [] };
+}
+
+export function uniqueApproverList(
+  users: Array<Partial<TApprovalApprover> | null | undefined> | undefined
+): TApprovalApprover[] {
+  const seen = new Set<string>();
+  const out: TApprovalApprover[] = [];
+  for (const u of users || []) {
+    if (!u?.userId || seen.has(u.userId)) continue;
+    seen.add(u.userId);
+    out.push({
+      user: String(u.user || ""),
+      userId: u.userId,
+      userName: u.userName || u.userId,
+    });
+  }
+  return out;
 }
 
 export function getApprovalCirculation(
@@ -189,6 +209,86 @@ export function getApprovalCirculation(
     mode,
     users: Array.isArray(users) ? users.filter((u) => !!u?.userId) : [],
   };
+}
+
+/** Dedicated circulation field config. Missing mode defaults to pick. */
+export function getCirculationConfig(
+  field: Pick<TAltFormField, "circulation"> | TAltFormField
+): TApprovalCirculation {
+  const c = field?.circulation;
+  const users = c?.users;
+  const mode: TApprovalCirculationMode =
+    c?.mode === "fixed" ? "fixed" : c?.mode === "off" ? "off" : "pick";
+  return {
+    mode,
+    users: Array.isArray(users) ? users.filter((u) => !!u?.userId) : [],
+  };
+}
+
+export function formHasCirculationField(
+  fields: Array<{ type?: string }> | undefined
+): boolean {
+  return (fields || []).some((f) => f.type === "circulation");
+}
+
+const newCirculationFieldId = () =>
+  typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `circ_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+
+/**
+ * If an approval field still has nested circulation and the form has no
+ * circulation field, insert a sibling after that approval and turn nested off.
+ */
+export function liftNestedCirculationFields(
+  fields: TAltFormField[]
+): TAltFormField[] {
+  if (!Array.isArray(fields) || fields.length === 0) return fields;
+  if (formHasCirculationField(fields)) return fields;
+
+  const next: TAltFormField[] = [];
+  let changed = false;
+  for (const field of fields) {
+    if (field.type !== "approval") {
+      next.push(field);
+      continue;
+    }
+    const nested = getApprovalCirculation(field);
+    if (nested.mode === "off") {
+      next.push(field);
+      continue;
+    }
+    changed = true;
+    next.push({
+      ...field,
+      approvalLine: {
+        ...(field.approvalLine || { steps: [] }),
+        steps: field.approvalLine?.steps || [],
+        circulation: { mode: "off", users: [] },
+      },
+    });
+    next.push({
+      _id: newCirculationFieldId(),
+      label: "회람",
+      type: "circulation",
+      permission: "respondent",
+      visibleToRespondent: false,
+      required: false,
+      order: (typeof field.order === "number" ? field.order : next.length) + 1,
+      circulation: { mode: nested.mode, users: nested.users },
+    });
+  }
+  if (!changed) return fields;
+  return next.map((f, i) => ({ ...f, order: i }));
+}
+
+export function formatCirculationUserList(
+  users: TApprovalApprover[] | undefined
+): string {
+  return (users || [])
+    .map((u) => formatApproverLabel(u))
+    .filter(Boolean)
+    .join(", ");
 }
 
 export function formatCirculationNames(

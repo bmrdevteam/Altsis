@@ -538,6 +538,15 @@ const AltSheetView = ({
         : "";
     }
 
+    if (field?.type === "circulation" && Array.isArray(value)) {
+      return value
+        .map((u: any) =>
+          u?.userName ? `${u.userName}(${u.userId || ""})` : u?.userId || ""
+        )
+        .filter(Boolean)
+        .join(", ");
+    }
+
     if (field?.type === "approval" && typeof value === "object") {
       const overall = value.overallStatus || value.status || "";
       const statusLabels: Record<string, string> = {
@@ -2795,6 +2804,7 @@ const AltSheetView = ({
                     "scale",
                     "counter",
                     "approval",
+                    "circulation",
                     "content",
                     "aiChat",
                   ];

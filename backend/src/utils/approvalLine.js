@@ -125,8 +125,31 @@ export function uniqueApproverList(users) {
   return out;
 }
 
+export function getApprovalCirculation(field) {
+  const c = field?.approvalLine?.circulation;
+  const users = c?.users;
+  const mode =
+    c?.mode === "fixed" ? "fixed" : c?.mode === "pick" ? "pick" : "off";
+  return {
+    mode,
+    users: Array.isArray(users) ? users.filter((u) => !!u?.userId) : [],
+  };
+}
+
+export function getCirculationConfig(field) {
+  const c = field?.circulation;
+  const users = c?.users;
+  const mode =
+    c?.mode === "fixed" ? "fixed" : c?.mode === "off" ? "off" : "pick";
+  return {
+    mode,
+    users: Array.isArray(users) ? users.filter((u) => !!u?.userId) : [],
+  };
+}
+
 /**
  * off/missing → []. Fixed: form users. Pick: submitted list (deduped).
+ * Nested on an approval field.
  * @param {object} field
  * @param {any} submitted
  */
@@ -141,11 +164,82 @@ export function resolveCirculation(field, submitted) {
   return [];
 }
 
+export function buildCirculationOnSubmit(field, submitted) {
+  const cfg = getCirculationConfig(field);
+  if (cfg.mode === "fixed") {
+    return uniqueApproverList(cfg.users);
+  }
+  if (cfg.mode === "pick") {
+    return uniqueApproverList(Array.isArray(submitted) ? submitted : []);
+  }
+  return [];
+}
+
+/**
+ * @returns {string|null} error message
+ */
+export function validateCirculationSubmit(field, submitted) {
+  const cfg = getCirculationConfig(field);
+  if (cfg.mode === "fixed" && !cfg.users.some((u) => u?.userId)) {
+    return `${field.label || "회람"}: 고정 회람자가 설정되지 않았습니다.`;
+  }
+  if (cfg.mode === "pick" && field.required) {
+    const list = uniqueApproverList(Array.isArray(submitted) ? submitted : []);
+    if (list.length === 0) {
+      return `${field.label || "회람"}: 회람자를 한 명 이상 선택해주세요.`;
+    }
+  }
+  return null;
+}
+
+/** Snapshot lists on the stored row (new fields + nested approval). */
+export function collectStoredCirculatees(form, rowData) {
+  const out = [];
+  for (const field of form?.fields || []) {
+    const fid = field._id != null ? String(field._id) : "";
+    const value = rowData?.[fid];
+    if (field.type === "approval" && Array.isArray(value?.circulation)) {
+      out.push(...value.circulation);
+    }
+    if (field.type === "circulation") {
+      const list = Array.isArray(value) ? value : [];
+      out.push(...list);
+    }
+  }
+  return uniqueApproverList(out);
+}
+
+export function isStoredCirculatee(form, rowData, userId) {
+  if (!userId) return false;
+  return collectStoredCirculatees(form, rowData).some(
+    (u) => u?.userId === userId
+  );
+}
+
 export function isCirculatee(value, userId) {
   if (!userId) return false;
   const list = value?.circulation;
   if (!Array.isArray(list)) return false;
   return list.some((u) => u?.userId === userId);
+}
+
+/** Mongo $or fragments: current approver, any step approver, nested/new circulatee */
+export function buildApprovalAccessOr(form, userId) {
+  const conditions = [];
+  if (!userId) return conditions;
+  for (const field of form?.fields || []) {
+    const fid = field._id != null ? String(field._id) : "";
+    if (!fid) continue;
+    if (field.type === "approval") {
+      conditions.push({ [`data.${fid}.currentApproverUserId`]: userId });
+      conditions.push({ [`data.${fid}.approver.userId`]: userId });
+      conditions.push({ [`data.${fid}.circulation.userId`]: userId });
+    }
+    if (field.type === "circulation") {
+      conditions.push({ [`data.${fid}.userId`]: userId });
+    }
+  }
+  return conditions;
 }
 
 /**
