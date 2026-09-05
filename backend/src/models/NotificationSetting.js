@@ -25,6 +25,7 @@ import { conn } from "../_database/mongodb/index.js";
  * @prop {boolean} chatMessage - 직접 메시지 알림
  * @prop {boolean} soundEnabled - 알림음 활성화
  * @prop {boolean} webPushEnabled - 잠금화면 Web Push (기본 OFF)
+ * @prop {boolean} emailEnabled - 이메일 알림 수신 (기본 OFF)
  * @prop {boolean} altFormApprovalRequest - Alt 폼 승인·회람 알림
  * @prop {boolean} altFormApprovalResult - Alt 폼 승인 결과 알림
  */
@@ -44,6 +45,7 @@ const settingsSchema = mongoose.Schema(
     altFormApprovalResult: { type: Boolean, default: true },
     eventReminderDefault: { type: Number, default: 15 },
     webPushEnabled: { type: Boolean, default: false },
+    emailEnabled: { type: Boolean, default: false },
   },
   { _id: false }
 );
@@ -63,6 +65,7 @@ const settingsDefault = {
   altFormApprovalResult: true,
   eventReminderDefault: 15,
   webPushEnabled: false,
+  emailEnabled: false,
 };
 
 /**

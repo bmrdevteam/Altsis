@@ -52,6 +52,7 @@ import {
 import FormAiChatField from "./FormAiChatField";
 import SheetAiChatView from "./SheetAiChatView";
 import { formatAiChatCell, isAiChatFieldType, parseAiChatSummary } from "./formAiChat";
+import { formatReadableValue } from "./formFieldDisplay";
 
 type Props = {
   forms: TAltForm[];
@@ -611,8 +612,9 @@ const AltSheetView = ({
       return value;
     }
 
-    if (Array.isArray(value)) return value.join(", ");
+    if (Array.isArray(value)) return formatReadableValue(value);
     if (typeof value === "boolean") return value ? "Y" : "N";
+    if (typeof value === "object") return formatReadableValue(value);
     return String(value);
   };
 
@@ -1605,9 +1607,10 @@ const AltSheetView = ({
     }
 
     if (field.type === "textarea") {
+      const text = formatReadableValue(value);
       return (
         <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", lineHeight: 1.6 }}>
-          {String(value)}
+          {text}
         </div>
       );
     }
@@ -1627,7 +1630,7 @@ const AltSheetView = ({
     if (field.type === "docResponse") {
       return (
         <div className={style.contentFieldBody}>
-          <MarkdownWysiwygView content={String(value)} />
+          <MarkdownWysiwygView content={formatReadableValue(value)} />
         </div>
       );
     }

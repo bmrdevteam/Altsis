@@ -441,6 +441,66 @@ export function applyApprovalAction(value, field, userId, status, reason) {
   return { ok: true, value: next, finished: false, nextApprover };
 }
 
+const TITLE_SNIPPET_MAX = 40;
+
+function sanitizeTitleSnippet(value) {
+  const cleaned = String(value ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned) return "";
+  if (cleaned.length <= TITLE_SNIPPET_MAX) return cleaned;
+  return `${cleaned.slice(0, TITLE_SNIPPET_MAX)}…`;
+}
+
+/**
+ * First short-text (type === "text") answer, by field.order.
+ * @returns {string}
+ */
+export function firstShortTextAnswer(form, rowData) {
+  const fields = [...(form?.fields || [])]
+    .filter((f) => f?.type === "text")
+    .sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+  const first = fields[0];
+  if (!first) return "";
+  const fid = first._id != null ? String(first._id) : "";
+  const raw = rowFieldValue(rowData, fid);
+  if (typeof raw === "string") return sanitizeTitleSnippet(raw);
+  if (raw != null && typeof raw === "object" && typeof raw.value === "string") {
+    return sanitizeTitleSnippet(raw.value);
+  }
+  return "";
+}
+
+export function approvalNotificationHeadline(form, rowData) {
+  return (
+    firstShortTextAnswer(form, rowData) ||
+    sanitizeTitleSnippet(form?.title) ||
+    "양식"
+  );
+}
+
+/**
+ * @param {"request"|"circulation"|"approved"|"rejected"|"stepApproved"} kind
+ * @param {string} [stepLabel]
+ */
+export function approvalNotificationTitle(form, rowData, kind, stepLabel) {
+  const head = approvalNotificationHeadline(form, rowData);
+  switch (kind) {
+    case "request":
+      return `${head} · 승인 요청`;
+    case "circulation":
+      return `${head} · 회람`;
+    case "approved":
+      return `${head} · 승인됨`;
+    case "rejected":
+      return `${head} · 반려됨`;
+    case "stepApproved":
+      return `${head} · 「${stepLabel || "이전 단계"}」승인됨`;
+    default:
+      return head;
+  }
+}
+
 /** Mongo $or conditions: rows where user is current approver (legacy + v2) */
 export function buildApproverQueryConditions(fieldIds, userId) {
   const conditions = [];

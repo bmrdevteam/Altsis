@@ -237,6 +237,16 @@ export const SidebarData = (auth: string, role?: string): any => {
               },
             ]
           : []),
+        ...(currentSchool?.academyFeatures?.emailNotifyEnabled
+          ? [
+              {
+                title: "email",
+                name: "이메일 알림",
+                path: "/admin/email",
+                icon: <Svg type="notification" />,
+              },
+            ]
+          : []),
       ],
     });
   }

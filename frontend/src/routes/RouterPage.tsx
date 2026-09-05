@@ -22,6 +22,7 @@ import Schools from "../pages/admin/schools/Index";
 import School from "../pages/admin/schools/Pid";
 import Backup from "../pages/admin/Backup";
 import SiteAdmin from "../pages/admin/site/Index";
+import AdminEmail from "../pages/admin/email/Index";
 import AdminPlans from "../pages/admin/plans/Index";
 
 //dev pages
@@ -311,6 +312,7 @@ function RouterPage() {
               <Route path="" element={<Admin />} />
               <Route path="backup" element={<Backup />} />
               <Route path="site" element={<SiteAdmin />} />
+              <Route path="email" element={<AdminEmail />} />
               <Route path="users" element={<Users />} />
               <Route path="plans" element={<AdminPlans />} />
               <Route path="users/add" element={<Schools />} />
@@ -380,6 +382,14 @@ function RouterPage() {
                   element={
                     <RequireAuth auth={["admin"]}>
                       <SiteAdmin />
+                    </RequireAuth>
+                  }
+                ></Route>
+                <Route
+                  path="email"
+                  element={
+                    <RequireAuth auth={["admin"]}>
+                      <AdminEmail />
                     </RequireAuth>
                   }
                 ></Route>

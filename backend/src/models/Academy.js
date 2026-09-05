@@ -32,6 +32,9 @@ import { validate } from "../utils/validate.js";
  * @prop {boolean} aiEnabled=false - AI 기능 활성화 상태
  * @prop {boolean} sitePublishEnabled=false - 공개 웹사이트 기능 허용 (owner)
  * @prop {boolean} sitePublished=false - 공개 웹사이트 외부 게시 여부 (admin)
+ * @prop {boolean} emailNotifyEnabled=false - 이메일 알림 기능 허용 (owner)
+ * @prop {Object} [emailSmtp] - 아카데미 SMTP; API에서 비밀번호를 조회할 수 없다
+ * @prop {Object} [emailNotifyTypes] - 메일로 보낼 알림 유형 (admin 화이트리스트)
  * @prop {string} aiApiKey - AI API 키; API를 통해 조회할 수 없다
  * @prop {string} aiProvider="gemini" - AI 제공자; openai | anthropic | gemini(테스트용)
  * @prop {Object} [aiUsageLimits] - 사용자별 AI 일일 Alt 한도 (1 Alt = 10,000 토큰)
@@ -85,6 +88,32 @@ const academyPlansSchema = mongoose.Schema(
   { _id: false }
 );
 
+const emailSmtpSchema = mongoose.Schema(
+  {
+    host: { type: String, default: "" },
+    port: { type: Number, default: 587 },
+    secure: { type: Boolean, default: false },
+    user: { type: String, default: "" },
+    pass: { type: String, default: "" },
+    from: { type: String, default: "" },
+  },
+  { _id: false }
+);
+
+const emailNotifyTypesSchema = mongoose.Schema(
+  {
+    classInvitation: { type: Boolean, default: true },
+    classCancellation: { type: Boolean, default: true },
+    classApproval: { type: Boolean, default: true },
+    classApprovalCancel: { type: Boolean, default: true },
+    boardInvitation: { type: Boolean, default: true },
+    altFormApprovalRequest: { type: Boolean, default: true },
+    altFormApprovalResult: { type: Boolean, default: true },
+    reminder: { type: Boolean, default: true },
+  },
+  { _id: false }
+);
+
 const aiUsageLimitsSchema = mongoose.Schema(
   {
     enabled: { type: Boolean, default: false },
@@ -133,6 +162,24 @@ const academySchema = mongoose.Schema(
     aiEnabled: { type: Boolean, default: false },
     sitePublishEnabled: { type: Boolean, default: false },
     sitePublished: { type: Boolean, default: false },
+    emailNotifyEnabled: { type: Boolean, default: false },
+    emailSmtp: {
+      type: emailSmtpSchema,
+      select: false,
+    },
+    emailNotifyTypes: {
+      type: emailNotifyTypesSchema,
+      default: () => ({
+        classInvitation: true,
+        classCancellation: true,
+        classApproval: true,
+        classApprovalCancel: true,
+        boardInvitation: true,
+        altFormApprovalRequest: true,
+        altFormApprovalResult: true,
+        reminder: true,
+      }),
+    },
     aiApiKey: { type: String, select: false },
     aiProvider: {
       type: String,

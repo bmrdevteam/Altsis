@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import style from "style/pages/settings/settings.module.scss";
 
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import { useAuth } from "contexts/authContext";
 import { useWebPush, isWebPushSupported } from "hooks/useWebPush";
 
 import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
@@ -40,6 +41,7 @@ const DEFAULT_SETTINGS: TNotificationSettings = {
   altFormApprovalResult: true,
   eventReminderDefault: 15,
   webPushEnabled: false,
+  emailEnabled: false,
 };
 
 type SettingItem = {
@@ -139,6 +141,7 @@ const TYPE_GROUPS: SettingGroup[] = [
 
 const NotificationSettings = () => {
   const { NotificationAPI } = useAPIv2();
+  const { currentSchool } = useAuth();
   const { enableWebPush, disableWebPush, sendTestPush } = useWebPush();
 
   const [settings, setSettings] =
@@ -146,7 +149,10 @@ const NotificationSettings = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [pushBusy, setPushBusy] = useState(false);
   const [testBusy, setTestBusy] = useState(false);
+  const [emailTestBusy, setEmailTestBusy] = useState(false);
   const pushSupported = isWebPushSupported();
+  const emailFeatureEnabled =
+    currentSchool?.academyFeatures?.emailNotifyEnabled === true;
 
   useEffect(() => {
     if (isLoading) {
@@ -239,6 +245,34 @@ const NotificationSettings = () => {
     }
   };
 
+  const handleTestEmail = async () => {
+    if (emailTestBusy) return;
+    setEmailTestBusy(true);
+    try {
+      await NotificationAPI.CTestEmail();
+      alert(
+        "테스트 메일을 보냈습니다. 프로필 또는 Google 메일함을 확인해 주세요."
+      );
+    } catch (err: any) {
+      const code = err?.response?.data?.message || err?.message;
+      if (code === "EMAIL_NOTIFY_DISABLED") {
+        alert("아카데미에서 이메일 알림이 허용되지 않았습니다.");
+      } else if (code === "EMAIL_SMTP_NOT_CONFIGURED") {
+        alert("아카데미 관리자가 아직 SMTP를 설정하지 않았습니다.");
+      } else if (code === "EMAIL_DISABLED") {
+        alert("이메일 알림을 먼저 켜 주세요.");
+      } else if (code === "EMAIL_ADDRESS_MISSING") {
+        alert(
+          "받을 메일 주소가 없습니다. 프로필 이메일을 넣거나 Google로 로그인해 주세요."
+        );
+      } else {
+        ALERT_ERROR(err);
+      }
+    } finally {
+      setEmailTestBusy(false);
+    }
+  };
+
   const renderToggleRow = (item: SettingItem) => (
     <div key={item.key} className={style.setting_item}>
       <div className={style.info}>
@@ -278,9 +312,12 @@ const NotificationSettings = () => {
             lineHeight: 1.5,
           }}
         >
-          유형별 설정은 앱 안 알림과 잠금화면 알림에 동일하게 적용됩니다. 잠금화면
-          알림을 켜면, 아래에서 허용한 유형이 벨 알림과 같이 잠금화면에도
+          유형별 설정은 앱 안 알림과 잠금화면 알림에 동일하게 적용됩니다.
+          잠금화면 알림을 켜면, 아래에서 허용한 유형이 벨 알림과 같이 잠금화면에도
           표시됩니다.
+          {emailFeatureEnabled
+            ? " 이메일 알림을 켜면, 아카데미가 메일로 보내는 유형만 같은 토글로 받습니다."
+            : ""}
         </p>
 
         <div className={style.container_subtitle}>일반</div>
@@ -367,6 +404,55 @@ const NotificationSettings = () => {
                 </button>
               </div>
             </div>
+          </>
+        )}
+        {emailFeatureEnabled && (
+          <>
+            <Divider />
+            <div className={style.container_subtitle}>이메일</div>
+            <div className={style.setting_item}>
+              <div className={style.info}>
+                <label className={style.label}>이메일 알림</label>
+                <span className={style.description}>
+                  프로필 이메일 또는 Google 메일로 받습니다. 어떤 유형이 메일로
+                  가는지는 아카데미 관리자가 정합니다. 위에서 끈 유형은 메일도
+                  가지 않습니다.
+                </span>
+              </div>
+              <div className={style.controls}>
+                <ToggleSwitch
+                  key={`email-${settings.emailEnabled}`}
+                  defaultChecked={Boolean(settings.emailEnabled)}
+                  onChange={(checked: boolean) => {
+                    updateSetting("emailEnabled", checked);
+                  }}
+                />
+              </div>
+            </div>
+            {settings.emailEnabled && (
+              <>
+                <Divider />
+                <div className={style.setting_item}>
+                  <div className={style.info}>
+                    <label className={style.label}>테스트 메일</label>
+                    <span className={style.description}>
+                      내 주소로 테스트 메일이 오는지 바로 확인할 수 있습니다.
+                    </span>
+                  </div>
+                  <div className={style.controls}>
+                    <button
+                      type="button"
+                      disabled={emailTestBusy}
+                      aria-busy={emailTestBusy}
+                      onClick={handleTestEmail}
+                      className={style.test_push_button}
+                    >
+                      {emailTestBusy ? "전송 중…" : "테스트 보내기"}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </>
         )}
       </div>

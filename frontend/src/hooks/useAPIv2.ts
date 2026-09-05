@@ -9,7 +9,7 @@
 import useDatabase from "hooks/useDatabase";
 
 import { MESSAGE } from "./_message";
-import { TAcademy, TAcademyPlans, TAcademyPlanPrice, TAcademyPlanUsage } from "types/academies";
+import { TAcademy, TAcademyPlans, TAcademyPlanPrice, TAcademyPlanUsage, TAcademyEmailSmtp, TEmailNotifyTypes } from "types/academies";
 import { TUser } from "types/users";
 import _ from "lodash";
 import { TCurrentUser } from "types/auth";
@@ -471,6 +471,102 @@ export default function useAPIv2() {
       data: props.data,
     });
     return { academy: academy as TAcademy };
+  }
+
+  /**
+   * UAcademyEmailNotifyEnabled API
+   * @description 아카데미 이메일 알림 허용/비허용
+   * @auth owner
+   */
+  async function UAcademyEmailNotifyEnabled(props: {
+    params: {
+      academyId: string;
+    };
+    data: {
+      emailNotifyEnabled: boolean;
+    };
+  }) {
+    const { academy } = await database.U({
+      location: `academies/${props.params.academyId}/email-notify`,
+      data: props.data,
+    });
+    return { academy: academy as TAcademy };
+  }
+
+  /**
+   * RAcademyEmailSmtp API
+   * @description 아카데미 SMTP·메일 유형 조회 (비밀번호 없음)
+   * @auth owner | admin
+   */
+  async function RAcademyEmailSmtp(props: {
+    params: {
+      academyId: string;
+    };
+  }) {
+    return (await database.R({
+      location: `academies/${props.params.academyId}/email-smtp`,
+    })) as TAcademyEmailSmtp;
+  }
+
+  /**
+   * UAcademyEmailSmtp API
+   * @description 아카데미 SMTP 저장/삭제
+   * @auth owner | admin
+   */
+  async function UAcademyEmailSmtp(props: {
+    params: {
+      academyId: string;
+    };
+    data: {
+      host?: string;
+      port?: number;
+      secure?: boolean;
+      user?: string;
+      pass?: string;
+      from?: string;
+      clear?: boolean;
+    };
+  }) {
+    return (await database.U({
+      location: `academies/${props.params.academyId}/email-smtp`,
+      data: props.data,
+    })) as TAcademyEmailSmtp;
+  }
+
+  /**
+   * UAcademyEmailNotifyTypes API
+   * @description 메일로 보낼 알림 유형 화이트리스트
+   * @auth owner | admin
+   */
+  async function UAcademyEmailNotifyTypes(props: {
+    params: {
+      academyId: string;
+    };
+    data: {
+      emailNotifyTypes: TEmailNotifyTypes;
+    };
+  }) {
+    const { emailNotifyTypes } = await database.U({
+      location: `academies/${props.params.academyId}/email-notify-types`,
+      data: props.data,
+    });
+    return { emailNotifyTypes: emailNotifyTypes as TEmailNotifyTypes };
+  }
+
+  /**
+   * CAcademyEmailSmtpTest API
+   * @description SMTP 테스트 메일 (호출자 주소)
+   * @auth owner | admin
+   */
+  async function CAcademyEmailSmtpTest(props: {
+    params: {
+      academyId: string;
+    };
+  }) {
+    return await database.C({
+      location: `academies/${props.params.academyId}/email-smtp/test`,
+      data: {},
+    });
   }
 
   /**
@@ -3353,6 +3449,17 @@ export default function useAPIv2() {
     });
   }
 
+  /**
+   * CTestEmail API
+   * @description 이메일 알림 테스트 발송
+   */
+  async function CTestEmail() {
+    return await database.C({
+      location: "notifications/email/test",
+      data: {},
+    });
+  }
+
   // ============================================================
   // CalendarSettings API
   // ============================================================
@@ -5702,6 +5809,11 @@ export default function useAPIv2() {
       UAcademyChatEnabled,
       UAcademyBoardEnabled,
       UAcademySitePublishEnabled,
+      UAcademyEmailNotifyEnabled,
+      RAcademyEmailSmtp,
+      UAcademyEmailSmtp,
+      UAcademyEmailNotifyTypes,
+      CAcademyEmailSmtpTest,
       UAcademyAiEnabled,
       UAcademyAiApiKey,
       RAcademyAiApiKey,
@@ -5880,6 +5992,7 @@ export default function useAPIv2() {
       CPushSubscription,
       DPushSubscription,
       CTestPush,
+      CTestEmail,
     },
     ReminderAPI: {
       CReminder,

@@ -6,6 +6,8 @@ import {
   collectStoredCirculatees,
   recipientsForFinalApprovalResult,
   buildApprovalAccessOr,
+  firstShortTextAnswer,
+  approvalNotificationTitle,
 } from "../../src/utils/approvalLine.js";
 
 const approver = {
@@ -329,6 +331,59 @@ describe("recipientsForFinalApprovalResult", () => {
       })
     ).toEqual([]);
     expect(recipientsForFinalApprovalResult({})).toEqual([]);
+  });
+});
+
+describe("approvalNotificationTitle", () => {
+  const form = {
+    title: "출석부",
+    fields: [
+      { _id: "c1", type: "content", order: 0 },
+      { _id: "t2", type: "textarea", order: 1 },
+      { _id: "s1", type: "text", order: 3, label: "둘째 단답" },
+      { _id: "s0", type: "text", order: 2, label: "첫 단답" },
+    ],
+  };
+
+  test("uses the first text field by order", () => {
+    expect(firstShortTextAnswer(form, { s0: "현장학습 신청", s1: "다른 값" })).toBe(
+      "현장학습 신청"
+    );
+    expect(
+      firstShortTextAnswer(form, {
+        get: (id) => (id === "s0" ? "  맵에서 온 값  " : ""),
+      })
+    ).toBe("맵에서 온 값");
+  });
+
+  test("falls back to form title and clamps length", () => {
+    expect(firstShortTextAnswer(form, {})).toBe("");
+    expect(approvalNotificationTitle(form, {}, "request")).toBe(
+      "출석부 · 승인 요청"
+    );
+    const long = "가".repeat(50);
+    expect(firstShortTextAnswer(form, { s0: `${long}\n줄바꿈` })).toBe(
+      `${"가".repeat(40)}…`
+    );
+  });
+
+  test("builds kind suffixes", () => {
+    const data = { s0: "현장학습" };
+    expect(approvalNotificationTitle(form, data, "request")).toBe(
+      "현장학습 · 승인 요청"
+    );
+    expect(approvalNotificationTitle(form, data, "circulation")).toBe(
+      "현장학습 · 회람"
+    );
+    expect(approvalNotificationTitle(form, data, "approved")).toBe(
+      "현장학습 · 승인됨"
+    );
+    expect(approvalNotificationTitle(form, data, "rejected")).toBe(
+      "현장학습 · 반려됨"
+    );
+    expect(approvalNotificationTitle(form, data, "stepApproved", "2차")).toBe(
+      "현장학습 · 「2차」승인됨"
+    );
   });
 });
 

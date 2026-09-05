@@ -67,4 +67,6 @@ export type TNotificationSettings = {
   eventReminderDefault: number;
   /** 잠금화면 Web Push (기본 false, 옵트인) */
   webPushEnabled?: boolean;
+  /** 이메일 알림 수신 (기본 false, 옵트인) */
+  emailEnabled?: boolean;
 };
