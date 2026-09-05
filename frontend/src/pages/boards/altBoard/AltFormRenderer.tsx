@@ -26,6 +26,7 @@ import {
   getApprovalLineSteps,
   getCirculationConfig,
   getRequiredApprovalError,
+  isApprovalLocked,
   normalizeApprovalValue,
   TApprovalApprover,
 } from "utils/approvalLine";
@@ -782,7 +783,8 @@ const AltFormRenderer = ({
     isSubmitted &&
     !!myRow &&
     !editingDraftRow &&
-    windowOpen;
+    windowOpen &&
+    !isApprovalLocked(myRow, form?.fields);
   const submitLabel = (() => {
     const base = isSubmitted ? "수정 제출" : "제출";
     if (requiredTarget == null || !canComposeMultiple) return base;
@@ -796,12 +798,15 @@ const AltFormRenderer = ({
         canComposeMultiple)) ||
     (isSubmitted && (canResubmit || editingSubmitted));
   const actionsInBanner = showLocalBanner || isServerDraftSlot;
+  const reviewLockRow = submittedRows[reviewIndex] || myRow;
+  const reviewApprovalLocked = isApprovalLocked(reviewLockRow, form?.fields);
   const canEditReviewRow =
     isReviewMode &&
     !editingSubmitted &&
     windowOpen &&
     submittedRows.length > 0 &&
-    !!form?.settings.allowResubmit;
+    !!form?.settings.allowResubmit &&
+    !reviewApprovalLocked;
 
   const reuseCurrentResponse = () => {
     if (!form || !isReviewMode || !canComposeMultiple) return;
@@ -830,6 +835,7 @@ const AltFormRenderer = ({
     if (!form || !isReviewMode) return;
     const row = submittedRows[reviewIndex];
     if (!row || !form.settings.allowResubmit) return;
+    if (isApprovalLocked(row, form.fields)) return;
     skipNextExternalViewMode.current = true;
     setReuseDroppedNotice(null);
     setEditingSubmitted(true);
@@ -1272,6 +1278,7 @@ const AltFormRenderer = ({
     if (!row) return;
     const isDraft = isDraftSheetRow(row);
     if (!isDraft && !form.settings.allowResubmit) return;
+    if (!isDraft && isApprovalLocked(row, form.fields)) return;
     if (!window.confirm(isDraft ? "이 저장본을 삭제하시겠습니까?" : "이 응답을 삭제하시겠습니까?"))
       return;
 
@@ -2972,7 +2979,9 @@ const AltFormRenderer = ({
             <strong>
               {canEditReviewRow
                 ? "이 응답을 수정하거나 삭제할 수 있습니다."
-                : "응답은 수정할 수 없습니다."}
+                : reviewApprovalLocked
+                  ? "결재가 시작되어 수정·삭제할 수 없습니다."
+                  : "응답은 수정할 수 없습니다."}
             </strong>
             {reviewSubmittedAt && <span>제출일: {reviewSubmittedAt}</span>}
           </div>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import style from "./altBoard.module.scss";
 import { TAltForm, TAltFormField, TAssessmentData } from "types/altForm";
 import { TAltSheetRow } from "types/altSheet";
@@ -12,7 +12,11 @@ import {
   MarkdownEditor,
   MarkdownWysiwygView,
 } from "components/markdown";
-import { isCurrentApprover, normalizeApprovalValue } from "utils/approvalLine";
+import {
+  isApprovalLocked,
+  isCurrentApprover,
+  normalizeApprovalValue,
+} from "utils/approvalLine";
 import { NO_PRINT_CLASS, printArea } from "utils/printArea";
 import { DateRange } from "components/dateRangeFilter/DateRangeFilterDropdown";
 import RecordsListFilterBar, {
@@ -31,6 +35,7 @@ import SheetTimetableView, {
   getTimetableAxisFields,
 } from "./SheetTimetableView";
 import SheetSummaryView from "./SheetSummaryView";
+import SheetApprovalListView from "./SheetApprovalListView";
 import SheetApprovalDocSection from "./SheetApprovalDocSection";
 import SheetAssessmentSection from "./SheetAssessmentSection";
 import FieldAssessmentInline, {
@@ -76,7 +81,13 @@ type SortConfig = {
   direction: "asc" | "desc";
 } | null;
 
-type TSheetViewMode = "table" | "doc" | "timetable" | "summary" | "aiChat";
+type TSheetViewMode =
+  | "table"
+  | "doc"
+  | "timetable"
+  | "summary"
+  | "aiChat"
+  | "approval";
 
 const SHEET_VIEW_MODES: TSheetViewMode[] = [
   "table",
@@ -84,6 +95,7 @@ const SHEET_VIEW_MODES: TSheetViewMode[] = [
   "timetable",
   "summary",
   "aiChat",
+  "approval",
 ];
 
 const formSupportsTimetable = (form: TAltForm | undefined) => {
@@ -100,6 +112,9 @@ const formSupportsAiChatView = (
 ) =>
   !!canViewAll &&
   !!form?.fields?.some((field) => isAiChatFieldType(field.type));
+
+const formSupportsApproval = (form: TAltForm | undefined) =>
+  !!form?.fields?.some((field) => field.type === "approval");
 
 const readStoredViewMode = (formId: string): TSheetViewMode | null => {
   try {
@@ -132,6 +147,7 @@ const resolveViewMode = (
   if (next === "aiChat" && !formSupportsAiChatView(form, canViewAll)) {
     return "doc";
   }
+  if (next === "approval" && !formSupportsApproval(form)) return "doc";
   return next;
 };
 
@@ -244,6 +260,29 @@ const AltSheetView = ({
     );
   });
   const appliedInitialRowRef = useRef<string | null>(null);
+  const [approvalOpenRowId, setApprovalOpenRowId] = useState<string | null>(
+    null
+  );
+  const [approvalPrint, setApprovalPrint] = useState<{
+    rows: TAltSheetRow[];
+    fromSelection: boolean;
+  }>({ rows: [], fromSelection: false });
+
+  const handleApprovalPrintableRows = useCallback(
+    (next: { rows: TAltSheetRow[]; fromSelection: boolean }) => {
+      setApprovalPrint((prev) => {
+        if (
+          prev.fromSelection === next.fromSelection &&
+          prev.rows.length === next.rows.length &&
+          prev.rows.every((row, i) => row._id === next.rows[i]?._id)
+        ) {
+          return prev;
+        }
+        return next;
+      });
+    },
+    []
+  );
 
   const viewModeMenu = useOutsideClick();
   const moreMenu = useOutsideClick();
@@ -295,6 +334,7 @@ const AltSheetView = ({
   const timetablePrintRootRef = useRef<HTMLDivElement>(null);
   const summaryPrintRootRef = useRef<HTMLDivElement>(null);
   const aiChatPrintRootRef = useRef<HTMLDivElement>(null);
+  const approvalPrintRootRef = useRef<HTMLDivElement>(null);
   const docBatchPrintRootRef = useRef<HTMLDivElement>(null);
   /** 문서 보기 일괄 인쇄: DOM 마운트 후 print */
   const [docBatchPrintActive, setDocBatchPrintActive] = useState(false);
@@ -372,6 +412,10 @@ const AltSheetView = ({
       printArea(aiChatPrintRootRef.current);
       return;
     }
+    if (viewMode === "approval") {
+      printArea(approvalPrintRootRef.current);
+      return;
+    }
     // 테이블: 조회된(필터·정렬) 전체
     printArea(tablePrintRootRef.current);
   };
@@ -407,6 +451,10 @@ const AltSheetView = ({
     () => formSupportsAiChatView(selectedForm, canManageSelected),
     [selectedForm, canManageSelected]
   );
+  const supportsApproval = useMemo(
+    () => formSupportsApproval(selectedForm),
+    [selectedForm]
+  );
 
   useEffect(() => {
     if (!supportsTimetable && viewMode === "timetable") {
@@ -421,6 +469,13 @@ const AltSheetView = ({
       if (selectedFormId) writeStoredViewMode(selectedFormId, "doc");
     }
   }, [supportsAiChatView, viewMode, selectedFormId]);
+
+  useEffect(() => {
+    if (!supportsApproval && viewMode === "approval") {
+      setViewMode("doc");
+      if (selectedFormId) writeStoredViewMode(selectedFormId, "doc");
+    }
+  }, [supportsApproval, viewMode, selectedFormId]);
 
   // 평가 채점 초안 (문서 보기)
   const [gradeDraft, setGradeDraft] = useState<TGradeDraft>({
@@ -686,9 +741,11 @@ const AltSheetView = ({
 
   const showRespondentCol = !hiddenColumns.has("_respondent");
   const showSubmittedAtCol = !hiddenColumns.has("_submittedAt");
+  const showFormTitle = !hiddenColumns.has("_formTitle");
 
   const columnChips: TSheetColumnChip[] = useMemo(
     () => [
+      { fieldId: "_formTitle", label: "활동 제목" },
       { fieldId: "_respondent", label: "응답자" },
       ...allVisibleFields.map((f) => ({
         fieldId: f._id,
@@ -804,15 +861,26 @@ const AltSheetView = ({
     return result;
   }, [keywordRows, sortConfig, allVisibleFields, textFilters, dateFilters]);
 
+  const batchPrintRows =
+    viewMode === "approval" ? approvalPrint.rows : filteredRows;
+  const batchPrintFromSelection =
+    viewMode === "approval" && approvalPrint.fromSelection;
+
   const handleDocBatchPrint = () => {
-    if (filteredRows.length === 0) {
+    if (viewMode === "approval" && !batchPrintFromSelection) {
+      window.alert("인쇄할 문서를 선택하세요.");
+      return;
+    }
+    if (batchPrintRows.length === 0) {
       window.alert("인쇄할 응답이 없습니다.");
       return;
     }
     if (
-      filteredRows.length > 30 &&
+      batchPrintRows.length > 30 &&
       !window.confirm(
-        `필터된 응답 ${filteredRows.length}건을 일괄 인쇄합니다. 계속할까요?`
+        batchPrintFromSelection
+          ? `선택한 ${viewMode === "approval" ? "문서" : "응답"} ${batchPrintRows.length}건을 일괄 인쇄합니다. 계속할까요?`
+          : `필터된 응답 ${batchPrintRows.length}건을 일괄 인쇄합니다. 계속할까요?`
       )
     ) {
       return;
@@ -855,7 +923,7 @@ const AltSheetView = ({
     appliedInitialRowRef.current = null;
   }, [selectedFormId]);
 
-  // 딥링크 row → 문서 보기에서 해당 응답
+  // 딥링크 row → 문서 보기. 결재 보기 중이면 목록 팝업만 연다.
   useEffect(() => {
     if (!initialRowId || filteredRows.length === 0) return;
     if (appliedInitialRowRef.current === initialRowId) return;
@@ -864,9 +932,13 @@ const AltSheetView = ({
     );
     if (idx < 0) return;
     appliedInitialRowRef.current = initialRowId;
+    if (viewMode === "approval") {
+      setApprovalOpenRowId(String(initialRowId));
+      return;
+    }
     setViewMode("doc");
     setDocIndex(idx);
-  }, [initialRowId, filteredRows]);
+  }, [initialRowId, filteredRows, viewMode]);
 
   const currentDocRowId = filteredRows[docIndex]?._id ?? null;
 
@@ -1138,9 +1210,11 @@ const AltSheetView = ({
   const handleApproval = async (
     rowId: string,
     fieldId: string,
-    status: "approved" | "rejected"
+    status: "approved" | "rejected",
+    reasonOverride?: string
   ) => {
-    const reason = approvalReason[`${rowId}_${fieldId}`] || "";
+    const reason =
+      reasonOverride ?? approvalReason[`${rowId}_${fieldId}`] ?? "";
     try {
       const { row } = await AltSheetRowAPI.UAltSheetRow({
         params: { _id: rowId },
@@ -1156,8 +1230,43 @@ const AltSheetView = ({
       setRows((prev) =>
         prev.map((r) => (r._id === rowId ? { ...r, data: row.data } : r))
       );
+      return true;
     } catch (err) {
       ALERT_ERROR(err);
+      return false;
+    }
+  };
+
+  const handleBulkApproval = async (
+    items: { rowId: string; fieldId: string }[],
+    status: "approved" | "rejected",
+    reason: string
+  ) => {
+    try {
+      const { succeeded, failed } =
+        await AltSheetRowAPI.UAltSheetRowsBulkApprove({
+          data: {
+            form: selectedFormId,
+            items,
+            status,
+            reason,
+          },
+        });
+      if (succeeded.length > 0) {
+        const byId = new Map(
+          succeeded.map((entry) => [String(entry.rowId), entry.row])
+        );
+        setRows((prev) =>
+          prev.map((r) => {
+            const next = byId.get(String(r._id));
+            return next ? { ...r, data: next.data } : r;
+          })
+        );
+      }
+      return { succeeded, failed };
+    } catch (err) {
+      ALERT_ERROR(err);
+      return { succeeded: [], failed: [] };
     }
   };
 
@@ -1450,15 +1559,26 @@ const AltSheetView = ({
     "aiChat",
   ];
 
-  // 문서 뷰: 행 수정 가능 여부 (관리자 · 본인 재제출 · 현재 단계 승인자)
+  // 문서 뷰: 행 수정 가능 여부 (관리자 · 현재 단계 승인자 · 잠금 전 본인 재제출)
   const canEditRowDoc = (row: TAltSheetRow) => {
     if (canDeleteAnyRow) return true;
-    if (
-      row._respondent === currentUser?._id &&
-      selectedForm?.settings?.allowResubmit
-    )
+    if ((selectedForm?.fields || []).some((f) => isApproverForField(row, f))) {
       return true;
-    return (selectedForm?.fields || []).some((f) => isApproverForField(row, f));
+    }
+    if (isApprovalLocked(row, selectedForm?.fields)) return false;
+    return (
+      row._respondent === currentUser?._id &&
+      !!selectedForm?.settings?.allowResubmit
+    );
+  };
+
+  const canDeleteRowDoc = (row: TAltSheetRow) => {
+    if (canDeleteAnyRow) return true;
+    if (isApprovalLocked(row, selectedForm?.fields)) return false;
+    return (
+      row._respondent === currentUser?._id &&
+      !!selectedForm?.settings?.allowResubmit
+    );
   };
 
   // 문서 뷰: 편집 시작
@@ -2074,7 +2194,9 @@ const AltSheetView = ({
                         ? "analyze"
                         : viewMode === "aiChat"
                           ? "chat"
-                          : "article"
+                          : viewMode === "approval"
+                            ? "list_check"
+                            : "article"
                 }
                 width="20px"
                 height="20px"
@@ -2127,6 +2249,25 @@ const AltSheetView = ({
                   <Svg type="analyze" width="16px" height="16px" />
                   요약 보기
                 </button>
+                {supportsApproval && (
+                  <button
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={viewMode === "approval"}
+                    className={`${style.formActionItem} ${
+                      viewMode === "approval"
+                        ? style.formActionItemActive
+                        : ""
+                    }`}
+                    onClick={() => {
+                      applyViewMode(selectedFormId, "approval");
+                      viewModeMenu.setActive(false);
+                    }}
+                  >
+                    <Svg type="list_check" width="16px" height="16px" />
+                    결재 보기
+                  </button>
+                )}
                 {supportsTimetable && (
                   <button
                     type="button"
@@ -2167,20 +2308,36 @@ const AltSheetView = ({
             )}
           </div>
 
-          <button
-            type="button"
-            className={style.formCardIconBtn}
-            title="인쇄"
-            aria-label="인쇄"
-            onClick={() => {
-              viewModeMenu.setActive(false);
-              moreMenu.setActive(false);
-              handleSheetPrint();
-            }}
-          >
-            <Svg type="print" width="18px" height="18px" />
-          </button>
+          {viewMode === "approval" ? (
+            <button
+              type="button"
+              className={style.formCardIconBtn}
+              title="일괄 인쇄"
+              aria-label="일괄 인쇄"
+              onClick={() => {
+                viewModeMenu.setActive(false);
+                handleDocBatchPrint();
+              }}
+            >
+              <Svg type="printBatch" width="18px" height="18px" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              className={style.formCardIconBtn}
+              title="인쇄"
+              aria-label="인쇄"
+              onClick={() => {
+                viewModeMenu.setActive(false);
+                moreMenu.setActive(false);
+                handleSheetPrint();
+              }}
+            >
+              <Svg type="print" width="18px" height="18px" />
+            </button>
+          )}
 
+          {viewMode !== "approval" && (
           <div className={style.sheetMenuWrap} ref={moreMenu.RefObject}>
             <button
               type="button"
@@ -2273,6 +2430,7 @@ const AltSheetView = ({
               </div>
             )}
           </div>
+          )}
           <input
             ref={csvFileRef}
             type="file"
@@ -2351,7 +2509,9 @@ const AltSheetView = ({
         <SheetAiChatView
           form={selectedForm}
           printRootRef={aiChatPrintRootRef}
-          printTitle={selectedForm.title || "AI 대화"}
+          printTitle={
+            showFormTitle ? selectedForm.title || "AI 대화" : undefined
+          }
           reloadNonce={aiChatReloadNonce}
           onOpenSession={(session, field) =>
             setAiChatPreview({
@@ -2378,7 +2538,9 @@ const AltSheetView = ({
                 )
           }
           printRootRef={timetablePrintRootRef}
-          printTitle={selectedForm?.title || "기록"}
+          printTitle={
+            showFormTitle ? selectedForm?.title || "기록" : undefined
+          }
           onOpenRow={(rowId) => {
             const idx = filteredRows.findIndex((r) => r._id === rowId);
             if (idx >= 0) {
@@ -2394,7 +2556,26 @@ const AltSheetView = ({
           visibleFields={visibleFields}
           canManage={canManageSelected}
           printRootRef={summaryPrintRootRef}
-          printTitle={selectedForm.title || "요약"}
+          printTitle={
+            showFormTitle ? selectedForm.title || "요약" : undefined
+          }
+        />
+      ) : !isLoading && viewMode === "approval" && selectedForm ? (
+        <SheetApprovalListView
+          form={selectedForm}
+          rows={filteredRows}
+          fields={selectedForm.fields}
+          currentUserId={currentUser?.userId}
+          currentUserOid={currentUser?._id}
+          printRootRef={approvalPrintRootRef}
+          printTitle={
+            showFormTitle ? selectedForm.title || "결재" : undefined
+          }
+          openRowId={approvalOpenRowId}
+          onOpenHandled={() => setApprovalOpenRowId(null)}
+          onDecide={handleApproval}
+          onBulkDecide={handleBulkApproval}
+          onPrintableRowsChange={handleApprovalPrintableRows}
         />
       ) : !isLoading && viewMode === "doc" ? (
         /* ── 문서 뷰 (양식형 개별 보기) ── */
@@ -2434,9 +2615,11 @@ const AltSheetView = ({
               </div>
 
               <div ref={docPrintRootRef}>
-                <div className={style.printTitle}>
-                  {selectedForm?.title || "기록"}
-                </div>
+                {showFormTitle && (
+                  <div className={style.printTitle}>
+                    {selectedForm?.title || "기록"}
+                  </div>
+                )}
                 <div className={style.docViewCardHeader}>
                   <div>
                     {showRespondentCol && (
@@ -2518,9 +2701,7 @@ const AltSheetView = ({
                           </Button>
                         </>
                       )}
-                      {(canDeleteAnyRow ||
-                        (currentDocRow._respondent === currentUser?._id &&
-                          selectedForm?.settings?.allowResubmit)) && (
+                      {canDeleteRowDoc(currentDocRow) && (
                         <Button
                           type="ghost"
                           onClick={() => requestDeleteRow(currentDocRow)}
@@ -2638,9 +2819,11 @@ const AltSheetView = ({
       ) : !isLoading ? (
         /* ── 테이블 뷰 ── */
         <div ref={tablePrintRootRef} className={style.sheetTableWrap}>
-          <div className={style.printTitle}>
-            {selectedForm?.title || "기록"}
-          </div>
+          {showFormTitle && (
+            <div className={style.printTitle}>
+              {selectedForm?.title || "기록"}
+            </div>
+          )}
           <table className={style.sheetTable}>
             <colgroup>
               <col className={style.colRowNum} />
@@ -2898,9 +3081,7 @@ const AltSheetView = ({
                 </td>
                 )}
                 <td className={style.actionCell}>
-                  {(canDeleteAnyRow ||
-                    (row._respondent === currentUser?._id &&
-                      selectedForm?.settings?.allowResubmit)) && (
+                  {canDeleteRowDoc(row) && (
                     <button
                       className={style.removeBtn}
                       onClick={() => requestDeleteRow(row)}
@@ -2993,14 +3174,16 @@ const AltSheetView = ({
           className={style.docBatchPrintRoot}
           aria-hidden
         >
-          {filteredRows.map((row, pageIndex) => (
+          {batchPrintRows.map((row, pageIndex) => (
             <div key={row._id} className={style.docBatchPrintPage}>
-              <div className={style.printTitle}>
-                {selectedForm?.title || "기록"}
-                {filteredRows.length > 1
-                  ? ` (${pageIndex + 1}/${filteredRows.length})`
-                  : ""}
-              </div>
+              {showFormTitle && (
+                <div className={style.printTitle}>
+                  {selectedForm?.title || "기록"}
+                  {batchPrintRows.length > 1
+                    ? ` (${pageIndex + 1}/${batchPrintRows.length})`
+                    : ""}
+                </div>
+              )}
               <div className={style.docViewCardHeader}>
                 <div>
                   {showRespondentCol && (

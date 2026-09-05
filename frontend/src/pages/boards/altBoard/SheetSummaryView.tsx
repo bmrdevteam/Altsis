@@ -272,7 +272,9 @@ const SheetSummaryView = ({
 
   return (
     <div ref={printRootRef} className={style.sheetSummary}>
-      <div className={style.printTitle}>{printTitle || form.title || "요약"}</div>
+      {printTitle ? (
+        <div className={style.printTitle}>{printTitle}</div>
+      ) : null}
 
       <div className={style.sheetSummaryMeta}>
         전체 응답 {summary.totalRows}개
