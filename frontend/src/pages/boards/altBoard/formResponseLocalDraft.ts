@@ -78,3 +78,43 @@ export const hasFormResponseDraftContent = (
     return true;
   });
 };
+
+export const persistFormResponseDraft = (
+  storageKey: string | null | undefined,
+  data: Record<string, any>
+): boolean => {
+  if (!storageKey) return false;
+  if (!hasFormResponseDraftContent(data)) return false;
+  return writeFormResponseDraft(storageKey, data);
+};
+
+export type TDraftBind = {
+  key: string | null;
+  data: Record<string, any>;
+};
+
+/**
+ * 저장 키가 바뀌면 이전 키에는 이전 값만 남긴다.
+ * 새 화면 data로 `...-new`를 덮지 않기 위함(작성 중 캐러셀).
+ */
+export const persistPreviousDraftBind = (
+  bound: TDraftBind,
+  nextKey: string | null
+): boolean => {
+  if (!bound.key || bound.key === nextKey) return false;
+  return persistFormResponseDraft(bound.key, bound.data);
+};
+
+/** 작성 칸 0에 두는 브라우저 `new` 초안. */
+export const hasLocalComposeDraft = (
+  userId: string | null | undefined,
+  formId: string | null | undefined,
+  now = Date.now()
+): boolean => {
+  if (!userId || !formId) return false;
+  const stored = readFormResponseDraft(
+    formResponseDraftStorageKey(userId, formId, "new"),
+    now
+  );
+  return hasFormResponseDraftContent(stored?.data);
+};
