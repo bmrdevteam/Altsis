@@ -16,6 +16,7 @@ import { TNotificationReceived } from "types/notification";
 import { TUpcomingReminder, TReminder, TEventReminder } from "types/reminder";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import { updateNotificationAppBadge } from "utils/appBadge";
+import { altSheetRowNotificationPath } from "./altSheetRowNotificationPath";
 
 function formatNotificationTime(date: Date | string): string {
   const now = new Date();
@@ -317,12 +318,16 @@ const Notification = () => {
       navigate("/boards");
     } else if (notification.relatedEntity?.type === "altSheetRow") {
       try {
-        const { boardId, row } = await AltSheetRowAPI.RAltSheetRow({
+        const { boardId, formId, row } = await AltSheetRowAPI.RAltSheetRow({
           params: { _id: notification.relatedEntity.id },
         });
         const rowId = row?._id || notification.relatedEntity.id;
         navigate(
-          `/boards/${boardId}?approval=${encodeURIComponent(String(rowId))}#활동`
+          altSheetRowNotificationPath({
+            boardId: String(boardId),
+            formId,
+            rowId: String(rowId),
+          })
         );
       } catch {
         navigate("/boards");
