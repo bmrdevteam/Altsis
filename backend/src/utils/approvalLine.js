@@ -364,6 +364,32 @@ export function isCurrentApprover(value, userId, field) {
   return step?.status === "pending" && step?.approver?.userId === userId;
 }
 
+function hasApprovalAction(value, field) {
+  const v = normalizeApprovalValue(value, field);
+  if (!v) return false;
+  if (v.overallStatus === "approved" || v.overallStatus === "rejected") {
+    return true;
+  }
+  return (v.steps || []).some(
+    (s) => s?.status === "approved" || s?.status === "rejected" || !!s?.actedAt
+  );
+}
+
+/**
+ * Lock respondent edit/delete after at least one approve/reject (or skip).
+ * Pending with no acted step stays unlocked. Drafts stay unlocked.
+ */
+export function isApprovalLocked(row, fields) {
+  if (!row || row.isDraft) return false;
+  for (const field of fields || []) {
+    if (field?.type !== "approval") continue;
+    const fid = field._id != null ? String(field._id) : "";
+    if (!fid) continue;
+    if (hasApprovalAction(rowFieldValue(row.data, fid), field)) return true;
+  }
+  return false;
+}
+
 /**
  * Apply approve/reject for current user.
  * @returns {{ ok: true, value: object, nextApprover?: object, finished: boolean } | { ok: false, message: string }}

@@ -15,6 +15,7 @@ router.post("/draft", isLoggedIn, altSheetRows.saveDraft);
 router.post("/bulk", isLoggedIn, altSheetRows.createBulk);
 router.post("/send-reminder", isLoggedIn, altSheetRows.sendReminder);
 router.post("/import-csv", isLoggedIn, altSheetRows.importCsv);
+router.post("/bulk-approve", isLoggedIn, altSheetRows.bulkApprove);
 
 // 일반 CRUD
 router.post("/", isLoggedIn, altSheetRows.create);

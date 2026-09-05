@@ -8,7 +8,7 @@ import Popup from "components/popup/Popup";
 import Svg from "assets/svg/Svg";
 import { MarkdownViewer, MarkdownWysiwygView } from "components/markdown";
 import { isCurrentApprover, normalizeApprovalValue } from "utils/approvalLine";
-import { TAltForm, TApprovalLine } from "types/altForm";
+import { TApprovalLine } from "types/altForm";
 import ApprovalProgressBlock from "./ApprovalProgressBlock";
 import { fileAnswerLabel } from "./formDocLink";
 import FilePreviewModal from "./FilePreviewModal";
@@ -48,7 +48,6 @@ type ActiveKind = "approve" | "outgoing";
 
 type Props = {
   boardId: string;
-  forms?: TAltForm[];
   canDeleteAnyRow?: boolean;
   onCountChange?: (count: number) => void;
   /** 첫 조회(또는 board 변경 후 조회) 완료 — 레이아웃 밀림 방지용 */
@@ -177,7 +176,6 @@ const formatFieldDisplay = (value: any, field?: FieldMeta): string => {
 
 const PendingApprovalsPanel = ({
   boardId,
-  forms = [],
   canDeleteAnyRow = false,
   onCountChange,
   onSettled,
@@ -429,36 +427,19 @@ const PendingApprovalsPanel = ({
       )
     : null;
 
-  const activeForm = active
-    ? forms.find((f) => String(f._id) === String(active.formId))
-    : undefined;
-  const isOwner =
-    !!currentUser?.userId &&
-    !!active?.respondentId &&
-    active.respondentId === currentUser.userId;
-  const allowResubmit = !!activeForm?.settings.allowResubmit;
   const isActiveCurrentApprover = isCurrentApprover(
     activeApprovalData,
     currentUser?.userId,
     activeApprovalField
   );
   const canEditActive =
-    !!active &&
-    (canDeleteAnyRow ||
-      (isOwner && allowResubmit) ||
-      isActiveCurrentApprover);
+    !!active && (canDeleteAnyRow || isActiveCurrentApprover);
 
   const handleEdit = () => {
     if (!active) return;
     const rowId = active.rowId;
     const formId = active.formId;
     setActive(null);
-    if (isOwner && allowResubmit) {
-      navigate(
-        `/boards/${boardId}?form=${formId}&mode=responses&row=${rowId}#활동`
-      );
-      return;
-    }
     navigate(`/boards/${boardId}?sheet=${formId}&row=${rowId}#활동`);
   };
 
