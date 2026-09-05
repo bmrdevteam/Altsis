@@ -24,6 +24,7 @@ import Svg from "assets/svg/Svg";
 import { TBoard } from "types/board";
 import { resolveBoardCoverColor } from "utils/boardCoverColor";
 import { getBoardCourseSurfacePath } from "utils/boardCoursePath";
+import { boardSchoolRedirectPath } from "./boardSchoolRedirectPath";
 
 import BoardManagePopup from "./popup/BoardManage";
 import BoardDuplicateFlow from "./popup/BoardDuplicateFlow";
@@ -42,7 +43,11 @@ const normalizeCourseSurface = (hash: string): string | null => {
 const BoardPid = () => {
   const navigate = useAppNavigate();
   const location = useLocation();
-  const { boardId } = useParams<{ boardId: string }>();
+  const { academyId, schoolId: urlSchoolId, boardId } = useParams<{
+    academyId: string;
+    schoolId: string;
+    boardId: string;
+  }>();
   const [searchParams] = useSearchParams();
   const { currentUser, currentRegistration } = useAuth();
   const { BoardAPI } = useAPIv2();
@@ -78,6 +83,18 @@ const BoardPid = () => {
     setIsLoading(true);
     BoardAPI.RBoard({ params: { _id: boardId } })
       .then(({ board }) => {
+        const redirectTo = boardSchoolRedirectPath({
+          academyId,
+          urlSchoolId,
+          boardSchoolId: board.schoolId,
+          boardId,
+          search: location.search,
+          hash: location.hash,
+        });
+        if (redirectTo) {
+          navigate(redirectTo, { replace: true });
+          return;
+        }
         setBoard(board);
         setIsLoading(false);
       })
@@ -85,7 +102,7 @@ const BoardPid = () => {
         ALERT_ERROR(err);
         navigate("/boards", { replace: true });
       });
-  }, [boardId]);
+  }, [boardId, academyId, urlSchoolId]);
 
   // 수업 연결 보드의 정식 화면은 수업 상세 — query(boardChatRoom 등)·해시 보존
   // boardChatRoom이 있어도 보드 UI를 띄우지 않고 바로 수업으로 보낸다(채팅→계획서 경합 방지).
