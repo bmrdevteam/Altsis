@@ -281,13 +281,142 @@ export function buildApprovalAccessOr(form, userId) {
   return conditions;
 }
 
+export const MAX_APPROVAL_GROUPS = 20;
+export const MAX_GROUP_MEMBERS = 50;
+
+export function formHasApprovalGroups(form) {
+  return Array.isArray(form?.approvalGroups) && form.approvalGroups.length > 0;
+}
+
+export function sanitizeApprovalGroups(raw) {
+  if (!Array.isArray(raw)) return [];
+  const out = [];
+  const seenIds = new Set();
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    if (out.length >= MAX_APPROVAL_GROUPS) break;
+    let id = String(item.id || "").trim();
+    if (!id || seenIds.has(id)) {
+      id = `ag_${out.length}_${Date.now()}`;
+    }
+    seenIds.add(id);
+    const kind =
+      item.kind === "approver" || item.kind === "circulation"
+        ? item.kind
+        : "both";
+    const members = [];
+    const seenUsers = new Set();
+    const rawMembers = Array.isArray(item.members) ? item.members : [];
+    for (const m of rawMembers) {
+      if (members.length >= MAX_GROUP_MEMBERS) break;
+      const user = m?.user || m;
+      const userId = user?.userId ? String(user.userId) : "";
+      if (!userId || seenUsers.has(userId)) continue;
+      seenUsers.add(userId);
+      members.push({
+        label: String(m?.label || "").trim().slice(0, 200),
+        user: {
+          user: String(user.user || ""),
+          userId,
+          userName: String(user.userName || userId),
+        },
+      });
+    }
+    out.push({
+      id,
+      title: String(item.title || "").trim().slice(0, 200) || "그룹",
+      kind,
+      members,
+    });
+  }
+  return out;
+}
+
+export function isGroupSourcedLine(submitted, options = {}) {
+  return (
+    submitted?.lineSource === "group" && options.hasApprovalGroups === true
+  );
+}
+
+function finalizeBuiltSteps(steps, circulation) {
+  if (steps.length === 0) {
+    return {
+      version: 2,
+      currentStep: 0,
+      overallStatus: "approved",
+      status: "approved",
+      approver: undefined,
+      currentApproverUserId: undefined,
+      reason: undefined,
+      steps: [],
+      circulation,
+    };
+  }
+  steps[0].status = "pending";
+  const first = steps[0];
+  return {
+    version: 2,
+    currentStep: 0,
+    overallStatus: "pending",
+    status: "pending",
+    approver: first.approver,
+    currentApproverUserId: first.approver?.userId,
+    reason: undefined,
+    steps,
+    circulation,
+  };
+}
+
+function buildGroupSourcedSteps(submitted, options = {}) {
+  const raw = Array.isArray(submitted?.steps) ? submitted.steps : [];
+  if (raw.length > MAX_GROUP_MEMBERS) return { error: "too_many" };
+  if (raw.some((s) => s?.mode === "fixed")) return { error: "not_pick" };
+  const candidateIds = options.candidateIds;
+  const steps = [];
+  for (let i = 0; i < raw.length; i += 1) {
+    const s = raw[i];
+    const approver = s?.approver?.userId
+      ? {
+          user: s.approver.user,
+          userId: s.approver.userId,
+          userName: s.approver.userName || "",
+        }
+      : null;
+    if (approver?.userId && candidateIds && !candidateIds.has(String(approver.userId))) {
+      return { error: "not_candidate" };
+    }
+    steps.push({
+      order: i,
+      label: String(s?.label || "").trim() || `${i + 1}차 승인`,
+      mode: "pick",
+      approver,
+      status: "waiting",
+      reason: undefined,
+      actedAt: undefined,
+    });
+  }
+  return { steps: steps.filter((s) => s.approver?.userId) };
+}
+
 /**
  * Build initial v2 approval value at submit time.
  * Empty pick steps are omitted. If nobody remains, the line is auto-approved.
+ * Group-sourced lines (`lineSource: "group"`) replace the form line when the
+ * form has approvalGroups.
  * @param {object} field
  * @param {any} submitted - client payload (v1 or partial v2)
+ * @param {{ hasApprovalGroups?: boolean, candidateIds?: Set<string> }} [options]
  */
-export function buildApprovalOnSubmit(field, submitted) {
+export function buildApprovalOnSubmit(field, submitted, options = {}) {
+  const circulation = resolveCirculation(field, submitted);
+  if (isGroupSourcedLine(submitted, options)) {
+    const built = buildGroupSourcedSteps(submitted, options);
+    if (built.error) {
+      return finalizeBuiltSteps([], circulation);
+    }
+    return finalizeBuiltSteps(built.steps, circulation);
+  }
+
   const lineSteps = getApprovalLineSteps(field);
   const steps = lineSteps
     .map((def, i) => {
@@ -304,35 +433,7 @@ export function buildApprovalOnSubmit(field, submitted) {
     })
     .filter((s) => s.approver?.userId);
 
-  const circulation = resolveCirculation(field, submitted);
-
-  if (steps.length === 0) {
-    return {
-      version: 2,
-      currentStep: 0,
-      overallStatus: "approved",
-      status: "approved",
-      approver: undefined,
-      currentApproverUserId: undefined,
-      reason: undefined,
-      steps: [],
-      circulation,
-    };
-  }
-
-  steps[0].status = "pending";
-  const first = steps[0];
-  return {
-    version: 2,
-    currentStep: 0,
-    overallStatus: "pending",
-    status: "pending",
-    approver: first.approver,
-    currentApproverUserId: first.approver?.userId,
-    reason: undefined,
-    steps,
-    circulation,
-  };
+  return finalizeBuiltSteps(steps, circulation);
 }
 
 /**
@@ -340,7 +441,24 @@ export function buildApprovalOnSubmit(field, submitted) {
  * Empty pick steps are skipped; a required field needs at least one remaining approver.
  * @returns {string|null} error message
  */
-export function validateApprovalSubmit(field, submitted) {
+export function validateApprovalSubmit(field, submitted, options = {}) {
+  if (isGroupSourcedLine(submitted, options)) {
+    const builtGroup = buildGroupSourcedSteps(submitted, options);
+    if (builtGroup.error === "too_many" || builtGroup.error === "not_pick") {
+      return `${field.label || "승인"}: 결재선을 확인할 수 없습니다.`;
+    }
+    if (builtGroup.error === "not_candidate") {
+      return `${field.label || "승인"}: 지정할 수 없는 승인자가 있습니다.`;
+    }
+    const built = buildApprovalOnSubmit(field, submitted, options);
+    if (!built) return `${field.label || "승인"}: 결재선을 확인할 수 없습니다.`;
+    const hasApprover = built.steps.some((s) => s.approver?.userId);
+    if (!hasApprover && field.required) {
+      return `${field.label || "승인"}: 승인자를 한 명 이상 선택해주세요.`;
+    }
+    return null;
+  }
+
   const lineSteps = getApprovalLineSteps(field);
   for (const s of lineSteps) {
     if (s.mode === "fixed" && !s.approver?.userId) {
@@ -348,7 +466,7 @@ export function validateApprovalSubmit(field, submitted) {
     }
   }
 
-  const built = buildApprovalOnSubmit(field, submitted);
+  const built = buildApprovalOnSubmit(field, submitted, options);
   if (!built) return `${field.label || "승인"}: 결재선을 확인할 수 없습니다.`;
   const hasApprover = built.steps.some((s) => s.approver?.userId);
   if (!hasApprover && field.required) {

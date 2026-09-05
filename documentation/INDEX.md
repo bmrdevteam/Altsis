@@ -58,6 +58,7 @@ Altsis를 처음 접하는 사용자를 위한 가이드입니다.
 | [문서](user-guide/docs.md) | 출력 양식 미리보기·인쇄 (사이드바 문서) |
 | [일정](user-guide/calendar.md) | 일정 홈, 이벤트, 캘린더 설정 |
 | [보드](user-guide/boards.md) | 할 일, 활동(양식), 문서, 채팅, 학교/시즌 보드 |
+| [결재](user-guide/approval.md) | 결재선, 결재·회람 그룹, 결재 보기, 일괄 인쇄, 푸시·이메일 알림. [한 장 안내](user-guide/approval-one-pager.md) |
 | [목표](user-guide/goals.md) | 사이드바 진행 요약, 목표 페이지 |
 | [채팅](user-guide/chat.md) | DM, 그룹채팅, 보드채팅, Alter(대화·초안·검색) |
 | [알림](user-guide/notifications.md) | 알림 수신, 잠금화면(Web Push), 설정 |

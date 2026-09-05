@@ -37,6 +37,8 @@ export type TApprovalStepRuntime = TApprovalLineStepDef & {
 
 export type TApprovalValueV2 = {
   version: 2;
+  /** 제출자가 양식 그룹으로 결재선을 바꾼 경우 */
+  lineSource?: "form" | "group";
   currentStep: number;
   overallStatus: "pending" | "approved" | "rejected";
   /** legacy mirror */
@@ -88,6 +90,21 @@ export function getApprovalComposeRows(
       selected: picks[idx],
     };
   });
+}
+
+export function getEffectiveApprovalLineSteps(
+  field: Pick<TAltFormField, "approvalLine"> | TAltFormField,
+  value?: { lineSource?: string; steps?: Array<Partial<TApprovalLineStepDef>> }
+): TApprovalLineStepDef[] {
+  if (value?.lineSource === "group" && Array.isArray(value.steps)) {
+    return value.steps.map((s, i) => ({
+      order: typeof s?.order === "number" ? s.order : i,
+      label: s?.label || `${i + 1}차 승인`,
+      mode: "pick" as TApprovalStepMode,
+      approver: s?.approver,
+    }));
+  }
+  return getApprovalLineSteps(field);
 }
 
 export function getApprovalLineSteps(
@@ -381,6 +398,12 @@ export function getRequiredApprovalError(
   field: Pick<TAltFormField, "approvalLine">,
   value: any
 ): string | null {
+  if (value?.lineSource === "group" && Array.isArray(value.steps)) {
+    const filledPick = value.steps.some(
+      (s: { approver?: { userId?: string } }) => !!s?.approver?.userId
+    );
+    return filledPick ? null : "승인자를 한 명 이상 선택해주세요.";
+  }
   const line = getApprovalLineSteps(field);
   const pickCount = line.filter((s) => s.mode === "pick").length;
   if (pickCount === 0) return null;

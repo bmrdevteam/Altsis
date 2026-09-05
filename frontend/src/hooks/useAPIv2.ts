@@ -5264,6 +5264,7 @@ export default function useAPIv2() {
       description?: string;
       fields?: TAltFormField[];
       rubrics?: TAltForm["rubrics"];
+      approvalGroups?: TAltForm["approvalGroups"];
       settings?: Partial<TAltFormSettings>;
       members?: TAltForm["members"];
       writers?: TAltForm["writers"];
@@ -5390,6 +5391,7 @@ export default function useAPIv2() {
       description?: string;
       fields?: TAltFormField[];
       rubrics?: TAltForm["rubrics"];
+      approvalGroups?: TAltForm["approvalGroups"];
       settings?: Partial<TAltFormSettings>;
       members?: TAltForm["members"];
       writers?: TAltForm["writers"];

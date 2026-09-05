@@ -16,6 +16,7 @@ import {
   TDisplayCondition,
   TDisplayConditionOperator,
   TDuplicateCheck,
+  TApprovalPersonGroup,
   TFormRubric,
   TGradingMethod,
   TQuizSettings,
@@ -57,6 +58,8 @@ import MemberInvitePicker from "./MemberInvitePicker";
 import FieldDocResources from "./FieldDocResources";
 import { TFormFileRef } from "./formFilePreview";
 import { defaultApprovalLine, defaultCirculation, getCirculationConfig, liftNestedCirculationFields } from "utils/approvalLine";
+import { sanitizeApprovalGroups } from "utils/formApprovalGroup";
+import ApprovalGroupSettings from "./ApprovalGroupSettings";
 import type { TApprovalCirculationMode } from "utils/approvalLine";
 import ApprovalCirculationPicker, {
   ApprovalUserSearchInput,
@@ -318,6 +321,9 @@ const AltFormBuilder = ({
     showOwnResponse: true,
   });
   const [rubrics, setRubrics] = useState<TFormRubric[]>([]);
+  const [approvalGroups, setApprovalGroups] = useState<TApprovalPersonGroup[]>(
+    []
+  );
   const [expandedRubricIds, setExpandedRubricIds] = useState<Set<string>>(
     () => new Set()
   );
@@ -416,6 +422,7 @@ const AltFormBuilder = ({
         fields: TAltFormField[];
         settings: Settings;
         rubrics: TFormRubric[];
+        approvalGroups: TApprovalPersonGroup[];
       }>
     ) =>
       JSON.stringify({
@@ -424,6 +431,7 @@ const AltFormBuilder = ({
         fields: next?.fields ?? fields,
         settings: next?.settings ?? settings,
         rubrics: next?.rubrics ?? rubrics,
+        approvalGroups: next?.approvalGroups ?? approvalGroups,
         restrictMembers,
         restrictWriters,
         memberGroups,
@@ -437,6 +445,7 @@ const AltFormBuilder = ({
       fields,
       settings,
       rubrics,
+      approvalGroups,
       restrictMembers,
       restrictWriters,
       memberGroups,
@@ -542,12 +551,14 @@ const AltFormBuilder = ({
           showOwnResponse: form.settings.showOwnResponse !== false,
         };
         const nextRubrics = form.rubrics || [];
+        const nextApprovalGroups = sanitizeApprovalGroups(form.approvalGroups);
         const migratedFields = liftNestedCirculationFields(form.fields || []);
         setTitle(form.title);
         setDescription(form.description);
         setFields(migratedFields);
         setSettings(nextSettings);
         setRubrics(nextRubrics);
+        setApprovalGroups(nextApprovalGroups);
         setExpandedRubricIds(
           nextRubrics.length === 1
             ? new Set([nextRubrics[0].id])
@@ -569,6 +580,7 @@ const AltFormBuilder = ({
           fields: migratedFields,
           settings: nextSettings,
           rubrics: nextRubrics,
+          approvalGroups: nextApprovalGroups,
           restrictMembers: membersCustom,
           restrictWriters: writersCustom,
           memberGroups: form.members?.groups || emptyFormAccess().groups,
@@ -689,6 +701,7 @@ const AltFormBuilder = ({
         description: description.trim(),
         fields: fields.map((f, i) => ({ ...f, order: i })),
         rubrics: settings.assessmentMode ? rubrics : [],
+        approvalGroups: sanitizeApprovalGroups(approvalGroups),
         settings: {
           allowResubmit: settings.allowResubmit,
           allowMultipleResponses: settings.allowMultipleResponses,
@@ -779,6 +792,7 @@ const AltFormBuilder = ({
         fields: data.fields,
         settings,
         rubrics: data.rubrics,
+        approvalGroups: data.approvalGroups,
       });
       setIsDirty(false);
     } catch (err) {
@@ -3925,6 +3939,25 @@ const AltFormBuilder = ({
                       </div>
                     </div>
                   )}
+                </div>
+              </section>
+
+              <section className={style.settingsSection}>
+                <h4 className={style.settingsSectionTitle}>
+                  결재·회람
+                  <SettingsHint text="제출자가 그룹을 불러오면 결재선이 그 단계 이름·사람으로 바뀝니다. 승인 칸에는 작성자·관리자만 들어갑니다. 회람 그룹은 단계 없이 사람만 둡니다." />
+                </h4>
+                <div className={style.settingsSectionBody}>
+                  <ApprovalGroupSettings
+                    groups={approvalGroups}
+                    candidates={uniqueApprovalCandidates(
+                      board.members?.users,
+                      board.writers?.users,
+                      (board as { admins?: { users?: TMemberUser[] } }).admins
+                        ?.users
+                    )}
+                    onChange={setApprovalGroups}
+                  />
                 </div>
               </section>
 
