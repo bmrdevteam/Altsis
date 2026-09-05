@@ -60,6 +60,7 @@ import {
   buildApprovalAccessOr,
   applyApprovalAction,
   isCurrentApprover,
+  isApprovalLocked,
   isCirculatee,
   isStoredCirculatee,
   normalizeApprovalValue,
@@ -395,10 +396,15 @@ export const create = async (req, res) => {
     }
 
     if (existing && !promotingDraft) {
-        // 재제출: 기존 행 업데이트
-        const respondentFields = form.fields.filter(
-          (f) => f.permission === "respondent" && f.type !== "content"
-        );
+      if (isApprovalLocked(existing, form.fields)) {
+        return res.status(403).send({
+          message: "결재가 시작되어 수정할 수 없습니다.",
+        });
+      }
+      // 재제출: 기존 행 업데이트
+      const respondentFields = form.fields.filter(
+        (f) => f.permission === "respondent" && f.type !== "content"
+      );
         for (const field of respondentFields) {
           if (field.type !== "docResponse") continue;
           if (!isFieldVisible(field, req.body.data)) continue;
@@ -1167,6 +1173,11 @@ export const update = async (req, res) => {
     const isAdmin = role === "admin" || req.user.auth === "manager";
 
     if (!isAdmin && !isApprover) {
+      if (isApprovalLocked(row, form?.fields)) {
+        return res.status(403).send({
+          message: "결재가 시작되어 수정할 수 없습니다.",
+        });
+      }
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
@@ -1355,6 +1366,11 @@ export const remove = async (req, res) => {
 
     if (!isAdmin && !(isOwner && (form?.settings?.allowResubmit || canOwnerDeleteDraft(row, req.user._id)))) {
       return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+    if (!isAdmin && isApprovalLocked(row, form?.fields)) {
+      return res.status(403).send({
+        message: "결재가 시작되어 삭제할 수 없습니다.",
+      });
     }
     if (form && !isDraftSheetRow(row)) {
       const dupFields = getDuplicateCheckFields(form);

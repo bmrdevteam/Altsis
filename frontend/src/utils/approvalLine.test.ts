@@ -7,6 +7,7 @@ import {
   getCirculationConfig,
   getRequiredApprovalError,
   isCurrentApprover,
+  isApprovalLocked,
   liftNestedCirculationFields,
 } from "./approvalLine";
 
@@ -377,5 +378,138 @@ describe("circulation field helpers", () => {
       },
     ];
     expect(liftNestedCirculationFields(fields)).toBe(fields);
+  });
+});
+
+describe("isApprovalLocked", () => {
+  const field = {
+    _id: "ap1",
+    type: "approval" as const,
+    approvalLine: {
+      steps: [
+        { order: 0, label: "1차 승인", mode: "fixed" as const, approver },
+      ],
+    },
+  };
+  const pendingValue = {
+    version: 2 as const,
+    currentStep: 0,
+    overallStatus: "pending" as const,
+    steps: [
+      {
+        order: 0,
+        label: "1차 승인",
+        mode: "fixed" as const,
+        approver,
+        status: "pending" as const,
+      },
+    ],
+  };
+
+  test("draft stays unlocked even with approval data", () => {
+    expect(
+      isApprovalLocked({ isDraft: true, data: { ap1: pendingValue } }, [field])
+    ).toBe(false);
+  });
+
+  test("submitted row without approval field stays unlocked", () => {
+    expect(
+      isApprovalLocked({ isDraft: false, data: { title: "hello" } }, [
+        { _id: "t1", type: "text" },
+      ])
+    ).toBe(false);
+  });
+
+  test("pending approval with no acted step stays unlocked", () => {
+    expect(
+      isApprovalLocked({ isDraft: false, data: { ap1: pendingValue } }, [
+        field,
+      ])
+    ).toBe(false);
+  });
+
+  test("first-step approve locks even if later steps are pending", () => {
+    expect(
+      isApprovalLocked(
+        {
+          data: {
+            ap1: {
+              version: 2,
+              currentStep: 1,
+              overallStatus: "pending",
+              steps: [
+                {
+                  order: 0,
+                  label: "1차 승인",
+                  mode: "fixed" as const,
+                  approver,
+                  status: "approved" as const,
+                  actedAt: "2026-09-05T00:00:00.000Z",
+                },
+                {
+                  order: 1,
+                  label: "2차 승인",
+                  mode: "fixed" as const,
+                  approver,
+                  status: "pending" as const,
+                },
+              ],
+            },
+          },
+        },
+        [field]
+      )
+    ).toBe(true);
+  });
+
+  test("approved and rejected lock the row", () => {
+    expect(
+      isApprovalLocked(
+        {
+          data: {
+            ap1: {
+              ...pendingValue,
+              overallStatus: "approved",
+            },
+          },
+        },
+        [field]
+      )
+    ).toBe(true);
+    expect(
+      isApprovalLocked(
+        {
+          data: {
+            ap1: {
+              ...pendingValue,
+              overallStatus: "rejected",
+            },
+          },
+        },
+        [field]
+      )
+    ).toBe(true);
+  });
+
+  test("skipped empty-step approval still locks", () => {
+    expect(
+      isApprovalLocked(
+        {
+          data: {
+            ap1: {
+              version: 2,
+              currentStep: 0,
+              overallStatus: "approved",
+              steps: [],
+            },
+          },
+        },
+        [field]
+      )
+    ).toBe(true);
+  });
+
+  test("submitted row with no approval value stays unlocked", () => {
+    expect(isApprovalLocked({ data: { ap1: null } }, [field])).toBe(false);
   });
 });

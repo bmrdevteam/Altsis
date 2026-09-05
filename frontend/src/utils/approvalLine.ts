@@ -171,6 +171,57 @@ export function isCurrentApprover(
   return step?.status === "pending" && step?.approver?.userId === userId;
 }
 
+function approvalFieldValue(
+  data: Record<string, any> | Map<string, any> | null | undefined,
+  fid: string
+) {
+  if (!data || !fid) return undefined;
+  if (typeof (data as Map<string, any>).get === "function") {
+    const fromMap = (data as Map<string, any>).get(fid);
+    if (fromMap !== undefined) return fromMap;
+  }
+  return (data as Record<string, any>)[fid];
+}
+
+function hasApprovalAction(
+  value: any,
+  field?: Pick<TAltFormField, "approvalLine">
+): boolean {
+  const v = normalizeApprovalValue(value, field);
+  if (!v) return false;
+  if (v.overallStatus === "approved" || v.overallStatus === "rejected") {
+    return true;
+  }
+  return (v.steps || []).some(
+    (s) => s?.status === "approved" || s?.status === "rejected" || !!s?.actedAt
+  );
+}
+
+/** 한 번이라도 승인·반려(또는 결재 생략)되면 응답자 수정·삭제 잠금. 대기만이면 잠기지 않음. */
+export function isApprovalLocked(
+  row:
+    | {
+        isDraft?: boolean;
+        data?: Record<string, any> | Map<string, any> | null;
+      }
+    | null
+    | undefined,
+  fields:
+    | Array<Pick<TAltFormField, "type" | "_id" | "approvalLine">>
+    | undefined
+): boolean {
+  if (!row || row.isDraft) return false;
+  for (const field of fields || []) {
+    if (field?.type !== "approval") continue;
+    const fid = field._id != null ? String(field._id) : "";
+    if (!fid) continue;
+    if (hasApprovalAction(approvalFieldValue(row.data, fid), field)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function defaultApprovalLine(): TApprovalLine {
   return {
     steps: [{ order: 0, label: "1차 승인", mode: "pick" }],

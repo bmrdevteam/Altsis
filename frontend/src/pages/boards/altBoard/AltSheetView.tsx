@@ -12,7 +12,11 @@ import {
   MarkdownEditor,
   MarkdownWysiwygView,
 } from "components/markdown";
-import { isCurrentApprover, normalizeApprovalValue } from "utils/approvalLine";
+import {
+  isApprovalLocked,
+  isCurrentApprover,
+  normalizeApprovalValue,
+} from "utils/approvalLine";
 import { NO_PRINT_CLASS, printArea } from "utils/printArea";
 import { DateRange } from "components/dateRangeFilter/DateRangeFilterDropdown";
 import RecordsListFilterBar, {
@@ -1555,15 +1559,26 @@ const AltSheetView = ({
     "aiChat",
   ];
 
-  // 문서 뷰: 행 수정 가능 여부 (관리자 · 본인 재제출 · 현재 단계 승인자)
+  // 문서 뷰: 행 수정 가능 여부 (관리자 · 현재 단계 승인자 · 잠금 전 본인 재제출)
   const canEditRowDoc = (row: TAltSheetRow) => {
     if (canDeleteAnyRow) return true;
-    if (
-      row._respondent === currentUser?._id &&
-      selectedForm?.settings?.allowResubmit
-    )
+    if ((selectedForm?.fields || []).some((f) => isApproverForField(row, f))) {
       return true;
-    return (selectedForm?.fields || []).some((f) => isApproverForField(row, f));
+    }
+    if (isApprovalLocked(row, selectedForm?.fields)) return false;
+    return (
+      row._respondent === currentUser?._id &&
+      !!selectedForm?.settings?.allowResubmit
+    );
+  };
+
+  const canDeleteRowDoc = (row: TAltSheetRow) => {
+    if (canDeleteAnyRow) return true;
+    if (isApprovalLocked(row, selectedForm?.fields)) return false;
+    return (
+      row._respondent === currentUser?._id &&
+      !!selectedForm?.settings?.allowResubmit
+    );
   };
 
   // 문서 뷰: 편집 시작
@@ -2686,9 +2701,7 @@ const AltSheetView = ({
                           </Button>
                         </>
                       )}
-                      {(canDeleteAnyRow ||
-                        (currentDocRow._respondent === currentUser?._id &&
-                          selectedForm?.settings?.allowResubmit)) && (
+                      {canDeleteRowDoc(currentDocRow) && (
                         <Button
                           type="ghost"
                           onClick={() => requestDeleteRow(currentDocRow)}
@@ -3068,9 +3081,7 @@ const AltSheetView = ({
                 </td>
                 )}
                 <td className={style.actionCell}>
-                  {(canDeleteAnyRow ||
-                    (row._respondent === currentUser?._id &&
-                      selectedForm?.settings?.allowResubmit)) && (
+                  {canDeleteRowDoc(row) && (
                     <button
                       className={style.removeBtn}
                       onClick={() => requestDeleteRow(row)}

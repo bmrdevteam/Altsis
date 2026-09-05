@@ -843,7 +843,6 @@ const AltFormList = ({
       />
       <PendingApprovalsPanel
         boardId={board._id}
-        forms={forms}
         canDeleteAnyRow={canDeleteAnyRow}
         openRowId={openApprovalRowId}
         onSettled={() => setApprovalsSettled(true)}
