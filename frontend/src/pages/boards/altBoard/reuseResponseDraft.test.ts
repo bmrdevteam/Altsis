@@ -3,10 +3,12 @@ import {
   filterReusedPickPeople,
   formatReusedDroppedNotice,
   mergeRowDataForEdit,
-  resolveMultipleComposeData,
+  resolveFreshComposeData,
   seedComposePickDefaults,
   shouldApplyExternalViewMode,
-  shouldStartNewMultipleCompose,
+  shouldStartNewCompose,
+  urlModeToViewMode,
+  viewModeToUrlMode,
 } from "./reuseResponseDraft";
 
 const fields = [
@@ -59,54 +61,42 @@ describe("shouldApplyExternalViewMode", () => {
       })
     ).toEqual({ apply: false, nextSkip: false });
   });
+
+  test("does not apply when drafts alias already maps to compose", () => {
+    expect(
+      shouldApplyExternalViewMode({
+        skipInternal: false,
+        internalMode: "compose",
+        externalMode: "compose",
+      })
+    ).toEqual({ apply: false, nextSkip: false });
+  });
 });
 
-describe("shouldStartNewMultipleCompose", () => {
-  test("does not start new when leaving review (restore local compose instead)", () => {
-    expect(
-      shouldStartNewMultipleCompose({
-        allowMultiple: true,
-        viewMode: "review",
-        hasEditingRow: false,
-      })
-    ).toBe(false);
+describe("urlModeToViewMode / viewModeToUrlMode", () => {
+  test("maps respond, drafts, responses", () => {
+    expect(urlModeToViewMode("respond")).toBe("compose");
+    expect(urlModeToViewMode("drafts")).toBe("compose");
+    expect(urlModeToViewMode("responses")).toBe("review");
+    expect(urlModeToViewMode(null)).toBe("compose");
+    expect(urlModeToViewMode("edit")).toBe("compose");
   });
 
-  test("starts new when already composing an existing row", () => {
-    expect(
-      shouldStartNewMultipleCompose({
-        allowMultiple: true,
-        viewMode: "compose",
-        hasEditingRow: true,
-      })
-    ).toBe(true);
+  test("maps view modes back to URL", () => {
+    expect(viewModeToUrlMode("compose")).toBe("respond");
+    expect(viewModeToUrlMode("drafts")).toBe("respond");
+    expect(viewModeToUrlMode("review")).toBe("responses");
+  });
+});
+
+describe("shouldStartNewCompose", () => {
+  test("작성 진입·재클릭은 칸 0으로 간다", () => {
+    expect(shouldStartNewCompose({ targetMode: "compose" })).toBe(true);
+    expect(shouldStartNewCompose({ targetMode: "drafts" })).toBe(true);
   });
 
-  test("does not restart when already composing a new response", () => {
-    expect(
-      shouldStartNewMultipleCompose({
-        allowMultiple: true,
-        viewMode: "compose",
-        hasEditingRow: false,
-      })
-    ).toBe(false);
-  });
-
-  test("is false for single-response forms", () => {
-    expect(
-      shouldStartNewMultipleCompose({
-        allowMultiple: false,
-        viewMode: "review",
-        hasEditingRow: true,
-      })
-    ).toBe(false);
-    expect(
-      shouldStartNewMultipleCompose({
-        allowMultiple: false,
-        viewMode: "compose",
-        hasEditingRow: true,
-      })
-    ).toBe(false);
+  test("내 응답은 작성 칸을 바꾸지 않는다", () => {
+    expect(shouldStartNewCompose({ targetMode: "review" })).toBe(false);
   });
 });
 
@@ -390,23 +380,17 @@ describe("seedComposePickDefaults", () => {
   });
 });
 
-describe("resolveMultipleComposeData", () => {
-  test("returns local draft when it has content", () => {
+describe("resolveFreshComposeData", () => {
+  test("ignores local draft content so 작성 stays blank", () => {
     expect(
-      resolveMultipleComposeData({ localDraft: { text1: "진행 중" } })
-    ).toEqual({ text1: "진행 중" });
+      resolveFreshComposeData({ localDraft: { text1: "진행 중" } })
+    ).toEqual({});
   });
 
   test("returns empty object when there is no draft", () => {
-    expect(resolveMultipleComposeData({ localDraft: null })).toEqual({});
-    expect(resolveMultipleComposeData({ localDraft: undefined })).toEqual({});
-    expect(resolveMultipleComposeData({})).toEqual({});
-  });
-
-  test("returns empty object for empty or blank draft values", () => {
-    expect(resolveMultipleComposeData({ localDraft: {} })).toEqual({});
-    expect(resolveMultipleComposeData({ localDraft: { text1: "" } })).toEqual(
-      {}
-    );
+    expect(resolveFreshComposeData({ localDraft: null })).toEqual({});
+    expect(resolveFreshComposeData({ localDraft: undefined })).toEqual({});
+    expect(resolveFreshComposeData({})).toEqual({});
+    expect(resolveFreshComposeData()).toEqual({});
   });
 });

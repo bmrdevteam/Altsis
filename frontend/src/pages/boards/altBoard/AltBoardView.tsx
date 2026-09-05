@@ -27,6 +27,11 @@ import style from "./altBoard.module.scss";
 import { markAllBoardChatRoomsRead } from "utils/markAllBoardChatRoomsRead";
 import { canViewAllRowsForm, isFormRespondent } from "./formAccess";
 import { shouldShowUnsubmittedTodoForm } from "./weekdaySchedule";
+import {
+  TFormViewMode,
+  urlModeToViewMode,
+  viewModeToUrlMode,
+} from "./reuseResponseDraft";
 
 export type TAltBoardSurface = "활동" | "문서" | "채팅";
 
@@ -120,10 +125,9 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
   };
   const [builderFormId, setBuilderFormId] = useState<string | null>(null);
   const [rendererFormId, setRendererFormId] = useState<string | null>(null);
-  /** embedded일 때 URL 없이 작성/개별 보기 구분 */
-  const [embeddedRendererMode, setEmbeddedRendererMode] = useState<
-    "compose" | "review"
-  >("compose");
+  /** embedded일 때 URL 없이 작성/내 응답 구분 */
+  const [embeddedRendererMode, setEmbeddedRendererMode] =
+    useState<TFormViewMode>("compose");
   /** embedded일 때 URL 없이 시트(응답 기록) 열기 */
   const [embeddedSheetFormId, setEmbeddedSheetFormId] = useState<string | null>(
     null
@@ -292,7 +296,7 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
     }
   }, [board._id, loadDocsUnread, loadPendingApprovals]);
 
-  // URL → State 동기화: ?form=<id>&mode=<respond|responses|edit> 처리
+  // URL → State 동기화: ?form=<id>&mode=<respond|drafts|responses|edit> 처리
   useEffect(() => {
     if (isLoading || !urlFormId) return;
 
@@ -304,8 +308,12 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
 
     const targetForm = forms.find((f) => f._id === urlFormId);
     if (targetForm) {
-      if (urlMode === "respond" || urlMode === "responses") {
-        // 응답 작성 / 내 응답 개별 보기
+      if (
+        urlMode === "respond" ||
+        urlMode === "drafts" ||
+        urlMode === "responses"
+      ) {
+        // 응답 작성 / 임시 저장 / 내 응답
         setRendererFormId(urlFormId);
         setBuilderFormId(null);
       } else if (canModifyForm(targetForm)) {
@@ -426,6 +434,10 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
     }
   };
 
+  const handleOpenDrafts = (formId: string) => {
+    handleOpenRenderer(formId);
+  };
+
   // 내 응답 개별 보기
   const handleOpenMyResponses = (formId: string) => {
     setRendererFormId(formId);
@@ -439,13 +451,13 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
     }
   };
 
-  const handleRendererViewModeChange = (mode: "compose" | "review") => {
+  const handleRendererViewModeChange = (mode: TFormViewMode) => {
     setEmbeddedRendererMode(mode);
     if (embedded || !rendererFormId) return;
     navigate(
-      `/boards/${board._id}?form=${rendererFormId}&mode=${
-        mode === "review" ? "responses" : "respond"
-      }#활동`,
+      `/boards/${board._id}?form=${rendererFormId}&mode=${viewModeToUrlMode(
+        mode
+      )}#활동`,
       { replace: true }
     );
   };
@@ -542,9 +554,7 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
 
   const rendererMode = embedded
     ? embeddedRendererMode
-    : urlMode === "responses"
-      ? "review"
-      : "compose";
+    : urlModeToViewMode(urlMode);
 
   const renderActivityPanel = () => {
     let content: ReactNode;
@@ -613,6 +623,7 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
           canModifyForm={canModifyForm}
           onFormClick={handleFormClick}
           onRespondForm={handleOpenRenderer}
+          onViewDrafts={handleOpenDrafts}
           onViewMyResponses={handleOpenMyResponses}
           onOpenSheet={handleOpenSheet}
           onCreateForm={() => handleOpenBuilder()}

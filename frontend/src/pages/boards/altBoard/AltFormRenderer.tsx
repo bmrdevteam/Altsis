@@ -70,22 +70,24 @@ import {
   formatReusedDroppedNotice,
   mergeRowDataForEdit,
   seedComposePickDefaults,
-  resolveMultipleComposeData,
   shouldApplyExternalViewMode,
-  shouldStartNewMultipleCompose,
+  TFormViewMode,
 } from "./reuseResponseDraft";
 import FormAiChatField from "./FormAiChatField";
 import { isAiChatRequiredMet } from "./formAiChat";
 import {
+  buildInProgressDraftList,
   canCreateAdditionalDraft,
   canSubmitReviewDraft,
   isDraftSheetRow,
+  sortDraftRows,
   sortMyRowsForReview,
-  splitMyRows,
+  sortSubmittedRows,
 } from "./sheetRowDraft";
 import {
   clearFormResponseDraft,
   formResponseDraftStorageKey,
+  hasLocalComposeDraft,
   readFormResponseDraft,
 } from "./formResponseLocalDraft";
 import { useFormResponseDraft } from "./useFormResponseDraft";
@@ -96,15 +98,13 @@ type Props = {
   board: TBoard;
   formId: string;
   onBack: () => void;
-  /** URL mode=responses 등으로 개별 보기에서 시작 */
-  initialViewMode?: "compose" | "review";
-  /** mode=responses일 때 이 행을 개별 보기로 연다 */
+  /** URL mode=respond|drafts|responses 로 시작. drafts는 작성으로 연다. */
+  initialViewMode?: TFormViewMode;
+  /** mode=responses일 때 이 행을 연다. 작성 중이면 해당 초안 칸. */
   initialReviewRowId?: string | null;
   /** standalone에서 URL mode 동기화 */
-  onViewModeChange?: (mode: "compose" | "review") => void;
+  onViewModeChange?: (mode: TFormViewMode) => void;
 };
-
-type TViewMode = "compose" | "review";
 
 type DateInputWithOverlayProps = {
   value: string;
@@ -308,7 +308,9 @@ const AltFormRenderer = ({
   const [myRows, setMyRows] = useState<TAltSheetRow[]>([]);
   const [myRow, setMyRow] = useState<TAltSheetRow | null>(null);
   const [reviewIndex, setReviewIndex] = useState(0);
-  const [viewMode, setViewMode] = useState<TViewMode>("compose");
+  const [viewMode, setViewMode] = useState<TFormViewMode>("compose");
+  const [editingSubmitted, setEditingSubmitted] = useState(false);
+  const [composeDirty, setComposeDirty] = useState(false);
   const [data, setData] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [reuseDroppedNotice, setReuseDroppedNotice] = useState<string | null>(
@@ -376,42 +378,52 @@ const AltFormRenderer = ({
     ])
       .then(([{ form: loadedForm }, { rows }]) => {
         setForm(loadedForm);
-        const loadedRows = sortMyRowsForReview(rows || []);
+        const loadedRows = rows || [];
         setMyRows(loadedRows);
-        const reviewIdx = initialReviewRowId
+        const drafts = sortDraftRows(loadedRows);
+        const submitted = sortSubmittedRows(loadedRows);
+        const canReviewSubmitted =
+          loadedForm.settings.showOwnResponse !== false &&
+          submitted.length > 0;
+        const startInReview =
+          initialViewMode === "review" && canReviewSubmitted;
+        const submittedIdx = initialReviewRowId
           ? Math.max(
               0,
-              loadedRows.findIndex(
+              submitted.findIndex(
                 (r) => String(r._id) === String(initialReviewRowId)
               )
             )
           : 0;
-        setReviewIndex(reviewIdx);
+        const target = getRequiredResponseCount(loadedForm);
+        const quotaReached =
+          target != null && submitted.length >= target;
+        const cannotWrite =
+          (loadedForm.settings.allowMultipleResponses && quotaReached) ||
+          (!loadedForm.settings.allowMultipleResponses &&
+            submitted.length > 0);
 
-        const { draftRows, submittedRows } = splitMyRows(loadedRows);
-        const canReviewSubmitted =
-          loadedForm.settings.showOwnResponse !== false &&
-          submittedRows.length > 0;
-        const canReview = canReviewSubmitted || draftRows.length > 0;
-        const startInReview =
-          initialViewMode === "review" && canReview;
-        setViewMode(startInReview ? "review" : "compose");
-
-        if (loadedForm.settings.allowMultipleResponses) {
+        if (startInReview || (cannotWrite && canReviewSubmitted)) {
+          const row = submitted[submittedIdx] || submitted[0];
+          setReviewIndex(submittedIdx);
+          setViewMode("review");
           setMyRow(null);
           setIsSubmitted(false);
-          const target = getRequiredResponseCount(loadedForm);
-          const quotaReached =
-            target != null && submittedRows.length >= target;
-          if (startInReview || (quotaReached && canReview)) {
-            const row = loadedRows[reviewIdx] || loadedRows[0];
-            setData(
-              applyFieldDefaults(loadedForm.fields, row?.data || {})
+          setData(applyFieldDefaults(loadedForm.fields, row?.data || {}));
+        } else {
+          const writeItems = buildInProgressDraftList(loadedRows);
+          let writeIdx = 0;
+          if (initialReviewRowId) {
+            const di = drafts.findIndex(
+              (r) => String(r._id) === String(initialReviewRowId)
             );
-            if (quotaReached && !startInReview) {
-              setViewMode("review");
-            }
-          } else {
+            if (di >= 0) writeIdx = di + 1;
+          }
+          const item = writeItems[writeIdx] || writeItems[0];
+          setViewMode("compose");
+          setReviewIndex(writeIdx);
+          setIsSubmitted(false);
+          if (item.kind === "local") {
             const local = currentUser?._id
               ? readFormResponseDraft(
                   formResponseDraftStorageKey(
@@ -421,35 +433,16 @@ const AltFormRenderer = ({
                   )
                 )
               : null;
+            setMyRow(null);
             setData(
-              applyFieldDefaults(
-                loadedForm.fields,
-                resolveMultipleComposeData({ localDraft: local?.data })
-              )
+              applyFieldDefaults(loadedForm.fields, local?.data || {})
+            );
+          } else {
+            setMyRow(item.row);
+            setData(
+              applyFieldDefaults(loadedForm.fields, item.row.data || {})
             );
           }
-        } else if (loadedRows[0]) {
-          const row = loadedRows[reviewIdx] || loadedRows[0];
-          setMyRow(row);
-          setData(
-            applyFieldDefaults(loadedForm.fields, row.data || {})
-          );
-          setIsSubmitted(!isDraftSheetRow(row));
-        } else {
-          setMyRow(null);
-          setIsSubmitted(false);
-          const local = currentUser?._id
-            ? readFormResponseDraft(
-                formResponseDraftStorageKey(
-                  currentUser._id,
-                  loadedForm._id,
-                  "new"
-                )
-              )
-            : null;
-          setData(
-            applyFieldDefaults(loadedForm.fields, local?.data || {})
-          );
         }
 
         // counter 필드 카운트 로드
@@ -548,115 +541,96 @@ const AltFormRenderer = ({
     [form, data]
   );
 
-  /** 양식에서 삭제된 필드의 제출값 (스키마에 없는 data 키) */
-  const { draftRows, submittedRows } = useMemo(
-    () => splitMyRows(myRows),
+  const draftRows = useMemo(() => sortDraftRows(myRows), [myRows]);
+  const submittedRows = useMemo(() => sortSubmittedRows(myRows), [myRows]);
+  const hasLocalNew =
+    !!currentUser?._id &&
+    !!form &&
+    hasLocalComposeDraft(currentUser._id, form._id);
+  const inProgressItems = useMemo(
+    () => buildInProgressDraftList(myRows),
     [myRows]
   );
-  const activeRow =
-    viewMode === "review" ? myRows[reviewIndex] ?? null : myRow;
+  const isComposeMode = viewMode === "compose";
+  const isReviewMode = viewMode === "review";
+  const listRows = isReviewMode ? submittedRows : [];
+  const activeInProgress = isComposeMode
+    ? inProgressItems[reviewIndex] ?? inProgressItems[0] ?? null
+    : null;
+  const isLocalDraftItem = activeInProgress?.kind === "local";
+  const isServerDraftSlot = activeInProgress?.kind === "row";
+  const showLocalBanner = isComposeMode && isLocalDraftItem;
+  const hasLocalBannerContent = hasLocalNew || composeDirty;
+  const activeRow = isComposeMode
+    ? isServerDraftSlot
+      ? activeInProgress.row
+      : myRow
+    : listRows[reviewIndex] ?? null;
   const activeIsDraft = isDraftSheetRow(activeRow);
 
-  const canShowOwnResponses =
-    draftRows.length > 0 ||
-    (form?.settings.showOwnResponse !== false && submittedRows.length > 0);
+  const canShowSubmitted =
+    form?.settings.showOwnResponse !== false && submittedRows.length > 0;
 
-  const isReviewMode = viewMode === "review";
+  const readLocalNewData = () => {
+    if (!currentUser?._id || !form) return {};
+    return (
+      readFormResponseDraft(
+        formResponseDraftStorageKey(currentUser._id, form._id, "new")
+      )?.data || {}
+    );
+  };
 
-  const applyMultipleComposeFromLocal = () => {
+  const openWriteSlot = (index: number) => {
     if (!form) return;
+    const items = buildInProgressDraftList(myRows);
+    const idx = Math.min(Math.max(0, index), items.length - 1);
+    const item = items[idx] || { kind: "local" as const };
     skipNextExternalViewMode.current = true;
-    setMyRow(null);
+    setEditingSubmitted(false);
+    setReviewIndex(idx);
     setIsSubmitted(false);
     setErrors({});
-    const local = currentUser?._id
-      ? readFormResponseDraft(
-          formResponseDraftStorageKey(currentUser._id, form._id, "new")
-        )
-      : null;
-    setData(
-      applyFieldDefaults(
-        form.fields,
-        resolveMultipleComposeData({ localDraft: local?.data })
-      )
-    );
+    setReuseDroppedNotice(null);
+    setComposeDirty(false);
+    if (item.kind === "local") {
+      setMyRow(null);
+      setData(applyFieldDefaults(form.fields, readLocalNewData()));
+    } else {
+      setMyRow(item.row);
+      setData(applyFieldDefaults(form.fields, item.row.data || {}));
+    }
     setViewMode("compose");
     onViewModeChange?.("compose");
   };
 
-  const startNewMultipleCompose = () => {
-    if (!form?.settings.allowMultipleResponses) return;
-    const target = getRequiredResponseCount(form);
-    if (target != null && submittedRows.length >= target) return;
-    if (currentUser?._id) {
-      clearFormResponseDraft(
-        formResponseDraftStorageKey(currentUser._id, form._id, "new")
-      );
-    }
+  const startCompose = () => openWriteSlot(0);
+
+  const openReview = (index: number) => {
+    if (!form || !canShowSubmitted || !submittedRows.length) return;
+    const idx = Math.min(Math.max(0, index), submittedRows.length - 1);
+    const row = submittedRows[idx];
     skipNextExternalViewMode.current = true;
+    setEditingSubmitted(false);
+    setReviewIndex(idx);
     setMyRow(null);
     setIsSubmitted(false);
     setErrors({});
     setReuseDroppedNotice(null);
-    setData(applyFieldDefaults(form.fields));
-    setViewMode("compose");
-    onViewModeChange?.("compose");
+    if (row) {
+      setData(applyFieldDefaults(form.fields, row.data || {}));
+    }
+    setViewMode("review");
+    onViewModeChange?.("review");
   };
 
-  const switchViewMode = (mode: TViewMode) => {
+  const switchViewMode = (mode: TFormViewMode) => {
     if (!form) return;
-    if (mode === viewMode) {
-      if (
-        mode === "compose" &&
-        shouldStartNewMultipleCompose({
-          allowMultiple: !!form.settings.allowMultipleResponses,
-          viewMode,
-          hasEditingRow: !!myRow,
-        })
-      ) {
-        startNewMultipleCompose();
-      }
+    if (mode === "compose" || mode === "drafts") {
+      startCompose();
       return;
     }
-    if (mode === "review") {
-      if (!canShowOwnResponses) return;
-      const idx = Math.min(reviewIndex, Math.max(0, myRows.length - 1));
-      setReviewIndex(idx);
-      const row = myRows[idx];
-      if (row) {
-        setData(applyFieldDefaults(form.fields, row.data || {}));
-      }
-      skipNextExternalViewMode.current = true;
-      setReuseDroppedNotice(null);
-      setViewMode("review");
-      onViewModeChange?.("review");
-      return;
-    }
-    // compose
-    if (form.settings.allowMultipleResponses) {
-      applyMultipleComposeFromLocal();
-      return;
-    }
-    if (myRow) {
-      setData(applyFieldDefaults(form.fields, myRow.data || {}));
-      setIsSubmitted(!isDraftSheetRow(myRow));
-    } else if (myRows[0]) {
-      setMyRow(myRows[0]);
-      setData(applyFieldDefaults(form.fields, myRows[0].data || {}));
-      setIsSubmitted(!isDraftSheetRow(myRows[0]));
-    } else {
-      const local = currentUser?._id
-        ? readFormResponseDraft(
-            formResponseDraftStorageKey(currentUser._id, form._id, "new")
-          )
-        : null;
-      setData(applyFieldDefaults(form.fields, local?.data || {}));
-      setIsSubmitted(false);
-    }
-    setErrors({});
-    skipNextExternalViewMode.current = true;
-    setViewMode("compose");
-    onViewModeChange?.("compose");
+    if (mode === viewMode) return;
+    openReview(0);
   };
 
   useEffect(() => {
@@ -672,17 +646,32 @@ const AltFormRenderer = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialViewMode, viewMode]);
 
-  const goReview = (nextIndex: number) => {
-    if (!form || nextIndex < 0 || nextIndex >= myRows.length) return;
+  const goListRow = (nextIndex: number) => {
+    if (isComposeMode) {
+      if (nextIndex < 0 || nextIndex >= inProgressItems.length) return;
+      openWriteSlot(nextIndex);
+      return;
+    }
+    if (!form || nextIndex < 0 || nextIndex >= listRows.length) return;
+    if (isReviewMode) {
+      openReview(nextIndex);
+      return;
+    }
     setReviewIndex(nextIndex);
-    const row = myRows[nextIndex];
+    const row = listRows[nextIndex];
+    setErrors({});
     setData(applyFieldDefaults(form.fields, row.data || {}));
   };
 
   /** 양식에서 삭제된 필드의 제출값 (스키마에 없는 data 키) */
   const orphanResponses = useMemo(() => {
-    const rowForOrphans = isReviewMode ? activeRow : myRow;
-    if ((!isSubmitted && !isReviewMode) || !rowForOrphans?.data || !form)
+    const rowForOrphans =
+      isReviewMode || isServerDraftSlot ? activeRow : myRow;
+    if (
+      (!isSubmitted && !isReviewMode && !isServerDraftSlot) ||
+      !rowForOrphans?.data ||
+      !form
+    )
       return [];
     const fieldIds = new Set(form.fields.map((f) => f._id));
     return Object.entries(rowForOrphans.data).filter(([key, val]) => {
@@ -691,7 +680,7 @@ const AltFormRenderer = ({
       if (val === undefined || val === null || val === "") return false;
       return true;
     });
-  }, [isSubmitted, isReviewMode, activeRow, myRow, form]);
+  }, [isSubmitted, isReviewMode, isServerDraftSlot, activeRow, myRow, form]);
 
   const formatOrphanValue = (val: any): string => {
     if (typeof val === "string") return val;
@@ -767,27 +756,56 @@ const AltFormRenderer = ({
   const requiredTarget = getRequiredResponseCount(form);
   const multipleQuotaReached =
     requiredTarget != null && submittedRows.length >= requiredTarget;
+  const canShowWriteTab =
+    !!form &&
+    !multipleQuotaReached &&
+    (!!form.settings.allowMultipleResponses || submittedRows.length === 0);
   const canComposeMultiple =
     !!form?.settings.allowMultipleResponses &&
     canSubmit &&
     !multipleQuotaReached;
   const editingDraftRow = !!(myRow && isDraftSheetRow(myRow));
+  const canShowSaveDraft =
+    !isSubmitted &&
+    canSubmit &&
+    !form?.settings.directInputMode &&
+    (isServerDraftSlot ||
+      editingDraftRow ||
+      canCreateAdditionalDraft(
+        form,
+        submittedRows.length,
+        draftRows.length
+      ));
   const canResubmit =
-    !isReviewMode &&
+    isComposeMode &&
     !!form?.settings.allowResubmit &&
     isSubmitted &&
     !!myRow &&
     !editingDraftRow &&
     windowOpen;
+  const submitLabel = (() => {
+    const base = isSubmitted ? "수정 제출" : "제출";
+    if (requiredTarget == null || !canComposeMultiple) return base;
+    return `${base} (${submittedRows.length}/${requiredTarget})`;
+  })();
+  const canShowSubmit =
+    (!isSubmitted &&
+      canSubmit &&
+      (isServerDraftSlot ||
+        !form?.settings.allowMultipleResponses ||
+        canComposeMultiple)) ||
+    (isSubmitted && (canResubmit || editingSubmitted));
+  const actionsInBanner = showLocalBanner || isServerDraftSlot;
   const canEditReviewRow =
     isReviewMode &&
+    !editingSubmitted &&
     windowOpen &&
-    myRows.length > 0 &&
-    (activeIsDraft || !!form?.settings.allowResubmit);
+    submittedRows.length > 0 &&
+    !!form?.settings.allowResubmit;
 
   const reuseCurrentResponse = () => {
     if (!form || !isReviewMode || !canComposeMultiple) return;
-    const row = myRows[reviewIndex];
+    const row = submittedRows[reviewIndex];
     if (!row) return;
     const copied = copyRowDataForReuse(row.data, form.fields);
     const { data: filtered, dropped } = filterReusedPickPeople(
@@ -796,9 +814,12 @@ const AltFormRenderer = ({
       pickCandidateIdsFromBoard(board)
     );
     skipNextExternalViewMode.current = true;
+    setEditingSubmitted(false);
+    setReviewIndex(0);
     setData(applyFieldDefaults(form.fields, filtered));
     setMyRow(null);
     setIsSubmitted(false);
+    setComposeDirty(true);
     setErrors({});
     setReuseDroppedNotice(formatReusedDroppedNotice(dropped));
     setViewMode("compose");
@@ -807,11 +828,11 @@ const AltFormRenderer = ({
 
   const editCurrentResponse = () => {
     if (!form || !isReviewMode) return;
-    const row = myRows[reviewIndex];
-    if (!row) return;
-    if (!isDraftSheetRow(row) && !form.settings.allowResubmit) return;
+    const row = submittedRows[reviewIndex];
+    if (!row || !form.settings.allowResubmit) return;
     skipNextExternalViewMode.current = true;
     setReuseDroppedNotice(null);
+    setEditingSubmitted(true);
     setMyRow(row);
     setData(
       applyFieldDefaults(
@@ -819,14 +840,16 @@ const AltFormRenderer = ({
         mergeRowDataForEdit(row.data, data)
       )
     );
-    setIsSubmitted(!isDraftSheetRow(row));
+    setIsSubmitted(true);
     setErrors({});
-    setViewMode("compose");
-    onViewModeChange?.("compose");
+    setViewMode("review");
+    onViewModeChange?.("review");
   };
 
   const localDraftKey =
-    currentUser?._id && form && viewMode === "compose"
+    currentUser?._id &&
+    form &&
+    (isComposeMode || editingSubmitted)
       ? formResponseDraftStorageKey(
           currentUser._id,
           form._id,
@@ -835,11 +858,14 @@ const AltFormRenderer = ({
       : null;
   const { lastSavedAt } = useFormResponseDraft({
     enabled:
-      viewMode === "compose" &&
+      ((isLocalDraftItem && composeDirty) ||
+        isServerDraftSlot ||
+        editingSubmitted) &&
       !isLoading &&
       !!form &&
       !isSubmitting &&
-      !isSavingDraft,
+      !isSavingDraft &&
+      !(isComposeMode && isSubmitted && !canResubmit),
     storageKey: localDraftKey,
     data,
   });
@@ -855,7 +881,7 @@ const AltFormRenderer = ({
 
   const hasSubmittedViewRow = isReviewMode
     ? !!activeRow && !activeIsDraft
-    : isSubmitted;
+    : isComposeMode && isSubmitted;
 
   // 퀴즈 결과 가시성
   const quizScoreVisible = useMemo(() => {
@@ -889,6 +915,7 @@ const AltFormRenderer = ({
   }, [form, hasSubmittedViewRow, activeRow]);
 
   const setValue = (fieldId: string, value: any) => {
+    if (isComposeMode) setComposeDirty(true);
     setData((prev) => ({ ...prev, [fieldId]: value }));
     if (errors[fieldId]) {
       setErrors((prev) => {
@@ -921,9 +948,9 @@ const AltFormRenderer = ({
   const alterEnabled =
     !isLoading &&
     !!form &&
-    viewMode === "compose" &&
+    (isComposeMode || editingSubmitted) &&
     canSubmit &&
-    (!isSubmitted || canResubmit || canComposeMultiple);
+    (!isSubmitted || canResubmit || canComposeMultiple || isServerDraftSlot);
 
   useRegisterAlterFormResponse({
     enabled: alterEnabled,
@@ -1054,8 +1081,9 @@ const AltFormRenderer = ({
 
   const handleSubmit = async () => {
     if (!form) return;
-    const targetRow = isReviewMode ? activeRow : myRow;
-    if (isReviewMode) {
+    const targetRow =
+      isComposeMode || editingSubmitted ? myRow : activeRow;
+    if (isServerDraftSlot && targetRow) {
       if (
         !canSubmitReviewDraft(targetRow, {
           canSubmit,
@@ -1065,16 +1093,17 @@ const AltFormRenderer = ({
       ) {
         return;
       }
+    } else if (isComposeMode && !targetRow) {
+      if (
+        !canSubmit ||
+        (form.settings.allowMultipleResponses && multipleQuotaReached)
+      ) {
+        return;
+      }
     }
     if (!validate()) {
-      if (isReviewMode && targetRow) {
+      if (isServerDraftSlot || editingSubmitted) {
         window.alert("필수 항목을 확인한 뒤 제출해 주세요.");
-        skipNextExternalViewMode.current = true;
-        setMyRow(targetRow);
-        setData(applyFieldDefaults(form.fields, targetRow.data || {}));
-        setIsSubmitted(false);
-        setViewMode("compose");
-        onViewModeChange?.("compose");
       }
       return;
     }
@@ -1117,59 +1146,61 @@ const AltFormRenderer = ({
         const merged = myRows.some((r) => r._id === row._id)
           ? myRows.map((r) => (r._id === row._id ? row : r))
           : [row, ...myRows];
-        const nextRows = sortMyRowsForReview(merged);
-        setMyRows(nextRows);
-        setMyRow(row);
+        setMyRows(merged);
         setData(applyFieldDefaults(form.fields, row.data || submitData));
-        setIsSubmitted(true);
-        const idx = nextRows.findIndex((r) => r._id === row._id);
+        const nextSubmitted = sortSubmittedRows(merged);
+        const idx = nextSubmitted.findIndex((r) => r._id === row._id);
         setReviewIndex(idx >= 0 ? idx : 0);
-        if (form.settings.allowMultipleResponses) {
-          alert(
-            editingDraft
-              ? form.settings.assessmentMode
-                ? "과제가 제출되었습니다."
-                : "응답이 제출되었습니다."
-              : form.settings.assessmentMode
-                ? "과제가 수정되었습니다."
-                : "응답이 수정되었습니다."
-          );
-          setViewMode("review");
-          onViewModeChange?.("review");
-        } else if (isReviewMode) {
-          alert(
-            form.settings.assessmentMode
+        setEditingSubmitted(false);
+        setMyRow(null);
+        setIsSubmitted(false);
+        skipNextExternalViewMode.current = true;
+        setViewMode("review");
+        onViewModeChange?.("review");
+        alert(
+          editingDraft
+            ? form.settings.assessmentMode
               ? "과제가 제출되었습니다."
               : "응답이 제출되었습니다."
-          );
-        }
+            : form.settings.assessmentMode
+              ? "과제가 수정되었습니다."
+              : "응답이 수정되었습니다."
+        );
       } else if (form.settings.allowMultipleResponses) {
-        // 다중 응답: 제출 후 목록에 추가하고 작성 폼 초기화
         alert(
           form.settings.assessmentMode
             ? "과제가 제출되었습니다."
             : "응답이 제출되었습니다."
         );
-        const nextRows = sortMyRowsForReview([row, ...myRows]);
+        const nextRows = [row, ...myRows];
         setMyRows(nextRows);
         setMyRow(null);
+        setEditingSubmitted(false);
         const target = getRequiredResponseCount(form);
-        const submittedCount = splitMyRows(nextRows).submittedRows.length;
+        const submittedCount = sortSubmittedRows(nextRows).length;
         if (target != null && submittedCount >= target) {
           setReviewIndex(0);
           setData(applyFieldDefaults(form.fields, row.data || {}));
+          skipNextExternalViewMode.current = true;
           setViewMode("review");
           onViewModeChange?.("review");
           setIsSubmitted(false);
         } else {
+          setReviewIndex(0);
+          setComposeDirty(false);
           setData(applyFieldDefaults(form.fields));
           setIsSubmitted(false);
         }
       } else {
-        setMyRow(row);
-        setMyRows(sortMyRowsForReview([row]));
+        setMyRows([row]);
+        setMyRow(null);
+        setEditingSubmitted(false);
+        setIsSubmitted(false);
+        setReviewIndex(0);
         setData(applyFieldDefaults(form.fields, row.data || submitData));
-        setIsSubmitted(true);
+        skipNextExternalViewMode.current = true;
+        setViewMode("review");
+        onViewModeChange?.("review");
       }
     } catch (err) {
       ALERT_ERROR(err);
@@ -1204,16 +1235,8 @@ const AltFormRenderer = ({
       const merged = myRows.some((r) => r._id === row._id)
         ? myRows.map((r) => (r._id === row._id ? row : r))
         : [row, ...myRows];
-      const nextRows = sortMyRowsForReview(merged);
-      setMyRows(nextRows);
-      setMyRow(row);
-      setIsSubmitted(false);
-      const idx = nextRows.findIndex((r) => r._id === row._id);
-      setReviewIndex(idx >= 0 ? idx : 0);
-      setData(applyFieldDefaults(form.fields, row.data || saveData));
-      skipNextExternalViewMode.current = true;
-      setViewMode("review");
-      onViewModeChange?.("review");
+      setMyRows(merged);
+      startCompose();
     } catch (err) {
       ALERT_ERROR(err);
     } finally {
@@ -1223,7 +1246,29 @@ const AltFormRenderer = ({
 
   const handleWithdraw = async () => {
     if (!form) return;
-    const row = isReviewMode ? myRows[reviewIndex] : myRow;
+    if (isComposeMode && isLocalDraftItem) {
+      if (
+        !window.confirm(
+          "브라우저에 저장된 내용을 지우고 새로 작성할까요?"
+        )
+      )
+        return;
+      if (currentUser?._id) {
+        clearFormResponseDraft(
+          formResponseDraftStorageKey(currentUser._id, form._id, "new")
+        );
+      }
+      setComposeDirty(false);
+      setMyRow(null);
+      setReviewIndex(0);
+      setData(applyFieldDefaults(form.fields));
+      return;
+    }
+    const row = isServerDraftSlot
+      ? activeInProgress.row
+      : isReviewMode
+        ? submittedRows[reviewIndex] || myRow
+        : myRow;
     if (!row) return;
     const isDraft = isDraftSheetRow(row);
     if (!isDraft && !form.settings.allowResubmit) return;
@@ -1236,17 +1281,27 @@ const AltFormRenderer = ({
       setMyRows(nextRows);
       setMyRow(null);
       setIsSubmitted(false);
-      if (nextRows.length > 0) {
-        const nextIdx = Math.min(reviewIndex, nextRows.length - 1);
+      setEditingSubmitted(false);
+      const nextSubmitted = sortSubmittedRows(nextRows);
+      if (isDraft) {
+        setReviewIndex(0);
+        setData(applyFieldDefaults(form.fields, readLocalNewData()));
+        skipNextExternalViewMode.current = true;
+        setViewMode("compose");
+        onViewModeChange?.("compose");
+      } else if (!isDraft && nextSubmitted.length > 0) {
+        const nextIdx = Math.min(reviewIndex, nextSubmitted.length - 1);
         setReviewIndex(nextIdx);
         setData(
-          applyFieldDefaults(form.fields, nextRows[nextIdx].data || {})
+          applyFieldDefaults(form.fields, nextSubmitted[nextIdx].data || {})
         );
+        skipNextExternalViewMode.current = true;
         setViewMode("review");
         onViewModeChange?.("review");
       } else {
         setReviewIndex(0);
         setData(applyFieldDefaults(form.fields));
+        skipNextExternalViewMode.current = true;
         setViewMode("compose");
         onViewModeChange?.("compose");
       }
@@ -1979,7 +2034,7 @@ const AltFormRenderer = ({
         const approvalData = normalizeApprovalValue(value, field);
 
         // 제출 후·개별 보기: 결재 팝업·기록 문서와 같은 진행 상황
-        if ((isSubmitted || isReviewMode) && approvalData) {
+        if ((isSubmitted || isReviewMode) && !editingSubmitted && approvalData) {
           const hasLegacyReason =
             !approvalData.steps.some((s) => s.reason) && !!approvalData.reason;
           const skipped =
@@ -2210,7 +2265,7 @@ const AltFormRenderer = ({
               ? value
               : [];
 
-        if ((isSubmitted || isReviewMode) && selected.length > 0) {
+        if ((isSubmitted || isReviewMode) && !editingSubmitted && selected.length > 0) {
           return (
             <div className={style.approvalCirculationLine}>
               <CirculationUserChips users={selected} />
@@ -2597,31 +2652,26 @@ const AltFormRenderer = ({
             </span>
           )}
         </div>
-        {canShowOwnResponses && (
-          <div className={style.viewModeToggle}>
+        {canShowWriteTab && canShowSubmitted && (
+          <div className={style.viewModeToggle} role="tablist" aria-label="응답 보기">
             <button
               type="button"
+              role="tab"
+              aria-selected={isComposeMode}
               className={`${style.viewModeBtn} ${
-                viewMode === "compose" ? style.viewModeBtnActive : ""
+                isComposeMode ? style.viewModeBtnActive : ""
               }`}
               onClick={() => switchViewMode("compose")}
-              disabled={multipleQuotaReached}
-              title={
-                multipleQuotaReached
-                  ? "목표 제출 횟수를 모두 채웠습니다."
-                  : !isReviewMode &&
-                    !!myRow &&
-                    !!form.settings.allowMultipleResponses
-                  ? "새 응답 작성"
-                  : undefined
-              }
+              title="작성"
             >
               작성
             </button>
             <button
               type="button"
+              role="tab"
+              aria-selected={isReviewMode}
               className={`${style.viewModeBtn} ${
-                viewMode === "review" ? style.viewModeBtnActive : ""
+                isReviewMode ? style.viewModeBtnActive : ""
               }`}
               onClick={() => switchViewMode("review")}
             >
@@ -2643,11 +2693,41 @@ const AltFormRenderer = ({
         </div>
       </div>
 
+      {(isComposeMode || editingSubmitted) &&
+        !(isComposeMode && isSubmitted && !canResubmit) &&
+        (!actionsInBanner ||
+          (isSubmitted && myRow && (canResubmit || editingSubmitted))) && (
+        <div className={`${style.submitArea} ${style.noPrint}`}>
+          {isSubmitted && myRow && (canResubmit || editingSubmitted) && (
+              <Button type="ghost" onClick={handleWithdraw}>
+                삭제
+              </Button>
+            )}
+          {canShowSaveDraft && composeDirty && !actionsInBanner && (
+            <Button
+              type="ghost"
+              onClick={handleSaveDraft}
+              disabled={isSavingDraft || isSubmitting}
+            >
+              {isSavingDraft ? "저장 중..." : "임시 저장"}
+            </Button>
+          )}
+          {canShowSubmit && !actionsInBanner && (
+            <Button
+              onClick={handleSubmit}
+              disabled={isSubmitting || isSavingDraft}
+            >
+              {isSubmitting ? "제출 중..." : submitLabel}
+            </Button>
+          )}
+        </div>
+      )}
+
       {(isClosed ||
         isNotOpen ||
         outsideWeekdayPeriod ||
         submittedThisOccurrence ||
-        (!isReviewMode && isSubmitted) ||
+        (isComposeMode && isSubmitted) ||
         isReviewMode) && (
         <div className={style.rendererMeta}>
           {isClosed && (
@@ -2673,25 +2753,21 @@ const AltFormRenderer = ({
                 이번 회차 제출 완료
               </span>
             )}
-          {!isReviewMode && isSubmitted && (
+          {isComposeMode && isSubmitted && (
             <span className={`${style.formCardBadge} ${style.badgeOpen}`}>
               응답 완료
             </span>
           )}
           {isReviewMode && (
-            <span
-              className={`${style.formCardBadge} ${
-                activeIsDraft ? style.badgePending : style.badgeSubmitted
-              }`}
-            >
-              {activeIsDraft ? "저장됨" : "개별 보기"}
+            <span className={`${style.formCardBadge} ${style.badgeSubmitted}`}>
+              {editingSubmitted ? "수정 중" : "개별 보기"}
             </span>
           )}
         </div>
       )}
 
       {weekdayOn &&
-        !isReviewMode &&
+        isComposeMode &&
         windowOpen &&
         openOccurrences.length > 0 &&
         form && (
@@ -2725,26 +2801,31 @@ const AltFormRenderer = ({
           </div>
         )}
 
-      {isReviewMode && myRows.length > 0 && (
+      {((isComposeMode && inProgressItems.length > 1) ||
+        (isReviewMode && listRows.length > 0)) && (
         <div className={style.reviewNav}>
           <button
             type="button"
             className={style.reviewNavBtn}
             disabled={reviewIndex <= 0}
-            onClick={() => goReview(reviewIndex - 1)}
-            title="이전 응답"
+            onClick={() => goListRow(reviewIndex - 1)}
+            title={isComposeMode ? "이전 저장본" : "이전 응답"}
           >
             <Svg type="chevronLeft" width="18px" height="18px" />
           </button>
           <span className={style.reviewNavCount}>
-            {reviewIndex + 1} / {myRows.length}
+            {reviewIndex + 1} /{" "}
+            {(isComposeMode ? inProgressItems : listRows).length}
           </span>
           <button
             type="button"
             className={style.reviewNavBtn}
-            disabled={reviewIndex >= myRows.length - 1}
-            onClick={() => goReview(reviewIndex + 1)}
-            title="다음 응답"
+            disabled={
+              reviewIndex >=
+              (isComposeMode ? inProgressItems : listRows).length - 1
+            }
+            onClick={() => goListRow(reviewIndex + 1)}
+            title={isComposeMode ? "다음 저장본" : "다음 응답"}
           >
             <Svg type="chevronRight" width="18px" height="18px" />
           </button>
@@ -2795,41 +2876,78 @@ const AltFormRenderer = ({
         </div>
       )}
 
-      {/* 복수 응답: 기존 행 수정 중 */}
-      {!isReviewMode &&
-        editingDraftRow &&
-        !!form?.settings.allowMultipleResponses && (
+      {(showLocalBanner || isServerDraftSlot) && (
         <div className={style.readonlyBanner}>
           <div className={style.readonlyBannerText}>
-            <strong>저장본을 수정 중입니다.</strong>
-            <span>저장하면 초안이 갱신되고, 제출해야 제출됩니다.</span>
+            <strong>
+              {isLocalDraftItem
+                ? hasLocalBannerContent
+                  ? "이 브라우저에 저장됨 — 아직 서버에 올리지 않았습니다."
+                  : "새 응답을 작성 중입니다."
+                : "저장됨 — 아직 제출되지 않았습니다."}
+            </strong>
+            {isLocalDraftItem && hasLocalBannerContent && lastSavedAt && (
+              <span>
+                저장됨 ·{" "}
+                {new Date(lastSavedAt).toLocaleTimeString("ko-KR", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+            )}
+            {activeRow?._updatedAt && (
+              <span>
+                저장:{" "}
+                {new Date(activeRow._updatedAt).toLocaleString("ko-KR", {
+                  year: "numeric",
+                  month: "2-digit",
+                  day: "2-digit",
+                  weekday: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+            )}
           </div>
-          <div className={style.reviewBannerActions}>
-            <button
-              type="button"
-              className={style.reviewReuseBtn}
-              onClick={() => switchViewMode("review")}
-            >
-              취소
-            </button>
-            {canComposeMultiple && (
+          <div className={`${style.reviewBannerActions} ${style.noPrint}`}>
+            {canShowSaveDraft && composeDirty && (
               <button
                 type="button"
                 className={style.reviewReuseBtn}
-                onClick={startNewMultipleCompose}
-                title="새 응답 작성"
+                onClick={handleSaveDraft}
+                disabled={isSavingDraft || isSubmitting}
+                title="임시 저장"
               >
-                새 응답
+                {isSavingDraft ? "저장 중..." : "임시 저장"}
+              </button>
+            )}
+            {(!isLocalDraftItem || hasLocalBannerContent) && (
+            <button
+              type="button"
+              className={style.reviewReuseBtn}
+              onClick={handleWithdraw}
+              disabled={isSubmitting}
+              title={isLocalDraftItem ? "새로 작성" : "저장본 삭제"}
+            >
+              {isLocalDraftItem ? "새로 작성" : "삭제"}
+            </button>
+            )}
+            {canShowSubmit && (
+              <button
+                type="button"
+                className={`${style.reviewReuseBtn} ${style.reviewReuseBtnPrimary}`}
+                onClick={handleSubmit}
+                disabled={isSubmitting || isSavingDraft}
+                title={submitLabel}
+              >
+                {isSubmitting ? "제출 중..." : submitLabel}
               </button>
             )}
           </div>
         </div>
       )}
-      {!isReviewMode &&
-        isSubmitted &&
-        !!myRow &&
-        !!form?.settings.allowMultipleResponses &&
-        !!form.settings.allowResubmit && (
+
+      {isReviewMode && editingSubmitted && (
         <div className={style.readonlyBanner}>
           <div className={style.readonlyBannerText}>
             <strong>기존 응답을 수정 중입니다.</strong>
@@ -2839,50 +2957,24 @@ const AltFormRenderer = ({
             <button
               type="button"
               className={style.reviewReuseBtn}
-              onClick={() => switchViewMode("review")}
+              onClick={() => openReview(reviewIndex)}
             >
               취소
             </button>
-            {canComposeMultiple && (
-              <button
-                type="button"
-                className={style.reviewReuseBtn}
-                onClick={startNewMultipleCompose}
-                title="새 응답 작성"
-              >
-                새 응답
-              </button>
-            )}
           </div>
         </div>
       )}
 
-      {/* 개별 보기: 안내 카드 (수정·제출·재사용은 박스 안) */}
-      {isReviewMode && (
+      {/* 개별 보기: 안내 카드 (수정·삭제·재사용은 박스 안) */}
+      {isReviewMode && !editingSubmitted && (
         <div className={style.readonlyBanner}>
           <div className={style.readonlyBannerText}>
             <strong>
-              {activeIsDraft
-                ? "저장됨 — 아직 제출되지 않았습니다."
-                : canEditReviewRow
+              {canEditReviewRow
                 ? "이 응답을 수정하거나 삭제할 수 있습니다."
                 : "응답은 수정할 수 없습니다."}
             </strong>
-            {activeIsDraft
-              ? activeRow?._updatedAt && (
-                  <span>
-                    저장:{" "}
-                    {new Date(activeRow._updatedAt).toLocaleString("ko-KR", {
-                      year: "numeric",
-                      month: "2-digit",
-                      day: "2-digit",
-                      weekday: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                )
-              : reviewSubmittedAt && <span>제출일: {reviewSubmittedAt}</span>}
+            {reviewSubmittedAt && <span>제출일: {reviewSubmittedAt}</span>}
           </div>
           {(canEditReviewRow || canComposeMultiple) && (
             <div className={`${style.reviewBannerActions} ${style.noPrint}`}>
@@ -2892,25 +2984,9 @@ const AltFormRenderer = ({
                   className={style.reviewReuseBtn}
                   onClick={editCurrentResponse}
                   disabled={isSubmitting}
-                  title={activeIsDraft ? "저장본 수정" : "이 응답 수정"}
+                  title="이 응답 수정"
                 >
                   수정
-                </button>
-              )}
-              {canEditReviewRow &&
-                canSubmitReviewDraft(activeRow, {
-                  canSubmit,
-                  allowMultipleResponses: !!form?.settings.allowMultipleResponses,
-                  quotaReached: multipleQuotaReached,
-                }) && (
-                <button
-                  type="button"
-                  className={`${style.reviewReuseBtn} ${style.reviewReuseBtnPrimary}`}
-                  onClick={handleSubmit}
-                  disabled={isSubmitting || isSavingDraft}
-                  title="저장본 제출"
-                >
-                  {isSubmitting ? "제출 중..." : "제출"}
                 </button>
               )}
               {canEditReviewRow && (
@@ -2919,12 +2995,12 @@ const AltFormRenderer = ({
                   className={style.reviewReuseBtn}
                   onClick={handleWithdraw}
                   disabled={isSubmitting}
-                  title={activeIsDraft ? "저장본 삭제" : "이 응답 삭제"}
+                  title="이 응답 삭제"
                 >
                   삭제
                 </button>
               )}
-              {canComposeMultiple && !activeIsDraft && (
+              {canComposeMultiple && (
                 <button
                   type="button"
                   className={style.reviewReuseBtn}
@@ -2940,7 +3016,7 @@ const AltFormRenderer = ({
       )}
 
       {/* 제출 완료 배너 (작성 모드) */}
-      {!isReviewMode &&
+      {isComposeMode &&
         isSubmitted &&
         !canResubmit &&
         !quizScoreVisible &&
@@ -2965,7 +3041,7 @@ const AltFormRenderer = ({
         </div>
       )}
       {/* 응답자 필드 */}
-      {(!isSubmitted || canResubmit || form?.settings.showOwnResponse !== false || quizScoreVisible || assessmentFinalized || assessmentPending || isReviewMode) &&
+      {(!isSubmitted || canResubmit || form?.settings.showOwnResponse !== false || quizScoreVisible || assessmentFinalized || assessmentPending || isReviewMode || isComposeMode) &&
         respondentFields.map((field) => {
           if (field.type === "content") {
             return (
@@ -2990,8 +3066,13 @@ const AltFormRenderer = ({
             );
           }
 
-          const disabled =
-            isReviewMode || (isSubmitted ? !canResubmit : !canSubmit);
+          const disabled = isComposeMode
+            ? !canSubmit
+            : isReviewMode
+              ? !editingSubmitted
+              : isSubmitted
+                ? !canResubmit
+                : !canSubmit;
           const quizMark = getQuizMark(field);
 
           const assessmentRubrics =
@@ -3134,63 +3215,6 @@ const AltFormRenderer = ({
         </div>
       )}
 
-      {/* 제출/저장 버튼 */}
-      {!isReviewMode && (
-        <div className={style.submitArea}>
-          {lastSavedAt && !isSubmitted && (
-            <span className={style.submitAreaStatus}>
-              저장됨 ·{" "}
-              {new Date(lastSavedAt).toLocaleTimeString("ko-KR", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </span>
-          )}
-          {isSubmitted && myRow && canResubmit && (
-              <Button type="ghost" onClick={handleWithdraw}>
-                삭제
-              </Button>
-            )}
-          {!isSubmitted &&
-            canSubmit &&
-            !form?.settings.directInputMode &&
-            (editingDraftRow ||
-              canCreateAdditionalDraft(
-                form,
-                submittedRows.length,
-                draftRows.length
-              )) && (
-            <Button
-              type="ghost"
-              onClick={handleSaveDraft}
-              disabled={isSavingDraft || isSubmitting}
-            >
-              {isSavingDraft ? "저장 중..." : "임시 저장"}
-            </Button>
-          )}
-          {((!isSubmitted &&
-            canSubmit &&
-            (!form?.settings.allowMultipleResponses || canComposeMultiple)) ||
-            (isSubmitted && canResubmit)) && (
-            <Button
-              onClick={handleSubmit}
-              disabled={isSubmitting || isSavingDraft}
-            >
-              {isSubmitting
-                ? "제출 중..."
-                : (() => {
-                    const base = isSubmitted
-                      ? "수정 제출"
-                      : "제출";
-                    if (requiredTarget == null || !canComposeMultiple) {
-                      return base;
-                    }
-                    return `${base} (${submittedRows.length}/${requiredTarget})`;
-                  })()}
-            </Button>
-          )}
-        </div>
-      )}
       </div>
       <FilePreviewModal
         file={previewFile}
