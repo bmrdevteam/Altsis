@@ -114,7 +114,9 @@ const SheetAiChatView = ({
 
   return (
     <div ref={printRootRef}>
-      <div className={style.printTitle}>{printTitle || form.title || "AI 대화"}</div>
+      {printTitle ? (
+        <div className={style.printTitle}>{printTitle}</div>
+      ) : null}
       <div className={style.formCardList}>
         {sessions.map((session) => {
           const field =

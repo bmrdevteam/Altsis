@@ -43,6 +43,8 @@ import {
 import { getUserRoleInSeason, isSeasonScopedBoard } from "../services/boards.js";
 import { getSchoolTodosForUser } from "../services/schoolTodos.js";
 import { sendAutoNotification, isBoardNotificationEnabled } from "../services/notifications.js";
+import { sendApprovalActionNotifications } from "../services/approvalActionNotify.js";
+import { validateBulkApproveRequest } from "../utils/bulkApproveGuard.js";
 import {
   FIELD_REQUIRED,
   PERMISSION_DENIED,
@@ -55,7 +57,6 @@ import {
   validateCirculationSubmit,
   buildCirculationOnSubmit,
   collectStoredCirculatees,
-  recipientsForFinalApprovalResult,
   buildApprovalAccessOr,
   applyApprovalAction,
   isCurrentApprover,
@@ -1195,115 +1196,15 @@ export const update = async (req, res) => {
             }
           } else {
             row.data.set(key, result.value);
-
-            try {
-              if (result.finished) {
-                const resultNotifEnabled = await isBoardNotificationEnabled(
-                  req.user.academyId,
-                  board.school,
-                  board,
-                  "altFormApprovalResult"
-                );
-                if (resultNotifEnabled) {
-                  const toUserList = recipientsForFinalApprovalResult({
-                    respondent: row._respondent
-                      ? {
-                          user: row._respondent,
-                          userId: row._respondentId,
-                          userName: row._respondentName,
-                        }
-                      : null,
-                    circulatees: collectStoredCirculatees(form, row.data),
-                    excludeUserIds: [req.user.userId],
-                  });
-                  if (toUserList.length > 0) {
-                    await sendAutoNotification({
-                      academyId: req.user.academyId,
-                      toUserList,
-                      notificationType: "altFormApprovalResult",
-                      category: "승인",
-                      title: approvalNotificationTitle(
-                        form,
-                        row.data,
-                        result.value.overallStatus === "approved"
-                          ? "approved"
-                          : "rejected"
-                      ),
-                      description: value.reason || "",
-                      relatedEntity: { type: "altSheetRow", id: row._id },
-                      fromUser: req.user,
-                    });
-                  }
-                }
-              } else if (!result.finished) {
-                // 중간 단계 승인: 제출자에게 진행 알림
-                if (row._respondent) {
-                  const resultNotifEnabled = await isBoardNotificationEnabled(
-                    req.user.academyId,
-                    board.school,
-                    board,
-                    "altFormApprovalResult"
-                  );
-                  if (resultNotifEnabled) {
-                    const actedStep =
-                      result.value.steps?.[
-                        (result.value.currentStep || 1) - 1
-                      ];
-                    const nextStep =
-                      result.value.steps?.[result.value.currentStep];
-                    const actedLabel = actedStep?.label || "이전 단계";
-                    const nextLabel = nextStep?.label || "다음";
-                    await sendAutoNotification({
-                      academyId: req.user.academyId,
-                      toUserList: [
-                        {
-                          user: row._respondent,
-                          userId: row._respondentId,
-                          userName: row._respondentName,
-                        },
-                      ],
-                      notificationType: "altFormApprovalResult",
-                      category: "승인",
-                      title: approvalNotificationTitle(
-                        form,
-                        row.data,
-                        "stepApproved",
-                        actedLabel
-                      ),
-                      description: `다음: 「${nextLabel}」승인 대기`,
-                      relatedEntity: { type: "altSheetRow", id: row._id },
-                      fromUser: req.user,
-                    });
-                  }
-                }
-                // 다음 승인자에게 요청 알림
-                if (result.nextApprover?.user) {
-                  const reqNotifEnabled = await isBoardNotificationEnabled(
-                    req.user.academyId,
-                    board.school,
-                    board,
-                    "altFormApprovalRequest"
-                  );
-                  if (reqNotifEnabled) {
-                    const stepLabel =
-                      result.value.steps[result.value.currentStep]?.label ||
-                      "다음";
-                    await sendAutoNotification({
-                      academyId: req.user.academyId,
-                      toUserList: [result.nextApprover],
-                      notificationType: "altFormApprovalRequest",
-                      category: "승인",
-                      title: approvalNotificationTitle(form, row.data, "request"),
-                      description: `「${stepLabel}」승인이 필요합니다.`,
-                      relatedEntity: { type: "altSheetRow", id: row._id },
-                      fromUser: req.user,
-                    });
-                  }
-                }
-              }
-            } catch (e) {
-              // 알림 실패는 응답에 영향 없음
-            }
+            await sendApprovalActionNotifications({
+              academyId: req.user.academyId,
+              board,
+              form,
+              row,
+              fromUser: req.user,
+              result,
+              reason: value.reason || "",
+            });
           }
         } else {
           row.data.set(key, value);
@@ -1316,6 +1217,111 @@ export const update = async (req, res) => {
     await row.save();
 
     return res.status(200).send({ row });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.AltSheetRowAPI
+ * @function UAltSheetRowsBulkApprove API
+ * @description 현재 결재자가 여러 행을 한 번에 승인·반려
+ */
+export const bulkApprove = async (req, res) => {
+  try {
+    const parsed = validateBulkApproveRequest(req.body);
+    if (!parsed.ok) {
+      return res.status(parsed.status).send({ message: parsed.message });
+    }
+
+    const form = await AltForm(req.user.academyId).findById(parsed.form);
+    if (!form || !form.isActive) {
+      return res.status(404).send({ message: __NOT_FOUND("form") });
+    }
+
+    const board = await Board(req.user.academyId).findById(form.board);
+    if (!board) {
+      return res.status(404).send({ message: __NOT_FOUND("board") });
+    }
+
+    const succeeded = [];
+    const failed = [];
+
+    for (const item of parsed.items) {
+      try {
+        const row = await AltSheetRow(req.user.academyId).findById(item.rowId);
+        if (!row || !row.isActive) {
+          failed.push({ rowId: item.rowId, message: __NOT_FOUND("row") });
+          continue;
+        }
+        if (String(row.form) !== String(form._id)) {
+          failed.push({ rowId: item.rowId, message: PERMISSION_DENIED });
+          continue;
+        }
+        if (isDraftSheetRow(row)) {
+          failed.push({
+            rowId: item.rowId,
+            message: "저장본은 채점·승인할 수 없습니다.",
+          });
+          continue;
+        }
+
+        const field = form.fields.find(
+          (f) => f._id.toString() === item.fieldId
+        );
+        if (!field || field.type !== "approval") {
+          failed.push({ rowId: item.rowId, message: __NOT_FOUND("field") });
+          continue;
+        }
+
+        const prev = row.data?.get?.(item.fieldId) || row.data?.[item.fieldId];
+        if (!isCurrentApprover(prev, req.user.userId, field)) {
+          failed.push({
+            rowId: item.rowId,
+            message: "현재 결재 권한이 없습니다.",
+          });
+          continue;
+        }
+
+        const result = applyApprovalAction(
+          prev,
+          field,
+          req.user.userId,
+          parsed.status,
+          parsed.reason
+        );
+        if (!result.ok) {
+          failed.push({ rowId: item.rowId, message: result.message });
+          continue;
+        }
+
+        row.data.set(item.fieldId, result.value);
+        row._updatedAt = new Date();
+        row.markModified("data");
+        await row.save();
+
+        await sendApprovalActionNotifications({
+          academyId: req.user.academyId,
+          board,
+          form,
+          row,
+          fromUser: req.user,
+          result,
+          reason: parsed.reason,
+        });
+
+        succeeded.push({ rowId: item.rowId, row });
+      } catch (err) {
+        logger.error(err.message);
+        failed.push({
+          rowId: item.rowId,
+          message: "서버 오류가 발생했습니다.",
+        });
+      }
+    }
+
+    return res.status(200).send({ succeeded, failed });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });

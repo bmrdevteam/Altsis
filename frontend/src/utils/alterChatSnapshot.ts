@@ -455,6 +455,7 @@ const VIEW_MODE_KO: Record<string, string> = {
   doc: "문서",
   summary: "요약",
   aiChat: "AI 대화",
+  approval: "결재",
 };
 
 /** 시트 셀 값을 스냅샷용 짧은 텍스트로 (approval/content 필드는 호출 전에 제외) */

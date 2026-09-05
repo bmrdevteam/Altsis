@@ -28,6 +28,7 @@ const COLUMN_TONE_CLASSES = [
 ] as const;
 
 const toneClassForColumn = (fieldId: string, index: number): string => {
+  if (fieldId === "_formTitle") return bStyle.filterChipToneApproval;
   if (fieldId === "_respondent") return bStyle.filterChipToneSubmitted;
   if (fieldId === "_submittedAt") return bStyle.filterChipToneClosed;
   return COLUMN_TONE_CLASSES[index % COLUMN_TONE_CLASSES.length];

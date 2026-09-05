@@ -5577,6 +5577,27 @@ export default function useAPIv2() {
     return { rows: rows as TAltSheetRow[], created: created as number };
   }
 
+  async function UAltSheetRowsBulkApprove(props: {
+    data: {
+      form: string;
+      items: { rowId: string; fieldId: string }[];
+      status: "approved" | "rejected";
+      reason?: string;
+    };
+  }) {
+    const { succeeded, failed } = await database.C({
+      location: "alt-sheet-rows/bulk-approve",
+      data: props.data,
+    });
+    return {
+      succeeded: (succeeded || []) as {
+        rowId: string;
+        row: TAltSheetRow;
+      }[],
+      failed: (failed || []) as { rowId: string; message: string }[],
+    };
+  }
+
   async function RAltSheetRowSubmissionStatus(props: {
     query: { form: string };
   }) {
@@ -6147,6 +6168,7 @@ export default function useAPIv2() {
       UAltSheetRowAssessment,
       DAltSheetRow,
       CAltSheetRowsBulk,
+      UAltSheetRowsBulkApprove,
       RAltSheetRowSubmissionStatus,
       CAltSheetRowSendReminder,
       RAltSheetRowCount,
