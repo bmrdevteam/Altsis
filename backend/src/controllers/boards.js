@@ -26,6 +26,7 @@ import {
   isBoardMemberAsUser,
   getUserRoleInSeason,
   getBoardMembers,
+  getBoardWorkflowCandidates,
   isSeasonScopedBoard,
   canAccessSeasonBoard,
   hasActiveSeasonRegistration,
@@ -430,7 +431,18 @@ export const find = async (req, res) => {
         board,
         req.user
       );
-      return res.status(200).send({ board: boardWithMeta });
+      const workflowCandidates = await getBoardWorkflowCandidates(
+        req.user.academyId,
+        board,
+        isSeasonScopedBoard(board) ? board.season : null
+      );
+      const boardPayload =
+        boardWithMeta && typeof boardWithMeta.toObject === "function"
+          ? boardWithMeta.toObject()
+          : { ...boardWithMeta };
+      return res.status(200).send({
+        board: { ...boardPayload, ...workflowCandidates },
+      });
     }
 
     /* RBoards */

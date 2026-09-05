@@ -22,6 +22,16 @@ const clip = (value: unknown, max: number): string =>
     .trim()
     .slice(0, max);
 
+export function createApprovalGroupId(): string {
+  if (
+    typeof globalThis.crypto !== "undefined" &&
+    typeof globalThis.crypto.randomUUID === "function"
+  ) {
+    return globalThis.crypto.randomUUID();
+  }
+  return `ag_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
 const asApprover = (raw: unknown): TApprovalApprover | null => {
   if (!raw || typeof raw !== "object") return null;
   const u = raw as Partial<TApprovalApprover>;
@@ -71,10 +81,7 @@ export function sanitizeApprovalGroups(raw: unknown): TApprovalPersonGroup[] {
     };
     let id = clip(g.id, 80);
     if (!id || seenIds.has(id)) {
-      id =
-        typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-          ? crypto.randomUUID()
-          : `ag_${Date.now()}_${out.length}`;
+      id = createApprovalGroupId();
     }
     seenIds.add(id);
     const members: TApprovalPersonGroupMember[] = [];

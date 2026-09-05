@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import style from "./altBoard.module.scss";
 import { formatApproverLabel, TApprovalApprover } from "utils/approvalLine";
+import type { TBoard, TMemberUser } from "types/board";
 
 export function uniqueApprovalCandidates(
   ...lists: Array<
@@ -22,6 +23,53 @@ export function uniqueApprovalCandidates(
     }
   }
   return out;
+}
+
+const boardCreator = (board: TBoard): TMemberUser[] =>
+  board.creator && board.creatorId
+    ? [
+        {
+          user: board.creator,
+          userId: board.creatorId,
+          userName: board.creatorName || board.creatorId,
+        },
+      ]
+    : [];
+
+export function approvalCandidatesForBoard(
+  board: TBoard,
+  resolvedMembers: TMemberUser[] = []
+): TApprovalApprover[] {
+  const explicitWriterIds = new Set(
+    (board.writers?.users || []).map((user) => user.userId)
+  );
+  const derived = resolvedMembers.filter((member) => {
+    const boardRole = board.altBoardRole?.[String(member.user)];
+    if (boardRole === "admin" || boardRole === "writer") return true;
+    if (explicitWriterIds.has(member.userId)) return true;
+    if (String(member.user) === String(board.creator)) return true;
+    if (member.auth === "admin" || member.auth === "manager") return true;
+    return Boolean(member.role && board.writers?.groups?.[member.role]);
+  });
+  return uniqueApprovalCandidates(
+    board.approvalCandidates,
+    derived,
+    board.writers?.users,
+    boardCreator(board)
+  );
+}
+
+export function circulationCandidatesForBoard(
+  board: TBoard,
+  resolvedMembers: TMemberUser[] = []
+): TApprovalApprover[] {
+  return uniqueApprovalCandidates(
+    board.circulationCandidates,
+    resolvedMembers,
+    board.members?.users,
+    board.writers?.users,
+    boardCreator(board)
+  );
 }
 
 export function filterApprovalCandidates(

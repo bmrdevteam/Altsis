@@ -1,11 +1,15 @@
 import { useState } from "react";
 import style from "./altBoard.module.scss";
 import {
+  createApprovalGroupId,
+  MAX_APPROVAL_GROUPS,
+  MAX_GROUP_MEMBERS,
+} from "utils/formApprovalGroup";
+import type {
   TApprovalPersonGroup,
   TApprovalPersonGroupKind,
 } from "types/altForm";
 import { TApprovalApprover } from "utils/approvalLine";
-import { MAX_APPROVAL_GROUPS, MAX_GROUP_MEMBERS } from "utils/formApprovalGroup";
 import ApprovalCirculationPicker, {
   ApprovalUserSearchInput,
   CirculationUserChips,
@@ -13,7 +17,8 @@ import ApprovalCirculationPicker, {
 
 type Props = {
   groups: TApprovalPersonGroup[];
-  candidates: TApprovalApprover[];
+  approvalCandidates: TApprovalApprover[];
+  circulationCandidates: TApprovalApprover[];
   onChange: (next: TApprovalPersonGroup[]) => void;
 };
 
@@ -29,7 +34,7 @@ const emptyMember = () => ({
 });
 
 const emptyGroup = (): TApprovalPersonGroup => ({
-  id: crypto.randomUUID(),
+  id: createApprovalGroupId(),
   title: "새 그룹",
   kind: "both",
   members: [emptyMember()],
@@ -62,7 +67,12 @@ const MI = ({ icon, size = 18 }: { icon: string; size?: number }) => (
   </span>
 );
 
-const ApprovalGroupSettings = ({ groups, candidates, onChange }: Props) => {
+const ApprovalGroupSettings = ({
+  groups,
+  approvalCandidates,
+  circulationCandidates,
+  onChange,
+}: Props) => {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
   const [groupDrag, setGroupDrag] = useState<number | null>(null);
   const [groupOver, setGroupOver] = useState<number | null>(null);
@@ -111,6 +121,10 @@ const ApprovalGroupSettings = ({ groups, candidates, onChange }: Props) => {
         <div className={style.settingsApprovalGroupList}>
           {groups.map((group, gi) => {
             const expanded = isExpanded(group);
+            const candidates =
+              group.kind === "circulation"
+                ? circulationCandidates
+                : approvalCandidates;
             return (
               <div
                 key={group.id}
@@ -188,9 +202,18 @@ const ApprovalGroupSettings = ({ groups, candidates, onChange }: Props) => {
                     aria-label="그룹 종류"
                     onChange={(e) => {
                       const kind = e.target.value as TApprovalPersonGroupKind;
+                      const nextCandidates =
+                        kind === "circulation"
+                          ? circulationCandidates
+                          : approvalCandidates;
+                      const allowedIds = new Set(
+                        nextCandidates.map((candidate) => candidate.userId)
+                      );
                       if (kind === "circulation") {
                         const members = group.members.filter(
-                          (m) => m.user?.userId
+                          (m) =>
+                            m.user?.userId &&
+                            allowedIds.has(m.user.userId)
                         );
                         updateGroup(gi, {
                           kind,
@@ -198,7 +221,15 @@ const ApprovalGroupSettings = ({ groups, candidates, onChange }: Props) => {
                         });
                         return;
                       }
-                      updateGroup(gi, { kind });
+                      updateGroup(gi, {
+                        kind,
+                        members: group.members.map((member) =>
+                          !member.user?.userId ||
+                          allowedIds.has(member.user.userId)
+                            ? member
+                            : { ...member, user: emptyMember().user }
+                        ),
+                      });
                     }}
                   >
                     {KIND_OPTIONS.map((opt) => (
@@ -215,7 +246,7 @@ const ApprovalGroupSettings = ({ groups, candidates, onChange }: Props) => {
                       onClick={() => {
                         const copied: TApprovalPersonGroup = {
                           ...group,
-                          id: crypto.randomUUID(),
+                          id: createApprovalGroupId(),
                           title: `${group.title || "그룹"} (복사)`,
                           members: group.members.map((m) => ({
                             ...m,

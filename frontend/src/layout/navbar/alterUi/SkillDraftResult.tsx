@@ -56,6 +56,7 @@ import {
   buildSearchVizSnapshotTailScript,
   createSearchVizSnapshotToken,
   readSearchVizSnapshotMessage,
+  serializeSearchVizRows,
   waitForSearchVizSnapshot,
 } from "./searchVizSnapshot";
 import style from "../Alter.module.scss";
@@ -157,7 +158,7 @@ const SearchVizFrame = ({
 <style>html,body{margin:0;padding:8px;font-family:sans-serif;font-size:13px;color:#222;background:transparent}</style>
 </head><body><div id="root"></div>
 <script>
-const rows = ${JSON.stringify(rows)};
+const rows = ${serializeSearchVizRows(rows)};
 try {
 ${safeCode}
 if (typeof render === "function") render(rows);

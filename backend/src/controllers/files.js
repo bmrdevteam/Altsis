@@ -398,13 +398,20 @@ export const signBackup = async (req, res) => {
       }
     }
 
-    const keys = req.query.key.split("/");
-    if (keys[1] !== "backup") {
+    const key = String(req.query.key);
+    const keys = key.split("/");
+    if (keys[1] !== "backup" || key.includes("..")) {
       return res.status(400).send({ message: FIELD_INVALID("key") });
+    }
+    if (
+      req.user.auth !== "owner" &&
+      keys[0] !== String(req.user.academyId)
+    ) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
     const { preSignedUrl, expiryDate } = signUrl(
-      req.query.key,
+      key,
       req.query.fileName,
       60
     );

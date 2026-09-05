@@ -116,6 +116,22 @@ const formSupportsAiChatView = (
 const formSupportsApproval = (form: TAltForm | undefined) =>
   !!form?.fields?.some((field) => field.type === "approval");
 
+const SHEET_NON_EDITABLE_FIELD_TYPES = new Set([
+  "multiDate",
+  "multiSelect",
+  "userSelect",
+  "file",
+  "link",
+  "checkbox",
+  "rating",
+  "scale",
+  "counter",
+  "approval",
+  "circulation",
+  "content",
+  "aiChat",
+]);
+
 const readStoredViewMode = (formId: string): TSheetViewMode | null => {
   try {
     const stored = localStorage.getItem(`altSheet_${formId}_viewMode`);
@@ -1134,13 +1150,7 @@ const AltSheetView = ({
     currentValue: string
   ) => {
     if (!canDeleteAnyRow) return;
-    // 복합 타입은 텍스트 입력으로 편집 불가 (데이터 손상 방지)
-    const nonEditableTypes = [
-      "multiDate", "multiSelect", "userSelect", "file", "link",
-      "checkbox", "rating", "scale", "counter", "approval", "content",
-      "aiChat",
-    ];
-    if (nonEditableTypes.includes(field.type)) return;
+    if (SHEET_NON_EDITABLE_FIELD_TYPES.has(field.type)) return;
     setEditingCell({ rowId, fieldId: field._id });
     // date는 표시용 포맷이 아니라 YYYY-MM-DD 원본을 편집
     setEditValue(currentValue || "");
@@ -1552,13 +1562,6 @@ const AltSheetView = ({
     );
   };
 
-  // 문서 뷰: 편집 불가 필드 타입 (기존 handleCellClick과 동일)
-  const nonEditableTypes = [
-    "multiDate", "multiSelect", "userSelect", "file", "link",
-    "checkbox", "rating", "scale", "counter", "approval", "content",
-    "aiChat",
-  ];
-
   // 문서 뷰: 행 수정 가능 여부 (관리자 · 현재 단계 승인자 · 잠금 전 본인 재제출)
   const canEditRowDoc = (row: TAltSheetRow) => {
     if (canDeleteAnyRow) return true;
@@ -1594,7 +1597,7 @@ const AltSheetView = ({
       // 편집 가능한 필드만 추출
       const editableData: Record<string, any> = {};
       for (const field of allVisibleFields) {
-        if (!nonEditableTypes.includes(field.type)) {
+        if (!SHEET_NON_EDITABLE_FIELD_TYPES.has(field.type)) {
           if (
             !canDeleteAnyRow &&
             field.permission === "owner"
@@ -1628,7 +1631,7 @@ const AltSheetView = ({
   ) => {
     const value = isEditing ? docEditData[field._id] : row.data[field._id];
     const canEditField =
-      isEditing && !nonEditableTypes.includes(field.type) &&
+      isEditing && !SHEET_NON_EDITABLE_FIELD_TYPES.has(field.type) &&
       (canDeleteAnyRow || field.permission === "respondent");
 
     // 편집 모드: 입력 필드 렌더링
@@ -2979,23 +2982,8 @@ const AltSheetView = ({
                       ? String(rawValue ?? "")
                       : cellValue;
 
-                  const nonEditableTypes = [
-                    "multiDate",
-                    "multiSelect",
-                    "userSelect",
-                    "file",
-                    "link",
-                    "checkbox",
-                    "rating",
-                    "scale",
-                    "counter",
-                    "approval",
-                    "circulation",
-                    "content",
-                    "aiChat",
-                  ];
                   const canInlineEdit =
-                    canEdit && !nonEditableTypes.includes(field.type);
+                    canEdit && !SHEET_NON_EDITABLE_FIELD_TYPES.has(field.type);
 
                   return (
                     <td

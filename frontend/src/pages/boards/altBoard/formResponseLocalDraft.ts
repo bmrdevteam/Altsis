@@ -8,12 +8,13 @@ export const FORM_RESPONSE_DRAFT_EXPIRE_MS = 7 * 24 * 60 * 60 * 1000;
 export const FORM_RESPONSE_DRAFT_DEBOUNCE_MS = 1000;
 export const FORM_RESPONSE_DRAFT_INTERVAL_MS = 30_000;
 
+/** userKey는 로그인 아이디가 아니라 전역 고유한 currentUser._id이다. */
 export const formResponseDraftStorageKey = (
-  userId: string,
+  userKey: string,
   formId: string,
   rowId?: string | null
 ): string =>
-  `${FORM_RESPONSE_DRAFT_PREFIX}${userId}-${formId}-${rowId || "new"}`;
+  `${FORM_RESPONSE_DRAFT_PREFIX}${userKey}-${formId}-${rowId || "new"}`;
 
 export const readFormResponseDraft = (
   storageKey: string | null | undefined,
@@ -107,13 +108,13 @@ export const persistPreviousDraftBind = (
 
 /** 작성 칸 0에 두는 브라우저 `new` 초안. */
 export const hasLocalComposeDraft = (
-  userId: string | null | undefined,
+  userKey: string | null | undefined,
   formId: string | null | undefined,
   now = Date.now()
 ): boolean => {
-  if (!userId || !formId) return false;
+  if (!userKey || !formId) return false;
   const stored = readFormResponseDraft(
-    formResponseDraftStorageKey(userId, formId, "new"),
+    formResponseDraftStorageKey(userKey, formId, "new"),
     now
   );
   return hasFormResponseDraftContent(stored?.data);

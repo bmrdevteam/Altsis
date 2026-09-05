@@ -33,9 +33,18 @@ const throwHttp = (status, message, code) => {
 
 const sendError = (res, err) => {
   logger.error(err.message);
+  const status =
+    Number.isInteger(err?.status) && err.status >= 400 && err.status < 600
+      ? err.status
+      : 500;
   return res
-    .status(err.status || 500)
-    .send({ message: err.message || "서버 오류가 발생했습니다." });
+    .status(status)
+    .send({
+      message:
+        status >= 500
+          ? "서버 오류가 발생했습니다."
+          : err.message || "요청을 처리할 수 없습니다.",
+    });
 };
 
 /**

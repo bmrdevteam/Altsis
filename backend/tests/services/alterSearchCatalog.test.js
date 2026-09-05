@@ -1,11 +1,13 @@
 import {
   archiveTableName,
+  filterEvaluationForSearch,
   formAnswerColumns,
   formTableName,
   isPiiArchiveLabel,
   canReadArchiveItem,
   mapOneFormSearchRow,
   visibleEvalLabels,
+  visibleFormSearchFields,
   buildEnrollmentQuery,
   formatRegistrationValueHint,
   expandArchiveRows,
@@ -33,13 +35,15 @@ describe("alterSearchCatalog helpers", () => {
       { _id: "f3", label: "안내", type: "content" },
       { _id: "f4", label: "form_title", type: "text" },
       { _id: "f5", label: "컴퓨터", type: "text" },
+      { _id: "f6", label: "첨부", type: "file" },
+      { _id: "f7", label: "결재", type: "approval" },
     ]);
     expect(cols.map((c) => c.name)).toEqual(["컴퓨터", "컴퓨터_2"]);
     expect(cols[0].fieldId).toBe("f1");
     expect(cols[0].comment).toMatch(/신청, 미신청/);
   });
 
-  test("mapOneFormSearchRow fills label columns from field ids", () => {
+  test("mapOneFormSearchRow fills allowed columns without residual hidden data", () => {
     const cols = formAnswerColumns([
       { _id: "comp", label: "컴퓨터", type: "select", options: ["신청"] },
     ]);
@@ -57,14 +61,41 @@ describe("alterSearchCatalog helpers", () => {
     expect(row.컴퓨터).toBe("신청");
     expect(row.form_title).toBe("컴퓨터 신청");
     expect(row.respondent_name).toBe("권시은");
-    expect(row.answers_json).toMatch(/extra/);
+    expect(row.answers_json).toBe("{}");
   });
 
   test("archive table names and PII labels", () => {
     expect(archiveTableName("행동특성")).toBe("archive_행동특성");
     expect(isPiiArchiveLabel("주민등록번호")).toBe(true);
     expect(isPiiArchiveLabel("주소")).toBe(true);
+    expect(isPiiArchiveLabel("휴대폰")).toBe(true);
+    expect(isPiiArchiveLabel("핸드폰")).toBe(true);
+    expect(isPiiArchiveLabel("메일")).toBe(true);
+    expect(isPiiArchiveLabel("phone")).toBe(true);
     expect(isPiiArchiveLabel("종합의견")).toBe(false);
+  });
+
+  test("respondent form search fields exclude private owner fields", () => {
+    const form = {
+      fields: [
+        { _id: "answer", permission: "respondent", type: "text" },
+        { _id: "private", permission: "owner", type: "text" },
+        {
+          _id: "shared",
+          permission: "owner",
+          visibleToRespondent: true,
+          type: "text",
+        },
+      ],
+    };
+    expect(
+      visibleFormSearchFields(
+        form,
+        { altBoardRole: new Map() },
+        { _id: "student", auth: "member" },
+        { role: "student" }
+      ).map((field) => field._id)
+    ).toEqual(["answer", "shared"]);
   });
 
   test("student enrollment query is self-only", () => {
@@ -140,6 +171,39 @@ describe("alterSearchCatalog helpers", () => {
     ).toEqual(["멘토평가", "자기평가"]);
   });
 
+  test("empty evaluation form fails closed for students", () => {
+    const result = filterEvaluationForSearch({
+      evaluation: { 멘토평가: "비공개", 자기평가: "공개처럼 보이는 값" },
+      formEvaluation: [],
+      user: { auth: "member" },
+      registration: { role: "student" },
+      evalColumns: [{ name: "멘토평가" }, { name: "자기평가" }],
+    });
+    expect(result.flat).toEqual({});
+    expect(result.evaluationJson).toEqual({});
+  });
+
+  test("evaluation filtering follows the row season's visibility", () => {
+    const result = filterEvaluationForSearch({
+      evaluation: { 멘토평가: "비공개", 자기평가: "공개" },
+      formEvaluation: [
+        {
+          label: "멘토평가",
+          auth: { view: { teacher: true, student: false } },
+        },
+        {
+          label: "자기평가",
+          auth: { view: { teacher: true, student: true } },
+        },
+      ],
+      user: { auth: "member" },
+      registration: { role: "student" },
+      evalColumns: [{ name: "멘토평가" }, { name: "자기평가" }],
+    });
+    expect(result.flat).toEqual({ 자기평가: "공개" });
+    expect(result.evaluationJson).toEqual({ 자기평가: "공개" });
+  });
+
   test("viewAndEditMyStudents only for homeroom teacher", () => {
     const item = { authTeacher: "viewAndEditMyStudents", authStudent: "view" };
     const teacher = { _id: "t1", auth: "member" };
@@ -169,7 +233,11 @@ describe("alterSearchCatalog helpers", () => {
     };
     const sr = { user: "u1", userId: "kwon", userName: "권시은", grade: "12학년" };
     const rows = expandArchiveRows(item, sr, [
-      { "일자 또는 기간": "2024.03.01", 시간: "7" },
+      {
+        "일자 또는 기간": "2024.03.01",
+        시간: "7",
+        주민등록번호: "000000-0000000",
+      },
       { "일자 또는 기간": "2024.05.01", 시간: "3" },
     ]);
     expect(rows).toHaveLength(2);
@@ -180,6 +248,7 @@ describe("alterSearchCatalog helpers", () => {
     expect(rows[1].entry_index).toBe(2);
     expect(rows.every((r) => r.user_name === "권시은")).toBe(true);
     expect(rows[0]["주민등록번호"]).toBeUndefined();
+    expect(rows[0].entries_json).not.toContain("000000-0000000");
 
     const objItem = {
       dataType: "object",

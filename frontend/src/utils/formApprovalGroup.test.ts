@@ -1,6 +1,7 @@
 import {
   applyApprovalGroup,
   applyCirculationGroup,
+  createApprovalGroupId,
   groupsForFieldKind,
   sanitizeApprovalGroups,
 } from "./formApprovalGroup";
@@ -18,6 +19,14 @@ const group = {
     { label: "교장", user: kim },
   ],
 };
+
+test("createApprovalGroupId returns a unique browser-compatible id", () => {
+  const first = createApprovalGroupId();
+  const second = createApprovalGroupId();
+  expect(first).toBeTruthy();
+  expect(second).toBeTruthy();
+  expect(second).not.toBe(first);
+});
 
 describe("sanitizeApprovalGroups", () => {
   test("keeps label and user, drops members without userId", () => {

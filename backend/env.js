@@ -17,5 +17,9 @@ process.env.DB_URL = process.env.DB_URL || "mongodb://127.0.0.1:27017";
 process.env.s3_accessKeyId = process.env.s3_accessKeyId || "test-access-key";
 process.env.s3_secretAccessKey =
   process.env.s3_secretAccessKey || "test-secret-key";
+process.env.s3_accessKeyId2 = process.env.s3_accessKeyId2 || "test-access-key-2";
+process.env.s3_secretAccessKey2 =
+  process.env.s3_secretAccessKey2 || "test-secret-key-2";
 process.env.s3_region = process.env.s3_region || "ap-northeast-2";
 process.env.s3_bucket = process.env.s3_bucket || "test-bucket";
+process.env.s3_bucket2 = process.env.s3_bucket2 || "test-bucket-2";

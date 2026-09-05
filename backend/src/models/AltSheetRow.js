@@ -57,7 +57,7 @@ const altSheetRowSchema = mongoose.Schema(
     isDraft: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
   },
-  { timestamps: true }
+  { timestamps: true, optimisticConcurrency: true }
 );
 
 altSheetRowSchema.index({ sheet: 1, _respondent: 1 });

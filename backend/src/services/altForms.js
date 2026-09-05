@@ -838,6 +838,85 @@ export const filterAssessmentForViewer = (assessment, canSeeFull) => {
 };
 
 /**
+ * Fields exposed with a row. Non-managers receive their visible form fields plus
+ * workflow fields required to understand approval/circulation state.
+ */
+export const getVisibleRowFields = (
+  form,
+  role = "respondent",
+  canSeeFull = false
+) => {
+  const fields = Array.isArray(form?.fields) ? form.fields : [];
+  if (canSeeFull) return fields;
+  const visibleIds = new Set(
+    getVisibleFields(fields, role).map((field) => String(field._id))
+  );
+  for (const field of fields) {
+    if (field.type === "approval" || field.type === "circulation") {
+      visibleIds.add(String(field._id));
+    }
+  }
+  return fields.filter((field) => visibleIds.has(String(field._id)));
+};
+
+/**
+ * Remove owner-only and unrevealed quiz/assessment values before returning a row.
+ */
+export const filterSheetRowDataForViewer = (
+  form,
+  data,
+  { role = "respondent", canSeeFull = false, now = new Date() } = {}
+) => {
+  const source =
+    data instanceof Map ? Object.fromEntries(data.entries()) : { ...(data || {}) };
+  if (canSeeFull) return source;
+
+  const visibleFieldIds = new Set(
+    getVisibleRowFields(form, role, false).map((field) => String(field._id))
+  );
+  const isQuiz = form?.settings?.quizMode;
+  const isAssessment = form?.settings?.assessmentMode;
+  const isClosed =
+    form?.settings?.closeAt && new Date(form.settings.closeAt) < now;
+  const scoreVisible =
+    isQuiz &&
+    (form.settings?.quizSettings?.scoreReveal === "immediately" ||
+      (form.settings?.quizSettings?.scoreReveal === "afterDeadline" &&
+        isClosed));
+  const answerVisible =
+    isQuiz &&
+    (form.settings?.quizSettings?.answerReveal === "immediately" ||
+      (form.settings?.quizSettings?.answerReveal === "afterDeadline" &&
+        isClosed));
+
+  const filtered = {};
+  for (const [key, value] of Object.entries(source)) {
+    if (key.startsWith("_quiz_")) {
+      if (
+        (key === "_quiz_score" || key === "_quiz_total") &&
+        scoreVisible
+      ) {
+        filtered[key] = value;
+      } else if (key === "_quiz_fieldResults" && answerVisible) {
+        filtered[key] = value;
+      }
+      continue;
+    }
+    if (key === "_assessment") {
+      if (isAssessment) {
+        const masked = filterAssessmentForViewer(value, false);
+        if (masked) filtered[key] = masked;
+      }
+      continue;
+    }
+    if (visibleFieldIds.has(key)) {
+      filtered[key] = value;
+    }
+  }
+  return filtered;
+};
+
+/**
  * 채점 패널에서 byField / final 부분 갱신 후 재계산
  * @param {Object} form
  * @param {Object} currentAssessment

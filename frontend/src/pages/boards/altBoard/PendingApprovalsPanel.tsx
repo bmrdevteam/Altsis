@@ -16,6 +16,7 @@ import FormFileAnswerList from "./FormFileAnswerList";
 import { TFormFileRef } from "./formFilePreview";
 import { formatAiChatCell } from "./formAiChat";
 import { formatReadableValue } from "./formFieldDisplay";
+import { composeApprovalCardTitle } from "./sheetApprovalList";
 
 type FieldMeta = {
   _id: string;
@@ -72,11 +73,14 @@ type Props = {
   unsubmittedCount?: number;
 };
 
+const pendingItemCardTitle = (item: PendingItem) =>
+  composeApprovalCardTitle(item.formTitle, item.rowData, item.fields);
+
 const pendingMatchesKeyword = (item: PendingItem, keyword: string) => {
   const kw = keyword.trim().toLowerCase();
   if (!kw) return true;
   return (
-    (item.formTitle || "").toLowerCase().includes(kw) ||
+    pendingItemCardTitle(item).toLowerCase().includes(kw) ||
     (item.respondentName || "").toLowerCase().includes(kw) ||
     (item.respondentId || "").toLowerCase().includes(kw) ||
     (item.stepLabel || "").toLowerCase().includes(kw) ||
@@ -478,7 +482,9 @@ const PendingApprovalsPanel = ({
                       <Svg type="list_check" width="20px" height="20px" />
                     </div>
                     <div className={style.formCardLeft}>
-                      <div className={style.formCardTitle}>{item.formTitle}</div>
+                      <div className={style.formCardTitle}>
+                        {pendingItemCardTitle(item)}
+                      </div>
                       <div className={style.formCardMeta}>
                         <span
                           className={`${style.formCardBadge} ${style.badgeApproval}`}
@@ -535,7 +541,9 @@ const PendingApprovalsPanel = ({
                       <Svg type="list_check" width="20px" height="20px" />
                     </div>
                     <div className={style.formCardLeft}>
-                      <div className={style.formCardTitle}>{item.formTitle}</div>
+                      <div className={style.formCardTitle}>
+                        {pendingItemCardTitle(item)}
+                      </div>
                       <div className={style.formCardMeta}>
                         <span
                           className={`${style.formCardBadge} ${style.badgeOptional}`}
@@ -588,7 +596,7 @@ const PendingApprovalsPanel = ({
 
       {active && (
         <Popup
-          title={`${active.formTitle} · ${
+          title={`${pendingItemCardTitle(active)} · ${
             isReadonly
               ? "승인 진행"
               : active.stepLabel || "승인"

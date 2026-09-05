@@ -45,7 +45,7 @@ const UrlContextSync = () => {
         const schoolId = homeSchoolId(currentUser, currentSchool);
         if (schoolId) {
           navigate(
-            `/${currentUser.academyId}/${schoolId}${location.pathname}${location.search}`,
+            `/${currentUser.academyId}/${schoolId}${location.pathname}${location.search}${location.hash}`,
             { replace: true }
           );
           return;
@@ -78,10 +78,24 @@ const UrlContextSync = () => {
     if (alreadyOnSchool) return;
 
     changingRef.current = true;
-    changeSchool(matchedSchool.school).finally(() => {
-      changingRef.current = false;
-    });
-  }, [urlAcademyId, urlSchoolId, currentUser, currentSchool]);
+    void changeSchool(matchedSchool.school)
+      .catch(() => {
+        alert("학교 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
+      })
+      .finally(() => {
+        changingRef.current = false;
+      });
+  }, [
+    urlAcademyId,
+    urlSchoolId,
+    currentUser,
+    currentSchool,
+    changeSchool,
+    navigate,
+    location.pathname,
+    location.search,
+    location.hash,
+  ]);
 
   return <Outlet />;
 };
