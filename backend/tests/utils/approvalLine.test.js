@@ -4,6 +4,7 @@ import {
   validateCirculationSubmit,
   buildCirculationOnSubmit,
   collectStoredCirculatees,
+  recipientsForFinalApprovalResult,
   buildApprovalAccessOr,
 } from "../../src/utils/approvalLine.js";
 
@@ -267,6 +268,23 @@ describe("collectStoredCirculatees and access or", () => {
     ]);
   });
 
+  test("reads circulation from Map-like row data", () => {
+    const form = {
+      fields: [
+        { _id: "appr1", type: "approval" },
+        { _id: "circ1", type: "circulation" },
+      ],
+    };
+    const rowData = new Map([
+      ["appr1", { circulation: [approver] }],
+      ["circ1", [approverB]],
+    ]);
+    expect(collectStoredCirculatees(form, rowData)).toEqual([
+      approver,
+      approverB,
+    ]);
+  });
+
   test("buildApprovalAccessOr includes circulation field userId", () => {
     const form = {
       fields: [
@@ -284,3 +302,33 @@ describe("collectStoredCirculatees and access or", () => {
     );
   });
 });
+
+describe("recipientsForFinalApprovalResult", () => {
+  const respondent = {
+    user: "u0",
+    userId: "lee",
+    userName: "이제출",
+  };
+
+  test("includes submitter and circulatees, skips actor and duplicates", () => {
+    expect(
+      recipientsForFinalApprovalResult({
+        respondent,
+        circulatees: [approver, respondent, approverB, { userId: "no-oid" }],
+        excludeUserIds: ["jo"],
+      })
+    ).toEqual([respondent, approverB]);
+  });
+
+  test("returns empty when everyone is excluded or invalid", () => {
+    expect(
+      recipientsForFinalApprovalResult({
+        respondent,
+        circulatees: [approver],
+        excludeUserIds: ["lee", "jo"],
+      })
+    ).toEqual([]);
+    expect(recipientsForFinalApprovalResult({})).toEqual([]);
+  });
+});
+

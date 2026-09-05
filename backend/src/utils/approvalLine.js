@@ -192,12 +192,21 @@ export function validateCirculationSubmit(field, submitted) {
   return null;
 }
 
+function rowFieldValue(rowData, fid) {
+  if (!rowData || !fid) return undefined;
+  if (typeof rowData.get === "function") {
+    const fromMap = rowData.get(fid);
+    if (fromMap !== undefined) return fromMap;
+  }
+  return rowData[fid];
+}
+
 /** Snapshot lists on the stored row (new fields + nested approval). */
 export function collectStoredCirculatees(form, rowData) {
   const out = [];
   for (const field of form?.fields || []) {
     const fid = field._id != null ? String(field._id) : "";
-    const value = rowData?.[fid];
+    const value = rowFieldValue(rowData, fid);
     if (field.type === "approval" && Array.isArray(value?.circulation)) {
       out.push(...value.circulation);
     }
@@ -207,6 +216,36 @@ export function collectStoredCirculatees(form, rowData) {
     }
   }
   return uniqueApproverList(out);
+}
+
+/**
+ * Final approve/reject recipients: submitter + circulatees.
+ * Drops missing user ObjectId, excluded ids, and duplicates.
+ */
+export function recipientsForFinalApprovalResult({
+  respondent,
+  circulatees,
+  excludeUserIds = [],
+} = {}) {
+  const skip = new Set(
+    (excludeUserIds || []).filter(Boolean).map((id) => String(id))
+  );
+  const out = [];
+  const seen = new Set();
+  const push = (u) => {
+    if (!u?.user || !u.userId) return;
+    const id = String(u.userId);
+    if (skip.has(id) || seen.has(id)) return;
+    seen.add(id);
+    out.push({
+      user: u.user,
+      userId: u.userId,
+      userName: u.userName || "",
+    });
+  };
+  push(respondent);
+  for (const u of circulatees || []) push(u);
+  return out;
 }
 
 export function isStoredCirculatee(form, rowData, userId) {
