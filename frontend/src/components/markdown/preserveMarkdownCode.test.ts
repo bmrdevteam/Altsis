@@ -99,4 +99,30 @@ describe("preprocessMarkdownForViewer", () => {
     expect(out).toContain("```html-app");
     expect(out).toContain("<div id='app'>ok</div>");
   });
+
+  test("drops raw iframe srcdoc and non-YouTube frames", () => {
+    const out = preprocessMarkdownForViewer(
+      [
+        '<iframe srcdoc="<script>parent.fetch(&quot;/api/users&quot;)</script>"></iframe>',
+        '<iframe src="/admin"></iframe>',
+      ].join("\n")
+    );
+    expect(out).not.toContain("<iframe");
+    expect(out).not.toContain("srcdoc");
+  });
+
+  test("keeps trusted YouTube iframe with a forced sandbox", () => {
+    const out = preprocessMarkdownForViewer(
+      '<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ"></iframe>'
+    );
+    expect(out).toContain(
+      'src="https://www.youtube.com/embed/dQw4w9WgXcQ"'
+    );
+    expect(out).toContain(
+      'sandbox="allow-scripts allow-same-origin allow-presentation"'
+    );
+    expect(out).toContain(
+      'referrerpolicy="strict-origin-when-cross-origin"'
+    );
+  });
 });

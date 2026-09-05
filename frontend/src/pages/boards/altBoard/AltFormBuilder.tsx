@@ -64,7 +64,8 @@ import type { TApprovalCirculationMode } from "utils/approvalLine";
 import ApprovalCirculationPicker, {
   ApprovalUserSearchInput,
   CirculationUserChips,
-  uniqueApprovalCandidates,
+  approvalCandidatesForBoard,
+  circulationCandidatesForBoard,
 } from "./ApprovalCirculationPicker";
 import SettingsHint from "./SettingsHint";
 
@@ -355,7 +356,9 @@ const AltFormBuilder = ({
   const [writerGroups, setWriterGroups] = useState(emptyFormAccess().groups);
   const [memberIds, setMemberIds] = useState<string[]>([]);
   const [writerIds, setWriterIds] = useState<string[]>([]);
-  const [boardMembers, setBoardMembers] = useState<TMemberUser[]>([]);
+  const [boardMembers, setBoardMembers] = useState<TMemberUser[]>(
+    () => board.circulationCandidates || []
+  );
   const [previewFile, setPreviewFile] = useState<TFormFileRef | null>(null);
   const [uploadingContentField, setUploadingContentField] = useState<
     string | null
@@ -604,6 +607,10 @@ const AltFormBuilder = ({
   }, [getSnapshot, isLoading]);
 
   useEffect(() => {
+    if (board.circulationCandidates) {
+      setBoardMembers(board.circulationCandidates);
+      return;
+    }
     BoardAPI.RBoardMemberList({
       params: { _id: board._id },
       query: currentSeason?._id ? { season: currentSeason._id } : undefined,
@@ -611,7 +618,7 @@ const AltFormBuilder = ({
       .then(({ users }) => setBoardMembers(users || []))
       .catch(() => setBoardMembers([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- BoardAPI identity changes
-  }, [board._id, currentSeason?._id]);
+  }, [board._id, board.circulationCandidates, currentSeason?._id]);
 
   useEffect(() => {
     if (!restrictMembers) return;
@@ -2153,13 +2160,7 @@ const AltFormBuilder = ({
         const steps = field.approvalLine?.steps?.length
           ? field.approvalLine.steps
           : [{ order: 0, label: "1차 승인", mode: "pick" as const }];
-        const boardAdmins = (
-          board as { admins?: { users?: TMemberUser[] } }
-        ).admins?.users;
-        const candidates = uniqueApprovalCandidates(
-          board.writers?.users,
-          boardAdmins
-        );
+        const candidates = approvalCandidatesForBoard(board, boardMembers);
 
         const setSteps = (
           next: {
@@ -2334,13 +2335,9 @@ const AltFormBuilder = ({
       }
       case "circulation": {
         const circulation = getCirculationConfig(field);
-        const boardAdmins = (
-          board as { admins?: { users?: TMemberUser[] } }
-        ).admins?.users;
-        const circulationCandidates = uniqueApprovalCandidates(
-          board.members?.users,
-          board.writers?.users,
-          boardAdmins
+        const circulationCandidates = circulationCandidatesForBoard(
+          board,
+          boardMembers
         );
         return (
           <div
@@ -3950,11 +3947,13 @@ const AltFormBuilder = ({
                 <div className={style.settingsSectionBody}>
                   <ApprovalGroupSettings
                     groups={approvalGroups}
-                    candidates={uniqueApprovalCandidates(
-                      board.members?.users,
-                      board.writers?.users,
-                      (board as { admins?: { users?: TMemberUser[] } }).admins
-                        ?.users
+                    approvalCandidates={approvalCandidatesForBoard(
+                      board,
+                      boardMembers
+                    )}
+                    circulationCandidates={circulationCandidatesForBoard(
+                      board,
+                      boardMembers
                     )}
                     onChange={setApprovalGroups}
                   />

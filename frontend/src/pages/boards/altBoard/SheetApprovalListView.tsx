@@ -468,16 +468,23 @@ const SheetApprovalView = ({
                   disabled={busy}
                   aria-label="일괄 결재 의견"
                 />
-                <Button
-                  type="ghost"
-                  disabled={busy}
-                  onClick={() => handleBulk("rejected")}
-                >
-                  일괄 반려
-                </Button>
-                <Button disabled={busy} onClick={() => handleBulk("approved")}>
-                  일괄 승인
-                </Button>
+                <div className={style.sheetApprovalBulkActions}>
+                  <Button
+                    type="ghost"
+                    className={`${style.sheetApprovalBulkButton} ${style.sheetApprovalBulkRejectButton}`}
+                    disabled={busy}
+                    onClick={() => handleBulk("rejected")}
+                  >
+                    일괄 반려
+                  </Button>
+                  <Button
+                    className={style.sheetApprovalBulkButton}
+                    disabled={busy}
+                    onClick={() => handleBulk("approved")}
+                  >
+                    일괄 승인
+                  </Button>
+                </div>
               </>
             )}
           </div>

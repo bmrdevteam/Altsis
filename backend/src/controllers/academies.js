@@ -63,7 +63,7 @@ import {
 } from "../services/entitlement.js";
 import { refreshAcademyStorageUsage } from "../services/academyStorage.js";
 
-const canManageAcademyKeys = (req, academyId) => {
+const canManageAcademySettings = (req, academyId) => {
   if (req.user?.auth === "owner") return true;
   return req.user?.auth === "admin" && req.user.academyId === academyId;
 };
@@ -619,6 +619,10 @@ const smtpPublicView = (smtp) => {
  */
 export const getEmailSmtp = async (req, res) => {
   try {
+    if (!canManageAcademySettings(req, req.params.academyId)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
     const academy = await Academy.findOne({
       academyId: req.params.academyId,
     }).select("+emailSmtp");
@@ -651,6 +655,10 @@ const parseSmtpPort = (value) => {
  */
 export const updateEmailSmtp = async (req, res) => {
   try {
+    if (!canManageAcademySettings(req, req.params.academyId)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
     const academy = await Academy.findOne({
       academyId: req.params.academyId,
     }).select("+emailSmtp");
@@ -740,6 +748,10 @@ export const updateEmailSmtp = async (req, res) => {
  */
 export const updateEmailNotifyTypes = async (req, res) => {
   try {
+    if (!canManageAcademySettings(req, req.params.academyId)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
     const academy = await Academy.findOne({
       academyId: req.params.academyId,
     });
@@ -775,6 +787,10 @@ export const updateEmailNotifyTypes = async (req, res) => {
  */
 export const testEmailSmtp = async (req, res) => {
   try {
+    if (!canManageAcademySettings(req, req.params.academyId)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
     let to = resolveRecipientEmail(req.user);
     if (!to && req.user?._id) {
       const academyUser = await User(req.params.academyId)
@@ -930,7 +946,7 @@ const syncModelsForAcademy = async (academy, apiKey) => {
 
 export const updateAiApiKey = async (req, res) => {
   try {
-    if (!canManageAcademyKeys(req, req.params.academyId)) {
+    if (!canManageAcademySettings(req, req.params.academyId)) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
@@ -1021,7 +1037,7 @@ export const updateAiApiKey = async (req, res) => {
  */
 export const updateAiModel = async (req, res) => {
   try {
-    if (!canManageAcademyKeys(req, req.params.academyId)) {
+    if (!canManageAcademySettings(req, req.params.academyId)) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
@@ -1225,7 +1241,7 @@ export const updatePlans = async (req, res) => {
 
 export const checkAiApiKey = async (req, res) => {
   try {
-    if (!canManageAcademyKeys(req, req.params.academyId)) {
+    if (!canManageAcademySettings(req, req.params.academyId)) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
@@ -1330,6 +1346,10 @@ const Model = (title, academyId) => {
  */
 export const createBackup = async (req, res) => {
   try {
+    if (!canManageAcademySettings(req, req.params.academyId)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
     if (!("models" in req.body)) {
       return res.status(400).send({ message: FIELD_REQUIRED("models") });
     }
@@ -1439,6 +1459,10 @@ export const createBackup = async (req, res) => {
  */
 export const restoreBackup = async (req, res) => {
   try {
+    if (!canManageAcademySettings(req, req.params.academyId)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
     for (let field of ["model", "documents"]) {
       if (!(field in req.body)) {
         return res.status(400).send({ message: FIELD_REQUIRED(field) });
@@ -1448,18 +1472,21 @@ export const restoreBackup = async (req, res) => {
       return res.status(400).send({ message: FIELD_INVALID("documents") });
     }
 
-    await Model(req.body.model, req.params.academyId).deleteMany({});
+    const RestoreModel = Model(req.body.model, req.params.academyId);
+    if (!RestoreModel) {
+      return res.status(400).send({ message: FIELD_INVALID("model") });
+    }
+
+    await RestoreModel.deleteMany({});
     if (req.body.model === "archives" || req.body.model === "enrollments") {
       await Promise.all(
         req.body.documents.map((_doc) => {
-          const doc = new (Model(req.body.model, req.params.academyId))(_doc);
+          const doc = new RestoreModel(_doc);
           return doc.save();
         })
       );
     } else {
-      await Model(req.body.model, req.params.academyId).insertMany(
-        req.body.documents
-      );
+      await RestoreModel.insertMany(req.body.documents);
     }
 
     return res.status(200).send({});
@@ -1531,6 +1558,10 @@ export const restoreBackup = async (req, res) => {
  */
 export const findBackup = async (req, res) => {
   try {
+    if (!canManageAcademySettings(req, req.params.academyId)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
     /* RAcademyBackupList */
     if (!("title" in req.query)) {
       const backupList = [];
@@ -1547,7 +1578,7 @@ export const findBackup = async (req, res) => {
           })
           .promise();
         data.push(..._data.CommonPrefixes);
-        token = data.NextContinuationToken;
+        token = _data.NextContinuationToken;
       } while (token);
 
       for (let content of data) {
@@ -1611,6 +1642,10 @@ export const findBackup = async (req, res) => {
  */
 export const removeBackup = async (req, res) => {
   try {
+    if (!canManageAcademySettings(req, req.params.academyId)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
     if (!("title" in req.query)) {
       return res.status(400).send({ message: FIELD_REQUIRED("title") });
     }
@@ -1687,6 +1722,10 @@ export const removeBackup = async (req, res) => {
  */
 export const findDocuments = async (req, res) => {
   try {
+    if (!canManageAcademySettings(req, req.params.academyId)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
     const _Model = Model(req.params.docType, req.params.academyId);
     if (!_Model) {
       return res.status(400).send({ message: FIELD_INVALID("docType") });

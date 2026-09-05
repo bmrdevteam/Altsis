@@ -41,8 +41,51 @@ export type TApprovalListItem = {
 
 const TITLE_FIELD_TYPES = new Set(["text", "textarea", "select"]);
 
+type TitleFieldLike = {
+  _id: string;
+  label?: string;
+  type: string;
+};
+
 const fieldTextValue = (value: unknown): string =>
   formatReadableValue(value).replace(/\s+/g, " ").trim();
+
+/** 결재 보기 문서 제목: 「제목」칸 → 첫 단답/장문/선택. 없으면 빈 문자열. */
+export function approvalRowFieldTitle(
+  data: Record<string, unknown> | undefined,
+  fields: TitleFieldLike[] | undefined
+): string {
+  const candidates = (fields || []).filter(
+    (f) =>
+      f.type !== "approval" &&
+      f.type !== "circulation" &&
+      f.type !== "content"
+  );
+  const titled = candidates.find((f) => (f.label || "").trim() === "제목");
+  if (titled) {
+    const text = fieldTextValue(data?.[String(titled._id)]);
+    if (text) return text;
+  }
+  const firstText = candidates.find((f) => TITLE_FIELD_TYPES.has(f.type));
+  if (firstText) {
+    const text = fieldTextValue(data?.[String(firstText._id)]);
+    if (text) return text;
+  }
+  return "";
+}
+
+/** 활동 양식 제목 뒤에 결재 보기와 같은 문서 제목을 붙인다. */
+export function composeApprovalCardTitle(
+  formTitle: string | undefined,
+  data: Record<string, unknown> | undefined,
+  fields: TitleFieldLike[] | undefined
+): string {
+  const form = (formTitle || "").trim();
+  const doc = approvalRowFieldTitle(data, fields);
+  if (!doc || doc === form) return form;
+  if (!form) return doc;
+  return `${form} · ${doc}`;
+}
 
 export function pickApprovalField(
   fields: TAltFormField[] | undefined,
@@ -64,23 +107,12 @@ export function approvalRowTitle(
   row: TAltSheetRow,
   fields: TAltFormField[] | undefined
 ): string {
-  const candidates = (fields || []).filter(
-    (f) =>
-      f.type !== "approval" &&
-      f.type !== "circulation" &&
-      f.type !== "content"
+  return (
+    approvalRowFieldTitle(row.data, fields) ||
+    row._respondentName ||
+    row._respondentId ||
+    "제목 없음"
   );
-  const titled = candidates.find((f) => (f.label || "").trim() === "제목");
-  if (titled) {
-    const text = fieldTextValue(row.data?.[titled._id]);
-    if (text) return text;
-  }
-  const firstText = candidates.find((f) => TITLE_FIELD_TYPES.has(f.type));
-  if (firstText) {
-    const text = fieldTextValue(row.data?.[firstText._id]);
-    if (text) return text;
-  }
-  return row._respondentName || row._respondentId || "제목 없음";
 }
 
 export function waitingSinceIso(

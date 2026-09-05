@@ -5,6 +5,7 @@ import {
   createSearchVizSnapshotToken,
   isPngDataUrl,
   readSearchVizSnapshotMessage,
+  serializeSearchVizRows,
   waitForSearchVizSnapshot,
 } from "./searchVizSnapshot";
 
@@ -70,6 +71,14 @@ describe("searchVizSnapshot", () => {
     expect(() => buildSearchVizSnapshotTailScript("not-hex!")).toThrow(
       "invalid snapshot token"
     );
+  });
+
+  test("serializeSearchVizRows cannot close the inline script", () => {
+    const serialized = serializeSearchVizRows([
+      { value: "</script><img src=x onerror=alert(1)>" },
+    ]);
+    expect(serialized).not.toContain("</script>");
+    expect(serialized).toContain("\\u003c/script>");
   });
 
   test("waitForSearchVizSnapshot resolves when ready or after timeout", async () => {

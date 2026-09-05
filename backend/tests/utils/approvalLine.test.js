@@ -58,6 +58,14 @@ describe("approvalLine submit", () => {
     );
   });
 
+  test("fixed approver removed from the board is rejected", () => {
+    expect(
+      validateApprovalSubmit(fixedField, undefined, {
+        approvalCandidates: new Set(["kim"]),
+      })
+    ).toBe("승인: 현재 보드에 없는 승인자가 설정되어 있습니다.");
+  });
+
   test("required pick line with no approver is rejected", () => {
     const field = {
       label: "승인",
@@ -120,6 +128,50 @@ describe("approvalLine submit", () => {
     expect(built.steps[1].status).toBe("waiting");
     expect(built.steps[1].approver).toEqual(approverB);
     expect(built.currentApproverUserId).toBe("jo");
+  });
+
+  test("normal pick line rejects users outside server candidates", () => {
+    const field = {
+      label: "승인",
+      required: true,
+      approvalLine: {
+        steps: [{ order: 0, label: "1차 승인", mode: "pick" }],
+      },
+    };
+    const submitted = {
+      steps: [{ mode: "pick", approver }],
+    };
+    expect(
+      validateApprovalSubmit(field, submitted, {
+        approvalCandidates: new Set(["kim"]),
+      })
+    ).toBe("승인: 지정할 수 없는 승인자가 있습니다.");
+  });
+
+  test("server candidate map canonicalizes submitted approver identity", () => {
+    const field = {
+      label: "승인",
+      required: true,
+      approvalLine: {
+        steps: [{ order: 0, label: "1차 승인", mode: "pick" }],
+      },
+    };
+    const canonical = { user: "real-u1", userId: "jo", userName: "조은길" };
+    const submitted = {
+      steps: [
+        {
+          mode: "pick",
+          approver: { user: "forged", userId: "jo", userName: "위조 이름" },
+        },
+      ],
+    };
+    const options = {
+      approvalCandidates: new Map([["jo", canonical]]),
+    };
+    expect(validateApprovalSubmit(field, submitted, options)).toBeNull();
+    expect(buildApprovalOnSubmit(field, submitted, options).steps[0].approver).toEqual(
+      canonical
+    );
   });
 
   test("fixed step remains when pick steps are empty", () => {
@@ -189,6 +241,33 @@ describe("approvalLine submit", () => {
       circulation: [approver, { ...approver, userName: "다른표기" }, approverB],
     });
     expect(built.circulation).toEqual([approver, approverB]);
+  });
+
+  test("nested pick circulation rejects non-members and canonicalizes members", () => {
+    const field = {
+      label: "승인",
+      required: false,
+      approvalLine: {
+        steps: [{ order: 0, label: "1차 승인", mode: "pick" }],
+        circulation: { mode: "pick", users: [] },
+      },
+    };
+    const submitted = {
+      circulation: [{ user: "forged", userId: "kim", userName: "위조 이름" }],
+    };
+    expect(
+      validateApprovalSubmit(field, submitted, {
+        circulationCandidates: new Set(["jo"]),
+      })
+    ).toBe("승인: 지정할 수 없는 회람자가 있습니다.");
+
+    const options = {
+      circulationCandidates: new Map([["kim", approverB]]),
+    };
+    expect(validateApprovalSubmit(field, submitted, options)).toBeNull();
+    expect(buildApprovalOnSubmit(field, submitted, options).circulation).toEqual([
+      approverB,
+    ]);
   });
 
   test("group line replaces form fixed steps and keeps labels", () => {
@@ -301,6 +380,18 @@ describe("circulation field submit", () => {
     ).toEqual([approver, approverB]);
   });
 
+  test("fixed circulation rejects users removed from the board", () => {
+    const field = {
+      ...circField,
+      circulation: { mode: "fixed", users: [approver] },
+    };
+    expect(
+      validateCirculationSubmit(field, undefined, {
+        candidates: new Set(["kim"]),
+      })
+    ).toBe("회람: 현재 보드에 없는 회람자가 설정되어 있습니다.");
+  });
+
   test("required pick with no users is rejected", () => {
     expect(
       validateCirculationSubmit({ ...circField, required: true }, [])
@@ -314,6 +405,21 @@ describe("circulation field submit", () => {
         circulation: { mode: "fixed", users: [] },
       })
     ).toBe("회람: 고정 회람자가 설정되지 않았습니다.");
+  });
+
+  test("pick rejects non-members and uses server-owned identity", () => {
+    expect(
+      validateCirculationSubmit(circField, [approver], {
+        candidates: new Set(["kim"]),
+      })
+    ).toBe("회람: 지정할 수 없는 회람자가 있습니다.");
+
+    const forged = { user: "forged", userId: "kim", userName: "위조 이름" };
+    const options = { candidates: new Map([["kim", approverB]]) };
+    expect(validateCirculationSubmit(circField, [forged], options)).toBeNull();
+    expect(buildCirculationOnSubmit(circField, [forged], options)).toEqual([
+      approverB,
+    ]);
   });
 });
 

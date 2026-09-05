@@ -105,6 +105,49 @@ function pickApproverFromSubmit(def, lineIndex, lineSteps, submitted) {
   return null;
 }
 
+function normalizeApprover(user) {
+  if (!user?.userId) return null;
+  return {
+    user: user.user,
+    userId: String(user.userId),
+    userName: user.userName || "",
+  };
+}
+
+/**
+ * Resolve a submitted user against a server-owned candidate collection.
+ * Map values replace client identity fields; Set values only validate legacy callers.
+ */
+function resolveCandidate(user, candidates) {
+  const normalized = normalizeApprover(user);
+  if (!normalized) return null;
+  if (!candidates) return normalized;
+  if (candidates instanceof Map) {
+    return normalizeApprover(candidates.get(normalized.userId));
+  }
+  return candidates.has?.(normalized.userId) ? normalized : null;
+}
+
+function resolveCandidateList(users, candidates) {
+  const submitted = Array.isArray(users) ? users : [];
+  const resolved = [];
+  let hasInvalid = false;
+  for (const user of submitted.slice(0, MAX_GROUP_MEMBERS)) {
+    if (!user?.userId) continue;
+    const candidate = resolveCandidate(user, candidates);
+    if (!candidate) {
+      hasInvalid = true;
+      continue;
+    }
+    resolved.push(candidate);
+  }
+  return {
+    users: uniqueApproverList(resolved),
+    hasInvalid,
+    tooMany: submitted.length > MAX_GROUP_MEMBERS,
+  };
+}
+
 /**
  * Dedupe by userId. Drops entries without userId.
  * @param {any[]} users
@@ -114,26 +157,16 @@ export function uniqueApproverList(users) {
   const seen = new Set();
   const out = [];
   for (const u of users || []) {
-    if (!u?.userId || seen.has(u.userId)) continue;
-    seen.add(u.userId);
+    const normalized = normalizeApprover(u);
+    if (!normalized || seen.has(normalized.userId)) continue;
+    seen.add(normalized.userId);
     out.push({
-      user: u.user,
-      userId: u.userId,
-      userName: u.userName || "",
+      user: normalized.user,
+      userId: normalized.userId,
+      userName: normalized.userName,
     });
   }
   return out;
-}
-
-export function getApprovalCirculation(field) {
-  const c = field?.approvalLine?.circulation;
-  const users = c?.users;
-  const mode =
-    c?.mode === "fixed" ? "fixed" : c?.mode === "pick" ? "pick" : "off";
-  return {
-    mode,
-    users: Array.isArray(users) ? users.filter((u) => !!u?.userId) : [],
-  };
 }
 
 export function getCirculationConfig(field) {
@@ -153,24 +186,24 @@ export function getCirculationConfig(field) {
  * @param {object} field
  * @param {any} submitted
  */
-export function resolveCirculation(field, submitted) {
+export function resolveCirculation(field, submitted, candidates) {
   const circ = field?.approvalLine?.circulation;
   if (circ?.mode === "fixed") {
-    return uniqueApproverList(circ?.users);
+    return resolveCandidateList(circ?.users, candidates).users;
   }
   if (circ?.mode === "pick") {
-    return uniqueApproverList(submitted?.circulation);
+    return resolveCandidateList(submitted?.circulation, candidates).users;
   }
   return [];
 }
 
-export function buildCirculationOnSubmit(field, submitted) {
+export function buildCirculationOnSubmit(field, submitted, options = {}) {
   const cfg = getCirculationConfig(field);
   if (cfg.mode === "fixed") {
-    return uniqueApproverList(cfg.users);
+    return resolveCandidateList(cfg.users, options.candidates).users;
   }
   if (cfg.mode === "pick") {
-    return uniqueApproverList(Array.isArray(submitted) ? submitted : []);
+    return resolveCandidateList(submitted, options.candidates).users;
   }
   return [];
 }
@@ -178,14 +211,26 @@ export function buildCirculationOnSubmit(field, submitted) {
 /**
  * @returns {string|null} error message
  */
-export function validateCirculationSubmit(field, submitted) {
+export function validateCirculationSubmit(field, submitted, options = {}) {
   const cfg = getCirculationConfig(field);
   if (cfg.mode === "fixed" && !cfg.users.some((u) => u?.userId)) {
     return `${field.label || "회람"}: 고정 회람자가 설정되지 않았습니다.`;
   }
-  if (cfg.mode === "pick" && field.required) {
-    const list = uniqueApproverList(Array.isArray(submitted) ? submitted : []);
-    if (list.length === 0) {
+  if (cfg.mode === "fixed") {
+    const resolved = resolveCandidateList(cfg.users, options.candidates);
+    if (resolved.hasInvalid) {
+      return `${field.label || "회람"}: 현재 보드에 없는 회람자가 설정되어 있습니다.`;
+    }
+  }
+  if (cfg.mode === "pick") {
+    const resolved = resolveCandidateList(submitted, options.candidates);
+    if (resolved.tooMany) {
+      return `${field.label || "회람"}: 회람자는 ${MAX_GROUP_MEMBERS}명까지 지정할 수 있습니다.`;
+    }
+    if (resolved.hasInvalid) {
+      return `${field.label || "회람"}: 지정할 수 없는 회람자가 있습니다.`;
+    }
+    if (field.required && resolved.users.length === 0) {
       return `${field.label || "회람"}: 회람자를 한 명 이상 선택해주세요.`;
     }
   }
@@ -371,18 +416,13 @@ function buildGroupSourcedSteps(submitted, options = {}) {
   const raw = Array.isArray(submitted?.steps) ? submitted.steps : [];
   if (raw.length > MAX_GROUP_MEMBERS) return { error: "too_many" };
   if (raw.some((s) => s?.mode === "fixed")) return { error: "not_pick" };
-  const candidateIds = options.candidateIds;
+  const candidates = options.approvalCandidates || options.candidateIds;
   const steps = [];
   for (let i = 0; i < raw.length; i += 1) {
     const s = raw[i];
-    const approver = s?.approver?.userId
-      ? {
-          user: s.approver.user,
-          userId: s.approver.userId,
-          userName: s.approver.userName || "",
-        }
-      : null;
-    if (approver?.userId && candidateIds && !candidateIds.has(String(approver.userId))) {
+    const submittedApprover = normalizeApprover(s?.approver);
+    const approver = resolveCandidate(submittedApprover, candidates);
+    if (submittedApprover && !approver) {
       return { error: "not_candidate" };
     }
     steps.push({
@@ -405,10 +445,19 @@ function buildGroupSourcedSteps(submitted, options = {}) {
  * form has approvalGroups.
  * @param {object} field
  * @param {any} submitted - client payload (v1 or partial v2)
- * @param {{ hasApprovalGroups?: boolean, candidateIds?: Set<string> }} [options]
+ * @param {{
+ *   hasApprovalGroups?: boolean,
+ *   approvalCandidates?: Map<string, object>|Set<string>,
+ *   circulationCandidates?: Map<string, object>|Set<string>,
+ *   candidateIds?: Set<string>
+ * }} [options]
  */
 export function buildApprovalOnSubmit(field, submitted, options = {}) {
-  const circulation = resolveCirculation(field, submitted);
+  const circulation = resolveCirculation(
+    field,
+    submitted,
+    options.circulationCandidates
+  );
   if (isGroupSourcedLine(submitted, options)) {
     const built = buildGroupSourcedSteps(submitted, options);
     if (built.error) {
@@ -418,9 +467,11 @@ export function buildApprovalOnSubmit(field, submitted, options = {}) {
   }
 
   const lineSteps = getApprovalLineSteps(field);
+  const candidates = options.approvalCandidates || options.candidateIds;
   const steps = lineSteps
     .map((def, i) => {
-      const approver = pickApproverFromSubmit(def, i, lineSteps, submitted);
+      const picked = pickApproverFromSubmit(def, i, lineSteps, submitted);
+      const approver = resolveCandidate(picked, candidates);
       return {
         order: def.order,
         label: def.label,
@@ -442,6 +493,27 @@ export function buildApprovalOnSubmit(field, submitted, options = {}) {
  * @returns {string|null} error message
  */
 export function validateApprovalSubmit(field, submitted, options = {}) {
+  const nestedCirculation = field?.approvalLine?.circulation;
+  if (
+    nestedCirculation?.mode === "fixed" ||
+    nestedCirculation?.mode === "pick"
+  ) {
+    const resolved = resolveCandidateList(
+      nestedCirculation.mode === "fixed"
+        ? nestedCirculation.users
+        : submitted?.circulation,
+      options.circulationCandidates
+    );
+    if (resolved.tooMany) {
+      return `${field.label || "승인"}: 회람자는 ${MAX_GROUP_MEMBERS}명까지 지정할 수 있습니다.`;
+    }
+    if (resolved.hasInvalid) {
+      return nestedCirculation.mode === "fixed"
+        ? `${field.label || "승인"}: 현재 보드에 없는 회람자가 설정되어 있습니다.`
+        : `${field.label || "승인"}: 지정할 수 없는 회람자가 있습니다.`;
+    }
+  }
+
   if (isGroupSourcedLine(submitted, options)) {
     const builtGroup = buildGroupSourcedSteps(submitted, options);
     if (builtGroup.error === "too_many" || builtGroup.error === "not_pick") {
@@ -460,9 +532,23 @@ export function validateApprovalSubmit(field, submitted, options = {}) {
   }
 
   const lineSteps = getApprovalLineSteps(field);
-  for (const s of lineSteps) {
+  const candidates = options.approvalCandidates || options.candidateIds;
+  for (let i = 0; i < lineSteps.length; i += 1) {
+    const s = lineSteps[i];
     if (s.mode === "fixed" && !s.approver?.userId) {
       return `${field.label || "승인"}: 고정 승인자가 설정되지 않았습니다.`;
+    }
+    if (
+      s.mode === "fixed" &&
+      !resolveCandidate(s.approver, candidates)
+    ) {
+      return `${field.label || "승인"}: 현재 보드에 없는 승인자가 설정되어 있습니다.`;
+    }
+    if (s.mode === "pick") {
+      const picked = pickApproverFromSubmit(s, i, lineSteps, submitted);
+      if (picked?.userId && !resolveCandidate(picked, candidates)) {
+        return `${field.label || "승인"}: 지정할 수 없는 승인자가 있습니다.`;
+      }
     }
   }
 
@@ -643,23 +729,4 @@ export function approvalNotificationTitle(form, rowData, kind, stepLabel) {
     default:
       return head;
   }
-}
-
-/** Mongo $or conditions: rows where user is current approver (legacy + v2) */
-export function buildApproverQueryConditions(fieldIds, userId) {
-  const conditions = [];
-  for (const fid of fieldIds) {
-    conditions.push({ [`data.${fid}.currentApproverUserId`]: userId });
-    conditions.push({
-      [`data.${fid}.approver.userId`]: userId,
-      $or: [
-        { [`data.${fid}.version`]: { $ne: 2 } },
-        { [`data.${fid}.overallStatus`]: "pending" },
-        { [`data.${fid}.status`]: "pending" },
-      ],
-    });
-    // simpler legacy:
-    conditions.push({ [`data.${fid}.approver.userId`]: userId });
-  }
-  return conditions;
 }

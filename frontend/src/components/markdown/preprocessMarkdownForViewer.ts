@@ -32,7 +32,7 @@ const PURIFY_ADD_ATTR = [
   "frameborder",
   "scrolling",
   "sandbox",
-  "srcdoc",
+  "referrerpolicy",
   "style",
   "data-youtube-video",
   "data-html-embed",
@@ -61,6 +61,20 @@ export type PreprocessMarkdownForViewerOptions = {
    * 문서 뷰어는 false — Tiptap HTML·임베드를 유지한다.
    */
   escapeRawHtml?: boolean;
+};
+
+const isTrustedYouTubeFrame = (src: string): boolean => {
+  try {
+    const url = new URL(src, "https://altsis.invalid");
+    return (
+      url.protocol === "https:" &&
+      (url.hostname === "www.youtube.com" ||
+        url.hostname === "www.youtube-nocookie.com") &&
+      /^\/embed\/[A-Za-z0-9_-]{11}$/.test(url.pathname)
+    );
+  } catch {
+    return false;
+  }
 };
 
 /**
@@ -94,7 +108,21 @@ export const preprocessMarkdownForViewer = (
     }
     data.attrValue = sanitizedStyle;
   };
+  const iframeHook = (node: Element) => {
+    if (node.nodeName?.toLowerCase() !== "iframe") return;
+    node.removeAttribute("srcdoc");
+    if (!isTrustedYouTubeFrame(node.getAttribute("src") || "")) {
+      node.remove();
+      return;
+    }
+    node.setAttribute(
+      "sandbox",
+      "allow-scripts allow-same-origin allow-presentation"
+    );
+    node.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+  };
   DOMPurify.addHook("uponSanitizeAttribute", styleHook);
+  DOMPurify.addHook("afterSanitizeAttributes", iframeHook);
 
   let sanitized = "";
   try {
@@ -104,6 +132,7 @@ export const preprocessMarkdownForViewer = (
     });
   } finally {
     DOMPurify.removeHook("uponSanitizeAttribute", styleHook);
+    DOMPurify.removeHook("afterSanitizeAttributes", iframeHook);
   }
 
   return restoreMarkdownCode(sanitized, preserved);

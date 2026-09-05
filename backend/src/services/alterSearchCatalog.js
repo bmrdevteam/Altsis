@@ -15,7 +15,11 @@ import {
   Post,
   CalendarEvent,
 } from "../models/index.js";
-import { canViewAllRows, getVisibleFields } from "./altForms.js";
+import {
+  canViewAllRows,
+  getVisibleFields,
+  isFormMember,
+} from "./altForms.js";
 import { isBoardMember } from "./boards.js";
 import {
   mergeQueryAnd,
@@ -30,7 +34,7 @@ import {
 import { SEARCH_TABLE_ROW_CAP } from "./alterSearchSql.js";
 
 const PII_LABEL =
-  /주민|주소|전화|연락|여권|계좌|이메일|email|성명\s*\(\s*부\s*\)|성명\s*\(\s*모\s*\)|생년월일\s*\(\s*부\s*\)|생년월일\s*\(\s*모\s*\)/i;
+  /주민|주소|전화|연락|휴대폰|핸드폰|모바일|메일|여권|계좌|email|e-mail|mobile|phone|성명\s*\(\s*부\s*\)|성명\s*\(\s*모\s*\)|생년월일\s*\(\s*부\s*\)|생년월일\s*\(\s*모\s*\)/i;
 
 const CLIP = 400;
 
@@ -47,7 +51,15 @@ export const archiveTableName = (label) => {
 
 export const FORM_TABLE_CAP = 80;
 
-const FORM_SKIP_FIELD_TYPES = new Set(["content", "docResponse", "aiChat"]);
+const FORM_SKIP_FIELD_TYPES = new Set([
+  "content",
+  "docResponse",
+  "aiChat",
+  "file",
+  "userSelect",
+  "approval",
+  "circulation",
+]);
 
 export const FORM_RESERVED_COLUMNS = new Set([
   "id",
@@ -106,18 +118,11 @@ export const formAnswerColumns = (fields) => {
 export const pickFormColumnValues = (data, fieldColumns) => {
   const src = data && typeof data === "object" && !Array.isArray(data) ? data : {};
   const values = {};
-  const usedIds = new Set();
   for (const col of fieldColumns || []) {
     const raw = src[col.fieldId];
-    if (col.fieldId) usedIds.add(col.fieldId);
     values[col.name] = raw == null || raw === "" ? "" : raw;
   }
-  const residual = {};
-  for (const [key, val] of Object.entries(src)) {
-    if (usedIds.has(key)) continue;
-    residual[key] = val;
-  }
-  return { values, residual };
+  return { values, residual: {} };
 };
 
 export const visibleFormSearchFields = (form, board, user, registration) => {
@@ -376,7 +381,11 @@ export const collectEvalColumns = (seasonForms, user, registration) => {
   const allowed = new Set();
   let anyFilter = false;
   for (const form of seasonForms || []) {
-    const formItems = Array.isArray(form) ? form : [];
+    const formItems = Array.isArray(form)
+      ? form
+      : Array.isArray(form?.formEvaluation)
+        ? form.formEvaluation
+        : [];
     items.push(...formItems);
     const labels = visibleEvalLabels(formItems, user, registration);
     if (labels) {
@@ -393,7 +402,10 @@ const loadSeasonEvalForms = async (academyId, seasonIds) => {
     .find({ _id: { $in: seasonIds } })
     .select("formEvaluation")
     .lean();
-  return seasons.map((s) => s.formEvaluation);
+  return seasons.map((s) => ({
+    seasonId: idStr(s._id),
+    formEvaluation: s.formEvaluation,
+  }));
 };
 
 export const visibleEvalLabels = (formEvaluation, user, registration) => {
@@ -415,6 +427,42 @@ export const visibleEvalLabels = (formEvaluation, user, registration) => {
   return labels;
 };
 
+export const filterEvaluationForSearch = ({
+  evaluation,
+  formEvaluation,
+  user,
+  registration,
+  evalColumns = [],
+}) => {
+  const source =
+    evaluation && typeof evaluation === "object" ? evaluation : {};
+  const evalKeys = Object.keys(source);
+  const labels = visibleEvalLabels(formEvaluation, user, registration);
+  const staffOrTeacher =
+    isStaff(user) || registration?.role === "teacher";
+  const allowed =
+    labels == null
+      ? staffOrTeacher
+        ? evalKeys
+        : []
+      : labels.filter((key) => evalKeys.includes(key));
+  const allowedSet = new Set(allowed);
+  const rowEvalColumns = staffOrTeacher
+    ? evalColumns
+    : evalColumns.filter((column) => allowedSet.has(column.name));
+  const evaluationJson = {};
+  for (const key of allowed) {
+    if (source[key] != null && source[key] !== "") {
+      evaluationJson[key] = cellText(source[key]);
+    }
+  }
+  const flat = pickEvalColumnValues(source, rowEvalColumns);
+  for (const [key, value] of Object.entries(flat)) {
+    flat[key] = value === "" ? "" : cellText(value);
+  }
+  return { flat, evaluationJson };
+};
+
 const loadEnrollmentEvaluations = async ({
   academyId,
   user,
@@ -423,6 +471,7 @@ const loadEnrollmentEvaluations = async ({
   grade,
   mongoFilter,
   evalColumns = [],
+  seasonEvalForms = [],
 }) => {
   const ids =
     !isStaff(user) && registration?.role === "teacher"
@@ -441,36 +490,20 @@ const loadEnrollmentEvaluations = async ({
     .select("+evaluation")
     .limit(SEARCH_TABLE_ROW_CAP);
   const rows = docs.map((d) => (typeof d.toObject === "function" ? d.toObject() : d));
-  const labels = visibleEvalLabels(
-    registration?.formEvaluation,
-    user,
-    registration
+  const evalFormBySeason = new Map(
+    seasonEvalForms.map((entry) => [
+      String(entry?.seasonId || ""),
+      Array.isArray(entry?.formEvaluation) ? entry.formEvaluation : [],
+    ])
   );
-  const flattenNames = new Set((evalColumns || []).map((c) => c.name));
-  const staffOrTeacher =
-    isStaff(user) || registration?.role === "teacher";
   return capRows(rows).map((e) => {
-    const evaluation =
-      e.evaluation && typeof e.evaluation === "object" ? e.evaluation : {};
-    const evalKeys = Object.keys(evaluation);
-    let allowed =
-      labels == null ? evalKeys : labels.filter((k) => evalKeys.includes(k));
-    if (!allowed.length && staffOrTeacher) allowed = evalKeys;
-    if (flattenNames.size) {
-      for (const name of flattenNames) {
-        if (evalKeys.includes(name) && !allowed.includes(name)) allowed.push(name);
-      }
-    }
-    const evalJson = {};
-    for (const key of allowed) {
-      if (evaluation[key] != null && evaluation[key] !== "") {
-        evalJson[key] = cellText(evaluation[key]);
-      }
-    }
-    const flat = pickEvalColumnValues(evaluation, evalColumns);
-    for (const [key, val] of Object.entries(flat)) {
-      flat[key] = val === "" ? "" : cellText(val);
-    }
+    const { flat, evaluationJson } = filterEvaluationForSearch({
+      evaluation: e.evaluation,
+      formEvaluation: evalFormBySeason.get(idStr(e.season)),
+      user,
+      registration,
+      evalColumns,
+    });
     return {
       id: idStr(e._id),
       syllabus_id: idStr(e.syllabus),
@@ -480,7 +513,7 @@ const loadEnrollmentEvaluations = async ({
       student_name: e.studentName || "",
       student_grade: e.studentGrade || "",
       ...flat,
-      evaluation_json: JSON.stringify(evalJson),
+      evaluation_json: JSON.stringify(evaluationJson),
       season_id: idStr(e.season),
       year: e.year || "",
       term: e.term || "",
@@ -556,13 +589,14 @@ export const expandArchiveRows = (item, studentReg, raw) => {
   };
   if (item.dataType === "array" && Array.isArray(raw)) {
     if (!raw.length) return [fill({ entries_json: "[]" })];
-    return raw.map((entry, i) =>
-      fill({
-        ...objectToFieldRow(item, entry),
-        entries_json: cellText(entry),
+    return raw.map((entry, i) => {
+      const safeEntry = objectToFieldRow(item, entry);
+      return fill({
+        ...safeEntry,
+        entries_json: cellText(safeEntry),
         entry_index: i + 1,
-      })
-    );
+      });
+    });
   }
   return [fill(objectToFieldRow(item, raw))];
 };
@@ -632,13 +666,21 @@ const memberBoards = async ({ academyId, user, school, registration }) => {
   });
 };
 
-const loadForms = async ({ academyId, boards, mongoFilter }) => {
+const loadForms = async ({
+  academyId,
+  user,
+  registration,
+  boards,
+  mongoFilter,
+}) => {
   if (!boards.length) return [];
   const boardIds = boards.map((b) => b._id);
+  const boardById = new Map(boards.map((board) => [idStr(board._id), board]));
+  const role = schoolRole(registration, user);
   const titleFilter = mongoFilter?.title
     ? { title: mongoFilter.title }
     : {};
-  return AltForm(academyId)
+  const forms = await AltForm(academyId)
     .find(
       mergeQueryAnd(
         { board: { $in: boardIds }, isActive: true },
@@ -647,6 +689,13 @@ const loadForms = async ({ academyId, boards, mongoFilter }) => {
     )
     .limit(SEARCH_TABLE_ROW_CAP)
     .lean();
+  return forms.filter((form) => {
+    const board = boardById.get(idStr(form.board));
+    if (!board) return false;
+    const canViewAll = canViewAllRows(form, board, user, role);
+    if (form.isDraft && !canViewAll) return false;
+    return canViewAll || isFormMember(form, board, user, role);
+  });
 };
 
 const mapFormRows = (forms, boards) => {
@@ -674,38 +723,62 @@ const loadFormRows = async ({
   if (!forms.length) return [];
   const boardById = new Map(boards.map((b) => [idStr(b._id), b]));
   const role = schoolRole(registration, user);
-  const out = [];
+  const accessByForm = new Map();
+  const allFormIds = [];
+  const ownFormIds = [];
   for (const form of forms) {
     const board = boardById.get(idStr(form.board));
     if (!board) continue;
     const allRows = canViewAllRows(form, board, user, role);
-    const q = {
-      form: form._id,
+    const formId = idStr(form._id);
+    accessByForm.set(formId, {
+      form,
+      fieldColumns: formAnswerColumns(
+        visibleFormSearchFields(form, board, user, registration)
+      ),
+    });
+    (allRows ? allFormIds : ownFormIds).push(form._id);
+  }
+
+  const loadRows = (formIds, ownOnly) => {
+    if (!formIds.length) return Promise.resolve([]);
+    const query = {
+      form: { $in: formIds },
       isActive: { $ne: false },
       isDraft: { $ne: true },
+      ...(ownOnly ? { _respondent: user._id } : {}),
     };
-    if (!allRows) q._respondent = user._id;
-    const qWithPush = mergeQueryAnd(q, mongoFilter);
-    const rows = await AltSheetRow(academyId)
-      .find(qWithPush)
+    return AltSheetRow(academyId)
+      .find(mergeQueryAnd(query, mongoFilter))
       .select("_respondent _respondentId _respondentName _submittedAt data form")
-      .limit(Math.max(0, SEARCH_TABLE_ROW_CAP - out.length))
+      .limit(SEARCH_TABLE_ROW_CAP)
       .lean();
-    for (const row of rows) {
-      out.push({
+  };
+
+  const [allRows, ownRows] = await Promise.all([
+    loadRows(allFormIds, false),
+    loadRows(ownFormIds, true),
+  ]);
+  return capRows([...allRows, ...ownRows]).flatMap((row) => {
+    const access = accessByForm.get(idStr(row.form));
+    if (!access) return [];
+    const { values } = pickFormColumnValues(
+      row.data || {},
+      access.fieldColumns
+    );
+    return [
+      {
         id: idStr(row._id),
-        form_id: idStr(form._id),
-        form_title: form.title || "",
+        form_id: idStr(access.form._id),
+        form_title: access.form.title || "",
         respondent_id: idStr(row._respondent),
         respondent_login: row._respondentId || "",
         respondent_name: row._respondentName || "",
         submitted_at: row._submittedAt ? String(row._submittedAt) : "",
-        answers_json: cellText(row.data || {}),
-      });
-    }
-    if (out.length >= SEARCH_TABLE_ROW_CAP) break;
-  }
-  return capRows(out);
+        answers_json: cellText(values),
+      },
+    ];
+  });
 };
 
 export const mapOneFormSearchRow = (form, row, fieldColumns) => {
@@ -875,17 +948,20 @@ export const buildSearchCatalog = async ({
     seasonId,
   });
   const gradeFilter = normalizeSearchGrade(grade);
-  let studentRegs = seasonIds.length
+  const archiveItems = Array.isArray(school?.formArchive)
+    ? school.formArchive.filter((item) => item?.label)
+    : [];
+  const studentRegs = archiveItems.length > 0 && seasonIds.length
     ? await Registration(academyId)
-        .find({ season: { $in: seasonIds }, role: "student" })
+        .find({
+          season: { $in: seasonIds },
+          role: "student",
+          ...(gradeFilter ? { grade: gradeFilter } : {}),
+        })
         .select("user userId userName grade teacher subTeacher")
+        .limit(SEARCH_TABLE_ROW_CAP)
         .lean()
     : [];
-  if (gradeFilter) {
-    studentRegs = studentRegs.filter(
-      (r) => String(r.grade || "") === gradeFilter
-    );
-  }
 
   const boardsPromise = memberBoards({
     academyId,
@@ -1032,6 +1108,7 @@ export const buildSearchCatalog = async ({
           registration,
           seasonIds,
           evalColumns,
+          seasonEvalForms,
           ...loadCtx(ctx),
         }),
       async (ctx) => {
@@ -1052,9 +1129,6 @@ export const buildSearchCatalog = async ({
     ),
   ];
 
-  const archiveItems = Array.isArray(school?.formArchive)
-    ? school.formArchive.filter((it) => it?.label)
-    : [];
   const usedNames = new Set(specs.map((s) => s.name));
   for (const item of archiveItems) {
     let name = archiveTableName(item.label);
@@ -1107,7 +1181,12 @@ export const buildSearchCatalog = async ({
   }
 
   const boards = await boardsPromise;
-  const memberForms = await loadForms({ academyId, boards });
+  const memberForms = await loadForms({
+    academyId,
+    user,
+    registration,
+    boards,
+  });
   const boardById = new Map(boards.map((b) => [idStr(b._id), b]));
   const formTables = [];
   const overflowFormTitles = [];
@@ -1195,6 +1274,8 @@ export const buildSearchCatalog = async ({
       async (ctx) => {
         const forms = await loadForms({
           academyId,
+          user,
+          registration,
           boards,
           ...loadCtx(ctx),
         });
@@ -1215,7 +1296,12 @@ export const buildSearchCatalog = async ({
         { name: "answers_json", type: "TEXT", comment: "응답 JSON" },
       ],
       async (ctx) => {
-        const forms = await loadForms({ academyId, boards });
+        const forms = await loadForms({
+          academyId,
+          user,
+          registration,
+          boards,
+        });
         return loadFormRows({
           academyId,
           user,

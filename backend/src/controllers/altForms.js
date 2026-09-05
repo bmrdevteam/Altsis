@@ -168,7 +168,7 @@ const enrichFormsWithListMeta = async (
         {
           $match: {
             ...submittedSheetRowFilter(),
-            _respondent: { $ne: null, $ne: userId },
+            _respondent: { $nin: [null, userId] },
             $or: orClauses,
           },
         },

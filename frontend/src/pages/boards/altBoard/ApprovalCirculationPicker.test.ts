@@ -1,8 +1,11 @@
 import {
+  approvalCandidatesForBoard,
+  circulationCandidatesForBoard,
   filterApprovalCandidates,
   uniqueApprovalCandidates,
 } from "./ApprovalCirculationPicker";
 import { TApprovalApprover } from "utils/approvalLine";
+import { TBoard } from "types/board";
 
 const users: TApprovalApprover[] = [
   { user: "1", userId: "kim01", userName: "김교사" },
@@ -57,5 +60,42 @@ describe("uniqueApprovalCandidates", () => {
       { user: "1", userId: "kim01", userName: "김교사" },
       { user: "", userId: "lee02", userName: "이학생" },
     ]);
+  });
+});
+
+describe("board workflow candidates", () => {
+  const board = {
+    creator: "creator-oid",
+    creatorId: "creator",
+    creatorName: "생성자",
+    writers: {
+      groups: { manager: false, teacher: true, student: false },
+      users: [{ user: "writer-oid", userId: "writer", userName: "작성자" }],
+    },
+    members: {
+      groups: { manager: true, teacher: true, student: true },
+      users: [],
+    },
+    altBoardRole: {
+      "admin-oid": "admin",
+      "student-oid": "respondent",
+    },
+  } as unknown as TBoard;
+  const members = [
+    { user: "admin-oid", userId: "admin", userName: "관리자" },
+    { user: "teacher-oid", userId: "teacher", userName: "교사", role: "teacher" as const },
+    { user: "student-oid", userId: "student", userName: "학생", role: "student" as const },
+  ];
+
+  test("approval candidates include creator, writer, admin, and writer groups", () => {
+    expect(
+      approvalCandidatesForBoard(board, members).map((user) => user.userId)
+    ).toEqual(["admin", "teacher", "writer", "creator"]);
+  });
+
+  test("circulation candidates include all resolved members and creator", () => {
+    expect(
+      circulationCandidatesForBoard(board, members).map((user) => user.userId)
+    ).toEqual(["admin", "teacher", "student", "writer", "creator"]);
   });
 });
