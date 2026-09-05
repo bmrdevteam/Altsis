@@ -56,9 +56,11 @@ import FilePreviewModal from "./FilePreviewModal";
 import MemberInvitePicker from "./MemberInvitePicker";
 import FieldDocResources from "./FieldDocResources";
 import { TFormFileRef } from "./formFilePreview";
-import { defaultApprovalLine, getApprovalCirculation } from "utils/approvalLine";
+import { defaultApprovalLine, defaultCirculation, getCirculationConfig, liftNestedCirculationFields } from "utils/approvalLine";
 import type { TApprovalCirculationMode } from "utils/approvalLine";
 import ApprovalCirculationPicker, {
+  ApprovalUserSearchInput,
+  CirculationUserChips,
   uniqueApprovalCandidates,
 } from "./ApprovalCirculationPicker";
 import SettingsHint from "./SettingsHint";
@@ -128,6 +130,7 @@ const FIELD_TYPE_ICONS: Record<TAltFormFieldType, string> = {
   scale: "linear_scale",
   counter: "exposure_plus_1",
   approval: "verified_user",
+  circulation: "forward_to_inbox",
   link: "link",
   content: "article",
   docResponse: "edit_note",
@@ -142,7 +145,7 @@ const FIELD_TYPE_GROUPS: { label: string; types: TAltFormFieldType[] }[] = [
   { label: "평가 입력", types: ["rating", "scale", "counter"] },
   {
     label: "기타",
-    types: ["file", "userSelect", "approval", "link"],
+    types: ["file", "userSelect", "approval", "circulation", "link"],
   },
 ];
 
@@ -191,6 +194,7 @@ const createEmptyField = (
       ? []
       : undefined,
   approvalLine: type === "approval" ? defaultApprovalLine() : undefined,
+  circulation: type === "circulation" ? defaultCirculation() : undefined,
   order: 0,
 });
 
@@ -443,14 +447,15 @@ const AltFormBuilder = ({
   );
 
   // Click outside field card / add toolbar → deactivate
-  // Popup(이미지·YouTube·HTML 등)은 fixed 오버레이라 필드 카드 밖처럼 보이므로 제외
+  // Popup·검색 목록은 body 포탈/fixed라 필드 카드 밖처럼 보이므로 제외
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (
         !target.closest("[data-field-card]") &&
         !target.closest("[data-field-toolbar]") &&
-        !target.closest("[data-editor-popup]")
+        !target.closest("[data-editor-popup]") &&
+        !target.closest("[data-user-search-dropdown]")
       ) {
         setActiveFieldId(null);
       }
@@ -537,9 +542,10 @@ const AltFormBuilder = ({
           showOwnResponse: form.settings.showOwnResponse !== false,
         };
         const nextRubrics = form.rubrics || [];
+        const migratedFields = liftNestedCirculationFields(form.fields || []);
         setTitle(form.title);
         setDescription(form.description);
-        setFields(form.fields);
+        setFields(migratedFields);
         setSettings(nextSettings);
         setRubrics(nextRubrics);
         setExpandedRubricIds(
@@ -560,7 +566,7 @@ const AltFormBuilder = ({
         savedSnapshotRef.current = JSON.stringify({
           title: form.title.trim(),
           description: (form.description || "").trim(),
-          fields: form.fields,
+          fields: migratedFields,
           settings: nextSettings,
           rubrics: nextRubrics,
           restrictMembers: membersCustom,
@@ -2133,16 +2139,10 @@ const AltFormBuilder = ({
         const steps = field.approvalLine?.steps?.length
           ? field.approvalLine.steps
           : [{ order: 0, label: "1차 승인", mode: "pick" as const }];
-        const circulation = getApprovalCirculation(field);
         const boardAdmins = (
           board as { admins?: { users?: TMemberUser[] } }
         ).admins?.users;
         const candidates = uniqueApprovalCandidates(
-          board.writers?.users,
-          boardAdmins
-        );
-        const circulationCandidates = uniqueApprovalCandidates(
-          board.members?.users,
           board.writers?.users,
           boardAdmins
         );
@@ -2163,19 +2163,6 @@ const AltFormBuilder = ({
             approvalLine: {
               ...field.approvalLine,
               steps: next.map((s, i) => ({ ...s, order: i })),
-              circulation,
-            },
-          });
-        };
-
-        const setCirculation = (
-          next: typeof circulation
-        ) => {
-          updateField(fieldIndex, {
-            approvalLine: {
-              ...field.approvalLine,
-              steps,
-              circulation: next,
             },
           });
         };
@@ -2203,7 +2190,7 @@ const AltFormBuilder = ({
               }}
             >
               결재선
-              <SettingsHint text="단계는 이 양식에 저장되며, 복제·JSON 가져오기 시 함께 이동합니다. 「지정」은 제출 시 응답자가 고르며 비우면 그 단계는 건너뜁니다. 「고정」은 미리 정한 승인자입니다." />
+              <SettingsHint text="단계는 이 양식에 저장되며, 복제·JSON 가져오기 시 함께 이동합니다. 「지정」은 기본 승인자를 둘 수 있고 제출자가 바꾸거나 비울 수 있습니다. 비우면 그 단계는 건너뜁니다. 「고정」은 양식에서 정해지고 제출자가 바꾸지 못합니다." />
             </div>
             {steps.map((step, si) => (
               <div
@@ -2254,13 +2241,7 @@ const AltFormBuilder = ({
                     onChange={(e) => {
                       const mode = e.target.value as "fixed" | "pick";
                       const next = steps.map((s, i) =>
-                        i === si
-                          ? {
-                              ...s,
-                              mode,
-                              approver: mode === "pick" ? undefined : s.approver,
-                            }
-                          : s
+                        i === si ? { ...s, mode } : s
                       );
                       setSteps(next);
                     }}
@@ -2280,39 +2261,41 @@ const AltFormBuilder = ({
                     <MI icon="close" size={16} />
                   </button>
                 </div>
-                {step.mode === "fixed" && (
-                  <select
-                    className={style.selectInput}
-                    style={{ fontSize: "12px", padding: "4px 8px" }}
-                    value={step.approver?.userId || ""}
-                    onChange={(e) => {
-                      const u = candidates.find(
-                        (c) => c.userId === e.target.value
+                {step.approver?.userId ? (
+                  <CirculationUserChips
+                    users={[step.approver]}
+                    onRemove={() => {
+                      const next = steps.map((s, i) =>
+                        i === si ? { ...s, approver: undefined } : s
                       );
+                      setSteps(next);
+                    }}
+                  />
+                ) : (
+                  <ApprovalUserSearchInput
+                    candidates={candidates}
+                    placeholder="이름 또는 아이디로 검색"
+                    ariaLabel={
+                      step.mode === "pick"
+                        ? `${step.label || `${si + 1}차`} 기본 승인자 검색`
+                        : `${step.label || `${si + 1}차`} 승인자 검색`
+                    }
+                    onPick={(u) => {
                       const next = steps.map((s, i) =>
                         i === si
                           ? {
                               ...s,
-                              approver: u
-                                ? {
-                                    user: u.user,
-                                    userId: u.userId,
-                                    userName: u.userName,
-                                  }
-                                : undefined,
+                              approver: {
+                                user: u.user,
+                                userId: u.userId,
+                                userName: u.userName,
+                              },
                             }
                           : s
                       );
                       setSteps(next);
                     }}
-                  >
-                    <option value="">승인자 선택</option>
-                    {candidates.map((u) => (
-                      <option key={u.userId} value={u.userId}>
-                        {u.userName} ({u.userId})
-                      </option>
-                    ))}
-                  </select>
+                  />
                 )}
               </div>
             ))}
@@ -2332,55 +2315,72 @@ const AltFormBuilder = ({
             >
               + 결재 단계 추가
             </button>
+          </div>
+        );
+      }
+      case "circulation": {
+        const circulation = getCirculationConfig(field);
+        const boardAdmins = (
+          board as { admins?: { users?: TMemberUser[] } }
+        ).admins?.users;
+        const circulationCandidates = uniqueApprovalCandidates(
+          board.members?.users,
+          board.writers?.users,
+          boardAdmins
+        );
+        return (
+          <div
+            style={{
+              marginTop: "8px",
+              padding: "10px",
+              background: "var(--background-color-2)",
+              borderRadius: "8px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "8px",
+            }}
+          >
             <div
               style={{
-                marginTop: "4px",
-                paddingTop: "8px",
-                borderTop: "1px solid var(--border-color)",
                 display: "flex",
-                flexDirection: "column",
-                gap: "8px",
+                alignItems: "center",
+                gap: "4px",
+                fontSize: "12px",
+                fontWeight: 600,
+                color: "var(--text-color-1)",
               }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "4px",
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  color: "var(--text-color-1)",
-                }}
-              >
-                회람
-                <SettingsHint text="결재 없이 이 제출 건을 볼 사람입니다. 지정은 제출자가 고르고, 고정은 양식에서 미리 정합니다. 후보는 보드 멤버·작성자·관리자입니다." />
-              </div>
-              <select
-                className={style.selectInput}
-                style={{ fontSize: "12px", padding: "4px 8px" }}
-                value={circulation.mode}
-                onChange={(e) => {
-                  const mode = e.target.value as TApprovalCirculationMode;
-                  setCirculation({
-                    mode,
-                    users: mode === "fixed" ? circulation.users : [],
-                  });
-                }}
-              >
-                <option value="off">사용 안 함</option>
-                <option value="pick">지정(제출 시)</option>
-                <option value="fixed">고정</option>
-              </select>
-              {circulation.mode === "fixed" && (
-                <ApprovalCirculationPicker
-                  selected={circulation.users}
-                  candidates={circulationCandidates}
-                  onChange={(users) =>
-                    setCirculation({ mode: "fixed", users })
-                  }
-                />
-              )}
+              회람
+              <SettingsHint text="결재 없이 이 제출 건을 볼 사람입니다. 지정은 기본 회람자를 둘 수 있고 제출자가 바꾸거나 비울 수 있습니다. 고정은 양식에서 정해지고 제출자가 바꾸지 못합니다. 후보는 보드 멤버·작성자·관리자입니다." />
             </div>
+            <select
+              className={style.selectInput}
+              style={{ fontSize: "12px", padding: "4px 8px" }}
+              value={circulation.mode === "off" ? "pick" : circulation.mode}
+              onChange={(e) => {
+                const mode = e.target.value as TApprovalCirculationMode;
+                updateField(fieldIndex, {
+                  circulation: {
+                    mode,
+                    users: circulation.users,
+                  },
+                });
+              }}
+            >
+              <option value="pick">지정(제출 시)</option>
+              <option value="fixed">고정</option>
+            </select>
+            {(circulation.mode === "fixed" || circulation.mode === "pick") && (
+              <ApprovalCirculationPicker
+                selected={circulation.users}
+                candidates={circulationCandidates}
+                onChange={(users) =>
+                  updateField(fieldIndex, {
+                    circulation: { mode: circulation.mode, users },
+                  })
+                }
+              />
+            )}
           </div>
         );
       }
@@ -2543,6 +2543,12 @@ const AltFormBuilder = ({
                     ? field.approvalLine
                     : defaultApprovalLine()
                   : field.approvalLine,
+              circulation:
+                nextType === "circulation"
+                  ? field.circulation?.mode
+                    ? field.circulation
+                    : defaultCirculation()
+                  : field.circulation,
             });
           }}
         >

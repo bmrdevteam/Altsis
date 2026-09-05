@@ -1,7 +1,10 @@
 import {
   copyRowDataForReuse,
+  filterReusedPickPeople,
+  formatReusedDroppedNotice,
   mergeRowDataForEdit,
   resolveMultipleComposeData,
+  seedComposePickDefaults,
   shouldApplyExternalViewMode,
   shouldStartNewMultipleCompose,
 } from "./reuseResponseDraft";
@@ -12,6 +15,9 @@ const fields = [
   { _id: "appr1", type: "approval" as const },
   { _id: "chat1", type: "aiChat" as const },
 ];
+
+const jo = { user: "u1", userId: "jo", userName: "조은길" };
+const kim = { user: "u2", userId: "kim", userName: "김민수" };
 
 describe("shouldApplyExternalViewMode", () => {
   test("keeps skip and does not apply when URL arrives first during internal edit", () => {
@@ -155,16 +161,73 @@ describe("copyRowDataForReuse", () => {
     ).toEqual({ text1: "본문" });
   });
 
-  test("drops approval field values", () => {
+  test("keeps pick approvers and resets approval status", () => {
     expect(
       copyRowDataForReuse(
         {
           text1: "본문",
-          appr1: { status: "approved", steps: [] },
+          appr1: {
+            version: 2,
+            overallStatus: "approved",
+            status: "approved",
+            currentStep: 0,
+            steps: [
+              {
+                mode: "pick",
+                label: "1차 승인",
+                order: 0,
+                approver: jo,
+                status: "approved",
+                actedAt: "2026-01-01",
+              },
+            ],
+            circulation: [kim],
+          },
         },
         fields
       )
-    ).toEqual({ text1: "본문" });
+    ).toMatchObject({
+      text1: "본문",
+      appr1: {
+        version: 2,
+        overallStatus: "pending",
+        status: "pending",
+        currentStep: 0,
+        steps: [
+          {
+            mode: "pick",
+            label: "1차 승인",
+            approver: jo,
+            status: "waiting",
+          },
+        ],
+        circulation: [kim],
+      },
+    });
+  });
+
+  test("maps nested circulation onto a dedicated pick field", () => {
+    const withCirc = [
+      ...fields,
+      {
+        _id: "circ1",
+        type: "circulation" as const,
+        circulation: { mode: "pick" as const, users: [] },
+      },
+    ];
+    const copied = copyRowDataForReuse(
+      {
+        appr1: {
+          version: 2,
+          steps: [{ mode: "pick", approver: jo }],
+          circulation: [kim],
+        },
+      },
+      withCirc
+    );
+    expect(copied.circ1).toEqual([kim]);
+    expect(copied.appr1.circulation).toEqual([]);
+    expect(copied.appr1.steps[0].approver).toEqual(jo);
   });
 
   test("drops aiChat session summaries", () => {
@@ -182,6 +245,148 @@ describe("copyRowDataForReuse", () => {
   test("returns empty object for nullish data", () => {
     expect(copyRowDataForReuse(null, fields)).toEqual({});
     expect(copyRowDataForReuse(undefined, fields)).toEqual({});
+  });
+});
+
+describe("filterReusedPickPeople", () => {
+  test("drops pick people who are not in candidate sets", () => {
+    const data = {
+      appr1: {
+        version: 2,
+        steps: [
+          { mode: "pick", approver: jo },
+          { mode: "pick", approver: kim },
+        ],
+        circulation: [kim],
+      },
+    };
+    const { data: next, dropped } = filterReusedPickPeople(data, fields, {
+      approvalCandidateIds: ["jo"],
+      circulationCandidateIds: [],
+    });
+    expect(next.appr1.steps[0].approver).toEqual(jo);
+    expect(next.appr1.steps[1].approver).toBeUndefined();
+    expect(next.appr1.circulation).toEqual([]);
+    expect(dropped.map((d) => d.userId).sort()).toEqual(["kim", "kim"]);
+  });
+
+  test("formatReusedDroppedNotice lists unique names", () => {
+    expect(formatReusedDroppedNotice([])).toBeNull();
+    expect(
+      formatReusedDroppedNotice([
+        { userId: "kim", userName: "김민수", role: "approver" },
+        { userId: "kim", userName: "김민수", role: "circulation" },
+      ])
+    ).toBe(
+      "더 이상 지정할 수 없는 승인자·회람자는 제외했습니다. (김민수)"
+    );
+  });
+});
+
+describe("seedComposePickDefaults", () => {
+  const pickFields = [
+    {
+      _id: "appr1",
+      type: "approval" as const,
+      approvalLine: {
+        steps: [
+          {
+            order: 0,
+            label: "1차 승인",
+            mode: "pick" as const,
+            approver: jo,
+          },
+          {
+            order: 1,
+            label: "2차 승인",
+            mode: "fixed" as const,
+            approver: kim,
+          },
+        ],
+      },
+    },
+    {
+      _id: "circ1",
+      type: "circulation" as const,
+      circulation: { mode: "pick" as const, users: [kim] },
+    },
+  ];
+
+  test("fills pick defaults when keys are missing", () => {
+    const { data, dropped } = seedComposePickDefaults({}, pickFields, {
+      approvalCandidateIds: ["jo", "kim"],
+      circulationCandidateIds: ["jo", "kim"],
+    });
+    expect(dropped).toEqual([]);
+    expect(data.appr1.steps[0].approver).toEqual(jo);
+    expect(data.appr1.steps[0].status).toBe("waiting");
+    expect(data.appr1.steps[1].approver).toEqual(kim);
+    expect(data.appr1.overallStatus).toBe("pending");
+    expect(data.circ1).toEqual([kim]);
+  });
+
+  test("keeps empty pick and empty circulation instead of refilling", () => {
+    const existing = {
+      appr1: {
+        version: 2,
+        currentStep: 0,
+        overallStatus: "pending",
+        status: "pending",
+        steps: [
+          {
+            order: 0,
+            label: "1차 승인",
+            mode: "pick",
+            status: "waiting",
+          },
+        ],
+      },
+      circ1: [],
+    };
+    const { data, dropped } = seedComposePickDefaults(existing, pickFields, {
+      approvalCandidateIds: ["jo", "kim"],
+      circulationCandidateIds: ["jo", "kim"],
+    });
+    expect(dropped).toEqual([]);
+    expect(data.appr1.steps[0].approver).toBeUndefined();
+    expect(data.circ1).toEqual([]);
+  });
+
+  test("keeps reused pick people", () => {
+    const reused = {
+      appr1: {
+        version: 2,
+        steps: [
+          {
+            mode: "pick",
+            approver: kim,
+            status: "waiting",
+          },
+        ],
+      },
+      circ1: [jo],
+    };
+    const { data, dropped } = seedComposePickDefaults(reused, pickFields, {
+      approvalCandidateIds: ["jo", "kim"],
+      circulationCandidateIds: ["jo", "kim"],
+    });
+    expect(dropped).toEqual([]);
+    expect(data.appr1.steps[0].approver).toEqual(kim);
+    expect(data.circ1).toEqual([jo]);
+  });
+
+  test("drops ineligible defaults and leaves a notice list", () => {
+    const { data, dropped } = seedComposePickDefaults({}, pickFields, {
+      approvalCandidateIds: ["kim"],
+      circulationCandidateIds: ["jo"],
+    });
+    expect(data.appr1.steps[0].approver).toBeUndefined();
+    expect(data.appr1.steps[1].approver).toEqual(kim);
+    expect(data.circ1).toEqual([]);
+    expect(dropped.map((d) => d.userId).sort()).toEqual(["jo", "kim"]);
+    expect(formatReusedDroppedNotice(dropped)).toBe(
+      "더 이상 지정할 수 없는 승인자·회람자는 제외했습니다. (조은길, 김민수)"
+    );
   });
 });
 

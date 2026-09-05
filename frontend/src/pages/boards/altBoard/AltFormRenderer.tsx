@@ -20,9 +20,11 @@ import {
   MarkdownWysiwygView,
 } from "components/markdown";
 import {
+  formHasCirculationField,
   getApprovalCirculation,
   getApprovalComposeRows,
   getApprovalLineSteps,
+  getCirculationConfig,
   getRequiredApprovalError,
   normalizeApprovalValue,
   TApprovalApprover,
@@ -64,7 +66,10 @@ import {
 } from "./formDocLink";
 import {
   copyRowDataForReuse,
+  filterReusedPickPeople,
+  formatReusedDroppedNotice,
   mergeRowDataForEdit,
+  seedComposePickDefaults,
   resolveMultipleComposeData,
   shouldApplyExternalViewMode,
   shouldStartNewMultipleCompose,
@@ -232,11 +237,37 @@ const isFieldVisible = (
   return dc.conditions.every((c) => evaluateCondition(c, data));
 };
 
-/** 새/빈 응답의 docResponse 필드만 현재 템플릿으로 초기화 (기존 제출값 유지) */
-const withDocResponseDefaults = (
+/** 새/빈 응답의 docResponse 템플릿과 지정 기본 인원만 채운다 (기존 값은 유지). */
+const pickCandidateIdsFromBoard = (board: TBoard) => {
+  const boardAdmins = (
+    board as {
+      admins?: {
+        users?: { user?: string; userId?: string; userName?: string }[];
+      };
+    }
+  ).admins?.users;
+  return {
+    approvalCandidateIds: uniqueApprovalCandidates(
+      board.writers?.users,
+      boardAdmins
+    )
+      .map((u) => u.userId)
+      .filter(Boolean),
+    circulationCandidateIds: uniqueApprovalCandidates(
+      board.members?.users,
+      board.writers?.users,
+      boardAdmins
+    )
+      .map((u) => u.userId)
+      .filter(Boolean),
+  };
+};
+
+const withFormFieldDefaults = (
   fields: TAltFormField[],
-  existing: Record<string, any> = {}
-): Record<string, any> => {
+  existing: Record<string, any> = {},
+  board: TBoard
+) => {
   const next = { ...existing };
   for (const field of fields) {
     if (field.type !== "docResponse") continue;
@@ -244,7 +275,7 @@ const withDocResponseDefaults = (
       next[field._id] = field.content ?? "";
     }
   }
-  return next;
+  return seedComposePickDefaults(next, fields, pickCandidateIdsFromBoard(board));
 };
 
 const AltFormRenderer = ({
@@ -280,6 +311,9 @@ const AltFormRenderer = ({
   const [viewMode, setViewMode] = useState<TViewMode>("compose");
   const [data, setData] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [reuseDroppedNotice, setReuseDroppedNotice] = useState<string | null>(
+    null
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
@@ -320,6 +354,21 @@ const AltFormRenderer = ({
   /** 재사용·수정 등 내부 전환 직후, URL initialViewMode가 따라올 때까지 덮어쓰지 않음 */
   const skipNextExternalViewMode = useRef(false);
 
+  const applyFieldDefaults = (
+    fields: TAltFormField[],
+    existing: Record<string, any> = {}
+  ) => {
+    const { data: next, dropped } = withFormFieldDefaults(
+      fields,
+      existing,
+      board
+    );
+    if (dropped.length) {
+      setReuseDroppedNotice(formatReusedDroppedNotice(dropped));
+    }
+    return next;
+  };
+
   useEffect(() => {
     Promise.all([
       AltFormAPI.RAltForm({ params: { _id: formId } }),
@@ -357,7 +406,7 @@ const AltFormRenderer = ({
           if (startInReview || (quotaReached && canReview)) {
             const row = loadedRows[reviewIdx] || loadedRows[0];
             setData(
-              withDocResponseDefaults(loadedForm.fields, row?.data || {})
+              applyFieldDefaults(loadedForm.fields, row?.data || {})
             );
             if (quotaReached && !startInReview) {
               setViewMode("review");
@@ -373,7 +422,7 @@ const AltFormRenderer = ({
                 )
               : null;
             setData(
-              withDocResponseDefaults(
+              applyFieldDefaults(
                 loadedForm.fields,
                 resolveMultipleComposeData({ localDraft: local?.data })
               )
@@ -383,7 +432,7 @@ const AltFormRenderer = ({
           const row = loadedRows[reviewIdx] || loadedRows[0];
           setMyRow(row);
           setData(
-            withDocResponseDefaults(loadedForm.fields, row.data || {})
+            applyFieldDefaults(loadedForm.fields, row.data || {})
           );
           setIsSubmitted(!isDraftSheetRow(row));
         } else {
@@ -399,7 +448,7 @@ const AltFormRenderer = ({
               )
             : null;
           setData(
-            withDocResponseDefaults(loadedForm.fields, local?.data || {})
+            applyFieldDefaults(loadedForm.fields, local?.data || {})
           );
         }
 
@@ -526,7 +575,7 @@ const AltFormRenderer = ({
         )
       : null;
     setData(
-      withDocResponseDefaults(
+      applyFieldDefaults(
         form.fields,
         resolveMultipleComposeData({ localDraft: local?.data })
       )
@@ -548,7 +597,8 @@ const AltFormRenderer = ({
     setMyRow(null);
     setIsSubmitted(false);
     setErrors({});
-    setData(withDocResponseDefaults(form.fields));
+    setReuseDroppedNotice(null);
+    setData(applyFieldDefaults(form.fields));
     setViewMode("compose");
     onViewModeChange?.("compose");
   };
@@ -574,9 +624,10 @@ const AltFormRenderer = ({
       setReviewIndex(idx);
       const row = myRows[idx];
       if (row) {
-        setData(withDocResponseDefaults(form.fields, row.data || {}));
+        setData(applyFieldDefaults(form.fields, row.data || {}));
       }
       skipNextExternalViewMode.current = true;
+      setReuseDroppedNotice(null);
       setViewMode("review");
       onViewModeChange?.("review");
       return;
@@ -587,11 +638,11 @@ const AltFormRenderer = ({
       return;
     }
     if (myRow) {
-      setData(withDocResponseDefaults(form.fields, myRow.data || {}));
+      setData(applyFieldDefaults(form.fields, myRow.data || {}));
       setIsSubmitted(!isDraftSheetRow(myRow));
     } else if (myRows[0]) {
       setMyRow(myRows[0]);
-      setData(withDocResponseDefaults(form.fields, myRows[0].data || {}));
+      setData(applyFieldDefaults(form.fields, myRows[0].data || {}));
       setIsSubmitted(!isDraftSheetRow(myRows[0]));
     } else {
       const local = currentUser?._id
@@ -599,7 +650,7 @@ const AltFormRenderer = ({
             formResponseDraftStorageKey(currentUser._id, form._id, "new")
           )
         : null;
-      setData(withDocResponseDefaults(form.fields, local?.data || {}));
+      setData(applyFieldDefaults(form.fields, local?.data || {}));
       setIsSubmitted(false);
     }
     setErrors({});
@@ -625,7 +676,7 @@ const AltFormRenderer = ({
     if (!form || nextIndex < 0 || nextIndex >= myRows.length) return;
     setReviewIndex(nextIndex);
     const row = myRows[nextIndex];
-    setData(withDocResponseDefaults(form.fields, row.data || {}));
+    setData(applyFieldDefaults(form.fields, row.data || {}));
   };
 
   /** 양식에서 삭제된 필드의 제출값 (스키마에 없는 data 키) */
@@ -739,11 +790,17 @@ const AltFormRenderer = ({
     const row = myRows[reviewIndex];
     if (!row) return;
     const copied = copyRowDataForReuse(row.data, form.fields);
+    const { data: filtered, dropped } = filterReusedPickPeople(
+      copied,
+      form.fields,
+      pickCandidateIdsFromBoard(board)
+    );
     skipNextExternalViewMode.current = true;
-    setData(withDocResponseDefaults(form.fields, copied));
+    setData(applyFieldDefaults(form.fields, filtered));
     setMyRow(null);
     setIsSubmitted(false);
     setErrors({});
+    setReuseDroppedNotice(formatReusedDroppedNotice(dropped));
     setViewMode("compose");
     onViewModeChange?.("compose");
   };
@@ -754,9 +811,10 @@ const AltFormRenderer = ({
     if (!row) return;
     if (!isDraftSheetRow(row) && !form.settings.allowResubmit) return;
     skipNextExternalViewMode.current = true;
+    setReuseDroppedNotice(null);
     setMyRow(row);
     setData(
-      withDocResponseDefaults(
+      applyFieldDefaults(
         form.fields,
         mergeRowDataForEdit(row.data, data)
       )
@@ -785,6 +843,15 @@ const AltFormRenderer = ({
     storageKey: localDraftKey,
     data,
   });
+
+  const reuseNoticeFieldId = useMemo(() => {
+    if (!reuseDroppedNotice || !form) return null;
+    return (
+      form.fields.find(
+        (f) => f.type === "approval" || f.type === "circulation"
+      )?._id || null
+    );
+  }, [reuseDroppedNotice, form]);
 
   const hasSubmittedViewRow = isReviewMode
     ? !!activeRow && !activeIsDraft
@@ -904,6 +971,16 @@ const AltFormRenderer = ({
           if (msg) newErrors[field._id] = msg;
         }
         continue;
+      } else if (field.type === "circulation") {
+        const cfg = getCirculationConfig(field);
+        if (cfg.mode === "fixed") continue;
+        if (field.required) {
+          const list = Array.isArray(value) ? value : [];
+          if (!list.some((u: { userId?: string }) => u?.userId)) {
+            newErrors[field._id] = "회람자를 한 명 이상 선택해주세요.";
+          }
+        }
+        continue;
       } else if (field.required) {
         if (field.type === "file") {
           const hasAttachment =
@@ -994,7 +1071,7 @@ const AltFormRenderer = ({
         window.alert("필수 항목을 확인한 뒤 제출해 주세요.");
         skipNextExternalViewMode.current = true;
         setMyRow(targetRow);
-        setData(withDocResponseDefaults(form.fields, targetRow.data || {}));
+        setData(applyFieldDefaults(form.fields, targetRow.data || {}));
         setIsSubmitted(false);
         setViewMode("compose");
         onViewModeChange?.("compose");
@@ -1004,7 +1081,7 @@ const AltFormRenderer = ({
 
     setIsSubmitting(true);
     try {
-      const submitData = withDocResponseDefaults(form.fields, data);
+      const submitData = applyFieldDefaults(form.fields, data);
       const editingDraft = !!(targetRow && isDraftSheetRow(targetRow));
       const editingSubmitted = !!(
         targetRow &&
@@ -1043,7 +1120,7 @@ const AltFormRenderer = ({
         const nextRows = sortMyRowsForReview(merged);
         setMyRows(nextRows);
         setMyRow(row);
-        setData(withDocResponseDefaults(form.fields, row.data || submitData));
+        setData(applyFieldDefaults(form.fields, row.data || submitData));
         setIsSubmitted(true);
         const idx = nextRows.findIndex((r) => r._id === row._id);
         setReviewIndex(idx >= 0 ? idx : 0);
@@ -1080,18 +1157,18 @@ const AltFormRenderer = ({
         const submittedCount = splitMyRows(nextRows).submittedRows.length;
         if (target != null && submittedCount >= target) {
           setReviewIndex(0);
-          setData(withDocResponseDefaults(form.fields, row.data || {}));
+          setData(applyFieldDefaults(form.fields, row.data || {}));
           setViewMode("review");
           onViewModeChange?.("review");
           setIsSubmitted(false);
         } else {
-          setData(withDocResponseDefaults(form.fields));
+          setData(applyFieldDefaults(form.fields));
           setIsSubmitted(false);
         }
       } else {
         setMyRow(row);
         setMyRows(sortMyRowsForReview([row]));
-        setData(withDocResponseDefaults(form.fields, row.data || submitData));
+        setData(applyFieldDefaults(form.fields, row.data || submitData));
         setIsSubmitted(true);
       }
     } catch (err) {
@@ -1105,7 +1182,7 @@ const AltFormRenderer = ({
     if (!form) return;
     setIsSavingDraft(true);
     try {
-      const saveData = withDocResponseDefaults(form.fields, data);
+      const saveData = applyFieldDefaults(form.fields, data);
       const { row } = await AltSheetRowAPI.CAltSheetRowDraft({
         data: {
           form: form._id,
@@ -1133,7 +1210,7 @@ const AltFormRenderer = ({
       setIsSubmitted(false);
       const idx = nextRows.findIndex((r) => r._id === row._id);
       setReviewIndex(idx >= 0 ? idx : 0);
-      setData(withDocResponseDefaults(form.fields, row.data || saveData));
+      setData(applyFieldDefaults(form.fields, row.data || saveData));
       skipNextExternalViewMode.current = true;
       setViewMode("review");
       onViewModeChange?.("review");
@@ -1163,13 +1240,13 @@ const AltFormRenderer = ({
         const nextIdx = Math.min(reviewIndex, nextRows.length - 1);
         setReviewIndex(nextIdx);
         setData(
-          withDocResponseDefaults(form.fields, nextRows[nextIdx].data || {})
+          applyFieldDefaults(form.fields, nextRows[nextIdx].data || {})
         );
         setViewMode("review");
         onViewModeChange?.("review");
       } else {
         setReviewIndex(0);
-        setData(withDocResponseDefaults(form.fields));
+        setData(applyFieldDefaults(form.fields));
         setViewMode("compose");
         onViewModeChange?.("compose");
       }
@@ -1931,7 +2008,10 @@ const AltFormRenderer = ({
         // 제출 전: 고정·지정 단계를 결재선 순서로 표시
         const pickSteps = lineSteps.filter((s) => s.mode === "pick");
         const writerUsers = board.writers?.users || [];
-        const circulationDef = getApprovalCirculation(field);
+        const useNestedCirculation = !formHasCirculationField(form?.fields);
+        const circulationDef = useNestedCirculation
+          ? getApprovalCirculation(field)
+          : { mode: "off" as const, users: [] as TApprovalApprover[] };
         const boardAdmins = (
           board as {
             admins?: {
@@ -1994,7 +2074,7 @@ const AltFormRenderer = ({
             status: "pending",
             approver: steps[0]?.approver,
             steps,
-            circulation,
+            circulation: useNestedCirculation ? circulation : [],
           };
         };
 
@@ -2014,7 +2094,7 @@ const AltFormRenderer = ({
             <div>
               <div className={style.approvalPickRow}>
                 <span className={style.approvalPickLabel}>회람</span>
-                <SettingsHint text="결재 없이 이 제출 건을 볼 사람입니다. 비워 둘 수 있습니다." />
+                <SettingsHint text="기본이 있으면 바꿀 수 있고, 비울 수 있습니다." />
               </div>
               <ApprovalCirculationPicker
                 selected={currentCirculation}
@@ -2031,6 +2111,11 @@ const AltFormRenderer = ({
 
         return (
           <div className={style.approvalCompose}>
+            {reuseNoticeFieldId === field._id && reuseDroppedNotice && (
+              <span className={style.approvalFieldHint}>
+                {reuseDroppedNotice}
+              </span>
+            )}
             {composeRows.map((row) => {
               if (row.kind === "fixed") {
                 return (
@@ -2060,7 +2145,7 @@ const AltFormRenderer = ({
                     <span className={style.approvalPickLabel}>
                       {row.label} 승인자 선택
                     </span>
-                    <SettingsHint text="비워 두면 이 단계는 건너뜁니다." />
+                    <SettingsHint text="기본이 있으면 바꿀 수 있습니다. 비우면 이 단계는 건너뜁니다." />
                   </div>
                   {selected?.userName ? (
                     <CirculationUserChips
@@ -2100,6 +2185,76 @@ const AltFormRenderer = ({
               );
             })}
             {circulationBlock}
+          </div>
+        );
+      }
+
+      case "circulation": {
+        const circDef = getCirculationConfig(field);
+        const boardAdmins = (
+          board as {
+            admins?: {
+              users?: { user?: string; userId?: string; userName?: string }[];
+            };
+          }
+        ).admins?.users;
+        const circulationCandidates = uniqueApprovalCandidates(
+          board.members?.users,
+          board.writers?.users,
+          boardAdmins
+        );
+        const selected: TApprovalApprover[] =
+          circDef.mode === "fixed"
+            ? circDef.users
+            : Array.isArray(value)
+              ? value
+              : [];
+
+        if ((isSubmitted || isReviewMode) && selected.length > 0) {
+          return (
+            <div className={style.approvalCirculationLine}>
+              <CirculationUserChips users={selected} />
+            </div>
+          );
+        }
+        if (circDef.mode === "fixed") {
+          return selected.length > 0 ? (
+            <div>
+              {reuseNoticeFieldId === field._id && reuseDroppedNotice && (
+                <span className={style.approvalFieldHint}>
+                  {reuseDroppedNotice}
+                </span>
+              )}
+              <div className={style.approvalPickRow}>
+                <span className={style.approvalPickLabel}>회람</span>
+                <SettingsHint text="양식에서 정해진 회람자입니다." />
+              </div>
+              <CirculationUserChips users={selected} />
+            </div>
+          ) : (
+            <span className={style.approvalFieldHint}>고정 회람자 없음</span>
+          );
+        }
+        if (circDef.mode === "off") {
+          return null;
+        }
+        return (
+          <div>
+            {reuseNoticeFieldId === field._id && reuseDroppedNotice && (
+              <span className={style.approvalFieldHint}>
+                {reuseDroppedNotice}
+              </span>
+            )}
+            <div className={style.approvalPickRow}>
+              <span className={style.approvalPickLabel}>회람</span>
+              <SettingsHint text="기본이 있으면 바꿀 수 있고, 비울 수 있습니다." />
+            </div>
+            <ApprovalCirculationPicker
+              selected={selected}
+              candidates={circulationCandidates}
+              disabled={disabled}
+              onChange={(users) => setValue(field._id, users)}
+            />
           </div>
         );
       }

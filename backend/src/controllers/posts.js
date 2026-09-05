@@ -24,6 +24,7 @@ import {
 } from "../utils/mergeEngine.js";
 import { getAltBoardRole } from "../services/altForms.js";
 import { submittedSheetRowFilter } from "../utils/sheetRowQuery.js";
+import { buildApprovalAccessOr } from "../utils/approvalLine.js";
 import {
   isBoardMember,
   isBoardWriter,
@@ -472,17 +473,11 @@ export const find = async (req, res) => {
               ) {
                 // 전체 공유 / 직접입력 모드: 응답자 없는 행 포함 전체
               } else {
-                const approvalFieldIds = (form.fields || [])
-                  .filter((f) => f.type === "approval")
-                  .map((f) => f._id.toString());
-                if (approvalFieldIds.length > 0) {
-                  const approverConditions = approvalFieldIds.flatMap((fid) => [
-                    { [`data.${fid}.approver.userId`]: req.user.userId },
-                    { [`data.${fid}.circulation.userId`]: req.user.userId },
-                  ]);
+                const accessOr = buildApprovalAccessOr(form, req.user.userId);
+                if (accessOr.length > 0) {
                   rowQuery.$or = [
                     { _respondent: req.user._id },
-                    ...approverConditions,
+                    ...accessOr,
                   ];
                 } else {
                   rowQuery._respondent = req.user._id;

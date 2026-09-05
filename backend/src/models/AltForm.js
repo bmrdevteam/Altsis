@@ -49,6 +49,7 @@ const altFormFieldSchema = mongoose.Schema({
       "scale",
       "counter",
       "approval",
+      "circulation",
       "link",
       "content",
       "docResponse",
@@ -184,6 +185,25 @@ const altFormFieldSchema = mongoose.Schema({
         },
         default: undefined,
       },
+    },
+    default: undefined,
+  },
+
+  // 회람 필드 (type === circulation). 예전 양식은 approvalLine.circulation
+  circulation: {
+    type: {
+      mode: {
+        type: String,
+        enum: ["off", "pick", "fixed"],
+        default: "pick",
+      },
+      users: [
+        {
+          user: String,
+          userId: String,
+          userName: String,
+        },
+      ],
     },
     default: undefined,
   },

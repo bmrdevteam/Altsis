@@ -8,6 +8,7 @@ import { logger } from "../log/logger.js";
 import { AltForm, AltFormFavorite, AltSheet, AltSheetOpen, AltSheetRow, Board, CalendarEvent } from "../models/index.js";
 import { canManageForm, canModifyForm, getAltBoardRole, hasSubmittedForList, resolveUnreadResponseCount, validateExclusiveFormModes, applyWeekdayScheduleNormalize, isWeekdayScheduleEnabled, isInOccurrenceWindow, hasSubmittedCurrentOccurrence, getEffectiveTodoCloseAt, isFormMember, canViewAllRows, normalizeFormAccess, resolveFormMemberUsers, estimateWeekdayOccurrenceCount } from "../services/altForms.js";
 import { cloneAltFormToBoard } from "../services/altFormClone.js";
+import { buildApprovalAccessOr } from "../utils/approvalLine.js";
 import { isBoardNotificationEnabled } from "../services/notifications.js";
 import { getUserRoleInSeason, isSeasonScopedBoard } from "../services/boards.js";
 import {
@@ -443,17 +444,12 @@ export const find = async (req, res) => {
         }
       } else if (!isFormMember(form, board, req.user, schoolRole)) {
         // 역할 없지만 승인자로 지정된 경우 접근 허용
-        const approvalFieldIds = form.fields
-          .filter((f) => f.type === "approval")
-          .map((f) => f._id.toString());
-        if (approvalFieldIds.length === 0) {
+        const accessOr = buildApprovalAccessOr(form, req.user.userId);
+        if (accessOr.length === 0) {
           return res.status(403).send({ message: PERMISSION_DENIED });
         }
         const approverQuery = { form: form._id, ...submittedSheetRowFilter() };
-        approverQuery.$or = approvalFieldIds.flatMap((fid) => [
-          { [`data.${fid}.approver.userId`]: req.user.userId },
-          { [`data.${fid}.circulation.userId`]: req.user.userId },
-        ]);
+        approverQuery.$or = accessOr;
         const approverRowCount = await AltSheetRow(req.user.academyId).countDocuments(approverQuery);
         if (approverRowCount === 0) {
           return res.status(403).send({ message: PERMISSION_DENIED });
@@ -507,15 +503,10 @@ export const find = async (req, res) => {
       // 역할 없지만 승인자로 지정된 양식만 반환
       const approverForms = [];
       for (const form of forms) {
-        const approvalFieldIds = form.fields
-          .filter((f) => f.type === "approval")
-          .map((f) => f._id.toString());
-        if (approvalFieldIds.length === 0) continue;
+        const accessOr = buildApprovalAccessOr(form, req.user.userId);
+        if (accessOr.length === 0) continue;
         const approverQuery = { form: form._id, ...submittedSheetRowFilter() };
-        approverQuery.$or = approvalFieldIds.flatMap((fid) => [
-          { [`data.${fid}.approver.userId`]: req.user.userId },
-          { [`data.${fid}.circulation.userId`]: req.user.userId },
-        ]);
+        approverQuery.$or = accessOr;
         const count = await AltSheetRow(req.user.academyId).countDocuments(approverQuery);
         if (count > 0) approverForms.push(form);
       }
@@ -773,6 +764,8 @@ export const exportForm = async (req, res) => {
         rubricId: f.rubricId,
         rubricIds: f.rubricIds,
         duplicateCheck: f.duplicateCheck,
+        approvalLine: f.approvalLine,
+        circulation: f.circulation,
         attachments: f.attachments,
         links: f.links,
       })),

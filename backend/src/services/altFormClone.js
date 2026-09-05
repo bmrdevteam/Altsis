@@ -38,6 +38,7 @@ export const cloneAltFormToBoard = async (
     rubricIds: f.rubricIds ? [...f.rubricIds] : undefined,
     duplicateCheck: f.duplicateCheck,
     approvalLine: f.approvalLine,
+    circulation: f.circulation,
     attachments: Array.isArray(f.attachments)
       ? f.attachments.map((a) => ({
           originalName: a.originalName,

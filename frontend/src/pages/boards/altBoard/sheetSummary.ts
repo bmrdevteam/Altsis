@@ -60,6 +60,7 @@ const LIST_TYPES = new Set([
   "textarea",
   "docResponse",
   "userSelect",
+  "circulation",
   "link",
 ]);
 
@@ -131,6 +132,18 @@ const formatDisplayValue = (value: unknown, field: TAltFormField): string => {
     return v.userName
       ? `${v.userName}${v.userId ? ` (${v.userId})` : ""}`
       : String((value as { user?: string }).user || "");
+  }
+  if (field.type === "circulation" && Array.isArray(value)) {
+    return value
+      .map((u) => {
+        if (!u || typeof u !== "object") return "";
+        const v = u as { userName?: string; userId?: string };
+        return v.userName
+          ? `${v.userName}${v.userId ? ` (${v.userId})` : ""}`
+          : v.userId || "";
+      })
+      .filter(Boolean)
+      .join(", ");
   }
   if (field.type === "link" && typeof value === "object" && value) {
     const v = value as { title?: string; ogTitle?: string; url?: string };
