@@ -94,7 +94,8 @@ const BoardPid = () => {
     if (
       searchParams.has("form") ||
       searchParams.has("sheet") ||
-      searchParams.has("approval")
+      searchParams.has("approval") ||
+      searchParams.has("row")
     ) {
       return;
     }
@@ -152,7 +153,8 @@ const BoardPid = () => {
   const shouldStayOnBoard =
     searchParams.has("form") ||
     searchParams.has("sheet") ||
-    searchParams.has("approval");
+    searchParams.has("approval") ||
+    searchParams.has("row");
   const courseRedirectSurface = (() => {
     let hash = "";
     try {
