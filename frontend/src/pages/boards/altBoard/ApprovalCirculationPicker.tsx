@@ -1,35 +1,6 @@
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useMemo, useState } from "react";
 import style from "./altBoard.module.scss";
 import { formatApproverLabel, TApprovalApprover } from "utils/approvalLine";
-
-const LIST_MAX_HEIGHT = 320;
-const LIST_GAP = 4;
-
-export type TSearchListPlacement = {
-  left: number;
-  width: number;
-  top?: number;
-  bottom?: number;
-};
-
-/** viewport 좌표. 위로 열 때는 bottom을 입력칸에 붙여 짧은 목록이 동떨어지지 않게 한다. */
-export function searchListPlacement(
-  rect: Pick<DOMRect, "top" | "bottom" | "left" | "width">,
-  viewportHeight: number,
-  maxH = LIST_MAX_HEIGHT
-): TSearchListPlacement {
-  const left = rect.left;
-  const width = rect.width;
-  const topBelow = rect.bottom + LIST_GAP;
-  const wouldOverflowBelow = topBelow + maxH > viewportHeight - 8;
-  const spaceAbove = rect.top - 8;
-  const spaceBelow = viewportHeight - rect.bottom - 8;
-  if (wouldOverflowBelow && spaceAbove > spaceBelow) {
-    return { left, width, bottom: viewportHeight - rect.top + LIST_GAP };
-  }
-  return { left, width, top: topBelow };
-}
 
 export function uniqueApprovalCandidates(
   ...lists: Array<
@@ -104,31 +75,6 @@ export function ApprovalUserSearchInput({
   );
   const canOpen = remainingCount > 0;
   const showList = open && canOpen;
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const [listPos, setListPos] = useState<TSearchListPlacement>({
-    left: 0,
-    width: 0,
-    top: 0,
-  });
-
-  useLayoutEffect(() => {
-    if (!showList) return;
-    const updatePos = () => {
-      const el = wrapRef.current;
-      if (!el) return;
-      const maxH = Math.min(window.innerHeight * 0.5, LIST_MAX_HEIGHT);
-      setListPos(
-        searchListPlacement(el.getBoundingClientRect(), window.innerHeight, maxH)
-      );
-    };
-    updatePos();
-    window.addEventListener("scroll", updatePos, true);
-    window.addEventListener("resize", updatePos);
-    return () => {
-      window.removeEventListener("scroll", updatePos, true);
-      window.removeEventListener("resize", updatePos);
-    };
-  }, [showList]);
 
   const pick = (u: TApprovalApprover) => {
     onPick(u);
@@ -136,42 +82,8 @@ export function ApprovalUserSearchInput({
     setOpen(false);
   };
 
-  const list = showList
-    ? createPortal(
-        <div
-          className={style.userSearchDropdown}
-          role="listbox"
-          style={{
-            top: listPos.bottom != null ? "auto" : listPos.top,
-            bottom: listPos.bottom != null ? listPos.bottom : "auto",
-            left: listPos.left,
-            width: listPos.width,
-          }}
-        >
-          {matches.length > 0 ? (
-            matches.map((u) => (
-              <div
-                key={u.userId}
-                className={style.userSearchItem}
-                role="option"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => pick(u)}
-              >
-                {u.userName} ({u.userId})
-              </div>
-            ))
-          ) : (
-            <div className={style.userSearchEmpty} role="status">
-              검색 결과 없음
-            </div>
-          )}
-        </div>,
-        document.body
-      )
-    : null;
-
   return (
-    <div className={style.userSearchWrap} ref={wrapRef}>
+    <div className={style.userSearchWrap}>
       <input
         className={style.textInput}
         placeholder={placeholder}
@@ -198,7 +110,31 @@ export function ApprovalUserSearchInput({
           }
         }}
       />
-      {list}
+      {showList && (
+        <div
+          className={style.userSearchDropdown}
+          data-user-search-dropdown
+          role="listbox"
+        >
+          {matches.length > 0 ? (
+            matches.map((u) => (
+              <div
+                key={u.userId}
+                className={style.userSearchItem}
+                role="option"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => pick(u)}
+              >
+                {u.userName} ({u.userId})
+              </div>
+            ))
+          ) : (
+            <div className={style.userSearchEmpty} role="status">
+              검색 결과 없음
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

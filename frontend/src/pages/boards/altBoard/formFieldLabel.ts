@@ -17,6 +17,7 @@ export const FIELD_TYPE_LABELS: Record<TAltFormFieldType, string> = {
   scale: "척도",
   counter: "카운터",
   approval: "승인",
+  circulation: "회람",
   link: "링크",
   content: "안내 문서",
   docResponse: "응답 문서",

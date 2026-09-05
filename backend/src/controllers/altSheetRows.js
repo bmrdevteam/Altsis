@@ -52,9 +52,14 @@ import { coerceFieldValueFromCsv } from "../utils/timetableSlots.js";
 import {
   validateApprovalSubmit,
   buildApprovalOnSubmit,
+  validateCirculationSubmit,
+  buildCirculationOnSubmit,
+  collectStoredCirculatees,
+  buildApprovalAccessOr,
   applyApprovalAction,
   isCurrentApprover,
   isCirculatee,
+  isStoredCirculatee,
   normalizeApprovalValue,
 } from "../utils/approvalLine.js";
 
@@ -483,8 +488,8 @@ export const create = async (req, res) => {
         }
         continue;
       }
-      // 승인: 응답값이 비어 있어도 고정 결재선이면 아래에서 초기화한다.
-      if (field.type === "approval") continue;
+      // 승인·회람: 고정 인원은 아래에서 스냅샷한다.
+      if (field.type === "approval" || field.type === "circulation") continue;
       if (!field.required) continue;
       if (value === undefined || value === null || value === "") {
         return res
@@ -798,6 +803,16 @@ export const create = async (req, res) => {
       if (built) rowData[fid] = built;
     }
 
+    for (const field of form.fields) {
+      if (field.type !== "circulation") continue;
+      const fid = field._id.toString();
+      const errMsg = validateCirculationSubmit(field, rowData[fid]);
+      if (errMsg) {
+        return res.status(400).send({ message: errMsg });
+      }
+      rowData[fid] = buildCirculationOnSubmit(field, rowData[fid]);
+    }
+
     // 퀴즈 자동 채점
     if (form.settings?.quizMode) {
       const quizResult = gradeQuizRow(form, rowData);
@@ -859,6 +874,7 @@ export const create = async (req, res) => {
       "altFormApprovalRequest"
     );
     if (approvalNotifEnabled) {
+      const skipCirculationIds = new Set();
       for (const field of form.fields) {
         if (field.type !== "approval") continue;
         const approvalData = normalizeApprovalValue(
@@ -867,6 +883,7 @@ export const create = async (req, res) => {
         );
         const approver = approvalData?.steps?.[0]?.approver;
         if (approver?.user) {
+          if (approver.userId) skipCirculationIds.add(approver.userId);
           try {
             await sendAutoNotification({
               academyId: req.user.academyId,
@@ -882,28 +899,24 @@ export const create = async (req, res) => {
             // 알림 실패는 응답에 영향 없음
           }
         }
-        const skipCirculationIds = new Set();
-        if (approver?.user && approver.userId) {
-          skipCirculationIds.add(approver.userId);
-        }
-        const circulatees = (approvalData?.circulation || []).filter(
-          (u) => u?.user && u.userId && !skipCirculationIds.has(u.userId)
-        );
-        if (circulatees.length > 0) {
-          try {
-            await sendAutoNotification({
-              academyId: req.user.academyId,
-              toUserList: circulatees,
-              notificationType: "altFormApprovalRequest",
-              category: "Alt Board",
-              title: `회람: ${form.title}`,
-              description: `${req.user.userName}님이 문서를 회람했습니다.`,
-              relatedEntity: { type: "altSheetRow", id: row._id },
-              fromUser: req.user,
-            });
-          } catch (e) {
-            // 알림 실패는 응답에 영향 없음
-          }
+      }
+      const circulatees = collectStoredCirculatees(form, rowData).filter(
+        (u) => u?.user && u.userId && !skipCirculationIds.has(u.userId)
+      );
+      if (circulatees.length > 0) {
+        try {
+          await sendAutoNotification({
+            academyId: req.user.academyId,
+            toUserList: circulatees,
+            notificationType: "altFormApprovalRequest",
+            category: "Alt Board",
+            title: `회람: ${form.title}`,
+            description: `${req.user.userName}님이 문서를 회람했습니다.`,
+            relatedEntity: { type: "altSheetRow", id: row._id },
+            fromUser: req.user,
+          });
+        } catch (e) {
+          // 알림 실패는 응답에 영향 없음
         }
       }
     }
@@ -956,40 +969,33 @@ export const find = async (req, res) => {
     const approvalFieldIds = form.fields
       .filter((f) => f.type === "approval")
       .map((f) => f._id.toString());
+    const accessOr = buildApprovalAccessOr(form, req.user.userId);
 
-    if (!member && !role && approvalFieldIds.length === 0) {
+    if (!member && !role && accessOr.length === 0) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
     let query = { form: form._id, ...submittedSheetRowFilter() };
-
-    const approverOrForFields = (fieldIds) =>
-      fieldIds.flatMap((fid) => [
-        { [`data.${fid}.currentApproverUserId`]: req.user.userId },
-        { [`data.${fid}.approver.userId`]: req.user.userId },
-        { [`data.${fid}.circulation.userId`]: req.user.userId },
-      ]);
 
     if (viewAll) {
       // 기록 전체
     } else if (member || role === "respondent") {
       if (form.settings?.shareResponses) {
         // shareResponses 켜짐: 전체 행 열람 가능
-      } else if (approvalFieldIds.length > 0) {
+      } else if (accessOr.length > 0) {
         query.$or = [
           { _respondent: req.user._id },
-          ...approverOrForFields(approvalFieldIds),
+          ...accessOr,
         ];
       } else {
         query._respondent = req.user._id;
       }
-    } else if (approvalFieldIds.length > 0) {
-      // 역할 없지만 승인자로 지정된 행만
-      const approverConditions = approverOrForFields(approvalFieldIds);
-      if (approverConditions.length === 1) {
-        Object.assign(query, approverConditions[0]);
+    } else if (accessOr.length > 0) {
+      // 역할 없지만 승인자·회람자로 지정된 행만
+      if (accessOr.length === 1) {
+        Object.assign(query, accessOr[0]);
       } else {
-        query.$or = approverConditions;
+        query.$or = accessOr;
       }
     } else {
       return res.status(403).send({ message: PERMISSION_DENIED });
@@ -1007,9 +1013,14 @@ export const find = async (req, res) => {
           f._id.toString()
         )
       );
-      // 승인 필드는 승인자에게 항상 표시
+      // 승인·회람 필드는 지정된 사람에게 항상 표시
       for (const fid of approvalFieldIds) {
         visibleFieldIds.add(fid);
+      }
+      for (const field of form.fields || []) {
+        if (field.type === "circulation") {
+          visibleFieldIds.add(field._id.toString());
+        }
       }
 
       // 퀴즈 reveal 설정 처리
@@ -1987,11 +1998,12 @@ export const findById = async (req, res) => {
       }
       return v.steps.some((s) => s.approver?.userId === req.user.userId);
     });
-    const wasCirculatee = approvalFields.some((f) => {
-      const raw = row.data?.[f._id.toString()];
-      const v = normalizeApprovalValue(raw, f);
-      return isCirculatee(v || raw, req.user.userId);
-    });
+    const wasCirculatee =
+      approvalFields.some((f) => {
+        const raw = row.data?.[f._id.toString()];
+        const v = normalizeApprovalValue(raw, f);
+        return isCirculatee(v || raw, req.user.userId);
+      }) || isStoredCirculatee(form, row.data, req.user.userId);
 
     if (!isAdmin && !isOwner && !isApprover && !wasApprover && !wasCirculatee) {
       if (form.settings?.shareResponses && role === "respondent") {

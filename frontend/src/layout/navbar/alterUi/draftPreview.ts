@@ -161,9 +161,7 @@ export const formatDraftFieldText = (
   value: unknown,
   field?: { type?: string; approvalLine?: unknown } | null
 ) => {
-  const asApproval =
-    field?.type === "approval" || looksLikeApprovalValue(value);
-  if (asApproval) {
+  if (field?.type === "approval" || looksLikeApprovalValue(value)) {
     const normalized = normalizeApprovalValue(value);
     const steps = normalized?.steps || [];
     const lines = steps.map((step, i) => {
@@ -175,6 +173,10 @@ export const formatDraftFieldText = (
     if (normalized?.overallStatus === "approved") return "결재 생략";
   }
   if (field?.type === "userSelect" || looksLikeUserSelectValue(value)) {
+    const names = formatUserSelectText(value);
+    if (names) return names;
+  }
+  if (field?.type === "circulation") {
     const names = formatUserSelectText(value);
     if (names) return names;
   }

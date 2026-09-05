@@ -4,8 +4,10 @@ import {
   formatCirculationNames,
   getApprovalCirculation,
   getApprovalComposeRows,
+  getCirculationConfig,
   getRequiredApprovalError,
   isCurrentApprover,
+  liftNestedCirculationFields,
 } from "./approvalLine";
 
 const approver = {
@@ -310,5 +312,70 @@ describe("getApprovalComposeRows", () => {
         approver: undefined,
       },
     ]);
+  });
+});
+
+describe("circulation field helpers", () => {
+  test("missing dedicated config defaults to pick", () => {
+    expect(getCirculationConfig({})).toEqual({ mode: "pick", users: [] });
+  });
+
+  test("liftNestedCirculationFields inserts a sibling and turns nested off", () => {
+    const fields = [
+      {
+        _id: "appr1",
+        label: "승인",
+        type: "approval" as const,
+        permission: "respondent" as const,
+        visibleToRespondent: false,
+        required: false,
+        order: 0,
+        approvalLine: {
+          steps: [{ order: 0, label: "1차 승인", mode: "pick" as const }],
+          circulation: { mode: "fixed" as const, users: [approver] },
+        },
+      },
+    ];
+    const next = liftNestedCirculationFields(fields);
+    expect(next).toHaveLength(2);
+    expect(next[0].approvalLine?.circulation).toEqual({
+      mode: "off",
+      users: [],
+    });
+    expect(next[1]).toMatchObject({
+      type: "circulation",
+      label: "회람",
+      circulation: { mode: "fixed", users: [approver] },
+    });
+    expect(next[1]._id).not.toBe("appr1");
+  });
+
+  test("liftNestedCirculationFields is a no-op when a circulation field exists", () => {
+    const fields = [
+      {
+        _id: "appr1",
+        label: "승인",
+        type: "approval" as const,
+        permission: "respondent" as const,
+        visibleToRespondent: false,
+        required: false,
+        order: 0,
+        approvalLine: {
+          steps: [{ order: 0, label: "1차 승인", mode: "pick" as const }],
+          circulation: { mode: "pick" as const, users: [] },
+        },
+      },
+      {
+        _id: "circ1",
+        label: "회람",
+        type: "circulation" as const,
+        permission: "respondent" as const,
+        visibleToRespondent: false,
+        required: false,
+        order: 1,
+        circulation: { mode: "pick" as const, users: [] },
+      },
+    ];
+    expect(liftNestedCirculationFields(fields)).toBe(fields);
   });
 });

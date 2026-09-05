@@ -32,6 +32,7 @@ export type TAltFormFieldType =
   | "scale"
   | "counter"
   | "approval"
+  | "circulation"
   | "link"
   | "content"
   | "docResponse"
@@ -186,6 +187,8 @@ export type TAltFormField = {
   duplicateCheck?: TDuplicateCheck;
   /** type === approval: 결재선 (양식에 저장, 복제·JSON과 함께 이동) */
   approvalLine?: TApprovalLine;
+  /** type === circulation: 회람 (고정 또는 지정). 예전 양식은 approvalLine.circulation */
+  circulation?: TApprovalCirculation;
 };
 
 export type TQuizSettings = {

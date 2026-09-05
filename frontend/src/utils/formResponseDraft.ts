@@ -38,6 +38,7 @@ export const FORM_RESPONSE_WRITABLE_TYPES = new Set([
   "scale",
   "counter",
   "approval",
+  "circulation",
   "link",
 ]);
 
@@ -222,6 +223,17 @@ export const coerceFormResponseValue = (
           steps,
         }
       : null;
+  }
+
+  if (type === "circulation") {
+    if (Array.isArray(raw)) {
+      const users = raw
+        .map((r) => findCandidate(userCandidates, r))
+        .filter(Boolean) as TFormResponseUserCandidate[];
+      return users.length ? users : null;
+    }
+    const one = findCandidate(userCandidates, raw);
+    return one ? [one] : null;
   }
 
   return null;
