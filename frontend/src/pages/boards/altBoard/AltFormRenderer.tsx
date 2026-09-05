@@ -4,6 +4,7 @@ import { TBoard } from "types/board";
 import {
   TAltForm,
   TAltFormField,
+  TApprovalPersonGroup,
   TAssessmentData,
   TDisplayCondition,
 } from "types/altForm";
@@ -23,7 +24,7 @@ import {
   formHasCirculationField,
   getApprovalCirculation,
   getApprovalComposeRows,
-  getApprovalLineSteps,
+  getEffectiveApprovalLineSteps,
   getCirculationConfig,
   getRequiredApprovalError,
   isApprovalLocked,
@@ -49,6 +50,12 @@ import ApprovalCirculationPicker, {
   CirculationUserChips,
   uniqueApprovalCandidates,
 } from "./ApprovalCirculationPicker";
+import {
+  applyApprovalGroup,
+  applyCirculationGroup,
+  groupsForFieldKind,
+  buildGroupApprovalValue,
+} from "utils/formApprovalGroup";
 import ApprovalProgressBlock from "./ApprovalProgressBlock";
 import TimePicker from "components/timePicker/TimePicker";
 import FieldDocResources from "./FieldDocResources";
@@ -2037,7 +2044,7 @@ const AltFormRenderer = ({
       }
 
       case "approval": {
-        const lineSteps = getApprovalLineSteps(field);
+        const lineSteps = getEffectiveApprovalLineSteps(field, value);
         const approvalData = normalizeApprovalValue(value, field);
 
         // 제출 후·개별 보기: 결재 팝업·기록 문서와 같은 진행 상황
@@ -2131,6 +2138,8 @@ const AltFormRenderer = ({
           });
           return {
             version: 2 as const,
+            lineSource:
+              value?.lineSource === "group" ? ("group" as const) : undefined,
             currentStep: 0,
             overallStatus: "pending" as const,
             status: "pending",
@@ -2138,6 +2147,30 @@ const AltFormRenderer = ({
             steps,
             circulation: useNestedCirculation ? circulation : [],
           };
+        };
+
+        const approverGroups = groupsForFieldKind(
+          form?.approvalGroups,
+          "approver"
+        );
+        const applyApproverGroup = (group: TApprovalPersonGroup) => {
+          const result = applyApprovalGroup(
+            group,
+            approvalCandidates.map((u) => u.userId)
+          );
+          const dropped = result.dropped.map((d) => ({
+            ...d,
+            role: "approver" as const,
+          }));
+          setReuseDroppedNotice(formatReusedDroppedNotice(dropped));
+          if (!result.applied) return;
+          setValue(
+            field._id,
+            buildGroupApprovalValue(
+              result.steps,
+              useNestedCirculation ? currentCirculation : []
+            )
+          );
         };
 
         const pickSearchUsers =
@@ -2177,6 +2210,30 @@ const AltFormRenderer = ({
               <span className={style.approvalFieldHint}>
                 {reuseDroppedNotice}
               </span>
+            )}
+            {approverGroups.length > 0 && !disabled && (
+              <div className={style.approvalPickRow}>
+                <span className={style.approvalPickLabel}>결재선</span>
+                <div className={style.approvalGroupLoad}>
+                  <select
+                    defaultValue=""
+                    aria-label="결재 그룹 불러오기"
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      e.target.value = "";
+                      const group = approverGroups.find((g) => g.id === id);
+                      if (group) applyApproverGroup(group);
+                    }}
+                  >
+                    <option value="">그룹 불러오기</option>
+                    {approverGroups.map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             )}
             {composeRows.map((row) => {
               if (row.kind === "fixed") {
@@ -2310,6 +2367,46 @@ const AltFormRenderer = ({
             <div className={style.approvalPickRow}>
               <span className={style.approvalPickLabel}>회람</span>
               <SettingsHint text="기본이 있으면 바꿀 수 있고, 비울 수 있습니다." />
+              {(() => {
+                const circGroups = groupsForFieldKind(
+                  form?.approvalGroups,
+                  "circulation"
+                );
+                return circGroups.length > 0 && !disabled ? (
+                  <div className={style.approvalGroupLoad}>
+                    <select
+                      defaultValue=""
+                      aria-label="회람 그룹 불러오기"
+                      onChange={(e) => {
+                        const id = e.target.value;
+                        e.target.value = "";
+                        const group = circGroups.find((g) => g.id === id);
+                        if (!group) return;
+                        const result = applyCirculationGroup(
+                          group,
+                          circulationCandidates.map((u) => u.userId)
+                        );
+                        setReuseDroppedNotice(
+                          formatReusedDroppedNotice(
+                            result.dropped.map((d) => ({
+                              ...d,
+                              role: "circulation" as const,
+                            }))
+                          )
+                        );
+                        if (result.applied) setValue(field._id, result.users);
+                      }}
+                    >
+                      <option value="">그룹 불러오기</option>
+                      {circGroups.map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {g.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : null;
+              })()}
             </div>
             <ApprovalCirculationPicker
               selected={selected}

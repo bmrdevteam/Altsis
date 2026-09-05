@@ -8,7 +8,7 @@ import { logger } from "../log/logger.js";
 import { AltForm, AltFormFavorite, AltSheet, AltSheetOpen, AltSheetRow, Board, CalendarEvent } from "../models/index.js";
 import { canManageForm, canModifyForm, getAltBoardRole, hasSubmittedForList, resolveUnreadResponseCount, validateExclusiveFormModes, applyWeekdayScheduleNormalize, isWeekdayScheduleEnabled, isInOccurrenceWindow, hasSubmittedCurrentOccurrence, getEffectiveTodoCloseAt, isFormMember, canViewAllRows, normalizeFormAccess, resolveFormMemberUsers, estimateWeekdayOccurrenceCount } from "../services/altForms.js";
 import { cloneAltFormToBoard } from "../services/altFormClone.js";
-import { buildApprovalAccessOr } from "../utils/approvalLine.js";
+import { buildApprovalAccessOr, sanitizeApprovalGroups } from "../utils/approvalLine.js";
 import { isBoardNotificationEnabled } from "../services/notifications.js";
 import { getUserRoleInSeason, isSeasonScopedBoard } from "../services/boards.js";
 import {
@@ -294,6 +294,7 @@ export const create = async (req, res) => {
       description: req.body.description || "",
       fields,
       rubrics: Array.isArray(req.body.rubrics) ? req.body.rubrics : [],
+      approvalGroups: sanitizeApprovalGroups(req.body.approvalGroups),
       settings: createSettings,
       members: normalizeFormAccess(req.body.members),
       writers: normalizeFormAccess(req.body.writers),
@@ -603,6 +604,10 @@ export const update = async (req, res) => {
       form.rubrics = Array.isArray(req.body.rubrics) ? req.body.rubrics : [];
       form.markModified("rubrics");
     }
+    if ("approvalGroups" in req.body) {
+      form.approvalGroups = sanitizeApprovalGroups(req.body.approvalGroups);
+      form.markModified("approvalGroups");
+    }
     if ("settings" in req.body) {
       Object.assign(form.settings, req.body.settings);
       // 레거시 필드 정리
@@ -770,6 +775,7 @@ export const exportForm = async (req, res) => {
         links: f.links,
       })),
       rubrics: form.rubrics || [],
+      approvalGroups: form.approvalGroups || [],
       settings: {
         allowResubmit: form.settings?.allowResubmit,
         allowMultipleResponses: form.settings?.allowMultipleResponses,
@@ -863,6 +869,7 @@ export const importForm = async (req, res) => {
       description: fd.description || "",
       fields: importFields,
       rubrics: Array.isArray(fd.rubrics) ? fd.rubrics : [],
+      approvalGroups: sanitizeApprovalGroups(fd.approvalGroups),
       settings: importSettings,
     });
 

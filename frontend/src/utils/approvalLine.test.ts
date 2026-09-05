@@ -96,6 +96,30 @@ describe("getRequiredApprovalError", () => {
       })
     ).toBeNull();
   });
+
+  test("group-sourced line ignores form fixed and requires a pick", () => {
+    const field = {
+      approvalLine: {
+        steps: [
+          { order: 0, label: "교감", mode: "fixed" as const, approver },
+        ],
+      },
+    };
+    expect(
+      getRequiredApprovalError(field, {
+        lineSource: "group",
+        version: 2,
+        steps: [{ mode: "pick", label: "부장" }],
+      })
+    ).toBe("승인자를 한 명 이상 선택해주세요.");
+    expect(
+      getRequiredApprovalError(field, {
+        lineSource: "group",
+        version: 2,
+        steps: [{ mode: "pick", label: "부장", approver: { userId: "jo" } }],
+      })
+    ).toBeNull();
+  });
 });
 
 describe("approval circulation helpers", () => {

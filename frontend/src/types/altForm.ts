@@ -94,6 +94,21 @@ export type TApprovalLine = {
   circulation?: TApprovalCirculation;
 };
 
+export type TApprovalPersonGroupKind = "approver" | "circulation" | "both";
+
+export type TApprovalPersonGroupMember = {
+  label: string;
+  user: TApprovalApprover;
+};
+
+/** 양식 스코프 결재·회람 그룹. 제출자가 불러오면 칸 값을 채움 */
+export type TApprovalPersonGroup = {
+  id: string;
+  title: string;
+  kind: TApprovalPersonGroupKind;
+  members: TApprovalPersonGroupMember[];
+};
+
 /** 평가 모드 항목 채점 방식 (퀴즈 auto_exact는 퀴즈 전용) */
 export type TGradingMethod =
   | "none"
@@ -251,6 +266,8 @@ export type TAltForm = {
   fields: TAltFormField[];
   /** 양식 스코프 루브릭 (평가 모드) */
   rubrics?: TFormRubric[];
+  /** 양식 스코프 결재·회람 그룹 */
+  approvalGroups?: TApprovalPersonGroup[];
   settings: TAltFormSettings;
   sheet: string;
   isActive: boolean;

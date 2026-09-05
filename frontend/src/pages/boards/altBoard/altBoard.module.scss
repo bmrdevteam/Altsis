@@ -1253,6 +1253,68 @@
   }
 }
 
+.settingsApprovalGroupsBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+
+  > .settingsItemRow {
+    border-bottom: none;
+  }
+}
+
+.settingsApprovalGroupList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 16px 16px;
+}
+
+.settingsApprovalGroupKind {
+  flex-shrink: 0;
+  max-width: 112px;
+  padding: 5px 8px;
+  border: 1px solid var(--border-default-color, var(--border-color));
+  border-radius: 6px;
+  background: var(--background-color);
+  color: var(--text-color-1);
+  font-size: 12px;
+  font-family: inherit;
+}
+
+.settingsApprovalThStep {
+  width: 44px;
+}
+
+.settingsApprovalThLabel {
+  width: 28%;
+}
+
+.settingsApprovalThPerson {
+  width: auto;
+}
+
+.settingsApprovalStepCell {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-color-2);
+  white-space: nowrap;
+}
+
+.settingsApprovalPersonCell {
+  min-width: 160px;
+
+  .userSearchWrap,
+  .circulationChips {
+    width: 100%;
+  }
+
+  .textInput {
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+}
+
 .settingsRubricCard {
   display: flex;
   flex-direction: column;
@@ -4043,6 +4105,33 @@ tbody tr:hover .actionCell {
 
   .approvalPickLabel {
     margin-bottom: 0;
+  }
+
+  .approvalGroupLoad {
+    margin-left: auto;
+  }
+}
+
+.approvalGroupLoad {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+
+  select {
+    max-width: 180px;
+    padding: 4px 8px;
+    border: 1px solid var(--border-default-color, var(--border-color));
+    border-radius: 6px;
+    background: var(--background-color);
+    color: var(--text-color-1);
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+
+    &:focus {
+      outline: none;
+      border-color: var(--accent-1);
+    }
   }
 }
 

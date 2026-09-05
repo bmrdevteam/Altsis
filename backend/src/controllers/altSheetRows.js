@@ -54,6 +54,7 @@ import { coerceFieldValueFromCsv } from "../utils/timetableSlots.js";
 import {
   validateApprovalSubmit,
   buildApprovalOnSubmit,
+  formHasApprovalGroups,
   validateCirculationSubmit,
   buildCirculationOnSubmit,
   collectStoredCirculatees,
@@ -801,14 +802,34 @@ export const create = async (req, res) => {
     const rowData = { ...data };
 
     // 승인(결재선) 필드: 제출값 검증·v2 초기화
+    const approvalSubmitOptions = {
+      hasApprovalGroups: formHasApprovalGroups(form),
+      candidateIds: new Set(
+        [
+          ...(board.writers?.users || []),
+          ...(board.admins?.users || []),
+        ]
+          .map((u) => u?.userId)
+          .filter(Boolean)
+          .map((id) => String(id))
+      ),
+    };
     for (const field of form.fields) {
       if (field.type !== "approval") continue;
       const fid = field._id.toString();
-      const errMsg = validateApprovalSubmit(field, rowData[fid]);
+      const errMsg = validateApprovalSubmit(
+        field,
+        rowData[fid],
+        approvalSubmitOptions
+      );
       if (errMsg) {
         return res.status(400).send({ message: errMsg });
       }
-      const built = buildApprovalOnSubmit(field, rowData[fid]);
+      const built = buildApprovalOnSubmit(
+        field,
+        rowData[fid],
+        approvalSubmitOptions
+      );
       if (built) rowData[fid] = built;
     }
 

@@ -75,6 +75,34 @@ type ReuseField = Pick<
 >;
 
 const reuseApprovalValue = (raw: any, field: ReuseField) => {
+  if (raw?.lineSource === "group" && Array.isArray(raw.steps)) {
+    const steps = raw.steps.map(
+      (
+        s: { label?: string; approver?: { user?: string; userId?: string; userName?: string } },
+        i: number
+      ) => ({
+        order: i,
+        label: s?.label || `${i + 1}차 승인`,
+        mode: "pick" as const,
+        approver: s?.approver,
+        status: "waiting" as const,
+      })
+    );
+    return {
+      version: 2 as const,
+      lineSource: "group" as const,
+      currentStep: 0,
+      overallStatus: "pending" as const,
+      status: "pending",
+      approver: steps.find(
+        (s: { approver?: { userId?: string } }) => s.approver?.userId
+      )?.approver,
+      steps,
+      circulation: uniqueApproverList(
+        Array.isArray(raw?.circulation) ? raw.circulation : []
+      ),
+    };
+  }
   const lineSteps = getApprovalLineSteps(field);
   const submittedSteps = Array.isArray(raw?.steps) ? raw.steps : null;
   const submittedPicks = submittedSteps
