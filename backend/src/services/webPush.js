@@ -5,6 +5,7 @@
 import webpush from "web-push";
 import {
   AltSheetRow,
+  Board,
   ChatMessage,
   ChatRoom,
   Enrollment,
@@ -71,6 +72,59 @@ const resolveSchoolId = async (academyId, userObjectId) => {
     .select("schools")
     .lean();
   return user?.schools?.[0]?.schoolId || null;
+};
+
+const trimSchoolId = (value) =>
+  typeof value === "string" && value.trim() ? value.trim() : "";
+
+/**
+ * Entity school wins; user first-school is fallback only.
+ * @param {string|null|undefined} entitySchoolId
+ * @param {string|null|undefined} fallbackSchoolId
+ * @returns {string|null}
+ */
+export const pickClickSchoolId = (entitySchoolId, fallbackSchoolId) => {
+  return trimSchoolId(entitySchoolId) || trimSchoolId(fallbackSchoolId) || null;
+};
+
+/**
+ * School slug of the board tied to the notification (not the user's first school).
+ * @param {string} academyId
+ * @param {object} notification
+ * @returns {Promise<string|null>}
+ */
+export const resolveNotificationSchoolId = async (academyId, notification) => {
+  const entity = notification?.relatedEntity;
+  if (!entity?.type || !entity?.id) return null;
+
+  try {
+    let boardId = null;
+    if (entity.type === "board") {
+      boardId = entity.id;
+    } else if (entity.type === "post") {
+      const post = await Post(academyId)
+        .findById(entity.id)
+        .select("board")
+        .lean();
+      boardId = post?.board || null;
+    } else if (entity.type === "altSheetRow") {
+      const row = await AltSheetRow(academyId)
+        .findById(entity.id)
+        .select("board")
+        .lean();
+      boardId = row?.board || null;
+    }
+    if (!boardId) return null;
+
+    const board = await Board(academyId)
+      .findById(boardId)
+      .select("schoolId")
+      .lean();
+    return trimSchoolId(board?.schoolId) || null;
+  } catch (err) {
+    logger.warn(`resolveNotificationSchoolId failed: ${err.message}`);
+    return null;
+  }
 };
 
 /**
@@ -339,7 +393,15 @@ export const sendWebPushesForNotifications = async ({
 
   for (const [userKey, notification] of byUserKey) {
     try {
-      const schoolId = await resolveSchoolId(academyId, notification.user);
+      const entitySchoolId = await resolveNotificationSchoolId(
+        academyId,
+        notification
+      );
+      const fallbackSchoolId = await resolveSchoolId(
+        academyId,
+        notification.user
+      );
+      const schoolId = pickClickSchoolId(entitySchoolId, fallbackSchoolId);
       const url = await buildClickUrl(academyId, schoolId, notification);
       if (!url) continue;
 

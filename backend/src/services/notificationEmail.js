@@ -13,7 +13,11 @@ import {
 } from "../models/index.js";
 import { logger } from "../log/logger.js";
 import { validate } from "../utils/validate.js";
-import { buildClickUrl } from "./webPush.js";
+import {
+  buildClickUrl,
+  pickClickSchoolId,
+  resolveNotificationSchoolId,
+} from "./webPush.js";
 
 /** Admin may enable these for email. newPost / chatMessage / scheduleStart never mail. */
 export const EMAIL_ELIGIBLE_TYPES = new Set([
@@ -315,7 +319,7 @@ export const sendTestEmailToAddress = async (academyId, toEmail) => {
  * Batch school / board / form names for altSheetRow emails.
  * @param {string} academyId
  * @param {Array} notifications
- * @returns {Promise<Record<string, { schoolName?: string, boardName?: string, formTitle?: string }>>}
+ * @returns {Promise<Record<string, { schoolName?: string, boardName?: string, formTitle?: string, schoolId?: string }>>}
  */
 export const loadAltSheetEmailContexts = async (academyId, notifications) => {
   try {
@@ -354,7 +358,7 @@ export const loadAltSheetEmailContexts = async (academyId, notifications) => {
       boardIds.length
         ? Board(academyId)
             .find({ _id: { $in: boardIds } })
-            .select("name schoolName")
+            .select("name schoolName schoolId")
             .lean()
         : [],
     ]);
@@ -375,6 +379,7 @@ export const loadAltSheetEmailContexts = async (academyId, notifications) => {
         schoolName: trimLabel(board?.schoolName),
         boardName: trimLabel(board?.name),
         formTitle: trimLabel(form?.title),
+        schoolId: trimLabel(board?.schoolId),
       };
     }
     return contextByRowId;
@@ -452,13 +457,20 @@ export const sendNotificationEmails = async ({
     }
 
     try {
-      const schoolId = user?.schools?.[0]?.schoolId || null;
-      const url = await buildClickUrl(academyId, schoolId, notification);
       const rowId =
         notification.relatedEntity?.type === "altSheetRow" &&
         notification.relatedEntity.id
           ? String(notification.relatedEntity.id)
           : "";
+      const context = rowId ? contextByRowId[rowId] : undefined;
+      const entitySchoolId =
+        context?.schoolId ||
+        (await resolveNotificationSchoolId(academyId, notification));
+      const schoolId = pickClickSchoolId(
+        entitySchoolId,
+        user?.schools?.[0]?.schoolId
+      );
+      const url = await buildClickUrl(academyId, schoolId, notification);
       const built = buildNotificationEmail({
         title: notification.title || "알림",
         description:
@@ -467,7 +479,7 @@ export const sendNotificationEmails = async ({
             : "",
         url,
         category: notification.category || "",
-        context: rowId ? contextByRowId[rowId] : undefined,
+        context,
       });
       await sendMail(academy.emailSmtp, {
         to: recipientEmail,
