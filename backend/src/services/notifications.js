@@ -6,6 +6,7 @@
 import { Notification, NotificationSetting, School } from "../models/index.js";
 import { getIoNotification } from "../utils/webSocket.js";
 import { sendWebPushesForNotifications } from "./webPush.js";
+import { sendNotificationEmails } from "./notificationEmail.js";
 import { filterRecipientsBySettings } from "./calendarEventNotify.js";
 import { logger } from "../log/logger.js";
 
@@ -148,6 +149,14 @@ export const sendAutoNotification = async ({
       logger.warn(`sendWebPushesForNotifications failed: ${err.message}`);
     });
 
+    sendNotificationEmails({
+      academyId,
+      notifications: createdNotifications,
+      settingsByUserId: settingsMap,
+    }).catch((err) => {
+      logger.warn(`sendNotificationEmails failed: ${err.message}`);
+    });
+
     return createdNotifications;
   } catch (err) {
     logger.error(`sendAutoNotification failed: ${err.message}`);
@@ -188,6 +197,7 @@ export const getOrCreateNotificationSetting = async (academyId, user) => {
         altFormApprovalResult: true,
         eventReminderDefault: 15,
         webPushEnabled: false,
+        emailEnabled: false,
       },
     });
   }

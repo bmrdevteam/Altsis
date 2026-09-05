@@ -15,6 +15,7 @@ import FilePreviewModal from "./FilePreviewModal";
 import FormFileAnswerList from "./FormFileAnswerList";
 import { TFormFileRef } from "./formFilePreview";
 import { formatAiChatCell } from "./formAiChat";
+import { formatReadableValue } from "./formFieldDisplay";
 
 type FieldMeta = {
   _id: string;
@@ -156,16 +157,20 @@ const formatFieldDisplay = (value: any, field?: FieldMeta): string => {
     return value ? `${"★".repeat(Number(value))}` : "-";
   }
 
-  if (field?.type === "checkbox" || field?.type === "multiSelect") {
-    if (Array.isArray(value)) return value.join(", ") || "-";
+  if (field?.type === "circulation") {
+    return formatReadableValue(value) || "-";
   }
 
-  if (Array.isArray(value)) return value.join(", ") || "-";
+  if (field?.type === "checkbox" || field?.type === "multiSelect") {
+    if (Array.isArray(value)) {
+      return formatReadableValue(value) || "-";
+    }
+  }
+
+  if (Array.isArray(value)) return formatReadableValue(value) || "-";
   if (typeof value === "boolean") return value ? "예" : "아니오";
   if (typeof value === "object") {
-    if (value.userName) return String(value.userName);
-    if (value.label) return String(value.label);
-    return "-";
+    return formatReadableValue(value) || "-";
   }
   return String(value);
 };
@@ -354,7 +359,7 @@ const PendingApprovalsPanel = ({
     if (f.type === "docResponse" && val) {
       return (
         <div className={style.contentFieldBody}>
-          <MarkdownWysiwygView content={String(val)} />
+          <MarkdownWysiwygView content={formatReadableValue(val)} />
         </div>
       );
     }
@@ -385,9 +390,17 @@ const PendingApprovalsPanel = ({
     }
 
     if (f.type === "textarea" && val) {
+      const text = formatReadableValue(val) || (typeof val === "string" ? val : "");
+      if (!text) {
+        return (
+          <span style={{ color: "var(--text-color-2)", fontStyle: "italic" }}>
+            —
+          </span>
+        );
+      }
       return (
         <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-          {String(val)}
+          {text}
         </div>
       );
     }

@@ -118,12 +118,15 @@ export const resolveNotificationPath = async (academyId, notification) => {
       case "altSheetRow": {
         const row = await AltSheetRow(academyId)
           .findById(entity.id)
-          .select("board")
+          .select("board form")
           .lean();
         if (row?.board) {
-          return `/boards/${row.board}?approval=${encodeURIComponent(
-            String(entity.id)
-          )}#활동`;
+          const rowId = encodeURIComponent(String(entity.id));
+          const formId = row.form ? encodeURIComponent(String(row.form)) : "";
+          if (formId) {
+            return `/boards/${row.board}?sheet=${formId}&row=${rowId}#활동`;
+          }
+          return `/boards/${row.board}?approval=${rowId}#활동`;
         }
         return "/boards";
       }
@@ -162,7 +165,7 @@ const appendQuery = (path, key, value) => {
   return `${withoutHash}${sep}${key}=${encodeURIComponent(String(value))}${hash}`;
 };
 
-const buildClickUrl = async (academyId, schoolId, notification) => {
+export const buildClickUrl = async (academyId, schoolId, notification) => {
   const origin = clientOrigin();
   if (!origin) return null;
   if (!schoolId) return `${origin}/`;

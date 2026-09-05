@@ -37,6 +37,13 @@ import { generatePassword } from "../utils/password.js";
 import { fileS3, fileBucket } from "../_s3/fileBucket.js";
 import { format } from "date-fns";
 import {
+  isSmtpConfigured,
+  normalizeEmailNotifyTypes,
+  resolveRecipientEmail,
+  sendTestEmailToAddress,
+  DEFAULT_EMAIL_NOTIFY_TYPES,
+} from "../services/notificationEmail.js";
+import {
   isValidProvider,
   resolveProvider,
   resolveModel,
@@ -545,6 +552,257 @@ export const updateSitePublishEnabled = async (req, res) => {
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.AcademyAPI
+ * @function UAcademyEmailNotifyEnabled API
+ * @description 아카데미 이메일 알림 허용/비허용 (owner). SMTP는 유지된다.
+ */
+export const updateEmailNotifyEnabled = async (req, res) => {
+  try {
+    const academy = await Academy.findOne({
+      academyId: req.params.academyId,
+    });
+    if (!academy)
+      return res.status(404).send({ message: __NOT_FOUND("academy") });
+
+    if (typeof req.body.emailNotifyEnabled !== "boolean") {
+      return res.status(400).send({ message: FIELD_REQUIRED("emailNotifyEnabled") });
+    }
+    academy.emailNotifyEnabled = req.body.emailNotifyEnabled;
+    await academy.save();
+
+    return res.status(200).send({ academy });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+const maskSmtpValue = (value) => {
+  if (!value || typeof value !== "string") return null;
+  const key = value.trim();
+  if (!key) return null;
+  if (key.length < 8) return "••••••••";
+  const head = key.slice(0, 4);
+  const tail = key.slice(-4);
+  return `${head}${"•".repeat(Math.min(12, key.length - 8))}${tail}`;
+};
+
+const smtpPublicView = (smtp) => {
+  if (!smtp) {
+    return {
+      configured: false,
+      host: null,
+      port: 587,
+      secure: false,
+      user: null,
+      from: null,
+    };
+  }
+  return {
+    configured: isSmtpConfigured(smtp),
+    host: maskSmtpValue(smtp.host),
+    port: Number(smtp.port) || 587,
+    secure: smtp.secure === true,
+    user: maskSmtpValue(smtp.user),
+    from: maskSmtpValue(smtp.from),
+  };
+};
+
+/**
+ * @memberof APIs.AcademyAPI
+ * @function RAcademyEmailSmtp API
+ * @description SMTP 설정 조회 (비밀번호 없음, user/from/host 마스킹)
+ */
+export const getEmailSmtp = async (req, res) => {
+  try {
+    const academy = await Academy.findOne({
+      academyId: req.params.academyId,
+    }).select("+emailSmtp");
+    if (!academy)
+      return res.status(404).send({ message: __NOT_FOUND("academy") });
+
+    return res.status(200).send({
+      emailNotifyEnabled: academy.emailNotifyEnabled === true,
+      configured: isSmtpConfigured(academy.emailSmtp),
+      smtp: smtpPublicView(academy.emailSmtp),
+      emailNotifyTypes: normalizeEmailNotifyTypes(academy.emailNotifyTypes),
+    });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+const parseSmtpPort = (value) => {
+  if (value === undefined || value === null || value === "") return 587;
+  const port = Number(value);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) return null;
+  return port;
+};
+
+/**
+ * @memberof APIs.AcademyAPI
+ * @function UAcademyEmailSmtp API
+ * @description SMTP 저장/삭제. 처음 저장 시 허용 유형은 기본 ON.
+ */
+export const updateEmailSmtp = async (req, res) => {
+  try {
+    const academy = await Academy.findOne({
+      academyId: req.params.academyId,
+    }).select("+emailSmtp");
+    if (!academy)
+      return res.status(404).send({ message: __NOT_FOUND("academy") });
+
+    if (req.body.clear === true) {
+      academy.emailSmtp = undefined;
+      academy.markModified("emailSmtp");
+      await academy.save();
+      return res.status(200).send({
+        emailNotifyEnabled: academy.emailNotifyEnabled === true,
+        configured: false,
+        smtp: smtpPublicView(null),
+        emailNotifyTypes: normalizeEmailNotifyTypes(academy.emailNotifyTypes),
+      });
+    }
+
+    const existing = academy.emailSmtp || {};
+    const host =
+      typeof req.body.host === "string" && req.body.host.trim()
+        ? req.body.host.trim()
+        : existing.host || "";
+    const user =
+      typeof req.body.user === "string" && req.body.user.trim()
+        ? req.body.user.trim()
+        : existing.user || "";
+    const from =
+      typeof req.body.from === "string" && req.body.from.trim()
+        ? req.body.from.trim()
+        : existing.from || "";
+    const pass = typeof req.body.pass === "string" ? req.body.pass : "";
+    const port = parseSmtpPort(
+      req.body.port !== undefined && req.body.port !== null && req.body.port !== ""
+        ? req.body.port
+        : existing.port
+    );
+    if (port === null) {
+      return res.status(400).send({ message: FIELD_INVALID("port") });
+    }
+    if (!host) {
+      return res.status(400).send({ message: FIELD_REQUIRED("host") });
+    }
+    if (!user) {
+      return res.status(400).send({ message: FIELD_REQUIRED("user") });
+    }
+
+    const nextPass = pass || existing.pass || "";
+    if (!nextPass) {
+      return res.status(400).send({ message: FIELD_REQUIRED("pass") });
+    }
+
+    const wasConfigured = isSmtpConfigured(academy.emailSmtp);
+    const secure =
+      typeof req.body.secure === "boolean"
+        ? req.body.secure
+        : existing.secure === true;
+    academy.emailSmtp = {
+      host,
+      port,
+      secure,
+      user,
+      pass: nextPass,
+      from: from || user,
+    };
+    if (!wasConfigured) {
+      academy.emailNotifyTypes = { ...DEFAULT_EMAIL_NOTIFY_TYPES };
+    }
+    await academy.save();
+
+    return res.status(200).send({
+      emailNotifyEnabled: academy.emailNotifyEnabled === true,
+      configured: true,
+      smtp: smtpPublicView(academy.emailSmtp),
+      emailNotifyTypes: normalizeEmailNotifyTypes(academy.emailNotifyTypes),
+    });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.AcademyAPI
+ * @function UAcademyEmailNotifyTypes API
+ * @description 메일로 보낼 알림 유형 화이트리스트
+ */
+export const updateEmailNotifyTypes = async (req, res) => {
+  try {
+    const academy = await Academy.findOne({
+      academyId: req.params.academyId,
+    });
+    if (!academy)
+      return res.status(404).send({ message: __NOT_FOUND("academy") });
+
+    const next = normalizeEmailNotifyTypes(academy.emailNotifyTypes);
+    const incoming = req.body.emailNotifyTypes || req.body;
+    if (!incoming || typeof incoming !== "object") {
+      return res.status(400).send({ message: FIELD_REQUIRED("emailNotifyTypes") });
+    }
+    for (const key of Object.keys(DEFAULT_EMAIL_NOTIFY_TYPES)) {
+      if (typeof incoming[key] === "boolean") {
+        next[key] = incoming[key];
+      }
+    }
+    academy.emailNotifyTypes = next;
+    await academy.save();
+
+    return res.status(200).send({
+      emailNotifyTypes: normalizeEmailNotifyTypes(academy.emailNotifyTypes),
+    });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.AcademyAPI
+ * @function CAcademyEmailSmtpTest API
+ * @description 호출자 주소로 SMTP 테스트 1통
+ */
+export const testEmailSmtp = async (req, res) => {
+  try {
+    let to = resolveRecipientEmail(req.user);
+    if (!to && req.user?._id) {
+      const academyUser = await User(req.params.academyId)
+        .findById(req.user._id)
+        .select("email snsId")
+        .lean();
+      to = resolveRecipientEmail(academyUser);
+    }
+    if (!to) {
+      return res.status(400).send({ message: "EMAIL_ADDRESS_MISSING" });
+    }
+    await sendTestEmailToAddress(req.params.academyId, to);
+    return res.status(200).send({ sent: true });
+  } catch (err) {
+    const code = err.message;
+    if (
+      [
+        "EMAIL_NOTIFY_DISABLED",
+        "EMAIL_SMTP_NOT_CONFIGURED",
+        "EMAIL_ADDRESS_MISSING",
+        "ACADEMY_NOT_FOUND",
+      ].includes(code)
+    ) {
+      const status = code === "ACADEMY_NOT_FOUND" ? 404 : 400;
+      return res.status(status).send({ message: code });
+    }
+    logger.error(err.message);
+    return res.status(500).send({ message: "EMAIL_SEND_FAILED" });
   }
 };
 

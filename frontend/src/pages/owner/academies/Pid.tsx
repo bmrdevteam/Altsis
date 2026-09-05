@@ -46,6 +46,7 @@ import Remove from "./tab/Remove/Index";
 import ChatSettings from "./tab/ChatSettings/Index";
 import BoardSettings from "./tab/BoardSettings/Index";
 import SiteSettings from "./tab/SiteSettings/Index";
+import EmailSettings from "./tab/EmailSettings/Index";
 import AISettings from "./tab/AISettings/Index";
 import PlansTab from "./tab/Plans/Index";
 
@@ -155,6 +156,12 @@ const Academy = (props: Props) => {
                 ),
                 웹사이트: (
                   <SiteSettings
+                    academyData={academyData}
+                    setAcademyData={setAcademyData}
+                  />
+                ),
+                이메일: (
+                  <EmailSettings
                     academyData={academyData}
                     setAcademyData={setAcademyData}
                   />

@@ -59,7 +59,33 @@ export type TAcademy = {
   aiEnabled?: boolean;
   sitePublishEnabled?: boolean;
   sitePublished?: boolean;
+  emailNotifyEnabled?: boolean;
   aiProvider?: "openai" | "anthropic" | "gemini";
   aiUsageLimits?: TAiUsageLimits;
   plans?: TAcademyPlans;
+};
+
+export type TEmailNotifyTypes = {
+  classInvitation: boolean;
+  classCancellation: boolean;
+  classApproval: boolean;
+  classApprovalCancel: boolean;
+  boardInvitation: boolean;
+  altFormApprovalRequest: boolean;
+  altFormApprovalResult: boolean;
+  reminder: boolean;
+};
+
+export type TAcademyEmailSmtp = {
+  emailNotifyEnabled: boolean;
+  configured: boolean;
+  smtp: {
+    configured: boolean;
+    host: string | null;
+    port: number;
+    secure: boolean;
+    user: string | null;
+    from: string | null;
+  };
+  emailNotifyTypes: TEmailNotifyTypes;
 };

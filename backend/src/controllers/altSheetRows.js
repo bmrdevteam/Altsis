@@ -62,6 +62,7 @@ import {
   isCirculatee,
   isStoredCirculatee,
   normalizeApprovalValue,
+  approvalNotificationTitle,
 } from "../utils/approvalLine.js";
 
 const schoolRoleOf = (academyId, board, user) =>
@@ -890,8 +891,8 @@ export const create = async (req, res) => {
               academyId: req.user.academyId,
               toUserList: [approver],
               notificationType: "altFormApprovalRequest",
-              category: "Alt Board",
-              title: `${form.title} - 승인 요청`,
+              category: "승인",
+              title: approvalNotificationTitle(form, rowData, "request"),
               description: `${req.user.userName}님이 「${approvalData.steps[0].label}」승인을 요청했습니다.`,
               relatedEntity: { type: "altSheetRow", id: row._id },
               fromUser: req.user,
@@ -910,8 +911,8 @@ export const create = async (req, res) => {
             academyId: req.user.academyId,
             toUserList: circulatees,
             notificationType: "altFormApprovalRequest",
-            category: "Alt Board",
-            title: `회람: ${form.title}`,
+            category: "회람",
+            title: approvalNotificationTitle(form, rowData, "circulation"),
             description: `${req.user.userName}님이 문서를 회람했습니다.`,
             relatedEntity: { type: "altSheetRow", id: row._id },
             fromUser: req.user,
@@ -1220,12 +1221,14 @@ export const update = async (req, res) => {
                       academyId: req.user.academyId,
                       toUserList,
                       notificationType: "altFormApprovalResult",
-                      category: "Alt Board",
-                      title: `${form.title} - ${
+                      category: "승인",
+                      title: approvalNotificationTitle(
+                        form,
+                        row.data,
                         result.value.overallStatus === "approved"
-                          ? "승인됨"
-                          : "반려됨"
-                      }`,
+                          ? "approved"
+                          : "rejected"
+                      ),
                       description: value.reason || "",
                       relatedEntity: { type: "altSheetRow", id: row._id },
                       fromUser: req.user,
@@ -1260,8 +1263,13 @@ export const update = async (req, res) => {
                         },
                       ],
                       notificationType: "altFormApprovalResult",
-                      category: "Alt Board",
-                      title: `${form.title} - 「${actedLabel}」승인됨`,
+                      category: "승인",
+                      title: approvalNotificationTitle(
+                        form,
+                        row.data,
+                        "stepApproved",
+                        actedLabel
+                      ),
                       description: `다음: 「${nextLabel}」승인 대기`,
                       relatedEntity: { type: "altSheetRow", id: row._id },
                       fromUser: req.user,
@@ -1284,8 +1292,8 @@ export const update = async (req, res) => {
                       academyId: req.user.academyId,
                       toUserList: [result.nextApprover],
                       notificationType: "altFormApprovalRequest",
-                      category: "Alt Board",
-                      title: `${form.title} - 승인 요청`,
+                      category: "승인",
+                      title: approvalNotificationTitle(form, row.data, "request"),
                       description: `「${stepLabel}」승인이 필요합니다.`,
                       relatedEntity: { type: "altSheetRow", id: row._id },
                       fromUser: req.user,

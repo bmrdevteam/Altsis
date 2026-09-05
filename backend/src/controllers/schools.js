@@ -293,6 +293,7 @@ export const find = async (req, res) => {
             aiEnabled: (academy.aiEnabled ?? false) && plans.ctrl.enabled,
             sitePublishEnabled:
               (academy.sitePublishEnabled ?? false) && plans.shift.enabled,
+            emailNotifyEnabled: academy.emailNotifyEnabled === true,
           };
         }
       } catch (err) {
