@@ -115,6 +115,15 @@ VAPID_PUBLIC_KEY=your-vapid-public-key
 VAPID_PRIVATE_KEY=your-vapid-private-key
 VAPID_SUBJECT=mailto:admin@example.com
 
+# ──────────────────────────────────────────────
+# 아카데미 이메일 알림 (선택)
+# ──────────────────────────────────────────────
+# 전역 SMTP는 쓰지 않습니다. 운영 순서는 아래와 같습니다.
+# 1) Owner가 아카데미 「이메일」 탭에서 이메일 알림을 허용
+# 2) 아카데미 admin이 /admin/email 에서 SMTP와 메일 유형을 저장
+# 3) 사용자가 설정 > 알림에서 「이메일 알림」을 켬
+# SMTP 비밀번호는 저장소에 커밋하지 마세요.
+
 # 비밀번호 해싱 라운드 (bcrypt salt rounds)
 # 값이 높을수록 보안은 강화되지만 처리 시간이 증가합니다.
 # 개발 환경: 10 권장 / 운영 환경: 12 이상 권장

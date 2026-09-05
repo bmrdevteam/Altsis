@@ -26,6 +26,31 @@ router.put(
   isOwner,
   academies.updateSitePublishEnabled
 );
+router.put(
+  "/:academyId/email-notify",
+  isOwner,
+  academies.updateEmailNotifyEnabled
+);
+router.get(
+  "/:academyId/email-smtp",
+  isOwAdmin,
+  academies.getEmailSmtp
+);
+router.put(
+  "/:academyId/email-smtp",
+  isOwAdmin,
+  academies.updateEmailSmtp
+);
+router.put(
+  "/:academyId/email-notify-types",
+  isOwAdmin,
+  academies.updateEmailNotifyTypes
+);
+router.post(
+  "/:academyId/email-smtp/test",
+  isOwAdmin,
+  academies.testEmailSmtp
+);
 
 /* AI settings */
 router.put("/:academyId/ai", isOwner, academies.updateAiEnabled);

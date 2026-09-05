@@ -47,6 +47,7 @@ export type TAcademyFeatures = {
   boardEnabled: boolean;
   aiEnabled: boolean;
   sitePublishEnabled?: boolean;
+  emailNotifyEnabled?: boolean;
 };
 
 export type TAlterSkillId =

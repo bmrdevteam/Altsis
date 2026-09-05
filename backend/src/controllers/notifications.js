@@ -4,7 +4,7 @@
  * @see TNotification in {@link Models.Notification}
  */
 import { logger } from "../log/logger.js";
-import { Notification } from "../models/index.js";
+import { Notification, User } from "../models/index.js";
 import { getOrCreateNotificationSetting } from "../services/notifications.js";
 import {
   getVapidPublicKey,
@@ -12,6 +12,10 @@ import {
   removePushSubscription,
   sendTestWebPush,
 } from "../services/webPush.js";
+import {
+  resolveRecipientEmail,
+  sendTestEmailToAddress,
+} from "../services/notificationEmail.js";
 
 import {
   FIELD_REQUIRED,
@@ -323,6 +327,7 @@ export const updateSettings = async (req, res) => {
       "altFormApprovalResult",
       "eventReminderDefault",
       "webPushEnabled",
+      "emailEnabled",
     ];
 
     for (let key of validSettings) {
@@ -454,5 +459,49 @@ export const testPush = async (req, res) => {
     }
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.NotificationAPI
+ * @function CTestEmail API
+ * @description 본인 주소로 이메일 알림 테스트 1통
+ */
+export const testEmail = async (req, res) => {
+  try {
+    const setting = await getOrCreateNotificationSetting(
+      req.user.academyId,
+      req.user
+    );
+    if (setting.settings?.emailEnabled !== true) {
+      return res.status(400).send({ message: "EMAIL_DISABLED" });
+    }
+
+    const user = await User(req.user.academyId)
+      .findById(req.user._id)
+      .select("email snsId")
+      .lean();
+    const to = resolveRecipientEmail(user || req.user);
+    if (!to) {
+      return res.status(400).send({ message: "EMAIL_ADDRESS_MISSING" });
+    }
+
+    await sendTestEmailToAddress(req.user.academyId, to);
+    return res.status(200).send({ sent: true });
+  } catch (err) {
+    const code = err.message;
+    if (
+      [
+        "EMAIL_NOTIFY_DISABLED",
+        "EMAIL_SMTP_NOT_CONFIGURED",
+        "EMAIL_ADDRESS_MISSING",
+        "ACADEMY_NOT_FOUND",
+      ].includes(code)
+    ) {
+      const status = code === "ACADEMY_NOT_FOUND" ? 404 : 400;
+      return res.status(status).send({ message: code });
+    }
+    logger.error(err.message);
+    return res.status(500).send({ message: "EMAIL_SEND_FAILED" });
   }
 };
