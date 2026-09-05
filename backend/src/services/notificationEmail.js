@@ -3,7 +3,14 @@
  * @namespace Services.NotificationEmailService
  */
 import nodemailer from "nodemailer";
-import { Academy, NotificationSetting, User } from "../models/index.js";
+import {
+  Academy,
+  AltForm,
+  AltSheetRow,
+  Board,
+  NotificationSetting,
+  User,
+} from "../models/index.js";
 import { logger } from "../log/logger.js";
 import { validate } from "../utils/validate.js";
 import { buildClickUrl } from "./webPush.js";
@@ -123,6 +130,32 @@ export const escapeHtml = (value) =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 
+const trimLabel = (value) => (typeof value === "string" ? value.trim() : "");
+
+/**
+ * School / board / form labels for the email card (omit empty).
+ * @param {{ schoolName?: string, boardName?: string, formTitle?: string }|null|undefined} context
+ * @returns {{ label: string, value: string }[]}
+ */
+export const normalizeEmailContext = (context) => {
+  if (!context || typeof context !== "object") return [];
+  const rows = [
+    { label: "학교", value: trimLabel(context.schoolName) },
+    { label: "보드", value: trimLabel(context.boardName) },
+    { label: "양식", value: trimLabel(context.formTitle) },
+  ];
+  return rows.filter((row) => row.value);
+};
+
+/**
+ * @param {{ schoolName?: string, boardName?: string, formTitle?: string }|null|undefined} context
+ * @returns {string}
+ */
+export const formatEmailContextLine = (context) =>
+  normalizeEmailContext(context)
+    .map((row) => row.value)
+    .join(" · ");
+
 /**
  * Subject + text fallback + table-based HTML card.
  * @returns {{ subject: string, text: string, html: string }}
@@ -132,10 +165,18 @@ export const buildNotificationEmail = ({
   description = "",
   url = "",
   category = "",
+  context,
 } = {}) => {
   const subject = String(title || "알림").trim() || "알림";
   const desc = typeof description === "string" ? description.trim() : "";
+  const contextRows = normalizeEmailContext(context);
   const textLines = [subject];
+  if (contextRows.length) {
+    textLines.push("");
+    for (const row of contextRows) {
+      textLines.push(`${row.label}: ${row.value}`);
+    }
+  }
   if (desc) textLines.push("", desc);
   if (url) textLines.push("", url);
 
@@ -145,6 +186,21 @@ export const buildNotificationEmail = ({
     ? escapeHtml(desc).replace(/\n/g, "<br>")
     : "";
   const safeUrl = escapeHtml(url);
+  const contextHtml = contextRows.length
+    ? `<tr><td style="padding:10px 28px 0;">
+        <table role="presentation" cellpadding="0" cellspacing="0" style="font-size:13px;line-height:20px;">
+          ${contextRows
+            .map(
+              (row) =>
+                `<tr>
+            <td style="padding:2px 12px 2px 0;white-space:nowrap;color:#9ca3af;">${escapeHtml(row.label)}</td>
+            <td style="padding:2px 0;color:#374151;">${escapeHtml(row.value)}</td>
+          </tr>`
+            )
+            .join("")}
+        </table>
+      </td></tr>`
+    : "";
   const button = url
     ? `<tr><td style="padding:24px 28px 8px;">
         <a href="${safeUrl}" style="display:inline-block;background:#1f4fd3;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:10px 18px;border-radius:6px;">앱에서 열기</a>
@@ -165,6 +221,7 @@ export const buildNotificationEmail = ({
           <tr>
             <td style="padding:22px 28px 0;font-size:20px;line-height:28px;font-weight:700;color:#111827;">${safeTitle}</td>
           </tr>
+          ${contextHtml}
           ${
             safeDesc
               ? `<tr><td style="padding:12px 28px 0;font-size:14px;line-height:22px;color:#374151;">${safeDesc}</td></tr>`
@@ -255,6 +312,79 @@ export const sendTestEmailToAddress = async (academyId, toEmail) => {
 };
 
 /**
+ * Batch school / board / form names for altSheetRow emails.
+ * @param {string} academyId
+ * @param {Array} notifications
+ * @returns {Promise<Record<string, { schoolName?: string, boardName?: string, formTitle?: string }>>}
+ */
+export const loadAltSheetEmailContexts = async (academyId, notifications) => {
+  try {
+    const rowIds = [
+      ...new Set(
+        (notifications || [])
+          .filter(
+            (n) => n?.relatedEntity?.type === "altSheetRow" && n.relatedEntity.id
+          )
+          .map((n) => String(n.relatedEntity.id))
+      ),
+    ];
+    if (rowIds.length === 0) return {};
+
+    const rows = await AltSheetRow(academyId)
+      .find({ _id: { $in: rowIds } })
+      .select("board form")
+      .lean();
+    const formIds = [
+      ...new Set(
+        rows.map((row) => row.form && String(row.form)).filter(Boolean)
+      ),
+    ];
+    const boardIds = [
+      ...new Set(
+        rows.map((row) => row.board && String(row.board)).filter(Boolean)
+      ),
+    ];
+    const [forms, boards] = await Promise.all([
+      formIds.length
+        ? AltForm(academyId)
+            .find({ _id: { $in: formIds } })
+            .select("title")
+            .lean()
+        : [],
+      boardIds.length
+        ? Board(academyId)
+            .find({ _id: { $in: boardIds } })
+            .select("name schoolName")
+            .lean()
+        : [],
+    ]);
+
+    const formById = {};
+    for (const form of forms) {
+      formById[String(form._id)] = form;
+    }
+    const boardById = {};
+    for (const board of boards) {
+      boardById[String(board._id)] = board;
+    }
+    const contextByRowId = {};
+    for (const row of rows) {
+      const form = row.form ? formById[String(row.form)] : null;
+      const board = row.board ? boardById[String(row.board)] : null;
+      contextByRowId[String(row._id)] = {
+        schoolName: trimLabel(board?.schoolName),
+        boardName: trimLabel(board?.name),
+        formTitle: trimLabel(form?.title),
+      };
+    }
+    return contextByRowId;
+  } catch (err) {
+    logger.warn(`loadAltSheetEmailContexts failed: ${err.message}`);
+    return {};
+  }
+};
+
+/**
  * In-app 알림 뒤에 붙는 부가 채널. 실패해도 호출측에서 catch.
  */
 export const sendNotificationEmails = async ({
@@ -277,7 +407,7 @@ export const sendNotificationEmails = async ({
   const userObjectIds = [
     ...new Set(eligible.map((n) => String(n.user)).filter(Boolean)),
   ];
-  const [users, settingDocs] = await Promise.all([
+  const [users, settingDocs, contextByRowId] = await Promise.all([
     User(academyId)
       .find({ _id: { $in: userObjectIds } })
       .select("email snsId schools userId")
@@ -286,6 +416,7 @@ export const sendNotificationEmails = async ({
       .find({ user: { $in: userObjectIds } })
       .select("user userId settings")
       .lean(),
+    loadAltSheetEmailContexts(academyId, eligible),
   ]);
 
   const userById = {};
@@ -323,6 +454,11 @@ export const sendNotificationEmails = async ({
     try {
       const schoolId = user?.schools?.[0]?.schoolId || null;
       const url = await buildClickUrl(academyId, schoolId, notification);
+      const rowId =
+        notification.relatedEntity?.type === "altSheetRow" &&
+        notification.relatedEntity.id
+          ? String(notification.relatedEntity.id)
+          : "";
       const built = buildNotificationEmail({
         title: notification.title || "알림",
         description:
@@ -331,6 +467,7 @@ export const sendNotificationEmails = async ({
             : "",
         url,
         category: notification.category || "",
+        context: rowId ? contextByRowId[rowId] : undefined,
       });
       await sendMail(academy.emailSmtp, {
         to: recipientEmail,

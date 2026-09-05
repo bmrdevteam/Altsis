@@ -3,6 +3,9 @@ import {
   EMAIL_ELIGIBLE_TYPES,
   buildNotificationEmail,
   escapeHtml,
+  formatEmailContextLine,
+  loadAltSheetEmailContexts,
+  normalizeEmailContext,
   isEmailTypeAllowed,
   isSmtpConfigured,
   normalizeEmailNotifyTypes,
@@ -186,5 +189,65 @@ describe("buildNotificationEmail", () => {
     });
     expect(built.html).not.toContain("앱에서 열기");
     expect(built.text).toBe("테스트");
+  });
+
+  test("includes school, board, and form under the title", () => {
+    const built = buildNotificationEmail({
+      title: "좋습니다! · 승인 요청",
+      description: "조은길님이 「1차 승인」승인을 요청했습니다.",
+      category: "승인",
+      context: {
+        schoolName: "별무리 고등학교",
+        boardName: "전자문서시스템",
+        formTitle: "테스트",
+      },
+    });
+    expect(built.subject).toBe("좋습니다! · 승인 요청");
+    expect(built.text).toContain("학교: 별무리 고등학교");
+    expect(built.text).toContain("보드: 전자문서시스템");
+    expect(built.text).toContain("양식: 테스트");
+    expect(built.html).toContain("별무리 고등학교");
+    expect(built.html).toContain("전자문서시스템");
+    expect(built.html).toContain("테스트");
+    expect(built.html).toContain("학교");
+    expect(built.html).toContain("보드");
+    expect(built.html).toContain("양식");
+  });
+
+  test("escapes context names and drops empty rows", () => {
+    expect(
+      normalizeEmailContext({
+        schoolName: " 별무리 ",
+        boardName: "",
+        formTitle: "현장학습 <b>",
+      })
+    ).toEqual([
+      { label: "학교", value: "별무리" },
+      { label: "양식", value: "현장학습 <b>" },
+    ]);
+    expect(
+      formatEmailContextLine({
+        schoolName: "별무리 고등학교",
+        boardName: "전자문서시스템",
+        formTitle: "테스트",
+      })
+    ).toBe("별무리 고등학교 · 전자문서시스템 · 테스트");
+    const built = buildNotificationEmail({
+      title: "요청",
+      context: { formTitle: "<script>x</script>" },
+    });
+    expect(built.html).not.toContain("<script>x</script>");
+    expect(built.html).toContain("&lt;script&gt;x&lt;/script&gt;");
+  });
+});
+
+describe("loadAltSheetEmailContexts", () => {
+  test("returns empty map when there is no altSheetRow", async () => {
+    await expect(
+      loadAltSheetEmailContexts("bmr", [
+        { relatedEntity: { type: "board", id: "1" } },
+        { relatedEntity: null },
+      ])
+    ).resolves.toEqual({});
   });
 });
