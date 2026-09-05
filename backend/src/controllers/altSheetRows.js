@@ -55,6 +55,7 @@ import {
   validateCirculationSubmit,
   buildCirculationOnSubmit,
   collectStoredCirculatees,
+  recipientsForFinalApprovalResult,
   buildApprovalAccessOr,
   applyApprovalAction,
   isCurrentApprover,
@@ -1195,7 +1196,7 @@ export const update = async (req, res) => {
             row.data.set(key, result.value);
 
             try {
-              if (result.finished && row._respondent) {
+              if (result.finished) {
                 const resultNotifEnabled = await isBoardNotificationEnabled(
                   req.user.academyId,
                   board.school,
@@ -1203,26 +1204,33 @@ export const update = async (req, res) => {
                   "altFormApprovalResult"
                 );
                 if (resultNotifEnabled) {
-                  await sendAutoNotification({
-                    academyId: req.user.academyId,
-                    toUserList: [
-                      {
-                        user: row._respondent,
-                        userId: row._respondentId,
-                        userName: row._respondentName,
-                      },
-                    ],
-                    notificationType: "altFormApprovalResult",
-                    category: "Alt Board",
-                    title: `${form.title} - ${
-                      result.value.overallStatus === "approved"
-                        ? "승인됨"
-                        : "반려됨"
-                    }`,
-                    description: value.reason || "",
-                    relatedEntity: { type: "altSheetRow", id: row._id },
-                    fromUser: req.user,
+                  const toUserList = recipientsForFinalApprovalResult({
+                    respondent: row._respondent
+                      ? {
+                          user: row._respondent,
+                          userId: row._respondentId,
+                          userName: row._respondentName,
+                        }
+                      : null,
+                    circulatees: collectStoredCirculatees(form, row.data),
+                    excludeUserIds: [req.user.userId],
                   });
+                  if (toUserList.length > 0) {
+                    await sendAutoNotification({
+                      academyId: req.user.academyId,
+                      toUserList,
+                      notificationType: "altFormApprovalResult",
+                      category: "Alt Board",
+                      title: `${form.title} - ${
+                        result.value.overallStatus === "approved"
+                          ? "승인됨"
+                          : "반려됨"
+                      }`,
+                      description: value.reason || "",
+                      relatedEntity: { type: "altSheetRow", id: row._id },
+                      fromUser: req.user,
+                    });
+                  }
                 }
               } else if (!result.finished) {
                 // 중간 단계 승인: 제출자에게 진행 알림
