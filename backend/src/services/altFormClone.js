@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { AltForm, AltSheet } from "../models/index.js";
+import { sanitizeApprovalGroups } from "../utils/approvalLine.js";
 
 /**
  * Alt Form 구조만 다른 보드로 복제 (응답/기록 행 없음). 빈 AltSheet 생성.
@@ -69,6 +70,13 @@ export const cloneAltFormToBoard = async (
     })),
   }));
 
+  const clonedApprovalGroups = sanitizeApprovalGroups(
+    original.approvalGroups
+  ).map((g) => ({
+    ...g,
+    id: g.id || crypto.randomUUID(),
+  }));
+
   const form = await AltForm(academyId).create({
     board: targetBoard._id,
     school: targetBoard.school,
@@ -79,6 +87,7 @@ export const cloneAltFormToBoard = async (
     description: original.description,
     fields: clonedFields,
     rubrics: clonedRubrics,
+    approvalGroups: clonedApprovalGroups,
     isDraft: forceDraft ? true : !!original.isDraft,
     settings: {
       allowResubmit: original.settings?.allowResubmit,

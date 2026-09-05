@@ -220,6 +220,68 @@ describe("copyRowDataForReuse", () => {
     expect(copied.appr1.steps[0].approver).toEqual(jo);
   });
 
+  test("keeps a group-sourced line and its labels", () => {
+    const formField = [
+      {
+        _id: "appr1",
+        type: "approval" as const,
+        approvalLine: {
+          steps: [
+            {
+              order: 0,
+              label: "교감",
+              mode: "fixed" as const,
+              approver: jo,
+            },
+          ],
+        },
+      },
+    ];
+    const copied = copyRowDataForReuse(
+      {
+        appr1: {
+          version: 2,
+          lineSource: "group",
+          overallStatus: "approved",
+          currentStep: 1,
+          steps: [
+            {
+              mode: "pick",
+              label: "부장",
+              approver: kim,
+              status: "approved",
+            },
+            {
+              mode: "pick",
+              label: "교장",
+              approver: jo,
+              status: "approved",
+            },
+          ],
+        },
+      },
+      formField
+    );
+    expect(copied.appr1.lineSource).toBe("group");
+    expect(copied.appr1.overallStatus).toBe("pending");
+    expect(copied.appr1.steps).toEqual([
+      {
+        order: 0,
+        label: "부장",
+        mode: "pick",
+        approver: kim,
+        status: "waiting",
+      },
+      {
+        order: 1,
+        label: "교장",
+        mode: "pick",
+        approver: jo,
+        status: "waiting",
+      },
+    ]);
+  });
+
   test("drops aiChat session summaries", () => {
     expect(
       copyRowDataForReuse(

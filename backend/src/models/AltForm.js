@@ -350,6 +350,32 @@ const altFormSchema = mongoose.Schema(
       default: [],
     },
 
+    /** 양식 스코프 결재·회람 그룹 */
+    approvalGroups: {
+      type: [
+        {
+          id: { type: String, required: true },
+          title: { type: String, required: true },
+          kind: {
+            type: String,
+            enum: ["approver", "circulation", "both"],
+            default: "both",
+          },
+          members: [
+            {
+              label: { type: String, default: "" },
+              user: {
+                user: String,
+                userId: String,
+                userName: String,
+              },
+            },
+          ],
+        },
+      ],
+      default: [],
+    },
+
     settings: {
       type: altFormSettingsSchema,
       default: { allowResubmit: false },

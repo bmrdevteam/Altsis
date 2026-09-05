@@ -191,6 +191,70 @@ describe("approvalLine submit", () => {
     expect(built.circulation).toEqual([approver, approverB]);
   });
 
+  test("group line replaces form fixed steps and keeps labels", () => {
+    const field = {
+      label: "승인",
+      required: true,
+      approvalLine: {
+        steps: [{ order: 0, label: "교감", mode: "fixed", approver }],
+      },
+    };
+    const submitted = {
+      lineSource: "group",
+      version: 2,
+      steps: [
+        { mode: "pick", label: "부장", approver },
+        { mode: "pick", label: "교장", approver: approverB },
+      ],
+    };
+    const options = {
+      hasApprovalGroups: true,
+      candidateIds: new Set(["jo", "kim"]),
+    };
+    expect(validateApprovalSubmit(field, submitted, options)).toBeNull();
+    const built = buildApprovalOnSubmit(field, submitted, options);
+    expect(built.steps).toHaveLength(2);
+    expect(built.steps[0].label).toBe("부장");
+    expect(built.steps[0].mode).toBe("pick");
+    expect(built.steps[0].approver).toEqual(approver);
+    expect(built.steps[1].label).toBe("교장");
+    expect(built.steps[1].approver).toEqual(approverB);
+  });
+
+  test("group line is ignored when the form has no groups", () => {
+    const submitted = {
+      lineSource: "group",
+      version: 2,
+      steps: [{ mode: "pick", label: "부장", approver: approverB }],
+    };
+    const built = buildApprovalOnSubmit(fixedField, submitted, {
+      hasApprovalGroups: false,
+    });
+    expect(built.steps).toHaveLength(1);
+    expect(built.steps[0].approver).toEqual(approver);
+    expect(built.steps[0].label).toBe("1차 승인");
+  });
+
+  test("group line rejects a non-candidate approver", () => {
+    const field = {
+      label: "승인",
+      required: true,
+      approvalLine: {
+        steps: [{ order: 0, label: "1차 승인", mode: "pick" }],
+      },
+    };
+    expect(
+      validateApprovalSubmit(
+        field,
+        {
+          lineSource: "group",
+          steps: [{ mode: "pick", label: "부장", approver }],
+        },
+        { hasApprovalGroups: true, candidateIds: new Set(["kim"]) }
+      )
+    ).toBe("승인: 지정할 수 없는 승인자가 있습니다.");
+  });
+
   test("missing or off circulation ignores submitted list", () => {
     const submitted = {
       circulation: [approver],
