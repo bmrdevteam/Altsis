@@ -1,5 +1,6 @@
 import {
   WEB_PUSH_ELIGIBLE_TYPES,
+  pickClickSchoolId,
   tagForNotification,
 } from "../../src/services/webPush.js";
 
@@ -20,6 +21,23 @@ describe("WEB_PUSH_ELIGIBLE_TYPES", () => {
 
   test("excludes non-auto / unused types", () => {
     expect(WEB_PUSH_ELIGIBLE_TYPES.has("direct")).toBe(false);
+  });
+});
+
+describe("pickClickSchoolId", () => {
+  test("prefers board school over the user's first school", () => {
+    expect(pickClickSchoolId("bmrworkspace", "bmrhs")).toBe("bmrworkspace");
+  });
+
+  test("falls back to the user school when the entity has none", () => {
+    expect(pickClickSchoolId("", "bmrhs")).toBe("bmrhs");
+    expect(pickClickSchoolId(null, "bmrhs")).toBe("bmrhs");
+    expect(pickClickSchoolId(undefined, "  bmrhs  ")).toBe("bmrhs");
+  });
+
+  test("returns null when both are empty", () => {
+    expect(pickClickSchoolId("", "")).toBeNull();
+    expect(pickClickSchoolId(null, undefined)).toBeNull();
   });
 });
 
