@@ -1,10 +1,13 @@
 import { TAltSheetRow } from "types/altSheet";
 import {
+  buildInProgressDraftList,
   canCreateAdditionalDraft,
   canSubmitReviewDraft,
   isDraftSheetRow,
   remainingDraftSlots,
+  sortDraftRows,
   sortMyRowsForReview,
+  sortSubmittedRows,
   splitMyRows,
 } from "./sheetRowDraft";
 
@@ -39,21 +42,64 @@ describe("splitMyRows / isDraftSheetRow", () => {
   });
 });
 
-describe("sortMyRowsForReview", () => {
-  test("puts drafts first by updatedAt, then submitted by submittedAt", () => {
-    const sorted = sortMyRowsForReview([
-      row("sOld", { _submittedAt: "2026-01-01T00:00:00.000Z" }),
-      row("dOld", {
-        isDraft: true,
-        _updatedAt: "2026-02-01T00:00:00.000Z",
-      }),
-      row("sNew", { _submittedAt: "2026-03-01T00:00:00.000Z" }),
-      row("dNew", {
-        isDraft: true,
-        _updatedAt: "2026-04-01T00:00:00.000Z",
-      }),
+describe("sortDraftRows / sortSubmittedRows", () => {
+  const mixed = [
+    row("sOld", { _submittedAt: "2026-01-01T00:00:00.000Z" }),
+    row("dOld", {
+      isDraft: true,
+      _updatedAt: "2026-02-01T00:00:00.000Z",
+    }),
+    row("sNew", { _submittedAt: "2026-03-01T00:00:00.000Z" }),
+    row("dNew", {
+      isDraft: true,
+      _updatedAt: "2026-04-01T00:00:00.000Z",
+    }),
+  ];
+
+  test("sorts drafts by updatedAt only", () => {
+    expect(sortDraftRows(mixed).map((r) => r._id)).toEqual(["dNew", "dOld"]);
+  });
+
+  test("sorts submitted by submittedAt only", () => {
+    expect(sortSubmittedRows(mixed).map((r) => r._id)).toEqual([
+      "sNew",
+      "sOld",
     ]);
-    expect(sorted.map((r) => r._id)).toEqual(["dNew", "dOld", "sNew", "sOld"]);
+  });
+
+  test("sortMyRowsForReview still concatenates drafts then submitted", () => {
+    expect(sortMyRowsForReview(mixed).map((r) => r._id)).toEqual([
+      "dNew",
+      "dOld",
+      "sNew",
+      "sOld",
+    ]);
+  });
+});
+
+describe("buildInProgressDraftList", () => {
+  const drafts = [
+    row("dOld", {
+      isDraft: true,
+      _updatedAt: "2026-02-01T00:00:00.000Z",
+    }),
+    row("dNew", {
+      isDraft: true,
+      _updatedAt: "2026-04-01T00:00:00.000Z",
+    }),
+  ];
+
+  test("always puts the local or blank slot first", () => {
+    expect(buildInProgressDraftList(drafts)).toEqual([
+      { kind: "local" },
+      { kind: "row", row: drafts[1] },
+      { kind: "row", row: drafts[0] },
+    ]);
+  });
+
+  test("is only the local slot when there are no server drafts", () => {
+    expect(buildInProgressDraftList([])).toEqual([{ kind: "local" }]);
+    expect(buildInProgressDraftList(undefined)).toEqual([{ kind: "local" }]);
   });
 });
 

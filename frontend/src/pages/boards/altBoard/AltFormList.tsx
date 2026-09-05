@@ -37,6 +37,7 @@ import {
   TSchoolTodoItem,
 } from "../schoolTodosCache";
 import { isFormRespondent } from "./formAccess";
+import { hasLocalComposeDraft } from "./formResponseLocalDraft";
 
 const formMatchesKeyword = (form: TAltForm, keyword: string) => {
   const kw = keyword.trim().toLowerCase();
@@ -59,6 +60,7 @@ type Props = {
   canModifyForm: (form: TAltForm) => boolean;
   onFormClick: (form: TAltForm) => void;
   onRespondForm: (formId: string) => void;
+  onViewDrafts?: (formId: string) => void;
   onViewMyResponses?: (formId: string) => void;
   onOpenSheet?: (formId: string) => void;
   onCreateForm: () => void;
@@ -151,6 +153,7 @@ const AltFormList = ({
   canModifyForm,
   onFormClick,
   onRespondForm,
+  onViewDrafts,
   onViewMyResponses,
   onOpenSheet,
   onCreateForm,
@@ -548,11 +551,13 @@ const AltFormList = ({
     const canEditForm = canModifyForm(form);
     const showRespond =
       !form.isDraft && !isDirect && form.myRespondent !== false;
+    const hasDrafts =
+      (form.myDraftCount ?? 0) > 0 ||
+      !!(currentUser?._id && hasLocalComposeDraft(currentUser._id, form._id));
+    const hasSubmitted =
+      !!form.mySubmitted && form.settings.showOwnResponse !== false;
     const showMyResponses =
-      !isDirect &&
-      !!onViewMyResponses &&
-      ((form.myDraftCount ?? 0) > 0 ||
-        (!!form.mySubmitted && form.settings.showOwnResponse !== false));
+      !isDirect && hasSubmitted && !!onViewMyResponses;
     const showSheet = !!onOpenSheet;
     const showManageMenu = canManage;
 
@@ -593,11 +598,22 @@ const AltFormList = ({
                 </span>
               )}
               {renderSubmitBadge(form)}
-              {(form.myDraftCount ?? 0) > 0 &&
-                period === "open" &&
-                !isDirect && (
+              {hasDrafts && period === "open" && !isDirect && (
+                onViewDrafts ? (
+                  <button
+                    type="button"
+                    className={`${style.formCardHint} ${style.formCardHintBtn}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onViewDrafts(form._id);
+                    }}
+                  >
+                    작성 중
+                  </button>
+                ) : (
                   <span className={style.formCardHint}>작성 중</span>
-                )}
+                )
+              )}
               {form.settings.openAt && period === "scheduled" && (
                 <span>시작: {formatDateTime(form.settings.openAt)}</span>
               )}
@@ -653,7 +669,7 @@ const AltFormList = ({
               type="button"
               className={style.formCardIconBtn}
               title="내 응답 보기"
-              onClick={() => onViewMyResponses!(form._id)}
+              onClick={() => onViewMyResponses?.(form._id)}
             >
               <Svg type="menuBook" width="20px" height="20px" />
             </button>

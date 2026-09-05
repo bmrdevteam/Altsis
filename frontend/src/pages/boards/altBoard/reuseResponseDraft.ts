@@ -4,9 +4,21 @@ import {
   getCirculationConfig,
   uniqueApproverList,
 } from "utils/approvalLine";
-import { hasFormResponseDraftContent } from "./formResponseLocalDraft";
 
-export type TFormViewMode = "compose" | "review";
+export type TFormViewMode = "compose" | "drafts" | "review";
+
+export const urlModeToViewMode = (
+  urlMode: string | null | undefined
+): TFormViewMode => {
+  if (urlMode === "responses") return "review";
+  // 예전 mode=drafts 링크도 작성으로 연다.
+  return "compose";
+};
+
+export const viewModeToUrlMode = (mode: TFormViewMode): string => {
+  if (mode === "review") return "responses";
+  return "respond";
+};
 
 /**
  * URL/딥링크 모드를 내부 작성·조회에 반영할지.
@@ -33,33 +45,17 @@ export const shouldApplyExternalViewMode = ({
   };
 };
 
-/**
- * 작성 탭에서 기존 행을 고치던 중 다시 새 건을 열지.
- * 내 응답→작성은 로컬 `new` 초안 복원(resolveMultipleComposeData)이라 여기 해당하지 않는다.
- */
-export const shouldStartNewMultipleCompose = ({
-  allowMultiple,
-  viewMode,
-  hasEditingRow,
+/** 작성 탭 진입·재클릭은 칸 0(로컬/빈 양식). 내 응답은 작성 칸을 바꾸지 않는다. */
+export const shouldStartNewCompose = ({
+  targetMode,
 }: {
-  allowMultiple: boolean;
-  viewMode: TFormViewMode;
-  hasEditingRow: boolean;
-}): boolean => {
-  if (!allowMultiple) return false;
-  if (viewMode !== "compose") return false;
-  return hasEditingRow;
-};
+  targetMode: TFormViewMode;
+}): boolean => targetMode === "compose" || targetMode === "drafts";
 
-/** 복수 응답 작성 슬롯: 내용 있는 브라우저 초안만 쓰고, 없으면 빈 양식. */
-export const resolveMultipleComposeData = ({
-  localDraft,
-}: {
+/** 작성 슬롯: 브라우저·서버 초안이 있어도 빈 양식. */
+export const resolveFreshComposeData = (_opts?: {
   localDraft?: Record<string, any> | null;
-}): Record<string, any> => {
-  if (!localDraft || !hasFormResponseDraftContent(localDraft)) return {};
-  return { ...localDraft };
-};
+}): Record<string, any> => ({});
 
 /** 수정 초안: 행 값이 있으면 덮고, 비어 있으면 조회 중 화면 값을 유지. */
 export const mergeRowDataForEdit = (

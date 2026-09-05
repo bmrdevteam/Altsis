@@ -29,18 +29,44 @@ const timeValue = (raw?: string) => {
   return Number.isFinite(t) ? t : 0;
 };
 
-/** 내 응답 캐러셀: 초안(최근 저장) 먼저, 그다음 제출본(최근 제출) */
-export const sortMyRowsForReview = (
+/** 임시 저장 목록: 최근 저장 순 */
+export const sortDraftRows = (
   rows: TAltSheetRow[] | null | undefined
 ): TAltSheetRow[] => {
-  const { draftRows, submittedRows } = splitMyRows(rows);
-  const drafts = [...draftRows].sort(
+  const { draftRows } = splitMyRows(rows);
+  return [...draftRows].sort(
     (a, b) => timeValue(b._updatedAt) - timeValue(a._updatedAt)
   );
-  const submitted = [...submittedRows].sort(
+};
+
+/** 내 응답 목록: 최근 제출 순 */
+export const sortSubmittedRows = (
+  rows: TAltSheetRow[] | null | undefined
+): TAltSheetRow[] => {
+  const { submittedRows } = splitMyRows(rows);
+  return [...submittedRows].sort(
     (a, b) => timeValue(b._submittedAt) - timeValue(a._submittedAt)
   );
-  return [...drafts, ...submitted];
+};
+
+/** 초안(최근 저장) 다음 제출본(최근 제출). 탭별 목록은 sortDraftRows / sortSubmittedRows. */
+export const sortMyRowsForReview = (
+  rows: TAltSheetRow[] | null | undefined
+): TAltSheetRow[] => [...sortDraftRows(rows), ...sortSubmittedRows(rows)];
+
+export type TInProgressDraftItem =
+  | { kind: "local" }
+  | { kind: "row"; row: TAltSheetRow };
+
+/** 작성 목록: 맨 앞은 로컬/빈 칸, 그다음 서버 초안. */
+export const buildInProgressDraftList = (
+  rows: TAltSheetRow[] | null | undefined
+): TInProgressDraftItem[] => {
+  const list: TInProgressDraftItem[] = [{ kind: "local" }];
+  for (const row of sortDraftRows(rows)) {
+    list.push({ kind: "row", row });
+  }
+  return list;
 };
 
 /** 목표 N이 있으면 제출+초안이 N을 넘지 않게. 없으면 제한 없음(음수 아님). */
