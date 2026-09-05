@@ -22,6 +22,15 @@ describe("guideKeysForAuth", () => {
 });
 
 describe("retrieveAlterGuide", () => {
+  test("결재 질문은 approval 안내를 찾는다", () => {
+    const hits = retrieveAlterGuide({
+      query: "결재 보기에서 일괄 승인하려면",
+      auth: "teacher",
+    });
+    expect(hits.length).toBeGreaterThan(0);
+    expect(hits.some((h) => h.key === "user-guide/approval.md")).toBe(true);
+  });
+
   test("문서 미리보기 질문은 docs 안내를 찾는다", () => {
     const hits = retrieveAlterGuide({
       query: "문서 미리보기 어떻게 하나요",
