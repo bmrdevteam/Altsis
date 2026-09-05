@@ -48,7 +48,8 @@ import FilePreviewModal from "./FilePreviewModal";
 import ApprovalCirculationPicker, {
   ApprovalUserSearchInput,
   CirculationUserChips,
-  uniqueApprovalCandidates,
+  approvalCandidatesForBoard,
+  circulationCandidatesForBoard,
 } from "./ApprovalCirculationPicker";
 import {
   applyApprovalGroup,
@@ -247,25 +248,11 @@ const isFieldVisible = (
 
 /** 새/빈 응답의 docResponse 템플릿과 지정 기본 인원만 채운다 (기존 값은 유지). */
 const pickCandidateIdsFromBoard = (board: TBoard) => {
-  const boardAdmins = (
-    board as {
-      admins?: {
-        users?: { user?: string; userId?: string; userName?: string }[];
-      };
-    }
-  ).admins?.users;
   return {
-    approvalCandidateIds: uniqueApprovalCandidates(
-      board.writers?.users,
-      boardAdmins
-    )
+    approvalCandidateIds: approvalCandidatesForBoard(board)
       .map((u) => u.userId)
       .filter(Boolean),
-    circulationCandidateIds: uniqueApprovalCandidates(
-      board.members?.users,
-      board.writers?.users,
-      boardAdmins
-    )
+    circulationCandidateIds: circulationCandidatesForBoard(board)
       .map((u) => u.userId)
       .filter(Boolean),
   };
@@ -2081,22 +2068,8 @@ const AltFormRenderer = ({
         const circulationDef = useNestedCirculation
           ? getApprovalCirculation(field)
           : { mode: "off" as const, users: [] as TApprovalApprover[] };
-        const boardAdmins = (
-          board as {
-            admins?: {
-              users?: { user?: string; userId?: string; userName?: string }[];
-            };
-          }
-        ).admins?.users;
-        const approvalCandidates = uniqueApprovalCandidates(
-          board.writers?.users,
-          boardAdmins
-        );
-        const circulationCandidates = uniqueApprovalCandidates(
-          board.members?.users,
-          board.writers?.users,
-          boardAdmins
-        );
+        const approvalCandidates = approvalCandidatesForBoard(board);
+        const circulationCandidates = circulationCandidatesForBoard(board);
 
         const currentPicks: Record<number, any> = {};
         if (value?.version === 2 && Array.isArray(value.steps)) {
@@ -2310,18 +2283,7 @@ const AltFormRenderer = ({
 
       case "circulation": {
         const circDef = getCirculationConfig(field);
-        const boardAdmins = (
-          board as {
-            admins?: {
-              users?: { user?: string; userId?: string; userName?: string }[];
-            };
-          }
-        ).admins?.users;
-        const circulationCandidates = uniqueApprovalCandidates(
-          board.members?.users,
-          board.writers?.users,
-          boardAdmins
-        );
+        const circulationCandidates = circulationCandidatesForBoard(board);
         const selected: TApprovalApprover[] =
           circDef.mode === "fixed"
             ? circDef.users

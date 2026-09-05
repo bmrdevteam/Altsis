@@ -16,11 +16,11 @@ import {
   checkMultipleResponseLimit,
   isWeekdayScheduleEnabled,
   resolveOccurrenceKey,
-  getVisibleFields,
+  getVisibleRowFields,
   isFieldVisible,
   gradeQuizRow,
   applyAssessmentOnSubmit,
-  filterAssessmentForViewer,
+  filterSheetRowDataForViewer,
   applyAssessmentGradePatch,
   finalizeAssessment,
   unfinalizeAssessment,
@@ -40,11 +40,16 @@ import {
   isDraftSheetRow,
   splitSheetRows,
 } from "../utils/sheetRowQuery.js";
-import { getUserRoleInSeason, isSeasonScopedBoard } from "../services/boards.js";
+import {
+  getBoardWorkflowCandidates,
+  getUserRoleInSeason,
+  isSeasonScopedBoard,
+} from "../services/boards.js";
 import { getSchoolTodosForUser } from "../services/schoolTodos.js";
 import { sendAutoNotification, isBoardNotificationEnabled } from "../services/notifications.js";
 import { sendApprovalActionNotifications } from "../services/approvalActionNotify.js";
 import { validateBulkApproveRequest } from "../utils/bulkApproveGuard.js";
+import { authorizeSheetRowFieldUpdate } from "../utils/sheetRowUpdate.js";
 import {
   FIELD_REQUIRED,
   PERMISSION_DENIED,
@@ -75,6 +80,50 @@ const schoolRoleOf = (academyId, board, user) =>
     user,
     isSeasonScopedBoard(board) ? board.season : null
   );
+
+const candidateMap = (...lists) => {
+  const candidates = new Map();
+  for (const list of lists) {
+    for (const candidate of list || []) {
+      const userId = candidate?.userId ? String(candidate.userId) : "";
+      if (!userId || candidates.has(userId)) continue;
+      candidates.set(userId, {
+        user: candidate.user,
+        userId,
+        userName: candidate.userName || userId,
+      });
+    }
+  }
+  return candidates;
+};
+
+const pendingFieldMeta = (field) => ({
+  _id: String(field._id),
+  label: field.label || "",
+  type: field.type,
+  ...(field.type === "content" ? { content: field.content || "" } : {}),
+  ...(field.type === "approval"
+    ? { approvalLine: field.approvalLine || undefined }
+    : {}),
+});
+
+const serializeRowForViewer = (row, form, board, user, schoolRole) => {
+  const payload =
+    typeof row.toObject === "function" ? row.toObject() : { ...row };
+  const role = getAltBoardRole(board, user);
+  const canSeeFull =
+    role === "admin" ||
+    role === "writer" ||
+    user?.auth === "manager" ||
+    canViewAllRows(form, board, user, schoolRole);
+  const viewerRole =
+    getFormViewerRole(form, board, user, schoolRole) || "respondent";
+  payload.data = filterSheetRowDataForViewer(form, payload.data, {
+    role: viewerRole,
+    canSeeFull,
+  });
+  return payload;
+};
 
 /**
  * 자유 모드 중복 검사 카운터 atomic claim
@@ -316,7 +365,6 @@ export const create = async (req, res) => {
     if (!board) {
       return res.status(404).send({ message: __NOT_FOUND("board") });
     }
-
     // 응답 권한 + 공개 기간 확인 (학교 역할 그룹 멤버십 반영)
     const schoolRole = await schoolRoleOf(
       req.user.academyId,
@@ -333,6 +381,26 @@ export const create = async (req, res) => {
     if (!respondCheck.allowed) {
       return res.status(403).send({ message: respondCheck.message });
     }
+    const hasWorkflowFields = form.fields.some(
+      (field) => field.type === "approval" || field.type === "circulation"
+    );
+    const workflowCandidates = hasWorkflowFields
+      ? await getBoardWorkflowCandidates(
+          req.user.academyId,
+          board,
+          isSeasonScopedBoard(board) ? board.season : null
+        )
+      : { approvalCandidates: [], circulationCandidates: [] };
+    const approvalCandidates = candidateMap(workflowCandidates.approvalCandidates);
+    const circulationCandidates = candidateMap(
+      workflowCandidates.circulationCandidates
+    );
+    const approvalSubmitOptions = {
+      hasApprovalGroups: formHasApprovalGroups(form),
+      approvalCandidates,
+      circulationCandidates,
+    };
+    const circulationSubmitOptions = { candidates: circulationCandidates };
 
     // 기존 응답: 단건 재제출, 초안 승격, 또는 복수 응답에서 지정한 행 수정
     let existing = null;
@@ -422,7 +490,44 @@ export const create = async (req, res) => {
         for (const field of respondentFields) {
           const fieldId = field._id.toString();
           if (fieldId in req.body.data) {
-            existing.data.set(fieldId, req.body.data[fieldId]);
+            const submittedValue = req.body.data[fieldId];
+            if (field.type === "approval") {
+              const error = validateApprovalSubmit(
+                field,
+                submittedValue,
+                approvalSubmitOptions
+              );
+              if (error) {
+                return res.status(400).send({ message: error });
+              }
+              existing.data.set(
+                fieldId,
+                buildApprovalOnSubmit(
+                  field,
+                  submittedValue,
+                  approvalSubmitOptions
+                )
+              );
+            } else if (field.type === "circulation") {
+              const error = validateCirculationSubmit(
+                field,
+                submittedValue,
+                circulationSubmitOptions
+              );
+              if (error) {
+                return res.status(400).send({ message: error });
+              }
+              existing.data.set(
+                fieldId,
+                buildCirculationOnSubmit(
+                  field,
+                  submittedValue,
+                  circulationSubmitOptions
+                )
+              );
+            } else {
+              existing.data.set(fieldId, submittedValue);
+            }
           }
         }
 
@@ -568,6 +673,40 @@ export const create = async (req, res) => {
       }
     }
 
+    const rowData = { ...data };
+    for (const field of form.fields) {
+      const fid = field._id.toString();
+      if (field.type === "approval") {
+        const error = validateApprovalSubmit(
+          field,
+          rowData[fid],
+          approvalSubmitOptions
+        );
+        if (error) {
+          return res.status(400).send({ message: error });
+        }
+        rowData[fid] = buildApprovalOnSubmit(
+          field,
+          rowData[fid],
+          approvalSubmitOptions
+        );
+      } else if (field.type === "circulation") {
+        const error = validateCirculationSubmit(
+          field,
+          rowData[fid],
+          circulationSubmitOptions
+        );
+        if (error) {
+          return res.status(400).send({ message: error });
+        }
+        rowData[fid] = buildCirculationOnSubmit(
+          field,
+          rowData[fid],
+          circulationSubmitOptions
+        );
+      }
+    }
+
     // counter 필드 검사
     for (const field of form.fields) {
       if (field.type !== "counter") continue;
@@ -650,7 +789,7 @@ export const create = async (req, res) => {
                       .filter((f) => !f.duplicateCheck?.enabled)
                       .map((f) => [
                         `data.${f._id.toString()}`,
-                        data[f._id.toString()],
+                        rowData[f._id.toString()],
                       ])
                   ),
                 },
@@ -706,7 +845,7 @@ export const create = async (req, res) => {
                   .filter((f) => !f.duplicateCheck?.enabled)
                   .map((f) => [
                     `data.${f._id.toString()}`,
-                    data[f._id.toString()],
+                    rowData[f._id.toString()],
                   ])
               ),
             },
@@ -799,50 +938,6 @@ export const create = async (req, res) => {
         occurrenceKeyToStamp = resolved.occurrence?.key;
       }
     }
-    const rowData = { ...data };
-
-    // 승인(결재선) 필드: 제출값 검증·v2 초기화
-    const approvalSubmitOptions = {
-      hasApprovalGroups: formHasApprovalGroups(form),
-      candidateIds: new Set(
-        [
-          ...(board.writers?.users || []),
-          ...(board.admins?.users || []),
-        ]
-          .map((u) => u?.userId)
-          .filter(Boolean)
-          .map((id) => String(id))
-      ),
-    };
-    for (const field of form.fields) {
-      if (field.type !== "approval") continue;
-      const fid = field._id.toString();
-      const errMsg = validateApprovalSubmit(
-        field,
-        rowData[fid],
-        approvalSubmitOptions
-      );
-      if (errMsg) {
-        return res.status(400).send({ message: errMsg });
-      }
-      const built = buildApprovalOnSubmit(
-        field,
-        rowData[fid],
-        approvalSubmitOptions
-      );
-      if (built) rowData[fid] = built;
-    }
-
-    for (const field of form.fields) {
-      if (field.type !== "circulation") continue;
-      const fid = field._id.toString();
-      const errMsg = validateCirculationSubmit(field, rowData[fid]);
-      if (errMsg) {
-        return res.status(400).send({ message: errMsg });
-      }
-      rowData[fid] = buildCirculationOnSubmit(field, rowData[fid]);
-    }
-
     // 퀴즈 자동 채점
     if (form.settings?.quizMode) {
       const quizResult = gradeQuizRow(form, rowData);
@@ -925,8 +1020,8 @@ export const create = async (req, res) => {
               relatedEntity: { type: "altSheetRow", id: row._id },
               fromUser: req.user,
             });
-          } catch (e) {
-            // 알림 실패는 응답에 영향 없음
+          } catch {
+            logger.warn("승인 요청 알림 전송 실패");
           }
         }
       }
@@ -945,8 +1040,8 @@ export const create = async (req, res) => {
             relatedEntity: { type: "altSheetRow", id: row._id },
             fromUser: req.user,
           });
-        } catch (e) {
-          // 알림 실패는 응답에 영향 없음
+        } catch {
+          logger.warn("회람 알림 전송 실패");
         }
       }
     }
@@ -996,9 +1091,6 @@ export const find = async (req, res) => {
       getFormViewerRole(form, board, req.user, schoolRole) || "respondent";
 
     // 승인 필드가 있는 경우, 승인자도 접근 허용
-    const approvalFieldIds = form.fields
-      .filter((f) => f.type === "approval")
-      .map((f) => f._id.toString());
     const accessOr = buildApprovalAccessOr(form, req.user.userId);
 
     if (!member && !role && accessOr.length === 0) {
@@ -1038,58 +1130,11 @@ export const find = async (req, res) => {
 
     // respondent/승인자에게는 보이는 필드만 필터링
     if (!viewAll) {
-      const visibleFieldIds = new Set(
-        getVisibleFields(form.fields, viewerRole).map((f) =>
-          f._id.toString()
-        )
-      );
-      // 승인·회람 필드는 지정된 사람에게 항상 표시
-      for (const fid of approvalFieldIds) {
-        visibleFieldIds.add(fid);
-      }
-      for (const field of form.fields || []) {
-        if (field.type === "circulation") {
-          visibleFieldIds.add(field._id.toString());
-        }
-      }
-
-      // 퀴즈 reveal 설정 처리
-      const isQuiz = form.settings?.quizMode;
-      const isAssessment = form.settings?.assessmentMode;
-      const isClosed =
-        form.settings?.closeAt && new Date(form.settings.closeAt) < new Date();
-      const scoreVisible = isQuiz && (
-        form.settings.quizSettings?.scoreReveal === "immediately" ||
-        (form.settings.quizSettings?.scoreReveal === "afterDeadline" && isClosed)
-      );
-      const answerVisible = isQuiz && (
-        form.settings.quizSettings?.answerReveal === "immediately" ||
-        (form.settings.quizSettings?.answerReveal === "afterDeadline" && isClosed)
-      );
-
       for (const row of rows) {
-        const filteredData = {};
-        for (const [key, value] of Object.entries(row.data || {})) {
-          if (key.startsWith("_quiz_")) {
-            if (key === "_quiz_score" || key === "_quiz_total") {
-              if (scoreVisible) filteredData[key] = value;
-            } else if (key === "_quiz_fieldResults") {
-              if (answerVisible) filteredData[key] = value;
-            }
-            continue;
-          }
-          if (key === "_assessment") {
-            if (isAssessment) {
-              const masked = filterAssessmentForViewer(value, false);
-              if (masked) filteredData[key] = masked;
-            }
-            continue;
-          }
-          if (visibleFieldIds.has(key)) {
-            filteredData[key] = value;
-          }
-        }
-        row.data = filteredData;
+        row.data = filterSheetRowDataForViewer(form, row.data, {
+          role: viewerRole,
+          canSeeFull: false,
+        });
       }
     }
 
@@ -1118,7 +1163,6 @@ export const findMy = async (req, res) => {
     }
 
     const board = await Board(req.user.academyId).findById(form.board);
-    const role = board ? getAltBoardRole(board, req.user) : null;
     const schoolRole = board
       ? await getUserRoleInSeason(
           req.user.academyId,
@@ -1127,9 +1171,12 @@ export const findMy = async (req, res) => {
           isSeasonScopedBoard(board) ? board.season : null
         )
       : null;
-    const canSeeFullAssessment =
+    const canSeeFullRow =
       (board && canViewAllRows(form, board, req.user, schoolRole)) ||
       req.user.auth === "manager";
+    const viewerRole = board
+      ? getFormViewerRole(form, board, req.user, schoolRole) || "respondent"
+      : "respondent";
 
     const rows = await AltSheetRow(req.user.academyId)
       .find({
@@ -1141,15 +1188,12 @@ export const findMy = async (req, res) => {
 
     const sorted = sortMyRowsForReview(rows);
 
-    // 평가 모드: 확정 전 결과 마스킹 (본인 조회라도)
-    if (form.settings?.assessmentMode && !canSeeFullAssessment) {
+    if (!canSeeFullRow) {
       for (const row of sorted) {
-        if (row.data?._assessment) {
-          row.data._assessment = filterAssessmentForViewer(
-            row.data._assessment,
-            false
-          );
-        }
+        row.data = filterSheetRowDataForViewer(form, row.data, {
+          role: viewerRole,
+          canSeeFull: false,
+        });
       }
     }
 
@@ -1181,9 +1225,13 @@ export const update = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("board") });
     }
 
-    // 승인 필드: 현재 단계 승인자 본인도 업데이트 가능
     const form = await AltForm(req.user.academyId).findById(row.form);
-    const isApprover = form?.fields.some((f) => {
+    if (!form || !form.isActive) {
+      return res.status(404).send({ message: __NOT_FOUND("form") });
+    }
+
+    // 승인 필드: 현재 단계 승인자 본인도 허용된 응답 필드를 업데이트 가능
+    const canApproveAny = form.fields.some((f) => {
       if (f.type !== "approval") return false;
       const approvalData =
         row.data?.get?.(f._id.toString()) || row.data?.[f._id.toString()];
@@ -1192,24 +1240,36 @@ export const update = async (req, res) => {
 
     const role = getAltBoardRole(board, req.user);
     const isAdmin = role === "admin" || req.user.auth === "manager";
+    const schoolRole = await schoolRoleOf(
+      req.user.academyId,
+      board,
+      req.user
+    );
 
-    if (!isAdmin && !isApprover) {
-      if (isApprovalLocked(row, form?.fields)) {
-        return res.status(403).send({
-          message: "결재가 시작되어 수정할 수 없습니다.",
-        });
-      }
+    if (!isAdmin && !canApproveAny) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
+    const notifications = [];
     if (req.body.data) {
       for (const [key, value] of Object.entries(req.body.data)) {
-        const field = form?.fields.find((f) => f._id.toString() === key);
+        const field = form.fields.find((f) => f._id.toString() === key);
+        const prev = row.data?.get?.(key) || row.data?.[key];
+        const currentFieldApprover =
+          field?.type === "approval" &&
+          isCurrentApprover(prev, req.user.userId, field);
+        const authorization = authorizeSheetRowFieldUpdate({
+          field,
+          value,
+          isAdmin,
+          canApproveAny,
+          isCurrentFieldApprover: currentFieldApprover,
+        });
+        if (!authorization.ok) {
+          return res.status(403).send({ message: authorization.message });
+        }
 
-        // 승인 필드: 서버에서 순차 결재 적용 (클라이언트가 status만 보내도 됨)
-        if (field?.type === "approval" && value?.status && value.status !== "pending") {
-          const prev =
-            row.data?.get?.(key) || row.data?.[key];
+        if (authorization.kind === "approval") {
           const result = applyApprovalAction(
             prev,
             field,
@@ -1218,26 +1278,10 @@ export const update = async (req, res) => {
             value.reason
           );
           if (!result.ok) {
-            // 관리자는 레거시처럼 직접 덮어쓰기 허용(비상)
-            if (isAdmin && value.version === 2) {
-              row.data.set(key, value);
-            } else if (isAdmin && !prev?.version) {
-              row.data.set(key, value);
-            } else {
-              return res.status(403).send({ message: result.message });
-            }
-          } else {
-            row.data.set(key, result.value);
-            await sendApprovalActionNotifications({
-              academyId: req.user.academyId,
-              board,
-              form,
-              row,
-              fromUser: req.user,
-              result,
-              reason: value.reason || "",
-            });
+            return res.status(403).send({ message: result.message });
           }
+          row.data.set(key, result.value);
+          notifications.push({ result, reason: value.reason || "" });
         } else {
           row.data.set(key, value);
         }
@@ -1248,8 +1292,27 @@ export const update = async (req, res) => {
 
     await row.save();
 
-    return res.status(200).send({ row });
+    for (const notification of notifications) {
+      await sendApprovalActionNotifications({
+        academyId: req.user.academyId,
+        board,
+        form,
+        row,
+        fromUser: req.user,
+        result: notification.result,
+        reason: notification.reason,
+      });
+    }
+
+    return res.status(200).send({
+      row: serializeRowForViewer(row, form, board, req.user, schoolRole),
+    });
   } catch (err) {
+    if (err?.name === "VersionError") {
+      return res.status(409).send({
+        message: "다른 사용자가 먼저 수정했습니다. 새로고침 후 다시 시도하세요.",
+      });
+    }
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
@@ -1277,6 +1340,11 @@ export const bulkApprove = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("board") });
     }
 
+    const schoolRole = await schoolRoleOf(
+      req.user.academyId,
+      board,
+      req.user
+    );
     const succeeded = [];
     const failed = [];
 
@@ -1343,8 +1411,19 @@ export const bulkApprove = async (req, res) => {
           reason: parsed.reason,
         });
 
-        succeeded.push({ rowId: item.rowId, row });
+        succeeded.push({
+          rowId: item.rowId,
+          row: serializeRowForViewer(row, form, board, req.user, schoolRole),
+        });
       } catch (err) {
+        if (err?.name === "VersionError") {
+          failed.push({
+            rowId: item.rowId,
+            message:
+              "다른 사용자가 먼저 처리했습니다. 새로고침 후 다시 시도하세요.",
+          });
+          continue;
+        }
         logger.error(err.message);
         failed.push({
           rowId: item.rowId,
@@ -1871,94 +1950,148 @@ export const findPendingApprovals = async (req, res) => {
       .find({ board: board._id, isActive: true, isDraft: { $ne: true } })
       .lean();
 
-    const items = [];
-    const outgoing = [];
+    const schoolRole = await schoolRoleOf(
+      req.user.academyId,
+      board,
+      req.user
+    );
+    const formContexts = forms
+      .map((form) => {
+        const approvalFields = (form.fields || []).filter(
+          (field) => field.type === "approval"
+        );
+        if (approvalFields.length === 0) return null;
+        const canSeeFull = canViewAllRows(
+          form,
+          board,
+          req.user,
+          schoolRole
+        );
+        const viewerRole =
+          getFormViewerRole(form, board, req.user, schoolRole) || "respondent";
+        return {
+          form,
+          approvalFields,
+          fields: getVisibleRowFields(form, viewerRole, canSeeFull).map(
+            pendingFieldMeta
+          ),
+          canSeeFull,
+          viewerRole,
+        };
+      })
+      .filter(Boolean);
+    if (formContexts.length === 0) {
+      return res.status(200).send({ items: [], outgoing: [], count: 0 });
+    }
 
-    for (const form of forms) {
-      const approvalFields = (form.fields || []).filter(
-        (f) => f.type === "approval"
-      );
-      if (approvalFields.length === 0) continue;
-
-      const fieldIds = approvalFields.map((f) => f._id.toString());
-      const orConds = fieldIds.flatMap((fid) => [
-        { [`data.${fid}.currentApproverUserId`]: req.user.userId },
-        { [`data.${fid}.approver.userId`]: req.user.userId },
-      ]);
-
-      const rows = await AltSheetRow(req.user.academyId)
+    const formById = new Map(
+      formContexts.map((ctx) => [String(ctx.form._id), ctx])
+    );
+    const formIds = formContexts.map((ctx) => ctx.form._id);
+    const currentApproverOr = formContexts.flatMap((ctx) =>
+      ctx.approvalFields.flatMap((field) => {
+        const fid = String(field._id);
+        return [
+          { [`data.${fid}.currentApproverUserId`]: req.user.userId },
+          {
+            [`data.${fid}.approver.userId`]: req.user.userId,
+            [`data.${fid}.version`]: { $ne: 2 },
+            $or: [
+              { [`data.${fid}.status`]: "pending" },
+              { [`data.${fid}.status`]: { $exists: false } },
+            ],
+          },
+        ];
+      })
+    );
+    const [approvalRows, myRows] = await Promise.all([
+      AltSheetRow(req.user.academyId)
         .find({
-          form: form._id,
+          form: { $in: formIds },
           ...submittedSheetRowFilter(),
-          $or: orConds,
+          $or: currentApproverOr,
         })
         .sort({ _submittedAt: -1 })
-        .limit(100)
-        .lean();
-
-      for (const row of rows) {
-        for (const field of approvalFields) {
-          const fid = field._id.toString();
-          const raw = row.data?.[fid];
-          if (!isCurrentApprover(raw, req.user.userId, field)) continue;
-          const normalized = normalizeApprovalValue(raw, field);
-          items.push({
-            rowId: row._id,
-            formId: form._id,
-            formTitle: form.title,
-            fieldId: fid,
-            fieldLabel: field.label,
-            stepLabel: normalized?.steps?.[normalized.currentStep]?.label,
-            respondentName: row._respondentName,
-            respondentId: row._respondentId,
-            submittedAt: row._submittedAt || row.createdAt,
-            approval: normalized,
-            rowData: row.data,
-            fields: form.fields,
-          });
-        }
-      }
-
-      // 내가 제출했고 아직 승인 진행 중인 행
-      const myRows = await AltSheetRow(req.user.academyId)
+        .limit(500)
+        .lean(),
+      AltSheetRow(req.user.academyId)
         .find({
-          form: form._id,
+          form: { $in: formIds },
           ...submittedSheetRowFilter(),
           _respondent: req.user._id,
         })
         .sort({ _submittedAt: -1 })
-        .limit(100)
-        .lean();
+        .limit(500)
+        .lean(),
+    ]);
 
-      for (const row of myRows) {
-        for (const field of approvalFields) {
-          const fid = field._id.toString();
-          const raw = row.data?.[fid];
-          // 내가 현재 승인해야 하는 건은 items 쪽에만 표시
-          if (isCurrentApprover(raw, req.user.userId, field)) continue;
-          const normalized = normalizeApprovalValue(raw, field);
-          if (!normalized || normalized.overallStatus !== "pending") continue;
-          const step = normalized.steps?.[normalized.currentStep];
-          outgoing.push({
-            rowId: row._id,
-            formId: form._id,
-            formTitle: form.title,
-            fieldId: fid,
-            fieldLabel: field.label,
-            stepLabel: step?.label,
-            currentApproverName: step?.approver?.userName,
-            currentApproverId: step?.approver?.userId,
-            currentStep:
-              typeof normalized.currentStep === "number"
-                ? normalized.currentStep
-                : 0,
-            totalSteps: normalized.steps?.length || 0,
-            submittedAt: row._submittedAt || row.createdAt,
-            approval: normalized,
-            rowData: row.data,
-            fields: form.fields,
-          });
-        }
+    const items = [];
+    const outgoing = [];
+
+    for (const row of approvalRows) {
+      const ctx = formById.get(String(row.form));
+      if (!ctx) continue;
+      const rowData = filterSheetRowDataForViewer(ctx.form, row.data, {
+        role: ctx.viewerRole,
+        canSeeFull: ctx.canSeeFull,
+      });
+      for (const field of ctx.approvalFields) {
+        const fid = String(field._id);
+        const raw = row.data?.[fid];
+        if (!isCurrentApprover(raw, req.user.userId, field)) continue;
+        const normalized = normalizeApprovalValue(raw, field);
+        items.push({
+          rowId: row._id,
+          formId: ctx.form._id,
+          formTitle: ctx.form.title,
+          fieldId: fid,
+          fieldLabel: field.label,
+          stepLabel: normalized?.steps?.[normalized.currentStep]?.label,
+          respondentName: row._respondentName,
+          respondentId: row._respondentId,
+          submittedAt: row._submittedAt || row.createdAt,
+          approval: normalized,
+          rowData,
+          fields: ctx.fields,
+        });
+      }
+    }
+
+    // 내가 제출했고 아직 승인 진행 중인 행
+    for (const row of myRows) {
+      const ctx = formById.get(String(row.form));
+      if (!ctx) continue;
+      const rowData = filterSheetRowDataForViewer(ctx.form, row.data, {
+        role: ctx.viewerRole,
+        canSeeFull: ctx.canSeeFull,
+      });
+      for (const field of ctx.approvalFields) {
+        const fid = String(field._id);
+        const raw = row.data?.[fid];
+        // 내가 현재 승인해야 하는 건은 items 쪽에만 표시
+        if (isCurrentApprover(raw, req.user.userId, field)) continue;
+        const normalized = normalizeApprovalValue(raw, field);
+        if (!normalized || normalized.overallStatus !== "pending") continue;
+        const step = normalized.steps?.[normalized.currentStep];
+        outgoing.push({
+          rowId: row._id,
+          formId: ctx.form._id,
+          formTitle: ctx.form.title,
+          fieldId: fid,
+          fieldLabel: field.label,
+          stepLabel: step?.label,
+          currentApproverName: step?.approver?.userName,
+          currentApproverId: step?.approver?.userId,
+          currentStep:
+            typeof normalized.currentStep === "number"
+              ? normalized.currentStep
+              : 0,
+          totalSteps: normalized.steps?.length || 0,
+          submittedAt: row._submittedAt || row.createdAt,
+          approval: normalized,
+          rowData,
+          fields: ctx.fields,
+        });
       }
     }
 
@@ -2037,6 +2170,15 @@ export const findById = async (req, res) => {
 
     const role = getAltBoardRole(board, req.user);
     const isAdmin = role === "admin" || role === "writer" || req.user.auth === "manager";
+    const schoolRole = await schoolRoleOf(
+      req.user.academyId,
+      board,
+      req.user
+    );
+    const canSeeFullRow =
+      isAdmin || canViewAllRows(form, board, req.user, schoolRole);
+    const viewerRole =
+      getFormViewerRole(form, board, req.user, schoolRole) || "respondent";
     const isOwner =
       row._respondent && String(row._respondent) === String(req.user._id);
 
@@ -2072,16 +2214,11 @@ export const findById = async (req, res) => {
       }
     }
 
-    // 평가 결과 마스킹 (관리자 외 + 미확정)
-    if (
-      form.settings?.assessmentMode &&
-      !isAdmin &&
-      row.data?._assessment
-    ) {
-      row.data._assessment = filterAssessmentForViewer(
-        row.data._assessment,
-        false
-      );
+    if (!canSeeFullRow) {
+      row.data = filterSheetRowDataForViewer(form, row.data, {
+        role: viewerRole,
+        canSeeFull: false,
+      });
     }
 
     return res.status(200).send({

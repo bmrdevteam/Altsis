@@ -2,6 +2,7 @@ import {
   canManageBoard,
   isBoardMember,
   isBoardMemberAsUser,
+  isBoardWriter,
   validatePostPermission,
   nextAltRoleOnAddWriter,
   nextAltRoleOnRemoveWriter,
@@ -124,6 +125,23 @@ describe("board permission helpers", () => {
         auth: "member",
       })
     ).toBe(false);
+  });
+
+  test("isBoardWriter honors configured writer role groups", () => {
+    const board = {
+      ...schoolBoard,
+      writers: {
+        groups: { manager: false, teacher: true, student: false },
+        users: [],
+      },
+    };
+    const teacher = {
+      _id: oid("teacher-oid"),
+      userId: "teacher",
+      auth: "member",
+    };
+    expect(isBoardWriter(board, teacher, "teacher")).toBe(true);
+    expect(isBoardWriter(board, teacher, "student")).toBe(false);
   });
 
   test("lookupAltBoardRole works for Map and plain object", () => {

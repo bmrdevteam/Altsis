@@ -2,8 +2,10 @@ import { TAltFormField } from "types/altForm";
 import { TAltSheetRow } from "types/altSheet";
 import {
   approvalItemKey,
+  approvalRowFieldTitle,
   approvalRowTitle,
   buildApprovalListItem,
+  composeApprovalCardTitle,
   countApprovalInbox,
   formatWaitingLabel,
   isSelectableApprovalItem,
@@ -120,6 +122,44 @@ describe("approvalRowTitle", () => {
   test("falls back to respondent name", () => {
     const row = makeRow({}, { _respondentName: "조은길" });
     expect(approvalRowTitle(row, [approvalField])).toBe("조은길");
+  });
+});
+
+describe("composeApprovalCardTitle", () => {
+  test("appends 제목 field after form title", () => {
+    expect(
+      composeApprovalCardTitle(
+        "테스트",
+        { title1: "9월 5일 결석계", text1: "짧은 내용" },
+        [shortField, titleField, approvalField]
+      )
+    ).toBe("테스트 · 9월 5일 결석계");
+  });
+
+  test("appends first text field when 제목 is empty", () => {
+    const unlabeled = { ...titleField, label: "문서명" };
+    expect(
+      composeApprovalCardTitle("테스트", { title1: "문서 제목" }, [
+        unlabeled,
+        approvalField,
+      ])
+    ).toBe("테스트 · 문서 제목");
+  });
+
+  test("keeps form title when no document title exists", () => {
+    expect(
+      composeApprovalCardTitle("테스트", {}, [approvalField])
+    ).toBe("테스트");
+    expect(approvalRowFieldTitle({}, [approvalField])).toBe("");
+  });
+
+  test("does not repeat the same form title", () => {
+    expect(
+      composeApprovalCardTitle("테스트", { title1: "테스트" }, [
+        titleField,
+        approvalField,
+      ])
+    ).toBe("테스트");
   });
 });
 

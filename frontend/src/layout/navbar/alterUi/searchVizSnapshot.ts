@@ -10,6 +10,14 @@ export const SEARCH_VIZ_SNAPSHOT_WAIT_MS = 800;
 const TOKEN_RE = /^[a-f0-9]{16,64}$/i;
 const PNG_PREFIX = "data:image/png";
 
+/** JSON embedded in an inline script must not be able to close the script tag. */
+export function serializeSearchVizRows(rows: unknown): string {
+  return (JSON.stringify(rows) || "[]")
+    .replace(/</g, "\\u003c")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
+}
+
 export function createSearchVizSnapshotToken(): string {
   const bytes = new Uint8Array(16);
   const webCrypto = globalThis.crypto;

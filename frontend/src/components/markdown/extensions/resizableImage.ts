@@ -264,19 +264,23 @@ export const ResizableImage = Image.extend({
         );
       };
       captionEl.addEventListener("blur", commitCaption);
-      captionEl.addEventListener("keydown", (e) => {
+      const onCaptionKeyDown = (e: KeyboardEvent) => {
         if (e.key === "Enter") {
           e.preventDefault();
           captionEl.blur();
         }
-      });
+      };
+      captionEl.addEventListener("keydown", onCaptionKeyDown);
 
       let startX = 0;
       let startWidth = 0;
+      let resizing = false;
 
       const onMouseDown = (e: MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
+        if (resizing) return;
+        resizing = true;
         startX = e.clientX;
         startWidth = img.offsetWidth;
         document.addEventListener("mousemove", onMouseMove);
@@ -290,10 +294,15 @@ export const ResizableImage = Image.extend({
         img.style.width = `${newWidth}px`;
       };
 
-      const onMouseUp = () => {
+      const stopResize = () => {
         document.removeEventListener("mousemove", onMouseMove);
         document.removeEventListener("mouseup", onMouseUp);
         wrapper.classList.remove("image-resizing");
+        resizing = false;
+      };
+
+      const onMouseUp = () => {
+        stopResize();
         const finalWidth = img.offsetWidth;
         if (typeof getPos === "function") {
           const pos = getPos();
@@ -344,10 +353,12 @@ export const ResizableImage = Image.extend({
           return true;
         },
         destroy: () => {
+          stopResize();
           handle.removeEventListener("mousedown", onMouseDown);
           img.removeEventListener("dragstart", onDragStart);
           wrapper.removeEventListener("dragstart", onDragStart);
           captionEl.removeEventListener("blur", commitCaption);
+          captionEl.removeEventListener("keydown", onCaptionKeyDown);
         },
       };
     };

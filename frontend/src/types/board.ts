@@ -4,6 +4,8 @@ export type TMemberUser = {
   userId: string;
   userName: string;
   profile?: string;
+  /** 서버 권한. 결재자 후보 계산에 사용한다. */
+  auth?: "owner" | "admin" | "manager" | "member";
   /** 학기 등록 역할. 표시용이며 권한 저장에는 넣지 않음 */
   role?: "teacher" | "student";
   /** 학기 등록 학년. 표시용 */
@@ -99,6 +101,9 @@ export type TBoard = {
     term?: string | null;
   };
   altBoardRole?: Record<string, TAltBoardRole>;
+  /** 서버에서 권한을 해석한 결재·회람 후보 */
+  approvalCandidates?: TMemberUser[];
+  circulationCandidates?: TMemberUser[];
   notificationEvents?: TBoardNotificationEvents;
   chatEnabled?: boolean;
   createdAt: string;

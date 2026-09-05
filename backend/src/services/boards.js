@@ -283,7 +283,13 @@ export const isBoardMember = (board, user, role) => {
  */
 export const isBoardWriter = (board, user, role) => {
   if (user.auth === "admin" || user.auth === "manager") return true;
-  if (board.creator && board.creator.equals(user._id)) return true;
+  if (
+    board.creator &&
+    (board.creator.equals?.(user._id) ||
+      String(board.creator) === String(user._id))
+  ) {
+    return true;
+  }
 
   // Alt Board: altBoardRole의 admin/writer는 작성 권한
   if (board.altBoardRole) {
@@ -299,6 +305,8 @@ export const isBoardWriter = (board, user, role) => {
 
   // 개별 작성 권한 사용자 확인
   if (writers.users?.some((u) => u.userId === user.userId)) return true;
+
+  if (role && writers.groups?.[role]) return true;
 
   return false;
 };
@@ -446,10 +454,13 @@ export const getBoardMembers = async (academyId, board, seasonId) => {
     const userOids = users.map((u) => u.user);
     const profileData = await User(academyId)
       .find({ _id: { $in: userOids } })
-      .select("_id profile")
+      .select("_id profile auth")
       .lean();
     const profileMap = new Map(
-      profileData.map((u) => [u._id.toString(), u.profile || null])
+      profileData.map((u) => [
+        u._id.toString(),
+        { profile: u.profile || null, auth: u.auth || "member" },
+      ])
     );
 
     const regQuery = {
@@ -477,7 +488,9 @@ export const getBoardMembers = async (academyId, board, seasonId) => {
 
     for (const u of users) {
       const uid = u.user.toString();
-      u.profile = profileMap.get(uid) || null;
+      const profile = profileMap.get(uid);
+      u.profile = profile?.profile || null;
+      u.auth = profile?.auth || "member";
       const reg = regByUser.get(uid);
       if (!reg) continue;
       if (reg.role) u.role = reg.role;
@@ -487,6 +500,33 @@ export const getBoardMembers = async (academyId, board, seasonId) => {
   }
 
   return users;
+};
+
+/**
+ * Canonical server-owned people available to approval/circulation pickers.
+ */
+export const getBoardWorkflowCandidates = async (
+  academyId,
+  board,
+  seasonId
+) => {
+  const circulationCandidates = await getBoardMembers(
+    academyId,
+    board,
+    seasonId
+  );
+  const approvalCandidates = circulationCandidates.filter((candidate) =>
+    isBoardWriter(
+      board,
+      {
+        _id: candidate.user,
+        userId: candidate.userId,
+        auth: candidate.auth,
+      },
+      candidate.role || null
+    )
+  );
+  return { approvalCandidates, circulationCandidates };
 };
 
 /**

@@ -27,7 +27,7 @@
  */
 
 import Svg from "assets/svg/Svg";
-import { CSSProperties, useState } from "react";
+import { CSSProperties, KeyboardEvent, useState } from "react";
 import btnStyle from "./button.module.scss";
 
 type Props = {
@@ -39,6 +39,8 @@ type Props = {
   disableOnclick?: boolean;
   loading?: boolean;
   style?: CSSProperties;
+  className?: string;
+  ariaLabel?: string;
 };
 
 /**
@@ -84,6 +86,8 @@ const Button = ({
   loading,
   disableOnclick,
   style,
+  className,
+  ariaLabel,
 }: Props) => {
   // button state
   const [disable, setDisable] = useState<boolean>(false);
@@ -107,21 +111,33 @@ const Button = ({
   }
 
   //disabled class
-  if (disabled || disable) {
+  const isDisabled = Boolean(disabled || disable || loading);
+  if (isDisabled) {
     btnClass += " " + btnStyle.disabled;
   }
+
+  const activate = (event: unknown) => {
+    if (isDisabled) return;
+    onClick?.(event);
+    if (disableOnclick) {
+      setDisable(true);
+    }
+  };
 
   //return button component
   return (
     <div
-      className={`${btnClass} `}
+      className={`${btnClass}${className ? ` ${className}` : ""}`}
       style={style}
-      onClick={(e) => {
-        if (!disable && !disabled) {
-          onClick && onClick(e);
-        }
-        if (disableOnclick && !disabled && !disable) {
-          setDisable(true);
+      role="button"
+      tabIndex={isDisabled ? -1 : 0}
+      aria-disabled={isDisabled}
+      aria-label={ariaLabel}
+      onClick={activate}
+      onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          activate(event);
         }
       }}
     >

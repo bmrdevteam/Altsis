@@ -6610,11 +6610,20 @@ tbody tr:hover .actionCell {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 10px 12px;
   padding: 10px 12px;
   border: 1px solid var(--border-color);
   border-radius: 8px;
   background: var(--component-color, var(--background-hover-color));
+
+  .approvalReasonInput {
+    width: auto;
+    flex: 1 1 200px;
+    min-width: 160px;
+    max-width: 320px;
+    height: 40px;
+    padding: 0 12px;
+  }
 }
 
 .sheetApprovalBulkCount {
@@ -6622,6 +6631,40 @@ tbody tr:hover .actionCell {
   font-weight: 700;
   color: var(--text-color-1);
   white-space: nowrap;
+}
+
+.sheetApprovalBulkActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.sheetApprovalBulkButton {
+  height: 40px;
+  min-width: 108px;
+  padding: 0 18px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+
+  &:not(.sheetApprovalBulkRejectButton):hover {
+    background: var(--btn-color-1);
+    background: color-mix(in srgb, var(--btn-color-1) 88%, white);
+  }
+}
+
+.sheetApprovalBulkRejectButton {
+  color: var(--status-error);
+  background: var(--background-color);
+  border: 1px solid var(--status-error-border);
+
+  &:hover {
+    background: var(--status-error-bg);
+    border-color: var(--status-error);
+  }
 }
 
 .sheetApprovalCheckCol {
