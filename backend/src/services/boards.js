@@ -527,8 +527,82 @@ export const getBoardMembers = async (academyId, board, seasonId) => {
   return users;
 };
 
+const isFormAccessCustom = (access) => {
+  if (!access) return false;
+  const g = access.groups || {};
+  return !!(g.manager || g.teacher || g.student || (access.users || []).length);
+};
+
+const pushUniqueApprover = (out, seen, user) => {
+  if (!user?.userId || seen.has(user.userId)) return;
+  seen.add(user.userId);
+  out.push({
+    user: user.user,
+    userId: user.userId,
+    userName: user.userName || user.userId,
+  });
+};
+
+const memberMatchesFormWriterGroup = (member, groups) => {
+  if (!groups) return false;
+  if (groups.manager && (member.auth === "manager" || member.role === "manager")) {
+    return true;
+  }
+  return !!(member.role && groups[member.role]);
+};
+
 /**
- * Canonical server-owned people available to approval/circulation pickers.
+ * 결재 지정 단계 후보.
+ * 양식 작성 권한이 지정되면 그 명단(+켜진 역할 칩).
+ * 아니면 보드 작성자(altBoardRole writer, writers.users) + 보드 관리자(admin, 생성자).
+ * @param {Object|null|undefined} form
+ * @param {Object} board
+ * @param {Array} [members]
+ * @returns {Array<{user, userId, userName}>}
+ */
+export const resolveFormApprovalCandidates = (form, board, members = []) => {
+  const out = [];
+  const seen = new Set();
+
+  if (isFormAccessCustom(form?.writers)) {
+    for (const user of form.writers.users || []) {
+      pushUniqueApprover(out, seen, user);
+    }
+    const groups = form.writers.groups || {};
+    if (groups.manager || groups.teacher || groups.student) {
+      for (const member of members) {
+        if (memberMatchesFormWriterGroup(member, groups)) {
+          pushUniqueApprover(out, seen, member);
+        }
+      }
+    }
+    return out;
+  }
+
+  for (const user of resolveBoardWriters(board).users || []) {
+    pushUniqueApprover(out, seen, user);
+  }
+  for (const member of members) {
+    const oid =
+      member?.user?.toString?.() ||
+      (member?.user ? String(member.user) : "");
+    const role = lookupAltBoardRole(board, oid);
+    if (role === "admin" || role === "writer") {
+      pushUniqueApprover(out, seen, member);
+    }
+  }
+  if (board?.creatorId) {
+    pushUniqueApprover(out, seen, {
+      user: board.creator,
+      userId: board.creatorId,
+      userName: board.creatorName || board.creatorId,
+    });
+  }
+  return out;
+};
+
+/**
+ * 회람 후보는 보드 멤버. 결재 후보는 양식 없이 보드 작성자+관리자만.
  */
 export const getBoardWorkflowCandidates = async (
   academyId,
@@ -540,18 +614,14 @@ export const getBoardWorkflowCandidates = async (
     board,
     seasonId
   );
-  const approvalCandidates = circulationCandidates.filter((candidate) =>
-    isBoardWriter(
+  return {
+    approvalCandidates: resolveFormApprovalCandidates(
+      null,
       board,
-      {
-        _id: candidate.user,
-        userId: candidate.userId,
-        auth: candidate.auth,
-      },
-      candidate.role || null
-    )
-  );
-  return { approvalCandidates, circulationCandidates };
+      circulationCandidates
+    ),
+    circulationCandidates,
+  };
 };
 
 /**

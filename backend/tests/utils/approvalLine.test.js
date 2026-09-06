@@ -58,12 +58,16 @@ describe("approvalLine submit", () => {
     );
   });
 
-  test("fixed approver removed from the board is rejected", () => {
+  test("fixed approver is kept even when outside pick candidates", () => {
     expect(
       validateApprovalSubmit(fixedField, undefined, {
         approvalCandidates: new Set(["kim"]),
       })
-    ).toBe("승인: 현재 보드에 없는 승인자가 설정되어 있습니다.");
+    ).toBeNull();
+    const built = buildApprovalOnSubmit(fixedField, undefined, {
+      approvalCandidates: new Set(["kim"]),
+    });
+    expect(built.steps[0].approver.userId).toBe("jo");
   });
 
   test("required pick line with no approver is rejected", () => {

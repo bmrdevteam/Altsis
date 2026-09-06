@@ -471,7 +471,10 @@ export function buildApprovalOnSubmit(field, submitted, options = {}) {
   const steps = lineSteps
     .map((def, i) => {
       const picked = pickApproverFromSubmit(def, i, lineSteps, submitted);
-      const approver = resolveCandidate(picked, candidates);
+      const approver =
+        def.mode === "fixed"
+          ? normalizeApprover(picked)
+          : resolveCandidate(picked, candidates);
       return {
         order: def.order,
         label: def.label,
@@ -537,12 +540,6 @@ export function validateApprovalSubmit(field, submitted, options = {}) {
     const s = lineSteps[i];
     if (s.mode === "fixed" && !s.approver?.userId) {
       return `${field.label || "승인"}: 고정 승인자가 설정되지 않았습니다.`;
-    }
-    if (
-      s.mode === "fixed" &&
-      !resolveCandidate(s.approver, candidates)
-    ) {
-      return `${field.label || "승인"}: 현재 보드에 없는 승인자가 설정되어 있습니다.`;
     }
     if (s.mode === "pick") {
       const picked = pickApproverFromSubmit(s, i, lineSteps, submitted);

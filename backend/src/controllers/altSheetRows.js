@@ -42,6 +42,7 @@ import {
 } from "../utils/sheetRowQuery.js";
 import {
   getBoardWorkflowCandidates,
+  resolveFormApprovalCandidates,
   getUserRoleInSeason,
   isSeasonScopedBoard,
 } from "../services/boards.js";
@@ -391,7 +392,13 @@ export const create = async (req, res) => {
           isSeasonScopedBoard(board) ? board.season : null
         )
       : { approvalCandidates: [], circulationCandidates: [] };
-    const approvalCandidates = candidateMap(workflowCandidates.approvalCandidates);
+    const approvalCandidates = candidateMap(
+      resolveFormApprovalCandidates(
+        form,
+        board,
+        workflowCandidates.circulationCandidates
+      )
+    );
     const circulationCandidates = candidateMap(
       workflowCandidates.circulationCandidates
     );
