@@ -48,7 +48,7 @@ import FilePreviewModal from "./FilePreviewModal";
 import ApprovalCirculationPicker, {
   ApprovalUserSearchInput,
   CirculationUserChips,
-  approvalCandidatesForBoard,
+  approvalCandidatesForForm,
   circulationCandidatesForBoard,
 } from "./ApprovalCirculationPicker";
 import {
@@ -247,9 +247,16 @@ const isFieldVisible = (
 };
 
 /** 새/빈 응답의 docResponse 템플릿과 지정 기본 인원만 채운다 (기존 값은 유지). */
-const pickCandidateIdsFromBoard = (board: TBoard) => {
+const pickCandidateIdsFromForm = (
+  form: TAltForm | null | undefined,
+  board: TBoard
+) => {
   return {
-    approvalCandidateIds: approvalCandidatesForBoard(board)
+    approvalCandidateIds: approvalCandidatesForForm(
+      form,
+      board,
+      board.circulationCandidates
+    )
       .map((u) => u.userId)
       .filter(Boolean),
     circulationCandidateIds: circulationCandidatesForBoard(board)
@@ -261,7 +268,8 @@ const pickCandidateIdsFromBoard = (board: TBoard) => {
 const withFormFieldDefaults = (
   fields: TAltFormField[],
   existing: Record<string, any> = {},
-  board: TBoard
+  board: TBoard,
+  form?: TAltForm | null
 ) => {
   const next = { ...existing };
   for (const field of fields) {
@@ -270,7 +278,7 @@ const withFormFieldDefaults = (
       next[field._id] = field.content ?? "";
     }
   }
-  return seedComposePickDefaults(next, fields, pickCandidateIdsFromBoard(board));
+  return seedComposePickDefaults(next, fields, pickCandidateIdsFromForm(form, board));
 };
 
 const AltFormRenderer = ({
@@ -358,7 +366,8 @@ const AltFormRenderer = ({
     const { data: next, dropped } = withFormFieldDefaults(
       fields,
       existing,
-      board
+      board,
+      form
     );
     if (dropped.length) {
       setReuseDroppedNotice(formatReusedDroppedNotice(dropped));
@@ -810,7 +819,7 @@ const AltFormRenderer = ({
     const { data: filtered, dropped } = filterReusedPickPeople(
       copied,
       form.fields,
-      pickCandidateIdsFromBoard(board)
+      pickCandidateIdsFromForm(form, board)
     );
     skipNextExternalViewMode.current = true;
     setEditingSubmitted(false);
@@ -2063,12 +2072,15 @@ const AltFormRenderer = ({
 
         // 제출 전: 고정·지정 단계를 결재선 순서로 표시
         const pickSteps = lineSteps.filter((s) => s.mode === "pick");
-        const writerUsers = board.writers?.users || [];
         const useNestedCirculation = !formHasCirculationField(form?.fields);
         const circulationDef = useNestedCirculation
           ? getApprovalCirculation(field)
           : { mode: "off" as const, users: [] as TApprovalApprover[] };
-        const approvalCandidates = approvalCandidatesForBoard(board);
+        const approvalCandidates = approvalCandidatesForForm(
+          form,
+          board,
+          board.circulationCandidates
+        );
         const circulationCandidates = circulationCandidatesForBoard(board);
 
         const currentPicks: Record<number, any> = {};
@@ -2146,8 +2158,7 @@ const AltFormRenderer = ({
           );
         };
 
-        const pickSearchUsers =
-          approvalCandidates.length > 0 ? approvalCandidates : writerUsers;
+        const pickSearchUsers = approvalCandidates;
 
         const circulationBlock =
           circulationDef.mode === "off" ? null : circulationDef.mode ===

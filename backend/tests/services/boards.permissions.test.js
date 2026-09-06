@@ -8,6 +8,7 @@ import {
   nextAltRoleOnRemoveWriter,
   lookupAltBoardRole,
   resolveAltBoardRole,
+  resolveFormApprovalCandidates,
 } from "../../src/services/boards.js";
 
 const oid = (id) => ({
@@ -309,5 +310,63 @@ describe("resolveAltBoardRole", () => {
         null
       )
     ).toBe("admin");
+  });
+});
+
+describe("resolveFormApprovalCandidates", () => {
+  const members = [
+    { user: "admin-oid", userId: "adm", userName: "보드관리자" },
+    { user: "writer-oid", userId: "w2", userName: "보드작성자" },
+    { user: "teacher-oid", userId: "tea", userName: "교사", role: "teacher" },
+    { user: "mgr-oid", userId: "mgr", userName: "학교관리자", auth: "manager" },
+    { user: "g1", userId: "bmrlove", userName: "구본길" },
+  ];
+  const board = {
+    creator: "creator-oid",
+    creatorId: "temman92",
+    creatorName: "홍길동",
+    writers: {
+      groups: { manager: true, teacher: true, student: false },
+      users: [{ user: "w1-oid", userId: "w1", userName: "작성자" }],
+    },
+    altBoardRole: { "admin-oid": "admin", "writer-oid": "writer" },
+  };
+
+  test("custom form writers are the only pick candidates", () => {
+    const form = {
+      writers: {
+        groups: { manager: false, teacher: false, student: false },
+        users: [
+          { user: "g1", userId: "bmrlove", userName: "구본길" },
+          { user: "g1-dup", userId: "bmrlove", userName: "중복" },
+        ],
+      },
+    };
+    expect(resolveFormApprovalCandidates(form, board, members)).toEqual([
+      { user: "g1", userId: "bmrlove", userName: "구본길" },
+    ]);
+  });
+
+  test("inherit form writers uses board writer users, admin, writer role, and creator", () => {
+    expect(resolveFormApprovalCandidates({}, board, members)).toEqual([
+      { user: "w1-oid", userId: "w1", userName: "작성자" },
+      { user: "admin-oid", userId: "adm", userName: "보드관리자" },
+      { user: "writer-oid", userId: "w2", userName: "보드작성자" },
+      { user: "creator-oid", userId: "temman92", userName: "홍길동" },
+    ]);
+  });
+
+  test("inherit does not add teacher group or school manager", () => {
+    const noRoles = {
+      ...board,
+      writers: { groups: { teacher: true, manager: false, student: false }, users: [] },
+      altBoardRole: {},
+    };
+    const ids = resolveFormApprovalCandidates(null, noRoles, members).map(
+      (u) => u.userId
+    );
+    expect(ids).toEqual(["temman92"]);
+    expect(ids).not.toContain("tea");
+    expect(ids).not.toContain("mgr");
   });
 });

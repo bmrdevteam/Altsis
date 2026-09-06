@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ChangeEvent,
@@ -64,7 +65,7 @@ import type { TApprovalCirculationMode } from "utils/approvalLine";
 import ApprovalCirculationPicker, {
   ApprovalUserSearchInput,
   CirculationUserChips,
-  approvalCandidatesForBoard,
+  approvalCandidatesForForm,
   circulationCandidatesForBoard,
 } from "./ApprovalCirculationPicker";
 import SettingsHint from "./SettingsHint";
@@ -619,6 +620,25 @@ const AltFormBuilder = ({
       .catch(() => setBoardMembers([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- BoardAPI identity changes
   }, [board._id, board.circulationCandidates, currentSeason?._id]);
+
+  const formWriterDraft = useMemo(
+    () =>
+      restrictWriters
+        ? {
+            writers: {
+              groups: writerGroups,
+              users: boardMembers.filter((m) =>
+                writerIds.includes(String(m.user))
+              ),
+            },
+          }
+        : { writers: undefined },
+    [restrictWriters, writerGroups, boardMembers, writerIds]
+  );
+  const approvalCandidates = useMemo(
+    () => approvalCandidatesForForm(formWriterDraft, board, boardMembers),
+    [formWriterDraft, board, boardMembers]
+  );
 
   useEffect(() => {
     if (!restrictMembers) return;
@@ -2160,7 +2180,7 @@ const AltFormBuilder = ({
         const steps = field.approvalLine?.steps?.length
           ? field.approvalLine.steps
           : [{ order: 0, label: "1차 승인", mode: "pick" as const }];
-        const candidates = approvalCandidatesForBoard(board, boardMembers);
+        const candidates = approvalCandidates;
 
         const setSteps = (
           next: {
@@ -3947,10 +3967,7 @@ const AltFormBuilder = ({
                 <div className={style.settingsSectionBody}>
                   <ApprovalGroupSettings
                     groups={approvalGroups}
-                    approvalCandidates={approvalCandidatesForBoard(
-                      board,
-                      boardMembers
-                    )}
+                    approvalCandidates={approvalCandidates}
                     circulationCandidates={circulationCandidatesForBoard(
                       board,
                       boardMembers

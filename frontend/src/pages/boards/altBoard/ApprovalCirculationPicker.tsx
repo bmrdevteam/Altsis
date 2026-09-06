@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import style from "./altBoard.module.scss";
 import { formatApproverLabel, TApprovalApprover } from "utils/approvalLine";
-import type { TBoard, TMemberUser } from "types/board";
+import type { TBoard, TBoardMembers, TMemberUser } from "types/board";
+import { isAccessListCustom } from "./formAccess";
 
 export function uniqueApprovalCandidates(
   ...lists: Array<
@@ -36,25 +37,41 @@ const boardCreator = (board: TBoard): TMemberUser[] =>
       ]
     : [];
 
-export function approvalCandidatesForBoard(
+const memberMatchesFormWriterGroup = (
+  member: TMemberUser,
+  groups?: TBoardMembers["groups"]
+) => {
+  if (!groups) return false;
+  if (groups.manager && member.auth === "manager") return true;
+  return !!(member.role && groups[member.role]);
+};
+
+type TApprovalFormWriters = { writers?: TBoardMembers | null };
+
+/** 양식 작성 권한이 지정되면 그 명단. 아니면 보드 작성자 + 보드 관리자. */
+export function approvalCandidatesForForm(
+  form: TApprovalFormWriters | null | undefined,
   board: TBoard,
   resolvedMembers: TMemberUser[] = []
 ): TApprovalApprover[] {
-  const explicitWriterIds = new Set(
-    (board.writers?.users || []).map((user) => user.userId)
-  );
-  const derived = resolvedMembers.filter((member) => {
+  if (isAccessListCustom(form?.writers)) {
+    const groups = form?.writers?.groups;
+    const fromGroups =
+      groups?.manager || groups?.teacher || groups?.student
+        ? resolvedMembers.filter((member) =>
+            memberMatchesFormWriterGroup(member, groups)
+          )
+        : [];
+    return uniqueApprovalCandidates(form?.writers?.users, fromGroups);
+  }
+
+  const roleBased = resolvedMembers.filter((member) => {
     const boardRole = board.altBoardRole?.[String(member.user)];
-    if (boardRole === "admin" || boardRole === "writer") return true;
-    if (explicitWriterIds.has(member.userId)) return true;
-    if (String(member.user) === String(board.creator)) return true;
-    if (member.auth === "admin" || member.auth === "manager") return true;
-    return Boolean(member.role && board.writers?.groups?.[member.role]);
+    return boardRole === "admin" || boardRole === "writer";
   });
   return uniqueApprovalCandidates(
-    board.approvalCandidates,
-    derived,
     board.writers?.users,
+    roleBased,
     boardCreator(board)
   );
 }
