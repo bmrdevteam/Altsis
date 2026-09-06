@@ -5848,6 +5848,9 @@ tbody tr:hover .actionCell {
   display: none;
 }
 
+.hideFieldLabelsPrint {
+}
+
 @media print {
   .noPrint {
     display: none !important;
@@ -5859,6 +5862,10 @@ tbody tr:hover .actionCell {
     font-weight: 700;
     margin: 0 0 12px;
     color: #000;
+  }
+
+  .hideFieldLabelsPrint .questionLabel {
+    display: none !important;
   }
 
   /* overflow:auto 박스는 인쇄에서 한 장으로 밀려 제목만 1쪽을 차지함 */

@@ -1,9 +1,13 @@
 import { Schema } from "prosemirror-model";
 import {
   alignedInlineHtml,
+  formatBlockStyle,
   hasNonDefaultTextAlign,
+  isEmptyAlignableNode,
   serializeAlignedBlock,
+  shouldSerializeBlockAsHtml,
   wrapAlignedBlockHtml,
+  wrapStyledBlockHtml,
 } from "./alignedBlockMarkdown";
 
 const schema = new Schema({
@@ -12,7 +16,10 @@ const schema = new Schema({
     paragraph: {
       group: "block",
       content: "inline*",
-      attrs: { textAlign: { default: "left" } },
+      attrs: {
+        textAlign: { default: "left" },
+        indent: { default: 0 },
+      },
     },
     heading: {
       group: "block",
@@ -20,6 +27,7 @@ const schema = new Schema({
       attrs: {
         level: { default: 1 },
         textAlign: { default: "left" },
+        indent: { default: 0 },
       },
     },
     text: { group: "inline" },
@@ -71,6 +79,64 @@ describe("wrapAlignedBlockHtml", () => {
     expect(wrapAlignedBlockHtml("paragraph", `center" onload="x`, "본문")).toBe(
       "본문"
     );
+  });
+
+  test("indent가 있으면 padding-left를 붙인다", () => {
+    expect(wrapAlignedBlockHtml("paragraph", "left", "가. 학생명", 1, 2)).toBe(
+      '<p style="padding-left: 2ch">가. 학생명</p>'
+    );
+    expect(
+      wrapAlignedBlockHtml("paragraph", "center", "가. 학생명", 1, 2)
+    ).toBe(
+      '<p style="text-align: center; padding-left: 2ch">가. 학생명</p>'
+    );
+  });
+});
+
+describe("formatBlockStyle / wrapStyledBlockHtml / empty", () => {
+  test("정렬과 indent를 안전한 style 문자열로 합친다", () => {
+    expect(formatBlockStyle("left", 0)).toBe("");
+    expect(formatBlockStyle("center", 0)).toBe("text-align: center");
+    expect(formatBlockStyle("left", 2)).toBe("padding-left: 2ch");
+    expect(formatBlockStyle("right", 2)).toBe(
+      "text-align: right; padding-left: 2ch"
+    );
+  });
+
+  test("빈 문단은 항상 p 태그로 감싼다", () => {
+    expect(wrapStyledBlockHtml("paragraph", "")).toBe("<p></p>");
+    expect(wrapStyledBlockHtml("paragraph", "", { indent: 2 })).toBe(
+      '<p style="padding-left: 2ch"></p>'
+    );
+  });
+
+  test("내용 없는 노드는 빈 문단이다", () => {
+    expect(isEmptyAlignableNode({ attrs: {} })).toBe(true);
+    expect(
+      isEmptyAlignableNode(schema.node("paragraph", { textAlign: "left" }))
+    ).toBe(true);
+    expect(
+      isEmptyAlignableNode(
+        schema.node("paragraph", { textAlign: "left" }, [
+          schema.text("가. 학생명"),
+        ])
+      )
+    ).toBe(false);
+  });
+
+  test("기본 빈 문단과 indent 문단은 HTML로 저장한다", () => {
+    expect(
+      shouldSerializeBlockAsHtml("paragraph", { attrs: {} })
+    ).toBe(true);
+    expect(
+      shouldSerializeBlockAsHtml(
+        "paragraph",
+        schema.node("paragraph", { indent: 2 }, [schema.text("가")])
+      )
+    ).toBe(true);
+    expect(
+      shouldSerializeBlockAsHtml("heading", { attrs: { level: 1 } })
+    ).toBe(false);
   });
 });
 
@@ -148,7 +214,11 @@ describe("serializeAlignedBlock", () => {
 
   test("기본 문단은 마크다운만 쓴다", () => {
     const { state, get } = capture();
-    serializeAlignedBlock(state, { attrs: {} }, "paragraph");
+    serializeAlignedBlock(
+      state,
+      schema.node("paragraph", {}, [schema.text("가")]),
+      "paragraph"
+    );
     expect(get()).toBe("본문\n");
   });
 
@@ -156,5 +226,21 @@ describe("serializeAlignedBlock", () => {
     const { state, get } = capture();
     serializeAlignedBlock(state, { attrs: { level: 1 } }, "heading");
     expect(get()).toBe("# 본문\n");
+  });
+
+  test("indent 문단은 padding-left HTML이다", () => {
+    const { state, get } = capture();
+    const para = schema.node("paragraph", { indent: 2 }, [
+      schema.text("가. 학생명"),
+    ]);
+    serializeAlignedBlock(state, para, "paragraph");
+    expect(get()).toBe('<p style="padding-left: 2ch">가. 학생명</p>\n');
+  });
+
+  test("기본 빈 문단도 HTML p로 저장한다", () => {
+    const { state, get } = capture();
+    const para = schema.node("paragraph");
+    serializeAlignedBlock(state, para, "paragraph");
+    expect(get()).toBe("<p></p>\n");
   });
 });

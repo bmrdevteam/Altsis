@@ -56,6 +56,11 @@
   p {
     margin-top: 0;
     margin-bottom: 0.5em;
+
+    &:empty,
+    &:has(> br:only-child) {
+      min-height: 1.45em;
+    }
   }
 
   a {
@@ -1272,6 +1277,11 @@
     p {
       margin-top: 0;
       margin-bottom: 0.5em;
+
+      &:empty,
+      &:has(> br:only-child) {
+        min-height: 1.45em;
+      }
     }
 
     a {

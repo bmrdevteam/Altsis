@@ -18,6 +18,11 @@ import {
   normalizeApprovalValue,
 } from "utils/approvalLine";
 import { NO_PRINT_CLASS, printArea } from "utils/printArea";
+import {
+  hideFieldLabelsOnPrint,
+  sheetFieldLabelClass,
+  sheetPrintRootClass,
+} from "./sheetPrintChrome";
 import { DateRange } from "components/dateRangeFilter/DateRangeFilterDropdown";
 import RecordsListFilterBar, {
   TRecordsViewCounts,
@@ -758,6 +763,11 @@ const AltSheetView = ({
   const showRespondentCol = !hiddenColumns.has("_respondent");
   const showSubmittedAtCol = !hiddenColumns.has("_submittedAt");
   const showFormTitle = !hiddenColumns.has("_formTitle");
+  const hidePrintFieldLabels = hideFieldLabelsOnPrint(showFormTitle);
+  const fieldLabelPrintClass = sheetFieldLabelClass(
+    style.questionLabel,
+    hidePrintFieldLabels
+  );
 
   const columnChips: TSheetColumnChip[] = useMemo(
     () => [
@@ -2617,7 +2627,13 @@ const AltSheetView = ({
                 </button>
               </div>
 
-              <div ref={docPrintRootRef}>
+              <div
+                ref={docPrintRootRef}
+                className={sheetPrintRootClass(
+                  hidePrintFieldLabels,
+                  style.hideFieldLabelsPrint
+                )}
+              >
                 {showFormTitle && (
                   <div className={style.printTitle}>
                     {selectedForm?.title || "기록"}
@@ -2740,7 +2756,7 @@ const AltSheetView = ({
                     field.gradingMethod !== "none";
                   return (
                     <div key={field._id} className={style.questionItem}>
-                      <div className={style.questionLabel}>
+                      <div className={fieldLabelPrintClass}>
                         <span className={style.questionLabelText}>
                           {field.label}
                         </span>
@@ -3159,7 +3175,9 @@ const AltSheetView = ({
       {docBatchPrintActive && (
         <div
           ref={docBatchPrintRootRef}
-          className={style.docBatchPrintRoot}
+          className={`${style.docBatchPrintRoot}${
+            hidePrintFieldLabels ? ` ${style.hideFieldLabelsPrint}` : ""
+          }`}
           aria-hidden
         >
           {batchPrintRows.map((row, pageIndex) => (
@@ -3227,7 +3245,7 @@ const AltSheetView = ({
 
               {contentFields.map((field) => (
                 <div key={field._id} className={style.questionItem}>
-                  <div className={style.questionLabel}>
+                  <div className={fieldLabelPrintClass}>
                     <span className={style.questionLabelText}>
                       {field.label}
                     </span>

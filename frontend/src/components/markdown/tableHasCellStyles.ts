@@ -1,4 +1,5 @@
 import { hasNonDefaultTextAlign } from "./alignedBlockMarkdown";
+import { clampIndent } from "./blockIndent";
 
 const STYLE_ATTR_KEYS = [
   "backgroundColor",
@@ -25,7 +26,8 @@ export const tableHasCellStyles = (node: WalkableNode): boolean => {
   node.descendants((n) => {
     if (
       (n.type.name === "paragraph" || n.type.name === "heading") &&
-      hasNonDefaultTextAlign(n.attrs?.textAlign)
+      (hasNonDefaultTextAlign(n.attrs?.textAlign) ||
+        clampIndent(n.attrs?.indent) > 0)
     ) {
       styled = true;
       return false;
