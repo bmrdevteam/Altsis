@@ -7,7 +7,7 @@ import {
 } from "react";
 import { useSearchParams, useLocation } from "react-router-dom";
 import { io, Socket } from "socket.io-client";
-import { TBoard, TAltBoardRole } from "types/board";
+import { TBoard } from "types/board";
 import { TAltForm } from "types/altForm";
 import { useAuth } from "contexts/authContext";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
@@ -25,7 +25,11 @@ import AltDocsView from "./AltDocsView";
 import BoardChatContainer from "./BoardChatContainer";
 import style from "./altBoard.module.scss";
 import { markAllBoardChatRoomsRead } from "utils/markAllBoardChatRoomsRead";
-import { canViewAllRowsForm, isFormRespondent } from "./formAccess";
+import {
+  canViewAllRowsForm,
+  getMyAltBoardRole,
+  isFormRespondent,
+} from "./formAccess";
 import { shouldShowUnsubmittedTodoForm } from "./weekdaySchedule";
 import {
   TFormViewMode,
@@ -65,25 +69,11 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
   /** 채팅 탭 읽음 후, 늦은 rooms 응답이 뱃지를 다시 올리지 못하게 */
   const chatReadEpochRef = useRef(0);
 
-  // 현재 유저의 Alt Board 역할
-  const myRole: TAltBoardRole | null = (() => {
-    if (!currentUser) return null;
-    if (currentUser.auth === "admin") return "admin";
-    // ObjectId/string 혼용 대비 — 생성자는 항상 admin
-    if (
-      board.creator != null &&
-      String(board.creator) === String(currentUser._id)
-    ) {
-      return "admin";
-    }
-    const roles = board.altBoardRole;
-    if (!roles) return null;
-    return (
-      (roles[currentUser._id] as TAltBoardRole | undefined) ||
-      (roles[String(currentUser._id)] as TAltBoardRole | undefined) ||
-      null
-    );
-  })();
+  const schoolRole =
+    currentUser?.auth === "manager"
+      ? "manager"
+      : currentRegistration?.role || null;
+  const myRole = getMyAltBoardRole(board, currentUser, schoolRole);
 
   const canManage =
     myRole === "admin" ||
@@ -118,9 +108,7 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
       board,
       currentUser,
       myRole,
-      currentUser.auth === "manager"
-        ? "manager"
-        : currentRegistration?.role || null
+      schoolRole
     );
   };
   const [builderFormId, setBuilderFormId] = useState<string | null>(null);
@@ -198,11 +186,6 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
     loadPendingApprovals();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- load once per board/surface
   }, [board._id, surface]);
-
-  const schoolRole =
-    currentUser?.auth === "manager"
-      ? "manager"
-      : currentRegistration?.role || null;
 
   // 활동 뱃지: 필수·미제출 + 승인/승인진행 + 채점 대기 (할 일 칩과 동일 구성)
   const activityBadgeCount = (() => {

@@ -110,7 +110,7 @@ const pendingFieldMeta = (field) => ({
 const serializeRowForViewer = (row, form, board, user, schoolRole) => {
   const payload =
     typeof row.toObject === "function" ? row.toObject() : { ...row };
-  const role = getAltBoardRole(board, user);
+  const role = getAltBoardRole(board, user, schoolRole);
   const canSeeFull =
     role === "admin" ||
     role === "writer" ||
@@ -1078,13 +1078,13 @@ export const find = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("board") });
     }
 
-    const role = getAltBoardRole(board, req.user);
     const schoolRole = await getUserRoleInSeason(
       req.user.academyId,
       board.schoolId,
       req.user,
       isSeasonScopedBoard(board) ? board.season : null
     );
+    const role = getAltBoardRole(board, req.user, schoolRole);
     const viewAll = canViewAllRows(form, board, req.user, schoolRole);
     const member = isFormMember(form, board, req.user, schoolRole);
     const viewerRole =
@@ -1238,13 +1238,13 @@ export const update = async (req, res) => {
       return isCurrentApprover(approvalData, req.user.userId, f);
     });
 
-    const role = getAltBoardRole(board, req.user);
-    const isAdmin = role === "admin" || req.user.auth === "manager";
     const schoolRole = await schoolRoleOf(
       req.user.academyId,
       board,
       req.user
     );
+    const role = getAltBoardRole(board, req.user, schoolRole);
+    const isAdmin = role === "admin" || req.user.auth === "manager";
 
     if (!isAdmin && !canApproveAny) {
       return res.status(403).send({ message: PERMISSION_DENIED });
@@ -1458,7 +1458,12 @@ export const remove = async (req, res) => {
     }
 
     // admin 또는 시스템 manager이거나, 본인 응답 + 응답 수정(삭제 포함) 허용
-    const role = getAltBoardRole(board, req.user);
+    const schoolRole = await schoolRoleOf(
+      req.user.academyId,
+      board,
+      req.user
+    );
+    const role = getAltBoardRole(board, req.user, schoolRole);
     const isAdmin = role === "admin" || req.user.auth === "manager";
     const isOwner = row._respondent && row._respondent.equals(req.user._id);
 
@@ -2168,13 +2173,13 @@ export const findById = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("form") });
     }
 
-    const role = getAltBoardRole(board, req.user);
-    const isAdmin = role === "admin" || role === "writer" || req.user.auth === "manager";
     const schoolRole = await schoolRoleOf(
       req.user.academyId,
       board,
       req.user
     );
+    const role = getAltBoardRole(board, req.user, schoolRole);
+    const isAdmin = role === "admin" || role === "writer" || req.user.auth === "manager";
     const canSeeFullRow =
       isAdmin || canViewAllRows(form, board, req.user, schoolRole);
     const viewerRole =

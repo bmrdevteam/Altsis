@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useLocation } from "react-router-dom";
 import { io, Socket } from "socket.io-client";
-import { TBoard, TAltBoardRole, TMemberUser } from "types/board";
+import { TBoard, TMemberUser } from "types/board";
 import { TChatRoom } from "types/chat";
 import { useAuth } from "contexts/authContext";
 import useAPIv2 from "hooks/useAPIv2";
@@ -10,6 +10,7 @@ import BoardChatTab from "./BoardChatTab";
 import BoardChatMemberSidebar from "./BoardChatMemberSidebar";
 import BoardDMPanel from "./BoardDMPanel";
 import MemberInvitePicker from "./MemberInvitePicker";
+import { getMyAltBoardRole } from "./formAccess";
 import style from "./boardChatContainer.module.scss";
 
 type Props = {
@@ -18,7 +19,7 @@ type Props = {
 };
 
 const BoardChatContainer = ({ board, onNewMessage }: Props) => {
-  const { currentUser, currentSeason } = useAuth();
+  const { currentUser, currentRegistration, currentSeason } = useAuth();
   const { BoardAPI, BoardChatAPI } = useAPIv2();
   const [searchParams] = useSearchParams();
   const location = useLocation();
@@ -43,23 +44,11 @@ const BoardChatContainer = ({ board, onNewMessage }: Props) => {
   const [dmPartner, setDmPartner] = useState<TMemberUser | null>(null);
   const [navOpen, setNavOpen] = useState(false);
 
-  const myRole: TAltBoardRole | null = (() => {
-    if (!currentUser) return null;
-    if (currentUser.auth === "admin") return "admin";
-    if (
-      board.creator != null &&
-      String(board.creator) === String(currentUser._id)
-    ) {
-      return "admin";
-    }
-    const roles = board.altBoardRole;
-    if (!roles) return null;
-    return (
-      (roles[currentUser._id] as TAltBoardRole | undefined) ||
-      (roles[String(currentUser._id)] as TAltBoardRole | undefined) ||
-      null
-    );
-  })();
+  const schoolRole =
+    currentUser?.auth === "manager"
+      ? "manager"
+      : currentRegistration?.role || null;
+  const myRole = getMyAltBoardRole(board, currentUser, schoolRole);
 
   const canManageRooms =
     currentUser?.auth === "admin" ||

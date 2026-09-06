@@ -92,7 +92,7 @@ export const assembleSchoolTodos = ({
     const boardForms = formsByBoard.get(boardIdStr) || [];
     if (!boardForms.length) continue;
 
-    const altRole = getAltBoardRole(board, user);
+    const altRole = getAltBoardRole(board, user, schoolRole);
 
     for (const form of boardForms) {
       const formId = form._id;

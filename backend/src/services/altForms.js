@@ -18,6 +18,7 @@ import {
   listOccurrences,
   hasSubmittedOccurrence,
 } from "./weekdaySchedule.js";
+import { resolveAltBoardRole } from "./boards.js";
 
 export {
   isWeekdayScheduleEnabled,
@@ -35,34 +36,15 @@ export {
 };
 
 /**
- * altBoardRole Map/plain object에서 역할 조회
- * @param {Map|Object|undefined|null} altBoardRole
- * @param {string} userOid
- * @returns {string|null}
- */
-const lookupAltBoardRole = (altBoardRole, userOid) => {
-  if (!altBoardRole || !userOid) return null;
-  if (altBoardRole instanceof Map) {
-    return altBoardRole.get(userOid) || null;
-  }
-  if (typeof altBoardRole.get === "function") {
-    return altBoardRole.get(userOid) || null;
-  }
-  return altBoardRole[userOid] || null;
-};
-
-/**
  * Alt Board에서 사용자의 역할 조회
+ * 명시적 altBoardRole이 없으면 실제 보드 멤버를 respondent로 본다.
  * @param {Object} board - Board 문서 (altBoardRole Map 포함)
  * @param {Object} user - 사용자 객체
+ * @param {string|null} [schoolRole] teacher|student|manager
  * @returns {string|null} "admin" | "writer" | "respondent" | null
  */
-export const getAltBoardRole = (board, user) => {
-  if (user.auth === "admin") return "admin";
-  if (board.creator && board.creator.equals(user._id)) return "admin";
-
-  return lookupAltBoardRole(board.altBoardRole, user._id.toString());
-};
+export const getAltBoardRole = (board, user, schoolRole = null) =>
+  resolveAltBoardRole(board, user, schoolRole);
 
 /**
  * 목록용 unreadResponseCount 해석.
@@ -189,7 +171,7 @@ export const isFormStaff = (form, board, user) => {
  */
 export const isFormMember = (form, board, user, schoolRole = null) => {
   if (isFormStaff(form, board, user)) return true;
-  if (!getAltBoardRole(board, user)) return false;
+  if (!getAltBoardRole(board, user, schoolRole)) return false;
   if (canViewAllRows(form, board, user, schoolRole)) return true;
   if (!isAccessListCustom(form?.members)) return true;
   return userMatchesAccessList(form.members, user, schoolRole);
@@ -201,7 +183,7 @@ export const isFormMember = (form, board, user, schoolRole = null) => {
  * @param {string|null} [schoolRole]
  */
 export const isFormRespondent = (form, board, user, schoolRole = null) => {
-  if (!user || !getAltBoardRole(board, user)) return false;
+  if (!user || !getAltBoardRole(board, user, schoolRole)) return false;
   if (!isAccessListCustom(form?.members)) return true;
   return userMatchesAccessList(form.members, user, schoolRole);
 };
@@ -212,7 +194,7 @@ export const isFormRespondent = (form, board, user, schoolRole = null) => {
  */
 export const canViewAllRows = (form, board, user, schoolRole = null) => {
   if (isFormStaff(form, board, user)) return true;
-  if (!getAltBoardRole(board, user)) return false;
+  if (!getAltBoardRole(board, user, schoolRole)) return false;
   if (!isAccessListCustom(form?.writers)) {
     return canManageForm(board, user);
   }
@@ -222,11 +204,11 @@ export const canViewAllRows = (form, board, user, schoolRole = null) => {
 /** getVisibleFields용 역할: 기록 전체면 writer, 멤버면 respondent */
 export const getFormViewerRole = (form, board, user, schoolRole = null) => {
   if (canViewAllRows(form, board, user, schoolRole)) {
-    const boardRole = getAltBoardRole(board, user);
+    const boardRole = getAltBoardRole(board, user, schoolRole);
     return boardRole === "admin" ? "admin" : "writer";
   }
   if (isFormMember(form, board, user, schoolRole)) return "respondent";
-  return getAltBoardRole(board, user);
+  return getAltBoardRole(board, user, schoolRole);
 };
 
 /**

@@ -72,22 +72,106 @@ export const canViewAllRowsForm = (
   return userMatchesAccessList(form.writers, user, schoolRole);
 };
 
+const isSeasonScopedBoard = (board: TBoard) =>
+  board.scope === "season" && !!board.season;
+
+const isUserAssignedToSchool = (
+  user: Pick<TUser, "schools">,
+  schoolId?: string
+) => {
+  if (!user.schools?.length || !schoolId) return false;
+  const sid = String(schoolId);
+  return user.schools.some(
+    (s) => String(s.schoolId) === sid || String(s.school) === sid
+  );
+};
+
+const resolveBoardMembers = (board: TBoard): TBoardMembers => {
+  if (board.members?.groups) return board.members;
+  if (board.permissionRead) {
+    return {
+      groups: {
+        manager: board.permissionRead.manager ?? true,
+        teacher: board.permissionRead.teacher ?? true,
+        student: board.permissionRead.student ?? true,
+      },
+      users: (board.permissionRead.exceptions || [])
+        .filter((e) => e.isAllowed)
+        .map((e) => ({
+          user: e.user,
+          userId: e.userId,
+          userName: e.userName,
+        })),
+    };
+  }
+  return { groups: { manager: true, teacher: true, student: true }, users: [] };
+};
+
+const lookupAltBoardRole = (
+  board: TBoard,
+  userOid: string
+): TAltBoardRole | undefined => {
+  const roles = board.altBoardRole;
+  if (!roles || !userOid) return undefined;
+  return (
+    (roles[userOid] as TAltBoardRole | undefined) ||
+    undefined
+  );
+};
+
+const isBoardMemberAsUser = (
+  board: TBoard,
+  user: Pick<TUser, "_id" | "auth" | "userId" | "schools">,
+  schoolRole?: string | null
+): boolean => {
+  if (board.creator != null && String(board.creator) === String(user._id)) {
+    return true;
+  }
+  if (board.isDefault) return true;
+  const userOid = String(user._id);
+  if (lookupAltBoardRole(board, userOid)) return true;
+  const members = resolveBoardMembers(board);
+  if (
+    members.users?.some(
+      (u) =>
+        String(u.user) === userOid ||
+        (!!user.userId && !!u.userId && u.userId === user.userId)
+    )
+  ) {
+    return true;
+  }
+  if (user.auth === "manager" && members.groups?.manager) return true;
+  if (schoolRole === "teacher" && members.groups?.teacher) return true;
+  if (schoolRole === "student" && members.groups?.student) return true;
+  if (
+    !isSeasonScopedBoard(board) &&
+    isUserAssignedToSchool(user, board.schoolId) &&
+    (members.groups?.teacher || members.groups?.student)
+  ) {
+    return true;
+  }
+  return false;
+};
+
 export const getMyAltBoardRole = (
   board: TBoard,
-  user: Pick<TUser, "_id" | "auth"> | null | undefined
+  user:
+    | Pick<TUser, "_id" | "auth" | "userId" | "schools">
+    | null
+    | undefined,
+  schoolRole?: string | null
 ): TAltBoardRole | null => {
   if (!user) return null;
   if (user.auth === "admin") return "admin";
   if (board.creator != null && String(board.creator) === String(user._id)) {
     return "admin";
   }
-  const roles = board.altBoardRole;
-  if (!roles) return null;
-  return (
-    (roles[user._id] as TAltBoardRole | undefined) ||
-    (roles[String(user._id)] as TAltBoardRole | undefined) ||
-    null
-  );
+  const explicit =
+    lookupAltBoardRole(board, user._id) ||
+    lookupAltBoardRole(board, String(user._id));
+  if (explicit) return explicit;
+  if (isBoardMemberAsUser(board, user, schoolRole)) return "respondent";
+  return null;
 };
 
 /** 제출·할 일·미제출 대상. staff·작성 권한 우회 없음. */

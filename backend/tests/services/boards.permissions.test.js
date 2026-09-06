@@ -7,6 +7,7 @@ import {
   nextAltRoleOnAddWriter,
   nextAltRoleOnRemoveWriter,
   lookupAltBoardRole,
+  resolveAltBoardRole,
 } from "../../src/services/boards.js";
 
 const oid = (id) => ({
@@ -199,5 +200,114 @@ describe("board permission helpers", () => {
       users: [{ user: memberOid, userId: "member1", userName: "멤버" }],
     });
     expect(result.valid).toBe(true);
+  });
+});
+
+describe("resolveAltBoardRole", () => {
+  const groupBoard = {
+    scope: "school",
+    schoolId: "school1",
+    isDefault: false,
+    creator: oid("creator-oid"),
+    members: {
+      groups: { manager: false, teacher: true, student: true },
+      users: [{ user: "invited-oid", userId: "inv1", userName: "초대" }],
+    },
+    altBoardRole: {},
+  };
+
+  test("group teacher/student without altBoardRole is respondent", () => {
+    const teacher = {
+      _id: oid("teacher-oid"),
+      userId: "teacher1",
+      auth: "member",
+      schools: [{ schoolId: "school1" }],
+    };
+    const student = {
+      _id: oid("student-oid"),
+      userId: "student1",
+      auth: "member",
+      schools: [{ schoolId: "school1" }],
+    };
+    expect(resolveAltBoardRole(groupBoard, teacher, "teacher")).toBe(
+      "respondent"
+    );
+    expect(resolveAltBoardRole(groupBoard, student, "student")).toBe(
+      "respondent"
+    );
+  });
+
+  test("rule A school affiliation without season role is respondent", () => {
+    const user = {
+      _id: oid("affil-oid"),
+      userId: "affil1",
+      auth: "member",
+      schools: [{ schoolId: "school1" }],
+    };
+    expect(resolveAltBoardRole(groupBoard, user, null)).toBe("respondent");
+  });
+
+  test("invited user without altBoardRole is respondent", () => {
+    const invited = {
+      _id: oid("invited-oid"),
+      userId: "inv1",
+      auth: "member",
+    };
+    expect(resolveAltBoardRole(groupBoard, invited, null)).toBe("respondent");
+  });
+
+  test("outsider is not given a role", () => {
+    const outsider = {
+      _id: oid("outsider-oid"),
+      userId: "outsider",
+      auth: "member",
+      schools: [{ schoolId: "other" }],
+    };
+    const closed = {
+      ...groupBoard,
+      members: {
+        groups: { manager: false, teacher: false, student: false },
+        users: [],
+      },
+    };
+    expect(resolveAltBoardRole(closed, outsider, "student")).toBe(null);
+  });
+
+  test("school manager without membership is not given a role", () => {
+    const manager = {
+      _id: oid("mgr1"),
+      userId: "mgr1",
+      auth: "manager",
+      schools: [{ schoolId: "school1" }],
+    };
+    const closed = {
+      ...groupBoard,
+      members: {
+        groups: { manager: false, teacher: false, student: false },
+        users: [],
+      },
+    };
+    expect(resolveAltBoardRole(closed, manager, "manager")).toBe(null);
+  });
+
+  test("explicit altBoardRole and creator still win", () => {
+    const board = {
+      ...groupBoard,
+      altBoardRole: { "writer-oid": "writer" },
+    };
+    expect(
+      resolveAltBoardRole(
+        board,
+        { _id: oid("writer-oid"), userId: "w1", auth: "member" },
+        "teacher"
+      )
+    ).toBe("writer");
+    expect(
+      resolveAltBoardRole(
+        board,
+        { _id: oid("creator-oid"), userId: "cre", auth: "member" },
+        null
+      )
+    ).toBe("admin");
   });
 });

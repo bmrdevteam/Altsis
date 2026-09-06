@@ -192,7 +192,7 @@ export const listRequiredFormProgress = ({
 
   for (const board of boards) {
     const boardId = board._id?.toString?.() ?? String(board._id);
-    const altRole = getAltBoardRole(board, user);
+    const altRole = getAltBoardRole(board, user, schoolRole);
     if (!altRole) continue;
 
     const boardForms = formsByBoard.get(boardId) || [];
