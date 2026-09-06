@@ -13,6 +13,8 @@ import {
   sendTestWebPush,
 } from "../services/webPush.js";
 import {
+  EMAIL_DEFAULTS_VERSION,
+  isUserEmailEnabled,
   resolveRecipientEmail,
   sendTestEmailToAddress,
 } from "../services/notificationEmail.js";
@@ -344,6 +346,9 @@ export const updateSettings = async (req, res) => {
         return res.status(400).send({ message: "INVALID_SETTING_VALUE" });
       } else {
         setting.settings[key] = req.body[key];
+        if (key === "emailEnabled") {
+          setting.settings.emailDefaultsVersion = EMAIL_DEFAULTS_VERSION;
+        }
       }
     }
 
@@ -473,7 +478,7 @@ export const testEmail = async (req, res) => {
       req.user.academyId,
       req.user
     );
-    if (setting.settings?.emailEnabled !== true) {
+    if (!isUserEmailEnabled(setting.settings)) {
       return res.status(400).send({ message: "EMAIL_DISABLED" });
     }
 
