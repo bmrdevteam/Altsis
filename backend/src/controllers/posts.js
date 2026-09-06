@@ -441,7 +441,7 @@ export const find = async (req, res) => {
 
       // 머지 렌더링
       if (req.query.merge === "true" && post.content) {
-        const altRole = getAltBoardRole(board, req.user);
+        const altRole = getAltBoardRole(board, req.user, role);
 
         // ── {{#sheet 시트명}} — 읽기 전용 머지 ──
         const { sheetName, body } = parseSheetDeclaration(post.content);

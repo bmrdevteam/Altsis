@@ -182,11 +182,13 @@ export const useAltBoardBadges = (
 
   const activityBadgeCount = (() => {
     const now = new Date();
-    const myRole = board ? getMyAltBoardRole(board, currentUser) : null;
     const schoolRole =
       currentUser?.auth === "manager"
         ? "manager"
         : currentRegistration?.role || null;
+    const myRole = board
+      ? getMyAltBoardRole(board, currentUser, schoolRole)
+      : null;
     const unsubmitted = forms.filter((f) => {
       if (!isFormRespondent(f, currentUser, myRole, schoolRole)) return false;
       return shouldShowUnsubmittedTodoForm(f, now);

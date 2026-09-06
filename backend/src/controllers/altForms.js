@@ -430,13 +430,13 @@ export const find = async (req, res) => {
         return res.status(404).send({ message: __NOT_FOUND("board") });
       }
 
-      const role = getAltBoardRole(board, req.user);
       const schoolRole = await getUserRoleInSeason(
         req.user.academyId,
         board.schoolId,
         req.user,
         isSeasonScopedBoard(board) ? board.season : null
       );
+      const role = getAltBoardRole(board, req.user, schoolRole);
       if (form.isDraft) {
         const isCreator =
           form.creator && form.creator.equals(req.user._id);
@@ -470,13 +470,13 @@ export const find = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("board") });
     }
 
-    const role = getAltBoardRole(board, req.user);
     const schoolRole = await getUserRoleInSeason(
       req.user.academyId,
       board.schoolId,
       req.user,
       isSeasonScopedBoard(board) ? board.season : null
     );
+    const role = getAltBoardRole(board, req.user, schoolRole);
 
     const forms = await AltForm(req.user.academyId)
       .find({
