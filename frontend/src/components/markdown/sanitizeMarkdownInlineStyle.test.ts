@@ -1,6 +1,12 @@
 import { sanitizeMarkdownInlineStyle } from "./sanitizeMarkdownInlineStyle";
 
 describe("sanitizeMarkdownInlineStyle", () => {
+  test("keeps padding-left ch indent on p", () => {
+    expect(sanitizeMarkdownInlineStyle("p", "padding-left: 2ch")).toBe(
+      "padding-left: 2ch"
+    );
+  });
+
   test("keeps text-align:center on p and h1", () => {
     expect(sanitizeMarkdownInlineStyle("p", "text-align: center")).toBe(
       "text-align: center"
