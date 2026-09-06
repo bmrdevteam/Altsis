@@ -6,6 +6,7 @@ import {
   canModifyForm,
   canManageForm,
   isFormRespondent,
+  getAltBoardRole,
 } from "../../src/services/altForms.js";
 
 const oid = (id) => ({
@@ -76,6 +77,10 @@ const managerUser = {
 
 const board = {
   creator: oid("creator-oid"),
+  members: {
+    groups: { manager: false, teacher: false, student: false },
+    users: [],
+  },
   altBoardRole: {
     "student-oid": "respondent",
     "teacher-oid": "respondent",
@@ -269,5 +274,47 @@ describe("isFormRespondent (submit / unsubmitted todo)", () => {
     expect(
       isFormRespondent(studentOnly, board, outsiderUser, "student")
     ).toBe(false);
+  });
+});
+
+describe("group membership without altBoardRole", () => {
+  const openBoard = {
+    scope: "school",
+    schoolId: "school1",
+    isDefault: false,
+    creator: oid("creator-oid"),
+    members: {
+      groups: { manager: false, teacher: true, student: true },
+      users: [],
+    },
+    altBoardRole: {},
+  };
+  const groupStudent = {
+    ...studentUser,
+    schools: [{ schoolId: "school1" }],
+  };
+  const closedBoard = {
+    ...openBoard,
+    members: {
+      groups: { manager: false, teacher: false, student: false },
+      users: [],
+    },
+  };
+
+  test("group student can submit inherit forms", () => {
+    expect(getAltBoardRole(openBoard, groupStudent, "student")).toBe(
+      "respondent"
+    );
+    expect(isFormRespondent(inheritForm, openBoard, groupStudent, "student")).toBe(
+      true
+    );
+    expect(canManageForm(openBoard, groupStudent)).toBe(false);
+  });
+
+  test("school manager without membership has no board role", () => {
+    expect(getAltBoardRole(closedBoard, managerUser, "manager")).toBe(null);
+    expect(isFormMember(inheritForm, closedBoard, managerUser, null)).toBe(
+      true
+    );
   });
 });

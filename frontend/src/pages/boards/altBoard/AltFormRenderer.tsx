@@ -735,7 +735,7 @@ const AltFormRenderer = ({
     currentUser?.auth === "manager"
       ? "manager"
       : currentRegistration?.role || null;
-  const myRole = getMyAltBoardRole(board, currentUser);
+  const myRole = getMyAltBoardRole(board, currentUser, schoolRole);
   const canRespondAsMember = !!(
     form && isFormRespondent(form, currentUser, myRole, schoolRole)
   );

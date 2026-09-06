@@ -255,6 +255,31 @@ export const isBoardMemberAsUser = (board, user, role) => {
 };
 
 /**
+ * 활동·양식용 Alt Board 역할.
+ * 명시적 altBoardRole이 있으면 그대로 쓰고, 없으면 실제 보드 멤버를 respondent로 본다.
+ * 학교 manager/admin 스태프 우회만으로는 역할을 주지 않는다.
+ *
+ * @param {Object} board
+ * @param {Object} user
+ * @param {string|null} [schoolRole] teacher|student|manager
+ * @returns {"admin"|"writer"|"respondent"|null}
+ */
+export const resolveAltBoardRole = (board, user, schoolRole = null) => {
+  if (!user?._id) return null;
+  if (user.auth === "admin") return "admin";
+  const userOid = user._id?.toString?.() || String(user._id);
+  if (board?.creator) {
+    const creatorId =
+      board.creator?.toString?.() || String(board.creator);
+    if (creatorId === userOid) return "admin";
+  }
+  const explicit = lookupAltBoardRole(board, userOid);
+  if (explicit) return explicit;
+  if (isBoardMemberAsUser(board, user, schoolRole)) return "respondent";
+  return null;
+};
+
+/**
  * 사용자가 보드 멤버인지 확인 (상세·API 접근용)
  * admin/manager는 상세 URL·API로 모든 보드에 접근 가능하다.
  * @memberof Services.BoardService

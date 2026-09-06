@@ -14,6 +14,7 @@ import {
 import {
   isBoardMember,
   getUserRoleInSeason,
+  resolveAltBoardRole,
 } from "../services/boards.js";
 import {
   boardAlterSessionFilter,
@@ -53,23 +54,7 @@ const getBoardAndVerifyMember = async (req) => {
     return { error: { status: 403, message: PERMISSION_DENIED } };
   }
 
-  return { board };
-};
-
-/**
- * altBoardRole에서 유저의 역할 확인
- */
-const getAltBoardRole = (board, user) => {
-  if (user.auth === "admin") return "admin";
-  if (board.creator && board.creator.equals(user._id)) return "admin";
-  if (!board.altBoardRole) return null;
-
-  const roleMap =
-    board.altBoardRole instanceof Map
-      ? board.altBoardRole
-      : new Map(Object.entries(board.altBoardRole));
-
-  return roleMap.get(user._id.toString()) || null;
+  return { board, schoolRole: role };
 };
 
 /**
@@ -105,10 +90,10 @@ export const getAIChatSettings = async (req, res) => {
  */
 export const getAIChatSessions = async (req, res) => {
   try {
-    const { board, error } = await getBoardAndVerifyMember(req);
+    const { board, schoolRole, error } = await getBoardAndVerifyMember(req);
     if (error) return res.status(error.status).send({ message: error.message });
 
-    const altRole = getAltBoardRole(board, req.user);
+    const altRole = resolveAltBoardRole(board, req.user, schoolRole);
     const isTeacher = altRole === "admin" || altRole === "writer";
 
     const query = boardAlterSessionFilter(
@@ -138,7 +123,7 @@ export const getAIChatSessions = async (req, res) => {
  */
 export const getAIChatMessages = async (req, res) => {
   try {
-    const { board, error } = await getBoardAndVerifyMember(req);
+    const { board, schoolRole, error } = await getBoardAndVerifyMember(req);
     if (error) return res.status(error.status).send({ message: error.message });
 
     const { sessionId } = req.params;
@@ -154,7 +139,7 @@ export const getAIChatMessages = async (req, res) => {
     }
 
     // 학생은 본인 세션만 조회 가능
-    const altRole = getAltBoardRole(board, req.user);
+    const altRole = resolveAltBoardRole(board, req.user, schoolRole);
     const isTeacher = altRole === "admin" || altRole === "writer";
     if (!isTeacher && session.student.toString() !== req.user._id.toString()) {
       return res.status(403).send({ message: PERMISSION_DENIED });
@@ -186,7 +171,7 @@ export const getAIChatMessages = async (req, res) => {
  */
 export const sendAIChatMessage = async (req, res) => {
   try {
-    const { board, error } = await getBoardAndVerifyMember(req);
+    const { board, schoolRole, error } = await getBoardAndVerifyMember(req);
     if (error) return res.status(error.status).send({ message: error.message });
 
     const {
@@ -207,7 +192,7 @@ export const sendAIChatMessage = async (req, res) => {
         ? detectSkillFromMessage(content)
         : SKILL_IDS.CHAT;
 
-    const altRole = getAltBoardRole(board, req.user);
+    const altRole = resolveAltBoardRole(board, req.user, schoolRole);
     const isTeacher = altRole === "admin" || altRole === "writer";
 
     const ioChat = getIoChat();
