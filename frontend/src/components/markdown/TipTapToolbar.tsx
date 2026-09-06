@@ -15,6 +15,7 @@ import {
   canonicalFontFamily,
   parseFontSizePx,
 } from "./editorFonts";
+import { clampIndent } from "./blockIndent";
 import style from "./markdown.module.scss";
 
 type Props = {
@@ -365,6 +366,22 @@ const TipTapToolbar = ({
         title: "양쪽 정렬",
         action: () => editor.chain().focus().setTextAlign("justify").run(),
         isActive: () => editor.isActive({ textAlign: "justify" }),
+      })}
+      {renderBtn({
+        icon: "indent",
+        title: "들여쓰기",
+        action: () => editor.chain().focus().indentBlock().run(),
+      })}
+      {renderBtn({
+        icon: "outdent",
+        title: "내어쓰기",
+        action: () => editor.chain().focus().outdentBlock().run(),
+        isDisabled: () => {
+          const attrs = editor.isActive("heading")
+            ? editor.getAttributes("heading")
+            : editor.getAttributes("paragraph");
+          return clampIndent(attrs.indent) <= 0;
+        },
       })}
 
       <span className={style.divider} />

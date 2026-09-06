@@ -277,6 +277,12 @@ export const svgData = {
   alignJustify: (
     <path d="M3 21h18v-2H3v2zm0-4h18v-2H3v2zm0-4h18v-2H3v2zm0-4h18V7H3v2zm0-6v2h18V3H3z"></path>
   ),
+  indent: (
+    <path d="M3 21h18v-2H3v2zM3 8v8l4-4-4-4zm8 9h10v-2H11v2zM3 3v2h18V3H3zm8 6h10V7H11v2zm0 4h10v-2H11v2z"></path>
+  ),
+  outdent: (
+    <path d="M11 17h10v-2H11v2zM3 21h18v-2H3v2zM3 3v2h18V3H3zm4 12V8l-4 4 4 4zm4-4h10v-2H11v2zm0-4h10V7H11v2z"></path>
+  ),
   alignTop: (
     <path d="M8 11h3v10h2V11h3l-4-4-4 4zM4 3v2h16V3H4z"></path>
   ),

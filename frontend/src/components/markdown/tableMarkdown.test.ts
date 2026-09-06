@@ -9,7 +9,10 @@ const schema = new Schema({
     paragraph: {
       group: "block",
       content: "inline*",
-      attrs: { textAlign: { default: "left" } },
+      attrs: {
+        textAlign: { default: "left" },
+        indent: { default: 0 },
+      },
     },
     text: { group: "inline" },
     table: { group: "block", content: "tableRow+" },
@@ -47,6 +50,15 @@ describe("tableHasCellStyles", () => {
   test("셀 배경이 있으면 HTML 표다", () => {
     const table = tableFromCells([cellWith("left", "#fff")]);
     expect(tableHasCellStyles(table)).toBe(true);
+  });
+
+  test("칸 안 들여쓰기가 있으면 HTML 표다", () => {
+    const p = schema.node("paragraph", { textAlign: "left", indent: 2 }, [
+      schema.text("가. 학생명"),
+    ]);
+    const cell = schema.node("tableCell", null, [p]);
+    const row = schema.node("tableRow", null, [cell]);
+    expect(tableHasCellStyles(schema.node("table", null, [row]))).toBe(true);
   });
 });
 
