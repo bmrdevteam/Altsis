@@ -8,6 +8,7 @@ import {
   normalizeEmailContext,
   isEmailTypeAllowed,
   isSmtpConfigured,
+  isUserEmailEnabled,
   normalizeEmailNotifyTypes,
   resolveRecipientEmail,
   shouldSendNotificationEmail,
@@ -97,6 +98,40 @@ describe("normalizeEmailNotifyTypes", () => {
   });
 });
 
+describe("isUserEmailEnabled", () => {
+  test("defaults ON when settings are missing", () => {
+    expect(isUserEmailEnabled(undefined)).toBe(true);
+    expect(isUserEmailEnabled({})).toBe(true);
+  });
+
+  test("treats legacy default OFF as ON", () => {
+    expect(isUserEmailEnabled({ emailEnabled: false })).toBe(true);
+    expect(
+      isUserEmailEnabled({ emailEnabled: false, emailDefaultsVersion: 1 })
+    ).toBe(true);
+  });
+
+  test("respects opt-out after the default-ON version", () => {
+    expect(
+      isUserEmailEnabled({
+        emailEnabled: false,
+        emailDefaultsVersion: 2,
+      })
+    ).toBe(false);
+    expect(
+      isUserEmailEnabled({
+        emailEnabled: true,
+        emailDefaultsVersion: 2,
+      })
+    ).toBe(true);
+    expect(
+      isUserEmailEnabled({
+        emailDefaultsVersion: 2,
+      })
+    ).toBe(true);
+  });
+});
+
 describe("shouldSendNotificationEmail", () => {
   const base = {
     emailNotifyEnabled: true,
@@ -126,6 +161,18 @@ describe("shouldSendNotificationEmail", () => {
     expect(shouldSendNotificationEmail({ ...base, emailEnabled: false })).toBe(
       false
     );
+  });
+
+  test("skips when resolved user channel is off", () => {
+    expect(
+      shouldSendNotificationEmail({
+        ...base,
+        emailEnabled: isUserEmailEnabled({
+          emailEnabled: false,
+          emailDefaultsVersion: 2,
+        }),
+      })
+    ).toBe(false);
   });
 
   test("skips when user has no address", () => {

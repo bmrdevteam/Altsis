@@ -204,7 +204,8 @@ const AdminEmail = () => {
       <div className={style.title}>이메일 알림</div>
       <p style={{ color: "var(--accent-3)", marginBottom: 24, lineHeight: 1.5 }}>
         아카데미 SMTP로 중요 알림을 메일로 보냅니다. 새 게시글·채팅·일정 시작은
-        메일로 보내지 않습니다. 사용자는 설정에서 수신을 켜야 메일을 받습니다.
+        메일로 보내지 않습니다. 사용자 메일 수신은 기본으로 켜져 있으며 설정에서
+        끌 수 있습니다.
       </p>
 
       {!featureEnabled && (
