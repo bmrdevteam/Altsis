@@ -6,7 +6,10 @@
 import { Notification, NotificationSetting, School } from "../models/index.js";
 import { getIoNotification } from "../utils/webSocket.js";
 import { sendWebPushesForNotifications } from "./webPush.js";
-import { sendNotificationEmails } from "./notificationEmail.js";
+import {
+  EMAIL_DEFAULTS_VERSION,
+  sendNotificationEmails,
+} from "./notificationEmail.js";
 import { filterRecipientsBySettings } from "./calendarEventNotify.js";
 import { logger } from "../log/logger.js";
 
@@ -197,9 +200,17 @@ export const getOrCreateNotificationSetting = async (academyId, user) => {
         altFormApprovalResult: true,
         eventReminderDefault: 15,
         webPushEnabled: false,
-        emailEnabled: false,
+        emailEnabled: true,
+        emailDefaultsVersion: EMAIL_DEFAULTS_VERSION,
       },
     });
+  } else if (
+    (Number(setting.settings?.emailDefaultsVersion) || 0) <
+    EMAIL_DEFAULTS_VERSION
+  ) {
+    setting.settings.emailEnabled = true;
+    setting.settings.emailDefaultsVersion = EMAIL_DEFAULTS_VERSION;
+    await setting.save();
   }
 
   return setting;

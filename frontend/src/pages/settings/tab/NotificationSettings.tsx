@@ -41,7 +41,7 @@ const DEFAULT_SETTINGS: TNotificationSettings = {
   altFormApprovalResult: true,
   eventReminderDefault: 15,
   webPushEnabled: false,
-  emailEnabled: false,
+  emailEnabled: true,
 };
 
 type SettingItem = {
@@ -316,7 +316,7 @@ const NotificationSettings = () => {
           잠금화면 알림을 켜면, 아래에서 허용한 유형이 벨 알림과 같이 잠금화면에도
           표시됩니다.
           {emailFeatureEnabled
-            ? " 이메일 알림을 켜면, 아카데미가 메일로 보내는 유형만 같은 토글로 받습니다."
+            ? " 이메일 알림은 기본으로 켜져 있으며, 아카데미가 메일로 보내는 유형만 같은 토글로 받습니다."
             : ""}
         </p>
 

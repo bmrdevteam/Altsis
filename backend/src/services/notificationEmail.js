@@ -1,5 +1,5 @@
 /**
- * Academy SMTP email notifications (opt-in, extra channel after in-app).
+ * Academy SMTP email notifications (default ON, extra channel after in-app).
  * @namespace Services.NotificationEmailService
  */
 import nodemailer from "nodemailer";
@@ -102,6 +102,21 @@ export const normalizeEmailNotifyTypes = (raw) => {
     }
   }
   return next;
+};
+
+/** Stamped when emailEnabled is created/updated under the default-ON policy. */
+export const EMAIL_DEFAULTS_VERSION = 2;
+
+/**
+ * User mail channel. Missing/legacy (no version) is ON; only versioned false is opt-out.
+ * @param {object|null|undefined} settings
+ * @returns {boolean}
+ */
+export const isUserEmailEnabled = (settings) => {
+  if (!settings || typeof settings !== "object") return true;
+  const version = Number(settings.emailDefaultsVersion) || 0;
+  if (version < EMAIL_DEFAULTS_VERSION) return true;
+  return settings.emailEnabled !== false;
 };
 
 /**
@@ -446,7 +461,7 @@ export const sendNotificationEmails = async ({
       !shouldSendNotificationEmail({
         emailNotifyEnabled: true,
         smtp: academy.emailSmtp,
-        emailEnabled: settings.emailEnabled === true,
+        emailEnabled: isUserEmailEnabled(settings),
         recipientEmail,
         notificationType: notification.notificationType,
         academyTypes,
