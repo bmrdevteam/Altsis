@@ -70,6 +70,7 @@ import { useAuth } from "../contexts/authContext";
 import { homeSchoolId } from "utils/lastContext";
 
 import Settings from "../pages/settings/Index";
+import RedirectToAppSettings from "../pages/app/RedirectToSettings";
 import GoalsDashboard from "pages/goals/Index";
 import Forms from "../pages/admin/forms/Index";
 import Form from "../pages/admin/forms/Pid";
@@ -332,6 +333,7 @@ function RouterPage() {
             <Route path="chat" element={<LegacyRedirect />} />
             <Route path="boards/*" element={<LegacyRedirect />} />
             <Route path="settings" element={<LegacyRedirect />} />
+            <Route path="app" element={<LegacyRedirect />} />
             <Route path="myaccount" element={<LegacyRedirect />} />
             <Route path="search/*" element={<LegacyRedirect />} />
             <Route path="dev/*" element={<LegacyRedirect />} />
@@ -717,6 +719,14 @@ function RouterPage() {
                 element={
                   <RequireAuth>
                     <Settings />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
+                path="app"
+                element={
+                  <RequireAuth>
+                    <RedirectToAppSettings />
                   </RequireAuth>
                 }
               ></Route>

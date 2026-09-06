@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import Svg from "assets/svg/Svg";
 import style from "style/pages/settings/settings.module.scss";
 import { useAppNavigate } from "hooks/useAppNavigate";
+import { parseSettingsTab, SettingsTab } from "./settingsTab";
 
 import UserSettings from "./tab/UserSettings";
 import SocialLoginSettings from "./tab/SocialLoginSettings";
@@ -9,6 +10,7 @@ import SecuritySettings from "./tab/SecuritySettings";
 import NotificationSettings from "./tab/NotificationSettings";
 import SchoolSettings from "./tab/SchoolSettings";
 import ThemeSettings from "./tab/ThemeSettings";
+import AppInstallPage from "pages/app/Index";
 
 const sections = [
   { key: "user", label: "사용자 정보", icon: "profile" },
@@ -17,20 +19,31 @@ const sections = [
   { key: "notification", label: "알림", icon: "notification" },
   { key: "school", label: "등록된 학교", icon: "school" },
   { key: "theme", label: "테마", icon: "grid" },
+  { key: "app", label: "앱 설치", icon: "addToHome" },
 ] as const;
 
-const sectionComponents: Record<string, JSX.Element> = {
+const sectionComponents: Record<SettingsTab, JSX.Element> = {
   user: <UserSettings />,
   social: <SocialLoginSettings />,
   security: <SecuritySettings />,
   notification: <NotificationSettings />,
   school: <SchoolSettings />,
   theme: <ThemeSettings />,
+  app: <AppInstallPage />,
 };
 
 const Settings = () => {
-  const [activeSection, setActiveSection] = useState<string>("user");
   const navigate = useAppNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeSection = parseSettingsTab(searchParams.get("tab"));
+
+  const selectSection = (key: SettingsTab) => {
+    if (key === "user") {
+      setSearchParams({}, { replace: true });
+      return;
+    }
+    setSearchParams({ tab: key }, { replace: true });
+  };
 
   return (
     <div className={style.settings_page}>
@@ -45,7 +58,7 @@ const Settings = () => {
               className={`${style.sidebar_item} ${
                 activeSection === section.key ? style.sidebar_item_active : ""
               }`}
-              onClick={() => setActiveSection(section.key)}
+              onClick={() => selectSection(section.key)}
               type="button"
             >
               <span className={style.sidebar_icon}>
