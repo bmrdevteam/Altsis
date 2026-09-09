@@ -19,6 +19,7 @@ import MarkdownWysiwygView from "./MarkdownWysiwygView";
 import {
   postprocessMarkdown,
   transformSpecialNodes,
+  getEditorView,
 } from "./extensions/youtube";
 import { useEditorDraft } from "./hooks/useEditorDraft";
 import { handleAtomNodeClick } from "./atomNodeClick";
@@ -146,6 +147,7 @@ const MarkdownEditor = ({
   const editor = useEditor({
     extensions,
     content: initialContentRef.current,
+    immediatelyRender: false,
     shouldRerenderOnTransaction: true,
     editorProps: {
       clipboardTextSerializer: serializeClipboardPlainText,
@@ -280,7 +282,8 @@ const MarkdownEditor = ({
   // 링크 호버 시 URL 프리뷰 (선택 전이어도 표시)
   useEffect(() => {
     if (!editor) return;
-    const dom = editor.view.dom;
+    const dom = getEditorView(editor)?.dom;
+    if (!dom) return;
     let hideTimer: ReturnType<typeof setTimeout> | null = null;
 
     const clearHide = () => {
