@@ -77,6 +77,7 @@ export const createMarkdownExtensions = (
     StarterKit.configure({
       heading: false,
       paragraph: false,
+      link: false,
     }),
     AlignedParagraph,
     AlignedHeading,

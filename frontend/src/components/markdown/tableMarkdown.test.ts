@@ -80,4 +80,12 @@ describe("createMarkdownExtensions", () => {
     expect(src).toContain("SlashCommand");
     expect(src).toContain("Placeholder");
   });
+
+  test("StarterKit 기본 Link를 끄고 앱 Link만 쓴다", () => {
+    const src = readFileSync(
+      join(__dirname, "createMarkdownExtensions.ts"),
+      "utf8"
+    );
+    expect(src).toContain("link: false");
+  });
 });
