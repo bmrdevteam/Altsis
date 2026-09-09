@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Altsis Alt · 40초</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
+    />
+    <link rel="stylesheet" href="promo.css" />
+  </head>
+  <body>
+    <div class="stage-wrap" id="wrap">
+      <div
+        class="stage"
+        id="stage"
+        role="img"
+        aria-label="가르치면 기록이 따라옵니다. 일정, 시간표, 생활기록부."
+      >
+        <div
+          class="app"
+          id="app"
+          data-school="Alt School"
+          data-active="schedule"
+          aria-hidden="true"
+        >
+          <div class="view is-on" id="viewMonth">
+            <div class="cal">
+              <div class="cal-top">
+                <div>
+                  <div class="cal-title">2026년 8월</div>
+                  <div class="cal-sub">월</div>
+                </div>
+                <div class="cal-controls">
+                  <div class="cal-btn">
+                    <div class="cal-subBtn on" id="viewMonthBtn">월</div>
+                    <div class="cal-subBtn" id="viewWeekBtn">주</div>
+                  </div>
+                </div>
+              </div>
+              <div class="cal-days">
+                <span>일</span><span>월</span><span>화</span><span>수</span>
+                <span>목</span><span>금</span><span>토</span>
+              </div>
+              <div class="cal-grid" id="grid"></div>
+            </div>
+          </div>
+          <div class="view" id="viewWeek">
+            <div class="cal">
+              <div class="cal-top">
+                <div>
+                  <div class="cal-title">2026년 8월</div>
+                  <div class="cal-sub">8월 25일 – 29일</div>
+                </div>
+                <div class="cal-controls">
+                  <div class="cal-btn">
+                    <div class="cal-subBtn">월</div>
+                    <div class="cal-subBtn on">주</div>
+                  </div>
+                </div>
+              </div>
+              <div class="week-viewer">
+                <div class="week-header">
+                  <div class="week-gutter"></div>
+                  <div class="week-day">
+                    <span class="dn">월</span><span class="dd">25</span>
+                  </div>
+                  <div class="week-day">
+                    <span class="dn">화</span><span class="dd today">26</span>
+                  </div>
+                  <div class="week-day">
+                    <span class="dn">수</span><span class="dd">27</span>
+                  </div>
+                  <div class="week-day">
+                    <span class="dn">목</span><span class="dd">28</span>
+                  </div>
+                  <div class="week-day">
+                    <span class="dn">금</span><span class="dd">29</span>
+                  </div>
+                </div>
+                <div class="week-body">
+                  <div class="week-times">
+                    <span>9:00</span><span>10:00</span><span>11:00</span>
+                    <span>12:00</span><span>13:00</span><span>14:00</span>
+                    <span>15:00</span><span>16:00</span>
+                  </div>
+                  <div class="week-cols">
+                    <div class="week-col">
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div
+                        class="week-card ev-i"
+                        style="top: 0; height: calc(12.5% - 4px); --d: 0.04s"
+                      >
+                        <div class="title">멘토링</div>
+                        <div class="room">김서연</div>
+                      </div>
+                      <div
+                        class="week-card ev-p"
+                        style="top: 25%; height: calc(12.5% - 4px); --d: 0.12s"
+                      >
+                        <div class="title">프로젝트</div>
+                        <div class="room">2-A</div>
+                      </div>
+                      <div
+                        class="week-card ev-g"
+                        style="top: 75%; height: calc(12.5% - 4px); --d: 0.2s"
+                      >
+                        <div class="title">캠프 준비</div>
+                        <div class="room">3층</div>
+                      </div>
+                    </div>
+                    <div class="week-col">
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div
+                        class="week-card ev-b"
+                        style="top: 0; height: calc(12.5% - 4px); --d: 0.08s"
+                      >
+                        <div class="title">통합과학</div>
+                        <div class="room">2-A</div>
+                      </div>
+                      <div
+                        class="week-card ev-g"
+                        style="top: 25%; height: calc(12.5% - 4px); --d: 0.16s"
+                      >
+                        <div class="title">동아리</div>
+                        <div class="room">2-A</div>
+                      </div>
+                      <div
+                        class="week-card ev-b"
+                        style="top: 50%; height: calc(12.5% - 4px); --d: 0.24s"
+                      >
+                        <div class="title">탐구 발표</div>
+                        <div class="room">음악실</div>
+                      </div>
+                    </div>
+                    <div class="week-col">
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div
+                        class="week-card ev-p"
+                        style="top: 25%; height: calc(12.5% - 4px); --d: 0.14s"
+                      >
+                        <div class="title">프로젝트</div>
+                        <div class="room">2-A</div>
+                      </div>
+                      <div
+                        class="week-card ev-a"
+                        style="top: 75%; height: calc(12.5% - 4px); --d: 0.28s"
+                      >
+                        <div class="title">기록 입력</div>
+                        <div class="room">생활기록부</div>
+                      </div>
+                    </div>
+                    <div class="week-col">
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div
+                        class="week-card ev-b"
+                        style="top: 0; height: calc(12.5% - 4px); --d: 0.1s"
+                      >
+                        <div class="title">통합과학</div>
+                        <div class="room">2-A</div>
+                      </div>
+                      <div
+                        class="week-card ev-a"
+                        style="top: 25%; height: calc(12.5% - 4px); --d: 0.18s"
+                      >
+                        <div class="title">상담</div>
+                        <div class="room">김서연</div>
+                      </div>
+                      <div
+                        class="week-card ev-i"
+                        style="top: 50%; height: calc(12.5% - 4px); --d: 0.26s"
+                      >
+                        <div class="title">멘토링</div>
+                        <div class="room">김서연</div>
+                      </div>
+                    </div>
+                    <div class="week-col">
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div class="week-hour"></div>
+                      <div
+                        class="week-card ev-g"
+                        style="top: 0; height: calc(25% - 4px); --d: 0.22s"
+                      >
+                        <div class="title">체육</div>
+                        <div class="room">체육관</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="view" id="viewTt">
+            <div class="section">
+              <div class="title">수업</div>
+              <div class="page-tabs">
+                <span class="on">시간표</span>
+                <span>수강 현황</span>
+                <span>개설 수업</span>
+                <span>담당 수업</span>
+              </div>
+              <div class="tt-wrap">
+                <table class="tt-table">
+                  <thead>
+                    <tr>
+                      <th>시간</th>
+                      <th>구분</th>
+                      <th>월</th>
+                      <th>화</th>
+                      <th>수</th>
+                      <th>목</th>
+                      <th>금</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="time">09:00</td>
+                      <td class="kind">1교시</td>
+                      <td class="tt-cell">통합과학<span>2-A</span></td>
+                      <td class="tt-cell">인문<span>2-A</span></td>
+                      <td class="tt-cell">통합과학<span>2-A</span></td>
+                      <td class="tt-cell">프로젝트<span>2-A</span></td>
+                      <td class="tt-cell">체육<span>체육관</span></td>
+                    </tr>
+                    <tr>
+                      <td class="time">09:50</td>
+                      <td class="kind">2교시</td>
+                      <td class="tt-cell">통합과학<span>2-A</span></td>
+                      <td class="tt-cell">인문<span>2-A</span></td>
+                      <td class="tt-cell">수학<span>2-A</span></td>
+                      <td class="tt-cell">프로젝트<span>2-A</span></td>
+                      <td class="tt-cell">체육<span>체육관</span></td>
+                    </tr>
+                    <tr>
+                      <td class="time">10:40</td>
+                      <td class="kind">3교시</td>
+                      <td class="tt-cell" id="ttHit">
+                        탐구 발표<span>2-A · 음악실</span>
+                      </td>
+                      <td class="tt-cell">수학<span>2-A</span></td>
+                      <td class="tt-cell">멘토링<span>2-A</span></td>
+                      <td class="tt-cell">영어<span>2-A</span></td>
+                      <td class="tt-cell">프로젝트<span>2-A</span></td>
+                    </tr>
+                    <tr>
+                      <td class="time">11:30</td>
+                      <td class="kind">4교시</td>
+                      <td class="tt-cell">멘토링<span>2-A</span></td>
+                      <td class="tt-cell">동아리<span>2-A</span></td>
+                      <td class="tt-cell">영어<span>2-A</span></td>
+                      <td class="tt-cell">수학<span>2-A</span></td>
+                      <td class="tt-cell">인문<span>2-A</span></td>
+                    </tr>
+                    <tr>
+                      <td class="time">13:20</td>
+                      <td class="kind">5교시</td>
+                      <td class="tt-cell">동아리<span>2-A</span></td>
+                      <td class="tt-cell">프로젝트<span>2-A</span></td>
+                      <td class="tt-cell">영어<span>2-A</span></td>
+                      <td class="tt-cell">멘토링<span>2-A</span></td>
+                      <td class="tt-cell">통합과학<span>2-A</span></td>
+                    </tr>
+                    <tr>
+                      <td class="time">14:10</td>
+                      <td class="kind">6교시</td>
+                      <td></td>
+                      <td class="tt-cell">영어<span>2-A</span></td>
+                      <td></td>
+                      <td class="tt-cell">캠프 준비<span>3층</span></td>
+                      <td></td>
+                    </tr>
+                    <tr>
+                      <td class="time">15:00</td>
+                      <td class="kind">7교시</td>
+                      <td></td>
+                      <td></td>
+                      <td></td>
+                      <td></td>
+                      <td></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="popup-bg" id="ttCard">
+              <div class="popup narrow">
+                <div class="popup-head">
+                  <h3>탐구 발표</h3>
+                  <span class="popup-x">×</span>
+                </div>
+                <div class="popup-body">
+                  <div class="popup-kv"><div class="k">학급</div><div class="v">2학년 A</div></div>
+                  <div class="popup-kv"><div class="k">시간</div><div class="v">월 3교시</div></div>
+                  <div class="popup-kv"><div class="k">강의실</div><div class="v">음악실</div></div>
+                  <div class="popup-kv"><div class="k">학생</div><div class="v">김서연 · 마을 하천의 변화</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="view" id="viewRec">
+            <div class="section">
+              <div class="title">기록</div>
+              <div class="description">생활기록부 · 종합</div>
+              <div class="student_select_row">
+                <span class="student_name_chip">강이든</span>
+                <span class="student_name_chip is-hit" id="recChip">김서연</span>
+                <span class="student_name_chip">박하준</span>
+                <span class="student_name_chip">이도윤</span>
+              </div>
+              <table class="archive-table">
+                <thead>
+                  <tr>
+                    <th>이름</th>
+                    <th>학년</th>
+                    <th>이번 학기 활동</th>
+                    <th>담임 메모</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>강이든</td>
+                    <td>2학년</td>
+                    <td>학교 뒤 숲의 소리를 주제로 탐구했다.</td>
+                    <td>질문을 스스로 좁혀 가고 있다.</td>
+                  </tr>
+                  <tr class="is-hit" id="recHit">
+                    <td>김서연</td>
+                    <td>2학년</td>
+                    <td>
+                      탐구 발표 「마을 하천의 변화」. 현장 스케치와 질문을
+                      스스로 정리했다.
+                    </td>
+                    <td>가르친 시간이 기록으로 남아 있습니다.</td>
+                  </tr>
+                  <tr>
+                    <td>박하준</td>
+                    <td>2학년</td>
+                    <td>점심시간의 이동을 관찰하고 친구 이야기를 모았다.</td>
+                    <td>현장 기록이 분명하다.</td>
+                  </tr>
+                  <tr>
+                    <td>이도윤</td>
+                    <td>1학년</td>
+                    <td>동아리에서 캠프 준비를 맡았다.</td>
+                    <td>역할이 또렷해졌다.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="pointer" id="pointer"></div>
+      </div>
+    </div>
+    <div class="chrome">
+      <a href="record.html">목록</a>
+      <button type="button" id="play">다시 재생</button>
+      <button type="button" id="record">녹화 화면</button>
+      <span class="hint"><kbd>R</kbd> 재생 · <kbd>F</kbd> 전체화면 · 40초</span>
+    </div>
+    <script src="promo.js"></script>
+    <script>
+      const views = [
+        document.getElementById("viewMonth"),
+        document.getElementById("viewWeek"),
+        document.getElementById("viewTt"),
+        document.getElementById("viewRec"),
+      ];
+      const pointer = document.getElementById("pointer");
+      const ttHit = document.getElementById("ttHit");
+      const ttCard = document.getElementById("ttCard");
+      const monthBtn = document.getElementById("viewMonthBtn");
+      const weekBtn = document.getElementById("viewWeekBtn");
+      const recHit = document.getElementById("recHit");
+      const HEAD = "가르치면, 기록이 따라옵니다";
+
+      Promo.bootPromo({
+        durationMs: 40000,
+        onReset() {
+          Promo.showOnly(views, views[0], true);
+          Promo.setActiveNav("schedule");
+          Promo.hideCopy();
+          ttHit.classList.remove("is-hit");
+          ttCard.classList.remove("is-on");
+          monthBtn.classList.add("on");
+          weekBtn.classList.remove("on");
+          recHit.classList.add("is-hit");
+          pointer.classList.remove("is-on");
+        },
+        beats: [
+          { at: 4500, run: () => Promo.pointAt(pointer, weekBtn, true) },
+          {
+            at: 5200,
+            run: () => {
+              monthBtn.classList.remove("on");
+              weekBtn.classList.add("on");
+              Promo.showOnly(views, views[1]);
+              pointer.classList.remove("is-on");
+            },
+          },
+          {
+            at: 6500,
+            run: () =>
+              Promo.showCopy({ band: true, feat: "일정", line: HEAD }),
+          },
+          { at: 8500, run: () => Promo.hideCopy() },
+          {
+            at: 9200,
+            run: () => {
+              Promo.setActiveNav("courses");
+              Promo.showOnly(views, views[2]);
+            },
+          },
+          {
+            at: 10800,
+            run: () => {
+              ttHit.classList.add("is-hit");
+              ttCard.classList.add("is-on");
+            },
+          },
+          {
+            at: 14500,
+            run: () =>
+              Promo.showCopy({ band: true, feat: "시간표", line: HEAD }),
+          },
+          { at: 16500, run: () => Promo.hideCopy() },
+          {
+            at: 17200,
+            run: () => {
+              Promo.setActiveNav("archive");
+              Promo.showOnly(views, views[3]);
+              ttCard.classList.remove("is-on");
+            },
+          },
+          {
+            at: 22000,
+            run: () =>
+              Promo.showCopy({
+                band: true,
+                feat: "생활기록부",
+                line: HEAD,
+              }),
+          },
+          {
+            at: 32000,
+            run: () =>
+              Promo.showCopy({
+                band: true,
+                line: "애써서 남기는 기록이 아니라, 교육하는 일이 남는 시스템입니다",
+              }),
+          },
+        ],
+      });
+    </script>
+  </body>
+</html>

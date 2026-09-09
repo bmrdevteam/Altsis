@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Altsis Shift · 70초</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
+    />
+    <link rel="stylesheet" href="promo.css" />
+  </head>
+  <body>
+    <div class="stage-wrap" id="wrap">
+      <div
+        class="stage"
+        id="stage"
+        role="img"
+        aria-label="학교의 방식과 문화를 그대로 담을 수 있습니다."
+      >
+        <div
+          class="app"
+          id="app"
+          data-school="Alt School"
+          data-active="admin"
+          aria-hidden="true"
+        >
+          <div class="view is-on" id="viewAdmin">
+            <div class="section">
+              <div class="title">학기</div>
+              <button type="button" class="btn ghost">+ 새로운 학기 추가</button>
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>No</th>
+                    <th>학년도</th>
+                    <th>학기</th>
+                    <th>시작</th>
+                    <th>끝</th>
+                    <th>상태</th>
+                    <th>자세히</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td>2026</td>
+                    <td>1학기</td>
+                    <td>2026-03-02</td>
+                    <td>2026-07-17</td>
+                    <td><span class="status off">비활성화됨</span></td>
+                    <td><span class="tbl-btn">자세히</span></td>
+                  </tr>
+                  <tr id="seasonRow">
+                    <td>2</td>
+                    <td>2026</td>
+                    <td>2학기</td>
+                    <td>2026-08-17</td>
+                    <td>2026-12-31</td>
+                    <td><span class="status ok">활성화됨</span></td>
+                    <td><span class="tbl-btn" id="seasonHit">자세히</span></td>
+                  </tr>
+                  <tr>
+                    <td>3</td>
+                    <td>2027</td>
+                    <td>1학기</td>
+                    <td>—</td>
+                    <td>—</td>
+                    <td><span class="status off">비활성화됨</span></td>
+                    <td><span class="tbl-btn">자세히</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="popup-bg" id="seasonPopup">
+              <div class="popup">
+                <div class="popup-head">
+                  <h3>2026 2학기</h3>
+                  <span class="popup-x">×</span>
+                </div>
+                <div class="popup-body">
+                  <div class="tab_menu">
+                    <span class="on">기본 정보</span>
+                    <span>사용자</span>
+                    <span>교과목</span>
+                    <span>강의실</span>
+                    <span>양식</span>
+                    <span>권한</span>
+                    <span>AI 설정</span>
+                  </div>
+                  <div class="popup-kv"><div class="k">학년도</div><div class="v">2026</div></div>
+                  <div class="popup-kv"><div class="k">학기</div><div class="v">2학기</div></div>
+                  <div class="popup-kv"><div class="k">기간</div><div class="v">2026-08-17 – 2026-12-31</div></div>
+                  <div class="popup-kv"><div class="k">상태</div><div class="v">활성화됨</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="view" id="viewForm">
+            <div class="board-page">
+              <div class="board-head">
+                <div class="board-name">프로젝트 수업</div>
+                <div class="tabContainer">
+                  <span class="on">활동</span><span>문서</span><span>채팅</span>
+                </div>
+              </div>
+              <div class="form-title">탐구 발표 평가</div>
+              <div class="form-fields">
+                <div class="field-card">
+                  <span class="field-label">주제</span>
+                  <div class="field-input">마을 하천의 변화</div>
+                </div>
+                <div class="field-card">
+                  <span class="field-label">자기성찰</span>
+                  <div class="field-input area">
+                    현장을 보고 질문이 생겼다. 하천이 계절마다 어떻게 달라지는지
+                    스케치로 남겼다.
+                  </div>
+                </div>
+                <div class="field-card new" id="newField">
+                  <span class="field-label">발표 루브릭</span>
+                  <div class="field-input">탐구 질문의 선명함 · 4단계</div>
+                </div>
+                <button type="button" class="add-field" id="addField">
+                  + 필드 추가
+                </button>
+                <div class="form-actions">
+                  <button type="button" class="btn ghost">임시 저장</button>
+                  <button type="button" class="btn">제출</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="view" id="viewEval">
+            <div class="board-page">
+              <div class="board-head">
+                <div class="board-name">프로젝트 수업</div>
+                <div class="tabContainer">
+                  <span class="on">활동</span><span>문서</span><span>채팅</span>
+                </div>
+              </div>
+              <div class="sheet-toolbar">
+                <div class="form-title" style="margin: 0">탐구 발표 평가</div>
+                <button type="button" class="btn" id="confirmBtn">평가 확정</button>
+              </div>
+              <div class="sheet-wrap">
+                <table class="sheet-table">
+                  <thead>
+                    <tr>
+                      <th>이름</th>
+                      <th>주제</th>
+                      <th>자기성찰</th>
+                      <th>루브릭</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>강이든</td>
+                      <td>학교 뒤 숲의 소리</td>
+                      <td>질문을 더 좁히고 싶다</td>
+                      <td><span class="score done">3</span></td>
+                    </tr>
+                    <tr id="evalHit">
+                      <td>김서연</td>
+                      <td>마을 하천의 변화</td>
+                      <td>현장을 보고 질문이 생겼다</td>
+                      <td><span class="score" id="evalScore">–</span></td>
+                    </tr>
+                    <tr>
+                      <td>박하준</td>
+                      <td>점심시간의 이동</td>
+                      <td>친구 이야기를 모았다</td>
+                      <td><span class="score">–</span></td>
+                    </tr>
+                    <tr>
+                      <td>이도윤</td>
+                      <td>캠프 준비</td>
+                      <td>역할을 나눠 보았다</td>
+                      <td><span class="score">–</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="popup-bg" id="evalCard">
+              <div class="popup narrow">
+                <div class="popup-head">
+                  <h3>김서연 · 발표 루브릭</h3>
+                  <span class="popup-x">×</span>
+                </div>
+                <div class="popup-body">
+                  <div class="rubric">
+                    <strong>탐구 질문의 선명함</strong>
+                    <p>4 · 하천을 직접 본 장면이 남아 있습니다.</p>
+                  </div>
+                  <button type="button" class="btn">평가 확정</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="view" id="viewRes">
+            <div class="board-page">
+              <div class="board-head">
+                <div class="board-name">공간</div>
+                <div class="tabContainer">
+                  <span class="on">활동</span><span>문서</span><span>채팅</span>
+                </div>
+              </div>
+              <div class="form-title">교실 예약</div>
+              <div class="form-grid" style="margin-bottom: 16px">
+                <div class="field-card">
+                  <span class="field-label">자원</span>
+                  <div class="field-input">음악실</div>
+                </div>
+                <div class="field-card">
+                  <span class="field-label">요일</span>
+                  <div class="field-input">수</div>
+                </div>
+                <div class="field-card">
+                  <span class="field-label">교시</span>
+                  <div class="field-input">5</div>
+                </div>
+              </div>
+              <div class="form-actions" style="margin-bottom: 16px">
+                <button type="button" class="btn ghost">임시 저장</button>
+                <button type="button" class="btn" id="resBtn">신청</button>
+              </div>
+              <div class="sheet-wrap">
+                <table class="sheet-table">
+                  <thead>
+                    <tr>
+                      <th>신청자</th>
+                      <th>자원</th>
+                      <th>요일</th>
+                      <th>교시</th>
+                      <th>상태</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>강이든</td>
+                      <td>음악실</td>
+                      <td>월</td>
+                      <td>1</td>
+                      <td>예약됨</td>
+                    </tr>
+                    <tr>
+                      <td>박하준</td>
+                      <td>3층 세미나실</td>
+                      <td>화</td>
+                      <td>3</td>
+                      <td>예약됨</td>
+                    </tr>
+                    <tr id="resHit">
+                      <td>—</td>
+                      <td>음악실</td>
+                      <td>수</td>
+                      <td>5</td>
+                      <td id="resStatus">가능</td>
+                    </tr>
+                    <tr>
+                      <td>이도윤</td>
+                      <td>체육관</td>
+                      <td>금</td>
+                      <td>2</td>
+                      <td>대기</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div class="view" id="viewAppr">
+            <div class="board-page">
+              <div class="board-head">
+                <div class="board-name">행정</div>
+                <div class="tabContainer">
+                  <span class="on">활동</span><span>문서</span><span>채팅</span>
+                </div>
+              </div>
+              <div class="form-title">현장학습 신청</div>
+              <div class="approval-pills">
+                <span class="on">내 결재 대기</span>
+                <span>결재선</span>
+              </div>
+              <div class="approval-split">
+                <div class="appr-list">
+                  <div class="appr-row is-hit">
+                    <strong>한강 생태 탐방</strong>
+                    <span>김서연 담임 · 담임 확인</span>
+                  </div>
+                  <div class="appr-row">
+                    <strong>결석계</strong>
+                    <span>이도윤 · 대기</span>
+                  </div>
+                </div>
+                <div class="appr-detail">
+                  <div class="steps">
+                    <div class="step on" id="step1">1. 담임 확인</div>
+                    <div class="step" id="step2">2. 교감 결재</div>
+                  </div>
+                  <div class="popup-kv"><div class="k">일자</div><div class="v">9월 18일</div></div>
+                  <div class="popup-kv"><div class="k">장소</div><div class="v">한강 공원</div></div>
+                  <div class="popup-kv"><div class="k">인원</div><div class="v">2학년 18명</div></div>
+                  <div style="margin-top: 16px">
+                    <button type="button" class="btn" id="approveBtn">승인</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="pointer" id="pointer"></div>
+      </div>
+    </div>
+    <div class="chrome">
+      <a href="record.html">목록</a>
+      <button type="button" id="play">다시 재생</button>
+      <button type="button" id="record">녹화 화면</button>
+      <span class="hint"><kbd>R</kbd> 재생 · <kbd>F</kbd> 전체화면 · 70초</span>
+    </div>
+    <script src="promo.js"></script>
+    <script>
+      const views = [
+        document.getElementById("viewAdmin"),
+        document.getElementById("viewForm"),
+        document.getElementById("viewEval"),
+        document.getElementById("viewRes"),
+        document.getElementById("viewAppr"),
+      ];
+      const pointer = document.getElementById("pointer");
+      const seasonHit = document.getElementById("seasonHit");
+      const seasonRow = document.getElementById("seasonRow");
+      const seasonPopup = document.getElementById("seasonPopup");
+      const newField = document.getElementById("newField");
+      const addField = document.getElementById("addField");
+      const evalHit = document.getElementById("evalHit");
+      const evalScore = document.getElementById("evalScore");
+      const evalCard = document.getElementById("evalCard");
+      const confirmBtn = document.getElementById("confirmBtn");
+      const resBtn = document.getElementById("resBtn");
+      const resHit = document.getElementById("resHit");
+      const resStatus = document.getElementById("resStatus");
+      const step1 = document.getElementById("step1");
+      const step2 = document.getElementById("step2");
+      const approveBtn = document.getElementById("approveBtn");
+      const HEAD = "학교의 방식과 문화를, 그대로 담을 수 있습니다";
+
+      Promo.bootPromo({
+        durationMs: 70000,
+        onReset() {
+          Promo.showOnly(views, views[0], true);
+          Promo.setActiveNav("admin");
+          Promo.hideCopy();
+          seasonRow.classList.remove("is-hit");
+          seasonPopup.classList.remove("is-on");
+          newField.classList.remove("is-on");
+          addField.classList.remove("is-press");
+          evalHit.classList.remove("is-hit");
+          evalScore.textContent = "–";
+          evalScore.classList.remove("done");
+          evalCard.classList.remove("is-on");
+          confirmBtn.classList.remove("is-press");
+          resBtn.classList.remove("is-press");
+          resHit.classList.remove("is-hit");
+          resStatus.textContent = "가능";
+          resHit.querySelector("td").textContent = "—";
+          step1.className = "step on";
+          step2.className = "step";
+          approveBtn.classList.remove("is-press");
+          pointer.classList.remove("is-on");
+        },
+        beats: [
+          { at: 2500, run: () => Promo.pointAt(pointer, seasonHit, true) },
+          {
+            at: 3300,
+            run: () => {
+              seasonRow.classList.add("is-hit");
+              seasonHit.classList.add("is-press");
+              seasonPopup.classList.add("is-on");
+              pointer.classList.remove("is-on");
+            },
+          },
+          {
+            at: 10000,
+            run: () =>
+              Promo.showCopy({ band: true, feat: "관리", line: HEAD }),
+          },
+          { at: 11800, run: () => Promo.hideCopy() },
+          {
+            at: 12200,
+            run: () => {
+              Promo.setActiveNav("boards");
+              Promo.showOnly(views, views[1]);
+              seasonPopup.classList.remove("is-on");
+            },
+          },
+          {
+            at: 16000,
+            run: () => addField.classList.add("is-press"),
+          },
+          {
+            at: 16800,
+            run: () => {
+              newField.classList.add("is-on");
+            },
+          },
+          {
+            at: 24000,
+            run: () =>
+              Promo.showCopy({ band: true, feat: "양식", line: HEAD }),
+          },
+          { at: 25800, run: () => Promo.hideCopy() },
+          {
+            at: 26200,
+            run: () => {
+              Promo.showOnly(views, views[2]);
+            },
+          },
+          {
+            at: 27800,
+            run: () => {
+              evalHit.classList.add("is-hit");
+              evalScore.textContent = "4";
+              evalScore.classList.add("done");
+              evalCard.classList.add("is-on");
+            },
+          },
+          {
+            at: 32000,
+            run: () => {
+              confirmBtn.classList.add("is-press");
+            },
+          },
+          {
+            at: 38000,
+            run: () =>
+              Promo.showCopy({ band: true, feat: "수업 평가", line: HEAD }),
+          },
+          { at: 39800, run: () => Promo.hideCopy() },
+          {
+            at: 40200,
+            run: () => {
+              Promo.showOnly(views, views[3]);
+              evalCard.classList.remove("is-on");
+            },
+          },
+          {
+            at: 42800,
+            run: () => {
+              resBtn.classList.add("is-press");
+              resHit.classList.add("is-hit");
+              resStatus.textContent = "대기";
+              resHit.querySelector("td").textContent = "이민준";
+            },
+          },
+          {
+            at: 52000,
+            run: () =>
+              Promo.showCopy({ band: true, feat: "교실 예약", line: HEAD }),
+          },
+          { at: 53800, run: () => Promo.hideCopy() },
+          {
+            at: 54200,
+            run: () => {
+              Promo.showOnly(views, views[4]);
+            },
+          },
+          {
+            at: 55800,
+            run: () => {
+              approveBtn.classList.add("is-press");
+              step1.className = "step done";
+              step2.className = "step on";
+            },
+          },
+          {
+            at: 64000,
+            run: () =>
+              Promo.showCopy({
+                band: true,
+                line: "남이 정한 학교가 아니라, 우리 학교로 씁니다",
+              }),
+          },
+        ],
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Altsis 홍보 영상 녹화</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
+    />
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: #07070e;
+        color: #fff;
+        font-family: Pretendard, "Apple SD Gothic Neo", sans-serif;
+        padding: 48px 32px 80px;
+      }
+      h1 {
+        font-size: 28px;
+        letter-spacing: -0.6px;
+      }
+      p {
+        color: rgba(255, 255, 255, 0.72);
+        line-height: 1.55;
+        max-width: 40rem;
+      }
+      ol {
+        padding-left: 1.2rem;
+        line-height: 1.7;
+        color: rgba(255, 255, 255, 0.86);
+      }
+      a {
+        color: #dcdefc;
+      }
+      table {
+        border-collapse: collapse;
+        width: min(720px, 100%);
+        margin-top: 24px;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 10px 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        font-size: 15px;
+      }
+      th {
+        color: rgba(255, 255, 255, 0.5);
+        font-weight: 500;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Altsis 홍보 영상 녹화</h1>
+    <p>
+      1920×1080 스테이지. 페이지를 열고 <kbd>F</kbd> 전체화면 후 화면을
+      녹화합니다. <kbd>R</kbd>로 다시 재생합니다. 문장은
+      <a href="STORYBOARD.md">STORYBOARD.md</a>와 같습니다.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>구간</th>
+          <th>길이</th>
+          <th>파일</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>오프닝</td>
+          <td>8초</td>
+          <td><a href="opening.html">opening.html</a></td>
+        </tr>
+        <tr>
+          <td>원점</td>
+          <td>24초</td>
+          <td><a href="origin.html">origin.html</a></td>
+        </tr>
+        <tr>
+          <td>Alt</td>
+          <td>40초</td>
+          <td><a href="alt.html">alt.html</a></td>
+        </tr>
+        <tr>
+          <td>Shift</td>
+          <td>70초</td>
+          <td><a href="shift.html">shift.html</a></td>
+        </tr>
+        <tr>
+          <td>Ctrl</td>
+          <td>22초</td>
+          <td><a href="ctrl.html">ctrl.html</a></td>
+        </tr>
+        <tr>
+          <td>클로징</td>
+          <td>8초</td>
+          <td><a href="closing.html">closing.html</a></td>
+        </tr>
+        <tr>
+          <td>한 테이크</td>
+          <td>2:52</td>
+          <td><a href="film.html">film.html</a></td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      한 테이크는 구간 페이지를 이어 재생합니다. 로컬에서 열려면
+      <code>docs/promo</code>에서 간단 서버를 쓰는 편이 안전합니다.
+      (<code>python3 -m http.server 8765</code>)
+    </p>
+  </body>
+</html>

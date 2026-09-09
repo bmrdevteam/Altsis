@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Altsis Ctrl · 22초</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
+    />
+    <link rel="stylesheet" href="promo.css" />
+  </head>
+  <body>
+    <div class="stage-wrap" id="wrap">
+      <div
+        class="stage"
+        id="stage"
+        role="img"
+        aria-label="아직 없는 교육을 지금 시도할 수 있습니다. Alter."
+      >
+        <div
+          class="app"
+          id="app"
+          data-school="Alt School"
+          data-active="archive"
+          aria-hidden="true"
+        >
+          <div class="view is-on">
+            <div class="section">
+              <div class="title">기록</div>
+              <div class="description">생활기록부 · 종합</div>
+              <div class="student_select_row">
+                <span class="student_name_chip is-hit">김서연</span>
+                <span class="student_name_chip">강이든</span>
+                <span class="student_name_chip">박하준</span>
+              </div>
+              <table class="archive-table">
+                <thead>
+                  <tr>
+                    <th>이름</th>
+                    <th>학년</th>
+                    <th>이번 학기 활동</th>
+                    <th>루브릭</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="is-hit">
+                    <td>김서연</td>
+                    <td>2학년</td>
+                    <td>탐구 발표 「마을 하천의 변화」</td>
+                    <td>질문의 선명함 4 · 평가 확정</td>
+                  </tr>
+                  <tr>
+                    <td>강이든</td>
+                    <td>2학년</td>
+                    <td>학교 뒤 숲의 소리</td>
+                    <td>3</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="alter-fs" id="panel">
+          <div class="alter-backdrop"></div>
+          <div class="alter-panel">
+            <div class="alter-head">
+              <span id="alterHeadIcon"></span>
+              새 대화
+              <span class="spacer"></span>
+            </div>
+            <div class="alter-empty" id="alterEmpty">
+              <div class="ask">질문해 보세요</div>
+              <div class="hint">이 화면의 기록을 바탕으로 초안을 요청할 수 있습니다</div>
+            </div>
+            <div class="alter-msgs is-off" id="alterMsgs">
+              <div class="bubble q" id="qBox"></div>
+              <div class="bubble a" id="aBox"></div>
+            </div>
+            <div class="alter-composer">
+              <div class="alter-input">메시지를 입력하세요</div>
+              <div class="alter-usage">오늘 0 / 100 Alt</div>
+            </div>
+          </div>
+        </div>
+        <div class="pointer" id="pointer"></div>
+      </div>
+    </div>
+    <div class="chrome">
+      <a href="record.html">목록</a>
+      <button type="button" id="play">다시 재생</button>
+      <button type="button" id="record">녹화 화면</button>
+      <span class="hint"><kbd>R</kbd> 재생 · <kbd>F</kbd> 전체화면 · 22초</span>
+    </div>
+    <script src="promo.js"></script>
+    <script>
+      const panel = document.getElementById("panel");
+      const pointer = document.getElementById("pointer");
+      const empty = document.getElementById("alterEmpty");
+      const msgs = document.getElementById("alterMsgs");
+      const qBox = document.getElementById("qBox");
+      const aBox = document.getElementById("aBox");
+      const question =
+        "이 학생의 이번 학기 활동 기록을 초안으로 작성해 줘";
+      const answer =
+        "김서연은 탐구 발표에서 마을 하천의 변화를 직접 보고 질문을 세웠습니다. 가르친 시간이 기록으로 남아, 담임은 초안만 다듬으면 됩니다.";
+
+      document.getElementById("alterHeadIcon").innerHTML =
+        Promo.alterSparkle(20);
+
+      Promo.bootPromo({
+        durationMs: 22000,
+        onReset() {
+          panel.classList.remove("is-on");
+          document.getElementById("alterBtn")?.classList.remove("is-hot");
+          empty.classList.remove("is-off");
+          msgs.classList.add("is-off");
+          qBox.textContent = "";
+          aBox.textContent = "";
+          Promo.hideCopy();
+          pointer.classList.remove("is-on");
+        },
+        beats: [
+          {
+            at: 600,
+            run: () =>
+              Promo.pointAt(
+                pointer,
+                document.getElementById("alterBtn"),
+                true
+              ),
+          },
+          {
+            at: 1200,
+            run: () => {
+              document.getElementById("alterBtn")?.classList.add("is-hot");
+              panel.classList.add("is-on");
+              pointer.classList.remove("is-on");
+            },
+          },
+          {
+            at: 2000,
+            run: () => {
+              empty.classList.add("is-off");
+              msgs.classList.remove("is-off");
+              Promo.typeInto(qBox, question, 28);
+            },
+          },
+          { at: 7000, run: () => Promo.typeInto(aBox, answer, 22) },
+          {
+            at: 14500,
+            run: () =>
+              Promo.showCopy({
+                band: true,
+                feat: "Alter",
+                line: "아직 없는 교육을, 지금 시도할 수 있습니다",
+              }),
+          },
+          {
+            at: 17500,
+            run: () =>
+              Promo.showCopy({
+                band: true,
+                line: "인공지능으로, 미래의 교육을 교실에서 엽니다",
+              }),
+          },
+        ],
+      });
+    </script>
+  </body>
+</html>

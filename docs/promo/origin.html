@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Altsis 오프닝 · 8초</title>
+    <title>Altsis 원점 · 24초</title>
     <link
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
@@ -16,14 +16,13 @@
         class="stage"
         id="stage"
         role="img"
-        aria-label="Altsis 8초 오프닝. Alternative School Information System."
+        aria-label="별무리학교에서 BLMS를 만들었고, 모두의 문제를 위해 Altsis를 만들었습니다."
       >
         <div
           class="app"
           id="app"
-          data-school="Alt School"
+          data-school="별무리학교"
           data-active="schedule"
-          data-ghost="1"
           aria-hidden="true"
         >
           <div class="view is-on">
@@ -48,50 +47,67 @@
             </div>
           </div>
         </div>
-        <div class="brand">
-          <img
-            class="brand-logo fade"
-            id="logo"
-            src="altsis-logo.png"
-            alt=""
-            width="148"
-            height="148"
-          />
-          <div class="wordmark fade" id="word">Altsis</div>
-          <p class="sub fade" id="en">Alternative School Information System</p>
-        </div>
       </div>
     </div>
     <div class="chrome">
       <a href="record.html">목록</a>
       <button type="button" id="play">다시 재생</button>
       <button type="button" id="record">녹화 화면</button>
-      <span class="hint"><kbd>R</kbd> 재생 · <kbd>F</kbd> 전체화면 · 8초</span>
+      <span class="hint"><kbd>R</kbd> 재생 · <kbd>F</kbd> 전체화면 · 24초</span>
     </div>
     <script src="promo.js"></script>
     <script>
-      const logo = document.getElementById("logo");
-      const word = document.getElementById("word");
-      const en = document.getElementById("en");
       Promo.bootPromo({
-        durationMs: 8000,
+        durationMs: 24000,
         onReset() {
-          [logo, word, en].forEach((el) => el.classList.remove("is-on"));
-          const veil = document.getElementById("copyVeil");
-          veil.classList.add("is-on", "is-full");
-          veil.classList.remove("is-heavy");
+          Promo.setSchoolName("별무리학교", false);
+          Promo.hideCopy();
         },
         beats: [
-          { at: 350, run: () => logo.classList.add("is-on") },
-          { at: 1450, run: () => word.classList.add("is-on") },
-          { at: 2100, run: () => en.classList.add("is-on") },
           {
-            at: 4200,
+            at: 400,
+            run: () =>
+              Promo.showCopy({
+                veil: "heavy",
+                line: "별무리학교의 교육을 바꾸기 위해,",
+                sub: "BLMS를 만들었습니다",
+              }),
+          },
+          {
+            at: 4800,
+            run: () =>
+              Promo.showCopy({
+                veil: "heavy",
+                line: "한 학교의 실험이었습니다",
+              }),
+          },
+          {
+            at: 8800,
             run: () => {
-              const veil = document.getElementById("copyVeil");
-              veil.classList.remove("is-full");
-              veil.classList.add("is-on", "is-heavy");
+              Promo.setSchoolName("Alt School", false);
+              Promo.showCopy({
+                veil: "heavy",
+                line: "그 길은 한 학교만의 것이 아니었습니다",
+              });
             },
+          },
+          {
+            at: 13800,
+            run: () =>
+              Promo.showCopy({
+                veil: "heavy",
+                line: "모두의 문제를 위해,",
+                sub: "Altsis를 만들었습니다",
+              }),
+          },
+          {
+            at: 18800,
+            run: () =>
+              Promo.showCopy({
+                veil: "heavy",
+                line: "모든 학교를 위한",
+                sub: "대안적인 학교 정보 시스템",
+              }),
           },
         ],
       });
