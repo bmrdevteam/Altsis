@@ -17,6 +17,7 @@ import Button from "components/button/Button";
 import Svg from "assets/svg/Svg";
 import {
   MarkdownEditor,
+  MarkdownViewer,
   MarkdownWysiwygView,
 } from "components/markdown";
 import {
@@ -3130,7 +3131,10 @@ const AltFormRenderer = ({
                   </div>
                 )}
                 <div className={style.contentFieldBody}>
-                  <MarkdownWysiwygView content={field.content || ""} />
+                  <MarkdownViewer
+                    content={field.content || ""}
+                    allowHtmlApp
+                  />
                   <FieldDocResources
                     attachments={field.attachments}
                     links={field.links}
