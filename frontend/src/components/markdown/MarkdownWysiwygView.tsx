@@ -21,6 +21,7 @@ const MarkdownWysiwygView = ({ content, className }: Props) => {
 
   const editor = useEditor({
     editable: false,
+    immediatelyRender: false,
     shouldRerenderOnTransaction: false,
     extensions: createMarkdownExtensions({ editable: false }),
     content: repaired,

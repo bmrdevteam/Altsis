@@ -10,6 +10,7 @@
  */
 
 import type { Editor } from "@tiptap/react";
+import type { EditorView } from "@tiptap/pm/view";
 import type { Node as PMNode } from "@tiptap/pm/model";
 import { safeAtob } from "./htmlEmbed";
 import {
@@ -42,6 +43,18 @@ export const extractYouTubeId = (url: string): string | null => {
 };
 
 /**
+ * TipTap 3는 뷰가 없으면 editor.view가 undefined가 아니라 throw 한다.
+ */
+export const getEditorView = (editor: Editor): EditorView | null => {
+  if (editor.isDestroyed) return null;
+  try {
+    return editor.view;
+  } catch {
+    return null;
+  }
+};
+
+/**
  * 에디터 초기화 후 특수 노드 변환
  *
  * tiptap-markdown(html: false)이 마크다운을 파싱하면:
@@ -52,7 +65,8 @@ export const extractYouTubeId = (url: string): string | null => {
  * 이 함수는 해당 노드들을 실제 YouTube/HtmlEmbed 노드로 변환합니다.
  */
 export const transformSpecialNodes = (editor: Editor): void => {
-  if (editor.isDestroyed || !editor.view) return;
+  const view = getEditorView(editor);
+  if (!view) return;
 
   try {
     const { doc, schema } = editor.state;
@@ -197,9 +211,11 @@ export const transformSpecialNodes = (editor: Editor): void => {
       }
     }
 
-    if (applied > 0 && !editor.isDestroyed && editor.view) {
+    if (applied > 0 && !editor.isDestroyed) {
+      const mountedView = getEditorView(editor);
+      if (!mountedView) return;
       tr.setMeta("addToHistory", false); // 변환 이력에 추가하지 않음
-      editor.view.dispatch(tr);
+      mountedView.dispatch(tr);
     }
   } catch (err) {
     console.warn("[transformSpecialNodes] skipped due to error:", err);
