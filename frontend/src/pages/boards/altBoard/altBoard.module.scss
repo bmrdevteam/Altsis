@@ -2336,7 +2336,7 @@
   background: transparent;
   min-height: 0;
   min-width: 0;
-  overflow-x: auto;
+  overflow: visible;
 
   .textInput,
   .textArea,
@@ -2502,7 +2502,7 @@
   color: var(--text-color-1);
   max-width: 100%;
   min-width: 0;
-  overflow-x: auto;
+  overflow: visible;
 
   :global {
     p:first-child {
