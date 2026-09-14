@@ -1,4 +1,7 @@
-import { TFormAiChatSummary } from "types/aiChat";
+import {
+  TAssessmentGradeChatPayload,
+  TFormAiChatSummary,
+} from "types/aiChat";
 
 export const isAiChatFieldType = (type?: string) => type === "aiChat";
 
@@ -21,6 +24,16 @@ export const parseAiChatSummary = (value: unknown): TFormAiChatSummary | null =>
 export const isAiChatRequiredMet = (value: unknown) => {
   const summary = parseAiChatSummary(value);
   return Number(summary?.studentMessageCount || 0) >= 1;
+};
+
+export const isAssessmentGradeChatPayload = (
+  payload: unknown
+): payload is TAssessmentGradeChatPayload => {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return false;
+  }
+  const raw = payload as TAssessmentGradeChatPayload;
+  return raw.kind === "assessment-grade" && !!raw.byField && typeof raw.byField === "object";
 };
 
 export const formatAiChatCell = (value: unknown) => {

@@ -5371,7 +5371,12 @@ export const executeAssessmentGradeSkill = async ({
     err.code = __NOT_FOUND("board");
     throw err;
   }
-  if (!canManageForm(board, user) && user.auth !== "manager") {
+  const respondentPreview = context.respondentPreview === true;
+  if (
+    !respondentPreview &&
+    !canManageForm(board, user) &&
+    user.auth !== "manager"
+  ) {
     const err = new Error(PERMISSION_DENIED);
     err.status = 403;
     err.code = PERMISSION_DENIED;
@@ -5387,7 +5392,11 @@ export const executeAssessmentGradeSkill = async ({
   for (const id of requestedIds) {
     const row = byId.get(id);
     if (!row) continue;
-    if (row.isDraft) continue;
+    if (!respondentPreview && row.isDraft) continue;
+    if (respondentPreview) {
+      const ownerId = row._respondent?._id || row._respondent;
+      if (!ownerId || String(ownerId) !== String(user._id)) continue;
+    }
     if (String(row.form) !== String(form._id)) continue;
     if (row.data?._assessment?.final?.status === "finalized") continue;
     workRows.push(row);
@@ -5396,7 +5405,7 @@ export const executeAssessmentGradeSkill = async ({
   if (!workRows.length) {
     const only = byId.get(requestedIds[0]);
     if (requestedIds.length === 1 && only) {
-      if (only.isDraft) {
+      if (!respondentPreview && only.isDraft) {
         const err = new Error("저장본은 채점할 수 없습니다.");
         err.status = 400;
         throw err;
@@ -5428,7 +5437,10 @@ export const executeAssessmentGradeSkill = async ({
   }
 
   const gradeFields = (form.fields || []).filter(
-    (f) => f.gradingMethod && f.gradingMethod !== "none"
+    (f) =>
+      f.gradingMethod &&
+      f.gradingMethod !== "none" &&
+      (!respondentPreview || f.permission !== "owner")
   );
   if (!gradeFields.length) {
     const err = new Error("채점 대상 항목이 없습니다.");

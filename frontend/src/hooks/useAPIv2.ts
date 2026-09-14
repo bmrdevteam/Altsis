@@ -5300,6 +5300,7 @@ export default function useAPIv2() {
       content: string;
       rowId?: string;
       season?: string;
+      skill?: "assessment-grade";
     };
   }) {
     return (await database.C({

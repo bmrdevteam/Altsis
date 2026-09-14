@@ -1751,11 +1751,13 @@ const AltSheetView = ({
     if (field.type === "aiChat") {
       return (
         <FormAiChatField
+          form={selectedForm}
           formId={selectedForm?._id || ""}
           field={field}
           value={value}
           rowId={undefined}
           disabled
+          assessmentMode={!!selectedForm?.settings?.assessmentMode}
         />
       );
     }
@@ -3309,12 +3311,14 @@ const AltSheetView = ({
           }
         >
           <FormAiChatField
+            form={selectedForm}
             formId={selectedForm._id}
             field={aiChatPreview.field}
             value={aiChatPreview.row?.data?.[aiChatPreview.field._id]}
             sessionId={aiChatPreview.sessionId}
             rowId={aiChatPreview.row?._id}
             disabled
+            assessmentMode={!!selectedForm.settings?.assessmentMode}
           />
         </Popup>
       )}
