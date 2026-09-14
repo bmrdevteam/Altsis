@@ -10,7 +10,11 @@ import ToolbarContextTabs from "./ToolbarContextTabs";
 import TableToolbar from "./TableToolbar";
 import ImageToolbar from "./ImageToolbar";
 import LinkBubbleMenu from "./LinkBubbleMenu";
-import { DEFAULT_CANVAS_HEIGHT, repairCanvasMarkdown } from "./canvas/canvasModel";
+import {
+  CANVAS_HTML_STARTER,
+  DEFAULT_CANVAS_HEIGHT,
+  repairCanvasMarkdown,
+} from "./canvas/canvasModel";
 import ImageInsertDialog from "./ImageInsertDialog";
 import YouTubeInsertDialog from "./YouTubeInsertDialog";
 import LinkInsertDialog from "./LinkInsertDialog";
@@ -521,9 +525,7 @@ const MarkdownEditor = ({
       .focus()
       .setHtmlEmbed({
         embedType: "code",
-        html: "",
-        css: "",
-        javascript: "",
+        html: CANVAS_HTML_STARTER,
         height: DEFAULT_CANVAS_HEIGHT,
         editing: true,
       })

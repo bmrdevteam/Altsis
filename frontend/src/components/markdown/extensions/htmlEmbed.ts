@@ -8,11 +8,10 @@ import { canvasFullscreenPanes } from "../canvas/canvasFullscreenPanes";
 import {
   attrsFromPayload,
   CANVAS_IFRAME_SANDBOX,
+  flattenCanvasToHtml,
   parseCanvasContent,
   payloadFromAttrs,
-  serializeCanvasPayload,
   serializeCodeEmbed,
-  shouldSerializeAsCanvas,
   srcDocFromCodeAttrs,
   type CanvasPayload,
 } from "../canvas/canvasModel";
@@ -202,11 +201,7 @@ export const HtmlEmbed = Node.create<HtmlEmbedOptions>({
     const payload = embedType === "code" ? payloadFromAttrs(attrs) : null;
     const encodedContent =
       embedType === "code" && payload
-        ? safeBtoa(
-            shouldSerializeAsCanvas(payload)
-              ? serializeCanvasPayload(payload)
-              : attrs.content || attrs.html || ""
-          )
+        ? safeBtoa(flattenCanvasToHtml(payload))
         : attrs.content;
     return [
       "div",
@@ -538,8 +533,6 @@ export const HtmlEmbed = Node.create<HtmlEmbedOptions>({
         const code = normalizeCodeAttrs({
           title: value.title,
           html: value.html,
-          css: value.css,
-          javascript: value.javascript,
           height: currentAttrs.height,
         });
         dispatchAttrs({
@@ -600,6 +593,11 @@ export const HtmlEmbed = Node.create<HtmlEmbedOptions>({
         iframe.style.display = showPreview ? "block" : "none";
         resizeHandle.style.display =
           showPreview && !editorFullscreen ? "block" : "none";
+        wrapper.classList.toggle("embed-frame-editing", editing);
+        wrapper.classList.toggle(
+          "embed-hide-preview",
+          editing && !showPreview
+        );
         wrapper.classList.toggle(
           "embed-fs-show-editor",
           editorFullscreen && showEditor
