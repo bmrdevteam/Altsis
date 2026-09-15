@@ -4,6 +4,7 @@ import { DateRange } from "components/dateRangeFilter/DateRangeFilterDropdown";
 import MergeStyleFilterBar, {
   type MergeFilterField,
 } from "components/mergeFilter/MergeStyleFilterBar";
+import CollapsibleFilterBar from "../CollapsibleFilterBar";
 import bStyle from "../boards.module.scss";
 import style from "./altBoard.module.scss";
 import {
@@ -52,6 +53,7 @@ type Props = {
   onClearSearchAndSort: () => void;
   hasSearchOrSort: boolean;
   sortSlot?: ReactNode;
+  open: boolean;
 };
 
 const ChipIcon = ({ type }: { type: string }) => (
@@ -81,13 +83,14 @@ const SheetDetailFilterBar = ({
   onClearSearchAndSort,
   hasSearchOrSort,
   sortSlot,
+  open,
 }: Props) => {
   const hasHidden = hiddenColumns.size > 0;
   const allVisible = !hasHidden;
   const hasFieldFilters = hasSheetFieldFilters(textFilters, dateFilters);
 
   return (
-    <div className={bStyle.activityFilterBlock}>
+    <CollapsibleFilterBar open={open}>
       <MergeStyleFilterBar
         keyword={keyword}
         onKeywordChange={onKeywordChange}
@@ -156,7 +159,7 @@ const SheetDetailFilterBar = ({
         </div>
         {sortSlot}
       </div>
-    </div>
+    </CollapsibleFilterBar>
   );
 };
 

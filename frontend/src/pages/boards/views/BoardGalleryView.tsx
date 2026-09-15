@@ -89,11 +89,7 @@ const BoardGalleryView = ({
             {(board.syllabus || board.syllabusMeta) && (
               <span
                 className={`${style.badge} ${style.badgeSyllabus}`}
-                title={
-                  board.syllabusMeta?.classTitle
-                    ? `수업: ${board.syllabusMeta.classTitle}`
-                    : "수업 연결 보드"
-                }
+                title="수업 연결 보드"
               >
                 수업
               </span>
@@ -115,7 +111,6 @@ const BoardGalleryView = ({
           <div className={style.cardFooter}>
             <div className={style.cardMeta}>
               <span>생성자 {board.creatorName?.trim() || "-"}</span>
-              <span>게시글 {board.postCount ?? 0}개</span>
             </div>
             {manageable && (onDuplicate || onManage) && (
               <div

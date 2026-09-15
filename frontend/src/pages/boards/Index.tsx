@@ -29,6 +29,8 @@ import BoardCreatePopup from "./popup/BoardCreate";
 import BoardManagePopup from "./popup/BoardManage";
 import BoardDuplicateFlow from "./popup/BoardDuplicateFlow";
 import BoardGalleryView from "./views/BoardGalleryView";
+import { FilterCollapseToggle } from "./CollapsibleFilterBar";
+import { FILTER_BAR_OPEN_KEYS, useFilterBarOpen } from "./filterBarOpen";
 import BoardListFilterBar, {
   TBoardListSort,
   TBoardScopeFilter,
@@ -75,7 +77,6 @@ const Boards = () => {
 
   const [todos, setTodos] = useState<TSchoolTodoItem[]>([]);
   const [todosLoading, setTodosLoading] = useState(true);
-  const [todosReady, setTodosReady] = useState(false);
 
   const [boardKeyword, setBoardKeyword] = useState("");
   const [boardListSort, setBoardListSort] = useState<TBoardListSort>(
@@ -86,6 +87,9 @@ const Boards = () => {
   const [boardTypeFilter, setBoardTypeFilter] =
     useState<TBoardTypeFilter>("");
   const [linkFilter, setLinkFilter] = useState<TBoardLinkFilter>("");
+  const { open: filterBarOpen, onToggle: toggleFilterBar } = useFilterBarOpen(
+    FILTER_BAR_OPEN_KEYS.boards
+  );
   const [boardListViewMode, setBoardListViewMode] =
     useState<TBoardListViewMode>(
       () =>
@@ -159,7 +163,6 @@ const Boards = () => {
   // 전역 할 일 로드 (사이드바와 캐시 공유)
   useEffect(() => {
     if (!currentSchool) return;
-    setTodosReady(false);
     setTodosLoading(true);
     const key = schoolTodosCacheKey(currentSchool._id, currentSeasonId);
     getSchoolTodosCached(key, () =>
@@ -179,7 +182,6 @@ const Boards = () => {
       })
       .finally(() => {
         setTodosLoading(false);
-        setTodosReady(true);
       });
   }, [currentSchool?._id, currentSeasonId]);
 
@@ -436,16 +438,9 @@ const Boards = () => {
               {(board.syllabus || board.syllabusMeta) && (
                 <span
                   className={`${aStyle.formCardBadge} ${aStyle.badgePending}`}
-                  title={
-                    board.syllabusMeta?.classTitle
-                      ? `수업: ${board.syllabusMeta.classTitle}`
-                      : "수업 연결 보드"
-                  }
+                  title="수업 연결 보드"
                 >
                   수업
-                  {board.syllabusMeta?.classTitle
-                    ? ` · ${board.syllabusMeta.classTitle}`
-                    : ""}
                 </span>
               )}
               <span
@@ -466,7 +461,6 @@ const Boards = () => {
                 </span>
               )}
               <span>생성자 {board.creatorName?.trim() || "-"}</span>
-              <span>게시글 {board.postCount ?? 0}개</span>
             </div>
           </div>
         </div>
@@ -538,6 +532,10 @@ const Boards = () => {
                 <Svg type="plus" width="18px" height="18px" />
               </button>
             )}
+            <FilterCollapseToggle
+              open={filterBarOpen}
+              onToggle={toggleFilterBar}
+            />
             <button
               type="button"
               className={bStyle.iconBtn}
@@ -575,8 +573,11 @@ const Boards = () => {
             onLinkFilterChange={setLinkFilter}
             counts={boardFilterCounts}
             onClear={clearBoardListFilters}
+            open={filterBarOpen}
           />
-          {boardListViewMode === "table" ? (
+          {isLoading ? (
+            <div className={aStyle.emptyState}>불러오는 중…</div>
+          ) : boardListViewMode === "table" ? (
             displayBoards.length > 0 ? (
               <div className={aStyle.formCardList}>
                 {pinnedBoards.length > 0 && (
@@ -647,29 +648,23 @@ const Boards = () => {
           </div>
         </div>
 
-        {/* 기본 탭: 보드 (해시 있으면 해시 우선) */}
-        {todosReady ? (
-          <Tab
-            items={{
-              [boardTabKey]: boardListContent,
-              [todoTabKey]: (
-                <BoardsActivityTodos
-                  items={todos}
-                  loading={todosLoading}
-                  onOpenTodo={handleOpenTodo}
-                  onGoToBoards={handleGoToBoardsTab}
-                />
-              ),
-            }}
-            align="flex-start"
-            defaultTab={boardTabKey}
-            badges={tabBadges}
-          />
-        ) : (
-          <div className={bStyle.empty} style={{ paddingTop: 40 }}>
-            불러오는 중…
-          </div>
-        )}
+        {/* 기본 탭: 보드 (해시 있으면 해시 우선). 할 일은 나중에 채워진다. */}
+        <Tab
+          items={{
+            [boardTabKey]: boardListContent,
+            [todoTabKey]: (
+              <BoardsActivityTodos
+                items={todos}
+                loading={todosLoading}
+                onOpenTodo={handleOpenTodo}
+                onGoToBoards={handleGoToBoardsTab}
+              />
+            ),
+          }}
+          align="flex-start"
+          defaultTab={boardTabKey}
+          badges={tabBadges}
+        />
       </div>
 
       {showBoardCreatePopup && (

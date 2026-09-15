@@ -11,6 +11,8 @@ import Popup from "components/popup/Popup";
 import Svg from "assets/svg/Svg";
 import CombinationGenerator from "./CombinationGenerator";
 import PendingApprovalsPanel from "./PendingApprovalsPanel";
+import { FilterCollapseToggle } from "../CollapsibleFilterBar";
+import { FILTER_BAR_OPEN_KEYS, useFilterBarOpen } from "../filterBarOpen";
 import ActivityListFilterBar, {
   TActivityListSort,
   TActivityViewCounts,
@@ -173,6 +175,9 @@ const AltFormList = ({
   const [actionMenu, setActionMenu] = useState<string | null>(null);
   const [approvalsSettled, setApprovalsSettled] = useState(false);
   const [activityKeyword, setActivityKeyword] = useState("");
+  const { open: filterBarOpen, onToggle: toggleFilterBar } = useFilterBarOpen(
+    FILTER_BAR_OPEN_KEYS.activity
+  );
   const [viewFilter, setViewFilter] = useState<TActivityViewFilter>("");
   const [activityListSort, setActivityListSort] = useState<TActivityListSort>(
     readStoredActivityListSort
@@ -831,16 +836,6 @@ const AltFormList = ({
 
   return (
     <div className={style.formList}>
-      <ActivityListFilterBar
-        keyword={activityKeyword}
-        onKeywordChange={setActivityKeyword}
-        sortBy={activityListSort}
-        onSortByChange={handleActivityListSortChange}
-        viewFilter={viewFilter}
-        onViewFilterChange={setViewFilter}
-        counts={viewCounts}
-        onClear={clearActivityFilters}
-      />
       <PendingApprovalsPanel
         boardId={board._id}
         canDeleteAnyRow={canDeleteAnyRow}
@@ -942,35 +937,55 @@ const AltFormList = ({
               </span>
             )}
           </div>
-          {canManage && (
-            <div className={style.formListToolbar}>
-              <button
-                type="button"
-                className={style.formCardIconBtn}
-                title="새 양식 만들기"
-                onClick={onCreateForm}
-              >
-                <Svg type="plus" width="20px" height="20px" />
-              </button>
-              <button
-                type="button"
-                className={style.formCardIconBtn}
-                title="JSON 가져오기"
-                onClick={() => importRef.current?.click()}
-              >
-                <Svg type="upload" width="20px" height="20px" />
-              </button>
-              <input
-                ref={importRef}
-                type="file"
-                accept=".json"
-                style={{ display: "none" }}
-                onChange={handleImport}
-              />
-            </div>
-          )}
+          <div className={style.formListToolbar}>
+            <FilterCollapseToggle
+              open={filterBarOpen}
+              onToggle={toggleFilterBar}
+              className={style.formCardIconBtn}
+              activeClassName={style.formCardIconBtnActive}
+              iconSize="20px"
+            />
+            {canManage && (
+              <>
+                <button
+                  type="button"
+                  className={style.formCardIconBtn}
+                  title="새 양식 만들기"
+                  onClick={onCreateForm}
+                >
+                  <Svg type="plus" width="20px" height="20px" />
+                </button>
+                <button
+                  type="button"
+                  className={style.formCardIconBtn}
+                  title="JSON 가져오기"
+                  onClick={() => importRef.current?.click()}
+                >
+                  <Svg type="upload" width="20px" height="20px" />
+                </button>
+                <input
+                  ref={importRef}
+                  type="file"
+                  accept=".json"
+                  style={{ display: "none" }}
+                  onChange={handleImport}
+                />
+              </>
+            )}
+          </div>
         </div>
         <div className={style.formSectionBody}>
+          <ActivityListFilterBar
+            keyword={activityKeyword}
+            onKeywordChange={setActivityKeyword}
+            sortBy={activityListSort}
+            onSortByChange={handleActivityListSortChange}
+            viewFilter={viewFilter}
+            onViewFilterChange={setViewFilter}
+            counts={viewCounts}
+            onClear={clearActivityFilters}
+            open={filterBarOpen}
+          />
           {filteredActivityForms.length === 0 ? (
             <div className={style.emptyState}>
               {hasActivityFilters

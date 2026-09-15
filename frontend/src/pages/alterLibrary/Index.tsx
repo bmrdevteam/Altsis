@@ -30,6 +30,13 @@ import {
   visibilityLabel,
 } from "./libraryFilters";
 import enroll from "style/pages/enrollment.module.scss";
+import CollapsibleFilterBar, {
+  FilterCollapseToggle,
+} from "pages/boards/CollapsibleFilterBar";
+import {
+  FILTER_BAR_OPEN_KEYS,
+  useFilterBarOpen,
+} from "pages/boards/filterBarOpen";
 import aStyle from "pages/boards/altBoard/altBoard.module.scss";
 import bStyle from "pages/boards/boards.module.scss";
 import mergeStyle from "components/mergeFilter/mergeFilter.module.scss";
@@ -149,6 +156,9 @@ const AlterLibrary = () => {
   const [loading, setLoading] = useState(true);
   const [panel, setPanel] = useState<Panel>({ kind: "list" });
   const [keyword, setKeyword] = useState("");
+  const { open: filterBarOpen, onToggle: toggleFilterBar } = useFilterBarOpen(
+    FILTER_BAR_OPEN_KEYS.library
+  );
   const [listFilter, setListFilter] = useState<TLibraryListFilter>("all");
   const [deleteItem, setDeleteItem] = useState<TAiLibraryItem | null>(null);
   const [saving, setSaving] = useState(false);
@@ -736,6 +746,10 @@ const AlterLibrary = () => {
               </span>
             </div>
             <div className={aStyle.formListToolbar}>
+              <FilterCollapseToggle
+                open={filterBarOpen}
+                onToggle={toggleFilterBar}
+              />
               <button
                 type="button"
                 className={bStyle.iconBtn}
@@ -777,7 +791,7 @@ const AlterLibrary = () => {
               지침은 작성 규칙, 학습정보는 참고 자료입니다. 교사는 내 자료·공유
               학습정보를 올릴 수 있고, 학교 공식 지침은 관리자가 만듭니다.
             </p>
-            <div className={bStyle.activityFilterBlock}>
+            <CollapsibleFilterBar open={filterBarOpen}>
               <div className={mergeStyle.mergeSearchBar}>
                 <div className={mergeStyle.mergeSearchInputWrap}>
                   <span className={mergeStyle.mergeSearchIcon}>
@@ -830,7 +844,7 @@ const AlterLibrary = () => {
                   </button>
                 ) : null}
               </div>
-            </div>
+            </CollapsibleFilterBar>
             {loading ? (
               <div className={aStyle.emptyState}>불러오는 중…</div>
             ) : displayed.length === 0 ? (

@@ -408,7 +408,7 @@ const SchoolAISettings = ({ schoolData, setSchoolData, seasonList }: Props) => {
                   value: JSON.stringify(teacher),
                 })),
               ]}
-              onChange={(value: string) => {
+              onChange={(value: string | number) => {
                 if (!value) {
                   exceptionDraft.current = {
                     ...emptyException(),
@@ -416,7 +416,7 @@ const SchoolAISettings = ({ schoolData, setSchoolData, seasonList }: Props) => {
                   };
                   return;
                 }
-                const next = JSON.parse(value);
+                const next = JSON.parse(String(value));
                 exceptionDraft.current = {
                   user: String(next.user || ""),
                   userId: String(next.userId || ""),
