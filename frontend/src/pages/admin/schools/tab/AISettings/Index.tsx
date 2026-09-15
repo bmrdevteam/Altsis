@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Button from "components/button/Button";
 import Input from "components/input/Input";
+import Autofill from "components/input/Autofill";
+import Select from "components/select/Select";
 import Table from "components/tableV2/Table";
 import SchoolFeatureToggle from "../FeatureSettings";
 import { useAuth } from "contexts/authContext";
@@ -12,6 +14,7 @@ import {
   TAlterSkillId,
   TSchool,
   TSchoolAiConfig,
+  TSchoolAiPermissionException,
   TSchoolAiSkillConfig,
 } from "types/schools";
 import style from "./AISettings.module.scss";
@@ -72,8 +75,15 @@ const SKILLS: Array<{ id: TAlterSkillId; label: string; hint: string }> = [
 ];
 
 const defaultAiConfig = (): TSchoolAiConfig => ({
-  permission: { teacher: false, student: false },
+  permission: { teacher: false, student: false, exceptions: [] },
   skills: {},
+});
+
+const emptyException = (): TSchoolAiPermissionException => ({
+  user: "",
+  userId: "",
+  userName: "",
+  isAllowed: true,
 });
 
 const emptySkill = (): TSchoolAiSkillConfig => ({
@@ -86,10 +96,11 @@ type Props = {
   seasonList?: Array<{ _id: string; year?: string; term?: string }>;
 };
 
-const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
-  const { currentUser, currentSchool, patchCurrentSchool } = useAuth();
+const SchoolAISettings = ({ schoolData, setSchoolData, seasonList }: Props) => {
+  const { currentUser, currentSchool, currentSeason, patchCurrentSchool } =
+    useAuth();
   const navigate = useAppNavigate();
-  const { SchoolAPI, AcademyAPI } = useAPIv2();
+  const { SchoolAPI, AcademyAPI, RegistrationAPI } = useAPIv2();
   const canEditUsageLimits =
     currentUser?.auth === "admin" ||
     currentUser?.auth === "manager" ||
@@ -101,6 +112,11 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
   const [limitEnabled, setLimitEnabled] = useState(false);
   const [dailyUserAlts, setDailyUserAlts] = useState("1");
   const [showCompliance, setShowCompliance] = useState(false);
+  const [teachers, setTeachers] = useState<
+    Array<{ user: string; userId: string; userName: string }>
+  >([]);
+  const exceptionDraft = useRef<TSchoolAiPermissionException>(emptyException());
+  const seasonId = currentSeason?._id || seasonList?.[0]?._id || "";
 
   const applyAiConfig = (nextConfig?: TSchoolAiConfig) => {
     if (!nextConfig) return;
@@ -110,6 +126,7 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
       permission: {
         teacher: !!nextConfig?.permission?.teacher,
         student: !!nextConfig?.permission?.student,
+        exceptions: nextConfig?.permission?.exceptions || [],
       },
       skills: nextConfig?.skills || {},
     });
@@ -181,6 +198,34 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schoolData._id, currentUser?.academyId]);
 
+  useEffect(() => {
+    if (!schoolData._id || !seasonId) {
+      setTeachers([]);
+      return;
+    }
+    let cancelled = false;
+    RegistrationAPI.RRegistrations({
+      query: { school: schoolData._id, season: seasonId, role: "teacher" },
+    })
+      .then(({ registrations }) => {
+        if (cancelled) return;
+        setTeachers(
+          (registrations || []).map((reg: any) => ({
+            user: String(reg.user || ""),
+            userId: String(reg.userId || ""),
+            userName: String(reg.userName || ""),
+          }))
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setTeachers([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [schoolData._id, seasonId]);
+
   const skillConfig = aiConfig.skills?.[activeSkill] || emptySkill();
 
   const libraryForSkill = useMemo(() => {
@@ -215,6 +260,45 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
     } catch (err) {
       ALERT_ERROR(err);
     }
+  };
+
+  const saveExceptions = async (exceptions: TSchoolAiPermissionException[]) => {
+    try {
+      const { aiConfig: saved } = await SchoolAPI.USchoolAiConfig({
+        params: { _id: schoolData._id },
+        data: {
+          permission: {
+            teacher: aiConfig.permission.teacher,
+            student: aiConfig.permission.student,
+            exceptions,
+          },
+        },
+      });
+      setAiConfig((prev) => ({ ...prev, permission: saved.permission }));
+      if (currentSchool?._id === schoolData._id) {
+        patchCurrentSchool({
+          aiConfig: {
+            ...(currentSchool.aiConfig || {}),
+            ...saved,
+            permission: saved.permission,
+          },
+        });
+      }
+      alert(SUCCESS_MESSAGE);
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+  };
+
+  const addException = () => {
+    const draft = exceptionDraft.current;
+    if (!draft.user && !draft.userId) return;
+    const rest = (aiConfig.permission.exceptions || []).filter(
+      (item) =>
+        String(item.user) !== String(draft.user) &&
+        String(item.userId) !== String(draft.userId)
+    );
+    void saveExceptions([...rest, { ...draft }]);
   };
 
   const saveSkillConfig = async (
@@ -280,11 +364,6 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
                 label: "선생님",
                 enabled: aiConfig.permission.teacher,
               },
-              {
-                role: "student",
-                label: "학생",
-                enabled: aiConfig.permission.student,
-              },
             ]}
             header={[
               {
@@ -311,6 +390,122 @@ const SchoolAISettings = ({ schoolData, setSchoolData }: Props) => {
                     color: "green",
                     onClick: (e: any) => savePermission(e.role),
                   },
+                },
+              },
+            ]}
+          />
+          <h4 className={style.sectionTitle} style={{ marginTop: 24 }}>
+            예외 추가하기
+          </h4>
+          <div className={style.exceptionRow}>
+            <Autofill
+              placeholder="이름(ID)"
+              style={{ minHeight: "30px", flex: 1 }}
+              options={[
+                { text: "", value: "" },
+                ...teachers.map((teacher) => ({
+                  text: `${teacher.userName}(${teacher.userId})`,
+                  value: JSON.stringify(teacher),
+                })),
+              ]}
+              onChange={(value: string) => {
+                if (!value) {
+                  exceptionDraft.current = {
+                    ...emptyException(),
+                    isAllowed: exceptionDraft.current.isAllowed,
+                  };
+                  return;
+                }
+                const next = JSON.parse(value);
+                exceptionDraft.current = {
+                  user: String(next.user || ""),
+                  userId: String(next.userId || ""),
+                  userName: String(next.userName || ""),
+                  isAllowed: exceptionDraft.current.isAllowed,
+                };
+              }}
+            />
+            <Select
+              style={{ minHeight: "30px" }}
+              options={[
+                { text: "허용", value: "허용" },
+                { text: "비허용", value: "비허용" },
+              ]}
+              appearence={"flat"}
+              onChange={(value: string) => {
+                exceptionDraft.current.isAllowed = value === "허용";
+              }}
+            />
+            <Button
+              type="ghost"
+              onClick={addException}
+              style={{
+                borderRadius: "4px",
+                height: "32px",
+                boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+              }}
+            >
+              추가
+            </Button>
+          </div>
+          <h4 className={style.sectionTitle} style={{ marginTop: 24 }}>
+            예외 목록
+          </h4>
+          <Table
+            type="object-array"
+            data={aiConfig.permission.exceptions || []}
+            header={[
+              {
+                text: "No",
+                type: "text",
+                key: "tableRowIndex",
+                width: "48px",
+                textAlign: "center",
+              },
+              {
+                text: "ID",
+                key: "userId",
+                type: "text",
+                textAlign: "center",
+              },
+              {
+                text: "이름",
+                key: "userName",
+                type: "text",
+                textAlign: "center",
+              },
+              {
+                text: "상태",
+                key: "isAllowed",
+                width: "120px",
+                textAlign: "center",
+                type: "status",
+                status: {
+                  false: { text: "비허용", color: "red" },
+                  true: { text: "허용", color: "green" },
+                },
+              },
+              {
+                text: "삭제",
+                key: "delete",
+                type: "button",
+                width: "80px",
+                textAlign: "center",
+                onClick: (row: TSchoolAiPermissionException) => {
+                  const next = (aiConfig.permission.exceptions || []).filter(
+                    (item) =>
+                      !(
+                        String(item.user) === String(row.user) &&
+                        String(item.userId) === String(row.userId)
+                      )
+                  );
+                  void saveExceptions(next);
+                },
+                btnStyle: {
+                  border: true,
+                  color: "red",
+                  padding: "4px",
+                  round: true,
                 },
               },
             ]}

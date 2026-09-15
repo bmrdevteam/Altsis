@@ -51,20 +51,31 @@ export const hasSchoolSkillConfig = (school) =>
     Object.keys(school.aiConfig.skills).length > 0
   );
 
+const findAiPermissionException = (exceptions, userId) => {
+  const id = String(userId || "").trim();
+  if (!id) return undefined;
+  return (exceptions || []).find(
+    (item) => String(item.user) === id || String(item.userId) === id
+  );
+};
+
 export const hasSchoolAiPermissionAuthority = (school) => {
   const perm = school?.aiConfig?.permission;
   return (
     hasSchoolSkillConfig(school) ||
     perm?.teacher === true ||
-    perm?.student === true
+    perm?.student === true ||
+    (perm?.exceptions || []).length > 0
   );
 };
 
-export const resolveAiRolePermission = (school, season, role) => {
+export const resolveAiRolePermission = (school, season, role, userId) => {
   const useSchoolPerm = hasSchoolAiPermissionAuthority(school);
   const schoolPerm = school?.aiConfig?.permission;
   const seasonPerm = season?.aiSettings?.permission;
   if (role === "teacher") {
+    const exception = findAiPermissionException(schoolPerm?.exceptions, userId);
+    if (exception) return !!exception.isAllowed;
     return useSchoolPerm ? !!schoolPerm?.teacher : !!seasonPerm?.teacher;
   }
   return useSchoolPerm ? !!schoolPerm?.student : !!seasonPerm?.student;
@@ -205,7 +216,7 @@ export const assertTeacherCanAddAiChatField = async ({
     school,
     checkQuota: false,
   });
-  if (!resolveAiRolePermission(school, season, "teacher")) {
+  if (!resolveAiRolePermission(school, season, "teacher", user?._id)) {
     throwHttp(403, PERMISSION_DENIED);
   }
   return academy;

@@ -82,9 +82,26 @@ const LEGACY_SKILL_IDS = { "syllabus-review": "syllabus-draft" };
 const MAX_LIBRARY_ITEMS_PER_SKILL = 20;
 
 const defaultAiConfig = () => ({
-  permission: { teacher: false, student: false },
+  permission: { teacher: false, student: false, exceptions: [] },
   skills: {},
 });
+
+const sanitizeAiPermissionExceptions = (raw) => {
+  if (!Array.isArray(raw)) return null;
+  const seen = new Set();
+  const out = [];
+  for (const item of raw) {
+    const user = String(item?.user || "").trim();
+    const userId = String(item?.userId || "").trim();
+    const userName = String(item?.userName || "").trim();
+    if (!user && !userId) continue;
+    const key = user || userId;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ user, userId, userName, isAllowed: !!item?.isAllowed });
+  }
+  return out;
+};
 
 const migrateLegacySkillIds = (aiConfig) => {
   if (!aiConfig?.skills || typeof aiConfig.skills !== "object") return false;
@@ -115,7 +132,10 @@ const ensureAiConfig = (school) => {
     school.aiConfig = defaultAiConfig();
   }
   if (!school.aiConfig.permission) {
-    school.aiConfig.permission = { teacher: false, student: false };
+    school.aiConfig.permission = { teacher: false, student: false, exceptions: [] };
+  }
+  if (!Array.isArray(school.aiConfig.permission.exceptions)) {
+    school.aiConfig.permission.exceptions = [];
   }
   if (!school.aiConfig.skills || typeof school.aiConfig.skills !== "object") {
     school.aiConfig.skills = {};
@@ -1154,6 +1174,12 @@ export const updateAiConfig = async (req, res) => {
       }
       if ("student" in req.body.permission) {
         aiConfig.permission.student = !!req.body.permission.student;
+      }
+      if ("exceptions" in req.body.permission) {
+        const exceptions = sanitizeAiPermissionExceptions(
+          req.body.permission.exceptions
+        );
+        if (exceptions) aiConfig.permission.exceptions = exceptions;
       }
       // 권한만 저장해도 학교 설정이 권위가 되도록 빈 스킬 슬롯을 시드
       if (

@@ -54,6 +54,39 @@ describe("formAiChat helpers", () => {
     expect(resolveAiRolePermission(school, season, "teacher")).toBe(true);
   });
 
+  test("resolveAiRolePermission uses teacher exceptions", () => {
+    const school = {
+      aiConfig: {
+        permission: {
+          teacher: false,
+          student: false,
+          exceptions: [
+            { user: "u1", userId: "tid", userName: "김교사", isAllowed: true },
+            { user: "u2", userId: "deny", userName: "이교사", isAllowed: false },
+          ],
+        },
+      },
+    };
+    const season = { aiSettings: { permission: { teacher: false } } };
+    expect(resolveAiRolePermission(school, season, "teacher", "u1")).toBe(true);
+    expect(
+      resolveAiRolePermission(
+        {
+          aiConfig: {
+            permission: {
+              teacher: true,
+              student: false,
+              exceptions: school.aiConfig.permission.exceptions,
+            },
+          },
+        },
+        season,
+        "teacher",
+        "u2"
+      )
+    ).toBe(false);
+  });
+
   test("resolveAiRolePermission falls back to season", () => {
     const school = { aiConfig: { permission: { teacher: false, student: false } } };
     const season = {

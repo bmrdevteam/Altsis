@@ -92,10 +92,18 @@ export type TSchoolAiSkillConfig = {
   exampleSyllabusIds?: string[];
 };
 
+export type TSchoolAiPermissionException = {
+  user: string;
+  userId: string;
+  userName: string;
+  isAllowed: boolean;
+};
+
 export type TSchoolAiConfig = {
   permission: {
     teacher: boolean;
     student: boolean;
+    exceptions?: TSchoolAiPermissionException[];
   };
   skills: Partial<Record<TAlterSkillId, TSchoolAiSkillConfig>>;
 };

@@ -1401,7 +1401,11 @@ export default function useAPIv2() {
   async function USchoolAiConfig(props: {
     params: { _id: string };
     data: {
-      permission?: { teacher?: boolean; student?: boolean };
+      permission?: {
+        teacher?: boolean;
+        student?: boolean;
+        exceptions?: TSchoolAiConfig["permission"]["exceptions"];
+      };
       skills?: Partial<Record<TAlterSkillId, TSchoolAiSkillConfig>>;
     };
   }) {

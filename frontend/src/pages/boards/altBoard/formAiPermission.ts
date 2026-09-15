@@ -13,6 +13,17 @@ export const hasSchoolSkillConfig = (
     Object.keys(school.aiConfig.skills).length > 0
   );
 
+const findAiPermissionException = (
+  exceptions: TSchoolAiConfig["permission"]["exceptions"],
+  userId?: string | null
+) => {
+  const id = String(userId || "").trim();
+  if (!id) return undefined;
+  return (exceptions || []).find(
+    (item) => String(item.user) === id || String(item.userId) === id
+  );
+};
+
 /** 학교 AI 탭이 권한 권위인지 (스킬 설정 또는 역할 Y) */
 export const hasSchoolAiPermissionAuthority = (
   school?: Pick<SchoolLike, "aiConfig"> | null
@@ -21,14 +32,16 @@ export const hasSchoolAiPermissionAuthority = (
   return (
     hasSchoolSkillConfig(school) ||
     perm?.teacher === true ||
-    perm?.student === true
+    perm?.student === true ||
+    (perm?.exceptions || []).length > 0
   );
 };
 
 export const resolveAiRolePermission = (
   school: Pick<SchoolLike, "aiConfig"> | null | undefined,
   season: SeasonLike | null | undefined,
-  role: "teacher" | "student"
+  role: "teacher" | "student",
+  userId?: string | null
 ) => {
   const useSchoolPerm = hasSchoolAiPermissionAuthority(school);
   const schoolPerm = school?.aiConfig?.permission as
@@ -36,6 +49,8 @@ export const resolveAiRolePermission = (
     | undefined;
   const seasonPerm = season?.aiSettings?.permission;
   if (role === "teacher") {
+    const exception = findAiPermissionException(schoolPerm?.exceptions, userId);
+    if (exception) return !!exception.isAllowed;
     return useSchoolPerm ? !!schoolPerm?.teacher : !!seasonPerm?.teacher;
   }
   return useSchoolPerm ? !!schoolPerm?.student : !!seasonPerm?.student;
@@ -45,7 +60,7 @@ export const resolveAiRolePermission = (
 export const canShowAlter = (
   school?: SchoolLike | null,
   season?: SeasonLike | null,
-  opts?: { role?: string | null; auth?: string | null }
+  opts?: { role?: string | null; auth?: string | null; userId?: string | null }
 ) => {
   if (school?.aiEnabled === false) return false;
   if (school?.academyFeatures?.aiEnabled === false) return false;
@@ -56,16 +71,18 @@ export const canShowAlter = (
     opts?.auth === "owner";
   const role: "teacher" | "student" =
     opts?.role === "teacher" || isStaffAuth ? "teacher" : "student";
-  return resolveAiRolePermission(school, season, role);
+  if (role === "student") return false;
+  return resolveAiRolePermission(school, season, role, opts?.userId);
 };
 
 /** 양식에 aiChat 항목을 추가할 수 있는지 (교사 AI 권한 + 인프라) */
 export const canAuthorFormAiChat = (
   school?: SchoolLike | null,
-  season?: SeasonLike | null
+  season?: SeasonLike | null,
+  userId?: string | null
 ) => {
   if (school?.aiEnabled === false) return false;
   if (school?.academyFeatures?.aiEnabled === false) return false;
   if (!season?.aiSettings?.enabled) return false;
-  return resolveAiRolePermission(school, season, "teacher");
+  return resolveAiRolePermission(school, season, "teacher", userId);
 };

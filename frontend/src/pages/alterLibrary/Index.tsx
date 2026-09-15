@@ -139,6 +139,7 @@ const AlterLibrary = () => {
     role: currentRegistration?.role,
     school: currentSchool,
     season: currentSeason,
+    userId: currentUser?._id,
   });
   const isStaff = isLibraryStaffAuth(currentUser?.auth);
   const schoolMongoId = currentSchool?._id || "";

@@ -264,12 +264,23 @@ const hasSchoolSkillConfig = (school) =>
     Object.keys(school.aiConfig.skills).length > 0
   );
 
+const findAiPermissionException = (exceptions, user) => {
+  const id = String(user?._id || "").trim();
+  const login = String(user?.userId || "").trim();
+  return (exceptions || []).find(
+    (item) =>
+      (id && String(item.user) === id) ||
+      (login && String(item.userId) === login)
+  );
+};
+
 const hasSchoolAiPermissionAuthority = (school) => {
   const perm = school?.aiConfig?.permission;
   return (
     hasSchoolSkillConfig(school) ||
     perm?.teacher === true ||
-    perm?.student === true
+    perm?.student === true ||
+    (perm?.exceptions || []).length > 0
   );
 };
 
@@ -1016,14 +1027,18 @@ export const assertSeasonAiAccess = async (academyId, user, seasonId) => {
     registration.role === "teacher"
       ? "teacher"
       : "student";
-  const hasPermission =
-    role === "teacher"
-      ? useSchoolPerm
-        ? !!schoolPerm?.teacher
-        : !!seasonPerm?.teacher
-      : useSchoolPerm
-        ? !!schoolPerm?.student
-        : !!seasonPerm?.student;
+  if (role === "student") {
+    const err = new Error(PERMISSION_DENIED);
+    err.status = 403;
+    err.code = PERMISSION_DENIED;
+    throw err;
+  }
+  const exception = findAiPermissionException(schoolPerm?.exceptions, user);
+  const hasPermission = exception
+    ? !!exception.isAllowed
+    : useSchoolPerm
+      ? !!schoolPerm?.teacher
+      : !!seasonPerm?.teacher;
 
   if (!hasPermission) {
     const err = new Error(PERMISSION_DENIED);

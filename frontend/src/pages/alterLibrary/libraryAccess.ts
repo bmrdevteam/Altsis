@@ -11,13 +11,15 @@ export const canAccessAlterLibrary = ({
   role,
   school,
   season,
+  userId,
 }: {
   auth?: string | null;
   role?: string | null;
   school?: Pick<TSchool, "aiEnabled" | "academyFeatures" | "aiConfig"> | null;
   season?: { aiSettings?: TAiSettings } | null;
+  userId?: string | null;
 }) => {
   if (isLibraryStaffAuth(auth)) return true;
   if (role !== "teacher") return false;
-  return canShowAlter(school, season, { role, auth });
+  return canShowAlter(school, season, { role, auth, userId });
 };

@@ -281,7 +281,7 @@ const AltFormBuilder = ({
   onFormCreated,
 }: Props) => {
   const { AltFormAPI, PostAPI, FileAPI, BoardAPI } = useAPIv2();
-  const { currentSchool, currentSeason } = useAuth();
+  const { currentSchool, currentSeason, currentUser } = useAuth();
 
   const handleEditorImageUpload = async (
     file: File
@@ -321,7 +321,11 @@ const AltFormBuilder = ({
     showOwnerFields: false,
     showOwnResponse: true,
   });
-  const canAddAiChat = canAuthorFormAiChat(currentSchool, currentSeason);
+  const canAddAiChat = canAuthorFormAiChat(
+    currentSchool,
+    currentSeason,
+    currentUser?._id
+  );
   const [rubrics, setRubrics] = useState<TFormRubric[]>([]);
   const [approvalGroups, setApprovalGroups] = useState<TApprovalPersonGroup[]>(
     []
