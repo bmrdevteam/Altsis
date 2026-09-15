@@ -5,6 +5,7 @@ import ColorDropdown from "./ColorDropdown";
 import HeadingDropdown, { getHeadingBadge } from "./HeadingDropdown";
 import FontSizeDropdown from "./FontSizeDropdown";
 import FontFamilyDropdown from "./FontFamilyDropdown";
+import LineHeightDropdown from "./LineHeightDropdown";
 import CodeDropdown from "./CodeDropdown";
 import CheckDropdown from "./CheckDropdown";
 import ToolbarMoreMenu, { type MoreMenuItem } from "./ToolbarMoreMenu";
@@ -16,6 +17,7 @@ import {
   parseFontSizePx,
 } from "./editorFonts";
 import { clampIndent } from "./blockIndent";
+import { clampLineHeight } from "./blockLineHeight";
 import style from "./markdown.module.scss";
 
 type Props = {
@@ -44,6 +46,7 @@ const TipTapToolbar = ({
     | "highlight"
     | "heading"
     | "fontSize"
+    | "lineHeight"
     | "fontFamily"
     | "code"
     | "check"
@@ -69,6 +72,10 @@ const TipTapToolbar = ({
   };
   const currentFontPx = parseFontSizePx(textStyle.fontSize);
   const currentFontFamily = canonicalFontFamily(textStyle.fontFamily);
+  const blockAttrs = editor.isActive("heading")
+    ? editor.getAttributes("heading")
+    : editor.getAttributes("paragraph");
+  const currentLineHeight = clampLineHeight(blockAttrs.lineHeight);
   const fontLabel =
     FONT_OPTIONS.find((opt) =>
       opt.family == null ? !currentFontFamily : opt.family === currentFontFamily
@@ -182,11 +189,11 @@ const TipTapToolbar = ({
               activeDropdown === "fontSize" ? null : "fontSize"
             )
           }
-          className={`${style.toolbarBtn} ${style.toolbarLabelBtn} ${
+          className={`${style.toolbarBtn} ${
             currentFontPx != null ? style.toolbarBtnActive : ""
           }`}
         >
-          {currentFontPx ?? 14}
+          <Svg type="fontSize" width="18px" height="18px" />
         </button>
         {activeDropdown === "fontSize" && (
           <FontSizeDropdown
@@ -194,6 +201,37 @@ const TipTapToolbar = ({
             onSelect={(size) => {
               if (size) editor.chain().focus().setFontSize(size).run();
               else editor.chain().focus().unsetFontSize().run();
+            }}
+            onClose={close}
+          />
+        )}
+      </div>
+
+      <div className={style.colorBtnWrapper}>
+        <button
+          type="button"
+          title="줄간격"
+          aria-label="줄간격"
+          onClick={() =>
+            setActiveDropdown(
+              activeDropdown === "lineHeight" ? null : "lineHeight"
+            )
+          }
+          className={`${style.toolbarBtn} ${
+            currentLineHeight != null ? style.toolbarBtnActive : ""
+          }`}
+        >
+          <Svg type="lineHeight" width="18px" height="18px" />
+        </button>
+        {activeDropdown === "lineHeight" && (
+          <LineHeightDropdown
+            current={currentLineHeight}
+            onSelect={(lineHeight) => {
+              if (lineHeight != null) {
+                editor.chain().focus().setBlockLineHeight(lineHeight).run();
+              } else {
+                editor.chain().focus().unsetBlockLineHeight().run();
+              }
             }}
             onClose={close}
           />

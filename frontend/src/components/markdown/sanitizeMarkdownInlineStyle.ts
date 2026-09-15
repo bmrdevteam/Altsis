@@ -3,6 +3,7 @@ import {
   parseFontSizePx,
   formatFontSizePx,
 } from "./editorFonts";
+import { formatLineHeight, parseLineHeight } from "./blockLineHeight";
 
 const STYLE_TAGS = new Set([
   "td",
@@ -87,6 +88,11 @@ export const sanitizeMarkdownInlineStyle = (
     if (prop === "font-family") {
       const family = canonicalFontFamily(value);
       if (family) kept.push(`font-family: ${family}`);
+      continue;
+    }
+    if (prop === "line-height") {
+      const lh = formatLineHeight(parseLineHeight(value));
+      if (lh) kept.push(`line-height: ${lh}`);
       continue;
     }
     if (prop === "padding" || prop.startsWith("padding-")) {

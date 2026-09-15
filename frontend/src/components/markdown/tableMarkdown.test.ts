@@ -12,6 +12,7 @@ const schema = new Schema({
       attrs: {
         textAlign: { default: "left" },
         indent: { default: 0 },
+        lineHeight: { default: null },
       },
     },
     text: { group: "inline" },
@@ -55,6 +56,15 @@ describe("tableHasCellStyles", () => {
   test("칸 안 들여쓰기가 있으면 HTML 표다", () => {
     const p = schema.node("paragraph", { textAlign: "left", indent: 2 }, [
       schema.text("가. 학생명"),
+    ]);
+    const cell = schema.node("tableCell", null, [p]);
+    const row = schema.node("tableRow", null, [cell]);
+    expect(tableHasCellStyles(schema.node("table", null, [row]))).toBe(true);
+  });
+
+  test("칸 안 줄간격이 있으면 HTML 표다", () => {
+    const p = schema.node("paragraph", { textAlign: "left", lineHeight: 1.8 }, [
+      schema.text("본문"),
     ]);
     const cell = schema.node("tableCell", null, [p]);
     const row = schema.node("tableRow", null, [cell]);
