@@ -34,6 +34,7 @@ import {
 } from "../services/evaluationImport.js";
 import { getCourseTodosForUser } from "../services/schoolCourseTodos.js";
 import { buildSyllabusListQuery } from "../utils/syllabusListQuery.js";
+import { isSchoolManager } from "../utils/schoolManager.js";
 import _ from "lodash";
 
 const isFullyConfirmed = (syllabus) =>
@@ -640,7 +641,7 @@ export const updateV2 = async (req, res) => {
     }
 
     /* 2. user가 syllabus 멘토인 경우 */
-    if (_.find(syllabus.teachers, { _id: user._id }) || req.user.auth === "manager") {
+    if (_.find(syllabus.teachers, { _id: user._id }) || isSchoolManager(req.user, syllabus.school)) {
       /* 2-1. 수강생이 없는 경우 */
       if (syllabus.count === 0) {
         /* 강의실 중복 확인 */
@@ -1061,7 +1062,7 @@ export const remove = async (req, res) => {
     }
 
     /* 2. user가 syllabus 멘토인 경우 */
-    if (_.find(syllabus.teachers, { _id: user._id }) || req.user.auth === "manager") {
+    if (_.find(syllabus.teachers, { _id: user._id }) || isSchoolManager(req.user, syllabus.school)) {
       await Enrollment(user.academyId).deleteMany({
         syllabus: syllabus._id,
       });
@@ -1114,7 +1115,7 @@ export const updateCoverImage = async (req, res) => {
 
       const isCreator = req.user._id.equals(syllabus.user);
       const isMentor = _.find(syllabus.teachers, { _id: req.user._id });
-      const isManager = req.user.auth === "manager";
+      const isManager = isSchoolManager(req.user, syllabus.school);
       if (!isCreator && !isMentor && !isManager) {
         return res.status(403).send({ message: PERMISSION_DENIED });
       }
@@ -1149,7 +1150,7 @@ export const deleteCoverImage = async (req, res) => {
 
     const isCreator = req.user._id.equals(syllabus.user);
     const isMentor = _.find(syllabus.teachers, { _id: req.user._id });
-    const isManager = req.user.auth === "manager";
+    const isManager = isSchoolManager(req.user, syllabus.school);
     if (!isCreator && !isMentor && !isManager) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
@@ -1181,8 +1182,7 @@ export const createAltBoard = async (req, res) => {
     // 교사/관리자만 생성 가능
     const isCreator = req.user._id.equals(syllabus.user);
     const isMentor = _.find(syllabus.teachers, { _id: req.user._id });
-    const isManager =
-      req.user.auth === "admin" || req.user.auth === "manager";
+    const isManager = isSchoolManager(req.user, syllabus.school);
     if (!isCreator && !isMentor && !isManager) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
@@ -1351,8 +1351,7 @@ export const syncAltBoard = async (req, res) => {
     // 권한 확인: 교사/관리자만 가능
     const isCreator = req.user._id.equals(syllabus.user);
     const isMentor = _.find(syllabus.teachers, { _id: req.user._id });
-    const isManager =
-      req.user.auth === "admin" || req.user.auth === "manager";
+    const isManager = isSchoolManager(req.user, syllabus.school);
     if (!isCreator && !isMentor && !isManager) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
@@ -1619,8 +1618,7 @@ export const importEvaluationFromBoard = async (req, res) => {
     const isMentor = (syllabus.teachers || []).some(
       (t) => t._id?.toString?.() === userOid
     );
-    const isManager =
-      req.user.auth === "admin" || req.user.auth === "manager";
+    const isManager = isSchoolManager(req.user, syllabus.school);
     if (!isCreator && !isMentor && !isManager) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
@@ -1686,8 +1684,7 @@ export const importEvaluationFromCsvHandler = async (req, res) => {
     const isMentor = (syllabus.teachers || []).some(
       (t) => t._id?.toString?.() === userOid
     );
-    const isManager =
-      req.user.auth === "admin" || req.user.auth === "manager";
+    const isManager = isSchoolManager(req.user, syllabus.school);
     if (!isCreator && !isMentor && !isManager) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }

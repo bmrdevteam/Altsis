@@ -60,7 +60,7 @@ export const assertLibraryPageAccess = async ({
     throwHttp(400, FIELD_REQUIRED("school"));
   }
   const school = await loadSchoolForLibrary(academyId, schoolId);
-  const staff = isStaffAuth(user?.auth);
+  const staff = isStaffAuth(user?.auth, user, schoolId);
   if (staff) {
     return { school, isStaff: true };
   }

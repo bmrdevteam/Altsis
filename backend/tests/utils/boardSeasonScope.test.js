@@ -28,14 +28,26 @@ describe("boardSeasonScope helpers", () => {
       scope: "season",
       season: "507f1f77bcf86cd799439011",
       creator: creatorId,
+      schoolId: "school1",
     };
 
     expect(
       canBypassSeasonRegistration(board, { auth: "admin", _id: "u1" })
     ).toBe(true);
     expect(
-      canBypassSeasonRegistration(board, { auth: "manager", _id: "u1" })
+      canBypassSeasonRegistration(board, {
+        auth: "manager",
+        _id: "u1",
+        schools: [{ schoolId: "school1" }],
+      })
     ).toBe(true);
+    expect(
+      canBypassSeasonRegistration(board, {
+        auth: "manager",
+        _id: "u1",
+        schools: [{ schoolId: "other", schoolAuth: "manager" }],
+      })
+    ).toBe(false);
     expect(
       canBypassSeasonRegistration(board, { auth: "member", _id: "creator1" })
     ).toBe(true);

@@ -9,6 +9,7 @@ import { formMulter, isFormFileKey } from "../_s3/formMulter.js";
 import { signUrl, signUrlForView } from "../_s3/fileBucket.js";
 import { tryCommitUpload } from "../services/academyStorage.js";
 import { archiveSectionHasFileKey } from "../services/archiveFileKey.js";
+import { isSchoolManager } from "../utils/schoolManager.js";
 import {
   FIELD_INVALID,
   FIELD_REQUIRED,
@@ -181,7 +182,7 @@ export const signArchive = async (req, res) => {
     const authManager = formItem.authManager ?? "undefined";
 
     /* manager with authManager permission can access */
-    if (req.user.auth === "manager" && authManager === "viewAndEdit") {
+    if (isSchoolManager(req.user, archive.school) && authManager === "viewAndEdit") {
       /* manager: allowed */
     } else if (archive.user.equals(req.user._id)) {
       /* student viewing own data */

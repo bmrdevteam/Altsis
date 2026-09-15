@@ -349,6 +349,7 @@ const GoalsSidebarWidget = ({ open, onNavigate }: Props) => {
     schoolId: currentSchool?._id,
     goalsEnabled: currentSchool?.goalsEnabled,
     auth: currentUser?.auth,
+    user: currentUser,
   });
 
   const goGoals = () => {

@@ -26,14 +26,18 @@ export const titleFromGuideMarkdown = (markdown, fallback = "Altsis 안내") => 
  * @param {string} [auth]
  * @returns {string[]}
  */
-export const guideKeysForAuth = (auth) => {
+export const guideKeysForAuth = (auth, opts = {}) => {
   const keys = Object.keys(DOCS);
   const allow = (prefixes) =>
     keys.filter((k) => prefixes.some((p) => k === p || k.startsWith(p)));
   if (auth === "owner") {
     return allow(["INDEX.md", "user-guide/", "admin-guide/", "getting-started/"]);
   }
-  if (auth === "admin" || auth === "manager") {
+  const schoolMgr =
+    typeof opts.isSchoolManager === "boolean"
+      ? opts.isSchoolManager
+      : auth === "admin" || auth === "manager";
+  if (auth === "admin" || schoolMgr) {
     return allow(["INDEX.md", "user-guide/", "admin-guide/"]);
   }
   return allow(["INDEX.md", "user-guide/"]);
@@ -109,12 +113,13 @@ const tokenScore = (haystack, tokens) => {
 export const retrieveAlterGuide = ({
   query = "",
   auth,
+  isSchoolManager: schoolMgr,
   limit,
   perDoc,
 } = {}) => {
   const topK = limit ?? PROMPT_LIMITS.CHAT_RETRIEVE_CHUNK_LIMIT ?? 6;
   const maxPerDoc = perDoc ?? PROMPT_LIMITS.CHAT_RETRIEVE_PER_DOC ?? 3;
-  const keys = guideKeysForAuth(auth);
+  const keys = guideKeysForAuth(auth, { isSchoolManager: schoolMgr });
   if (keys.length === 0) return [];
 
   const search = buildSearchQuery(query);

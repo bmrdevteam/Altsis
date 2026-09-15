@@ -68,6 +68,17 @@ describe("goalsSidebarMode", () => {
         auth: "admin",
       })
     ).toBe("disabled");
+    expect(
+      goalsSidebarMode({
+        schoolId: "s1",
+        goalsEnabled: false,
+        auth: "manager",
+        user: {
+          auth: "manager",
+          schools: [{ school: "s1", schoolAuth: "member" }],
+        },
+      })
+    ).toBe("hidden");
   });
 });
 

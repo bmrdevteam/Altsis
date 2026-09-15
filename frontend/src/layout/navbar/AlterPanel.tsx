@@ -2899,6 +2899,7 @@ const AlterPanel = ({ onClose }: Props) => {
     school: currentSchool,
     season: currentSeason,
     userId: currentUser?._id,
+    user: currentUser,
   });
   const libraryBtn = showLibraryEntry ? (
     <button

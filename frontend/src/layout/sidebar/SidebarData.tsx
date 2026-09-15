@@ -1,5 +1,6 @@
 import Svg from "../../assets/svg/Svg";
 import { useAuth } from "contexts/authContext";
+import { isSchoolManager } from "utils/schoolManager";
 
 export interface INavLink {
   title: string;
@@ -22,7 +23,8 @@ export interface INavSubLink {
 }
 
 export const SidebarData = (auth: string, role?: string): any => {
-  const { currentRegistration, currentSchool } = useAuth();
+  const { currentRegistration, currentSchool, currentUser } = useAuth();
+  const schoolMgr = isSchoolManager(currentUser, currentSchool?._id);
 
   if (auth === "owner") {
     return [
@@ -92,7 +94,7 @@ export const SidebarData = (auth: string, role?: string): any => {
     });
     if (currentRegistration.role === "teacher") {
       if (currentSchool?.formArchive) {
-        const isManager = auth === "manager";
+        const isManager = schoolMgr;
         const formArchive = currentSchool.formArchive?.filter(
           (form: any) =>
             (form.authTeacher && form.authTeacher !== "undefined") ||
@@ -136,7 +138,7 @@ export const SidebarData = (auth: string, role?: string): any => {
         });
       }
       // 관리자이면서 학생인 경우, 관리자 권한이 있는 기록도 표시
-      if (auth === "manager" && currentSchool?.formArchive) {
+      if (schoolMgr && currentSchool?.formArchive) {
         const managerFormArchive = currentSchool.formArchive?.filter(
           (form: any) => form.authManager === "viewAndEdit"
         );
@@ -179,7 +181,7 @@ export const SidebarData = (auth: string, role?: string): any => {
     });
   }
 
-  if (auth === "manager") {
+  if (schoolMgr && auth !== "admin") {
     data.push({
       title: "admin",
       name: "관리",

@@ -1,6 +1,7 @@
 import express from "express";
 const router = express.Router();
 import { isLoggedIn, isOwAdmin, isAdManager } from "../middleware/auth.js";
+import { requireSeasonSchoolManagerFromBody } from "../middleware/schoolManagerAuth.js";
 import * as ai from "../controllers/ai.js";
 import * as aiLibrary from "../controllers/aiLibrary.js";
 
@@ -66,6 +67,7 @@ router.post("/syllabus/review", isLoggedIn, ai.reviewSyllabusContent);
 router.post(
   "/syllabus/guidelines-template",
   isAdManager,
+  requireSeasonSchoolManagerFromBody,
   ai.generateGuidelinesTemplate
 );
 

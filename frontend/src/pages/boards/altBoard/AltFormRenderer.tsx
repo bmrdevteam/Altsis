@@ -740,13 +740,17 @@ const AltFormRenderer = ({
     );
   }, [unsubmittedOpenKeys]);
 
-  const schoolRole =
-    currentUser?.auth === "manager"
-      ? "manager"
-      : currentRegistration?.role || null;
+  const schoolRole = currentRegistration?.role || null;
   const myRole = getMyAltBoardRole(board, currentUser, schoolRole);
   const canRespondAsMember = !!(
-    form && isFormRespondent(form, currentUser, myRole, schoolRole)
+    form &&
+    isFormRespondent(
+      form,
+      currentUser,
+      myRole,
+      schoolRole,
+      board.school || board.schoolId
+    )
   );
 
   const canSubmit =

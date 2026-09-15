@@ -318,7 +318,8 @@ const GoalsDashboard = () => {
 
   if (currentSchool?.goalsEnabled === false) {
     const showSettings =
-      canManageSchoolGoals(currentUser?.auth) && !!currentSchool._id;
+      canManageSchoolGoals(currentUser?.auth, currentUser, currentSchool._id) &&
+      !!currentSchool._id;
     return (
       <div className={style.page}>
         <div className={style.header}>

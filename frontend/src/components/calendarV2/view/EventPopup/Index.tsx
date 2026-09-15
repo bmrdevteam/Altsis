@@ -113,7 +113,7 @@ const Description = ({
 };
 
 const Index = (props: Props) => {
-  const { currentUser } = useAuth();
+  const { currentUser, currentSchool } = useAuth();
   const isOwner =
     props.event.userId && String(props.event.userId) === String(currentUser?._id);
 
@@ -126,7 +126,7 @@ const Index = (props: Props) => {
     props.event.type === "custom" &&
     !isSyncedEvent &&
     (props.event.scope === "school"
-      ? canManageSchoolCalendar(currentUser)
+      ? canManageSchoolCalendar(currentUser, currentSchool?._id)
       : isOwner);
 
   const eventColor = resolveEventColor(props.event, props.customCategoryColors);

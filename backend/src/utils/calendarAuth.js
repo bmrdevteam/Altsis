@@ -1,24 +1,27 @@
-const SCHOOL_CALENDAR_AUTHS = ["owner", "admin", "manager"];
+import { isSchoolManager } from "./schoolManager.js";
 
 /**
  * 학교 캘린더(기본·사용자 정의) 추가/수정/삭제 가능 여부
- * @param {{ auth?: string } | null | undefined} user
+ * @param {{ auth?: string, schools?: unknown[] } | null | undefined} user
+ * @param {unknown} [schoolId]
  * @returns {boolean}
  */
-export const canManageSchoolCalendar = (user) =>
-  SCHOOL_CALENDAR_AUTHS.includes(user?.auth);
+export const canManageSchoolCalendar = (user, schoolId) =>
+  isSchoolManager(user, schoolId);
 
 /**
  * 일정에 calendarId를 붙일 수 있는지.
- * 학교 캘린더: 학교 캘린더 관리자만. 개인 캘린더: 소유자만.
+ * 학교 캘린더: 해당 학교 관리자만. 개인 캘린더: 소유자만.
  *
  * @param {{ auth?: string, _id?: unknown } | null | undefined} user
- * @param {{ scope?: string, user?: unknown } | null | undefined} calendar
+ * @param {{ scope?: string, user?: unknown, school?: unknown } | null | undefined} calendar
  * @returns {boolean}
  */
 export const canAssignEventToCalendar = (user, calendar) => {
   if (!user || !calendar) return false;
-  if (calendar.scope === "school") return canManageSchoolCalendar(user);
+  if (calendar.scope === "school") {
+    return canManageSchoolCalendar(user, calendar.school);
+  }
   return String(calendar.user) === String(user._id);
 };
 

@@ -31,6 +31,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
+import { isSchoolManager } from "utils/schoolManager";
 import style from "style/pages/courses/course.module.scss";
 
 import _ from "lodash";
@@ -127,7 +128,7 @@ const CoursePid = (props: Props) => {
     if (!altBoard || !currentUser) return false;
     if (
       currentUser.auth === "admin" ||
-      currentUser.auth === "manager"
+      isSchoolManager(currentUser, altBoard.school || altBoard.schoolId || currentSchool?._id)
     ) {
       return true;
     }
@@ -445,7 +446,7 @@ const CoursePid = (props: Props) => {
             if (teacher.confirmed) {
               confirmedCnt += 1;
             }
-            if (teacher.userId === currentUser?.userId || currentUser.auth === "manager") {
+            if (teacher.userId === currentUser?.userId || isSchoolManager(currentUser, syllabus.school || currentSchool?._id)) {
               isMentorLocal = true;
             }
           }

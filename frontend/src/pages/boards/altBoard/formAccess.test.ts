@@ -58,6 +58,24 @@ describe("userMatchesAccessList", () => {
       userMatchesAccessList(studentOnlyForm.members, teacher, "teacher")
     ).toBe(false);
   });
+
+  test("manager group uses isSchoolManager of that school", () => {
+    const access = {
+      groups: { manager: true, teacher: false, student: false },
+      users: [],
+    };
+    const aMgr = {
+      _id: "m1",
+      userId: "m1",
+      auth: "manager" as const,
+      schools: [
+        { school: "schA", schoolAuth: "manager" as const },
+        { school: "schB", schoolAuth: "member" as const },
+      ],
+    };
+    expect(userMatchesAccessList(access, aMgr, null, "schA")).toBe(true);
+    expect(userMatchesAccessList(access, aMgr, "manager", "schB")).toBe(false);
+  });
 });
 
 const baseBoard = {

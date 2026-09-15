@@ -23,6 +23,7 @@ import { validate } from "../utils/validate.js";
  * @prop {ObjectId} school - ObjectId of school
  * @prop {string} schoolId
  * @prop {string} schoolName
+ * @prop {"manager"|"member"} [schoolAuth] - 그 학교의 관리 여부. 없으면 레거시: 계정 auth===manager이면 관리자
  */
 
 /**
@@ -87,6 +88,10 @@ const userSchema = mongoose.Schema(
           school: mongoose.Types.ObjectId,
           schoolId: String,
           schoolName: String,
+          schoolAuth: {
+            type: String,
+            enum: ["manager", "member"],
+          },
         },
         { _id: false }
       ),

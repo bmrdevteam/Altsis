@@ -6,6 +6,7 @@ import Select from "components/select/Select";
 import Table from "components/tableV2/Table";
 import SchoolFeatureToggle from "../FeatureSettings";
 import { useAuth } from "contexts/authContext";
+import { isSchoolManager } from "utils/schoolManager";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import { isSchoolOfficialItem } from "pages/alterLibrary/libraryFilters";
@@ -102,8 +103,7 @@ const SchoolAISettings = ({ schoolData, setSchoolData, seasonList }: Props) => {
   const navigate = useAppNavigate();
   const { SchoolAPI, AcademyAPI, RegistrationAPI } = useAPIv2();
   const canEditUsageLimits =
-    currentUser?.auth === "admin" ||
-    currentUser?.auth === "manager" ||
+    isSchoolManager(currentUser, schoolData?._id || currentSchool?._id) ||
     currentUser?.auth === "owner";
   const [loading, setLoading] = useState(true);
   const [aiConfig, setAiConfig] = useState<TSchoolAiConfig>(defaultAiConfig());

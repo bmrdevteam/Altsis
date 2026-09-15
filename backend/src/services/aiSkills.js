@@ -57,6 +57,7 @@ import {
   buildEvaluationCsv,
   isEmptyEval,
 } from "../utils/evaluationCsv.js";
+import { isSchoolManager } from "../utils/schoolManager.js";
 import {
   FIELD_REQUIRED,
   PERMISSION_DENIED,
@@ -1021,8 +1022,7 @@ export const assertSeasonAiAccess = async (academyId, user, seasonId) => {
   const schoolPerm = school?.aiConfig?.permission;
   const seasonPerm = season.aiSettings?.permission;
   const role =
-    user.auth === "admin" ||
-    user.auth === "manager" ||
+    isSchoolManager(user, school?._id) ||
     user.auth === "owner" ||
     registration.role === "teacher"
       ? "teacher"
@@ -1831,7 +1831,7 @@ export const executeEvaluationDraftSkill = async ({
   const isMentor = (syllabus.teachers || []).some(
     (t) => String(t._id) === String(user._id)
   );
-  const isManager = user.auth === "manager" || user.auth === "admin";
+  const isManager = isSchoolManager(user, syllabus.school || season.school);
   if (!isMentor && !isManager) {
     const err = new Error(PERMISSION_DENIED);
     err.status = 403;
@@ -2361,7 +2361,7 @@ export const executeArchiveDraftSkill = async ({
   }
 
   const isManager =
-    (user.auth === "manager" || user.auth === "admin") &&
+    isSchoolManager(user, school?._id) &&
     formItem.authManager === "viewAndEdit";
   const teacherAuth = formItem.authTeacher;
   const isTeacherEditor =
@@ -5984,7 +5984,8 @@ export const runAlterSkill = async ({
   let chatCitations = [];
   let retrieveIds = chatPromptPack.learningLibraryItemIds || [];
   const chatIsTeacher =
-    isStaffAuth(user?.auth) || registration?.role === "teacher";
+    isStaffAuth(user?.auth, user, school?._id) ||
+    registration?.role === "teacher";
   if (chatIsTeacher && school?._id && user?._id) {
     try {
       const extra = await AiLibraryItem(academyId)
@@ -6021,7 +6022,11 @@ export const runAlterSkill = async ({
   }
   const howtoMode = detectAlterHowtoIntent(message);
   const guideHits = howtoMode
-    ? retrieveAlterGuide({ query: message, auth: user?.auth })
+    ? retrieveAlterGuide({
+        query: message,
+        auth: user?.auth,
+        isSchoolManager: isSchoolManager(user, school?._id),
+      })
     : [];
   const guideReferences = guideHits.map((h) => ({
     title: h.title,

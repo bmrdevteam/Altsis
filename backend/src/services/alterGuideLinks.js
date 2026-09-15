@@ -1,6 +1,7 @@
 /**
  * 검색된 안내 문서 → 화면/안내 바로가기 (모델이 URL을 만들지 않음)
  */
+import { isSchoolManager } from "../utils/schoolManager.js";
 
 /** 안내 문서 키 → /guide?doc= 경로 */
 export const guideDocPath = (key) => {
@@ -112,6 +113,7 @@ const canSeePage = (pagePath, { user, school, registration } = {}) => {
   const auth = user?.auth;
   const role = registration?.role;
   const hasReg = !!registration;
+  const schoolMgr = isSchoolManager(user, school?._id || school);
   if (auth === "owner") return false;
 
   if (pagePath === "/docs" || pagePath.startsWith("/courses")) {
@@ -130,12 +132,12 @@ const canSeePage = (pagePath, { user, school, registration } = {}) => {
   }
   if (pagePath === "/goals") {
     if (school?.goalsEnabled === false) {
-      return auth === "admin" || auth === "manager";
+      return schoolMgr;
     }
   }
   if (pagePath === "/courses/design") {
     if (role === "student") return false;
-    if (auth !== "admin" && auth !== "manager" && !registration?.permissionSyllabusV2) {
+    if (auth !== "admin" && !schoolMgr && !registration?.permissionSyllabusV2) {
       return false;
     }
   }
@@ -143,7 +145,7 @@ const canSeePage = (pagePath, { user, school, registration } = {}) => {
     pagePath === "/forms" ||
     pagePath.startsWith("/admin/")
   ) {
-    if (auth !== "admin" && auth !== "manager") return false;
+    if (auth !== "admin" && !schoolMgr) return false;
   }
   return true;
 };
@@ -209,7 +211,7 @@ export const buildAlterGuideLinks = (hits, ctx = {}) => {
     if (pagePath === "/courses/design") pageTitle = "수업 개설";
     if (pagePath === "/goals" && school?.goalsEnabled === false) {
       const schoolId = school?._id ? String(school._id) : "";
-      if (schoolId && (user?.auth === "admin" || user?.auth === "manager")) {
+      if (schoolId && isSchoolManager(user, schoolId)) {
         pagePath = `/admin/schools/${schoolId}#목표`;
         pageTitle = "목표 설정";
       }

@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import style from "./altBoard.module.scss";
 import { formatApproverLabel, TApprovalApprover } from "utils/approvalLine";
 import type { TBoard, TBoardMembers, TMemberUser } from "types/board";
+import { isSchoolManager } from "utils/schoolManager";
 import { isAccessListCustom } from "./formAccess";
 
 export function uniqueApprovalCandidates(
@@ -39,10 +40,11 @@ const boardCreator = (board: TBoard): TMemberUser[] =>
 
 const memberMatchesFormWriterGroup = (
   member: TMemberUser,
-  groups?: TBoardMembers["groups"]
+  groups?: TBoardMembers["groups"],
+  schoolRef?: unknown
 ) => {
   if (!groups) return false;
-  if (groups.manager && member.auth === "manager") return true;
+  if (groups.manager && isSchoolManager(member, schoolRef)) return true;
   return !!(member.role && groups[member.role]);
 };
 
@@ -59,7 +61,11 @@ export function approvalCandidatesForForm(
     const fromGroups =
       groups?.manager || groups?.teacher || groups?.student
         ? resolvedMembers.filter((member) =>
-            memberMatchesFormWriterGroup(member, groups)
+            memberMatchesFormWriterGroup(
+              member,
+              groups,
+              board.school || board.schoolId
+            )
           )
         : [];
     return uniqueApprovalCandidates(form?.writers?.users, fromGroups);
