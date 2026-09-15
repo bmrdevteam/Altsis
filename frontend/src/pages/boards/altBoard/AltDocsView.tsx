@@ -9,6 +9,8 @@ import Popup from "components/popup/Popup";
 import PostBlogView from "../views/PostBlogView";
 import PostPid from "../PostPid";
 import PostCreate from "../PostCreate";
+import { FilterCollapseToggle } from "../CollapsibleFilterBar";
+import { FILTER_BAR_OPEN_KEYS, useFilterBarOpen } from "../filterBarOpen";
 import DocsListFilterBar, {
   TDocsViewCounts,
   TDocsViewFilter,
@@ -72,6 +74,9 @@ const AltDocsView = ({ board, onPostsChanged }: Props) => {
   const mdFileInputRef = useRef<HTMLInputElement>(null);
 
   const [docKeyword, setDocKeyword] = useState("");
+  const { open: filterBarOpen, onToggle: toggleFilterBar } = useFilterBarOpen(
+    FILTER_BAR_OPEN_KEYS.docs
+  );
   const [docsFilter, setDocsFilter] = useState<TDocsViewFilter>("");
 
   const contentViewMode: TBoardContentViewMode =
@@ -308,33 +313,42 @@ const AltDocsView = ({ board, onPostsChanged }: Props) => {
           </span>
         )}
       </div>
-      {canWrite() && (
-        <div className={style.formListToolbar}>
-          <button
-            type="button"
-            className={style.formCardIconBtn}
-            title="글쓰기"
-            onClick={() => setPanel({ kind: "compose" })}
-          >
-            <Svg type="plus" width="20px" height="20px" />
-          </button>
-          <button
-            type="button"
-            className={style.formCardIconBtn}
-            title="마크다운 파일로 문서 만들기 (.md)"
-            onClick={() => mdFileInputRef.current?.click()}
-          >
-            <Svg type="upload" width="20px" height="20px" />
-          </button>
-          <input
-            ref={mdFileInputRef}
-            type="file"
-            accept=".md,.markdown,.txt"
-            style={{ display: "none" }}
-            onChange={handleImportMarkdown}
-          />
-        </div>
-      )}
+      <div className={style.formListToolbar}>
+        <FilterCollapseToggle
+          open={filterBarOpen}
+          onToggle={toggleFilterBar}
+          className={style.formCardIconBtn}
+          activeClassName={style.formCardIconBtnActive}
+          iconSize="20px"
+        />
+        {canWrite() && (
+          <>
+            <button
+              type="button"
+              className={style.formCardIconBtn}
+              title="글쓰기"
+              onClick={() => setPanel({ kind: "compose" })}
+            >
+              <Svg type="plus" width="20px" height="20px" />
+            </button>
+            <button
+              type="button"
+              className={style.formCardIconBtn}
+              title="마크다운 파일로 문서 만들기 (.md)"
+              onClick={() => mdFileInputRef.current?.click()}
+            >
+              <Svg type="upload" width="20px" height="20px" />
+            </button>
+            <input
+              ref={mdFileInputRef}
+              type="file"
+              accept=".md,.markdown,.txt"
+              style={{ display: "none" }}
+              onChange={handleImportMarkdown}
+            />
+          </>
+        )}
+      </div>
     </div>
   );
 
@@ -346,6 +360,7 @@ const AltDocsView = ({ board, onPostsChanged }: Props) => {
       onViewFilterChange={setDocsFilter}
       counts={docsCounts}
       onClear={clearDocFilters}
+      open={filterBarOpen}
     />
   );
 
@@ -411,10 +426,10 @@ const AltDocsView = ({ board, onPostsChanged }: Props) => {
   if (contentViewMode === "blog") {
     return (
       <div className={style.formList}>
-        {docsFilterBar}
         <section className={style.formSectionPanel}>
           {docsHeader}
           <div className={style.formSectionBody}>
+            {docsFilterBar}
             {posts.length === 0 || displayPosts.length === 0 ? (
               <div className={style.emptyState}>{emptyMessage}</div>
             ) : (
@@ -435,10 +450,10 @@ const AltDocsView = ({ board, onPostsChanged }: Props) => {
 
   return (
     <div className={style.formList}>
-      {docsFilterBar}
       <section className={style.formSectionPanel}>
         {docsHeader}
         <div className={style.formSectionBody}>
+          {docsFilterBar}
           {posts.length === 0 || displayPosts.length === 0 ? (
             <div className={style.emptyState}>{emptyMessage}</div>
           ) : (

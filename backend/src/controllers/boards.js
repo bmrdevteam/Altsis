@@ -29,6 +29,9 @@ import {
   getBoardWorkflowCandidates,
   isSeasonScopedBoard,
   canAccessSeasonBoard,
+  canAccessSeasonBoardFromRoles,
+  loadUserSeasonRoles,
+  resolveBoardSeasonRole,
   hasActiveSeasonRegistration,
   lookupAltBoardRole,
   nextAltRoleOnAddWriter,
@@ -458,12 +461,14 @@ export const find = async (req, res) => {
     const currentSeasonId = req.query.season || null;
     const isManageMode = req.query.mode === "manage";
 
-    const role = await getUserRoleInSeason(
+    const { roleBySeason, registeredSeasonIds } = await loadUserSeasonRoles(
       req.user.academyId,
       school.schoolId,
-      req.user,
-      currentSeasonId
+      req.user
     );
+    const role = currentSeasonId
+      ? roleBySeason.get(String(currentSeasonId)) || null
+      : [...roleBySeason.values()][0] || null;
 
     const listFilter = {
       school: school._id,
@@ -496,17 +501,12 @@ export const find = async (req, res) => {
         if (canManageBoard(board, req.user)) accessibleBoards.push(board);
         continue;
       }
-      if (!(await canAccessSeasonBoard(req.user.academyId, board, req.user))) {
+      if (
+        !canAccessSeasonBoardFromRoles(board, req.user, registeredSeasonIds)
+      ) {
         continue;
       }
-      const boardRole = isSeasonScopedBoard(board)
-        ? await getUserRoleInSeason(
-            req.user.academyId,
-            board.schoolId,
-            req.user,
-            board.season
-          )
-        : role;
+      const boardRole = resolveBoardSeasonRole(board, roleBySeason, role);
       if (isBoardMemberAsUser(board, req.user, boardRole)) {
         accessibleBoards.push(board);
       }

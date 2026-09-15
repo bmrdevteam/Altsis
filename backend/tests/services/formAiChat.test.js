@@ -3,6 +3,8 @@ import {
   buildAiChatRowSummary,
   buildFormAiChatSystemPrompt,
   canReadFormAiChatSession,
+  buildAssessmentGradeChatPayload,
+  formatAssessmentGradeChatText,
   hasSchoolSkillConfig,
   isAiChatFieldType,
   isAiChatRequiredMet,
@@ -50,6 +52,39 @@ describe("formAiChat helpers", () => {
       aiSettings: { permission: { teacher: false, student: false } },
     };
     expect(resolveAiRolePermission(school, season, "teacher")).toBe(true);
+  });
+
+  test("resolveAiRolePermission uses teacher exceptions", () => {
+    const school = {
+      aiConfig: {
+        permission: {
+          teacher: false,
+          student: false,
+          exceptions: [
+            { user: "u1", userId: "tid", userName: "김교사", isAllowed: true },
+            { user: "u2", userId: "deny", userName: "이교사", isAllowed: false },
+          ],
+        },
+      },
+    };
+    const season = { aiSettings: { permission: { teacher: false } } };
+    expect(resolveAiRolePermission(school, season, "teacher", "u1")).toBe(true);
+    expect(
+      resolveAiRolePermission(
+        {
+          aiConfig: {
+            permission: {
+              teacher: true,
+              student: false,
+              exceptions: school.aiConfig.permission.exceptions,
+            },
+          },
+        },
+        season,
+        "teacher",
+        "u2"
+      )
+    ).toBe(false);
   });
 
   test("resolveAiRolePermission falls back to season", () => {
@@ -117,6 +152,114 @@ describe("formAiChat helpers", () => {
     expect(prompt).toContain("https://example.com");
     expect(prompt).toContain("미성년");
     expect(prompt).toContain("열람");
+  });
+
+  test("formatAssessmentGradeChatText lists levels and comments, skips owner", () => {
+    const form = {
+      fields: [
+        {
+          _id: "t1",
+          label: "탐구 내용",
+          gradingMethod: "rubric",
+          permission: "respondent",
+        },
+        {
+          _id: "s1",
+          label: "교사 메모",
+          gradingMethod: "manual_score",
+          permission: "owner",
+        },
+      ],
+      rubrics: [
+        {
+          id: "r1",
+          title: "탐구 루브릭",
+          levels: [{ id: "l1", label: "우수", points: 3 }],
+        },
+      ],
+    };
+    const text = formatAssessmentGradeChatText(form, {
+      byField: {
+        t1: {
+          comment: "근거가 분명합니다",
+          byRubric: { r1: { levelId: "l1", comment: "" } },
+        },
+        s1: { score: 5, comment: "비밀" },
+      },
+      final: { comment: "잘했습니다" },
+    });
+    expect(text).toContain("탐구 내용");
+    expect(text).toContain("탐구 루브릭: 우수 (3점)");
+    expect(text).toContain("근거가 분명합니다");
+    expect(text).toContain("잘했습니다");
+    expect(text).not.toContain("교사 메모");
+    expect(text).not.toContain("비밀");
+  });
+
+  test("formatAssessmentGradeChatText keeps field score and omits missing points", () => {
+    const form = {
+      fields: [
+        {
+          _id: "t1",
+          label: "탐구 내용",
+          gradingMethod: "rubric",
+          permission: "respondent",
+        },
+      ],
+      rubrics: [
+        {
+          id: "r1",
+          title: "탐구 루브릭",
+          levels: [{ id: "l1", label: "보통" }],
+        },
+      ],
+    };
+    const text = formatAssessmentGradeChatText(form, {
+      byField: {
+        t1: {
+          score: 2,
+          byRubric: { r1: { levelId: "l1" } },
+        },
+      },
+    });
+    expect(text).toContain("탐구 루브릭: 보통");
+    expect(text).not.toContain("(");
+    expect(text).toContain("점수: 2");
+  });
+
+  test("buildAssessmentGradeChatPayload keeps respondent byRubric and skips owner", () => {
+    const form = {
+      fields: [
+        {
+          _id: "t1",
+          label: "탐구 내용",
+          gradingMethod: "rubric",
+          permission: "respondent",
+        },
+        {
+          _id: "s1",
+          label: "교사 메모",
+          gradingMethod: "manual_score",
+          permission: "owner",
+        },
+      ],
+    };
+    const payload = buildAssessmentGradeChatPayload(form, {
+      byField: {
+        t1: {
+          comment: "근거가 분명합니다",
+          byRubric: { r1: { levelId: "l1", comment: "수준 코멘트" } },
+        },
+        s1: { score: 5, comment: "비밀" },
+      },
+      final: { comment: "잘했습니다" },
+    });
+    expect(payload.kind).toBe("assessment-grade");
+    expect(payload.byField.t1.byRubric.r1.levelId).toBe("l1");
+    expect(payload.byField.t1.byRubric.r1.comment).toBe("수준 코멘트");
+    expect(payload.byField.t1.comment).toBe("근거가 분명합니다");
+    expect(payload.final.comment).toBe("잘했습니다");
+    expect(payload.byField.s1).toBeUndefined();
   });
 
   test("annotateSessionsWithRowStatus marks missing or inactive rows", () => {

@@ -19,6 +19,7 @@ const schema = new Schema({
       attrs: {
         textAlign: { default: "left" },
         indent: { default: 0 },
+        lineHeight: { default: null },
       },
     },
     heading: {
@@ -28,6 +29,7 @@ const schema = new Schema({
         level: { default: 1 },
         textAlign: { default: "left" },
         indent: { default: 0 },
+        lineHeight: { default: null },
       },
     },
     text: { group: "inline" },
@@ -101,6 +103,10 @@ describe("formatBlockStyle / wrapStyledBlockHtml / empty", () => {
     expect(formatBlockStyle("right", 2)).toBe(
       "text-align: right; padding-left: 2ch"
     );
+    expect(formatBlockStyle("left", 0, 1.8)).toBe("line-height: 1.8");
+    expect(formatBlockStyle("center", 2, 1.45)).toBe(
+      "text-align: center; padding-left: 2ch; line-height: 1.45"
+    );
   });
 
   test("빈 문단은 항상 p 태그로 감싼다", () => {
@@ -132,6 +138,14 @@ describe("formatBlockStyle / wrapStyledBlockHtml / empty", () => {
       shouldSerializeBlockAsHtml(
         "paragraph",
         schema.node("paragraph", { indent: 2 }, [schema.text("가")])
+      )
+    ).toBe(true);
+    expect(
+      shouldSerializeBlockAsHtml(
+        "heading",
+        schema.node("heading", { level: 1, lineHeight: 1.8 }, [
+          schema.text("제목"),
+        ])
       )
     ).toBe(true);
     expect(
@@ -235,6 +249,15 @@ describe("serializeAlignedBlock", () => {
     ]);
     serializeAlignedBlock(state, para, "paragraph");
     expect(get()).toBe('<p style="padding-left: 2ch">가. 학생명</p>\n');
+  });
+
+  test("줄간격 문단은 line-height HTML이다", () => {
+    const { state, get } = capture();
+    const para = schema.node("paragraph", { lineHeight: 1.8 }, [
+      schema.text("본문"),
+    ]);
+    serializeAlignedBlock(state, para, "paragraph");
+    expect(get()).toBe('<p style="line-height: 1.8">본문</p>\n');
   });
 
   test("기본 빈 문단도 HTML p로 저장한다", () => {

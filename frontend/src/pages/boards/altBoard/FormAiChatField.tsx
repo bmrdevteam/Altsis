@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import style from "./altBoard.module.scss";
-import { TAltFormField } from "types/altForm";
+import { TAltForm, TAltFormField } from "types/altForm";
 import { TAIChatMessage, TFormAiChatSummary } from "types/aiChat";
 import { TAltSheetRow } from "types/altSheet";
 import { TMyAiUsage } from "types/dashboard";
@@ -16,9 +16,11 @@ import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import { getUsageMeter } from "utils/aiUsageMeter";
 import FieldDocResources from "./FieldDocResources";
 import { TFormFileRef } from "./formFilePreview";
-import { parseAiChatSummary } from "./formAiChat";
+import { isAssessmentGradeChatPayload, parseAiChatSummary } from "./formAiChat";
+import FormAiChatGradeResult from "./FormAiChatGradeResult";
 
 type Props = {
+  form?: TAltForm;
   formId: string;
   field: TAltFormField;
   value?: unknown;
@@ -26,6 +28,10 @@ type Props = {
   seasonId?: string;
   rowId?: string;
   disabled?: boolean;
+  /** 평가 모드면 대화/피드백 스킬을 고를 수 있음 */
+  assessmentMode?: boolean;
+  /** 피드백 전에 작성 중 답을 저장본으로 맞춤 */
+  onBeforeSend?: () => Promise<string | undefined>;
   onChange?: (summary: TFormAiChatSummary) => void;
   onRowReady?: (row: TAltSheetRow) => void;
   onPreview?: (file: TFormFileRef) => void;
@@ -40,6 +46,7 @@ const formatBubbleTime = (dateString?: string) => {
 };
 
 const FormAiChatField = ({
+  form,
   formId,
   field,
   value,
@@ -47,6 +54,8 @@ const FormAiChatField = ({
   seasonId,
   rowId,
   disabled,
+  assessmentMode,
+  onBeforeSend,
   onChange,
   onRowReady,
   onPreview,
@@ -59,6 +68,7 @@ const FormAiChatField = ({
   const [myUsage, setMyUsage] = useState<TMyAiUsage | null>(null);
   const [guideOpen, setGuideOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [skill, setSkill] = useState<"chat" | "grade">("chat");
   const logRef = useRef<HTMLDivElement>(null);
   const guideId = useId();
   const summary = parseAiChatSummary(value);
@@ -137,18 +147,30 @@ const FormAiChatField = ({
     };
   }, [expanded]);
 
+  const isGradeSkill = !!assessmentMode && skill === "grade";
+
   const handleSend = async () => {
     const content = draft.trim();
-    if (!content || sending || disabled || usageLimitExceeded) return;
+    if (sending || disabled || usageLimitExceeded) return;
+    if (!isGradeSkill && !content) return;
     setSending(true);
     try {
+      let sendRowId = rowId;
+      if (isGradeSkill && onBeforeSend) {
+        sendRowId = (await onBeforeSend()) || rowId;
+      }
       const result = await AltFormAPI.CFormAiChatMessage({
         params: { _id: formId },
         data: {
           fieldId: field._id,
-          content,
-          ...(rowId ? { rowId } : {}),
+          content:
+            content ||
+            (isGradeSkill
+              ? "이 작성 중인 답을 루브릭에 맞게 피드백해 주세요."
+              : ""),
+          ...(sendRowId ? { rowId: sendRowId } : {}),
           ...(seasonId ? { season: seasonId } : {}),
+          ...(isGradeSkill ? { skill: "assessment-grade" as const } : {}),
         },
       });
       setDraft("");
@@ -238,8 +260,9 @@ const FormAiChatField = ({
           )}
           {!loading && messages.length === 0 && (
             <p className={style.aiChatEmpty}>
-              이 활동의 지침과 자료를 바탕으로 질문해 보세요. 대화는 담당 교사가
-              확인할 수 있습니다.
+              {assessmentMode
+                ? "대화로 질문하거나, 피드백으로 작성 중인 답을 루브릭에 맞게 볼 수 있습니다."
+                : "이 활동의 지침과 자료를 바탕으로 질문해 보세요. 대화는 담당 교사가 확인할 수 있습니다."}
             </p>
           )}
           {messages.map((msg) => (
@@ -257,6 +280,10 @@ const FormAiChatField = ({
             >
               {msg.senderType === "student" ? (
                 <div className={style.aiChatMsgText}>{msg.content}</div>
+              ) : form &&
+                msg.skill === "assessment-grade" &&
+                isAssessmentGradeChatPayload(msg.payload) ? (
+                <FormAiChatGradeResult form={form} payload={msg.payload} />
               ) : (
                 <div className={style.aiChatMd}>
                   <AlterAssistantBody
@@ -282,18 +309,52 @@ const FormAiChatField = ({
         </p>
       ) : (
         <div className={style.aiChatComposer}>
+          {assessmentMode && (
+            <div className={style.aiChatSkillRow} role="group" aria-label="스킬">
+              <button
+                type="button"
+                className={`${style.aiChatSkillChip} ${
+                  skill === "chat" ? style.aiChatSkillChipChatOn : ""
+                }`}
+                aria-pressed={skill === "chat"}
+                onClick={() => setSkill("chat")}
+              >
+                대화
+              </button>
+              <button
+                type="button"
+                className={`${style.aiChatSkillChip} ${
+                  skill === "grade" ? style.aiChatSkillChipGradeOn : ""
+                }`}
+                aria-pressed={skill === "grade"}
+                onClick={() => setSkill("grade")}
+              >
+                피드백
+              </button>
+            </div>
+          )}
           <AiUsageBar usage={myUsage} />
           <ChatInputBar
             bare
             value={draft}
             onChange={setDraft}
             onSend={handleSend}
-            placeholder="메시지를 입력하세요"
+            placeholder={
+              isGradeSkill
+                ? "피드백을 요청하거나 덧붙일 말을 입력하세요"
+                : "메시지를 입력하세요"
+            }
             disabled={sending || usageLimitExceeded}
             sendDisabled={
-              usageLimitExceeded || sending || !draft.trim()
+              usageLimitExceeded ||
+              sending ||
+              (!isGradeSkill && !draft.trim())
             }
-            sendActive={!!draft.trim() && !usageLimitExceeded && !sending}
+            sendActive={
+              !usageLimitExceeded &&
+              !sending &&
+              (isGradeSkill || !!draft.trim())
+            }
             sendTitle={
               usageLimitExceeded
                 ? "오늘 AI 사용량(Alt) 한도를 초과했습니다"

@@ -129,6 +129,7 @@ const Alter = () => {
   const aiEnabled = canShowAlter(currentSchool, currentSeason, {
     role: currentRegistration?.role,
     auth: currentUser?.auth,
+    userId: currentUser?._id,
   });
 
   if (!aiEnabled) return null;

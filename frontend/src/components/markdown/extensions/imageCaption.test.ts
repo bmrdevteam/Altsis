@@ -23,8 +23,8 @@ describe("hasImageCaption", () => {
 });
 
 describe("shouldRenderImageCaption", () => {
-  test("always shows the field while editing", () => {
-    expect(shouldRenderImageCaption(true, "")).toBe(true);
+  test("hides empty captions while editing", () => {
+    expect(shouldRenderImageCaption(true, "")).toBe(false);
     expect(shouldRenderImageCaption(true, "로고")).toBe(true);
   });
 
@@ -39,8 +39,8 @@ describe("shouldRenderImageCaption", () => {
 });
 
 describe("imageCaptionPlaceholder", () => {
-  test("is only for empty captions while editing", () => {
-    expect(imageCaptionPlaceholder(true, "")).toBe(IMAGE_CAPTION_PLACEHOLDER);
+  test("never shows the editor prompt", () => {
+    expect(imageCaptionPlaceholder(true, "")).toBeUndefined();
     expect(imageCaptionPlaceholder(true, "로고")).toBeUndefined();
     expect(imageCaptionPlaceholder(false, "")).toBeUndefined();
     expect(imageCaptionPlaceholder(false, "로고")).toBeUndefined();

@@ -71,6 +71,11 @@
   }
 }
 
+.iconBtnActive {
+  color: var(--accent-1);
+  background: var(--background-color-2);
+}
+
 .sortSelectWrap {
   display: flex;
   align-items: center;
@@ -560,7 +565,7 @@
 .activityFilterBlock {
   margin-bottom: 16px;
 
-  > div:first-child {
+  > div:first-of-type {
     margin-bottom: 10px;
   }
 }

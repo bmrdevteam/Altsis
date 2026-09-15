@@ -9,6 +9,9 @@ import {
   lookupAltBoardRole,
   resolveAltBoardRole,
   resolveFormApprovalCandidates,
+  buildSeasonRoleIndex,
+  canAccessSeasonBoardFromRoles,
+  resolveBoardSeasonRole,
 } from "../../src/services/boards.js";
 
 const oid = (id) => ({
@@ -201,6 +204,80 @@ describe("board permission helpers", () => {
       users: [{ user: memberOid, userId: "member1", userName: "멤버" }],
     });
     expect(result.valid).toBe(true);
+  });
+});
+
+describe("batched season roles", () => {
+  const seasonBoard = {
+    scope: "season",
+    season: oid("season-a"),
+    creator: oid("creator-oid"),
+  };
+
+  test("buildSeasonRoleIndex maps season ids to roles", () => {
+    const { roleBySeason, registeredSeasonIds } = buildSeasonRoleIndex([
+      { season: oid("season-a"), role: "teacher" },
+      { season: "season-b", role: "student" },
+    ]);
+    expect(roleBySeason.get("season-a")).toBe("teacher");
+    expect(roleBySeason.get("season-b")).toBe("student");
+    expect(registeredSeasonIds.has("season-a")).toBe(true);
+    expect(registeredSeasonIds.has("season-b")).toBe(true);
+  });
+
+  test("school board is accessible without season registration", () => {
+    expect(
+      canAccessSeasonBoardFromRoles(
+        { scope: "school" },
+        { auth: "member" },
+        new Set()
+      )
+    ).toBe(true);
+  });
+
+  test("season board requires registration unless creator or staff", () => {
+    const member = { _id: oid("member-oid"), auth: "member" };
+    expect(
+      canAccessSeasonBoardFromRoles(seasonBoard, member, new Set())
+    ).toBe(false);
+    expect(
+      canAccessSeasonBoardFromRoles(
+        seasonBoard,
+        member,
+        new Set(["season-a"])
+      )
+    ).toBe(true);
+    expect(
+      canAccessSeasonBoardFromRoles(
+        seasonBoard,
+        { _id: oid("creator-oid"), auth: "member" },
+        new Set()
+      )
+    ).toBe(true);
+    expect(
+      canAccessSeasonBoardFromRoles(
+        seasonBoard,
+        { _id: oid("admin1"), auth: "admin" },
+        new Set()
+      )
+    ).toBe(true);
+  });
+
+  test("resolveBoardSeasonRole uses the board season for season boards", () => {
+    const { roleBySeason } = buildSeasonRoleIndex([
+      { season: "season-a", role: "teacher" },
+      { season: "season-b", role: "student" },
+    ]);
+    expect(
+      resolveBoardSeasonRole(
+        { scope: "season", season: "season-b" },
+        roleBySeason,
+        "teacher"
+      )
+    ).toBe("student");
+    expect(
+      resolveBoardSeasonRole({ scope: "school" }, roleBySeason, "teacher")
+    ).toBe("teacher");
   });
 });
 

@@ -1,5 +1,6 @@
 import Svg from "assets/svg/Svg";
 import mergeStyle from "components/mergeFilter/mergeFilter.module.scss";
+import CollapsibleFilterBar from "../CollapsibleFilterBar";
 import bStyle from "../boards.module.scss";
 
 /** 배타 칩: 전체("") | 공유 | 퀴즈 | 평가 | 승인 | 직접입력 */
@@ -51,6 +52,7 @@ type Props = {
   onViewFilterChange: (value: TRecordsViewFilter) => void;
   counts: TRecordsViewCounts;
   onClear: () => void;
+  open: boolean;
 };
 
 const ChipIcon = ({ type }: { type: string }) => (
@@ -66,11 +68,12 @@ const RecordsListFilterBar = ({
   onViewFilterChange,
   counts,
   onClear,
+  open,
 }: Props) => {
   const hasAnyFilter = !!keyword.trim() || !!viewFilter;
 
   return (
-    <div className={bStyle.activityFilterBlock}>
+    <CollapsibleFilterBar open={open}>
       <div className={mergeStyle.mergeSearchBar}>
         <div className={mergeStyle.mergeSearchInputWrap}>
           <span className={mergeStyle.mergeSearchIcon}>
@@ -132,7 +135,7 @@ const RecordsListFilterBar = ({
           </button>
         )}
       </div>
-    </div>
+    </CollapsibleFilterBar>
   );
 };
 

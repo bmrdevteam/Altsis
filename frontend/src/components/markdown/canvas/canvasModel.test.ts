@@ -1,9 +1,13 @@
 import {
+  applyCanvasTitle,
   attrsFromPayload,
   buildCanvasSrcDoc,
   canvasByteSize,
+  CANVAS_HTML_STARTER,
+  CANVAS_IFRAME_SANDBOX,
   CANVAS_MAX_BYTES,
   emptyCanvasPayload,
+  flattenCanvasToHtml,
   isCompleteHtmlDocument,
   isLegacyHtmlApp,
   parseCanvasContent,
@@ -17,6 +21,7 @@ import {
   serializeCodeEmbed,
   shouldSerializeAsCanvas,
   srcDocFromCodeAttrs,
+  titleFromHtml,
 } from "./canvasModel";
 
 describe("canvasModel", () => {
@@ -119,23 +124,55 @@ describe("canvasModel", () => {
     });
   });
 
-  test("serializes canvas fence when css/js/title exist, else html-app", () => {
+  test("flattens split css/js into one HTML document", () => {
+    const flat = flattenCanvasToHtml({
+      v: 1,
+      title: "데모",
+      html: "<p id='n'>hi</p>",
+      css: "p { color: red; }",
+      javascript: "document.getElementById('n').textContent='ok';",
+    });
+    expect(flat).toContain("<!DOCTYPE html>");
+    expect(flat).toContain("<p id='n'>hi</p>");
+    expect(flat).toContain("p { color: red; }");
+    expect(flat).toContain("document.getElementById('n').textContent='ok';");
+    expect(flat).toContain("<title>데모</title>");
+    expect(shouldSerializeAsCanvas({
+      v: 1,
+      html: "<p/>",
+      css: "p{}",
+      javascript: "",
+    })).toBe(true);
+  });
+
+  test("serializes flattened html-app even when css/js/title exist", () => {
     const withCss = {
       v: 1 as const,
       html: "<div/>",
       css: "div{}",
       javascript: "",
     };
-    expect(shouldSerializeAsCanvas(withCss)).toBe(true);
-    expect(serializeCodeEmbed(withCss, 500)).toBe(
-      "```canvas:500\n" + serializeCanvasPayload(withCss) + "\n```"
-    );
-    expect(serializeCanvasFence(withCss, 0)).toContain("```canvas\n");
+    const fenced = serializeCodeEmbed(withCss, 500);
+    expect(fenced.startsWith("```html-app:500\n")).toBe(true);
+    expect(fenced).toContain("<style>div{}</style>");
+    expect(fenced).not.toContain("```canvas");
+
+    const titled = {
+      v: 1 as const,
+      title: "이름",
+      html: "<div/>",
+      css: "",
+      javascript: "",
+    };
+    expect(shouldSerializeAsCanvas(titled)).toBe(false);
+    const titledFence = serializeCodeEmbed(titled, 300);
+    expect(titledFence.startsWith("```html-app:300\n")).toBe(true);
+    expect(titledFence).toContain("<title>이름</title>");
 
     const legacyOnly = { v: 1 as const, html: "<div/>", css: "", javascript: "" };
     expect(shouldSerializeAsCanvas(legacyOnly)).toBe(false);
     expect(serializeCodeEmbed(legacyOnly, 300)).toBe(
-      "```html-app:300\n<div/>\n```"
+      "```html-app:300\n" + flattenCanvasToHtml(legacyOnly) + "\n```"
     );
   });
 
@@ -148,7 +185,13 @@ describe("canvasModel", () => {
     expect(attrs.embedType).toBe("code");
     expect(attrs.height).toBe(500);
     expect(attrs.title).toBe("첫 캔버스");
-    expect(payloadFromAttrs(attrs)).toEqual(payload);
+    expect(attrs.css).toBe("");
+    expect(attrs.javascript).toBe("");
+    expect(attrs.html).toContain("<!DOCTYPE html>");
+    expect(attrs.html).toContain("<title>첫 캔버스</title>");
+    expect(payloadFromAttrs(attrs).title).toBe("첫 캔버스");
+    expect(payloadFromAttrs(attrs).css).toBe("");
+    expect(payloadFromAttrs(attrs).javascript).toBe("");
 
     const src = srcDocFromCodeAttrs(attrs);
     const size = canvasByteSize(src);
@@ -260,8 +303,8 @@ describe("canvasModel", () => {
     };
     const json = serializeCanvasPayload(payload);
     const repairedBare = repairCanvasMarkdown(`${json}\n\`\`\``);
-    expect(repairedBare).toContain("```canvas");
-    expect(parseCanvasContent(repairedBare).html).toBe(payload.html);
+    expect(repairedBare).toContain("```html-app");
+    expect(parseCanvasContent(repairedBare).html).toContain("<h1>타이머</h1>");
 
     const sliced = [
       '{"v":1,"html":"',
@@ -293,8 +336,8 @@ describe("canvasModel", () => {
     ].join("\n");
     const repaired = repairCanvasMarkdown(content);
     expect(repaired).toContain("타이머 설명입니다.");
-    expect(repaired).toContain("```canvas");
-    expect(parseCanvasContent(repaired.slice(repaired.indexOf("```"))).html).toBe(
+    expect(repaired).toContain("```html-app");
+    expect(parseCanvasContent(repaired.slice(repaired.indexOf("```"))).html).toContain(
       payload.html
     );
   });
@@ -321,5 +364,21 @@ describe("canvasModel", () => {
       height: 500,
     });
     expect(parseFenceLanguage("language-js")).toBeNull();
+  });
+
+  test("starter is a complete HTML document with style and script", () => {
+    expect(isCompleteHtmlDocument(CANVAS_HTML_STARTER)).toBe(true);
+    expect(CANVAS_HTML_STARTER).toContain("<style>");
+    expect(CANVAS_HTML_STARTER).toContain("<script>");
+    expect(canvasByteSize(CANVAS_HTML_STARTER)).toBeLessThan(CANVAS_MAX_BYTES);
+    expect(CANVAS_IFRAME_SANDBOX).toContain("allow-scripts");
+    expect(CANVAS_IFRAME_SANDBOX).toContain("allow-modals");
+    expect(CANVAS_IFRAME_SANDBOX).not.toContain("allow-same-origin");
+  });
+
+  test("applyCanvasTitle and titleFromHtml round-trip", () => {
+    const next = applyCanvasTitle(CANVAS_HTML_STARTER, "타이머");
+    expect(titleFromHtml(next)).toBe("타이머");
+    expect(applyCanvasTitle(next, "").includes("<title></title>")).toBe(true);
   });
 });

@@ -25,6 +25,20 @@ export type TAIChatSession = {
   createdAt: string;
 };
 
+export type TAssessmentGradeChatPayload = {
+  kind: "assessment-grade";
+  byField?: Record<
+    string,
+    {
+      score?: number;
+      levelId?: string;
+      comment?: string;
+      byRubric?: Record<string, { levelId?: string; comment?: string }>;
+    }
+  >;
+  final?: { comment?: string };
+};
+
 export type TAIChatMessage = {
   _id: string;
   session: string;
@@ -37,6 +51,7 @@ export type TAIChatMessage = {
   content: string;
   /** Alter Skill id (chat | syllabus-draft …) */
   skill?: string;
+  payload?: TAssessmentGradeChatPayload;
   tokenUsage?: {
     promptTokens: number;
     candidatesTokens: number;

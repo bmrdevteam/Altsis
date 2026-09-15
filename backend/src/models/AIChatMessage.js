@@ -43,6 +43,7 @@ const tokenUsageSchema = mongoose.Schema(
  * @prop {string} senderName - 발신자 이름
  * @prop {string} content - 메시지 내용
  * @prop {string} skill - Alter Skill id (chat | syllabus-review …)
+ * @prop {object?} payload - 스킬 결과(채점 초안 등)
  * @prop {TTokenUsage?} tokenUsage - 토큰 사용량
  * @prop {boolean} isDeleted=false - 삭제 여부
  */
@@ -60,6 +61,7 @@ const aiChatMessageSchema = mongoose.Schema(
     senderName: { type: String, required: true },
     content: { type: String, required: true },
     skill: { type: String, default: "chat" },
+    payload: { type: mongoose.Schema.Types.Mixed, default: undefined },
     tokenUsage: tokenUsageSchema,
     isDeleted: { type: Boolean, default: false },
   },

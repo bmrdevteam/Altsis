@@ -12,6 +12,10 @@ import {
 } from "../models/index.js";
 import { AI_ERRORS, FEATURE_PROFILES, truncateText } from "./aiPromptPolicy.js";
 import { generateText, resolveModel, resolveProvider } from "./aiProvider.js";
+import {
+  SKILL_IDS,
+  executeAssessmentGradeSkill,
+} from "./aiSkills.js";
 import { maskSensitiveText } from "./aiSafety.js";
 import { logAIUsage } from "./aiUsage.js";
 import { assertAiUserQuota } from "./aiUsageQuota.js";
@@ -47,20 +51,31 @@ export const hasSchoolSkillConfig = (school) =>
     Object.keys(school.aiConfig.skills).length > 0
   );
 
+const findAiPermissionException = (exceptions, userId) => {
+  const id = String(userId || "").trim();
+  if (!id) return undefined;
+  return (exceptions || []).find(
+    (item) => String(item.user) === id || String(item.userId) === id
+  );
+};
+
 export const hasSchoolAiPermissionAuthority = (school) => {
   const perm = school?.aiConfig?.permission;
   return (
     hasSchoolSkillConfig(school) ||
     perm?.teacher === true ||
-    perm?.student === true
+    perm?.student === true ||
+    (perm?.exceptions || []).length > 0
   );
 };
 
-export const resolveAiRolePermission = (school, season, role) => {
+export const resolveAiRolePermission = (school, season, role, userId) => {
   const useSchoolPerm = hasSchoolAiPermissionAuthority(school);
   const schoolPerm = school?.aiConfig?.permission;
   const seasonPerm = season?.aiSettings?.permission;
   if (role === "teacher") {
+    const exception = findAiPermissionException(schoolPerm?.exceptions, userId);
+    if (exception) return !!exception.isAllowed;
     return useSchoolPerm ? !!schoolPerm?.teacher : !!seasonPerm?.teacher;
   }
   return useSchoolPerm ? !!schoolPerm?.student : !!seasonPerm?.student;
@@ -201,7 +216,7 @@ export const assertTeacherCanAddAiChatField = async ({
     school,
     checkQuota: false,
   });
-  if (!resolveAiRolePermission(school, season, "teacher")) {
+  if (!resolveAiRolePermission(school, season, "teacher", user?._id)) {
     throwHttp(403, PERMISSION_DENIED);
   }
   return academy;
@@ -281,6 +296,112 @@ export const findAiChatField = (form, fieldId) =>
   (form?.fields || []).find(
     (f) => String(f._id) === String(fieldId) && isAiChatFieldType(f.type)
   ) || null;
+
+const isRespondentGradeField = (field) =>
+  !!field?.gradingMethod &&
+  field.gradingMethod !== "none" &&
+  field.permission !== "owner";
+
+const firstGradeDraft = (draft) => {
+  const first = Array.isArray(draft?.rows) ? draft.rows[0] : draft;
+  return {
+    first,
+    byField: first?.byField || draft?.byField || {},
+  };
+};
+
+const findRubricLevel = (form, rubricId, levelId) => {
+  const rubric = (form?.rubrics || []).find(
+    (r) => String(r.id) === String(rubricId)
+  );
+  const level = (rubric?.levels || []).find(
+    (lv) => String(lv.id) === String(levelId)
+  );
+  return { rubric, level };
+};
+
+/** 채점 스킬 초안을 메시지 payload로 (owner 제외) */
+export const buildAssessmentGradeChatPayload = (form, draft) => {
+  const { first, byField } = firstGradeDraft(draft);
+  const slim = {};
+  for (const field of form?.fields || []) {
+    if (!isRespondentGradeField(field)) continue;
+    const grade = byField[String(field._id)];
+    if (!grade) continue;
+    const entry = {};
+    const byRubric =
+      grade.byRubric && typeof grade.byRubric === "object"
+        ? grade.byRubric
+        : {};
+    const slimBy = {};
+    for (const [rid, rg] of Object.entries(byRubric)) {
+      const next = {};
+      if (rg?.levelId) next.levelId = String(rg.levelId);
+      const rubricComment = String(rg?.comment || "").trim();
+      if (rubricComment) next.comment = rubricComment;
+      if (next.levelId || next.comment) slimBy[rid] = next;
+    }
+    if (Object.keys(slimBy).length) entry.byRubric = slimBy;
+    if (grade.score != null && Number.isFinite(Number(grade.score))) {
+      entry.score = Number(grade.score);
+    }
+    if (grade.levelId) entry.levelId = String(grade.levelId);
+    const comment = String(grade.comment || "").trim();
+    if (comment) entry.comment = comment;
+    slim[String(field._id)] = entry;
+  }
+  const finalComment = String(first?.final?.comment || "").trim();
+  return {
+    kind: "assessment-grade",
+    byField: slim,
+    ...(finalComment ? { final: { comment: finalComment } } : {}),
+  };
+};
+
+/** 채점 스킬 초안을 양식 챗봇 메시지로 */
+export const formatAssessmentGradeChatText = (form, draft) => {
+  const { first, byField } = firstGradeDraft(draft);
+  const lines = [];
+  for (const field of form?.fields || []) {
+    if (!isRespondentGradeField(field)) continue;
+    const grade = byField[String(field._id)];
+    if (!grade) continue;
+    const heading = String(field.label || "").trim() || "항목";
+    lines.push(`### ${heading}`);
+    const byRubric =
+      grade.byRubric && typeof grade.byRubric === "object"
+        ? grade.byRubric
+        : {};
+    for (const [rid, entry] of Object.entries(byRubric)) {
+      const { rubric, level } = findRubricLevel(form, rid, entry?.levelId);
+      const title = String(rubric?.title || "").trim() || "루브릭";
+      const label = String(level?.label || "").trim();
+      if (label) {
+        const points = Number(level?.points);
+        const pointsText =
+          level?.points != null && Number.isFinite(points)
+            ? ` (${points}점)`
+            : "";
+        lines.push(`- ${title}: ${label}${pointsText}`);
+      }
+      if (String(entry?.comment || "").trim()) {
+        lines.push(String(entry.comment).trim());
+      }
+    }
+    if (grade.score != null && Number.isFinite(Number(grade.score))) {
+      lines.push(`- 점수: ${grade.score}`);
+    }
+    if (String(grade.comment || "").trim()) {
+      lines.push(String(grade.comment).trim());
+    }
+  }
+  const finalComment = String(first?.final?.comment || "").trim();
+  if (finalComment) {
+    lines.push("### 총평");
+    lines.push(finalComment);
+  }
+  return lines.join("\n").trim() || "채점 결과를 만들었습니다.";
+};
 
 const writeRowSummary = async (academyId, row, fieldId, session) => {
   if (!row?.data?.set) {
@@ -499,12 +620,17 @@ export const sendFormAiChatMessage = async ({
   fieldId,
   rowId,
   content,
+  skill,
   season,
   school,
   schoolRole,
 }) => {
+  const isGradeSkill = String(skill || "") === SKILL_IDS.ASSESSMENT_GRADE;
   const raw = String(content || "").trim();
-  if (!raw) throwHttp(400, FIELD_REQUIRED("content"));
+  if (!isGradeSkill && !raw) throwHttp(400, FIELD_REQUIRED("content"));
+  if (isGradeSkill && !form.settings?.assessmentMode) {
+    throwHttp(400, "평가 모드 양식에서만 채점할 수 있습니다.");
+  }
 
   const field = findAiChatField(form, fieldId);
   if (!field) throwHttp(404, __NOT_FOUND("field"));
@@ -542,7 +668,10 @@ export const sendFormAiChatMessage = async ({
     user,
   });
 
-  const safeUserText = maskSensitiveText(raw).text;
+  const safeUserText = maskSensitiveText(
+    raw || "이 작성 중인 답을 루브릭에 맞게 피드백해 주세요."
+  ).text;
+  const usedSkill = isGradeSkill ? SKILL_IDS.ASSESSMENT_GRADE : FORM_AI_CHAT_FEATURE;
   const userMsg = await AIChatMessage(academyId).create({
     session: session._id,
     board: board._id,
@@ -551,28 +680,51 @@ export const sendFormAiChatMessage = async ({
     senderId: user.userId,
     senderName: user.userName,
     content: safeUserText,
-    skill: FORM_AI_CHAT_FEATURE,
+    skill: usedSkill,
   });
 
-  const recent = await AIChatMessage(academyId)
-    .find({ session: session._id, isDeleted: false })
-    .sort({ createdAt: -1 })
-    .limit(HISTORY_LIMIT)
-    .lean();
-  recent.reverse();
-  const chatMessages = recent.map((msg) => ({
-    role: msg.senderType === "ai" ? "assistant" : "user",
-    content: maskSensitiveText(msg.content || "").text,
-  }));
-
-  const systemInstruction = buildFormAiChatSystemPrompt({ form, field, board });
-  const { text, tokenUsage } = await callFormAi(
-    academyId,
-    academy,
-    user,
-    systemInstruction,
-    chatMessages
-  );
+  let text;
+  let tokenUsage;
+  let payload;
+  if (isGradeSkill) {
+    const graded = await executeAssessmentGradeSkill({
+      academyId,
+      user,
+      academy,
+      school,
+      season,
+      context: {
+        formId: String(form._id),
+        rowId: String(row._id),
+        respondentPreview: true,
+      },
+      message: safeUserText,
+    });
+    text = formatAssessmentGradeChatText(form, graded.draft);
+    payload = buildAssessmentGradeChatPayload(form, graded.draft);
+    tokenUsage = graded.tokenUsage;
+  } else {
+    const recent = await AIChatMessage(academyId)
+      .find({ session: session._id, isDeleted: false })
+      .sort({ createdAt: -1 })
+      .limit(HISTORY_LIMIT)
+      .lean();
+    recent.reverse();
+    const chatMessages = recent.map((msg) => ({
+      role: msg.senderType === "ai" ? "assistant" : "user",
+      content: maskSensitiveText(msg.content || "").text,
+    }));
+    const systemInstruction = buildFormAiChatSystemPrompt({ form, field, board });
+    const generated = await callFormAi(
+      academyId,
+      academy,
+      user,
+      systemInstruction,
+      chatMessages
+    );
+    text = generated.text;
+    tokenUsage = generated.tokenUsage;
+  }
 
   const aiMsg = await AIChatMessage(academyId).create({
     session: session._id,
@@ -582,7 +734,8 @@ export const sendFormAiChatMessage = async ({
     senderId: null,
     senderName: "Alter",
     content: text,
-    skill: FORM_AI_CHAT_FEATURE,
+    skill: usedSkill,
+    ...(payload ? { payload } : {}),
     tokenUsage,
   });
 

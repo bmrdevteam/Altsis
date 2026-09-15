@@ -67,4 +67,15 @@ describe("sanitizeMarkdownInlineStyle", () => {
       sanitizeMarkdownInlineStyle("span", "font-family: Comic Sans MS")
     ).toBe("");
   });
+
+  test("keeps unitless line-height on p", () => {
+    expect(sanitizeMarkdownInlineStyle("p", "line-height: 1.8")).toBe(
+      "line-height: 1.8"
+    );
+  });
+
+  test("drops unit and out-of-range line-height", () => {
+    expect(sanitizeMarkdownInlineStyle("p", "line-height: 1.8em")).toBe("");
+    expect(sanitizeMarkdownInlineStyle("p", "line-height: 4")).toBe("");
+  });
 });

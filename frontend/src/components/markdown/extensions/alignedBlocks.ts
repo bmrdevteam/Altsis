@@ -16,6 +16,11 @@ import {
   nextIndent,
   parseIndentFromPadding,
 } from "../blockIndent";
+import {
+  clampLineHeight,
+  formatLineHeight,
+  parseLineHeight,
+} from "../blockLineHeight";
 
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
@@ -23,6 +28,10 @@ declare module "@tiptap/core" {
       indentBlockBy: (delta: number) => ReturnType;
       indentBlock: () => ReturnType;
       outdentBlock: () => ReturnType;
+    };
+    blockLineHeight: {
+      setBlockLineHeight: (lineHeight: number | null) => ReturnType;
+      unsetBlockLineHeight: () => ReturnType;
     };
   }
 }
@@ -77,6 +86,48 @@ const indentAttribute = {
       return { style: `padding-left: ${formatIndentPadding(n)}` };
     },
   },
+};
+
+const lineHeightAttribute = {
+  lineHeight: {
+    default: null,
+    parseHTML: (element: HTMLElement) =>
+      parseLineHeight(element.style.lineHeight),
+    renderHTML: (attributes: { lineHeight?: number | null }) => {
+      const lh = formatLineHeight(attributes.lineHeight);
+      if (!lh) return {};
+      return { style: `line-height: ${lh}` };
+    },
+  },
+};
+
+const collectLineHeightBlocks = (
+  state: EditorState
+): { pos: number; node: PMNode }[] => {
+  const { from, to } = state.selection;
+  const blocks: { pos: number; node: PMNode }[] = [];
+  state.doc.nodesBetween(from, to, (node, pos) => {
+    if (!isBlockIndentTarget(node.type.name)) return;
+    blocks.push({ pos, node });
+    return false;
+  });
+  return blocks;
+};
+
+const applyLineHeight = (
+  state: EditorState,
+  tr: Transaction,
+  lineHeight: number | null
+): boolean => {
+  const blocks = collectLineHeightBlocks(state);
+  if (blocks.length === 0) return false;
+  const next = lineHeight == null ? null : clampLineHeight(lineHeight);
+  for (let i = blocks.length - 1; i >= 0; i -= 1) {
+    const { pos, node } = blocks[i];
+    if (clampLineHeight(node.attrs.lineHeight) === next) continue;
+    tr.setNodeMarkup(pos, undefined, { ...node.attrs, lineHeight: next });
+  }
+  return tr.docChanged;
 };
 
 const runIndentDelta = (
@@ -161,6 +212,7 @@ export const AlignedParagraph = Paragraph.extend({
     return {
       ...this.parent?.(),
       ...indentAttribute,
+      ...lineHeightAttribute,
     };
   },
   addCommands() {
@@ -178,6 +230,17 @@ export const AlignedParagraph = Paragraph.extend({
         () =>
         ({ commands }) =>
           commands.indentBlockBy(-TOOLBAR_INDENT_STEP),
+      setBlockLineHeight:
+        (lineHeight: number | null) =>
+        ({ state, dispatch, tr }) => {
+          const ok = applyLineHeight(state, tr, lineHeight);
+          if (ok && dispatch) dispatch(tr);
+          return ok;
+        },
+      unsetBlockLineHeight:
+        () =>
+        ({ commands }) =>
+          commands.setBlockLineHeight(null),
     };
   },
   addKeyboardShortcuts() {
@@ -206,6 +269,7 @@ export const AlignedHeading = Heading.extend({
     return {
       ...this.parent?.(),
       ...indentAttribute,
+      ...lineHeightAttribute,
     };
   },
   addStorage() {
