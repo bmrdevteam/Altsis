@@ -6766,6 +6766,28 @@ tbody tr:hover .actionCell {
 .sheetApprovalTitleCell {
   font-weight: 600;
   word-break: break-word;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sheetApprovalTitleText {
+  min-width: 0;
+}
+
+.sheetApprovalAttachMark {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  color: var(--text-color-2);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+
+  svg {
+    fill: currentColor;
+  }
 }
 
 .sheetApprovalWaitingWarn {

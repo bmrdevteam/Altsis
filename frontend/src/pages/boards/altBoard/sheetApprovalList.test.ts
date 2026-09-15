@@ -7,6 +7,7 @@ import {
   buildApprovalListItem,
   composeApprovalCardTitle,
   countApprovalInbox,
+  countRowFileAttachments,
   formatWaitingLabel,
   isSelectableApprovalItem,
   matchesApprovalInboxFilter,
@@ -249,6 +250,7 @@ describe("buildApprovalListItem / inbox filter", () => {
     expect(item && isSelectableApprovalItem(item)).toBe(true);
     expect(item && matchesApprovalInboxFilter(item, "mine")).toBe(true);
     expect(item && matchesApprovalInboxFilter(item, "pending")).toBe(true);
+    expect(item?.attachmentCount).toBe(0);
   });
 
   test("marks mine submitted by oid or userId", () => {
@@ -436,5 +438,85 @@ describe("resolveApprovalPrintRows", () => {
     );
     expect(result.fromSelection).toBe(true);
     expect(result.rows.map((r) => r._id)).toEqual(["rej", "oth"]);
+  });
+});
+
+const fileField = {
+  _id: "file1",
+  label: "첨부 파일",
+  type: "file",
+} as TAltFormField;
+
+const extraFileField = {
+  _id: "file2",
+  label: "참고 파일",
+  type: "file",
+} as TAltFormField;
+
+const linkField = {
+  _id: "link1",
+  label: "링크",
+  type: "link",
+} as TAltFormField;
+
+describe("countRowFileAttachments", () => {
+  test("counts a single file", () => {
+    expect(
+      countRowFileAttachments(
+        {
+          file1: [{ key: "s3/a.pdf", originalName: "견적서.pdf" }],
+        },
+        [fileField]
+      )
+    ).toBe(1);
+  });
+
+  test("counts files and links in file fields, including multiple fields", () => {
+    expect(
+      countRowFileAttachments(
+        {
+          file1: [
+            { key: "s3/a.pdf", originalName: "견적서.pdf" },
+            { url: "https://example.com/doc", title: "참고" },
+          ],
+          file2: [{ key: "s3/b.png", originalName: "영수증.png" }],
+          link1: { url: "https://example.com/other" },
+        },
+        [fileField, extraFileField, linkField]
+      )
+    ).toBe(3);
+  });
+
+  test("ignores empty arrays and invalid items", () => {
+    expect(
+      countRowFileAttachments(
+        {
+          file1: [{}, { key: "" }, { url: "" }, null],
+        },
+        [fileField]
+      )
+    ).toBe(0);
+  });
+
+  test("returns 0 when there is no file field or data", () => {
+    expect(countRowFileAttachments(undefined, [fileField])).toBe(0);
+    expect(countRowFileAttachments({ file1: [] }, undefined)).toBe(0);
+    expect(
+      countRowFileAttachments({ title1: "문서" }, [titleField, approvalField])
+    ).toBe(0);
+  });
+
+  test("buildApprovalListItem exposes attachmentCount", () => {
+    const row = makeRow({
+      title1: "구매 품의",
+      file1: [{ key: "s3/a.pdf", originalName: "견적서.pdf" }],
+      appr1: pendingValue,
+    });
+    const item = buildApprovalListItem(
+      row,
+      [titleField, fileField, approvalField],
+      "jo"
+    );
+    expect(item?.attachmentCount).toBe(1);
   });
 });
