@@ -19,6 +19,7 @@ import {
   hasSubmittedOccurrence,
 } from "./weekdaySchedule.js";
 import { resolveAltBoardRole } from "./boards.js";
+import { isSchoolManager } from "../utils/schoolManager.js";
 
 export {
   isWeekdayScheduleEnabled,
@@ -89,7 +90,7 @@ export const canModifyForm = (form, board, user) => {
   }
   if (form.creator && form.creator.equals(user._id)) return true;
   if (getAltBoardRole(board, user) === "admin") return true;
-  if (user.auth === "manager") return true;
+  if (isSchoolManager(user, board?.school || board?.schoolId)) return true;
   return false;
 };
 
@@ -136,7 +137,7 @@ export const normalizeFormAccess = (access) => {
  * @param {string|null} [schoolRole] teacher|student|manager
  * @returns {boolean}
  */
-export const userMatchesAccessList = (access, user, schoolRole) => {
+export const userMatchesAccessList = (access, user, schoolRole, schoolRef) => {
   if (!access || !user) return false;
   const users = access.users || [];
   const uid = user._id != null ? String(user._id) : "";
@@ -148,17 +149,17 @@ export const userMatchesAccessList = (access, user, schoolRole) => {
     return true;
   }
   const g = access.groups || {};
-  if (g.manager && (user.auth === "manager" || schoolRole === "manager")) {
+  if (g.manager && isSchoolManager(user, schoolRef)) {
     return true;
   }
-  if (schoolRole && g[schoolRole]) return true;
+  if (schoolRole && schoolRole !== "manager" && g[schoolRole]) return true;
   return false;
 };
 
-/** 보드 admin · 시스템 manager · 양식 작성자 */
+/** 보드 admin · 해당 학교 관리자 · 양식 작성자 */
 export const isFormStaff = (form, board, user) => {
   if (!user) return false;
-  if (user.auth === "admin" || user.auth === "manager") return true;
+  if (isSchoolManager(user, board?.school || board?.schoolId)) return true;
   if (form?.creator && idsEqual(form.creator, user._id)) return true;
   if (getAltBoardRole(board, user) === "admin") return true;
   return false;
@@ -174,7 +175,12 @@ export const isFormMember = (form, board, user, schoolRole = null) => {
   if (!getAltBoardRole(board, user, schoolRole)) return false;
   if (canViewAllRows(form, board, user, schoolRole)) return true;
   if (!isAccessListCustom(form?.members)) return true;
-  return userMatchesAccessList(form.members, user, schoolRole);
+  return userMatchesAccessList(
+    form.members,
+    user,
+    schoolRole,
+    board?.school || board?.schoolId
+  );
 };
 
 /**
@@ -185,7 +191,12 @@ export const isFormMember = (form, board, user, schoolRole = null) => {
 export const isFormRespondent = (form, board, user, schoolRole = null) => {
   if (!user || !getAltBoardRole(board, user, schoolRole)) return false;
   if (!isAccessListCustom(form?.members)) return true;
-  return userMatchesAccessList(form.members, user, schoolRole);
+  return userMatchesAccessList(
+    form.members,
+    user,
+    schoolRole,
+    board?.school || board?.schoolId
+  );
 };
 
 /**
@@ -198,7 +209,12 @@ export const canViewAllRows = (form, board, user, schoolRole = null) => {
   if (!isAccessListCustom(form?.writers)) {
     return canManageForm(board, user);
   }
-  return userMatchesAccessList(form.writers, user, schoolRole);
+  return userMatchesAccessList(
+    form.writers,
+    user,
+    schoolRole,
+    board?.school || board?.schoolId
+  );
 };
 
 /** getVisibleFields용 역할: 기록 전체면 writer, 멤버면 respondent */

@@ -54,6 +54,7 @@ import useAPIv2 from "hooks/useAPIv2";
 import { TSchool } from "types/schools";
 import Loading from "components/loading/Loading";
 import { TSeason } from "types/seasons";
+import { isSchoolManager } from "utils/schoolManager";
 
 type Props = {};
 
@@ -97,8 +98,15 @@ const School = (props: Props) => {
 
   useEffect(() => {
     if (isLoading && pid) {
-      if (currentUser.auth === "manager" && currentSchool._id !== pid) {
-        return navigate("/admin/schools/" + currentSchool._id);
+      if (
+        currentUser.auth !== "admin" &&
+        !isSchoolManager(currentUser, pid)
+      ) {
+        return navigate(
+          isSchoolManager(currentUser, currentSchool?._id)
+            ? "/admin/schools/" + currentSchool._id
+            : "/"
+        );
       }
       SchoolAPI.RSchool({ params: { _id: pid } })
         .then(({ school, academyFeatures }) => {

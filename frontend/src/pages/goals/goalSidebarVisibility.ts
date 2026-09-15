@@ -5,10 +5,13 @@
  * - 기능 OFF: 일반 구성원에게는 숨기고, 학교 관리자만 설정으로 돌아가는 진입점을 둔다.
  */
 
+import { isSchoolManager, TSchoolManagerUser } from "utils/schoolManager";
+
 export type TGoalSidebarAudience = {
   schoolId?: string;
   goalsEnabled?: boolean;
   auth?: string;
+  user?: TSchoolManagerUser;
 };
 
 export type TGoalSidebarMode = "hidden" | "disabled" | "active";
@@ -17,7 +20,12 @@ export function isGoalsFeatureEnabled(goalsEnabled?: boolean): boolean {
   return goalsEnabled !== false;
 }
 
-export function canManageSchoolGoals(auth?: string): boolean {
+export function canManageSchoolGoals(
+  auth?: string,
+  user?: TSchoolManagerUser,
+  schoolId?: string
+): boolean {
+  if (user) return isSchoolManager(user, schoolId);
   return auth === "admin" || auth === "manager";
 }
 
@@ -26,7 +34,9 @@ export function goalsSidebarMode(
 ): TGoalSidebarMode {
   if (!params.schoolId) return "hidden";
   if (isGoalsFeatureEnabled(params.goalsEnabled)) return "active";
-  if (canManageSchoolGoals(params.auth)) return "disabled";
+  if (canManageSchoolGoals(params.auth, params.user, params.schoolId)) {
+    return "disabled";
+  }
   return "hidden";
 }
 

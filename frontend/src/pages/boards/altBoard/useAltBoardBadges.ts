@@ -182,15 +182,21 @@ export const useAltBoardBadges = (
 
   const activityBadgeCount = (() => {
     const now = new Date();
-    const schoolRole =
-      currentUser?.auth === "manager"
-        ? "manager"
-        : currentRegistration?.role || null;
+  const schoolRole = currentRegistration?.role || null;
     const myRole = board
       ? getMyAltBoardRole(board, currentUser, schoolRole)
       : null;
     const unsubmitted = forms.filter((f) => {
-      if (!isFormRespondent(f, currentUser, myRole, schoolRole)) return false;
+      if (
+        !isFormRespondent(
+          f,
+          currentUser,
+          myRole,
+          schoolRole,
+          board?.school || board?.schoolId
+        )
+      )
+        return false;
       return shouldShowUnsubmittedTodoForm(f, now);
     }).length;
     return unsubmitted + pendingApprovalCount + gradeTodoCount;

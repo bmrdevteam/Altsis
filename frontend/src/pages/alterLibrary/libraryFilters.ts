@@ -5,6 +5,7 @@ import {
   TAlterSkillId,
 } from "types/schools";
 import { isLibraryStaffAuth } from "./libraryAccess";
+import { TSchoolManagerUser } from "utils/schoolManager";
 
 export type TLibraryListFilter =
   | "all"
@@ -108,9 +109,19 @@ export const libraryFilterCounts = (items: TAiLibraryItem[]) => ({
 
 export const canEditLibraryItem = (
   item: TAiLibraryItem,
-  { userId, auth }: { userId?: string; auth?: string | null }
+  {
+    userId,
+    auth,
+    user,
+    schoolId,
+  }: {
+    userId?: string;
+    auth?: string | null;
+    user?: TSchoolManagerUser;
+    schoolId?: string;
+  }
 ) => {
-  const staff = isLibraryStaffAuth(auth);
+  const staff = isLibraryStaffAuth(auth, user, schoolId);
   if (isSchoolOfficialItem(item)) return staff;
   if (item.visibility === "shared") {
     return staff || String(item.owner) === String(userId);
@@ -123,5 +134,7 @@ export const canEditLibraryItem = (
 
 export const canPromoteLibraryItem = (
   item: TAiLibraryItem,
-  auth?: string | null
-) => isLibraryStaffAuth(auth) && item.visibility === "shared";
+  auth?: string | null,
+  user?: TSchoolManagerUser,
+  schoolId?: string
+) => isLibraryStaffAuth(auth, user, schoolId) && item.visibility === "shared";

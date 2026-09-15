@@ -47,6 +47,15 @@ import {
 import { postMulter, isImageFile } from "../_s3/postMulter.js";
 import { signUrl, signUrlForView, fileS3, fileBucket } from "../_s3/fileBucket.js";
 import { tryCommitUpload } from "../services/academyStorage.js";
+import { isSchoolManager } from "../utils/schoolManager.js";
+
+const isPostSchoolManager = async (academyId, user, post) => {
+  const board = await Board(academyId)
+    .findById(post.board)
+    .select("school schoolId")
+    .lean();
+  return isSchoolManager(user, board?.school || board?.schoolId);
+};
 
 /** 시트명 또는 동일 제목 양식으로 AltSheet 해석 (조회 시 name 무단 변경 없음) */
 const resolveAltSheetByName = async (academyId, boardId, sheetName) => {
@@ -620,7 +629,11 @@ export const update = async (req, res) => {
 
     // 작성자 또는 관리자만 수정 가능 (비공개는 작성자만)
     const isAuthor = post.author.equals(req.user._id);
-    const isManager = req.user.auth === "admin" || req.user.auth === "manager";
+    const isManager = await isPostSchoolManager(
+      req.user.academyId,
+      req.user,
+      post
+    );
 
     if (post.isDraft && !isAuthor) {
       return res.status(403).send({ message: PERMISSION_DENIED });
@@ -889,7 +902,11 @@ export const remove = async (req, res) => {
     }
 
     const isAuthor = post.author.equals(req.user._id);
-    const isManager = req.user.auth === "admin" || req.user.auth === "manager";
+    const isManager = await isPostSchoolManager(
+      req.user.academyId,
+      req.user,
+      post
+    );
 
     if (!isAuthor && !isManager) {
       return res.status(403).send({ message: PERMISSION_DENIED });
@@ -1083,8 +1100,7 @@ export const duplicate = async (req, res) => {
 
     const isAuthor =
       post.author?.equals?.(req.user._id) || post.authorId === req.user.userId;
-    const isManager =
-      req.user.auth === "admin" || req.user.auth === "manager";
+    const isManager = isSchoolManager(req.user, board.school || board.schoolId);
     if (!isAuthor && !isManager && !isBoardWriter(board, req.user, role)) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }

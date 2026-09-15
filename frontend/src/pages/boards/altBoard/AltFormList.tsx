@@ -239,16 +239,19 @@ const AltFormList = ({
     };
   }, [board._id, currentSchool?._id, currentSeasonId]);
 
-  const schoolRole =
-    currentUser?.auth === "manager"
-      ? "manager"
-      : currentRegistration?.role || null;
+  const schoolRole = currentRegistration?.role || null;
 
   const listedForms = useMemo(
     () =>
       forms.map((f) => ({
         ...f,
-        myRespondent: isFormRespondent(f, currentUser, myRole, schoolRole),
+        myRespondent: isFormRespondent(
+          f,
+          currentUser,
+          myRole,
+          schoolRole,
+          board.school || board.schoolId
+        ),
       })),
     [forms, currentUser, myRole, schoolRole]
   );

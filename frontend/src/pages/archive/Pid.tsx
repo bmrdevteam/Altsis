@@ -1,4 +1,5 @@
 import { useAuth } from "contexts/authContext";
+import { isSchoolManager } from "utils/schoolManager";
 
 import _ from "lodash";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -91,7 +92,7 @@ const ArchiveField = (props: Props) => {
 
   useEffect(() => {
     if (isLoading) {
-      const isManager = currentUser.auth === "manager";
+      const isManager = isSchoolManager(currentUser, currentSchool?._id);
       const hasManagerPermission =
         formArchive().authManager === "viewAndEdit";
       const isTeacher = currentRegistration?.role === "teacher";

@@ -3,6 +3,7 @@ import { canManageBoardChatRooms } from "../../src/utils/boardChatPermissions.js
 describe("canManageBoardChatRooms", () => {
   const boardBase = {
     creator: "creator-oid",
+    schoolId: "s1",
     altBoardRole: {
       "admin-oid": "admin",
       "writer-oid": "writer",
@@ -21,8 +22,16 @@ describe("canManageBoardChatRooms", () => {
       canManageBoardChatRooms(boardBase, {
         _id: "x",
         auth: "manager",
+        schools: [{ schoolId: "s1" }],
       })
     ).toBe(true);
+    expect(
+      canManageBoardChatRooms(boardBase, {
+        _id: "x",
+        auth: "manager",
+        schools: [{ schoolId: "other", schoolAuth: "manager" }],
+      })
+    ).toBe(false);
   });
 
   it("allows board creator", () => {

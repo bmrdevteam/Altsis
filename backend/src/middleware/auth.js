@@ -1,6 +1,7 @@
 import { conn } from "../_database/mongodb/index.js";
 import { client } from "../_database/redis/index.js";
 import { PERMISSION_DENIED } from "../messages/index.js";
+import { hasAnySchoolManagerRole } from "../utils/schoolManager.js";
 
 export const isLoggedIn = (req, res, next) => {
   if (req.isAuthenticated()) {
@@ -60,12 +61,9 @@ export const isAdmin = (req, res, next) => {
   }
 };
 
-// isAdmin || isManager
+// 아카데미 관리자 또는 어느 학교든 학교 관리자 (레거시 manager 포함)
 export const isAdManager = (req, res, next) => {
-  if (
-    req.isAuthenticated() &&
-    (req.user.auth === "admin" || req.user.auth === "manager")
-  ) {
+  if (req.isAuthenticated() && hasAnySchoolManagerRole(req.user)) {
     next();
   } else {
     res.status(403).send({ message: PERMISSION_DENIED });

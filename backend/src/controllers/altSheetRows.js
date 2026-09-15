@@ -47,6 +47,7 @@ import {
   isSeasonScopedBoard,
 } from "../services/boards.js";
 import { getSchoolTodosForUser } from "../services/schoolTodos.js";
+import { isSchoolManager } from "../utils/schoolManager.js";
 import { sendAutoNotification, isBoardNotificationEnabled } from "../services/notifications.js";
 import { sendApprovalActionNotifications } from "../services/approvalActionNotify.js";
 import { validateBulkApproveRequest } from "../utils/bulkApproveGuard.js";
@@ -115,7 +116,6 @@ const serializeRowForViewer = (row, form, board, user, schoolRole) => {
   const canSeeFull =
     role === "admin" ||
     role === "writer" ||
-    user?.auth === "manager" ||
     canViewAllRows(form, board, user, schoolRole);
   const viewerRole =
     getFormViewerRole(form, board, user, schoolRole) || "respondent";
@@ -1179,8 +1179,7 @@ export const findMy = async (req, res) => {
         )
       : null;
     const canSeeFullRow =
-      (board && canViewAllRows(form, board, req.user, schoolRole)) ||
-      req.user.auth === "manager";
+      board && canViewAllRows(form, board, req.user, schoolRole);
     const viewerRole = board
       ? getFormViewerRole(form, board, req.user, schoolRole) || "respondent"
       : "respondent";
@@ -1251,7 +1250,9 @@ export const update = async (req, res) => {
       req.user
     );
     const role = getAltBoardRole(board, req.user, schoolRole);
-    const isAdmin = role === "admin" || req.user.auth === "manager";
+    const isAdmin =
+      role === "admin" ||
+      isSchoolManager(req.user, board?.school || board?.schoolId);
 
     if (!isAdmin && !canApproveAny) {
       return res.status(403).send({ message: PERMISSION_DENIED });
@@ -1471,7 +1472,9 @@ export const remove = async (req, res) => {
       req.user
     );
     const role = getAltBoardRole(board, req.user, schoolRole);
-    const isAdmin = role === "admin" || req.user.auth === "manager";
+    const isAdmin =
+      role === "admin" ||
+      isSchoolManager(req.user, board?.school || board?.schoolId);
     const isOwner = row._respondent && row._respondent.equals(req.user._id);
 
     const form = await AltForm(req.user.academyId).findById(row.form);
@@ -2186,7 +2189,10 @@ export const findById = async (req, res) => {
       req.user
     );
     const role = getAltBoardRole(board, req.user, schoolRole);
-    const isAdmin = role === "admin" || role === "writer" || req.user.auth === "manager";
+    const isAdmin =
+      role === "admin" ||
+      role === "writer" ||
+      isSchoolManager(req.user, board?.school || board?.schoolId);
     const canSeeFullRow =
       isAdmin || canViewAllRows(form, board, req.user, schoolRole);
     const viewerRole =

@@ -7,6 +7,7 @@ export type TUser = {
     school: string;
     schoolId: string;
     schoolName: string;
+    schoolAuth?: "manager" | "member";
   }[];
   tel?: string;
   email?: string;

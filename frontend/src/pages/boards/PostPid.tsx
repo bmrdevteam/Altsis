@@ -30,6 +30,7 @@ import { TComment } from "types/comment";
 import { DateRange } from "components/dateRangeFilter/DateRangeFilterDropdown";
 import MergeStyleFilterBar from "components/mergeFilter/MergeStyleFilterBar";
 import { getBoardDocsListPath } from "utils/boardCoursePath";
+import { isSchoolManager } from "utils/schoolManager";
 import { printArea } from "utils/printArea";
 
 import UserListPopup from "./popup/UserListPopup";
@@ -56,7 +57,7 @@ const PostPid = ({
   const params = useParams<{ boardId: string; postId: string }>();
   const boardId = boardIdProp ?? params.boardId;
   const postId = postIdProp ?? params.postId;
-  const { currentUser } = useAuth();
+  const { currentUser, currentSchool } = useAuth();
   const { PostAPI, CommentAPI, SurveyResponseAPI, BoardAPI } = useAPIv2();
 
   const [post, setPost] = useState<TPost | null>(null);
@@ -162,8 +163,10 @@ const PostPid = ({
   };
 
   const isAuthor = currentUser?._id === post?.author;
-  const isManager =
-    currentUser?.auth === "admin" || currentUser?.auth === "manager";
+  const isManager = isSchoolManager(
+    currentUser,
+    board?.school || board?.schoolId || currentSchool?._id
+  );
   const canEdit = isAuthor || isManager;
 
   // 댓글 작성 권한: 멤버는 댓글 가능

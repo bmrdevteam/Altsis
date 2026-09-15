@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "contexts/authContext";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import { isSchoolManager } from "utils/schoolManager";
 
 import style from "./altBoard.module.scss";
 import Svg from "assets/svg/Svg";
@@ -82,13 +83,14 @@ const AltDocsView = ({ board, onPostsChanged }: Props) => {
   const contentViewMode: TBoardContentViewMode =
     board.contentViewMode || "table";
 
-  const isManager =
-    currentUser?.auth === "admin" || currentUser?.auth === "manager";
+  const isManager = isSchoolManager(
+    currentUser,
+    board.school || board.schoolId
+  );
 
   const canWrite = () => {
     if (!board) return false;
-    if (currentUser?.auth === "admin") return true;
-    if (currentUser?.auth === "manager") return true;
+    if (isManager) return true;
     if (board.creator && board.creator === currentUser?._id) return true;
     if (
       board.writers?.users?.some((u) => u.userId === currentUser?.userId)

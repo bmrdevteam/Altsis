@@ -8,6 +8,7 @@ import { logger } from "../log/logger.js";
 import { Archive } from "../models/Archive.js";
 import { School } from "../models/School.js";
 import { Registration } from "../models/Registration.js";
+import { isSchoolManager } from "../utils/schoolManager.js";
 import mongoose from "mongoose";
 const ObjectId = mongoose.Types.ObjectId;
 import _ from "lodash";
@@ -95,7 +96,7 @@ export const findByRegistration = async (req, res) => {
 
       /* manager with authManager permission can access */
       if (
-        req.user.auth === "manager" &&
+        isSchoolManager(req.user, studentRegistration.school) &&
         formArchiveItem?.authManager === "viewAndEdit"
       ) {
         /* manager: allowed */
@@ -270,7 +271,7 @@ export const updateByRegistration = async (req, res) => {
 
     /* check permission: manager with authManager permission can edit */
     if (
-      user.auth === "manager" &&
+      isSchoolManager(user, archive.school) &&
       formArchiveItem?.authManager === "viewAndEdit"
     ) {
       /* manager: allowed */

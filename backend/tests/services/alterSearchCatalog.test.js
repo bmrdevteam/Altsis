@@ -122,24 +122,52 @@ describe("alterSearchCatalog helpers", () => {
     expect(q.student).toBeUndefined();
   });
 
-  test("manager enrollment query is season-wide", () => {
+  test("manager enrollment query is season-wide for that school", () => {
     const q = buildEnrollmentQuery({
-      user: { _id: "u-m", auth: "manager" },
+      user: {
+        _id: "u-m",
+        auth: "manager",
+        schools: [{ school: "sch1" }],
+      },
       registration: { role: "teacher" },
       seasonIds,
       teacherSyllabusIds: ["sy1"],
+      school: { _id: "sch1" },
     });
     expect(q.syllabus).toBeUndefined();
     expect(q.student).toBeUndefined();
   });
 
+  test("A-school manager is not staff for B enrollments", () => {
+    const q = buildEnrollmentQuery({
+      user: {
+        _id: "u-m",
+        auth: "manager",
+        schools: [
+          { school: "schA", schoolAuth: "manager" },
+          { school: "schB", schoolAuth: "member" },
+        ],
+      },
+      registration: { role: "teacher" },
+      seasonIds,
+      teacherSyllabusIds: ["sy1"],
+      school: { _id: "schB" },
+    });
+    expect(q.syllabus).toEqual({ $in: ["sy1"] });
+  });
+
   test("grade and name filters are $and-ed onto permission query", () => {
     const q = buildEnrollmentQuery({
-      user: { _id: "u-m", auth: "manager" },
+      user: {
+        _id: "u-m",
+        auth: "manager",
+        schools: [{ school: "sch1" }],
+      },
       registration: { role: "teacher" },
       seasonIds,
       grade: "12학년",
       mongoFilter: { studentName: "권시은" },
+      school: { _id: "sch1" },
     });
     expect(JSON.stringify(q)).toContain("s1");
     expect(JSON.stringify(q)).toContain("12학년");

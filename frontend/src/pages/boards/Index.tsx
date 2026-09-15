@@ -22,6 +22,7 @@ import Svg from "assets/svg/Svg";
 import Tab from "components/tab/Tab";
 
 import { TBoard, TBoardLinkFilter, TBoardListViewMode } from "types/board";
+import { isSchoolManager } from "utils/schoolManager";
 import { resolveBoardCoverColor } from "utils/boardCoverColor";
 import { getBoardScopeLabel, isSchoolOnlyBoard, isSeasonLinkedBoard } from "utils/boardLabels";
 
@@ -101,8 +102,7 @@ const Boards = () => {
   const [managingBoard, setManagingBoard] = useState<TBoard | null>(null);
   const [duplicatingBoard, setDuplicatingBoard] = useState<TBoard | null>(null);
 
-  const isManager =
-    currentUser?.auth === "admin" || currentUser?.auth === "manager";
+  const isManager = isSchoolManager(currentUser, currentSchool?._id);
 
   const currentSeasonId =
     currentRegistration?.season || currentSeason?._id || undefined;

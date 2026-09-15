@@ -49,7 +49,10 @@ export type EventFormData = {
 const Index = (props: Props) => {
   const { currentUser, currentSchool } = useAuth();
   const { UserCalendarAPI, NotificationAPI } = useAPIv2();
-  const canManageSchool = canManageSchoolCalendar(currentUser);
+  const canManageSchool = canManageSchoolCalendar(
+    currentUser,
+    currentSchool?._id
+  );
 
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(

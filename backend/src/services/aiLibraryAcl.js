@@ -1,6 +1,7 @@
 /**
  * AI 라이브러리 공개 범위·권한 (순수 헬퍼)
  */
+import { isSchoolManager } from "../utils/schoolManager.js";
 
 export const LIBRARY_KINDS = ["instruction", "learning"];
 export const LIBRARY_VISIBILITIES = ["school", "shared", "personal"];
@@ -23,8 +24,10 @@ export const LIBRARY_SKILL_IDS = [
 
 const LEGACY_SKILL_IDS = { "syllabus-review": "syllabus-draft" };
 
-export const isStaffAuth = (auth) =>
-  auth === "admin" || auth === "manager" || auth === "owner";
+export const isStaffAuth = (auth, user, schoolId) => {
+  if (user) return isSchoolManager(user, schoolId);
+  return auth === "admin";
+};
 
 export const isSchoolOfficialVisibility = (visibility) =>
   visibility == null || visibility === "" || visibility === "school";

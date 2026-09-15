@@ -11,6 +11,10 @@ import {
   __NOT_FOUND,
 } from "../messages/index.js";
 import { Form, Registration } from "../models/index.js";
+import {
+  hasAnySchoolManagerRole,
+  isSchoolManager,
+} from "../utils/schoolManager.js";
 
 /**
  * @memberof APIs.FormAPI
@@ -179,7 +183,9 @@ export const copy = async (req, res) => {
  * @returns {boolean}
  */
 const hasFormViewPermission = (form, user, role) => {
-  if (user.auth === "admin" || user.auth === "manager") {
+  if (form.school) {
+    if (isSchoolManager(user, form.school)) return true;
+  } else if (hasAnySchoolManagerRole(user)) {
     return true;
   }
 

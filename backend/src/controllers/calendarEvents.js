@@ -65,7 +65,7 @@ export const create = async (req, res) => {
       return res.status(400).send({ message: FIELD_INVALID("scope") });
     }
 
-    if (req.body.scope === "school" && !canManageSchoolCalendar(req.user)) {
+    if (req.body.scope === "school" && !canManageSchoolCalendar(req.user, req.body.school)) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
@@ -266,7 +266,7 @@ export const update = async (req, res) => {
     }
 
     if (event.scope === "school") {
-      if (!canManageSchoolCalendar(req.user)) {
+      if (!canManageSchoolCalendar(req.user, event.school)) {
         return res.status(403).send({ message: PERMISSION_DENIED });
       }
     } else if (String(event.user) !== String(req.user._id)) {
@@ -376,7 +376,7 @@ export const remove = async (req, res) => {
     }
 
     if (event.scope === "school") {
-      if (!canManageSchoolCalendar(req.user)) {
+      if (!canManageSchoolCalendar(req.user, event.school)) {
         return res.status(403).send({ message: PERMISSION_DENIED });
       }
     } else if (String(event.user) !== String(req.user._id)) {
