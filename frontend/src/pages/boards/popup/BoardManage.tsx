@@ -13,6 +13,7 @@
 import { useEffect, useRef, useState } from "react";
 import _ from "lodash";
 import { useAuth } from "contexts/authContext";
+import { isSchoolManager } from "utils/schoolManager";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 import Popup from "components/popup/Popup";
@@ -214,7 +215,9 @@ const BoardManagePopup = ({
               user: u._id,
               userId: u.userId,
               userName: u.userName,
-              role: u.auth === "manager" ? "manager" : undefined,
+              role: isSchoolManager(u, currentSchool?._id)
+                ? "manager"
+                : undefined,
             })),
             "userId"
           );

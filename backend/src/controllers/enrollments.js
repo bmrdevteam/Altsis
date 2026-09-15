@@ -5,6 +5,7 @@
  */
 
 import { Enrollment, Syllabus, Registration, CalendarEvent, Board, Season } from "../models/index.js";
+import { isSchoolManager } from "../utils/schoolManager.js";
 import { getIoEnrollment } from "../utils/webSocket.js";
 import { logger } from "../log/logger.js";
 import { sendAutoNotification } from "../services/notifications.js";
@@ -156,7 +157,7 @@ const exec = async (req) => {
       }
     }
     // 7-2. 멘토가 수강생을 초대하는 경우
-    else if (_.find(syllabus.teachers, { _id: req.user._id }) || req.user.auth === "manager") {
+    else if (_.find(syllabus.teachers, { _id: req.user._id }) || isSchoolManager(req.user, syllabus.school)) {
       const teacherRegistration = await Registration(
         req.user.academyId
       ).findOne({ season: syllabus.season, user: req.user._id });
@@ -559,7 +560,7 @@ export const updateEvaluation = async (req, res) => {
 
     let byMentor = false;
     let byStudent = false;
-    if (_.find(enrollment.teachers, { _id: req.user._id }) || req.user.auth === "manager") {
+    if (_.find(enrollment.teachers, { _id: req.user._id }) || isSchoolManager(req.user, enrollment.school)) {
       byMentor = true;
     }
     if (enrollment.student.equals(req.user._id)) {
@@ -790,11 +791,11 @@ export const remove = async (req, res) => {
 
     const isMentorCancellation =
       !enrollment.student.equals(req.user._id) &&
-      (_.find(enrollment.teachers, { _id: req.user._id }) || req.user.auth === "manager");
+      (_.find(enrollment.teachers, { _id: req.user._id }) || isSchoolManager(req.user, enrollment.school));
 
     if (
       !enrollment.student.equals(req.user._id) &&
-      !_.find(enrollment.teachers, { _id: req.user._id }) && req.user.auth !== "manager") {
+      !_.find(enrollment.teachers, { _id: req.user._id }) && !isSchoolManager(req.user, enrollment.school)) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 

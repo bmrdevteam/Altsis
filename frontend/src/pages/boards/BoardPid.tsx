@@ -22,6 +22,7 @@ import bStyle from "./boards.module.scss";
 import Svg from "assets/svg/Svg";
 
 import { TBoard } from "types/board";
+import { isSchoolManager } from "utils/schoolManager";
 import { resolveBoardCoverColor } from "utils/boardCoverColor";
 import { getBoardCourseSurfacePath } from "utils/boardCoursePath";
 import { boardSchoolRedirectPath } from "./boardSchoolRedirectPath";
@@ -49,7 +50,7 @@ const BoardPid = () => {
     boardId: string;
   }>();
   const [searchParams] = useSearchParams();
-  const { currentUser, currentRegistration } = useAuth();
+  const { currentUser, currentRegistration, currentSchool } = useAuth();
   const { BoardAPI } = useAPIv2();
 
   const [board, setBoard] = useState<TBoard | null>(null);
@@ -60,11 +61,13 @@ const BoardPid = () => {
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
   const headerMenuRef = useRef<HTMLDivElement | null>(null);
 
-  const isManager =
-    currentUser?.auth === "admin" || currentUser?.auth === "manager";
+  const isManager = isSchoolManager(
+    currentUser,
+    board?.school || board?.schoolId || currentSchool?._id
+  );
 
   const canManageBoard = (b: TBoard) => {
-    if (isManager) return true;
+    if (isSchoolManager(currentUser, b.school || b.schoolId)) return true;
     if (b.creator && String(b.creator) === String(currentUser?._id)) {
       return true;
     }

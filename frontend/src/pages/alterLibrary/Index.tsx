@@ -147,8 +147,13 @@ const AlterLibrary = () => {
     school: currentSchool,
     season: currentSeason,
     userId: currentUser?._id,
+    user: currentUser,
   });
-  const isStaff = isLibraryStaffAuth(currentUser?.auth);
+  const isStaff = isLibraryStaffAuth(
+    currentUser?.auth,
+    currentUser,
+    currentSchool?._id
+  );
   const schoolMongoId = currentSchool?._id || "";
   const seasonId = currentSeason?._id;
 
@@ -431,6 +436,8 @@ const AlterLibrary = () => {
     const editable = canEditLibraryItem(viewing, {
       userId: currentUser._id,
       auth: currentUser.auth,
+      user: currentUser,
+      schoolId: currentSchool?._id,
     });
     return pageWrap(
       <div className={aStyle.builderContainer}>
@@ -475,7 +482,12 @@ const AlterLibrary = () => {
                 <Svg type="edit" width="20px" height="20px" />
               </button>
             ) : null}
-            {canPromoteLibraryItem(viewing, currentUser.auth) ? (
+            {canPromoteLibraryItem(
+              viewing,
+              currentUser.auth,
+              currentUser,
+              currentSchool?._id
+            ) ? (
               <button
                 type="button"
                 className={aStyle.formCardIconBtn}
@@ -859,6 +871,8 @@ const AlterLibrary = () => {
                   const editable = canEditLibraryItem(item, {
                     userId: currentUser._id,
                     auth: currentUser.auth,
+                    user: currentUser,
+                    schoolId: currentSchool?._id,
                   });
                   const instruction = item.kind === "instruction";
                   return (
@@ -912,7 +926,12 @@ const AlterLibrary = () => {
                             <Svg type="edit" width="16px" height="16px" />
                           </button>
                         ) : null}
-                        {canPromoteLibraryItem(item, currentUser.auth) ? (
+                        {canPromoteLibraryItem(
+                          item,
+                          currentUser.auth,
+                          currentUser,
+                          currentSchool?._id
+                        ) ? (
                           <button
                             type="button"
                             className={aStyle.formCardIconBtn}

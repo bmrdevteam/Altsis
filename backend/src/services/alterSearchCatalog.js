@@ -21,6 +21,7 @@ import {
   isFormMember,
 } from "./altForms.js";
 import { isBoardMember } from "./boards.js";
+import { isSchoolManager } from "../utils/schoolManager.js";
 import {
   mergeQueryAnd,
   normalizeSearchGrade,
@@ -127,9 +128,10 @@ export const pickFormColumnValues = (data, fieldColumns) => {
 
 export const visibleFormSearchFields = (form, board, user, registration) => {
   const fields = Array.isArray(form?.fields) ? form.fields : [];
-  const role = schoolRole(registration, user);
+  const role = schoolRole(registration, user, board?.school || board?.schoolId);
   const viewRole =
-    isStaff(user) || canViewAllRows(form, board, user, role)
+    isSchoolManager(user, board?.school || board?.schoolId) ||
+    canViewAllRows(form, board, user, role)
       ? "admin"
       : "respondent";
   return getVisibleFields(fields, viewRole);
@@ -156,11 +158,13 @@ const cellText = (v) => {
   return clip(v);
 };
 
-const isStaff = (user) =>
-  user?.auth === "manager" || user?.auth === "admin" || user?.auth === "owner";
+const schoolRefOf = (school) =>
+  school?._id || school?.school || school || undefined;
 
-const schoolRole = (registration, user) => {
-  if (isStaff(user)) return "teacher";
+const isStaff = (user, school) => isSchoolManager(user, schoolRefOf(school));
+
+const schoolRole = (registration, user, schoolRef) => {
+  if (isStaff(user, schoolRef)) return "teacher";
   return registration?.role || null;
 };
 
@@ -217,9 +221,10 @@ const registrationQuery = ({
   seasonIds,
   grade,
   mongoFilter,
+  school,
 }) => {
   let query = { season: { $in: seasonIds } };
-  if (!isStaff(user) && registration?.role === "student") {
+  if (!isStaff(user, school) && registration?.role === "student") {
     query.$or = [{ user: user._id }, { role: "teacher" }];
   }
   const g = normalizeSearchGrade(grade);
@@ -313,9 +318,10 @@ export const buildEnrollmentQuery = ({
   teacherSyllabusIds,
   grade,
   mongoFilter,
+  school,
 }) => {
   let query = { season: { $in: seasonIds } };
-  if (isStaff(user)) {
+  if (isStaff(user, school)) {
     /* season-wide */
   } else if (registration?.role === "teacher") {
     query.syllabus = { $in: teacherSyllabusIds || [] };
@@ -334,9 +340,10 @@ const loadEnrollments = async ({
   seasonIds,
   grade,
   mongoFilter,
+  school,
 }) => {
   const ids =
-    !isStaff(user) && registration?.role === "teacher"
+    !isStaff(user, school) && registration?.role === "teacher"
       ? await teacherSyllabusIds({ academyId, user, seasonIds })
       : [];
   const query = buildEnrollmentQuery({
@@ -346,6 +353,7 @@ const loadEnrollments = async ({
     teacherSyllabusIds: ids,
     grade,
     mongoFilter,
+    school,
   });
   const rows = await Enrollment(academyId)
     .find(query)
@@ -376,7 +384,7 @@ const loadEnrollments = async ({
   }));
 };
 
-export const collectEvalColumns = (seasonForms, user, registration) => {
+export const collectEvalColumns = (seasonForms, user, registration, school) => {
   const items = [];
   const allowed = new Set();
   let anyFilter = false;
@@ -387,7 +395,7 @@ export const collectEvalColumns = (seasonForms, user, registration) => {
         ? form.formEvaluation
         : [];
     items.push(...formItems);
-    const labels = visibleEvalLabels(formItems, user, registration);
+    const labels = visibleEvalLabels(formItems, user, registration, school);
     if (labels) {
       anyFilter = true;
       for (const label of labels) allowed.add(label);
@@ -408,10 +416,15 @@ const loadSeasonEvalForms = async (academyId, seasonIds) => {
   }));
 };
 
-export const visibleEvalLabels = (formEvaluation, user, registration) => {
+export const visibleEvalLabels = (
+  formEvaluation,
+  user,
+  registration,
+  school
+) => {
   const items = Array.isArray(formEvaluation) ? formEvaluation : [];
   if (!items.length) return null;
-  const staff = isStaff(user);
+  const staff = isStaff(user, school);
   const teacher = staff || registration?.role === "teacher";
   const labels = [];
   for (const item of items) {
@@ -433,13 +446,14 @@ export const filterEvaluationForSearch = ({
   user,
   registration,
   evalColumns = [],
+  school,
 }) => {
   const source =
     evaluation && typeof evaluation === "object" ? evaluation : {};
   const evalKeys = Object.keys(source);
-  const labels = visibleEvalLabels(formEvaluation, user, registration);
+  const labels = visibleEvalLabels(formEvaluation, user, registration, school);
   const staffOrTeacher =
-    isStaff(user) || registration?.role === "teacher";
+    isStaff(user, school) || registration?.role === "teacher";
   const allowed =
     labels == null
       ? staffOrTeacher
@@ -472,9 +486,10 @@ const loadEnrollmentEvaluations = async ({
   mongoFilter,
   evalColumns = [],
   seasonEvalForms = [],
+  school,
 }) => {
   const ids =
-    !isStaff(user) && registration?.role === "teacher"
+    !isStaff(user, school) && registration?.role === "teacher"
       ? await teacherSyllabusIds({ academyId, user, seasonIds })
       : [];
   const query = buildEnrollmentQuery({
@@ -484,6 +499,7 @@ const loadEnrollmentEvaluations = async ({
     teacherSyllabusIds: ids,
     grade,
     mongoFilter,
+    school,
   });
   const docs = await Enrollment(academyId)
     .find(query)
@@ -521,9 +537,9 @@ const loadEnrollmentEvaluations = async ({
   });
 };
 
-export const canReadArchiveItem = (item, user, registration, studentReg) => {
+export const canReadArchiveItem = (item, user, registration, studentReg, school) => {
   if (!item) return false;
-  if (isStaff(user) && item.authManager === "viewAndEdit") return true;
+  if (isStaff(user, school) && item.authManager === "viewAndEdit") return true;
   if (registration?.role === "teacher") {
     if (item.authTeacher === "viewAndEditStudents") return true;
     if (item.authTeacher === "viewAndEditMyStudents") {
@@ -613,7 +629,7 @@ const loadArchiveTable = async ({
   const nameEq = mongoFilter?.userName;
   const gradeEq = mongoFilter?.grade;
   const allowedRegs = studentRegs.filter((sr) => {
-    if (!canReadArchiveItem(item, user, registration, sr)) return false;
+    if (!canReadArchiveItem(item, user, registration, sr, school)) return false;
     if (nameEq) {
       const names = nameEq.$in || [nameEq];
       if (!names.includes(sr.userName)) return false;
@@ -656,7 +672,7 @@ const memberBoards = async ({ academyId, user, school, registration }) => {
     .find({ school: school._id, isActive: { $ne: false } })
     .limit(400)
     .lean();
-  const role = schoolRole(registration, user);
+  const role = schoolRole(registration, user, school);
   return boards.filter((b) => {
     try {
       return isBoardMember(b, user, role);
@@ -672,11 +688,12 @@ const loadForms = async ({
   registration,
   boards,
   mongoFilter,
+  school,
 }) => {
   if (!boards.length) return [];
   const boardIds = boards.map((b) => b._id);
   const boardById = new Map(boards.map((board) => [idStr(board._id), board]));
-  const role = schoolRole(registration, user);
+  const role = schoolRole(registration, user, school);
   const titleFilter = mongoFilter?.title
     ? { title: mongoFilter.title }
     : {};
@@ -719,10 +736,11 @@ const loadFormRows = async ({
   boards,
   forms,
   mongoFilter,
+  school,
 }) => {
   if (!forms.length) return [];
   const boardById = new Map(boards.map((b) => [idStr(b._id), b]));
-  const role = schoolRole(registration, user);
+  const role = schoolRole(registration, user, school);
   const accessByForm = new Map();
   const allFormIds = [];
   const ownFormIds = [];
@@ -811,7 +829,11 @@ const loadOneFormTable = async ({
   mongoFilter,
 }) => {
   if (!form || !board) return [];
-  const role = schoolRole(registration, user);
+  const role = schoolRole(
+    registration,
+    user,
+    board.school || board.schoolId || school
+  );
   const allRows = canViewAllRows(form, board, user, role);
   const q = {
     form: form._id,
@@ -836,7 +858,7 @@ const countOneFormTable = async ({
   mongoFilter,
 }) => {
   if (!form || !board) return 0;
-  const role = schoolRole(registration, user);
+  const role = schoolRole(registration, user, school);
   const allRows = canViewAllRows(form, board, user, role);
   const q = {
     form: form._id,
@@ -970,7 +992,7 @@ export const buildSearchCatalog = async ({
     registration,
   });
   const seasonEvalForms = await loadSeasonEvalForms(academyId, seasonIds);
-  const evalColumns = collectEvalColumns(seasonEvalForms, user, registration);
+  const evalColumns = collectEvalColumns(seasonEvalForms, user, registration, school);
 
   const specs = [
     spec(
@@ -997,6 +1019,7 @@ export const buildSearchCatalog = async ({
           user,
           registration,
           seasonIds,
+          school,
           ...loadCtx(ctx),
         }),
       (ctx) =>
@@ -1005,7 +1028,8 @@ export const buildSearchCatalog = async ({
             user,
             registration,
             seasonIds,
-            ...loadCtx(ctx),
+            school,
+          ...loadCtx(ctx),
           })
         )
     ),
@@ -1062,11 +1086,13 @@ export const buildSearchCatalog = async ({
           user,
           registration,
           seasonIds,
+          school,
+          school,
           ...loadCtx(ctx),
         }),
       async (ctx) => {
         const ids =
-          !isStaff(user) && registration?.role === "teacher"
+          !isStaff(user, school) && registration?.role === "teacher"
             ? await teacherSyllabusIds({ academyId, user, seasonIds })
             : [];
         return Enrollment(academyId).countDocuments(
@@ -1075,7 +1101,8 @@ export const buildSearchCatalog = async ({
             registration,
             seasonIds,
             teacherSyllabusIds: ids,
-            ...loadCtx(ctx),
+            school,
+          ...loadCtx(ctx),
           })
         );
       }
@@ -1109,11 +1136,12 @@ export const buildSearchCatalog = async ({
           seasonIds,
           evalColumns,
           seasonEvalForms,
+          school,
           ...loadCtx(ctx),
         }),
       async (ctx) => {
         const ids =
-          !isStaff(user) && registration?.role === "teacher"
+          !isStaff(user, school) && registration?.role === "teacher"
             ? await teacherSyllabusIds({ academyId, user, seasonIds })
             : [];
         return Enrollment(academyId).countDocuments(
@@ -1122,7 +1150,8 @@ export const buildSearchCatalog = async ({
             registration,
             seasonIds,
             teacherSyllabusIds: ids,
-            ...loadCtx(ctx),
+            school,
+          ...loadCtx(ctx),
           })
         );
       }
@@ -1174,7 +1203,8 @@ export const buildSearchCatalog = async ({
             registration,
             item,
             studentRegs,
-            ...loadCtx(ctx),
+            school,
+          ...loadCtx(ctx),
           })
       )
     );
@@ -1242,7 +1272,8 @@ export const buildSearchCatalog = async ({
             board,
             form,
             fieldColumns,
-            ...loadCtx(ctx),
+            school,
+          ...loadCtx(ctx),
           }),
         (ctx) =>
           countOneFormTable({
@@ -1251,7 +1282,8 @@ export const buildSearchCatalog = async ({
             registration,
             board,
             form,
-            ...loadCtx(ctx),
+            school,
+          ...loadCtx(ctx),
           })
       )
     );
@@ -1277,6 +1309,7 @@ export const buildSearchCatalog = async ({
           user,
           registration,
           boards,
+          school,
           ...loadCtx(ctx),
         });
         return mapFormRows(forms, boards);
@@ -1308,6 +1341,7 @@ export const buildSearchCatalog = async ({
           registration,
           boards,
           forms,
+          school,
           ...loadCtx(ctx),
         });
       }
@@ -1375,12 +1409,14 @@ export const peekRegistrationDims = async ({
   registration,
   seasonIds,
   grade,
+  school,
 }) => {
   const query = registrationQuery({
     user,
     registration,
     seasonIds,
     grade,
+    school,
   });
   const Model = Registration(academyId);
   const [count, grades, years, terms, roles] = await Promise.all([
@@ -1408,6 +1444,7 @@ export const peekSearchSchema = async ({
   evalColumns = [],
   formTables = [],
   overflowFormTitles = [],
+  school,
 }) => {
   const dims = await peekRegistrationDims({
     academyId,
@@ -1415,9 +1452,10 @@ export const peekSearchSchema = async ({
     registration,
     seasonIds,
     grade,
+    school,
   });
   const ids =
-    !isStaff(user) && registration?.role === "teacher"
+    !isStaff(user, school) && registration?.role === "teacher"
       ? await teacherSyllabusIds({ academyId, user, seasonIds })
       : [];
   const enrQuery = buildEnrollmentQuery({
@@ -1426,6 +1464,7 @@ export const peekSearchSchema = async ({
     seasonIds,
     teacherSyllabusIds: ids,
     grade,
+    school,
   });
   const studentGrades = seasonIds?.length
     ? uniqDistinct(await Enrollment(academyId).distinct("studentGrade", enrQuery))

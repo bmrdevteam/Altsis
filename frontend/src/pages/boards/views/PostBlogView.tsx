@@ -4,6 +4,7 @@ import { TBoard } from "types/board";
 import { TComment } from "types/comment";
 import { MarkdownViewer } from "components/markdown";
 import { useAuth } from "contexts/authContext";
+import { isSchoolManager } from "utils/schoolManager";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import Svg from "assets/svg/Svg";
 
@@ -106,8 +107,10 @@ const PostStreamCard = ({
     [post.content]
   );
 
-  const isManager =
-    currentUser?.auth === "admin" || currentUser?.auth === "manager";
+  const isManager = isSchoolManager(
+    currentUser,
+    board.school || board.schoolId
+  );
   const canManage =
     isManager ||
     (board.creator && board.creator === currentUser?._id) ||

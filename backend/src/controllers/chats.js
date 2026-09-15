@@ -34,6 +34,7 @@ import {
   LIMIT_FILE_SIZE,
   INVALID_FILE_TYPE,
 } from "../messages/index.js";
+import { isSchoolManager } from "../utils/schoolManager.js";
 
 /**
  * @memberof APIs.ChatAPI
@@ -289,8 +290,6 @@ export const findBoardRooms = async (req, res) => {
     const enrollBySyl = new Map(
       enrollments.map((e) => [String(e.syllabus), String(e._id)])
     );
-    const isManager =
-      req.user.auth === "admin" || req.user.auth === "manager";
     const userOid = String(req.user._id);
 
     const resolveCoursePath = (boardDoc) => {
@@ -303,7 +302,14 @@ export const findBoardRooms = async (req, res) => {
           (syl.teachers || []).some(
             (t) => String(t._id || t) === userOid
           ));
-      if (isMentor || isManager) return `/courses/mentoring/${sylId}`;
+      if (
+        isMentor ||
+        isSchoolManager(
+          req.user,
+          boardDoc.school || boardDoc.schoolId || syl?.school
+        )
+      )
+        return `/courses/mentoring/${sylId}`;
       if (enrollBySyl.has(sylId)) {
         return `/courses/enrolled/${enrollBySyl.get(sylId)}`;
       }

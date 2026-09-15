@@ -1,5 +1,6 @@
 import { TSchool, TSchoolAiConfig } from "types/schools";
 import { TAiSettings } from "types/seasons";
+import { isSchoolManager, TSchoolManagerUser } from "utils/schoolManager";
 
 type SchoolLike = Pick<TSchool, "aiEnabled" | "academyFeatures" | "aiConfig">;
 type SeasonLike = { aiSettings?: TAiSettings };
@@ -60,15 +61,22 @@ export const resolveAiRolePermission = (
 export const canShowAlter = (
   school?: SchoolLike | null,
   season?: SeasonLike | null,
-  opts?: { role?: string | null; auth?: string | null; userId?: string | null }
+  opts?: {
+    role?: string | null;
+    auth?: string | null;
+    userId?: string | null;
+    user?: TSchoolManagerUser;
+    schoolId?: unknown;
+  }
 ) => {
   if (school?.aiEnabled === false) return false;
   if (school?.academyFeatures?.aiEnabled === false) return false;
   if (!season?.aiSettings?.enabled) return false;
-  const isStaffAuth =
-    opts?.auth === "admin" ||
-    opts?.auth === "manager" ||
-    opts?.auth === "owner";
+  const isStaffAuth = opts?.user
+    ? isSchoolManager(opts.user, opts.schoolId)
+    : opts?.auth === "admin" ||
+      opts?.auth === "manager" ||
+      opts?.auth === "owner";
   const role: "teacher" | "student" =
     opts?.role === "teacher" || isStaffAuth ? "teacher" : "student";
   if (role === "student") return false;

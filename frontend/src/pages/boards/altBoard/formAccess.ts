@@ -1,6 +1,7 @@
 import { TAltForm } from "types/altForm";
 import { TAltBoardRole, TBoard, TBoardMembers } from "types/board";
 import { TUser } from "types/users";
+import { isSchoolManager } from "utils/schoolManager";
 
 export const emptyFormAccess = (): TBoardMembers => ({
   groups: { manager: false, teacher: false, student: false },
@@ -15,8 +16,9 @@ export const isAccessListCustom = (access?: TBoardMembers | null): boolean => {
 
 export const userMatchesAccessList = (
   access: TBoardMembers | undefined,
-  user: Pick<TUser, "_id" | "userId" | "auth">,
-  schoolRole?: string | null
+  user: Pick<TUser, "_id" | "userId" | "auth" | "schools">,
+  schoolRole?: string | null,
+  schoolRef?: unknown
 ): boolean => {
   if (!access || !user) return false;
   const uid = String(user._id);
@@ -30,20 +32,26 @@ export const userMatchesAccessList = (
     return true;
   }
   const g = access.groups || { manager: false, teacher: false, student: false };
-  if (g.manager && (user.auth === "manager" || schoolRole === "manager")) {
+  if (g.manager && isSchoolManager(user, schoolRef)) {
     return true;
   }
-  if (schoolRole && (g as Record<string, boolean>)[schoolRole]) return true;
+  if (
+    schoolRole &&
+    schoolRole !== "manager" &&
+    (g as Record<string, boolean>)[schoolRole]
+  ) {
+    return true;
+  }
   return false;
 };
 
 const isFormStaff = (
   form: TAltForm,
   board: TBoard,
-  user: Pick<TUser, "_id" | "auth">,
+  user: Pick<TUser, "_id" | "auth" | "schools">,
   myRole: TAltBoardRole | null
 ) => {
-  if (user.auth === "admin" || user.auth === "manager") return true;
+  if (isSchoolManager(user, board.school || board.schoolId)) return true;
   if (form.creator != null && String(form.creator) === String(user._id)) {
     return true;
   }
@@ -60,7 +68,7 @@ const isFormStaff = (
 export const canViewAllRowsForm = (
   form: TAltForm,
   board: TBoard,
-  user: Pick<TUser, "_id" | "userId" | "auth">,
+  user: Pick<TUser, "_id" | "userId" | "auth" | "schools">,
   myRole: TAltBoardRole | null,
   schoolRole?: string | null
 ): boolean => {
@@ -69,7 +77,12 @@ export const canViewAllRowsForm = (
   if (!isAccessListCustom(form.writers)) {
     return myRole === "admin" || myRole === "writer";
   }
-  return userMatchesAccessList(form.writers, user, schoolRole);
+  return userMatchesAccessList(
+    form.writers,
+    user,
+    schoolRole,
+    board.school || board.schoolId
+  );
 };
 
 const isSeasonScopedBoard = (board: TBoard) =>
@@ -140,7 +153,7 @@ const isBoardMemberAsUser = (
   ) {
     return true;
   }
-  if (user.auth === "manager" && members.groups?.manager) return true;
+  if (isSchoolManager(user, board.school || board.schoolId) && members.groups?.manager) return true;
   if (schoolRole === "teacher" && members.groups?.teacher) return true;
   if (schoolRole === "student" && members.groups?.student) return true;
   if (
@@ -177,13 +190,14 @@ export const getMyAltBoardRole = (
 /** 제출·할 일·미제출 대상. staff·작성 권한 우회 없음. */
 export const isFormRespondent = (
   form: TAltForm,
-  user: Pick<TUser, "_id" | "userId" | "auth"> | null | undefined,
+  user: Pick<TUser, "_id" | "userId" | "auth" | "schools"> | null | undefined,
   myRole: TAltBoardRole | null,
-  schoolRole?: string | null
+  schoolRole?: string | null,
+  schoolRef?: unknown
 ): boolean => {
   if (!user || !myRole) return false;
   if (!isAccessListCustom(form.members)) return true;
-  return userMatchesAccessList(form.members, user, schoolRole);
+  return userMatchesAccessList(form.members, user, schoolRole, schoolRef);
 };
 
 export const selectedIdsFromAccess = (access?: TBoardMembers | null): string[] =>

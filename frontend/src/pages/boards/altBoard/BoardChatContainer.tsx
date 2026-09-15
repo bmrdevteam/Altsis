@@ -11,6 +11,7 @@ import BoardChatMemberSidebar from "./BoardChatMemberSidebar";
 import BoardDMPanel from "./BoardDMPanel";
 import MemberInvitePicker from "./MemberInvitePicker";
 import { getMyAltBoardRole } from "./formAccess";
+import { isSchoolManager } from "utils/schoolManager";
 import style from "./boardChatContainer.module.scss";
 
 type Props = {
@@ -44,15 +45,15 @@ const BoardChatContainer = ({ board, onNewMessage }: Props) => {
   const [dmPartner, setDmPartner] = useState<TMemberUser | null>(null);
   const [navOpen, setNavOpen] = useState(false);
 
-  const schoolRole =
-    currentUser?.auth === "manager"
-      ? "manager"
-      : currentRegistration?.role || null;
+  const schoolRole = currentRegistration?.role || null;
   const myRole = getMyAltBoardRole(board, currentUser, schoolRole);
+  const schoolMgr = isSchoolManager(
+    currentUser,
+    board.school || board.schoolId
+  );
 
   const canManageRooms =
-    currentUser?.auth === "admin" ||
-    currentUser?.auth === "manager" ||
+    schoolMgr ||
     (board.creator != null &&
       String(board.creator) === String(currentUser?._id)) ||
     myRole === "admin" ||

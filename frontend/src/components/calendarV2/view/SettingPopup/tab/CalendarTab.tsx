@@ -67,7 +67,10 @@ const CalendarTab = (props: Props) => {
   const { UserCalendarAPI, CalendarSettingAPI } = useAPIv2();
 
   const isTeacher = currentRegistration?.role === "teacher";
-  const canManageSchool = canManageSchoolCalendar(currentUser);
+  const canManageSchool = canManageSchoolCalendar(
+    currentUser,
+    currentSchool?._id
+  );
 
   const [visibility, setVisibility] = useState<TVisibility>(getVisibility());
   const [userCalendars, setUserCalendars] = useState<any[]>([]);

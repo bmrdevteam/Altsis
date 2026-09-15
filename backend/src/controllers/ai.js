@@ -214,7 +214,8 @@ export const getAlterSkillSettings = async (req, res) => {
       {
         userId: req.user._id,
         isTeacher:
-          isStaffAuth(req.user.auth) || registration?.role === "teacher",
+          isStaffAuth(req.user.auth, req.user, school?._id) ||
+          registration?.role === "teacher",
       }
     );
     if (skill === SKILL_IDS.SEARCH) {

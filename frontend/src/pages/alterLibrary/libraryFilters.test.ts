@@ -63,6 +63,24 @@ describe("canAccessAlterLibrary", () => {
       })
     ).toBe(false);
   });
+
+  test("B 멤버 소속 매니저는 그 학교 도서관 staff가 아니다", () => {
+    expect(
+      canAccessAlterLibrary({
+        auth: "manager",
+        role: "student",
+        school: { ...school, _id: "B" },
+        season: { aiSettings: { enabled: false } },
+        user: {
+          auth: "manager",
+          schools: [
+            { school: "A", schoolAuth: "manager" },
+            { school: "B", schoolAuth: "member" },
+          ],
+        },
+      })
+    ).toBe(false);
+  });
 });
 
 describe("filterLibraryItems", () => {

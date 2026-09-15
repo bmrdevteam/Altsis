@@ -5,6 +5,7 @@
  */
 import { logger } from "../log/logger.js";
 import { Board, Post, SurveyResponse } from "../models/index.js";
+import { isSchoolManager } from "../utils/schoolManager.js";
 import {
   isBoardMember,
   getUserRoleInSeason,
@@ -189,7 +190,14 @@ export const findAll = async (req, res) => {
 
     // 익명 모드 시 응답자 정보 제거 (작성자/관리자 제외)
     const isAuthor = post.author.equals(req.user._id);
-    const isManager = req.user.auth === "admin" || req.user.auth === "manager";
+    const board = await Board(req.user.academyId)
+      .findById(post.board)
+      .select("school schoolId")
+      .lean();
+    const isManager = isSchoolManager(
+      req.user,
+      board?.school || board?.schoolId
+    );
     if (survey.settings.isAnonymous && !isAuthor && !isManager) {
       surveyResponses = surveyResponses.map((r) => ({
         ...r,
@@ -552,7 +560,11 @@ function validateAnswers(questions, answers) {
  */
 async function canViewResults(user, post, survey) {
   const isAuthor = post.author.equals(user._id);
-  const isManager = user.auth === "admin" || user.auth === "manager";
+  const board = await Board(user.academyId)
+    .findById(post.board)
+    .select("school schoolId")
+    .lean();
+  const isManager = isSchoolManager(user, board?.school || board?.schoolId);
 
   // 작성자/관리자는 항상 조회 가능
   if (isAuthor || isManager) return true;

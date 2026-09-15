@@ -38,6 +38,7 @@ import {
   nextAltRoleOnRemoveWriter,
 } from "../services/boards.js";
 import { sendAutoNotification, isBoardNotificationEnabled } from "../services/notifications.js";
+import { isSchoolManager } from "../utils/schoolManager.js";
 import {
   syncBoardChatParticipants,
   deactivateBoardChatRoom,
@@ -94,7 +95,6 @@ const attachSyllabusMeta = async (academyId, boardsOrBoard, user) => {
     enrollments.map((e) => [e.syllabus.toString(), e._id.toString()])
   );
 
-  const isManager = user.auth === "admin" || user.auth === "manager";
   const userOid = user._id.toString();
 
   const enriched = boards.map((board) => {
@@ -109,6 +109,8 @@ const attachSyllabusMeta = async (academyId, boardsOrBoard, user) => {
       !!syl &&
       (syl.user?.toString() === userOid ||
         (syl.teachers || []).some((t) => t._id?.toString() === userOid));
+
+    const isManager = isSchoolManager(user, obj.school || obj.schoolId || syl?.school);
 
     let coursePath = null;
     if (isMentor || isManager) {
@@ -179,7 +181,7 @@ export const create = async (req, res) => {
     }
 
     // 관리자가 아닌 경우 생성 권한 체크
-    const isAdminOrManager = req.user.auth === "admin" || req.user.auth === "manager";
+    const isAdminOrManager = isSchoolManager(req.user, school._id);
     if (!isAdminOrManager) {
       const role = await getUserRoleInSeason(req.user.academyId, school.schoolId, req.user);
       const permission = school.boardCreationPermission || { teacher: false, student: false };
@@ -282,8 +284,7 @@ export const duplicate = async (req, res) => {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
-    const isAdminOrManager =
-      req.user.auth === "admin" || req.user.auth === "manager";
+    const isAdminOrManager = isSchoolManager(req.user, source.school);
     const boardType = isAdminOrManager ? "official" : "user";
 
     const name =

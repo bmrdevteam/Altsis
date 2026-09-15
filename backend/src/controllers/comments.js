@@ -16,6 +16,7 @@ import {
   PERMISSION_DENIED,
   __NOT_FOUND,
 } from "../messages/index.js";
+import { isSchoolManager } from "../utils/schoolManager.js";
 
 /**
  * @memberof APIs.CommentAPI
@@ -173,7 +174,20 @@ export const update = async (req, res) => {
 
     // 작성자 또는 관리자만 수정 가능
     const isAuthor = comment.author.equals(req.user._id);
-    const isManager = req.user.auth === "admin" || req.user.auth === "manager";
+    const post = await Post(req.user.academyId)
+      .findById(comment.post)
+      .select("board")
+      .lean();
+    const board = post
+      ? await Board(req.user.academyId)
+          .findById(post.board)
+          .select("school schoolId")
+          .lean()
+      : null;
+    const isManager = isSchoolManager(
+      req.user,
+      board?.school || board?.schoolId
+    );
 
     if (!isAuthor && !isManager) {
       return res.status(403).send({ message: PERMISSION_DENIED });
@@ -268,7 +282,20 @@ export const remove = async (req, res) => {
 
     // 작성자 또는 관리자만 삭제 가능
     const isAuthor = comment.author.equals(req.user._id);
-    const isManager = req.user.auth === "admin" || req.user.auth === "manager";
+    const post = await Post(req.user.academyId)
+      .findById(comment.post)
+      .select("board")
+      .lean();
+    const board = post
+      ? await Board(req.user.academyId)
+          .findById(post.board)
+          .select("school schoolId")
+          .lean()
+      : null;
+    const isManager = isSchoolManager(
+      req.user,
+      board?.school || board?.schoolId
+    );
 
     if (!isAuthor && !isManager) {
       return res.status(403).send({ message: PERMISSION_DENIED });

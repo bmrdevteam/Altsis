@@ -84,7 +84,12 @@ describe("board permission helpers", () => {
       },
       altBoardRole: {},
     };
-    const user = { _id: oid("mgr1"), userId: "mgr1", auth: "manager" };
+    const user = {
+      _id: oid("mgr1"),
+      userId: "mgr1",
+      auth: "manager",
+      schools: [{ schoolId: "school1" }],
+    };
     expect(isBoardMemberAsUser(board, user, null)).toBe(true);
     expect(isBoardMember(board, user, null)).toBe(true);
   });
@@ -116,8 +121,26 @@ describe("board permission helpers", () => {
       })
     ).toBe(true);
     expect(
-      canManageBoard(schoolBoard, { _id: oid("x"), auth: "manager" })
+      canManageBoard(schoolBoard, {
+        _id: oid("x"),
+        auth: "manager",
+        schools: [{ schoolId: "school1" }],
+      })
     ).toBe(true);
+    expect(
+      canManageBoard(schoolBoard, {
+        _id: oid("x"),
+        auth: "manager",
+        schools: [{ schoolId: "other", schoolAuth: "manager" }],
+      })
+    ).toBe(false);
+    expect(
+      canManageBoard(schoolBoard, {
+        _id: oid("x"),
+        auth: "manager",
+        schools: [{ schoolId: "school1", schoolAuth: "member" }],
+      })
+    ).toBe(false);
     expect(
       canManageBoard(schoolBoard, {
         _id: oid("admin-oid"),
@@ -395,13 +418,14 @@ describe("resolveFormApprovalCandidates", () => {
     { user: "admin-oid", userId: "adm", userName: "보드관리자" },
     { user: "writer-oid", userId: "w2", userName: "보드작성자" },
     { user: "teacher-oid", userId: "tea", userName: "교사", role: "teacher" },
-    { user: "mgr-oid", userId: "mgr", userName: "학교관리자", auth: "manager" },
+    { user: "mgr-oid", userId: "mgr", userName: "학교관리자", auth: "manager", schools: [{ schoolId: "school1" }] },
     { user: "g1", userId: "bmrlove", userName: "구본길" },
   ];
   const board = {
     creator: "creator-oid",
     creatorId: "temman92",
     creatorName: "홍길동",
+    schoolId: "school1",
     writers: {
       groups: { manager: true, teacher: true, student: false },
       users: [{ user: "w1-oid", userId: "w1", userName: "작성자" }],

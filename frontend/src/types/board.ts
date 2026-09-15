@@ -12,6 +12,11 @@ export type TMemberUser = {
   grade?: string;
   /** 학기 등록 그룹. 표시용 */
   group?: string;
+  schools?: {
+    school?: string;
+    schoolId?: string;
+    schoolAuth?: "manager" | "member";
+  }[];
 };
 
 export type TBoardMembers = {

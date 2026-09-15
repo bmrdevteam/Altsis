@@ -1,6 +1,7 @@
 import express from "express";
 const router = express.Router();
 import { isLoggedIn, isAdManager } from "../middleware/auth.js";
+import { requirePostBoardSchoolManager } from "../middleware/schoolManagerAuth.js";
 
 import * as posts from "../controllers/posts.js";
 
@@ -30,6 +31,11 @@ router.delete("/:_id", isLoggedIn, posts.remove);
 router.get("/:_id/readers", isLoggedIn, posts.findReaders);
 
 // 게시글 고정 (관리자만)
-router.put("/:_id/pin", isAdManager, posts.pin);
+router.put(
+  "/:_id/pin",
+  isAdManager,
+  requirePostBoardSchoolManager,
+  posts.pin
+);
 
 export { router };

@@ -61,6 +61,7 @@ type TUserSchool = {
   school: string;
   schoolId: string;
   schoolName: string;
+  schoolAuth?: "manager" | "member";
 };
 
 type TInput = {
@@ -105,7 +106,16 @@ function Add(props: Props) {
     );
     if (_.find(schools, (_school) => _school.school === _id)) return;
 
-    setSchools([...schools, { school: _id, schoolId, schoolName }]);
+    setSchools([
+      ...schools,
+      {
+        school: _id,
+        schoolId,
+        schoolName,
+        schoolAuth:
+          inputRef.current.auth === "manager" ? "manager" : "member",
+      },
+    ]);
   };
 
   const removeUserSchoolHandler = (sid: string) => {
@@ -249,7 +259,20 @@ function Add(props: Props) {
         <div style={{ marginTop: "12px" }}>
           <Table
             type="object-array"
-            data={schools}
+            data={schools.map((s) => ({
+              ...s,
+              isSchoolMgr: s.schoolAuth === "manager",
+            }))}
+            onChange={(rows: any[]) => {
+              setSchools(
+                rows.map((r) => ({
+                  school: r.school,
+                  schoolId: r.schoolId,
+                  schoolName: r.schoolName,
+                  schoolAuth: r.isSchoolMgr ? "manager" : "member",
+                }))
+              );
+            }}
             header={[
               {
                 text: "No",
@@ -275,6 +298,13 @@ function Add(props: Props) {
                 textAlign: "center",
                 width: "140px",
                 type: "text",
+              },
+              {
+                text: "이 학교 관리자",
+                key: "isSchoolMgr",
+                type: "toggle",
+                textAlign: "center",
+                width: "120px",
               },
               {
                 text: "삭제",

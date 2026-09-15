@@ -73,10 +73,12 @@ const managerUser = {
   userId: "mgr1",
   userName: "매니저",
   auth: "manager",
+  schools: [{ schoolId: "school1" }],
 };
 
 const board = {
   creator: oid("creator-oid"),
+  schoolId: "school1",
   members: {
     groups: { manager: false, teacher: false, student: false },
     users: [],
@@ -144,6 +146,15 @@ describe("inherit form permissions (board)", () => {
     expect(isFormMember(inheritForm, board, managerUser, null)).toBe(true);
     expect(canViewAllRows(inheritForm, board, managerUser, null)).toBe(true);
     expect(canModifyForm(inheritForm, board, managerUser)).toBe(true);
+  });
+
+  test("other-school manager cannot modify the form", () => {
+    const otherMgr = {
+      ...managerUser,
+      schools: [{ schoolId: "other", schoolAuth: "manager" }],
+    };
+    expect(canModifyForm(inheritForm, board, otherMgr)).toBe(false);
+    expect(isFormMember(inheritForm, board, otherMgr, null)).toBe(false);
   });
 
   test("outsider without board role is not a member", () => {

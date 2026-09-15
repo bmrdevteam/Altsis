@@ -26,6 +26,7 @@ import {
 import { conn } from "../_database/mongodb/index.js";
 import { profileMulter } from "../_s3/profileMulter.js";
 import { tryCommitUpload } from "../services/academyStorage.js";
+import { resolveSchoolAuth } from "../utils/schoolManager.js";
 
 /**
  * @memberof APIs.UserAPI
@@ -276,6 +277,7 @@ export const create = async (req, res) => {
         school: schoolData._id,
         schoolId: schoolData.schoolId,
         schoolName: schoolData.schoolName,
+        schoolAuth: resolveSchoolAuth(_school.schoolAuth, req.body.auth),
       });
     }
 
@@ -915,11 +917,46 @@ export const registerSchool = async (req, res) => {
         school: newSchool._id,
         schoolId: newSchool.schoolId,
         schoolName: newSchool.schoolName,
+        schoolAuth: resolveSchoolAuth(req.body.schoolAuth, user.auth),
       },
     ];
     user.markModified("schools");
 
     await user.save();
+
+    return res.status(200).send({ schools: user.schools });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.UserAPI
+ * @function UUserSchool API
+ * @description 소속 학교 관리 여부(schoolAuth) 수정
+ */
+export const updateSchool = async (req, res) => {
+  try {
+    if (!("sid" in req.body)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("sid") });
+    }
+    if (req.body.schoolAuth !== "manager" && req.body.schoolAuth !== "member") {
+      return res.status(400).send({ message: FIELD_INVALID("schoolAuth") });
+    }
+
+    const UserModel = User(req.user.academyId);
+    const user = await UserModel.findOneAndUpdate(
+      { _id: req.params._id, "schools.school": req.body.sid },
+      { $set: { "schools.$.schoolAuth": req.body.schoolAuth } },
+      { new: true }
+    );
+    if (!user) {
+      const exists = await UserModel.exists({ _id: req.params._id });
+      return res
+        .status(404)
+        .send({ message: __NOT_FOUND(exists ? "school" : "user") });
+    }
 
     return res.status(200).send({ schools: user.schools });
   } catch (err) {

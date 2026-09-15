@@ -130,6 +130,8 @@ const Alter = () => {
     role: currentRegistration?.role,
     auth: currentUser?.auth,
     userId: currentUser?._id,
+    user: currentUser,
+    schoolId: currentSchool?._id,
   });
 
   if (!aiEnabled) return null;

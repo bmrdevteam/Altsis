@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useAuth } from "contexts/authContext";
+import { hasAnySchoolManagerRole } from "utils/schoolManager";
 import useRegisterAlterForm from "hooks/useRegisterAlterForm";
 
 import style from "./editor.module.scss";
@@ -23,8 +24,7 @@ function Editor(props: Props) {
   const loadForm = useEditorStore((s) => s.loadForm);
   const formType = useEditorStore((s) => s.formType);
   const title = useEditorStore((s) => s.title);
-  const canManage =
-    currentUser?.auth === "admin" || currentUser?.auth === "manager";
+  const canManage = hasAnySchoolManagerRole(currentUser);
 
   useRegisterAlterForm({
     enabled: !isLoading && canManage,

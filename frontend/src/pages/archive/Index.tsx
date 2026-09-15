@@ -4,6 +4,7 @@ import { useAppNavigate } from "hooks/useAppNavigate";
 import style from "style/pages/archive.module.scss";
 
 import { useAuth } from "contexts/authContext";
+import { isSchoolManager } from "utils/schoolManager";
 import Loading from "components/loading/Loading";
 
 type Props = {};
@@ -16,7 +17,7 @@ const Archive = (props: Props) => {
   useEffect(() => {
     if (isLoading) {
       if (currentSchool?._id && currentSchool.formArchive) {
-        const isManager = currentUser?.auth === "manager";
+        const isManager = isSchoolManager(currentUser, currentSchool._id);
         const formArchive = currentSchool.formArchive.filter(
           (form: any) =>
             (form.authTeacher && form.authTeacher !== "undefined") ||

@@ -9,6 +9,7 @@ import {
   canBypassSeasonRegistration,
   grantsSchoolAffiliationAccess,
 } from "../utils/boardSeasonScope.js";
+import { isSchoolManager } from "../utils/schoolManager.js";
 
 export {
   isSeasonScopedBoard,
@@ -51,8 +52,45 @@ export const nextAltRoleOnRemoveWriter = (existingRole, remainsMember) => {
   return "respondent";
 };
 
+const boardSchoolRef = (board) => board?.school || board?.schoolId;
+
+const assignedSchoolUserQuery = (board) => {
+  const or = [];
+  if (board?.schoolId) or.push({ "schools.schoolId": board.schoolId });
+  if (board?.school) or.push({ "schools.school": board.school });
+  return or.length ? { $or: or } : null;
+};
+
+const toMemberUser = (u) => ({
+  user: u._id,
+  userId: u.userId,
+  userName: u.userName,
+});
+
+const loadSchoolManagers = async (academyId, board) => {
+  const schoolRef = boardSchoolRef(board);
+  const query = assignedSchoolUserQuery(board);
+  const [admins, assigned] = await Promise.all([
+    User(academyId).find({ auth: "admin" }).lean(),
+    query
+      ? User(academyId).find(query).lean()
+      : Promise.resolve([]),
+  ]);
+  const byId = new Map();
+  for (const u of [...admins, ...assigned]) {
+    byId.set(String(u._id), u);
+  }
+  return [...byId.values()].filter((u) => isSchoolManager(u, schoolRef));
+};
+
+const pushUniqueMember = (users, u) => {
+  if (!u?.userId) return;
+  if (users.some((x) => x.userId === u.userId)) return;
+  users.push(toMemberUser(u));
+};
+
 /**
- * 보드 관리 권한 확인 (admin/manager, 보드 생성자, 또는 altBoardRole admin)
+ * 보드 관리 권한 확인 (해당 학교 관리자, 보드 생성자, 또는 altBoardRole admin)
  * @memberof Services.BoardService
  * @function canManageBoard
  *
@@ -62,7 +100,7 @@ export const nextAltRoleOnRemoveWriter = (existingRole, remainsMember) => {
  * @returns {boolean} 관리 권한 여부
  */
 export const canManageBoard = (board, user) => {
-  if (user.auth === "admin" || user.auth === "manager") return true;
+  if (isSchoolManager(user, boardSchoolRef(board))) return true;
   if (!user?._id) return false;
   const userId = user._id?.toString?.() || String(user._id);
   if (board?.creator) {
@@ -273,10 +311,7 @@ const matchesBoardMembership = (
   role,
   { staffBypass = false } = {}
 ) => {
-  if (
-    staffBypass &&
-    (user.auth === "admin" || user.auth === "manager")
-  ) {
+  if (staffBypass && isSchoolManager(user, boardSchoolRef(board))) {
     return true;
   }
 
@@ -300,7 +335,7 @@ const matchesBoardMembership = (
   if (members.users?.some((u) => u.userId === user.userId)) return true;
 
   // 그룹 멤버십 확인
-  if (user.auth === "manager" && members.groups?.manager) return true;
+  if (isSchoolManager(user, boardSchoolRef(board)) && members.groups?.manager) return true;
   if (role === "teacher" && members.groups?.teacher) return true;
   if (role === "student" && members.groups?.student) return true;
 
@@ -379,7 +414,7 @@ export const isBoardMember = (board, user, role) => {
  * @returns {boolean}
  */
 export const isBoardWriter = (board, user, role) => {
-  if (user.auth === "admin" || user.auth === "manager") return true;
+  if (isSchoolManager(user, boardSchoolRef(board))) return true;
   if (
     board.creator &&
     (board.creator.equals?.(user._id) ||
@@ -403,7 +438,7 @@ export const isBoardWriter = (board, user, role) => {
   // 개별 작성 권한 사용자 확인
   if (writers.users?.some((u) => u.userId === user.userId)) return true;
 
-  if (role && writers.groups?.[role]) return true;
+  if (role && role !== "manager" && writers.groups?.[role]) return true;
 
   return false;
 };
@@ -426,19 +461,9 @@ export const getBoardMembers = async (academyId, board, seasonId) => {
 
   // 기본 보드(공지사항): 전체 학교 구성원 반환
   if (board.isDefault) {
-    const admins = await User(academyId).find({ auth: "admin" });
-    for (const admin of admins) {
-      users.push({ user: admin._id, userId: admin.userId, userName: admin.userName });
-    }
-
-    const managers = await User(academyId).find({
-      auth: "manager",
-      "schools.schoolId": board.schoolId,
-    });
-    for (const manager of managers) {
-      if (!users.some((u) => u.userId === manager.userId)) {
-        users.push({ user: manager._id, userId: manager.userId, userName: manager.userName });
-      }
+    const adminsAndManagers = await loadSchoolManagers(academyId, board);
+    for (const u of adminsAndManagers) {
+      pushUniqueMember(users, u);
     }
 
     const regQuery = { schoolId: board.schoolId, isActivated: true };
@@ -470,6 +495,13 @@ export const getBoardMembers = async (academyId, board, seasonId) => {
     for (const u of members.users || []) {
       if (!users.some((x) => x.userId === u.userId)) {
         users.push({ user: u.user, userId: u.userId, userName: u.userName });
+      }
+    }
+
+    if (members.groups?.manager) {
+      const mgrs = await loadSchoolManagers(academyId, board);
+      for (const u of mgrs) {
+        pushUniqueMember(users, u);
       }
     }
 
@@ -526,15 +558,7 @@ export const getBoardMembers = async (academyId, board, seasonId) => {
       registrations.map((r) => r.user.toString())
     );
     // admin/manager/creator는 교집합 밖에서도 유지(운영)
-    const opsUsers = await User(academyId)
-      .find({
-        $or: [
-          { auth: "admin" },
-          { auth: "manager", "schools.schoolId": board.schoolId },
-        ],
-      })
-      .select("_id")
-      .lean();
+    const opsUsers = await loadSchoolManagers(academyId, board);
     const opsIds = new Set(opsUsers.map((u) => u._id.toString()));
     if (board.creator) opsIds.add(board.creator.toString());
 
@@ -615,9 +639,9 @@ const pushUniqueApprover = (out, seen, user) => {
   });
 };
 
-const memberMatchesFormWriterGroup = (member, groups) => {
+const memberMatchesFormWriterGroup = (member, groups, schoolRef) => {
   if (!groups) return false;
-  if (groups.manager && (member.auth === "manager" || member.role === "manager")) {
+  if (groups.manager && isSchoolManager(member, schoolRef)) {
     return true;
   }
   return !!(member.role && groups[member.role]);
@@ -643,7 +667,7 @@ export const resolveFormApprovalCandidates = (form, board, members = []) => {
     const groups = form.writers.groups || {};
     if (groups.manager || groups.teacher || groups.student) {
       for (const member of members) {
-        if (memberMatchesFormWriterGroup(member, groups)) {
+        if (memberMatchesFormWriterGroup(member, groups, boardSchoolRef(board))) {
           pushUniqueApprover(out, seen, member);
         }
       }
@@ -711,23 +735,9 @@ const getUsersByPermission = async (academyId, board, permission) => {
     users.push({ user: u.user, userId: u.userId, userName: u.userName });
   }
 
-  // 2. admin 항상 포함
-  const admins = await User(academyId).find({ auth: "admin" });
-  for (const admin of admins) {
-    if (!users.some((u) => u.userId === admin.userId)) {
-      users.push({ user: admin._id, userId: admin.userId, userName: admin.userName });
-    }
-  }
-
-  // 3. manager 항상 포함
-  const managers = await User(academyId).find({
-    auth: "manager",
-    "schools.schoolId": board.schoolId,
-  });
-  for (const manager of managers) {
-    if (!users.some((u) => u.userId === manager.userId)) {
-      users.push({ user: manager._id, userId: manager.userId, userName: manager.userName });
-    }
+  const adminsAndManagers = await loadSchoolManagers(academyId, board);
+  for (const u of adminsAndManagers) {
+    pushUniqueMember(users, u);
   }
 
   return users;
@@ -877,7 +887,11 @@ export const canUserSeePost = (post, user, role) => {
     );
   }
 
-  if (ta.type === "manager") return user.auth === "manager";
+  if (ta.type === "manager") {
+    const boardLike =
+      post.board && typeof post.board === "object" ? post.board : post;
+    return isSchoolManager(user, boardSchoolRef(boardLike));
+  }
 
   return role === ta.type;
 };
@@ -922,24 +936,10 @@ export const filterUsersByTargetAudience = async (
   }
 
   if (targetAudience.type === "manager") {
-    const admins = await User(academyId).find({ auth: "admin" });
-    for (const admin of admins) {
-      users.push({ user: admin._id, userId: admin.userId, userName: admin.userName });
+    const managers = await loadSchoolManagers(academyId, board);
+    for (const u of managers) {
+      pushUniqueMember(users, u);
     }
-
-    const boardMembers = resolveBoardMembers(board);
-    if (boardMembers.groups?.manager) {
-      const managers = await User(academyId).find({
-        auth: "manager",
-        "schools.schoolId": board.schoolId,
-      });
-      for (const manager of managers) {
-        if (!users.some((u) => u.userId === manager.userId)) {
-          users.push({ user: manager._id, userId: manager.userId, userName: manager.userName });
-        }
-      }
-    }
-
     return users;
   }
 

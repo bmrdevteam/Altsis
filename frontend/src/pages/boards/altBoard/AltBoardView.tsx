@@ -11,6 +11,7 @@ import { TBoard } from "types/board";
 import { TAltForm } from "types/altForm";
 import { useAuth } from "contexts/authContext";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import { isSchoolManager } from "utils/schoolManager";
 import { useAppPrefix } from "hooks/useAppPrefix";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import { copyClipBoard } from "functions/functions";
@@ -69,17 +70,16 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
   /** 채팅 탭 읽음 후, 늦은 rooms 응답이 뱃지를 다시 올리지 못하게 */
   const chatReadEpochRef = useRef(0);
 
-  const schoolRole =
-    currentUser?.auth === "manager"
-      ? "manager"
-      : currentRegistration?.role || null;
+  const schoolRole = currentRegistration?.role || null;
   const myRole = getMyAltBoardRole(board, currentUser, schoolRole);
+  const schoolMgr = isSchoolManager(
+    currentUser,
+    board.school || board.schoolId
+  );
 
   const canManage =
-    myRole === "admin" ||
-    myRole === "writer" ||
-    currentUser?.auth === "manager";
-  const canDeleteAnyRow = myRole === "admin" || currentUser?.auth === "manager";
+    myRole === "admin" || myRole === "writer" || schoolMgr;
+  const canDeleteAnyRow = myRole === "admin" || schoolMgr;
 
   // 채팅 활성화 여부 (학교 + 아카데미 + 보드 수준 모두 확인)
   const isChatEnabled =
@@ -91,7 +91,7 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
   const canModifyForm = (form: TAltForm) => {
     if (!currentUser) return false;
     if (myRole === "admin") return true;
-    if (currentUser.auth === "manager") return true;
+    if (schoolMgr) return true;
     if (
       form.creator != null &&
       String(form.creator) === String(currentUser._id)
@@ -191,7 +191,7 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
   const activityBadgeCount = (() => {
     const now = new Date();
     const unsubmitted = forms.filter((f) => {
-      if (!isFormRespondent(f, currentUser, myRole, schoolRole)) return false;
+      if (!isFormRespondent(f, currentUser, myRole, schoolRole, board.school || board.schoolId)) return false;
       return shouldShowUnsubmittedTodoForm(f, now);
     }).length;
     return unsubmitted + pendingApprovalCount + gradeTodoCount;

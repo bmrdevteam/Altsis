@@ -6,6 +6,7 @@ import {
   canReadLibraryItem,
   canWriteLibraryItem,
   isSchoolOfficialVisibility,
+  isStaffAuth,
   resolveCreateKind,
   resolveCreateVisibility,
   schoolOfficialMatch,
@@ -124,5 +125,19 @@ describe("aiLibraryAcl", () => {
         { visibility: { $exists: false } },
       ])
     );
+  });
+
+  test("isStaffAuth는 해당 학교 관리자만", () => {
+    const mgr = {
+      auth: "manager",
+      schools: [
+        { school: "A", schoolAuth: "manager" },
+        { school: "B", schoolAuth: "member" },
+      ],
+    };
+    expect(isStaffAuth("manager", mgr, "A")).toBe(true);
+    expect(isStaffAuth("manager", mgr, "B")).toBe(false);
+    expect(isStaffAuth("admin")).toBe(true);
+    expect(isStaffAuth("manager")).toBe(false);
   });
 });

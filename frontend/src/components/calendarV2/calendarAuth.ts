@@ -1,10 +1,9 @@
-const SCHOOL_CALENDAR_AUTHS = ["owner", "admin", "manager"] as const;
+import { isSchoolManager, TSchoolManagerUser } from "utils/schoolManager";
 
 /**
  * 학교 캘린더(기본·사용자 정의) 추가/수정/삭제 가능 여부
  */
-export const canManageSchoolCalendar = (user?: {
-  auth?: string | null;
-} | null): boolean =>
-  !!user?.auth &&
-  (SCHOOL_CALENDAR_AUTHS as readonly string[]).includes(user.auth);
+export const canManageSchoolCalendar = (
+  user?: TSchoolManagerUser,
+  schoolId?: unknown
+): boolean => isSchoolManager(user, schoolId);

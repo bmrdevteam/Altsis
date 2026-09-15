@@ -1,6 +1,7 @@
 /**
  * 보드 시즌 스코프 관련 순수 헬퍼
  */
+import { isSchoolManager } from "./schoolManager.js";
 
 /**
  * 시즌 스코프 보드인지 여부
@@ -17,7 +18,7 @@ export const isSeasonScopedBoard = (board) =>
  * @returns {boolean}
  */
 export const canBypassSeasonRegistration = (board, user) => {
-  if (user.auth === "admin" || user.auth === "manager") return true;
+  if (isSchoolManager(user, board?.school || board?.schoolId)) return true;
   if (board.creator && board.creator.equals?.(user._id)) return true;
   if (
     board.creator &&

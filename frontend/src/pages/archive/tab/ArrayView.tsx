@@ -1,6 +1,7 @@
 import Button from "components/button/Button";
 import Table from "components/tableV2/Table";
 import { useAuth } from "contexts/authContext";
+import { isSchoolManager } from "utils/schoolManager";
 import { useRef, useEffect, useMemo, useState } from "react";
 
 import Loading from "components/loading/Loading";
@@ -188,7 +189,7 @@ const One = (props: Props) => {
     !isLoading &&
     !!props.pid &&
     archiveList.length > 0 &&
-    ((currentUser.auth === "manager" &&
+    ((isSchoolManager(currentUser, currentSchool?._id) &&
       formArchiveItem.authManager === "viewAndEdit") ||
       formArchiveItem.authTeacher === "viewAndEditStudents" ||
       formArchiveItem.authTeacher === "viewAndEditMyStudents");
@@ -577,7 +578,7 @@ const One = (props: Props) => {
             {`변경 사항 저장 (${changedCount}명)`}
           </Button>{" "}
     {/* 관리자 권한이 있고 교사/학생에게 수정 권한이 없을 때만 엑셀 파일로 수정 기능 사용 */}
-      {currentUser.auth === "manager" &&
+      {isSchoolManager(currentUser, currentSchool?._id) &&
         formArchive().authManager === "viewAndEdit" &&
         formArchive().authStudent !== "viewAndEdit" &&
         formArchive().authTeacher !== "viewAndEditStudents" &&

@@ -223,6 +223,7 @@ export const executeSearchSkill = async ({
     evalColumns,
     formTables,
     overflowFormTitles,
+    school,
   });
   const valueHint = formatSearchSchemaHint(searchSchema, seasonScope);
   const ddl = formatCatalogDdl(specs);

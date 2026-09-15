@@ -988,6 +988,7 @@ export default function useAPIv2() {
     };
     data: {
       sid: string;
+      schoolAuth?: "manager" | "member";
     };
   }) {
     const { schools } = await database.C({
@@ -999,6 +1000,36 @@ export default function useAPIv2() {
         school: string;
         schoolId: string;
         schoolName: string;
+        schoolAuth?: "manager" | "member";
+      }[],
+    };
+  }
+
+  /**
+   * UUserSchool API
+   * @description 소속 학교 관리 여부 수정
+   * @version 2.0.0
+   * @auth admin
+   */
+  async function UUserSchool(props: {
+    params: {
+      uid: string;
+    };
+    data: {
+      sid: string;
+      schoolAuth: "manager" | "member";
+    };
+  }) {
+    const { schools } = await database.U({
+      location: `users/${props.params.uid}/schools`,
+      data: props.data,
+    });
+    return {
+      schools: schools as {
+        school: string;
+        schoolId: string;
+        schoolName: string;
+        schoolAuth?: "manager" | "member";
       }[],
     };
   }
@@ -1026,6 +1057,7 @@ export default function useAPIv2() {
         school: string;
         schoolId: string;
         schoolName: string;
+        schoolAuth?: "manager" | "member";
       }[],
     };
   }
@@ -1038,7 +1070,7 @@ export default function useAPIv2() {
    */
   async function CUser(props: {
     data: {
-      schools: { school: string }[];
+      schools: { school: string; schoolAuth?: "manager" | "member" }[];
       auth: "admin" | "member" | "manager";
       userId: string;
       userName: string;
@@ -5878,6 +5910,7 @@ export default function useAPIv2() {
       CGoogleAuth,
       DGoogleAuth,
       CUserSchool,
+      UUserSchool,
       DUserSchool,
       DUser,
     },

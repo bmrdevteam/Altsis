@@ -55,6 +55,7 @@ router.put("/:_id/google", isAdmin, users.connectGoogleAuth);
 router.delete("/:_id/google", isAdmin, users.disconnectGoogleAuth);
 
 router.post("/:_id/schools", isAdmin, users.registerSchool);
+router.put("/:_id/schools", isAdmin, users.updateSchool);
 router.delete("/:_id/schools", isAdmin, users.deregisterSchool);
 
 // ___________ Delete _____________
