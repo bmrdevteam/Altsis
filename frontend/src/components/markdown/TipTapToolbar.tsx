@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Editor } from "@tiptap/react";
+import { useEditorChromeTick } from "./hooks/useEditorChromeTick";
 import Svg from "assets/svg/Svg";
 import ColorDropdown from "./ColorDropdown";
 import HeadingDropdown, { getHeadingBadge } from "./HeadingDropdown";
@@ -41,6 +42,7 @@ const TipTapToolbar = ({
   enableMention = false,
   moreExtraItems,
 }: Props) => {
+  useEditorChromeTick(editor);
   const [activeDropdown, setActiveDropdown] = useState<
     | "textColor"
     | "highlight"

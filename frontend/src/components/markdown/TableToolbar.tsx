@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Editor } from "@tiptap/react";
+import { useEditorChromeTick } from "./hooks/useEditorChromeTick";
 import Svg from "assets/svg/Svg";
 import ColorDropdown from "./ColorDropdown";
 import TableBorderDropdown from "./TableBorderDropdown";
@@ -22,19 +23,9 @@ const getCellAttrs = (editor: Editor) => {
 };
 
 const TableToolbar = ({ editor }: Props) => {
-  const [, setRev] = useState(0);
+  useEditorChromeTick(editor);
   const [showCellColor, setShowCellColor] = useState(false);
   const [showBorder, setShowBorder] = useState(false);
-
-  useEffect(() => {
-    const bump = () => setRev((n) => n + 1);
-    editor.on("transaction", bump);
-    editor.on("selectionUpdate", bump);
-    return () => {
-      editor.off("transaction", bump);
-      editor.off("selectionUpdate", bump);
-    };
-  }, [editor]);
   const cellAttrs = getCellAttrs(editor);
   const vAlign = cellAttrs.verticalAlign || null;
 

@@ -152,7 +152,7 @@ const MarkdownEditor = ({
     extensions,
     content: initialContentRef.current,
     immediatelyRender: false,
-    shouldRerenderOnTransaction: true,
+    shouldRerenderOnTransaction: false,
     editorProps: {
       clipboardTextSerializer: serializeClipboardPlainText,
       transformPastedHTML: (html) => flattenPastedTableStyles(html),

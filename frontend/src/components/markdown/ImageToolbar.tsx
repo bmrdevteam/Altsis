@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Editor } from "@tiptap/react";
 import { NodeSelection } from "@tiptap/pm/state";
+import { useEditorChromeTick } from "./hooks/useEditorChromeTick";
 import UndoRedoButtons from "./UndoRedoButtons";
 import style from "./markdown.module.scss";
 
@@ -9,21 +10,11 @@ type Props = {
 };
 
 const ImageToolbar = ({ editor }: Props) => {
-  const [, setRev] = useState(0);
+  useEditorChromeTick(editor);
   const [editingField, setEditingField] = useState<"alt" | "caption" | null>(
     null
   );
   const [fieldDraft, setFieldDraft] = useState("");
-
-  useEffect(() => {
-    const bump = () => setRev((n) => n + 1);
-    editor.on("transaction", bump);
-    editor.on("selectionUpdate", bump);
-    return () => {
-      editor.off("transaction", bump);
-      editor.off("selectionUpdate", bump);
-    };
-  }, [editor]);
 
   const updateAttrs = (attrs: Record<string, any>) => {
     editor.chain().focus().updateAttributes("image", attrs).run();
