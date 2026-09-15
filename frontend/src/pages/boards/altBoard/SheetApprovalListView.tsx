@@ -563,7 +563,24 @@ const SheetApprovalView = ({
                         </span>
                       </td>
                       <td className={style.sheetApprovalTitleCell}>
-                        {item.title}
+                        <span className={style.sheetApprovalTitleText}>
+                          {item.title}
+                        </span>
+                        {item.attachmentCount > 0 ? (
+                          <span
+                            className={style.sheetApprovalAttachMark}
+                            title={`첨부 ${item.attachmentCount}개`}
+                            aria-label={`첨부 ${item.attachmentCount}개`}
+                            role="img"
+                          >
+                            <span aria-hidden>
+                              <Svg type="paperclip" width="14px" height="14px" />
+                            </span>
+                            {item.attachmentCount >= 2
+                              ? item.attachmentCount
+                              : null}
+                          </span>
+                        ) : null}
                       </td>
                       <td>
                         {item.respondentName || "—"}
