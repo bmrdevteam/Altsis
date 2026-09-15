@@ -135,6 +135,78 @@ export const getUserRoleInSeason = async (
   return registration?.role || null;
 };
 
+const seasonKey = (season) =>
+  season?.toString?.() ?? (season == null ? "" : String(season));
+
+/**
+ * 등록 목록을 시즌→역할 맵으로 변환 (목록 N+1 제거용)
+ * @param {Array<{ season?: *, role?: string }>} registrations
+ * @returns {{ roleBySeason: Map<string, string>, registeredSeasonIds: Set<string> }}
+ */
+export const buildSeasonRoleIndex = (registrations = []) => {
+  const roleBySeason = new Map(
+    registrations.map((r) => [seasonKey(r.season), r.role])
+  );
+  return {
+    roleBySeason,
+    registeredSeasonIds: new Set(roleBySeason.keys()),
+  };
+};
+
+/**
+ * 사용자의 학교 시즌 등록을 한 번에 읽는다.
+ * @param {string} academyId
+ * @param {string} schoolId
+ * @param {Object} user
+ * @returns {Promise<{ roleBySeason: Map<string, string>, registeredSeasonIds: Set<string> }>}
+ */
+export const loadUserSeasonRoles = async (academyId, schoolId, user) => {
+  const registrations = await Registration(academyId)
+    .find({
+      user: user._id,
+      schoolId,
+      isActivated: true,
+    })
+    .select("season role")
+    .lean();
+  return buildSeasonRoleIndex(registrations);
+};
+
+/**
+ * 배치된 등록으로 시즌 보드 접근 여부 (규칙 B + 운영 예외)
+ * @param {Object} board
+ * @param {Object} user
+ * @param {Set<string>} registeredSeasonIds
+ * @returns {boolean}
+ */
+export const canAccessSeasonBoardFromRoles = (
+  board,
+  user,
+  registeredSeasonIds
+) => {
+  if (!isSeasonScopedBoard(board)) return true;
+  if (canBypassSeasonRegistration(board, user)) return true;
+  return registeredSeasonIds.has(seasonKey(board.season));
+};
+
+/**
+ * 배치된 등록으로 보드 멤버십에 쓸 시즌 역할
+ * @param {Object} board
+ * @param {Map<string, string>} roleBySeason
+ * @param {string|null} currentSeasonRole
+ * @returns {string|null}
+ */
+export const resolveBoardSeasonRole = (
+  board,
+  roleBySeason,
+  currentSeasonRole
+) => {
+  if (isSeasonScopedBoard(board)) {
+    return roleBySeason.get(seasonKey(board.season)) || null;
+  }
+  return currentSeasonRole ?? null;
+};
+
 // ============================================================
 // 새 멤버 기반 권한 시스템
 // ============================================================

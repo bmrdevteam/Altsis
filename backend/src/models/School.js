@@ -153,10 +153,21 @@ const deletedFormArchiveItemSchema = mongoose.Schema(
  * @prop {Object} [aiConfig] - 학교 AI 스킬·권한 설정
  *
  */
+const aiPermissionExceptionSchema = mongoose.Schema(
+  {
+    user: { type: String, default: "" },
+    userId: { type: String, default: "" },
+    userName: { type: String, default: "" },
+    isAllowed: { type: Boolean, default: true },
+  },
+  { _id: false }
+);
+
 const aiPermissionSchema = mongoose.Schema(
   {
     teacher: { type: Boolean, default: false },
     student: { type: Boolean, default: false },
+    exceptions: { type: [aiPermissionExceptionSchema], default: [] },
   },
   { _id: false }
 );

@@ -2,9 +2,26 @@
 export const CANVAS_MAX_BYTES = 100 * 1024;
 
 /** 코드 캔버스 iframe sandbox. same-origin을 넣지 않아 부모 페이지와 격리한다. */
-export const CANVAS_IFRAME_SANDBOX = "allow-scripts";
+export const CANVAS_IFRAME_SANDBOX = "allow-scripts allow-modals";
 
 export const DEFAULT_CANVAS_HEIGHT = 500;
+
+/** 새 캔버스 삽입 시 넣는 한 문서 뼈대 */
+export const CANVAS_HTML_STARTER = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title></title>
+<style>
+</style>
+</head>
+<body>
+<script>
+</script>
+</body>
+</html>
+`;
 
 export type CanvasPayload = {
   v: 1;
@@ -218,12 +235,9 @@ export function serializeCanvasPayload(payload: CanvasPayload): string {
   return JSON.stringify(body);
 }
 
+/** 분리된 css/js가 있어 한 문서로 펼쳐야 하면 true. 제목만으로는 canvas JSON을 쓰지 않는다. */
 export function shouldSerializeAsCanvas(payload: CanvasPayload): boolean {
-  return Boolean(
-    payload.title?.trim() ||
-      payload.css.trim() ||
-      payload.javascript.trim()
-  );
+  return Boolean(payload.css.trim() || payload.javascript.trim());
 }
 
 function heightSuffix(height: number): string {
@@ -245,10 +259,7 @@ export function serializeCodeEmbed(
   payload: CanvasPayload,
   height = 0
 ): string {
-  if (shouldSerializeAsCanvas(payload)) {
-    return serializeCanvasFence(payload, height);
-  }
-  return serializeHtmlAppFence(payload.html, height);
+  return serializeHtmlAppFence(flattenCanvasToHtml(payload), height);
 }
 
 /**
@@ -376,6 +387,60 @@ function escapeHtmlText(text: string): string {
     .replace(/"/g, "&quot;");
 }
 
+function unescapeHtmlText(text: string): string {
+  return text
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&");
+}
+
+/** HTML 문서의 <title>을 읽어 툴바 제목과 맞춘다. */
+export function titleFromHtml(html: string): string {
+  const match = String(html || "").match(/<title\b[^>]*>([\s\S]*?)<\/title>/i);
+  if (!match) return "";
+  return unescapeHtmlText(match[1]).trim();
+}
+
+/** 제목 필드 값을 문서 <title>에 반영한다. */
+export function applyCanvasTitle(html: string, title: string): string {
+  const source = String(html || "");
+  const escaped = escapeHtmlText(title.trim());
+  if (/<title\b[^>]*>[\s\S]*?<\/title>/i.test(source)) {
+    return source.replace(
+      /<title\b[^>]*>[\s\S]*?<\/title>/i,
+      `<title>${escaped}</title>`
+    );
+  }
+  if (/<head\b[^>]*>/i.test(source)) {
+    return source.replace(
+      /<head\b([^>]*)>/i,
+      `<head$1><title>${escaped}</title>`
+    );
+  }
+  return source;
+}
+
+/**
+ * 분리된 css/js·제목을 한 HTML 문서로 펼친다.
+ * 이미 완전체이고 css/js가 없으면 문서를 유지하고 제목만 맞춘다.
+ */
+export function flattenCanvasToHtml(payload: CanvasPayload): string {
+  const resolved = resolveCanvasPayload(payload);
+  const html = resolved.html || "";
+  const css = resolved.css || "";
+  const javascript = resolved.javascript || "";
+  const title = resolved.title?.trim();
+
+  if (!css.trim() && !javascript.trim()) {
+    if (!html.trim() && !title) return html;
+    if (isCompleteHtmlDocument(html) && !looksLikeCanvasJsonText(html)) {
+      return title ? applyCanvasTitle(html, title) : html;
+    }
+  }
+  return buildCanvasSrcDoc(resolved);
+}
+
 export function canvasByteSize(srcDoc: string): number {
   return new Blob([srcDoc]).size;
 }
@@ -432,17 +497,16 @@ export function attrsFromPayload(
   payload: CanvasPayload,
   height = 0
 ): HtmlEmbedCodeAttrs {
-  const title = payload.title?.trim();
+  const html = flattenCanvasToHtml(payload);
+  const title = payload.title?.trim() || titleFromHtml(html);
   return {
     embedType: "code",
     height,
     ...(title ? { title } : {}),
-    html: payload.html || "",
-    css: payload.css || "",
-    javascript: payload.javascript || "",
-    content: shouldSerializeAsCanvas(payload)
-      ? serializeCanvasPayload(payload)
-      : payload.html || "",
+    html,
+    css: "",
+    javascript: "",
+    content: html,
   };
 }
 

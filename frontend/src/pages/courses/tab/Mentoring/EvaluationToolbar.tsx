@@ -1,6 +1,13 @@
 import { ReactNode } from "react";
 import Svg from "assets/svg/Svg";
 import mergeStyle from "components/mergeFilter/mergeFilter.module.scss";
+import CollapsibleFilterBar, {
+  FilterCollapseToggle,
+} from "pages/boards/CollapsibleFilterBar";
+import {
+  FILTER_BAR_OPEN_KEYS,
+  useFilterBarOpen,
+} from "pages/boards/filterBarOpen";
 import bStyle from "pages/boards/boards.module.scss";
 import aStyle from "pages/boards/altBoard/altBoard.module.scss";
 
@@ -58,78 +65,12 @@ const EvaluationToolbar = ({
   const allVisible =
     columns.length > 0 && columns.every((c) => visibleKeys.has(c.key));
   const hasFilter = !!keyword.trim() || (!allVisible && columns.length > 0);
-  const hasActions =
-    !!onDownloadCsvTemplate || !!onImportFromCsv || !!onImportFromBoard;
+  const { open: filterBarOpen, onToggle: toggleFilterBar } = useFilterBarOpen(
+    FILTER_BAR_OPEN_KEYS.evaluation
+  );
 
   return (
     <div className={aStyle.formList}>
-      <div className={bStyle.activityFilterBlock}>
-        <div className={mergeStyle.mergeSearchBar}>
-          <div className={mergeStyle.mergeSearchInputWrap}>
-            <span className={mergeStyle.mergeSearchIcon}>
-              <Svg type="search" width="18px" height="18px" />
-            </span>
-            <input
-              className={mergeStyle.mergeSearchInput}
-              type="search"
-              placeholder="이름, ID, 학년 검색"
-              value={keyword}
-              onChange={(e) => onKeywordChange(e.target.value)}
-              aria-label="평가 학생 검색"
-            />
-          </div>
-        </div>
-
-        {columns.length > 0 && (
-          <div
-            className={bStyle.filterChipRow}
-            role="group"
-            aria-label="평가 항목 보기"
-          >
-            <button
-              type="button"
-              className={`${bStyle.filterChip} ${bStyle.filterChipToneAll} ${
-                allVisible ? bStyle.filterChipActive : ""
-              }`}
-              aria-pressed={allVisible}
-              onClick={onShowAll}
-            >
-              <span className={bStyle.filterChipIcon} aria-hidden>
-                <Svg type="list" width="12px" height="12px" />
-              </span>
-              전체
-            </button>
-
-            {columns.map((col, i) => {
-              const active = visibleKeys.has(col.key);
-              return (
-                <button
-                  key={col.key}
-                  type="button"
-                  className={`${bStyle.filterChip} ${
-                    CHIP_TONES[i % CHIP_TONES.length]
-                  } ${active ? bStyle.filterChipActive : ""}`}
-                  aria-pressed={active}
-                  onClick={() => onToggle(col.key)}
-                >
-                  {col.text}
-                </button>
-              );
-            })}
-
-            {hasFilter && (
-              <button
-                type="button"
-                className={bStyle.filterChipReset}
-                onClick={onReset}
-              >
-                초기화
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-
       <section className={aStyle.formSectionPanel}>
         <div className={aStyle.formSectionHeaderStatic}>
           <div className={aStyle.formSectionHeaderMain}>
@@ -138,41 +79,112 @@ const EvaluationToolbar = ({
               <span className={aStyle.formSectionCount}>{count}</span>
             )}
           </div>
-          {hasActions && (
-            <div className={aStyle.formListToolbar} style={{ gap: 8 }}>
-              {onDownloadCsvTemplate && (
-                <button
-                  type="button"
-                  className={`${bStyle.filterChip} ${bStyle.filterChipToneScheduled}`}
-                  onClick={onDownloadCsvTemplate}
-                >
-                  CSV 양식 다운로드
-                </button>
-              )}
-              {onImportFromCsv && (
-                <button
-                  type="button"
-                  className={`${bStyle.filterChip} ${bStyle.filterChipToneOptional}`}
-                  onClick={onImportFromCsv}
-                >
-                  CSV 가져오기
-                </button>
-              )}
-              {onImportFromBoard && (
-                <button
-                  type="button"
-                  className={`${bStyle.filterChip} ${bStyle.filterChipToneDirect}`}
-                  onClick={onImportFromBoard}
-                >
-                  활동에서 가져오기
-                </button>
-              )}
-            </div>
-          )}
+          <div className={aStyle.formListToolbar} style={{ gap: 8 }}>
+            <FilterCollapseToggle
+              open={filterBarOpen}
+              onToggle={toggleFilterBar}
+              className={aStyle.formCardIconBtn}
+              activeClassName={aStyle.formCardIconBtnActive}
+              iconSize="20px"
+            />
+            {onDownloadCsvTemplate && (
+              <button
+                type="button"
+                className={`${bStyle.filterChip} ${bStyle.filterChipToneScheduled}`}
+                onClick={onDownloadCsvTemplate}
+              >
+                CSV 양식 다운로드
+              </button>
+            )}
+            {onImportFromCsv && (
+              <button
+                type="button"
+                className={`${bStyle.filterChip} ${bStyle.filterChipToneOptional}`}
+                onClick={onImportFromCsv}
+              >
+                CSV 가져오기
+              </button>
+            )}
+            {onImportFromBoard && (
+              <button
+                type="button"
+                className={`${bStyle.filterChip} ${bStyle.filterChipToneDirect}`}
+                onClick={onImportFromBoard}
+              >
+                활동에서 가져오기
+              </button>
+            )}
+          </div>
         </div>
-        {children != null && (
-          <div className={aStyle.formSectionBody}>{children}</div>
-        )}
+        <div className={aStyle.formSectionBody}>
+          <CollapsibleFilterBar open={filterBarOpen}>
+            <div className={mergeStyle.mergeSearchBar}>
+              <div className={mergeStyle.mergeSearchInputWrap}>
+                <span className={mergeStyle.mergeSearchIcon}>
+                  <Svg type="search" width="18px" height="18px" />
+                </span>
+                <input
+                  className={mergeStyle.mergeSearchInput}
+                  type="search"
+                  placeholder="이름, ID, 학년 검색"
+                  value={keyword}
+                  onChange={(e) => onKeywordChange(e.target.value)}
+                  aria-label="평가 학생 검색"
+                />
+              </div>
+            </div>
+
+            {columns.length > 0 && (
+              <div
+                className={bStyle.filterChipRow}
+                role="group"
+                aria-label="평가 항목 보기"
+              >
+                <button
+                  type="button"
+                  className={`${bStyle.filterChip} ${bStyle.filterChipToneAll} ${
+                    allVisible ? bStyle.filterChipActive : ""
+                  }`}
+                  aria-pressed={allVisible}
+                  onClick={onShowAll}
+                >
+                  <span className={bStyle.filterChipIcon} aria-hidden>
+                    <Svg type="list" width="12px" height="12px" />
+                  </span>
+                  전체
+                </button>
+
+                {columns.map((col, i) => {
+                  const active = visibleKeys.has(col.key);
+                  return (
+                    <button
+                      key={col.key}
+                      type="button"
+                      className={`${bStyle.filterChip} ${
+                        CHIP_TONES[i % CHIP_TONES.length]
+                      } ${active ? bStyle.filterChipActive : ""}`}
+                      aria-pressed={active}
+                      onClick={() => onToggle(col.key)}
+                    >
+                      {col.text}
+                    </button>
+                  );
+                })}
+
+                {hasFilter && (
+                  <button
+                    type="button"
+                    className={bStyle.filterChipReset}
+                    onClick={onReset}
+                  >
+                    초기화
+                  </button>
+                )}
+              </div>
+            )}
+          </CollapsibleFilterBar>
+          {children}
+        </div>
       </section>
     </div>
   );

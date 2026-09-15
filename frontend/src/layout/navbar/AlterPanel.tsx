@@ -2898,6 +2898,7 @@ const AlterPanel = ({ onClose }: Props) => {
     role: currentRegistration?.role,
     school: currentSchool,
     season: currentSeason,
+    userId: currentUser?._id,
   });
   const libraryBtn = showLibraryEntry ? (
     <button

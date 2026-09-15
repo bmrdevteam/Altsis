@@ -1,5 +1,6 @@
 import Svg from "assets/svg/Svg";
 import mergeStyle from "components/mergeFilter/mergeFilter.module.scss";
+import CollapsibleFilterBar from "../CollapsibleFilterBar";
 import bStyle from "../boards.module.scss";
 import {
   ACTIVITY_CHIP_VISUAL,
@@ -69,6 +70,7 @@ type Props = {
   onViewFilterChange: (value: TActivityViewFilter) => void;
   counts: TActivityViewCounts;
   onClear: () => void;
+  open: boolean;
 };
 
 const ChipIcon = ({ type }: { type: string }) => (
@@ -86,12 +88,13 @@ const ActivityListFilterBar = ({
   onViewFilterChange,
   counts,
   onClear,
+  open,
 }: Props) => {
   const hasAnyFilter = !!keyword.trim() || !!viewFilter;
   const allChip = ACTIVITY_CHIP_VISUAL.all;
 
   return (
-    <div className={bStyle.activityFilterBlock}>
+    <CollapsibleFilterBar open={open}>
       <div className={mergeStyle.mergeSearchBar}>
         <div className={mergeStyle.mergeSearchInputWrap}>
           <span className={mergeStyle.mergeSearchIcon}>
@@ -170,7 +173,7 @@ const ActivityListFilterBar = ({
           </button>
         )}
       </div>
-    </div>
+    </CollapsibleFilterBar>
   );
 };
 

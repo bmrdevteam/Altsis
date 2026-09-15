@@ -1,5 +1,6 @@
 import { Node } from "@tiptap/core";
 import katex from "katex";
+import { applyMathNodeUpdate } from "./mathNodeUpdate";
 
 export type MathEditRequest = {
   latex: string;
@@ -91,22 +92,28 @@ export const MathInline = Node.create({
         }
       };
 
-      renderMath(node.attrs.latex);
+      let currentLatex = node.attrs.latex ?? "";
+      renderMath(currentLatex);
 
       span.addEventListener("dblclick", (e) => {
         e.preventDefault();
         e.stopPropagation();
-        openMathEdit(editor, node.attrs.latex, "inline", getPos as any);
+        openMathEdit(editor, currentLatex, "inline", getPos as any);
       });
 
       return {
         dom: span,
         stopEvent: () => false,
-        update: (updatedNode: any) => {
-          if (updatedNode.type.name !== "mathInline") return false;
-          renderMath(updatedNode.attrs.latex);
-          return true;
-        },
+        update: (updatedNode: any) =>
+          applyMathNodeUpdate(
+            "mathInline",
+            updatedNode,
+            currentLatex,
+            (latex) => {
+              currentLatex = latex;
+              renderMath(latex);
+            }
+          ),
       };
     };
   },
@@ -175,22 +182,23 @@ export const MathBlock = Node.create({
         }
       };
 
-      renderMath(node.attrs.latex);
+      let currentLatex = node.attrs.latex ?? "";
+      renderMath(currentLatex);
 
       div.addEventListener("dblclick", (e) => {
         e.preventDefault();
         e.stopPropagation();
-        openMathEdit(editor, node.attrs.latex, "block", getPos as any);
+        openMathEdit(editor, currentLatex, "block", getPos as any);
       });
 
       return {
         dom: div,
         stopEvent: () => false,
-        update: (updatedNode: any) => {
-          if (updatedNode.type.name !== "mathBlock") return false;
-          renderMath(updatedNode.attrs.latex);
-          return true;
-        },
+        update: (updatedNode: any) =>
+          applyMathNodeUpdate("mathBlock", updatedNode, currentLatex, (latex) => {
+            currentLatex = latex;
+            renderMath(latex);
+          }),
       };
     };
   },

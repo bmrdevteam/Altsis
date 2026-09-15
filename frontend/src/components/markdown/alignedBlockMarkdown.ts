@@ -1,5 +1,6 @@
 import { DOMSerializer, type Node as PMNode } from "prosemirror-model";
 import { clampIndent, formatIndentPadding } from "./blockIndent";
+import { formatLineHeight } from "./blockLineHeight";
 
 export const hasNonDefaultTextAlign = (align: unknown): align is string =>
   typeof align === "string" &&
@@ -12,7 +13,12 @@ type MdState = {
 };
 
 export type AlignableNode = {
-  attrs: { textAlign?: string | null; level?: number; indent?: number | null };
+  attrs: {
+    textAlign?: string | null;
+    level?: number;
+    indent?: number | null;
+    lineHeight?: number | null;
+  };
   content?: PMNode["content"];
   type?: { schema?: PMNode["type"]["schema"]; name?: string };
 };
@@ -23,7 +29,11 @@ const headingLevel = (raw: unknown): number => {
   return n;
 };
 
-export const formatBlockStyle = (align: unknown, indent: unknown): string => {
+export const formatBlockStyle = (
+  align: unknown,
+  indent: unknown,
+  lineHeight?: unknown
+): string => {
   const parts: string[] = [];
   if (hasNonDefaultTextAlign(align)) {
     parts.push(`text-align: ${align}`);
@@ -31,6 +41,10 @@ export const formatBlockStyle = (align: unknown, indent: unknown): string => {
   const n = clampIndent(indent);
   if (n > 0) {
     parts.push(`padding-left: ${formatIndentPadding(n)}`);
+  }
+  const lh = formatLineHeight(lineHeight);
+  if (lh) {
+    parts.push(`line-height: ${lh}`);
   }
   return parts.join("; ");
 };
@@ -53,6 +67,7 @@ export const shouldSerializeBlockAsHtml = (
 ): boolean => {
   if (hasNonDefaultTextAlign(node.attrs.textAlign)) return true;
   if (clampIndent(node.attrs.indent) > 0) return true;
+  if (formatLineHeight(node.attrs.lineHeight)) return true;
   return kind === "paragraph" && isEmptyAlignableNode(node);
 };
 
@@ -74,9 +89,18 @@ export const alignedInlineHtml = (node: AlignableNode): string => {
 export const wrapStyledBlockHtml = (
   kind: "paragraph" | "heading",
   innerHtml: string,
-  options: { align?: unknown; indent?: unknown; level?: unknown } = {}
+  options: {
+    align?: unknown;
+    indent?: unknown;
+    level?: unknown;
+    lineHeight?: unknown;
+  } = {}
 ): string => {
-  const style = formatBlockStyle(options.align, options.indent);
+  const style = formatBlockStyle(
+    options.align,
+    options.indent,
+    options.lineHeight
+  );
   const styleAttr = style ? ` style="${style}"` : "";
   if (kind === "heading") {
     const tag = `h${headingLevel(options.level)}`;
@@ -110,6 +134,7 @@ export const serializeAlignedBlock = (
       wrapStyledBlockHtml(kind, inner, {
         align: node.attrs.textAlign,
         indent: node.attrs.indent,
+        lineHeight: node.attrs.lineHeight,
         level: node.attrs.level,
       })
     );

@@ -1377,12 +1377,46 @@ const AltFormRenderer = ({
       case "aiChat":
         return (
           <FormAiChatField
+            form={form ?? undefined}
             formId={form?._id || formId}
             field={field}
             value={data[field._id]}
             seasonId={currentSeason?._id}
             rowId={myRow?._id}
             disabled={disabled}
+            assessmentMode={!!form?.settings?.assessmentMode}
+            onBeforeSend={
+              form?.settings?.assessmentMode && !disabled
+                ? async () => {
+                    const currentForm = form;
+                    const saveData = applyFieldDefaults(
+                      currentForm.fields,
+                      data
+                    );
+                    const { row } = await AltSheetRowAPI.CAltSheetRowDraft({
+                      data: {
+                        form: currentForm._id,
+                        data: saveData,
+                        ...(myRow && isDraftSheetRow(myRow)
+                          ? { row: myRow._id }
+                          : {}),
+                        ...(!(myRow && isDraftSheetRow(myRow)) &&
+                        selectedOccurrenceKey
+                          ? { weekdayOccurrenceKey: selectedOccurrenceKey }
+                          : {}),
+                      },
+                    });
+                    setMyRow(row);
+                    setMyRows((prev) => {
+                      const merged = prev.some((r) => r._id === row._id)
+                        ? prev.map((r) => (r._id === row._id ? row : r))
+                        : [row, ...prev];
+                      return sortMyRowsForReview(merged);
+                    });
+                    return row._id;
+                  }
+                : undefined
+            }
             onChange={(summary) => setValue(field._id, summary)}
             onRowReady={(row) => {
               setMyRow(row);

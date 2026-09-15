@@ -24,6 +24,8 @@ import {
   sheetPrintRootClass,
 } from "./sheetPrintChrome";
 import { DateRange } from "components/dateRangeFilter/DateRangeFilterDropdown";
+import { FilterCollapseToggle } from "../CollapsibleFilterBar";
+import { FILTER_BAR_OPEN_KEYS, useFilterBarOpen } from "../filterBarOpen";
 import RecordsListFilterBar, {
   TRecordsViewCounts,
   TRecordsViewFilter,
@@ -341,6 +343,10 @@ const AltSheetView = ({
   /** 기록 목록: 검색·칩 필터 */
   const [recordsKeyword, setRecordsKeyword] = useState("");
   const [recordsFilter, setRecordsFilter] = useState<TRecordsViewFilter>("");
+  const { open: recordsFilterOpen, onToggle: toggleRecordsFilter } =
+    useFilterBarOpen(FILTER_BAR_OPEN_KEYS.records);
+  const { open: sheetFilterOpen, onToggle: toggleSheetFilter } =
+    useFilterBarOpen(FILTER_BAR_OPEN_KEYS.sheet);
 
   // 응답 삭제 확인
   const [deleteTargetRow, setDeleteTargetRow] = useState<TAltSheetRow | null>(
@@ -1751,11 +1757,13 @@ const AltSheetView = ({
     if (field.type === "aiChat") {
       return (
         <FormAiChatField
+          form={selectedForm}
           formId={selectedForm?._id || ""}
           field={field}
           value={value}
           rowId={undefined}
           disabled
+          assessmentMode={!!selectedForm?.settings?.assessmentMode}
         />
       );
     }
@@ -1925,16 +1933,6 @@ const AltSheetView = ({
   if (!selectedFormId) {
     return (
       <div className={style.formList}>
-        <div className={`${style.noPrint} ${NO_PRINT_CLASS}`}>
-          <RecordsListFilterBar
-            keyword={recordsKeyword}
-            onKeywordChange={setRecordsKeyword}
-            viewFilter={recordsFilter}
-            onViewFilterChange={setRecordsFilter}
-            counts={recordsCounts}
-            onClear={clearRecordsFilters}
-          />
-        </div>
         <section className={style.formSectionPanel}>
           <div
             className={`${style.formSectionHeaderStatic} ${style.noPrint} ${NO_PRINT_CLASS}`}
@@ -1964,8 +1962,28 @@ const AltSheetView = ({
                 <Svg type="print" width="18px" height="18px" />
               </button>
             </div>
+            <div className={style.formListToolbar}>
+              <FilterCollapseToggle
+                open={recordsFilterOpen}
+                onToggle={toggleRecordsFilter}
+                className={style.formCardIconBtn}
+                activeClassName={style.formCardIconBtnActive}
+                iconSize="20px"
+              />
+            </div>
           </div>
           <div ref={listPrintRootRef} className={style.formSectionBody}>
+            <div className={`${style.noPrint} ${NO_PRINT_CLASS}`}>
+              <RecordsListFilterBar
+                keyword={recordsKeyword}
+                onKeywordChange={setRecordsKeyword}
+                viewFilter={recordsFilter}
+                onViewFilterChange={setRecordsFilter}
+                counts={recordsCounts}
+                onClear={clearRecordsFilters}
+                open={recordsFilterOpen}
+              />
+            </div>
             <div className={style.printTitle}>기록</div>
             {filteredForms.length === 0 ? (
               <div className={style.emptyState}>
@@ -2182,6 +2200,15 @@ const AltSheetView = ({
         <div
           className={`${style.builderHeaderActions} ${style.noPrint} ${NO_PRINT_CLASS}`}
         >
+          {viewMode !== "aiChat" && (
+            <FilterCollapseToggle
+              open={sheetFilterOpen}
+              onToggle={toggleSheetFilter}
+              className={style.formCardIconBtn}
+              activeClassName={style.formCardIconBtnActive}
+              iconSize="20px"
+            />
+          )}
           <div className={style.sheetMenuWrap} ref={viewModeMenu.RefObject}>
             <button
               type="button"
@@ -2479,6 +2506,7 @@ const AltSheetView = ({
           onShowAllColumns={showAllColumns}
           onClearSearchAndSort={clearSearchAndSort}
           hasSearchOrSort={!!docKeyword.trim() || !!sortConfig}
+          open={sheetFilterOpen}
           sortSlot={
             <div className={style.sheetSortControls}>
               <label className={style.sheetSortLabel} htmlFor="sheet-sort-field">
@@ -3309,12 +3337,14 @@ const AltSheetView = ({
           }
         >
           <FormAiChatField
+            form={selectedForm}
             formId={selectedForm._id}
             field={aiChatPreview.field}
             value={aiChatPreview.row?.data?.[aiChatPreview.field._id]}
             sessionId={aiChatPreview.sessionId}
             rowId={aiChatPreview.row?._id}
             disabled
+            assessmentMode={!!selectedForm.settings?.assessmentMode}
           />
         </Popup>
       )}

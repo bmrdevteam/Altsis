@@ -1,6 +1,7 @@
 import Svg from "assets/svg/Svg";
 import { TBoardLinkFilter, TBoardScope, TBoardType } from "types/board";
 import mergeStyle from "components/mergeFilter/mergeFilter.module.scss";
+import CollapsibleFilterBar from "./CollapsibleFilterBar";
 import bStyle from "./boards.module.scss";
 
 export type TBoardScopeFilter = "" | TBoardScope;
@@ -48,6 +49,7 @@ type Props = {
   onLinkFilterChange: (value: TBoardLinkFilter) => void;
   counts: TBoardListFilterCounts;
   onClear: () => void;
+  open: boolean;
 };
 
 const CHIP_TONE_CLASS: Record<string, string> = {
@@ -81,6 +83,7 @@ const BoardListFilterBar = ({
   onLinkFilterChange,
   counts,
   onClear,
+  open,
 }: Props) => {
   const hasAnyFilter =
     !!keyword.trim() ||
@@ -93,7 +96,7 @@ const BoardListFilterBar = ({
     !hasTodosOnly && !scopeFilter && !boardTypeFilter && !linkFilter;
 
   return (
-    <div className={bStyle.activityFilterBlock}>
+    <CollapsibleFilterBar open={open}>
       <div className={mergeStyle.mergeSearchBar}>
         <div className={mergeStyle.mergeSearchInputWrap}>
           <span className={mergeStyle.mergeSearchIcon}>
@@ -268,7 +271,7 @@ const BoardListFilterBar = ({
           </button>
         )}
       </div>
-    </div>
+    </CollapsibleFilterBar>
   );
 };
 

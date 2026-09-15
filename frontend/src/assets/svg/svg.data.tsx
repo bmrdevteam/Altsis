@@ -412,6 +412,12 @@ export const svgData = {
   heading: (
     <path d="M18 20V4h-3v6H9V4H6v16h3v-7h6v7z"></path>
   ),
+  fontSize: (
+    <path d="M9 4v3h5v12h3V7h5V4H9zM6 12h3v7h3v-7h3V9H6v3z"></path>
+  ),
+  lineHeight: (
+    <path d="M6 7h2.5L5 3.5 1.5 7H4v10H1.5L5 20.5 8.5 17H6V7zm4-2v2h12V5H10zm0 14h12v-2H10v2zm0-6h12v-2H10v2z"></path>
+  ),
   italic: (
     <path d="M10 4v3h2.21l-3.42 8H6v3h8v-3h-2.21l3.42-8H18V4h-8z"></path>
   ),

@@ -3,21 +3,20 @@ import Svg from "assets/svg/Svg";
 import style from "../markdown.module.scss";
 import CanvasCodeEditor from "./CanvasCodeEditor";
 import {
-  buildCanvasSrcDoc,
+  applyCanvasTitle,
+  CANVAS_HTML_STARTER,
   CANVAS_MAX_BYTES,
   canvasByteSize,
   DEFAULT_CANVAS_HEIGHT,
-  emptyCanvasPayload,
+  flattenCanvasToHtml,
   payloadFromAttrs,
-  type CanvasPayload,
+  titleFromHtml,
 } from "./canvasModel";
 
 export type CanvasEditorSubmit = {
   embedType: "code";
   title?: string;
   html: string;
-  css: string;
-  javascript: string;
   height: number;
 };
 
@@ -35,41 +34,37 @@ type Props = {
   };
 };
 
-type CodeTab = "html" | "css" | "javascript";
-
 const CanvasEditor = ({ onSubmit, onLiveChange, initial }: Props) => {
-  const initialPayload: CanvasPayload = initial
+  const initialPayload = initial
     ? payloadFromAttrs(initial)
-    : emptyCanvasPayload();
+    : { v: 1 as const, html: CANVAS_HTML_STARTER, css: "", javascript: "" };
+  const initialHtml =
+    flattenCanvasToHtml(initialPayload).trim() || CANVAS_HTML_STARTER;
 
-  const [codeTab, setCodeTab] = useState<CodeTab>("html");
-  const [title, setTitle] = useState(initialPayload.title || "");
-  const [html, setHtml] = useState(initialPayload.html);
-  const [css, setCss] = useState(initialPayload.css);
-  const [javascript, setJavascript] = useState(initialPayload.javascript);
+  const [title, setTitle] = useState(
+    initialPayload.title || titleFromHtml(initialHtml)
+  );
+  const [html, setHtml] = useState(initialHtml);
   const [error, setError] = useState("");
 
-  const payload: CanvasPayload = useMemo(
-    () => ({
-      v: 1,
-      ...(title.trim() ? { title: title.trim() } : {}),
-      html,
-      css,
-      javascript,
-    }),
-    [title, html, css, javascript]
+  const assembled = useMemo(
+    () =>
+      flattenCanvasToHtml({
+        v: 1,
+        ...(title.trim() ? { title: title.trim() } : {}),
+        html,
+        css: "",
+        javascript: "",
+      }),
+    [title, html]
   );
-
-  const assembled = useMemo(() => buildCanvasSrcDoc(payload), [payload]);
   const codeSize = canvasByteSize(assembled);
   const isTooLarge = codeSize > CANVAS_MAX_BYTES;
 
   const toSubmit = (): CanvasEditorSubmit => ({
     embedType: "code",
     title: title.trim() || undefined,
-    html,
-    css,
-    javascript,
+    html: assembled,
     height: initial?.height ?? DEFAULT_CANVAS_HEIGHT,
   });
 
@@ -106,10 +101,10 @@ const CanvasEditor = ({ onSubmit, onLiveChange, initial }: Props) => {
     onSubmit(toSubmit());
   };
 
-  const codeValue =
-    codeTab === "html" ? html : codeTab === "css" ? css : javascript;
-  const setCodeValue =
-    codeTab === "html" ? setHtml : codeTab === "css" ? setCss : setJavascript;
+  const handleTitleChange = (next: string) => {
+    setTitle(next);
+    setHtml((prev) => applyCanvasTitle(prev, next));
+  };
 
   return (
     <div className={`${style.canvasEditor} ${style.canvasEditorInline}`}>
@@ -119,7 +114,7 @@ const CanvasEditor = ({ onSubmit, onLiveChange, initial }: Props) => {
           <input
             type="text"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => handleTitleChange(e.target.value)}
             placeholder="캔버스 제목 (선택)"
             aria-label="캔버스 제목"
           />
@@ -139,28 +134,14 @@ const CanvasEditor = ({ onSubmit, onLiveChange, initial }: Props) => {
       </div>
       <div className={style.canvasEditorPanes}>
         <div className={style.canvasEditorCode}>
-          <div className={style.canvasLangTabs} role="tablist">
-            {(["html", "css", "javascript"] as const).map((key) => (
-              <button
-                key={key}
-                type="button"
-                role="tab"
-                aria-selected={codeTab === key}
-                className={codeTab === key ? style.active : ""}
-                onClick={() => setCodeTab(key)}
-              >
-                {key === "javascript" ? "JavaScript" : key.toUpperCase()}
-              </button>
-            ))}
-          </div>
           <CanvasCodeEditor
-            language={codeTab}
-            value={codeValue}
+            language="html"
+            value={html}
             onChange={(next) => {
-              setCodeValue(next);
+              setHtml(next);
               if (error) setError("");
             }}
-            ariaLabel={`${codeTab} 코드`}
+            ariaLabel="HTML 코드"
           />
         </div>
       </div>
