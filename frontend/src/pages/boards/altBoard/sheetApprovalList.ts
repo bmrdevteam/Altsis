@@ -5,6 +5,7 @@ import {
   normalizeApprovalValue,
   TApprovalValueV2,
 } from "utils/approvalLine";
+import { isFileAnswerFile, isFileAnswerLink } from "./formDocLink";
 import { formatReadableValue } from "./formFieldDisplay";
 
 export type TApprovalInboxFilter =
@@ -37,9 +38,35 @@ export type TApprovalListItem = {
   submittedAt?: string;
   isMyTurn: boolean;
   isMineSubmitted: boolean;
+  attachmentCount: number;
 };
 
 const TITLE_FIELD_TYPES = new Set(["text", "textarea", "select"]);
+
+type FileFieldLike = {
+  _id: string;
+  type: string;
+};
+
+const countFileAnswerItems = (value: unknown): number => {
+  if (!Array.isArray(value)) return 0;
+  return value.filter((item) => isFileAnswerFile(item) || isFileAnswerLink(item))
+    .length;
+};
+
+/** 양식 파일 칸의 실제 파일·링크 개수. 별도 링크 칸·기안문 본문은 세지 않는다. */
+export function countRowFileAttachments(
+  data: Record<string, unknown> | undefined,
+  fields: FileFieldLike[] | undefined
+): number {
+  if (!data || !fields?.length) return 0;
+  let total = 0;
+  for (const field of fields) {
+    if (field.type !== "file") continue;
+    total += countFileAnswerItems(data[String(field._id)]);
+  }
+  return total;
+}
 
 type TitleFieldLike = {
   _id: string;
@@ -178,6 +205,7 @@ export function buildApprovalListItem(
     isMineSubmitted:
       (!!currentUserOid && String(row._respondent) === String(currentUserOid)) ||
       (!!currentUserId && row._respondentId === currentUserId),
+    attachmentCount: countRowFileAttachments(row.data, fields),
   };
 }
 
