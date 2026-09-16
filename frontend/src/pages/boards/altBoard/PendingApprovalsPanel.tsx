@@ -444,7 +444,7 @@ const PendingApprovalsPanel = ({
     const rowId = active.rowId;
     const formId = active.formId;
     setActive(null);
-    navigate(`/boards/${boardId}?sheet=${formId}&row=${rowId}#활동`);
+    navigate(`/boards/${boardId}?sheet=${formId}&row=${rowId}&edit=1#활동`);
   };
 
   return (
