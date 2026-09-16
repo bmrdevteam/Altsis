@@ -4,6 +4,7 @@ import {
   validateCirculationSubmit,
   buildCirculationOnSubmit,
   collectStoredCirculatees,
+  addedCirculatees,
   recipientsForFinalApprovalResult,
   buildApprovalAccessOr,
   firstShortTextAnswer,
@@ -422,6 +423,19 @@ describe("circulation field submit", () => {
     const options = { candidates: new Map([["kim", approverB]]) };
     expect(validateCirculationSubmit(circField, [forged], options)).toBeNull();
     expect(buildCirculationOnSubmit(circField, [forged], options)).toEqual([
+      approverB,
+    ]);
+  });
+});
+
+describe("addedCirculatees", () => {
+  test("returns only newly added people and drops duplicates", () => {
+    expect(addedCirculatees([approver], [approver, approverB])).toEqual([
+      approverB,
+    ]);
+    expect(addedCirculatees(undefined, [approver])).toEqual([approver]);
+    expect(addedCirculatees([approver], [approver])).toEqual([]);
+    expect(addedCirculatees([approver], [approverB, approverB])).toEqual([
       approverB,
     ]);
   });

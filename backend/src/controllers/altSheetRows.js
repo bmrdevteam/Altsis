@@ -65,6 +65,7 @@ import {
   validateCirculationSubmit,
   buildCirculationOnSubmit,
   collectStoredCirculatees,
+  addedCirculatees,
   buildApprovalAccessOr,
   applyApprovalAction,
   isCurrentApprover,
@@ -1259,6 +1260,8 @@ export const update = async (req, res) => {
     }
 
     const notifications = [];
+    const addedCirculation = [];
+    let circulationCandidates = null;
     if (req.body.data) {
       for (const [key, value] of Object.entries(req.body.data)) {
         const field = form.fields.find((f) => f._id.toString() === key);
@@ -1290,6 +1293,28 @@ export const update = async (req, res) => {
           }
           row.data.set(key, result.value);
           notifications.push({ result, reason: value.reason || "" });
+        } else if (authorization.kind === "circulation") {
+          if (!circulationCandidates) {
+            const workflowCandidates = await getBoardWorkflowCandidates(
+              req.user.academyId,
+              board,
+              isSeasonScopedBoard(board) ? board.season : null
+            );
+            circulationCandidates = candidateMap(
+              workflowCandidates.circulationCandidates
+            );
+          }
+          const error = validateCirculationSubmit(field, value, {
+            candidates: circulationCandidates,
+          });
+          if (error) {
+            return res.status(400).send({ message: error });
+          }
+          const next = buildCirculationOnSubmit(field, value, {
+            candidates: circulationCandidates,
+          });
+          addedCirculation.push(...addedCirculatees(prev, next));
+          row.data.set(key, next);
         } else {
           row.data.set(key, value);
         }
@@ -1310,6 +1335,38 @@ export const update = async (req, res) => {
         result: notification.result,
         reason: notification.reason,
       });
+    }
+
+    const newCirculatees = addedCirculatees([], addedCirculation).filter(
+      (u) => u.userId !== req.user.userId
+    );
+    if (newCirculatees.length > 0) {
+      const approvalNotifEnabled = await isBoardNotificationEnabled(
+        req.user.academyId,
+        board.school,
+        board,
+        "altFormApprovalRequest"
+      );
+      if (approvalNotifEnabled) {
+        try {
+          const rowData =
+            row.data instanceof Map
+              ? Object.fromEntries(row.data)
+              : { ...(row.data || {}) };
+          await sendAutoNotification({
+            academyId: req.user.academyId,
+            toUserList: newCirculatees,
+            notificationType: "altFormApprovalRequest",
+            category: "회람",
+            title: approvalNotificationTitle(form, rowData, "circulation"),
+            description: `${req.user.userName}님이 문서를 회람했습니다.`,
+            relatedEntity: { type: "altSheetRow", id: row._id },
+            fromUser: req.user,
+          });
+        } catch {
+          logger.warn("회람 알림 전송 실패");
+        }
+      }
     }
 
     return res.status(200).send({
