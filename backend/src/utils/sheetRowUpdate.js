@@ -1,3 +1,5 @@
+import { getCirculationConfig } from "./approvalLine.js";
+
 const APPROVER_NON_EDITABLE_FIELD_TYPES = new Set([
   "multiDate",
   "multiSelect",
@@ -16,7 +18,8 @@ const APPROVER_NON_EDITABLE_FIELD_TYPES = new Set([
 
 /**
  * Classify one PUT /alt-sheet-rows/:id field update.
- * Approval state is always a server-side transition; circulation snapshots are immutable.
+ * Approval state is always a server-side transition.
+ * Pick circulation may be rewritten by an admin or current approver.
  */
 export function authorizeSheetRowFieldUpdate({
   field,
@@ -40,7 +43,13 @@ export function authorizeSheetRowFieldUpdate({
   }
 
   if (field.type === "circulation") {
-    return { ok: false, message: "제출된 회람자는 변경할 수 없습니다." };
+    if (!isAdmin && !canApproveAny) {
+      return { ok: false, message: "수정 권한이 없습니다." };
+    }
+    if (getCirculationConfig(field).mode !== "pick") {
+      return { ok: false, message: "제출된 회람자는 변경할 수 없습니다." };
+    }
+    return { ok: true, kind: "circulation" };
   }
 
   if (isAdmin) {

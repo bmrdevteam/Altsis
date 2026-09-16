@@ -148,6 +148,19 @@ function resolveCandidateList(users, candidates) {
   };
 }
 
+/** Circulatees in `next` that were not in `prev` (by userId). */
+export function addedCirculatees(prev, next) {
+  const had = new Set(
+    (Array.isArray(prev) ? prev : [])
+      .map((u) => u?.userId)
+      .filter(Boolean)
+      .map(String)
+  );
+  return uniqueApproverList(next).filter(
+    (u) => u.user && u.userId && !had.has(String(u.userId))
+  );
+}
+
 /**
  * Dedupe by userId. Drops entries without userId.
  * @param {any[]} users

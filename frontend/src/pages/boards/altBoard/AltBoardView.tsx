@@ -592,6 +592,7 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
           onCopySheetLink={handleCopySheetLink}
           onUnreadCleared={clearFormUnread}
           boardName={board.name}
+          board={board}
         />
       );
     } else {

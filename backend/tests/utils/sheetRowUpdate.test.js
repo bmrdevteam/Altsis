@@ -36,7 +36,7 @@ describe("authorizeSheetRowFieldUpdate", () => {
     ).toEqual({ ok: true, kind: "approval" });
   });
 
-  test("current approver cannot write unknown, owner, complex, or circulation fields", () => {
+  test("current approver cannot write unknown, owner, or complex fields", () => {
     const base = {
       value: "변조",
       isAdmin: false,
@@ -56,12 +56,59 @@ describe("authorizeSheetRowFieldUpdate", () => {
         field: { ...textField, type: "file" },
       }).ok
     ).toBe(false);
+  });
+
+  test("admin and current approver may rewrite pick circulation; others and fixed cannot", () => {
+    const pick = { _id: "circ", type: "circulation", circulation: { mode: "pick", users: [] } };
+    const fixed = { ...pick, circulation: { mode: "fixed", users: [] } };
+    const off = { ...pick, circulation: { mode: "off", users: [] } };
+    const payload = [{ user: "u1", userId: "jo", userName: "조" }];
+
     expect(
       authorizeSheetRowFieldUpdate({
-        ...base,
-        field: { ...textField, type: "circulation" },
-      }).ok
-    ).toBe(false);
+        field: pick,
+        value: payload,
+        isAdmin: true,
+        canApproveAny: false,
+        isCurrentFieldApprover: false,
+      })
+    ).toEqual({ ok: true, kind: "circulation" });
+    expect(
+      authorizeSheetRowFieldUpdate({
+        field: pick,
+        value: payload,
+        isAdmin: false,
+        canApproveAny: true,
+        isCurrentFieldApprover: false,
+      })
+    ).toEqual({ ok: true, kind: "circulation" });
+    expect(
+      authorizeSheetRowFieldUpdate({
+        field: pick,
+        value: payload,
+        isAdmin: false,
+        canApproveAny: false,
+        isCurrentFieldApprover: false,
+      })
+    ).toEqual({ ok: false, message: "수정 권한이 없습니다." });
+    expect(
+      authorizeSheetRowFieldUpdate({
+        field: fixed,
+        value: payload,
+        isAdmin: true,
+        canApproveAny: true,
+        isCurrentFieldApprover: false,
+      })
+    ).toEqual({ ok: false, message: "제출된 회람자는 변경할 수 없습니다." });
+    expect(
+      authorizeSheetRowFieldUpdate({
+        field: off,
+        value: payload,
+        isAdmin: true,
+        canApproveAny: true,
+        isCurrentFieldApprover: false,
+      })
+    ).toEqual({ ok: false, message: "제출된 회람자는 변경할 수 없습니다." });
   });
 
   test("current approver may edit a simple respondent field and admin may edit known fields", () => {

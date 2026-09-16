@@ -13,10 +13,15 @@ import {
   MarkdownWysiwygView,
 } from "components/markdown";
 import {
+  getCirculationConfig,
   isApprovalLocked,
   isCurrentApprover,
   normalizeApprovalValue,
 } from "utils/approvalLine";
+import { TBoard } from "types/board";
+import ApprovalCirculationPicker, {
+  circulationCandidatesForBoard,
+} from "./ApprovalCirculationPicker";
 import { NO_PRINT_CLASS, printArea } from "utils/printArea";
 import {
   hideFieldLabelsOnPrint,
@@ -81,6 +86,7 @@ type Props = {
   /** 기록 열람 후 목록 unreadResponseCount 낙관적 갱신 */
   onUnreadCleared?: (formId: string) => void;
   boardName?: string;
+  board: TBoard;
 };
 
 type SortConfig = {
@@ -208,9 +214,14 @@ const AltSheetView = ({
   onCopySheetLink,
   onUnreadCleared,
   boardName,
+  board,
 }: Props) => {
   const { AltFormAPI, AltSheetRowAPI, PostAPI } = useAPIv2();
   const { currentUser } = useAuth();
+  const circulationCandidates = useMemo(
+    () => circulationCandidatesForBoard(board),
+    [board]
+  );
 
   const handleEditorImageUpload = async (
     file: File
@@ -1477,6 +1488,14 @@ const AltSheetView = ({
     );
   };
 
+  const isCurrentRowApprover = (row: TAltSheetRow) =>
+    (selectedForm?.fields || []).some((f) => isApproverForField(row, f));
+
+  const canEditPickCirculation = (row: TAltSheetRow, field: TAltFormField) =>
+    field.type === "circulation" &&
+    getCirculationConfig(field).mode === "pick" &&
+    (canDeleteAnyRow || isCurrentRowApprover(row));
+
   // 승인 필드 셀 렌더링
   const renderApprovalCell = (row: TAltSheetRow, field: TAltFormField) => {
     const approvalData = normalizeApprovalValue(row.data[field._id], field);
@@ -1610,17 +1629,21 @@ const AltSheetView = ({
   const handleDocEditSave = async () => {
     if (!editingRowId) return;
     try {
-      // 편집 가능한 필드만 추출
+      const editingRow = rows.find((r) => r._id === editingRowId);
       const editableData: Record<string, any> = {};
       for (const field of allVisibleFields) {
-        if (!SHEET_NON_EDITABLE_FIELD_TYPES.has(field.type)) {
-          if (
-            !canDeleteAnyRow &&
-            field.permission === "owner"
-          )
-            continue;
-          editableData[field._id] = docEditData[field._id];
+        const savePickCirculation =
+          !!editingRow && canEditPickCirculation(editingRow, field);
+        if (SHEET_NON_EDITABLE_FIELD_TYPES.has(field.type)) {
+          if (savePickCirculation) {
+            editableData[field._id] = Array.isArray(docEditData[field._id])
+              ? docEditData[field._id]
+              : [];
+          }
+          continue;
         }
+        if (!canDeleteAnyRow && field.permission === "owner") continue;
+        editableData[field._id] = docEditData[field._id];
       }
       await AltSheetRowAPI.UAltSheetRow({
         params: { _id: editingRowId },
@@ -1646,12 +1669,27 @@ const AltSheetView = ({
     isEditing: boolean
   ) => {
     const value = isEditing ? docEditData[field._id] : row.data[field._id];
+    const canEditPickCirc = canEditPickCirculation(row, field);
     const canEditField =
-      isEditing && !SHEET_NON_EDITABLE_FIELD_TYPES.has(field.type) &&
-      (canDeleteAnyRow || field.permission === "respondent");
+      isEditing &&
+      (canEditPickCirc ||
+        (!SHEET_NON_EDITABLE_FIELD_TYPES.has(field.type) &&
+          (canDeleteAnyRow || field.permission === "respondent")));
 
     // 편집 모드: 입력 필드 렌더링
     if (canEditField) {
+      if (canEditPickCirc) {
+        const selected = Array.isArray(value) ? value : [];
+        return (
+          <ApprovalCirculationPicker
+            selected={selected}
+            candidates={circulationCandidates}
+            onChange={(users) =>
+              setDocEditData((p) => ({ ...p, [field._id]: users }))
+            }
+          />
+        );
+      }
       switch (field.type) {
         case "textarea":
           return (
