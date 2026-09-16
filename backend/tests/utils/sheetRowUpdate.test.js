@@ -53,9 +53,40 @@ describe("authorizeSheetRowFieldUpdate", () => {
     expect(
       authorizeSheetRowFieldUpdate({
         ...base,
-        field: { ...textField, type: "file" },
+        field: { ...textField, type: "link" },
       }).ok
     ).toBe(false);
+  });
+
+  test("current approver may rewrite respondent files; owner files stay locked", () => {
+    const files = [{ key: "k", originalName: "a.pdf" }];
+    expect(
+      authorizeSheetRowFieldUpdate({
+        field: { _id: "file", type: "file", permission: "respondent" },
+        value: files,
+        isAdmin: false,
+        canApproveAny: true,
+        isCurrentFieldApprover: false,
+      })
+    ).toEqual({ ok: true, kind: "field" });
+    expect(
+      authorizeSheetRowFieldUpdate({
+        field: { _id: "file", type: "file", permission: "owner" },
+        value: files,
+        isAdmin: false,
+        canApproveAny: true,
+        isCurrentFieldApprover: false,
+      })
+    ).toEqual({ ok: false, message: "수정 권한이 없습니다." });
+    expect(
+      authorizeSheetRowFieldUpdate({
+        field: { _id: "file", type: "file", permission: "owner" },
+        value: files,
+        isAdmin: true,
+        canApproveAny: false,
+        isCurrentFieldApprover: false,
+      })
+    ).toEqual({ ok: true, kind: "field" });
   });
 
   test("admin and current approver may rewrite pick circulation; others and fixed cannot", () => {

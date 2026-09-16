@@ -58,6 +58,8 @@ type Props = {
     rows: TAltSheetRow[];
     fromSelection: boolean;
   }) => void;
+  canEditRow?: (row: TAltSheetRow) => boolean;
+  onEditRow?: (row: TAltSheetRow) => void;
 };
 
 const INBOX_CHIPS: {
@@ -135,6 +137,8 @@ const SheetApprovalView = ({
   onDecide,
   onBulkDecide,
   onPrintableRowsChange,
+  canEditRow,
+  onEditRow,
 }: Props) => {
   const [inboxFilter, setInboxFilter] =
     useState<TApprovalInboxFilter>("mine");
@@ -658,6 +662,16 @@ const SheetApprovalView = ({
                 </Button>
               </div>
               <div className={style.sheetApprovalPopupActions}>
+                {onEditRow &&
+                  canEditRow?.(activeItem.row) && (
+                    <Button
+                      type="ghost"
+                      disabled={busy}
+                      onClick={() => onEditRow(activeItem.row)}
+                    >
+                      수정
+                    </Button>
+                  )}
                 <Button
                   type="ghost"
                   disabled={busy}

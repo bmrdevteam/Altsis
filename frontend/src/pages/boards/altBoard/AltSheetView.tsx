@@ -80,6 +80,9 @@ type Props = {
   initialFormId?: string;
   /** 문서 보기에서 이 행을 연다 */
   initialRowId?: string | null;
+  /** 해당 행을 문서 보기 편집 모드로 연다 */
+  initialEdit?: boolean;
+  onInitialEditConsumed?: () => void;
   onFormSelect?: (formId: string) => void;
   onFormDeselect?: () => void;
   onCopySheetLink?: (formId: string) => void;
@@ -209,6 +212,8 @@ const AltSheetView = ({
   canViewAllRowsForForm,
   initialFormId,
   initialRowId,
+  initialEdit,
+  onInitialEditConsumed,
   onFormSelect,
   onFormDeselect,
   onCopySheetLink,
@@ -342,6 +347,9 @@ const AltSheetView = ({
   // 문서 뷰 편집 상태
   const [editingRowId, setEditingRowId] = useState<string | null>(null);
   const [docEditData, setDocEditData] = useState<Record<string, any>>({});
+  const [pendingDocEditRowId, setPendingDocEditRowId] = useState<string | null>(
+    null
+  );
   /** 문서 보기: 필터된 행 기준 현재 index */
   const [docIndex, setDocIndex] = useState(0);
   /** 문서 보기: 키워드 검색 (머지 UI와 동일) */
@@ -963,25 +971,34 @@ const AltSheetView = ({
     setDocIndex(0);
     setEditingRowId(null);
     setDocEditData({});
+    setPendingDocEditRowId(null);
     appliedInitialRowRef.current = null;
   }, [selectedFormId]);
 
-  // 딥링크 row → 문서 보기. 결재 보기 중이면 목록 팝업만 연다.
+  // 딥링크 row → 문서 보기. edit이면 문서 편집. 아니면 결재 보기 중일 때 목록 팝업만 연다.
   useEffect(() => {
     if (!initialRowId || filteredRows.length === 0) return;
-    if (appliedInitialRowRef.current === initialRowId) return;
+    const applyKey = `${initialRowId}:${initialEdit ? "1" : "0"}`;
+    if (appliedInitialRowRef.current === applyKey) return;
     const idx = filteredRows.findIndex(
       (r) => String(r._id) === String(initialRowId)
     );
     if (idx < 0) return;
-    appliedInitialRowRef.current = initialRowId;
+    appliedInitialRowRef.current = applyKey;
+    if (initialEdit) {
+      applyViewMode(selectedFormId, "doc");
+      setDocIndex(idx);
+      setPendingDocEditRowId(String(initialRowId));
+      onInitialEditConsumed?.();
+      return;
+    }
     if (viewMode === "approval") {
       setApprovalOpenRowId(String(initialRowId));
       return;
     }
     setViewMode("doc");
     setDocIndex(idx);
-  }, [initialRowId, filteredRows, viewMode]);
+  }, [initialRowId, initialEdit, filteredRows, viewMode, selectedFormId]);
 
   const currentDocRowId = filteredRows[docIndex]?._id ?? null;
 
@@ -1496,6 +1513,11 @@ const AltSheetView = ({
     getCirculationConfig(field).mode === "pick" &&
     (canDeleteAnyRow || isCurrentRowApprover(row));
 
+  const canEditSubmittedFile = (row: TAltSheetRow, field: TAltFormField) =>
+    field.type === "file" &&
+    (canDeleteAnyRow ||
+      (isCurrentRowApprover(row) && field.permission === "respondent"));
+
   // 승인 필드 셀 렌더링
   const renderApprovalCell = (row: TAltSheetRow, field: TAltFormField) => {
     const approvalData = normalizeApprovalValue(row.data[field._id], field);
@@ -1625,6 +1647,26 @@ const AltSheetView = ({
     setDocEditData({ ...row.data });
   };
 
+  const openRowInDocEdit = (row: TAltSheetRow) => {
+    const idx = filteredRows.findIndex((r) => String(r._id) === String(row._id));
+    if (idx < 0) return;
+    applyViewMode(selectedFormId, "doc");
+    setDocIndex(idx);
+    setPendingDocEditRowId(String(row._id));
+  };
+
+  useEffect(() => {
+    if (!pendingDocEditRowId || viewMode !== "doc") return;
+    if (String(currentDocRowId) !== String(pendingDocEditRowId)) return;
+    const row = filteredRows.find(
+      (r) => String(r._id) === String(pendingDocEditRowId)
+    );
+    setPendingDocEditRowId(null);
+    if (row && canEditRowDoc(row)) {
+      handleDocEditStart(row);
+    }
+  }, [pendingDocEditRowId, viewMode, currentDocRowId, filteredRows]);
+
   // 문서 뷰: 저장
   const handleDocEditSave = async () => {
     if (!editingRowId) return;
@@ -1634,8 +1676,10 @@ const AltSheetView = ({
       for (const field of allVisibleFields) {
         const savePickCirculation =
           !!editingRow && canEditPickCirculation(editingRow, field);
+        const saveSubmittedFile =
+          !!editingRow && canEditSubmittedFile(editingRow, field);
         if (SHEET_NON_EDITABLE_FIELD_TYPES.has(field.type)) {
-          if (savePickCirculation) {
+          if (savePickCirculation || saveSubmittedFile) {
             editableData[field._id] = Array.isArray(docEditData[field._id])
               ? docEditData[field._id]
               : [];
@@ -1670,9 +1714,11 @@ const AltSheetView = ({
   ) => {
     const value = isEditing ? docEditData[field._id] : row.data[field._id];
     const canEditPickCirc = canEditPickCirculation(row, field);
+    const canEditFile = canEditSubmittedFile(row, field);
     const canEditField =
       isEditing &&
       (canEditPickCirc ||
+        canEditFile ||
         (!SHEET_NON_EDITABLE_FIELD_TYPES.has(field.type) &&
           (canDeleteAnyRow || field.permission === "respondent")));
 
@@ -1686,6 +1732,18 @@ const AltSheetView = ({
             candidates={circulationCandidates}
             onChange={(users) =>
               setDocEditData((p) => ({ ...p, [field._id]: users }))
+            }
+          />
+        );
+      }
+      if (canEditFile) {
+        const items = Array.isArray(value) ? value : [];
+        return (
+          <FormFileAnswerList
+            items={items}
+            onPreview={setPreviewFile}
+            onChange={(next) =>
+              setDocEditData((p) => ({ ...p, [field._id]: next }))
             }
           />
         );
@@ -2655,6 +2713,10 @@ const AltSheetView = ({
           onDecide={handleApproval}
           onBulkDecide={handleBulkApproval}
           onPrintableRowsChange={handleApprovalPrintableRows}
+          canEditRow={(row) =>
+            canDeleteAnyRow || isCurrentRowApprover(row)
+          }
+          onEditRow={openRowInDocEdit}
         />
       ) : !isLoading && viewMode === "doc" ? (
         /* ── 문서 뷰 (양식형 개별 보기) ── */

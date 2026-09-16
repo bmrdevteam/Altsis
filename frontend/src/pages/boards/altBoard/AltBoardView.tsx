@@ -127,6 +127,7 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
   const urlMode = embedded ? null : searchParams.get("mode");
   const urlApprovalRowId = embedded ? null : searchParams.get("approval");
   const urlRowId = embedded ? null : searchParams.get("row");
+  const urlEdit = !embedded && searchParams.get("edit") === "1";
   const activeSheetFormId = embedded ? embeddedSheetFormId : urlSheetId;
 
   const loadForms = () => {
@@ -346,7 +347,8 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
       searchParams.has("form") ||
       searchParams.has("sheet") ||
       searchParams.has("approval") ||
-      searchParams.has("row");
+      searchParams.has("row") ||
+      searchParams.has("edit");
     if (!hasActivityDeepLink) return;
     const hash = decodeURIComponent(location.hash.replace("#", ""));
     if (hash) return;
@@ -372,7 +374,8 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
       searchParams.has("form") ||
       searchParams.has("mode") ||
       searchParams.has("approval") ||
-      searchParams.has("row");
+      searchParams.has("row") ||
+      searchParams.has("edit");
     if (hasActivityParams) {
       setSearchParams(
         (prev) => {
@@ -381,6 +384,7 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
           prev.delete("mode");
           prev.delete("approval");
           prev.delete("row");
+          prev.delete("edit");
           return prev;
         },
         { replace: true }
@@ -482,6 +486,18 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
     }
     navigate(`/boards/${board._id}?sheet=${formId}#활동`, { replace: true });
   };
+
+  const consumeSheetEditQuery = useCallback(() => {
+    if (embedded) return;
+    setSearchParams(
+      (prev) => {
+        if (!prev.has("edit")) return prev;
+        prev.delete("edit");
+        return prev;
+      },
+      { replace: true }
+    );
+  }, [embedded, setSearchParams]);
 
   // Form 클릭 핸들러
   const handleFormClick = (form: TAltForm) => {
@@ -587,6 +603,8 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
           canDeleteAnyRow={canDeleteAnyRow}
           initialFormId={activeSheetFormId}
           initialRowId={urlRowId}
+          initialEdit={urlEdit}
+          onInitialEditConsumed={consumeSheetEditQuery}
           onFormSelect={handleOpenSheet}
           onFormDeselect={handleBackToSheetList}
           onCopySheetLink={handleCopySheetLink}

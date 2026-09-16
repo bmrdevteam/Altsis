@@ -4,7 +4,6 @@ const APPROVER_NON_EDITABLE_FIELD_TYPES = new Set([
   "multiDate",
   "multiSelect",
   "userSelect",
-  "file",
   "link",
   "checkbox",
   "rating",
