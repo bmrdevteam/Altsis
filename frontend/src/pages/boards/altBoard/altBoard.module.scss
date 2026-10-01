@@ -2210,9 +2210,14 @@
   font-size: 18px;
   transition: background 0.15s, color 0.15s;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: var(--background-color-2);
     color: var(--text-color-1);
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
   }
 }
 
@@ -2329,6 +2334,104 @@
   }
 }
 
+.rendererStack {
+  display: grid;
+  grid-template-columns: minmax(0, 880px) max-content;
+  justify-content: center;
+  column-gap: 12px;
+  max-width: calc(880px + 12px + 120px);
+  margin: 0 auto;
+  padding: 20px 16px;
+}
+
+.rendererLead {
+  grid-column: 1;
+}
+
+.rendererStack .rendererHeader {
+  max-width: none;
+  width: 100%;
+}
+
+.rendererWithRail {
+  display: contents;
+}
+
+.rendererStack .rendererBody {
+  grid-column: 1;
+  margin: 0;
+  padding: 0;
+  max-width: none;
+  width: 100%;
+}
+
+.rendererStack .hideWhenRail {
+  display: none;
+}
+
+.formActionRail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  grid-column: 2;
+  grid-row: 2;
+  align-self: start;
+  width: auto;
+  box-sizing: border-box;
+  padding: 6px;
+  background: var(--background-color);
+  border: none;
+  border-radius: 12px;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--accent-1) 6%, transparent),
+    0 4px 12px color-mix(in srgb, var(--accent-1) 10%, transparent);
+  position: sticky;
+  top: 16px;
+  z-index: 5;
+}
+
+.railActionBtn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+  color: var(--text-color-2);
+  font-family: inherit;
+  transition: background 0.15s, color 0.15s;
+
+  &:hover:not(:disabled) {
+    background: var(--background-color-2);
+    color: var(--text-color-1);
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+}
+
+.railActionBtnPrimary {
+  color: var(--text-color-1);
+}
+
+.railActionLabel {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
 .rendererBody {
   max-width: 880px;
   margin: 0 auto;
@@ -2360,9 +2463,15 @@
 .rendererHeader {
   margin-bottom: 16px;
   overflow: hidden;
-  border: 1px solid var(--border-default-color, var(--border-color));
+  border: none;
   border-radius: 12px;
   background: var(--background-color);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--accent-1) 6%, transparent),
+    0 4px 12px color-mix(in srgb, var(--accent-1) 10%, transparent);
 }
 
 .rendererHeaderBody {
@@ -2415,9 +2524,15 @@
   flex-direction: column;
   gap: 8px;
   padding: 12px 14px 14px;
-  border: 1px dashed color-mix(in srgb, var(--status-info) 45%, var(--border-color));
-  border-radius: 8px;
+  border: none;
+  border-radius: 12px;
   background: var(--status-info-bg);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--accent-1) 6%, transparent),
+    0 4px 12px color-mix(in srgb, var(--accent-1) 10%, transparent);
 }
 
 .questionAssessmentAsideHeader {
@@ -2455,7 +2570,7 @@
 .questionItem {
   padding: 20px 24px;
   margin-bottom: 16px;
-  border: 1px solid var(--border-default-color, var(--border-color));
+  border: none;
   border-radius: 12px;
   background: var(--background-color);
   max-width: 100%;
@@ -2463,11 +2578,19 @@
   box-sizing: border-box;
   /* 승인자 목록이 카드 안 스크롤로 갇히지 않도록. overflow-x: auto면 y도 auto가 됨 */
   overflow: visible;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--accent-1) 6%, transparent),
+    0 4px 12px color-mix(in srgb, var(--accent-1) 10%, transparent);
+  transition: box-shadow 0.2s;
 
   &:focus-within {
-    border-color: var(--accent-1);
-    box-shadow: 0 0 0 1px var(--accent-1);
+    box-shadow:
+      0 0 0 1px var(--accent-1),
+      0 1px 2px color-mix(in srgb, var(--accent-1) 6%, transparent),
+      0 4px 12px color-mix(in srgb, var(--accent-1) 10%, transparent);
   }
 }
 
@@ -3254,8 +3377,9 @@
   font-size: 14px;
   font-weight: 500;
   color: var(--text-color-1);
-  min-width: 64px;
+  min-width: 0;
   text-align: center;
+  white-space: nowrap;
 }
 
 .reviewBannerActions {
@@ -3310,9 +3434,15 @@
   gap: 14px;
   padding: 16px 20px;
   margin-bottom: 24px;
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--background-hover-color);
-  border: 1px solid var(--border-color);
+  border: none;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--accent-1) 6%, transparent),
+    0 4px 12px color-mix(in srgb, var(--accent-1) 10%, transparent);
 }
 
 .readonlyBannerText {
@@ -4764,6 +4894,25 @@ tbody tr:hover .actionCell {
 /* ─── Responsive ─── */
 
 @media (max-width: 900px) {
+  .rendererStack {
+    display: block;
+    max-width: 880px;
+  }
+
+  .rendererWithRail {
+    display: block;
+    max-width: 880px;
+  }
+
+  .formActionRail {
+    display: none;
+  }
+
+  .rendererStack .hideWhenRail,
+  .rendererWithRail .hideWhenRail {
+    display: flex;
+  }
+
   .formFieldsWithToolbar {
     flex-direction: column;
     align-items: stretch;
@@ -4891,6 +5040,10 @@ tbody tr:hover .actionCell {
   }
 
   .rendererBody {
+    padding: 16px 8px;
+  }
+
+  .rendererStack {
     padding: 16px 8px;
   }
 
@@ -5887,6 +6040,8 @@ tbody tr:hover .actionCell {
   /* overflow:auto 박스는 인쇄에서 한 장으로 밀려 제목만 1쪽을 차지함 */
   .rendererContainer,
   .rendererBody,
+  .rendererStack,
+  .rendererWithRail,
   .builderBody,
   .rendererHeader,
   .titleCard,
@@ -5900,7 +6055,8 @@ tbody tr:hover .actionCell {
   .formCard,
   .approvalProgressSection,
   .quizScoreBanner,
-  .readonlyBanner {
+  .readonlyBanner,
+  .questionAssessmentAside {
     break-inside: avoid;
     box-shadow: none !important;
   }
@@ -5908,6 +6064,7 @@ tbody tr:hover .actionCell {
   /* 긴 안내·기안 카드는 쪼개야 제목 다음이 빈 장이 되지 않음 */
   .formSectionPanel,
   .questionItem,
+  .rendererHeader,
   .docSection {
     break-inside: auto;
     box-shadow: none !important;
