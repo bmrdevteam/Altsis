@@ -281,6 +281,16 @@ const withFormFieldDefaults = (
   return seedComposePickDefaults(next, fields, pickCandidateIdsFromForm(form, board));
 };
 
+const RailIcon = ({ icon, size = 22 }: { icon: string; size?: number }) => (
+  <span
+    className="material-symbols-outlined"
+    style={{ fontSize: size, lineHeight: 1 }}
+    aria-hidden
+  >
+    {icon}
+  </span>
+);
+
 const AltFormRenderer = ({
   board,
   formId,
@@ -2730,6 +2740,97 @@ const AltFormRenderer = ({
 
   if (isLoading || !form) return null;
 
+  type TRailAction = {
+    key: string;
+    icon: string;
+    label: string;
+    shortLabel: string;
+    onClick: () => void;
+    disabled?: boolean;
+    primary?: boolean;
+  };
+  const saveDraftAction: TRailAction = {
+    key: "save",
+    icon: "save",
+    label: isSavingDraft ? "저장 중..." : "임시 저장",
+    shortLabel: isSavingDraft ? "저장 중..." : "임시 저장",
+    onClick: handleSaveDraft,
+    disabled: isSavingDraft || isSubmitting,
+  };
+  const submitAction: TRailAction = {
+    key: "submit",
+    icon: "send",
+    label: isSubmitting ? "제출 중..." : submitLabel,
+    shortLabel: isSubmitting ? "제출중" : "제출",
+    onClick: handleSubmit,
+    disabled: isSubmitting || isSavingDraft,
+    primary: true,
+  };
+  const deleteAction = (label = "삭제"): TRailAction => ({
+    key: "delete",
+    icon: "delete",
+    label,
+    shortLabel: "삭제",
+    onClick: handleWithdraw,
+    disabled: isSubmitting,
+  });
+  const canDeleteSubmitted =
+    isSubmitted && !!myRow && (canResubmit || editingSubmitted);
+
+  const railActions: TRailAction[] = [];
+  if (actionsInBanner) {
+    if (canShowSaveDraft && composeDirty) railActions.push(saveDraftAction);
+    if (!isLocalDraftItem || hasLocalBannerContent) {
+      railActions.push({
+        ...deleteAction(isLocalDraftItem ? "새로 작성" : "저장본 삭제"),
+        key: "withdraw",
+        icon: isLocalDraftItem ? "note_add" : "delete",
+        shortLabel: isLocalDraftItem ? "새로 작성" : "삭제",
+      });
+    } else if (canDeleteSubmitted) {
+      railActions.push(deleteAction());
+    }
+    if (canShowSubmit) railActions.push(submitAction);
+  } else if (isReviewMode && editingSubmitted) {
+    railActions.push({
+      key: "cancel",
+      icon: "close",
+      label: "취소",
+      shortLabel: "취소",
+      onClick: () => openReview(reviewIndex),
+    });
+    if (isSubmitted && myRow) railActions.push(deleteAction());
+    if (canShowSubmit) railActions.push(submitAction);
+  } else if (isReviewMode && !editingSubmitted) {
+    if (canEditReviewRow) {
+      railActions.push({
+        key: "edit",
+        icon: "edit",
+        label: "이 응답 수정",
+        shortLabel: "수정",
+        onClick: editCurrentResponse,
+        disabled: isSubmitting,
+      });
+      railActions.push(deleteAction("이 응답 삭제"));
+    }
+    if (canComposeMultiple) {
+      railActions.push({
+        key: "reuse",
+        icon: "content_copy",
+        label: "이 내용으로 새로 작성",
+        shortLabel: "재사용",
+        onClick: reuseCurrentResponse,
+      });
+    }
+  } else if (
+    (isComposeMode || editingSubmitted) &&
+    !(isComposeMode && isSubmitted && !canResubmit)
+  ) {
+    if (canDeleteSubmitted) railActions.push(deleteAction());
+    if (canShowSaveDraft && composeDirty) railActions.push(saveDraftAction);
+    if (canShowSubmit) railActions.push(submitAction);
+  }
+
   const reviewSubmittedAt = activeRow?._submittedAt
     ? new Date(activeRow._submittedAt).toLocaleString("ko-KR", {
         year: "numeric",
@@ -2796,7 +2897,8 @@ const AltFormRenderer = ({
         )}
       </div>
 
-      <div className={style.rendererBody}>
+      <div className={style.rendererStack}>
+      <div className={style.rendererLead}>
       {/* 양식 제목·설명 */}
       <div className={style.rendererHeader}>
         <div className={style.rendererHeaderBody}>
@@ -2812,7 +2914,7 @@ const AltFormRenderer = ({
         !(isComposeMode && isSubmitted && !canResubmit) &&
         (!actionsInBanner ||
           (isSubmitted && myRow && (canResubmit || editingSubmitted))) && (
-        <div className={`${style.submitArea} ${style.noPrint}`}>
+        <div className={`${style.submitArea} ${style.noPrint} ${style.hideWhenRail}`}>
           {isSubmitted && myRow && (canResubmit || editingSubmitted) && (
               <Button type="ghost" onClick={handleWithdraw}>
                 삭제
@@ -2929,6 +3031,7 @@ const AltFormRenderer = ({
             <Svg type="chevronLeft" width="18px" height="18px" />
           </button>
           <span className={style.reviewNavCount}>
+            {isComposeMode ? "저장된 문서 " : "내 응답 "}
             {reviewIndex + 1} /{" "}
             {(isComposeMode ? inProgressItems : listRows).length}
           </span>
@@ -2946,6 +3049,10 @@ const AltFormRenderer = ({
           </button>
         </div>
       )}
+
+      </div>
+      <div className={style.rendererWithRail}>
+      <div className={style.rendererBody}>
 
       {/* 퀴즈 점수 배너 */}
       {quizScoreVisible && activeRow && (
@@ -3024,7 +3131,7 @@ const AltFormRenderer = ({
               </span>
             )}
           </div>
-          <div className={`${style.reviewBannerActions} ${style.noPrint}`}>
+          <div className={`${style.reviewBannerActions} ${style.noPrint} ${style.hideWhenRail}`}>
             {canShowSaveDraft && composeDirty && (
               <button
                 type="button"
@@ -3068,7 +3175,7 @@ const AltFormRenderer = ({
             <strong>기존 응답을 수정 중입니다.</strong>
             {reviewSubmittedAt && <span>제출일: {reviewSubmittedAt}</span>}
           </div>
-          <div className={style.reviewBannerActions}>
+          <div className={`${style.reviewBannerActions} ${style.noPrint} ${style.hideWhenRail}`}>
             <button
               type="button"
               className={style.reviewReuseBtn}
@@ -3094,7 +3201,7 @@ const AltFormRenderer = ({
             {reviewSubmittedAt && <span>제출일: {reviewSubmittedAt}</span>}
           </div>
           {(canEditReviewRow || canComposeMultiple) && (
-            <div className={`${style.reviewBannerActions} ${style.noPrint}`}>
+            <div className={`${style.reviewBannerActions} ${style.noPrint} ${style.hideWhenRail}`}>
               {canEditReviewRow && (
                 <button
                   type="button"
@@ -3332,6 +3439,32 @@ const AltFormRenderer = ({
         </div>
       )}
 
+      </div>
+      {railActions.length > 0 && (
+        <div
+          className={`${style.formActionRail} ${style.noPrint}`}
+          role="toolbar"
+          aria-label="응답 작업"
+        >
+          {railActions.map((action) => (
+            <button
+              key={action.key}
+              type="button"
+              className={`${style.railActionBtn} ${
+                action.primary ? style.railActionBtnPrimary : ""
+              }`}
+              onClick={action.onClick}
+              disabled={action.disabled}
+              title={action.label}
+              aria-label={action.label}
+            >
+              <RailIcon icon={action.icon} size={20} />
+              <span className={style.railActionLabel}>{action.shortLabel}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      </div>
       </div>
       <FilePreviewModal
         file={previewFile}
