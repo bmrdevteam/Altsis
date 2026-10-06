@@ -228,6 +228,7 @@ export const SKILL_CHIP_HINT: Record<TAlterSkillId, string> = {
   "form-draft": "시간표·강의계획서·출력 양식 문서를 작성·다듬습니다",
   "assessment-grade": "평가 활동 응답을 채점 초안으로 채웁니다",
   search: "권한 있는 학사 데이터를 찾아 표·통계로 보여 줍니다",
+  agent: "내 할 일과 제품 안내를 직접 조회해 답합니다",
 };
 
 /**
@@ -245,7 +246,8 @@ export type SkillToneKey =
   | "skillToneActivity"
   | "skillToneForm"
   | "skillToneAssessmentGrade"
-  | "skillToneSearch";
+  | "skillToneSearch"
+  | "skillToneAgent";
 
 export const SKILL_TONE_KEY: Record<TAlterSkillId, SkillToneKey> = {
   chat: "skillToneChat", // Optional · 일반
@@ -259,6 +261,7 @@ export const SKILL_TONE_KEY: Record<TAlterSkillId, SkillToneKey> = {
   "form-draft": "skillToneForm", // 하늘
   "assessment-grade": "skillToneAssessmentGrade", // 딥오렌지
   search: "skillToneSearch", // 인디고
+  agent: "skillToneAgent", // 틸
 };
 
 export const alterModeLabel = (inPrep: boolean): "질문" | "작성·점검" =>

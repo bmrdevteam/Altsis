@@ -13,6 +13,11 @@
  * 거부하므로 max_completion_tokens로 맞춘다.
  */
 
+import {
+  scriptedAgentGenerate,
+  scriptedDemoKeyBlocked,
+} from "./alterAgentScriptedProvider.js";
+
 /** OpenAI Chat Completions content */
 export const toOpenAIContent = (content) => {
   if (typeof content === "string") return content;
@@ -230,6 +235,34 @@ async function* iterateSSE(response) {
 const OPENAI_COMPLETIONS_URL = "https://api.openai.com/v1/chat/completions";
 const OPENAI_REASONING_TOKEN_FLOOR = 4096;
 const OPENAI_REASONING_PROBE_FLOOR = 256;
+/** Models whose 400 said function tools need reasoning_effort "none". */
+const openaiNoneEffortWithTools = new Set();
+
+const openaiModelKey = (model) => String(model || "").trim().toLowerCase();
+
+export const resetOpenAINoneReasoningEffortCache = () => {
+  openaiNoneEffortWithTools.clear();
+};
+
+/**
+ * gpt-5.6-* rejects function tools unless reasoning_effort is "none".
+ * Other gpt-5 models keep "low" until one of them returns that 400.
+ * @param {string} [model]
+ * @param {unknown[]|undefined} tools
+ * @returns {"low"|"none"}
+ */
+export const openaiReasoningEffort = (model, tools) => {
+  const hasTools = Array.isArray(tools) && tools.length > 0;
+  if (!hasTools) return "low";
+  const id = openaiModelKey(model);
+  if (/^gpt-5\.6-/i.test(id) || openaiNoneEffortWithTools.has(id)) return "none";
+  return "low";
+};
+
+const rememberOpenAINoneEffort = (model) => {
+  const id = openaiModelKey(model);
+  if (id) openaiNoneEffortWithTools.add(id);
+};
 
 /**
  * GPT-5·o 계열은 Chat Completions에서 max_completion_tokens를 요구한다.
@@ -272,9 +305,91 @@ export const openaiContentText = (content) => {
     .join("");
 };
 
+/** JSON object arguments from a provider tool call. Invalid JSON becomes {}. */
+export const parseToolArguments = (raw) => {
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) return raw;
+  if (typeof raw !== "string") return {};
+  try {
+    const value = JSON.parse(raw);
+    if (value && typeof value === "object" && !Array.isArray(value)) return value;
+  } catch (_) {}
+  return {};
+};
+
+/** OpenAI and Anthropic accept native tools. Gemini stays on the text protocol. */
+export const providerSupportsNativeTools = (provider) => {
+  const resolved = resolveProvider(provider);
+  return resolved === "openai" || resolved === "anthropic";
+};
+
+/**
+ * Neutral tool defs: { name, description, parameters } (JSON Schema).
+ * Identity fields are not part of the schema; the server still drops them.
+ */
+export const toOpenAITools = (tools) =>
+  (tools || []).map((tool) => ({
+    type: "function",
+    function: {
+      name: tool.name,
+      description: tool.description || "",
+      parameters: tool.parameters || { type: "object", properties: {} },
+    },
+  }));
+
+export const toAnthropicTools = (tools) =>
+  (tools || []).map((tool) => ({
+    name: tool.name,
+    description: tool.description || "",
+    input_schema: tool.parameters || { type: "object", properties: {} },
+  }));
+
+const toOpenAIMessage = (message) => {
+  if (message?.role === "tool") {
+    return {
+      role: "tool",
+      tool_call_id: String(message.toolCallId || ""),
+      content: String(message.content ?? ""),
+    };
+  }
+  if (message?.role === "assistant" && Array.isArray(message.toolCalls) && message.toolCalls.length) {
+    const text = typeof message.content === "string" ? message.content : "";
+    return {
+      role: "assistant",
+      content: text ? toOpenAIContent(text) : null,
+      tool_calls: message.toolCalls.map((call) => ({
+        id: String(call.id || ""),
+        type: "function",
+        function: {
+          name: String(call.name || ""),
+          arguments:
+            typeof call.arguments === "string"
+              ? call.arguments
+              : JSON.stringify(call.arguments || {}),
+        },
+      })),
+    };
+  }
+  return {
+    role: message.role,
+    content: toOpenAIContent(message.content),
+  };
+};
+
+export const openaiToolCallsFromMessage = (message) =>
+  (Array.isArray(message?.tool_calls) ? message.tool_calls : [])
+    .map((call) => ({
+      id: String(call?.id || ""),
+      name: String(call?.function?.name || "").trim(),
+      arguments: parseToolArguments(call?.function?.arguments),
+    }))
+    .filter((call) => call.name);
+
 /**
  * GPT-5 / o-series용 Chat Completions 본문.
  * chat 전용 모델(id에 chat)에는 reasoning_effort를 넣지 않는다.
+ * tools가 있으면 Chat Completions tools + tool_choice.
+ * gpt-5.6-* 는 도구와 함께 reasoning_effort "none"만 받는다. 다른 gpt-5는 "low".
+ * toolChoice "none"은 도구 정의를 유지한 채 호출을 막는다.
  */
 export const openaiBuildBody = ({
   model,
@@ -282,6 +397,8 @@ export const openaiBuildBody = ({
   messages,
   temperature,
   maxTokens,
+  tools,
+  toolChoice,
 }) => {
   const body = {
     model,
@@ -289,12 +406,13 @@ export const openaiBuildBody = ({
       ...(systemInstruction
         ? [{ role: "system", content: systemInstruction }]
         : []),
-      ...messages.map((m) => ({
-        role: m.role,
-        content: toOpenAIContent(m.content),
-      })),
+      ...(messages || []).map(toOpenAIMessage),
     ],
   };
+  if (Array.isArray(tools) && tools.length) {
+    body.tools = toOpenAITools(tools);
+    body.tool_choice = toolChoice === "none" ? "none" : "auto";
+  }
   const reasoning = openaiUsesCompletionTokens(model);
   if (!reasoning && typeof temperature === "number") {
     body.temperature = temperature;
@@ -307,7 +425,7 @@ export const openaiBuildBody = ({
     }
   }
   if (reasoning && !/chat/i.test(String(model || ""))) {
-    body.reasoning_effort = "low";
+    body.reasoning_effort = openaiReasoningEffort(model, tools);
   }
   return body;
 };
@@ -346,7 +464,15 @@ export const openaiBodyForUnsupportedParams = (body, err) => {
     delete next.temperature;
     changed = true;
   }
-  if (next.reasoning_effort != null && /reasoning_effort/.test(msg)) {
+  // gpt-5.6-* : "set reasoning_effort to 'none'". Deleting it uses the
+  // default effort and fails again, so follow the hint. Other rejections
+  // still drop the field.
+  if (/reasoning_effort/.test(msg) && /reasoning_effort to ['"]?none\b/.test(msg)) {
+    if (next.reasoning_effort !== "none") {
+      next.reasoning_effort = "none";
+      changed = true;
+    }
+  } else if (next.reasoning_effort != null && /reasoning_effort/.test(msg)) {
     delete next.reasoning_effort;
     changed = true;
   }
@@ -389,6 +515,9 @@ const openaiPostCompletions = async (apiKey, body, timeoutMs) => {
   } catch (err) {
     const retried = openaiBodyForUnsupportedParams(body, err);
     if (!retried) throw err;
+    if (retried.reasoning_effort === "none" && body.reasoning_effort !== "none") {
+      rememberOpenAINoneEffort(body.model);
+    }
     return send(retried);
   }
 };
@@ -400,6 +529,8 @@ const openaiGenerate = async ({
   messages,
   temperature,
   maxTokens,
+  tools,
+  toolChoice,
 }) => {
   const response = await openaiPostCompletions(
     apiKey,
@@ -409,12 +540,16 @@ const openaiGenerate = async ({
       messages,
       temperature,
       maxTokens,
+      tools,
+      toolChoice,
     })
   );
 
   const data = await response.json();
+  const message = data.choices?.[0]?.message;
   return {
-    text: openaiContentText(data.choices?.[0]?.message?.content),
+    text: openaiContentText(message?.content),
+    toolCalls: openaiToolCallsFromMessage(message),
     tokenUsage: openaiUsage(data.usage),
   };
 };
@@ -499,16 +634,46 @@ const anthropicHeaders = (apiKey) => ({
   "anthropic-version": ANTHROPIC_VERSION,
 });
 
+const anthropicBlocks = (content) => {
+  if (typeof content === "string") return [{ type: "text", text: content }];
+  if (Array.isArray(content)) return content;
+  return [{ type: "text", text: String(content || "") }];
+};
+
 const mergeAnthropicContent = (a, b) => {
-  const left = toAnthropicContent(a);
-  const right = toAnthropicContent(b);
-  if (typeof left === "string" && typeof right === "string") {
-    return `${left}\n\n${right}`;
+  if (typeof a === "string" && typeof b === "string") return `${a}\n\n${b}`;
+  return [...anthropicBlocks(a), ...anthropicBlocks(b)];
+};
+
+const prepareAnthropicMessage = (message) => {
+  if (message?.role === "tool") {
+    return {
+      role: "user",
+      content: [
+        {
+          type: "tool_result",
+          tool_use_id: String(message.toolCallId || ""),
+          content: String(message.content ?? ""),
+        },
+      ],
+    };
   }
-  const leftArr = typeof left === "string" ? [{ type: "text", text: left }] : left;
-  const rightArr =
-    typeof right === "string" ? [{ type: "text", text: right }] : right;
-  return [...leftArr, ...rightArr];
+  if (message?.role === "assistant" && Array.isArray(message.toolCalls) && message.toolCalls.length) {
+    const blocks = [];
+    const text = typeof message.content === "string" ? message.content.trim() : "";
+    if (text) blocks.push({ type: "text", text });
+    for (const call of message.toolCalls) {
+      blocks.push({
+        type: "tool_use",
+        id: String(call.id || ""),
+        name: String(call.name || ""),
+        input: parseToolArguments(call.arguments),
+      });
+    }
+    return { role: "assistant", content: blocks };
+  }
+  const role = message?.role === "assistant" ? "assistant" : "user";
+  return { role, content: toAnthropicContent(message?.content) };
 };
 
 /**
@@ -516,13 +681,13 @@ const mergeAnthropicContent = (a, b) => {
  */
 const anthropicMergeMessages = (messages) => {
   const merged = [];
-  for (const m of messages) {
+  for (const raw of messages || []) {
+    const message = prepareAnthropicMessage(raw);
     const last = merged[merged.length - 1];
-    const content = toAnthropicContent(m.content);
-    if (last && last.role === m.role) {
-      last.content = mergeAnthropicContent(last.content, content);
+    if (last && last.role === message.role) {
+      last.content = mergeAnthropicContent(last.content, message.content);
     } else {
-      merged.push({ role: m.role, content });
+      merged.push({ role: message.role, content: message.content });
     }
   }
   // 첫 메시지는 user여야 함
@@ -532,17 +697,35 @@ const anthropicMergeMessages = (messages) => {
   return merged;
 };
 
+export const anthropicToolCallsFromContent = (content) =>
+  (Array.isArray(content) ? content : [])
+    .filter((block) => block?.type === "tool_use")
+    .map((block) => ({
+      id: String(block.id || ""),
+      name: String(block.name || "").trim(),
+      arguments: parseToolArguments(block.input),
+    }))
+    .filter((call) => call.name);
+
 export const anthropicBuildBody = ({
   model,
   systemInstruction,
   messages,
   temperature,
   maxTokens,
+  tools,
+  toolChoice,
 }) => ({
   model,
   max_tokens: typeof maxTokens === "number" ? maxTokens : DEFAULT_MAX_TOKENS,
   ...(typeof temperature === "number" ? { temperature } : {}),
   ...(systemInstruction ? { system: systemInstruction } : {}),
+  ...(Array.isArray(tools) && tools.length
+    ? {
+        tools: toAnthropicTools(tools),
+        tool_choice: toolChoice === "none" ? { type: "none" } : { type: "auto" },
+      }
+    : {}),
   messages: anthropicMergeMessages(messages),
 });
 
@@ -565,6 +748,8 @@ const anthropicGenerate = async ({
   messages,
   temperature,
   maxTokens,
+  tools,
+  toolChoice,
 }) => {
   const response = await fetchWithTimeout(
     "https://api.anthropic.com/v1/messages",
@@ -578,6 +763,8 @@ const anthropicGenerate = async ({
           messages,
           temperature,
           maxTokens,
+          tools,
+          toolChoice,
         })
       ),
     }
@@ -589,7 +776,11 @@ const anthropicGenerate = async ({
     .filter((block) => block.type === "text")
     .map((block) => block.text)
     .join("");
-  return { text, tokenUsage: anthropicUsage(data.usage) };
+  return {
+    text,
+    toolCalls: anthropicToolCallsFromContent(data.content),
+    tokenUsage: anthropicUsage(data.usage),
+  };
 };
 
 const anthropicGenerateStream = async (
@@ -916,8 +1107,21 @@ export const generateText = async ({
   messages,
   temperature,
   maxTokens,
+  tools,
+  toolChoice,
 }) => {
+  const scripted = await scriptedAgentGenerate({
+    apiKey,
+    systemInstruction,
+    messages,
+    tools,
+    toolChoice,
+  });
+  if (scripted) return scripted;
+  const blocked = scriptedDemoKeyBlocked(apiKey);
+  if (blocked) return blocked;
   const resolvedProvider = resolveProvider(provider);
+  const nativeTools = providerSupportsNativeTools(resolvedProvider) ? tools : undefined;
   return getAdapter(resolvedProvider).generate({
     apiKey,
     model: resolveModel(resolvedProvider, model),
@@ -925,6 +1129,8 @@ export const generateText = async ({
     messages,
     temperature,
     maxTokens,
+    tools: nativeTools,
+    toolChoice: nativeTools ? toolChoice : undefined,
   });
 };
 
@@ -935,9 +1141,25 @@ export const generateText = async ({
  * @returns {Promise<{text: string, tokenUsage: Object|null}>}
  */
 export const generateTextStream = async (
-  { provider, apiKey, model, systemInstruction, messages, temperature, maxTokens },
+  { provider, apiKey, model, systemInstruction, messages, temperature, maxTokens, tools, toolChoice },
   onText
 ) => {
+  const scripted = await scriptedAgentGenerate({
+    apiKey,
+    systemInstruction,
+    messages,
+    tools,
+    toolChoice,
+  });
+  if (scripted) {
+    if (scripted.text && typeof onText === "function") onText(scripted.text);
+    return scripted;
+  }
+  const blocked = scriptedDemoKeyBlocked(apiKey);
+  if (blocked) {
+    if (blocked.text && typeof onText === "function") onText(blocked.text);
+    return blocked;
+  }
   const resolvedProvider = resolveProvider(provider);
   return getAdapter(resolvedProvider).generateStream(
     {
