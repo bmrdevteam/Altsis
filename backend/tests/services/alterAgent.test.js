@@ -9,7 +9,11 @@ import {
   stripUnmatchedLinks,
   wrapToolResult,
 } from "../../src/services/alterAgentProtocol.js";
-import { createAgentTools, projectCourseTodo } from "../../src/services/alterAgentTools.js";
+import {
+  createAgentTools,
+  projectCourseTodo,
+  projectSchoolTodo,
+} from "../../src/services/alterAgentTools.js";
 
 const serverCtx = {
   academyId: "ac-real",
@@ -478,17 +482,37 @@ describe("agent tools ignore identity arguments", () => {
         query: "결재 어디서",
         auth: "teacher",
         isSchoolManager: false,
-        limit: 4,
+        limit: 2,
       },
     ]);
     expect(result.hits[0].doc).toBe("user-guide/boards.md");
     expect(result.hits[0].excerpt).toContain("할 일 탭");
+    expect(result.hits[0].excerpt.length).toBeLessThanOrEqual(240);
     expect(result.links).toEqual([
       { kind: "page", title: "보드", path: "/boards" },
       { kind: "guide", title: "안내: 보드", path: "/guide?doc=user-guide%2Fboards" },
     ]);
     expect(JSON.stringify(result)).not.toContain("attacker");
     expect(JSON.stringify(result)).not.toContain("evil-academy");
+  });
+
+  test("returns at most two guide hits and short excerpts", async () => {
+    const long = `평가 입력 화면입니다. ${"내용 ".repeat(400)}`;
+    const tools = createAgentTools({
+      retrieveAlterGuide: () =>
+        ["a.md", "b.md", "c.md"].map((key) => ({
+          key,
+          title: key,
+          content: long,
+        })),
+    });
+    const guide = tools.find((tool) => tool.name === "search_product_guide");
+    const result = await guide.execute(serverCtx, { query: "평가 입력" });
+    expect(result.hits.map((hit) => hit.doc)).toEqual(["a.md", "b.md"]);
+    for (const hit of result.hits) {
+      expect(hit.excerpt.length).toBeLessThanOrEqual(240);
+      expect(hit.excerpt.endsWith("…")).toBe(true);
+    }
   });
 });
 
@@ -585,33 +609,124 @@ describe("course todo eval labels", () => {
     expect(guide.description).toContain("방법");
     expect(prompt).toContain("search_product_guide도 같은 턴에 호출");
     expect(prompt).toContain("URL이나 마크다운 링크를 쓰지 마세요");
+    expect(prompt).toContain("source=board");
+    expect(prompt).toContain("수업 평가가 아닙니다");
+    expect(prompt).toContain("kind=evaluation");
     expect(fence).toContain("search_product_guide도 같은 턴에 호출");
+  });
+
+  test("native prompt and tool schema are smaller than before the trim", () => {
+    const tools = createAgentTools();
+    const native = buildAgentSystemPrompt({ tools, protocol: "native" });
+    const schema = JSON.stringify(
+      tools.map((tool) => ({
+        name: tool.name,
+        description: tool.description,
+        parameters: tool.parameters,
+      }))
+    );
+    // Before this trim: native system prompt 1169 chars + tool schema 787 chars.
+    expect(native.length).toBeLessThan(1169);
+    expect(schema.length).toBeLessThan(787);
+    expect(native.length + schema.length).toBeLessThan(1956);
+  });
+});
+
+describe("board todos are not evaluations", () => {
+  test("labels an unsubmitted board form as a board form, not an evaluation", () => {
+    expect(
+      projectSchoolTodo({
+        kind: "unsubmitted",
+        boardTitle: "교무",
+        formTitle: "[예시] 3쿼터 수업 운영 점검",
+      })
+    ).toMatchObject({
+      source: "board",
+      kind: "unsubmitted",
+      label: "보드 양식 미제출",
+      form: "[예시] 3쿼터 수업 운영 점검",
+    });
+    expect(projectSchoolTodo({ kind: "approve" }).label).toBe("결재");
+    expect(projectCourseTodo({ kind: "evaluation", evalStatus: "평가중" })).toMatchObject({
+      source: "course",
+      kind: "evaluation",
+      label: "평가",
+    });
   });
 });
 
 describe("stripUnmatchedLinks", () => {
   const links = [
+    { kind: "page", title: "수업", path: "/courses" },
     { kind: "guide", title: "안내: 평가", path: "/guide?doc=user-guide%2Fevaluation" },
+    { kind: "guide", title: "안내: 수업", path: "/guide?doc=user-guide%2Fcourses" },
   ];
+  const prevUrl = process.env.URL;
 
-  test("drops fabricated markdown links and bare URLs", () => {
-    const text = stripUnmatchedLinks(
-      "수업 화면에서 입력합니다. [평가 안내 문서](https://your-link-to-evaluation-guide) 참고 https://evil.example/phish",
-      links
-    );
-    expect(text).toBe("수업 화면에서 입력합니다. 평가 안내 문서 참고");
-    expect(text).not.toContain("http");
-    expect(text).not.toContain("](");
+  afterEach(() => {
+    if (prevUrl == null) delete process.env.URL;
+    else process.env.URL = prevUrl;
   });
 
-  test("keeps a link whose target is a returned path", () => {
-    const kept = "[평가](/guide?doc=user-guide%2Fevaluation)";
+  test("drops fabricated absolute URLs even when the path looks familiar", () => {
+    delete process.env.URL;
     const text = stripUnmatchedLinks(
-      `입력은 수업 화면입니다. ${kept} https://next.altsis.org/guide?doc=user-guide%2Fevaluation`,
+      [
+        "[a](https://example.com/courses)",
+        "https://www.altsis.com/guide?doc=user-guide/courses",
+        "https://evil.test/x/courses",
+        "https://www.altsis.com/guide?doc=user-guide%2Fevaluation",
+        "https://example.com/courses",
+        "[평가 안내 문서](https://your-link-to-evaluation-guide)",
+      ].join(" "),
       links
     );
-    expect(text).toContain(kept);
-    expect(text).toContain("https://next.altsis.org/guide?doc=user-guide%2Fevaluation");
+    expect(text).toBe("a 평가 안내 문서");
+    expect(text).not.toContain("http");
+    expect(text).not.toContain("example.com");
+    expect(text).not.toContain("altsis.com");
+    expect(text).not.toContain("evil.test");
+  });
+
+  test("keeps a relative path that matches after decoding, and the app origin only", () => {
+    delete process.env.URL;
+    const relative = "[평가](/guide?doc=user-guide/evaluation)";
+    const offHost = stripUnmatchedLinks(
+      `${relative} [수업](/courses) https://next.altsis.org/guide?doc=user-guide%2Fevaluation`,
+      links
+    );
+    expect(offHost).toContain(relative);
+    expect(offHost).toContain("[수업](/courses)");
+    expect(offHost).not.toContain("next.altsis.org");
+
+    process.env.URL = "https://www.altsis.com";
+    const onHost = stripUnmatchedLinks(
+      "https://www.altsis.com/guide?doc=user-guide%2Fevaluation https://example.com/courses",
+      links
+    );
+    expect(onHost).toContain("https://www.altsis.com/guide?doc=user-guide%2Fevaluation");
+    expect(onHost).not.toContain("example.com");
+  });
+
+  test("drops a link lead-in and bullets that were only stripped links", () => {
+    delete process.env.URL;
+    const text = stripUnmatchedLinks(
+      [
+        "수업 화면에서 입력합니다.",
+        "자세한 내용은 아래 링크에서 확인할 수 있습니다:",
+        "- [평가 안내 문서](https://example.com/courses)",
+        "- [다른 문서](https://evil.test/x/courses)",
+        "",
+        "- 출석 점검",
+        "- https://evil.test/x/courses",
+        "- 문학 탐구",
+      ].join("\n"),
+      links
+    );
+    expect(text).toBe(["수업 화면에서 입력합니다.", "- 출석 점검", "- 문학 탐구"].join("\n"));
+    expect(text).not.toContain("아래 링크");
+    expect(text).not.toContain("평가 안내");
+    expect(text).not.toContain("http");
   });
 });
 
@@ -763,7 +878,7 @@ describe("native tool loop", () => {
       serverCtx,
       userMessage: "평가할 수업이 뭐고, 어디서 입력해?",
       tools: [todoTool, guideTool],
-      generate: async () => {
+      generate: async ({ messages }) => {
         calls += 1;
         if (calls === 1) {
           return {
@@ -773,6 +888,8 @@ describe("native tool loop", () => {
             ],
           };
         }
+        const sent = messages.map((row) => String(row.content || "")).join("\n");
+        expect(sent).not.toContain("/guide?doc");
         return {
           text: "수업 화면에서 입력합니다. [평가 안내 문서](https://your-link-to-evaluation-guide)",
           toolCalls: [],

@@ -13,8 +13,8 @@ import { logger } from "../log/logger.js";
 
 const TODO_LIMIT_DEFAULT = 20;
 const TODO_LIMIT_MAX = 40;
-const GUIDE_HITS = 4;
-const GUIDE_CHARS = 700;
+const GUIDE_HITS = 2;
+const GUIDE_CHARS = 240;
 
 const clip = (value, max) => {
   const text = String(value ?? "").trim();
@@ -43,7 +43,7 @@ const SCHOOL_KIND = {
   grade: "채점",
   approve: "결재",
   outgoing: "진행 중 결재",
-  unsubmitted: "미제출",
+  unsubmitted: "보드 양식 미제출",
 };
 
 const COURSE_KIND = {
@@ -158,7 +158,7 @@ export const createAgentTools = (deps = {}) => {
       name: "get_my_todos",
       label: "내 할 일",
       description:
-        "로그인한 사용자의 보드 할 일(결재·채점·미제출)과 수업 할 일(확인·평가 입력)을 읽습니다. 메뉴 위치나 입력 방법(어디서·어떻게)은 알려주지 않습니다. 그 질문은 search_product_guide를 쓰세요. emptyCourses는 수강생이 없는 수업 참고이며 할 일이 아닙니다.",
+        "보드 할 일(결재·채점·미제출)과 수업 할 일. 어디서·어떻게는 search_product_guide.",
       arguments: '{ "scope": "all" | "school" | "course", "limit"?: number }',
       parameters: {
         type: "object",
@@ -167,13 +167,11 @@ export const createAgentTools = (deps = {}) => {
           scope: {
             type: "string",
             enum: ["all", "school", "course"],
-            description: "all=보드와 수업, school=보드만, course=수업만",
           },
           limit: {
             type: "integer",
             minimum: 1,
             maximum: 40,
-            description: "돌려줄 할 일 개수 상한",
           },
         },
       },
@@ -227,13 +225,13 @@ export const createAgentTools = (deps = {}) => {
       name: "search_product_guide",
       label: "제품 안내",
       description:
-        "Altsis에서 기능을 어디서·어떻게 쓰는지(메뉴, 입력 화면, 방법)를 안내 문서에서 찾습니다. 할 일과 함께 어디서/어떻게/방법을 물으면 같은 턴에 이 도구도 호출하세요. 학사 데이터가 아니라 제품 도움말입니다.",
+        "메뉴·입력 방법(어디서/어떻게/방법). 할 일과 함께 물으면 같은 턴에 호출.",
       arguments: '{ "query": string }',
       parameters: {
         type: "object",
         additionalProperties: false,
         properties: {
-          query: { type: "string", description: "찾을 기능이나 화면" },
+          query: { type: "string" },
         },
         required: ["query"],
       },
@@ -252,7 +250,7 @@ export const createAgentTools = (deps = {}) => {
           const rows = (hits || []).slice(0, GUIDE_HITS);
           const projected = rows.map((hit) =>
             compact({
-              title: clip(hit.title, 120),
+              title: clip(hit.title, 80),
               doc: clip(hit.key, 160),
               excerpt: clip(hit.content, GUIDE_CHARS),
             })
