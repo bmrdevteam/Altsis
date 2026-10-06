@@ -112,11 +112,14 @@ export function objectDownloadAsCSV(data: any) {
     ),
   ].join("\r\n"); // join the header row and item rows with newline characters
 
-  const csvString = `data:text/csv;charset=utf-8,${encodeURI(csv)}`; // create a CSV string with proper MIME type
-  const link = document.createElement("a"); // create a link element
-  link.href = csvString; // set the link's href to the CSV string
-  link.download = "data.csv"; // set the download file name
-  link.click(); // trigger a click on the link to download the CSV file
+  // Excel(한글 Windows)은 BOM 없는 UTF-8 CSV를 CP949로 열어 한글이 깨진다.
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "data.csv";
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 /**
