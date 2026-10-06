@@ -28,14 +28,22 @@ const sameId = (a, b) => {
 
 export const clipEventTitle = (value) => String(value || "").replace(/\s+/g, " ").trim().slice(0, 80);
 
-export const sanitizePendingEvent = (evt, now = new Date()) => ({
-  type: String(evt?.type || ""),
-  entityType: String(evt?.entityType || ""),
-  entityId: String(evt?.entityId || "").slice(0, 64),
-  actorUserId: String(evt?.actorUserId || "").slice(0, 64),
-  at: evt?.at instanceof Date ? evt.at : now,
-  title: clipEventTitle(evt?.title),
-});
+const clipId = (value) => String(value || "").trim().slice(0, 64);
+
+export const sanitizePendingEvent = (evt, now = new Date()) => {
+  const scope = String(evt?.calendarScope || "");
+  return {
+    type: String(evt?.type || ""),
+    entityType: String(evt?.entityType || ""),
+    entityId: clipId(evt?.entityId),
+    actorUserId: clipId(evt?.actorUserId),
+    formId: clipId(evt?.formId),
+    boardId: clipId(evt?.boardId),
+    calendarScope: scope === "school" || scope === "personal" ? scope : "",
+    at: evt?.at instanceof Date ? evt.at : now,
+    title: clipEventTitle(evt?.title),
+  };
+};
 
 /**
  * Pure batching step. The Mongo pipeline in buildPendingPipeline matches this.

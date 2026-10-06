@@ -95,10 +95,19 @@ export const accessToEvent = async (academyId, routine, evt, readers = {}) => {
     if (!board) return null;
     if (evt.type === "approval_requested") {
       if (!roleOf(board, owner)) return null;
-      return { excerpt: truncateSummary(evt.title || form?.title || "", EXCERPT) };
+      return {
+        excerpt: truncateSummary(evt.title || form?.title || "", EXCERPT),
+        ...(row ? {} : { unavailable: true }),
+      };
     }
-    if (!form || !manageOf(board, owner)) return null;
+    if (!manageOf(board, owner)) return null;
     if (row?.isDraft) return null;
+    if (!row) {
+      const label = evt.title || form?.title || "";
+      if (!label) return null;
+      return { excerpt: truncateSummary(label, EXCERPT), unavailable: true };
+    }
+    if (!form) return null;
     const data = row?.data && typeof row.data === "object" ? row.data : {};
     const text = Object.values(data)
       .filter((value) => typeof value === "string")
@@ -106,15 +115,22 @@ export const accessToEvent = async (academyId, routine, evt, readers = {}) => {
     return { excerpt: truncateSummary(text || evt.title || form.title || "", EXCERPT) };
   }
   if (evt.type === "form_posted") {
-    const form = await readForm(academyId, evt.entityId, readers);
+    const form = await readForm(academyId, evt.formId || evt.entityId, readers);
     const board = await readBoard(academyId, evt.boardId || form?.board, readers);
     if (!board || !roleOf(board, owner)) return null;
     if (form?.isDraft) return null;
+    if (!form) {
+      return { excerpt: truncateSummary(evt.title || "", EXCERPT), unavailable: true };
+    }
     return { excerpt: truncateSummary(form?.title || evt.title || "", EXCERPT) };
   }
   if (evt.type === "calendar_created") {
     const event = await readCalendar(academyId, evt, readers);
-    if (!event || event.scope === "personal" || evt.calendarScope === "personal") return null;
+    if (event?.scope === "personal" || evt.calendarScope === "personal") return null;
+    if (!event) {
+      if (evt.calendarScope !== "school") return null;
+      return { excerpt: truncateSummary(evt.title || "", EXCERPT), unavailable: true };
+    }
     return {
       excerpt: truncateSummary(
         [event.title, event.description].filter(Boolean).join(" "),
@@ -149,14 +165,18 @@ export const filterVisibleEvents = async (events, canSee) => {
   for (const evt of events || []) {
     const seen = await canSee(evt);
     if (!seen) continue;
-    kept.push({
+    const visible = {
       type: evt.type,
       entityType: evt.entityType,
       entityId: String(evt.entityId || ""),
       title: String(evt.title || ""),
       at: evt.at,
       excerpt: String(seen.excerpt || "").slice(0, EXCERPT),
-    });
+    };
+    if (evt.formId) visible.formId = String(evt.formId);
+    if (evt.boardId) visible.boardId = String(evt.boardId);
+    if (seen.unavailable) visible.unavailable = true;
+    kept.push(visible);
   }
   return kept;
 };

@@ -181,7 +181,7 @@ export const scriptedAgentGenerate = async ({
     await new Promise((resolve) => setTimeout(resolve, wait));
   }
   const triggerRequest =
-    triggerToolAvailable && /<event_data/.test(userText) && !scheduleRequest;
+    triggerToolAvailable && /get_trigger_events/.test(userText) && !scheduleRequest;
   if (triggerRequest) {
     if (native) {
       if (!sawResult && toolChoice !== "none") {
