@@ -232,6 +232,34 @@ async function* iterateSSE(response) {
 const OPENAI_COMPLETIONS_URL = "https://api.openai.com/v1/chat/completions";
 const OPENAI_REASONING_TOKEN_FLOOR = 4096;
 const OPENAI_REASONING_PROBE_FLOOR = 256;
+/** Models whose 400 said function tools need reasoning_effort "none". */
+const openaiNoneEffortWithTools = new Set();
+
+const openaiModelKey = (model) => String(model || "").trim().toLowerCase();
+
+export const resetOpenAINoneReasoningEffortCache = () => {
+  openaiNoneEffortWithTools.clear();
+};
+
+/**
+ * gpt-5.6-* rejects function tools unless reasoning_effort is "none".
+ * Other gpt-5 models keep "low" until one of them returns that 400.
+ * @param {string} [model]
+ * @param {unknown[]|undefined} tools
+ * @returns {"low"|"none"}
+ */
+export const openaiReasoningEffort = (model, tools) => {
+  const hasTools = Array.isArray(tools) && tools.length > 0;
+  if (!hasTools) return "low";
+  const id = openaiModelKey(model);
+  if (/^gpt-5\.6-/i.test(id) || openaiNoneEffortWithTools.has(id)) return "none";
+  return "low";
+};
+
+const rememberOpenAINoneEffort = (model) => {
+  const id = openaiModelKey(model);
+  if (id) openaiNoneEffortWithTools.add(id);
+};
 
 /**
  * GPT-5·o 계열은 Chat Completions에서 max_completion_tokens를 요구한다.
@@ -357,6 +385,7 @@ export const openaiToolCallsFromMessage = (message) =>
  * GPT-5 / o-series용 Chat Completions 본문.
  * chat 전용 모델(id에 chat)에는 reasoning_effort를 넣지 않는다.
  * tools가 있으면 Chat Completions tools + tool_choice.
+ * gpt-5.6-* 는 도구와 함께 reasoning_effort "none"만 받는다. 다른 gpt-5는 "low".
  * toolChoice "none"은 도구 정의를 유지한 채 호출을 막는다.
  */
 export const openaiBuildBody = ({
@@ -393,7 +422,7 @@ export const openaiBuildBody = ({
     }
   }
   if (reasoning && !/chat/i.test(String(model || ""))) {
-    body.reasoning_effort = "low";
+    body.reasoning_effort = openaiReasoningEffort(model, tools);
   }
   return body;
 };
@@ -432,7 +461,15 @@ export const openaiBodyForUnsupportedParams = (body, err) => {
     delete next.temperature;
     changed = true;
   }
-  if (next.reasoning_effort != null && /reasoning_effort/.test(msg)) {
+  // gpt-5.6-* : "set reasoning_effort to 'none'". Deleting it uses the
+  // default effort and fails again, so follow the hint. Other rejections
+  // still drop the field.
+  if (/reasoning_effort/.test(msg) && /reasoning_effort to ['"]?none\b/.test(msg)) {
+    if (next.reasoning_effort !== "none") {
+      next.reasoning_effort = "none";
+      changed = true;
+    }
+  } else if (next.reasoning_effort != null && /reasoning_effort/.test(msg)) {
     delete next.reasoning_effort;
     changed = true;
   }
@@ -475,6 +512,9 @@ const openaiPostCompletions = async (apiKey, body, timeoutMs) => {
   } catch (err) {
     const retried = openaiBodyForUnsupportedParams(body, err);
     if (!retried) throw err;
+    if (retried.reasoning_effort === "none" && body.reasoning_effort !== "none") {
+      rememberOpenAINoneEffort(body.model);
+    }
     return send(retried);
   }
 };
