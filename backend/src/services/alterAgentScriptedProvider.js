@@ -162,11 +162,13 @@ export const scriptedAgentGenerate = async ({
   if (!isAlterAgentScriptedEnabled(apiKey)) return null;
   if (!isAgentPrompt(systemInstruction)) return null;
 
-  const native = Array.isArray(tools) && tools.length > 0;
+  const instruction = String(systemInstruction || "");
+  const fencePrompt = /```alter/.test(instruction);
+  const native = Array.isArray(tools) && tools.length > 0 && !fencePrompt;
   const sawResult = sawToolResult(messages);
   const userText = latestUserText(messages);
-  const scheduleToolAvailable = /manage_schedule/.test(
-    String(systemInstruction || "")
+  const scheduleToolAvailable = (Array.isArray(tools) ? tools : []).some(
+    (tool) => tool?.name === "manage_schedule"
   );
   const scheduleRequest =
     scheduleToolAvailable && isScriptedScheduleRequest(userText);

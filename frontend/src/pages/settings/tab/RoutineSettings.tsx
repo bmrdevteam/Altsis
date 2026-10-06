@@ -18,6 +18,13 @@ type ScheduleSpec = {
   onceAt?: string;
 };
 
+type RunRow = {
+  at?: string;
+  status?: string;
+  summary?: string;
+  toolNames?: string[];
+};
+
 type Routine = {
   _id: string;
   title: string;
@@ -30,6 +37,7 @@ type Routine = {
   lastStatus?: string;
   lastResultSummary?: string;
   createdVia?: string;
+  runs?: RunRow[];
 };
 
 const WEEKDAYS = [
@@ -68,7 +76,7 @@ const RoutineSettings = () => {
   const [busy, setBusy] = useState(false);
 
   const load = async () => {
-    if (!seasonId || isStudent) return;
+    if (!seasonId) return;
     const data = await database.R({
       location: `ai/alter/schedules?season=${encodeURIComponent(seasonId)}`,
     });
@@ -76,7 +84,7 @@ const RoutineSettings = () => {
   };
 
   useEffect(() => {
-    if (!seasonId || isStudent) return;
+    if (!seasonId) return;
     let cancelled = false;
     database
       .R({
@@ -208,28 +216,33 @@ const RoutineSettings = () => {
     );
   }
 
-  if (isStudent) {
-    return (
-      <div className={style.settings_container}>
-        <div className={style.container_title}>예약 실행</div>
-        <p className={style.routine_help}>
-          예약 실행은 선생님만 사용할 수 있습니다.
-        </p>
-      </div>
-    );
-  }
+  const canManage = !isStudent;
+  const recentRuns = (row: Routine) => (row.runs || []).slice(-3);
 
   return (
     <div className={style.settings_container}>
       <div className={style.container_title}>예약 실행</div>
-      <p className={style.routine_help}>
-        정한 시각에 Alter가 선생님 계정으로 할 일과 안내만 조회합니다. 계정당
-        5개까지, 반복은 최소 1시간입니다. 실행에 쓴 토큰은 오늘 사용량에
-        포함됩니다.
-      </p>
+      {canManage ? (
+        <p className={style.routine_help}>
+          정한 시각에 Alter가 선생님 계정으로 할 일과 안내만 조회합니다. 계정당
+          5개까지, 반복은 최소 1시간입니다. 실행에 쓴 토큰은 오늘 사용량에
+          포함됩니다.
+        </p>
+      ) : rows.length > 0 ? (
+        <p className={style.routine_help}>
+          예전에 만든 예약은 끄거나 지울 수 있습니다. 새로 만들거나 지금 실행하는
+          것은 선생님만 할 수 있습니다.
+        </p>
+      ) : null}
       {error ? <p className={style.routine_error}>{error}</p> : null}
       {notice ? <p className={style.routine_notice}>{notice}</p> : null}
+      {isStudent && rows.length === 0 ? (
+        <p className={style.routine_help}>
+          예약 실행은 선생님만 사용할 수 있습니다.
+        </p>
+      ) : null}
 
+      {canManage ? (
       <div className={style.routine_card}>
         <div className={style.container_subtitle}>
           {editing ? "예약 수정" : "새 예약"}
@@ -314,7 +327,7 @@ const RoutineSettings = () => {
           />
         </label>
         <div className={style.routine_actions}>
-          <button type="button" onClick={() => void save()} disabled={busy || rows.length >= 5 && !editing}>
+          <button type="button" onClick={() => void save()} disabled={busy || (rows.length >= 5 && !editing)}>
             저장
           </button>
           {editing ? (
@@ -330,6 +343,7 @@ const RoutineSettings = () => {
           ) : null}
         </div>
       </div>
+      ) : null}
 
       {rows.map((row) => (
         <div key={row._id} className={style.routine_card}>
@@ -341,16 +355,27 @@ const RoutineSettings = () => {
             {row.lastResultSummary ? ` — ${row.lastResultSummary}` : ""}
           </p>
           <p>{row.enabled ? "사용 중" : "꺼짐"}</p>
+          {recentRuns(row).map((run, index) => (
+            <p key={`${row._id}-run-${index}`} className={style.routine_help}>
+              {alterScheduleStatusLabel(run.status)}
+              {run.toolNames?.length ? ` · ${run.toolNames.join(", ")}` : ""}
+              {run.summary ? ` — ${run.summary}` : ""}
+            </p>
+          ))}
           <div className={style.routine_actions}>
-            <button type="button" onClick={() => startEdit(row)}>
-              수정
-            </button>
+            {canManage ? (
+              <button type="button" onClick={() => startEdit(row)}>
+                수정
+              </button>
+            ) : null}
             <button type="button" onClick={() => void toggle(row)}>
               {row.enabled ? "끄기" : "켜기"}
             </button>
-            <button type="button" onClick={() => void runNow(row)} disabled={busy}>
-              지금 실행
-            </button>
+            {canManage ? (
+              <button type="button" onClick={() => void runNow(row)} disabled={busy}>
+                지금 실행
+              </button>
+            ) : null}
             <button type="button" onClick={() => void remove(row)}>
               삭제
             </button>

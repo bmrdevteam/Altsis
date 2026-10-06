@@ -2,9 +2,14 @@ import { createAgentTools } from "../../src/services/alterAgentTools.js";
 import { runAgentLoop } from "../../src/services/alterAgentProtocol.js";
 import {
   assertScheduleTeacher,
+  beginManualRun,
   claimDueDocument,
   confirmProposal,
+  createScheduleForUser,
+  deleteScheduleForUser,
   findOwnedSchedule,
+  setScheduleEnabled,
+  updateScheduleForUser,
 } from "../../src/services/alterScheduleService.js";
 import {
   executeClaimedSchedule,
@@ -13,10 +18,12 @@ import {
 } from "../../src/services/alterScheduleRun.js";
 import {
   MIN_INTERVAL_MS,
+  assertReadOnlyPrompt,
   buildScheduleFields,
   computeNextRunAt,
   matchesClaimQuery,
   nextStateAfterRun,
+  truncateSummary,
 } from "../../src/services/alterScheduleTime.js";
 
 const teacherDeps = {
@@ -59,6 +66,33 @@ describe("alter schedule time", () => {
       morning
     );
     expect(next.toISOString()).toBe("2026-10-05T00:00:00.000Z");
+  });
+
+  test("allows read questions and refuses imperative writes", () => {
+    for (const prompt of [
+      "이번 주 미제출 양식이 있는지 알려줘",
+      "결재 대기인 항목이 있는지 알려줘",
+      "채점할 게 있는지 알려줘",
+    ]) {
+      expect(assertReadOnlyPrompt(prompt)).toBe(prompt);
+    }
+    for (const prompt of [
+      "출석부를 제출해 줘",
+      "이 양식을 채점해 줘",
+      "예약을 삭제해 줘",
+      "이 건을 결재해 줘",
+      "승인해 줘",
+      "안내를 보내 줘",
+      "일정을 수정해 줘",
+    ]) {
+      expect(() => assertReadOnlyPrompt(prompt)).toThrow(/조회와 안내/);
+    }
+  });
+
+  test("strips markdown before truncating a summary", () => {
+    expect(truncateSummary("**출석** 점검입니다. [안내](https://example.com)를 보세요.")).toBe(
+      "출석 점검입니다. 안내를 보세요."
+    );
   });
 
   test("rejects a write prompt and keeps daily gaps at least an hour", () => {
@@ -230,6 +264,31 @@ describe("alter schedule runner", () => {
     expect(patch.runs[0].conversationId).toBe("conv1");
     expect(patch.claimUntil).toBeNull();
     expect(saved[0].lastStatus).toBe("ok");
+  });
+
+  test("stores plain text and the tool names from the run", async () => {
+    const notifications = [];
+    const patch = await executeClaimedSchedule({
+      academyId: "demo",
+      doc: doc(),
+      deps: {
+        loadContext: async () => ({
+          user: { _id: "teacher-object", userId: "teacher1", userName: "김교사" },
+        }),
+        executeAgent: async () => ({
+          text: "**출석** 점검입니다. [안내](https://example.com)를 보세요.",
+          tokenUsage: { totalTokens: 4 },
+          links: [],
+          toolNames: ["get_my_todos", "_parse", "search_product_guide"],
+        }),
+        persistTurn: async () => ({ conversation: { _id: "conv2" } }),
+        notify: async (payload) => notifications.push(payload),
+        save: async () => {},
+      },
+    });
+    expect(patch.lastResultSummary).toBe("출석 점검입니다. 안내를 보세요.");
+    expect(notifications[0].description).toBe("출석 점검입니다. 안내를 보세요.");
+    expect(patch.runs[0].toolNames).toEqual(["get_my_todos", "search_product_guide"]);
   });
 
   test("records a skip and does not notify when AI or quota blocks the run", async () => {
@@ -417,5 +476,272 @@ describe("alter schedule permissions and confirm", () => {
       )
     ).rejects.toMatchObject({ code: "SCHEDULE_LIMIT" });
     expect(created).toBe(false);
+  });
+
+  const chainFind = (rows) => (query) => {
+    const api = {
+      sort() {
+        return api;
+      },
+      select() {
+        return api;
+      },
+      async lean() {
+        return rows
+          .filter((row) => String(row.user) === String(query.user))
+          .sort((a, b) => {
+            const delta = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+            if (delta !== 0) return delta;
+            return String(a._id).localeCompare(String(b._id));
+          });
+      },
+    };
+    return api;
+  };
+
+  test("parallel creates keep five schedules", async () => {
+    const rows = [0, 1, 2, 3].map((index) => ({
+      _id: `old-${index}`,
+      user: user._id,
+      proposalKey: `old-${index}`,
+      createdAt: new Date(Date.UTC(2020, 0, index + 1)),
+    }));
+    let entered = 0;
+    let counts = 0;
+    let release = () => {};
+    const gate = new Promise((resolve) => {
+      release = resolve;
+    });
+    const model = {
+      rows,
+      countDocuments: async () => {
+        counts += 1;
+        return counts <= 8 ? 4 : rows.length;
+      },
+      findOne: async (query) =>
+        rows.find(
+          (row) => row.user === query.user && row.proposalKey === query.proposalKey
+        ) || null,
+      find: chainFind(rows),
+      create: async (row) => {
+        const saved = {
+          ...row,
+          _id: `new-${rows.length}`,
+          createdAt: new Date(Date.UTC(2026, 0, rows.length + 1)),
+        };
+        saved.deleteOne = async () => {
+          const index = rows.findIndex((item) => item._id === saved._id);
+          if (index >= 0) rows.splice(index, 1);
+        };
+        rows.push(saved);
+        entered += 1;
+        if (entered >= 8) release();
+        await gate;
+        return saved;
+      },
+    };
+    const results = await Promise.allSettled(
+      Array.from({ length: 8 }, (_, index) =>
+        confirmProposal(
+          "demo",
+          user,
+          {
+            season: "season1",
+            proposal: {
+              saved: false,
+              action: "create",
+              title: `할 일 ${index}`,
+              prompt: "이번 주 할 일을 조회해서 정리해 줘",
+              schedule: { kind: "daily", time: "09:00" },
+              timezone: "Asia/Seoul",
+            },
+          },
+          { ...teacherDeps, model }
+        )
+      )
+    );
+    const rejected = results.filter((result) => result.status === "rejected");
+    expect(rows).toHaveLength(5);
+    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect(rejected).toHaveLength(7);
+    for (const result of rejected) {
+      expect(result.reason.code).toBe("SCHEDULE_LIMIT");
+    }
+  });
+
+  test("confirming the same proposal twice does not duplicate it", async () => {
+    const rows = [];
+    const model = {
+      countDocuments: async () => rows.length,
+      findOne: async (query) =>
+        rows.find(
+          (row) => row.user === query.user && row.proposalKey === query.proposalKey
+        ) || null,
+      find: chainFind(rows),
+      create: async (row) => {
+        const saved = { ...row, _id: "saved-once", createdAt: new Date(), deleteOne: async () => {} };
+        rows.push(saved);
+        return saved;
+      },
+    };
+    const body = {
+      season: "season1",
+      proposal: {
+        saved: false,
+        action: "create",
+        title: "월요일 할 일",
+        prompt: "이번 주 할 일을 조회해서 정리해 줘",
+        schedule: { kind: "weekly", time: "08:00", weekdays: [1] },
+        timezone: "Asia/Seoul",
+      },
+    };
+    const first = await confirmProposal("demo", user, body, { ...teacherDeps, model });
+    const second = await confirmProposal("demo", user, body, { ...teacherDeps, model });
+    expect(second._id).toBe(first._id);
+    expect(rows).toHaveLength(1);
+  });
+
+  test("a settings create of the same schedule is rejected", async () => {
+    const rows = [];
+    const model = {
+      countDocuments: async () => rows.length,
+      findOne: async (query) =>
+        rows.find(
+          (row) => row.user === query.user && row.proposalKey === query.proposalKey
+        ) || null,
+      find: chainFind(rows),
+      create: async (row) => {
+        const saved = { ...row, _id: "settings-1", createdAt: new Date(), deleteOne: async () => {} };
+        rows.push(saved);
+        return saved;
+      },
+    };
+    const body = {
+      season: "season1",
+      title: "월요일 할 일",
+      prompt: "이번 주 할 일을 조회해서 정리해 줘",
+      timezone: "Asia/Seoul",
+      schedule: { kind: "weekly", time: "08:00", weekdays: [1] },
+    };
+    await createScheduleForUser("demo", user, body, "settings", { ...teacherDeps, model });
+    await expect(
+      createScheduleForUser("demo", user, body, "settings", { ...teacherDeps, model })
+    ).rejects.toMatchObject({ status: 409, code: "SCHEDULE_DUPLICATE" });
+    expect(rows).toHaveLength(1);
+  });
+
+  test("a duplicate key on confirm returns the row already stored", async () => {
+    const existing = {
+      _id: "saved-race",
+      user: user._id,
+      proposalKey: "pending",
+      title: "월요일 할 일",
+    };
+    let lookups = 0;
+    const model = {
+      countDocuments: async () => 1,
+      findOne: async () => {
+        lookups += 1;
+        return lookups === 1 ? null : existing;
+      },
+      create: async () => {
+        const err = new Error("dup");
+        err.code = 11000;
+        throw err;
+      },
+    };
+    const saved = await confirmProposal(
+      "demo",
+      user,
+      {
+        season: "season1",
+        proposal: {
+          saved: false,
+          action: "create",
+          title: "월요일 할 일",
+          prompt: "이번 주 할 일을 조회해서 정리해 줘",
+          schedule: { kind: "weekly", time: "08:00", weekdays: [1] },
+          timezone: "Asia/Seoul",
+        },
+      },
+      { ...teacherDeps, model }
+    );
+    expect(saved._id).toBe("saved-race");
+    expect(lookups).toBe(2);
+  });
+
+  test("a student run is forbidden before the schedule is loaded", async () => {
+    const seen = [];
+    await expect(
+      beginManualRun("demo", { _id: "student" }, "sched-1", "season1", {
+        findSeason: async () => {
+          seen.push("season");
+          return { _id: "season1" };
+        },
+        findRegistration: async () => {
+          seen.push("registration");
+          return { role: "student" };
+        },
+        model: {
+          findOne: async () => {
+            seen.push("find");
+            return { _id: "sched-1" };
+          },
+        },
+      })
+    ).rejects.toMatchObject({ status: 403, code: "PERMISSION_DENIED" });
+    expect(seen).toEqual(["season", "registration"]);
+  });
+
+  test("an owner who is no longer a teacher can update, disable, and delete", async () => {
+    const doc = {
+      _id: "sched-1",
+      user: user._id,
+      title: "월요일 할 일",
+      prompt: "이번 주 할 일을 조회해서 정리해 줘",
+      timezone: "Asia/Seoul",
+      schedule: { kind: "daily", time: "09:00" },
+      nextRunAt: new Date("2020-01-01T00:00:00.000Z"),
+      enabled: false,
+      save: async () => {},
+      deleteOne: async () => {
+        doc.deleted = true;
+      },
+    };
+    const model = { findOne: async () => doc };
+    const updated = await updateScheduleForUser(
+      "demo",
+      user,
+      "sched-1",
+      { title: "아침 할 일" },
+      model
+    );
+    expect(updated.title).toBe("아침 할 일");
+    doc.title = "아침 할 일";
+    doc.enabled = false;
+    doc.nextRunAt = new Date("2020-01-01T00:00:00.000Z");
+    const enabled = await setScheduleEnabled("demo", user, "sched-1", true, model);
+    expect(enabled.enabled).toBe(true);
+    expect(new Date(enabled.nextRunAt).getTime()).toBeGreaterThan(Date.now() - 1000);
+    const removed = await deleteScheduleForUser("demo", user, "sched-1", model);
+    expect(removed).toEqual({ deleted: true, id: "sched-1" });
+    expect(doc.deleted).toBe(true);
+  });
+
+  test("re-enabling a passed daily slot does not fire immediately", async () => {
+    const doc = {
+      _id: "sched-1",
+      timezone: "Asia/Seoul",
+      schedule: { kind: "daily", time: "09:00" },
+      nextRunAt: new Date("2020-01-01T00:00:00.000Z"),
+      enabled: false,
+      save: async () => {},
+    };
+    const row = await setScheduleEnabled("demo", user, "sched-1", true, {
+      findOne: async () => doc,
+    });
+    const next = new Date(row.nextRunAt).getTime();
+    expect(next).toBeGreaterThan(Date.now());
+    expect(next - Date.now()).toBeLessThan(26 * 60 * 60 * 1000);
   });
 });

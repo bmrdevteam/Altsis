@@ -16,6 +16,7 @@ const runSchema = mongoose.Schema(
     summary: { type: String, default: "" },
     conversationId: { type: String, default: "" },
     reason: { type: String, default: "" },
+    toolNames: { type: [String], default: [] },
   },
   { _id: false }
 );
@@ -53,6 +54,7 @@ const alterScheduleSchema = mongoose.Schema(
       enum: ["settings", "agent"],
       default: "settings",
     },
+    proposalKey: { type: String, default: "" },
     claimUntil: Date,
     claimToken: { type: String, default: "" },
     runs: { type: [runSchema], default: [] },
@@ -62,6 +64,10 @@ const alterScheduleSchema = mongoose.Schema(
 
 alterScheduleSchema.index({ user: 1, enabled: 1 });
 alterScheduleSchema.index({ enabled: 1, nextRunAt: 1, claimUntil: 1 });
+alterScheduleSchema.index(
+  { user: 1, proposalKey: 1 },
+  { unique: true, partialFilterExpression: { proposalKey: { $gt: "" } } }
+);
 
 export const AlterSchedule = (dbName) => {
   return conn[dbName].model("AlterSchedule", alterScheduleSchema);

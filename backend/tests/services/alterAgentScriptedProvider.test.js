@@ -210,19 +210,21 @@ describe("alterAgentScriptedProvider", () => {
 
     const fence = await scriptedAgentGenerate({
       apiKey: SCRIPTED_AGENT_API_KEY,
-      systemInstruction: schedulePrompt,
+      systemInstruction: `${schedulePrompt}\n\`\`\`alter`,
       messages: [{ role: "user", content: message }],
+      tools,
     });
     expect(fence.text).toContain('"name":"manage_schedule"');
     expect(fence.text).not.toContain('"saved":true');
 
-    const readonlyRun = await scriptedAgentGenerate({
+    const mentionedOnly = await scriptedAgentGenerate({
       apiKey: SCRIPTED_AGENT_API_KEY,
-      systemInstruction: AGENT_PROMPT,
-      messages: [{ role: "user", content: message }],
-      tools,
+      systemInstruction: `${AGENT_PROMPT}\n- manage_schedule은 저장하지 않습니다.`,
+      messages: [{ role: "user", content: "매일 할 일 정리해 줘" }],
+      tools: [{ name: "get_my_todos", description: "할 일", parameters: { type: "object" } }],
     });
-    expect(readonlyRun.toolCalls[0].name).toBe("get_my_todos");
+    expect(mentionedOnly.toolCalls[0].name).toBe("get_my_todos");
+    expect(mentionedOnly.text).not.toContain("아직 저장되지 않았습니다");
   });
 
   test("dummy key never calls a provider for non-agent skills", async () => {

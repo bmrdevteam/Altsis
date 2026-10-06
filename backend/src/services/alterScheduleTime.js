@@ -4,6 +4,8 @@
  * in that timezone, matching Date#getUTCDay after the zone conversion.
  */
 
+import { createHash } from "crypto";
+
 export const DEFAULT_TIMEZONE = "Asia/Seoul";
 export const MIN_INTERVAL_MS = 60 * 60 * 1000;
 export const MAX_SCHEDULES_PER_USER = 5;
@@ -16,8 +18,12 @@ export const CLAIM_LEASE_MS = 10 * 60 * 1000;
 
 const WEEKDAY_SHORT = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
 const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
+/** Imperatives only. Bare nouns (미제출, 결재 대기, 채점할 게) stay readable. */
 const WRITE_INTENT =
-  /(제출|결재|승인|반려|채점|삭제|지워|수정해|고쳐\s*줘|등록해|보내\s*줘|\bsubmit\b|\bapprove\b|\bdelete\b|\bgrade\b)/i;
+  /(제출|채점|삭제|결재|승인|반려|수정|등록)\s*해|(제출|채점|삭제|결재|승인|반려|수정|등록)하|지워|보내|고쳐|\bsubmit\b|\bapprove\b|\bdelete\b|\bgrade\b/i;
+
+export const READ_ONLY_SCHEDULE_HINT =
+  "대신 조회만 하는 내용으로 제안하세요. 예: 매일 9시에 채점할 항목이 있는지 정리.";
 
 export const scheduleError = (status, message, code = "INVALID_SCHEDULE") => {
   const err = new Error(message);
@@ -189,7 +195,7 @@ export const assertReadOnlyPrompt = (prompt) => {
   if (WRITE_INTENT.test(text)) {
     throw scheduleError(
       400,
-      "예약으로 저장하는 내용은 조회와 안내만 가능합니다. 제출·결재·채점·삭제는 넣을 수 없습니다."
+      `예약으로 저장하는 내용은 조회와 안내만 가능합니다. ${READ_ONLY_SCHEDULE_HINT}`
     );
   }
   return text;
@@ -228,8 +234,37 @@ export const buildScheduleFields = (raw, from = new Date()) => {
     throw scheduleError(400, "다음 실행 시각이 미래여야 합니다.");
   }
   assertMinInterval(spec, from);
-  return { title, prompt, schedule, timezone, nextRunAt };
+  const proposalKey = scheduleIdentityKey({ title, prompt, schedule, timezone });
+  return { title, prompt, schedule, timezone, nextRunAt, proposalKey };
 };
+
+/** Same title, prompt, and slot confirm as one schedule. */
+export const scheduleIdentityKey = (fields) => {
+  const schedule = fields?.schedule || {};
+  const weekdays = Array.isArray(schedule.weekdays) ? [...schedule.weekdays] : [];
+  const onceAt = schedule.onceAt ? new Date(schedule.onceAt).toISOString() : "";
+  const payload = JSON.stringify({
+    title: String(fields?.title || "").trim(),
+    prompt: String(fields?.prompt || "").trim(),
+    timezone: fields?.timezone || DEFAULT_TIMEZONE,
+    kind: schedule.kind || "",
+    time: schedule.time || "",
+    weekdays,
+    onceAt: onceAt === "Invalid Date" ? "" : onceAt,
+  });
+  return createHash("sha256").update(payload).digest("hex");
+};
+
+export const stripMarkdown = (text) =>
+  String(text ?? "")
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/`([^`\n]*)`/g, "$1")
+    .replace(/!\[[^\]]*]\([^)]*\)/g, " ")
+    .replace(/\[([^\]]*)]\([^)]*\)/g, "$1")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/[*_~]+/g, "")
+    .replace(/^\s*[-*+]\s+/gm, "")
+    .replace(/^\s*\d+\.\s+/gm, "");
 
 export const claimQuery = (now) => ({
   enabled: true,
@@ -260,10 +295,16 @@ export const slotKey = (academyId, doc) => {
 };
 
 export const truncateSummary = (text, max = SUMMARY_MAX) => {
-  const value = String(text || "").replace(/\s+/g, " ").trim();
+  const value = stripMarkdown(text).replace(/\s+/g, " ").trim();
   if (value.length <= max) return value;
   return `${value.slice(0, max - 1)}…`;
 };
+
+const toolNamesOf = (outcome) =>
+  (Array.isArray(outcome?.toolNames) ? outcome.toolNames : [])
+    .map((name) => String(name || "").trim().slice(0, 64))
+    .filter((name) => name && name !== "_parse")
+    .slice(0, 8);
 
 const scheduleSpecOf = (doc) => ({
   ...(doc?.schedule || {}),
@@ -286,6 +327,7 @@ export const nextStateAfterRun = (doc, outcome, options = {}) => {
       summary,
       conversationId,
       reason: status === "ok" ? "" : summary,
+      toolNames: toolNamesOf(outcome),
     },
   ].slice(-MAX_RUN_HISTORY);
 

@@ -456,6 +456,7 @@ export const buildAgentSystemPrompt = ({
   protocol = "fence",
 }) => {
   const native = protocol === "native";
+  const hasScheduleTool = (tools || []).some((tool) => tool?.name === "manage_schedule");
   const lines = (tools || []).map((tool) => {
     const title = `${tool.name}${tool.label ? ` (${tool.label})` : ""}`;
     if (native) return `- ${title}`;
@@ -493,8 +494,12 @@ ${formatRule}
 - 링크는 답 아래에 붙습니다. URL이나 마크다운 링크를 쓰지 마세요.
 - source=board 는 보드 양식(미제출·결재·채점)입니다. 수업 평가가 아닙니다. 수업 평가는 source=course 이고 kind=evaluation 인 항목만입니다.
 - emptyCourses는 수강생 없는 수업 수입니다. 할 일이 아닙니다. 한 번만, 개수만, 한 문장으로 언급하세요.
-- manage_schedule은 저장하지 않습니다. prompt에는 조회와 안내만 넣으세요.
-- 도구는 최대 ${MAX_AGENT_TOOL_STEPS}번입니다. 민감정보(주민번호·연락처·주소)는 반복하지 마세요.`;
+- 메뉴·알림·기능은 search_product_guide 결과에 나온 것만 안내하세요.
+${
+  hasScheduleTool
+    ? "- manage_schedule은 저장하지 않습니다. prompt에는 조회와 안내만 넣으세요. 쓰기 요청은 거절하고, 매일 9시에 채점할 항목이 있는지 정리처럼 조회 예약을 대신 제안하세요.\n"
+    : ""
+}- 도구는 최대 ${MAX_AGENT_TOOL_STEPS}번입니다. 민감정보(주민번호·연락처·주소)는 반복하지 마세요.`;
 };
 
 const CAP_FALLBACK =
@@ -564,10 +569,18 @@ export const runAgentLoop = async ({
     };
   };
 
+  const fenceToolDefs = (tools || [])
+    .filter((tool) => tool?.name)
+    .map((tool) => ({
+      name: tool.name,
+      description: tool.description,
+      parameters: tool.parameters,
+    }));
   const callModel = async (forceFinal) => {
     const generated = await generate({
       systemInstruction: forceFinal ? `${systemBase}\n\n${FORCE_FINAL_NOTE}` : systemBase,
       messages,
+      tools: fenceToolDefs.length ? fenceToolDefs : undefined,
       forceFinal,
     });
     return String(generated?.text || "");

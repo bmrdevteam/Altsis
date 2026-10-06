@@ -50,6 +50,7 @@ export const executeClaimedSchedule = async ({
         status,
         summary,
         conversationId: extra.conversationId,
+        toolNames: extra.toolNames,
         at: extra.at || new Date(),
       },
       { preserveFutureSlot }
@@ -104,7 +105,7 @@ export const executeClaimedSchedule = async ({
         logger.error(`alter schedule notify failed ${doc._id}: ${err.message}`);
       }
     }
-    return finish("ok", summary, { conversationId });
+    return finish("ok", summary, { conversationId, toolNames: result.toolNames });
   } catch (err) {
     if (skipError(err)) {
       const reason = skipReasonForCode(err.code, err.message);

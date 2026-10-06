@@ -134,6 +134,6 @@ curl -s -b /tmp/altsis.cj -H 'Content-Type: application/json' \
   http://localhost:8080/api/ai/alter/schedules/$ID/run
 ```
 
-Expect `lastStatus` `ok` and a short `lastResultSummary`. The owner also gets an in-app notification whose click opens that Alter conversation. `NODE_ENV=development` so the scheduler uses `REDIS_URL`. Two backend processes claim the same due row with Mongo and a Redis lock, so the slot runs once. A student `POST` to the same path returns 403.
+Expect `lastStatus` `ok` and a short `lastResultSummary`. The owner also gets an in-app notification whose click opens that Alter conversation. `NODE_ENV=development` so the scheduler uses `REDIS_URL`. Two backend processes claim the same due row with Mongo and a Redis lock, so the slot runs once. A student `POST` to create, confirm, or run returns 403 when `season` is sent (the role is checked before the row is loaded). Another user's id is 404. An owner who is no longer a teacher can still disable or delete their own row.
 
 Weekdays are 0 (Sunday) through 6 in `Asia/Seoul`. Daily and weekly times are `HH:mm` in the schedule timezone.

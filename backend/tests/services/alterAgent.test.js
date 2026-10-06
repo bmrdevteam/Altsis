@@ -672,6 +672,8 @@ describe("course todo eval labels", () => {
     }
     expect(guide.description).toContain("방법");
     expect(prompt).toContain("search_product_guide도 같은 턴에 호출");
+    expect(prompt).toContain("메뉴·알림·기능은 search_product_guide 결과에 나온 것만");
+    expect(prompt).toContain("채점할 항목이 있는지 정리");
     expect(prompt).toContain("URL이나 마크다운 링크를 쓰지 마세요");
     expect(prompt).toContain("source=board");
     expect(prompt).toContain("수업 평가가 아닙니다");
@@ -689,6 +691,12 @@ describe("course todo eval labels", () => {
         parameters: tool.parameters,
       }))
     );
+    const readonlyPrompt = buildAgentSystemPrompt({
+      tools: createAgentTools({ includeScheduleTool: false }),
+      protocol: "native",
+    });
+    expect(readonlyPrompt).not.toContain("manage_schedule");
+    expect(readonlyPrompt).toContain("search_product_guide 결과에 나온 것만");
     // Trimmed prompt stayed under 1169. manage_schedule raised the schema
     // from 787; keep a little room so a large accidental addition still fails.
     expect(native.length).toBeLessThan(1169);

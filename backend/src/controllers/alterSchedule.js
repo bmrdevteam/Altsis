@@ -112,7 +112,8 @@ export const runNow = async (req, res) => {
     const doc = await beginManualRun(
       req.user.academyId,
       req.user,
-      req.params.id
+      req.params.id,
+      seasonOf(req)
     );
     const preserveFutureSlot =
       doc.nextRunAt && new Date(doc.nextRunAt).getTime() > Date.now();

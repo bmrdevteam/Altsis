@@ -11,6 +11,7 @@ import {
   MAX_SCHEDULES_PER_USER,
   buildScheduleFields,
   claimQuery,
+  computeNextRunAt,
   scheduleError,
 } from "./alterScheduleTime.js";
 
@@ -59,8 +60,8 @@ const publicSchedule = (doc) => {
   return row;
 };
 
-export const listSchedulesForUser = async (academyId, user, seasonId) => {
-  await assertScheduleTeacher(academyId, user, seasonId);
+/** Owners can list rows after they stop being teachers, so they can turn them off. */
+export const listSchedulesForUser = async (academyId, user) => {
   const rows = await AlterSchedule(academyId)
     .find({ user: user._id })
     .sort({ createdAt: -1 })
@@ -71,31 +72,78 @@ export const listSchedulesForUser = async (academyId, user, seasonId) => {
 
 const countOwned = async (Model, userId) => Model.countDocuments({ user: userId });
 
+const limitError = () =>
+  scheduleError(
+    400,
+    `예약은 계정당 ${MAX_SCHEDULES_PER_USER}개까지입니다.`,
+    "SCHEDULE_LIMIT"
+  );
+
+const duplicateError = () =>
+  scheduleError(409, "같은 예약이 이미 있습니다.", "SCHEDULE_DUPLICATE");
+
+const findByProposalKey = async (Model, userId, proposalKey) => {
+  if (!proposalKey || typeof Model.findOne !== "function") return null;
+  return Model.findOne({ user: userId, proposalKey });
+};
+
+/**
+ * Count-then-create loses parallel inserts. Insert, then keep the row only
+ * if it is still inside the oldest five for this user. Each request deletes
+ * only the document it just wrote.
+ */
 const insertSchedule = async (Model, user, fields, createdVia, season) => {
-  const owned = await countOwned(Model, user._id);
-  if (owned >= MAX_SCHEDULES_PER_USER) {
-    throw scheduleError(
-      400,
-      `예약은 계정당 ${MAX_SCHEDULES_PER_USER}개까지입니다.`,
-      "SCHEDULE_LIMIT"
-    );
+  const proposalKey = fields.proposalKey || "";
+  const existing = await findByProposalKey(Model, user._id, proposalKey);
+  if (existing) {
+    if (createdVia === "agent") return publicSchedule(existing);
+    throw duplicateError();
   }
-  const doc = await Model.create({
-    user: user._id,
-    userId: user.userId,
-    school: season.school || undefined,
-    season: season._id,
-    title: fields.title,
-    prompt: fields.prompt,
-    schedule: fields.schedule,
-    timezone: fields.timezone,
-    enabled: true,
-    nextRunAt: fields.nextRunAt,
-    lastStatus: "",
-    lastResultSummary: "",
-    createdVia,
-    runs: [],
-  });
+  if (typeof Model.countDocuments === "function") {
+    const owned = await countOwned(Model, user._id);
+    if (owned >= MAX_SCHEDULES_PER_USER) throw limitError();
+  }
+  let doc;
+  try {
+    doc = await Model.create({
+      user: user._id,
+      userId: user.userId,
+      school: season.school || undefined,
+      season: season._id,
+      title: fields.title,
+      prompt: fields.prompt,
+      schedule: fields.schedule,
+      timezone: fields.timezone,
+      enabled: true,
+      nextRunAt: fields.nextRunAt,
+      lastStatus: "",
+      lastResultSummary: "",
+      createdVia,
+      proposalKey,
+      runs: [],
+    });
+  } catch (err) {
+    if (err?.code === 11000 && proposalKey) {
+      const raced = await findByProposalKey(Model, user._id, proposalKey);
+      if (raced && createdVia === "agent") return publicSchedule(raced);
+      throw duplicateError();
+    }
+    throw err;
+  }
+  if (typeof Model.find === "function") {
+    const rows = await Model.find({ user: user._id })
+      .sort({ createdAt: 1, _id: 1 })
+      .select("_id")
+      .lean();
+    const index = rows.findIndex((row) => String(row._id) === String(doc._id));
+    if (index < 0 || index >= MAX_SCHEDULES_PER_USER) {
+      if (typeof doc.deleteOne === "function") await doc.deleteOne();
+      else if (typeof Model.deleteOne === "function") {
+        await Model.deleteOne({ _id: doc._id, user: user._id });
+      }
+      throw limitError();
+    }
+  }
   return publicSchedule(doc);
 };
 
@@ -103,12 +151,14 @@ export const createScheduleForUser = async (
   academyId,
   user,
   body,
-  createdVia = "settings"
+  createdVia = "settings",
+  deps = {}
 ) => {
   const seasonId = body?.season || body?.seasonId;
-  const { season } = await assertScheduleTeacher(academyId, user, seasonId);
+  const { season } = await assertScheduleTeacher(academyId, user, seasonId, deps);
   const fields = buildScheduleFields(body);
-  return insertSchedule(AlterSchedule(academyId), user, fields, createdVia, season);
+  const Model = deps.model || AlterSchedule(academyId);
+  return insertSchedule(Model, user, fields, createdVia, season);
 };
 
 export const findOwnedSchedule = async (academyId, user, id, model) => {
@@ -127,9 +177,8 @@ export const findOwnedSchedule = async (academyId, user, id, model) => {
   return doc;
 };
 
-export const updateScheduleForUser = async (academyId, user, id, body) => {
-  const doc = await findOwnedSchedule(academyId, user, id);
-  await assertScheduleTeacher(academyId, user, doc.season);
+export const updateScheduleForUser = async (academyId, user, id, body, model) => {
+  const doc = await findOwnedSchedule(academyId, user, id, model);
   const merged = {
     title: body?.title != null ? body.title : doc.title,
     prompt: body?.prompt != null ? body.prompt : doc.prompt,
@@ -142,23 +191,42 @@ export const updateScheduleForUser = async (academyId, user, id, body) => {
   doc.schedule = fields.schedule;
   doc.timezone = fields.timezone;
   doc.nextRunAt = fields.nextRunAt;
+  doc.proposalKey = fields.proposalKey;
   if (typeof body?.enabled === "boolean") doc.enabled = body.enabled;
-  await doc.save();
+  try {
+    await doc.save();
+  } catch (err) {
+    if (err?.code === 11000) throw duplicateError();
+    throw err;
+  }
   return publicSchedule(doc);
 };
 
-export const setScheduleEnabled = async (academyId, user, id, enabled) => {
-  const doc = await findOwnedSchedule(academyId, user, id);
-  await assertScheduleTeacher(academyId, user, doc.season);
-  doc.enabled = !!enabled;
-  await doc.save();
+export const setScheduleEnabled = async (academyId, user, id, enabled, model) => {
+  const doc = await findOwnedSchedule(academyId, user, id, model);
+  const on = !!enabled;
+  if (on) {
+    const spec = doc.schedule?.toObject ? doc.schedule.toObject() : { ...(doc.schedule || {}) };
+    const next = computeNextRunAt(
+      { ...spec, timezone: doc.timezone || "Asia/Seoul" },
+      new Date()
+    );
+    if (!next) {
+      throw scheduleError(400, "이미 지난 한 번 예약은 다시 켤 수 없습니다.");
+    }
+    doc.nextRunAt = next;
+  }
+  doc.enabled = on;
+  if (typeof doc.save === "function") await doc.save();
   return publicSchedule(doc);
 };
 
-export const deleteScheduleForUser = async (academyId, user, id) => {
-  const doc = await findOwnedSchedule(academyId, user, id);
-  await assertScheduleTeacher(academyId, user, doc.season);
-  await doc.deleteOne();
+export const deleteScheduleForUser = async (academyId, user, id, model) => {
+  const doc = await findOwnedSchedule(academyId, user, id, model);
+  if (typeof doc.deleteOne === "function") await doc.deleteOne();
+  else if (typeof model?.deleteOne === "function") {
+    await model.deleteOne({ _id: doc._id, user: user._id });
+  }
   return { deleted: true, id: String(doc._id) };
 };
 
@@ -231,9 +299,9 @@ export const listSchedulesForTool = async (serverCtx) => {
   };
 };
 
-export const beginManualRun = async (academyId, user, id) => {
-  const doc = await findOwnedSchedule(academyId, user, id);
-  await assertScheduleTeacher(academyId, user, doc.season);
+export const beginManualRun = async (academyId, user, id, seasonId, deps = {}) => {
+  await assertScheduleTeacher(academyId, user, seasonId, deps);
+  const doc = await findOwnedSchedule(academyId, user, id, deps.model);
   const now = new Date();
   const token = claimToken(now);
   const previous = await AlterSchedule(academyId).findOneAndUpdate(
