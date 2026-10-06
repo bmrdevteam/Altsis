@@ -130,6 +130,7 @@ const SKILL_LABEL: Record<TAlterSkillId, string> = {
   "form-draft": "양식",
   "assessment-grade": "채점",
   search: "검색",
+  agent: "에이전트",
 };
 
 const isDraftPrepSkill = (skill: TAlterSkillId) =>
@@ -835,6 +836,13 @@ const AlterPanel = ({ onClose }: Props) => {
   }, [gradeSelectedRowIds, gradeCandidateStudents]);
 
   const buildContext = (skill: TAlterSkillId) => {
+    if (skill === "agent") {
+      return {
+        pageType: pageContext?.pageType || "general",
+        label: pageContext?.label || "",
+        classTitle: pageContext?.classTitle || "",
+      };
+    }
     if (skill === "search") {
       return {
         pageType: pageContext?.pageType || "search",
@@ -1423,7 +1431,15 @@ const AlterPanel = ({ onClose }: Props) => {
           try {
             const data = JSON.parse(line.slice(6));
             if (eventType === "step") onStep(data.message || "");
-            else if (eventType === "error") {
+            else if (eventType === "tool") {
+              const label = data.label || data.name || "도구";
+              if (data.status === "running") onStep(`${label} 조회 중…`);
+              else if (data.status === "done") {
+                onStep(data.summary ? `${label}: ${data.summary}` : `${label} 완료`);
+              } else if (data.status === "error") {
+                onStep(data.summary ? `${label}: ${data.summary}` : `${label} 실패`);
+              }
+            } else if (eventType === "error") {
               errMsg =
                 MESSAGE.get(data.message) ||
                 data.message ||
@@ -1797,7 +1813,7 @@ const AlterPanel = ({ onClose }: Props) => {
     const inactivityTimeoutMs =
       skill === "form-response-draft" && sourceAttachments.length > 0
         ? 150_000
-        : skill === "search" || isDraftPrepSkill(skill)
+        : skill === "search" || skill === "agent" || isDraftPrepSkill(skill)
           ? 90_000
           : 60_000;
     let timeoutId = window.setTimeout(() => {
@@ -2869,6 +2885,7 @@ const AlterPanel = ({ onClose }: Props) => {
   };
   if (conversationId) pushSkillChip(selectedSkill);
   suggested.forEach(pushSkillChip);
+  pushSkillChip("agent");
   pushSkillChip("search");
   pushSkillChip("chat");
 
@@ -3822,6 +3839,8 @@ const AlterPanel = ({ onClose }: Props) => {
           placeholder={
             inSearchPrep
               ? "예: 이번 학기 미평가 학생 명단, 학년별 수강 학점 평균"
+              : selectedSkill === "agent"
+                ? "예: 오늘 내 할 일, 결재 화면은 어디서 보나요?"
               : inDocReviewPrep
               ? "예: 총평·구체성 위주, 낙인 표현이 있는지 봐 주세요 (비워도 점검 가능)"
               : inGradePrep

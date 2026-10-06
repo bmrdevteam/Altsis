@@ -34,7 +34,8 @@ export type TAlterSkillId =
   | "activity-draft"
   | "form-draft"
   | "assessment-grade"
-  | "search";
+  | "search"
+  | "agent";
 
 export type TAlterReviewDocument = {
   title: string;

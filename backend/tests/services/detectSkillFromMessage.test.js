@@ -1,6 +1,11 @@
 import { detectSkillFromMessage, SKILL_IDS } from "../../src/services/aiSkills.js";
 
 describe("detectSkillFromMessage", () => {
+  test("routes an explicit agent slash to agent before search phrases", () => {
+    expect(detectSkillFromMessage("/에이전트 오늘 할 일")).toBe(SKILL_IDS.AGENT);
+    expect(detectSkillFromMessage("/agent 명단 찾아 줘")).toBe(SKILL_IDS.AGENT);
+  });
+
   test("routes document review phrases to document-review", () => {
     expect(detectSkillFromMessage("문서를 지침에 맞게 점검해 주세요")).toBe(
       SKILL_IDS.DOCUMENT_REVIEW
