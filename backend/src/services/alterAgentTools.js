@@ -69,14 +69,43 @@ export const projectSchoolTodo = (item) =>
 
 /**
  * resolveEvalStatus codes are easy to misread ("없음" = no enrolled students).
- * Plain labels go to the model. Whether a course with no students should be
- * an evaluation todo at all is still an open product question.
+ * Plain labels go to the model. Courses with no students are not evaluation
+ * todos; get_my_todos reports them only as emptyCourses.
  */
 export const EVAL_STATUS_LABEL = {
   없음: "수강생 없음",
   대기: "평가 기간 전",
   평가중: "평가 입력 필요",
   완료: "평가 완료",
+};
+
+const EMPTY_COURSE_TITLE_CAP = 5;
+
+/** Same skip as the sidebar badge: no enrolled students means no evaluation todo. */
+export const isEmptyEnrollmentEval = (item) =>
+  item?.kind === "evaluation" && item?.evalStatus === "없음";
+
+/**
+ * Pull evaluation rows with no students out of the todo list.
+ * Duplicate syllabus ids count once. Titles are capped for the model.
+ */
+export const partitionCourseTodos = (items) => {
+  const todos = [];
+  const titles = [];
+  const seen = new Set();
+  for (const item of items || []) {
+    if (!isEmptyEnrollmentEval(item)) {
+      todos.push(item);
+      continue;
+    }
+    const id = String(item?.syllabusId || "").trim();
+    const title = clip(item?.syllabusTitle, 80);
+    const key = id || (title ? `title:${title}` : `untitled:${seen.size}`);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    if (title) titles.push(title);
+  }
+  return { todos, count: seen.size, titles: titles.slice(0, EMPTY_COURSE_TITLE_CAP) };
 };
 
 export const projectCourseTodo = (item) =>
@@ -129,7 +158,7 @@ export const createAgentTools = (deps = {}) => {
       name: "get_my_todos",
       label: "내 할 일",
       description:
-        "로그인한 사용자의 보드 할 일(결재·채점·미제출)과 수업 할 일(확인·평가)을 읽습니다.",
+        "로그인한 사용자의 보드 할 일(결재·채점·미제출)과 수업 할 일(확인·평가 입력)을 읽습니다. emptyCourses는 수강생이 없는 수업 참고이며 할 일이 아닙니다.",
       arguments: '{ "scope": "all" | "school" | "course", "limit"?: number }',
       async execute(serverCtx, rawArgs = {}) {
         const scope = normalizeTodoScope(rawArgs.scope);
@@ -151,9 +180,17 @@ export const createAgentTools = (deps = {}) => {
               : loadCourseTodos(academyId, school, user, seasonId || null),
           ]);
           const boardItems = (schoolResult?.items || []).map(projectSchoolTodo);
-          const courseItems = (courseResult?.items || []).map(projectCourseTodo);
+          const courseSplit = partitionCourseTodos(courseResult?.items || []);
+          const courseItems = courseSplit.todos.map(projectCourseTodo);
           const combined = [...boardItems, ...courseItems];
           const items = combined.slice(0, limit);
+          const emptyCourses = courseSplit.count
+            ? {
+                count: courseSplit.count,
+                titles: courseSplit.titles,
+                note: "수강생이 없어 평가 할 일이 아닙니다. 할 일 개수와 목록에 넣지 마세요.",
+              }
+            : undefined;
           return maskSensitiveObject({
             summary: todoSummary(boardItems.length, courseItems.length),
             scope,
@@ -161,6 +198,7 @@ export const createAgentTools = (deps = {}) => {
             courseCount: courseItems.length,
             truncated: combined.length > items.length,
             items,
+            emptyCourses,
           });
         } catch (err) {
           logger.error(`alter agent get_my_todos: ${err.message}`);

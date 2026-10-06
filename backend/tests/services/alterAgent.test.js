@@ -1,6 +1,7 @@
 import {
   MAX_AGENT_TOOL_STEPS,
   MAX_FORMAT_RETRIES,
+  buildAgentSystemPrompt,
   isPromiseOnlyReply,
   parseAgentAction,
   runAgentLoop,
@@ -499,5 +500,68 @@ describe("course todo eval labels", () => {
     expect(projectCourseTodo({ evalStatus: "평가중" }).evalStatus).toBe("평가 입력 필요");
     expect(projectCourseTodo({ evalStatus: "완료" }).evalStatus).toBe("평가 완료");
     expect(projectCourseTodo({ evalStatus: "기타" }).evalStatus).toBe("기타");
+  });
+
+  test("keeps courses with no students out of the todo list", async () => {
+    const [todos] = createAgentTools({
+      getSchoolTodosForUser: async () => ({
+        items: [{ kind: "unsubmitted", boardTitle: "교무", formTitle: "출석 점검" }],
+      }),
+      getCourseTodosForUser: async () => ({
+        items: [
+          { kind: "confirmPending", syllabusId: "sy-1", syllabusTitle: "문학 탐구" },
+          {
+            kind: "evaluation",
+            syllabusId: "sy-2",
+            syllabusTitle: "과학 실험",
+            evalStatus: "평가중",
+            missingEvalLabels: ["참여"],
+          },
+          {
+            kind: "evaluation",
+            syllabusId: "sy-empty",
+            syllabusTitle: "빈 세미나",
+            evalStatus: "없음",
+          },
+          {
+            kind: "evaluation",
+            syllabusId: "sy-empty",
+            syllabusTitle: "빈 세미나",
+            evalStatus: "없음",
+          },
+          { kind: "evaluation", syllabusId: "sy-3", syllabusTitle: "독서", evalStatus: "없음" },
+          { kind: "evaluation", syllabusId: "sy-4", syllabusTitle: "토론", evalStatus: "없음" },
+          { kind: "evaluation", syllabusId: "sy-5", syllabusTitle: "글쓰기", evalStatus: "없음" },
+          { kind: "evaluation", syllabusId: "sy-6", syllabusTitle: "미술", evalStatus: "없음" },
+          { kind: "evaluation", syllabusId: "sy-7", syllabusTitle: "음악", evalStatus: "없음" },
+        ],
+      }),
+    });
+
+    const result = await todos.execute(serverCtx, { scope: "all" });
+    expect(result.summary).toBe("보드 1건 · 수업 2건");
+    expect(result.boardCount).toBe(1);
+    expect(result.courseCount).toBe(2);
+    expect(result.items.map((item) => item.form || item.classTitle)).toEqual([
+      "출석 점검",
+      "문학 탐구",
+      "과학 실험",
+    ]);
+    expect(JSON.stringify(result.items)).not.toContain("빈 세미나");
+    expect(JSON.stringify(result.items)).not.toContain("수강생 없음");
+    expect(result.emptyCourses).toEqual({
+      count: 6,
+      titles: ["빈 세미나", "독서", "토론", "글쓰기", "미술"],
+      note: "수강생이 없어 평가 할 일이 아닙니다. 할 일 개수와 목록에 넣지 마세요.",
+    });
+    expect(result.emptyCourses.titles).not.toContain("음악");
+  });
+
+  test("tells the model emptyCourses is reference, not a todo", () => {
+    const prompt = buildAgentSystemPrompt({
+      tools: createAgentTools(),
+    });
+    expect(prompt).toContain("emptyCourses는 수강생이 없는 수업 참고");
+    expect(prompt).toContain("할 일이 아니므로");
   });
 });
