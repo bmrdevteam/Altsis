@@ -95,7 +95,7 @@ export const executeAgentSkill = async ({
   }
 
   const native = providerSupportsNativeTools(provider);
-  const generate = async ({ systemInstruction, messages, tools, forceFinal }) => {
+  const generate = async ({ systemInstruction, messages, tools, toolChoice, forceFinal }) => {
     try {
       const result = await generateText({
         provider,
@@ -105,7 +105,8 @@ export const executeAgentSkill = async ({
         messages,
         temperature: profile.temperature,
         maxTokens: profile.maxTokens,
-        tools: forceFinal ? undefined : tools,
+        tools,
+        toolChoice: toolChoice || (forceFinal ? "none" : undefined),
       });
       tokenUsage = mergeTokenUsage(tokenUsage, result.tokenUsage);
       return {

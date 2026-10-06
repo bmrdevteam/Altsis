@@ -356,7 +356,8 @@ export const openaiToolCallsFromMessage = (message) =>
 /**
  * GPT-5 / o-series용 Chat Completions 본문.
  * chat 전용 모델(id에 chat)에는 reasoning_effort를 넣지 않는다.
- * tools가 있으면 Chat Completions tools + tool_choice auto.
+ * tools가 있으면 Chat Completions tools + tool_choice.
+ * toolChoice "none"은 도구 정의를 유지한 채 호출을 막는다.
  */
 export const openaiBuildBody = ({
   model,
@@ -365,6 +366,7 @@ export const openaiBuildBody = ({
   temperature,
   maxTokens,
   tools,
+  toolChoice,
 }) => {
   const body = {
     model,
@@ -377,7 +379,7 @@ export const openaiBuildBody = ({
   };
   if (Array.isArray(tools) && tools.length) {
     body.tools = toOpenAITools(tools);
-    body.tool_choice = "auto";
+    body.tool_choice = toolChoice === "none" ? "none" : "auto";
   }
   const reasoning = openaiUsesCompletionTokens(model);
   if (!reasoning && typeof temperature === "number") {
@@ -485,6 +487,7 @@ const openaiGenerate = async ({
   temperature,
   maxTokens,
   tools,
+  toolChoice,
 }) => {
   const response = await openaiPostCompletions(
     apiKey,
@@ -495,6 +498,7 @@ const openaiGenerate = async ({
       temperature,
       maxTokens,
       tools,
+      toolChoice,
     })
   );
 
@@ -667,13 +671,17 @@ export const anthropicBuildBody = ({
   temperature,
   maxTokens,
   tools,
+  toolChoice,
 }) => ({
   model,
   max_tokens: typeof maxTokens === "number" ? maxTokens : DEFAULT_MAX_TOKENS,
   ...(typeof temperature === "number" ? { temperature } : {}),
   ...(systemInstruction ? { system: systemInstruction } : {}),
   ...(Array.isArray(tools) && tools.length
-    ? { tools: toAnthropicTools(tools), tool_choice: { type: "auto" } }
+    ? {
+        tools: toAnthropicTools(tools),
+        tool_choice: toolChoice === "none" ? { type: "none" } : { type: "auto" },
+      }
     : {}),
   messages: anthropicMergeMessages(messages),
 });
@@ -698,6 +706,7 @@ const anthropicGenerate = async ({
   temperature,
   maxTokens,
   tools,
+  toolChoice,
 }) => {
   const response = await fetchWithTimeout(
     "https://api.anthropic.com/v1/messages",
@@ -712,6 +721,7 @@ const anthropicGenerate = async ({
           temperature,
           maxTokens,
           tools,
+          toolChoice,
         })
       ),
     }
@@ -1055,12 +1065,14 @@ export const generateText = async ({
   temperature,
   maxTokens,
   tools,
+  toolChoice,
 }) => {
   const scripted = await scriptedAgentGenerate({
     apiKey,
     systemInstruction,
     messages,
     tools,
+    toolChoice,
   });
   if (scripted) return scripted;
   const resolvedProvider = resolveProvider(provider);
@@ -1073,6 +1085,7 @@ export const generateText = async ({
     temperature,
     maxTokens,
     tools: nativeTools,
+    toolChoice: nativeTools ? toolChoice : undefined,
   });
 };
 

@@ -158,7 +158,7 @@ export const createAgentTools = (deps = {}) => {
       name: "get_my_todos",
       label: "내 할 일",
       description:
-        "로그인한 사용자의 보드 할 일(결재·채점·미제출)과 수업 할 일(확인·평가 입력)을 읽습니다. emptyCourses는 수강생이 없는 수업 참고이며 할 일이 아닙니다.",
+        "로그인한 사용자의 보드 할 일(결재·채점·미제출)과 수업 할 일(확인·평가 입력)을 읽습니다. 메뉴 위치나 입력 방법(어디서·어떻게)은 알려주지 않습니다. 그 질문은 search_product_guide를 쓰세요. emptyCourses는 수강생이 없는 수업 참고이며 할 일이 아닙니다.",
       arguments: '{ "scope": "all" | "school" | "course", "limit"?: number }',
       parameters: {
         type: "object",
@@ -227,7 +227,7 @@ export const createAgentTools = (deps = {}) => {
       name: "search_product_guide",
       label: "제품 안내",
       description:
-        "Altsis 사용 안내 문서에서 메뉴·기능 설명을 찾습니다. 학사 데이터가 아니라 제품 도움말입니다.",
+        "Altsis에서 기능을 어디서·어떻게 쓰는지(메뉴, 입력 화면, 방법)를 안내 문서에서 찾습니다. 할 일과 함께 어디서/어떻게/방법을 물으면 같은 턴에 이 도구도 호출하세요. 학사 데이터가 아니라 제품 도움말입니다.",
       arguments: '{ "query": string }',
       parameters: {
         type: "object",

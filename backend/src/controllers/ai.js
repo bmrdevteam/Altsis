@@ -498,6 +498,7 @@ export const runAlter = async (req, res) => {
         message: result.text,
         links: result.links || [],
         conversationId: savedConversationId,
+        ...(result.tokenUsage ? { tokenUsage: result.tokenUsage } : {}),
       });
       return res.end();
     }

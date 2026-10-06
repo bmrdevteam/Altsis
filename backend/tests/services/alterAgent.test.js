@@ -6,6 +6,7 @@ import {
   parseAgentAction,
   runAgentLoop,
   sanitizeToolArguments,
+  stripUnmatchedLinks,
   wrapToolResult,
 } from "../../src/services/alterAgentProtocol.js";
 import { createAgentTools, projectCourseTodo } from "../../src/services/alterAgentTools.js";
@@ -570,6 +571,48 @@ describe("course todo eval labels", () => {
     expect(native).toContain("한 번에 여러 도구를 호출할 수 있습니다");
     expect(native).not.toContain("```alter");
   });
+
+  test("tells the model to search the guide when the question also asks how or where", () => {
+    const tools = createAgentTools();
+    const guide = tools.find((tool) => tool.name === "search_product_guide");
+    const todos = tools.find((tool) => tool.name === "get_my_todos");
+    const prompt = buildAgentSystemPrompt({ tools, protocol: "native" });
+    const fence = buildAgentSystemPrompt({ tools, protocol: "fence" });
+    for (const text of [prompt, fence, guide.description, todos.description]) {
+      expect(text).toMatch(/어디서/);
+      expect(text).toMatch(/어떻게/);
+    }
+    expect(guide.description).toContain("방법");
+    expect(prompt).toContain("search_product_guide도 같은 턴에 호출");
+    expect(prompt).toContain("URL이나 마크다운 링크를 쓰지 마세요");
+    expect(fence).toContain("search_product_guide도 같은 턴에 호출");
+  });
+});
+
+describe("stripUnmatchedLinks", () => {
+  const links = [
+    { kind: "guide", title: "안내: 평가", path: "/guide?doc=user-guide%2Fevaluation" },
+  ];
+
+  test("drops fabricated markdown links and bare URLs", () => {
+    const text = stripUnmatchedLinks(
+      "수업 화면에서 입력합니다. [평가 안내 문서](https://your-link-to-evaluation-guide) 참고 https://evil.example/phish",
+      links
+    );
+    expect(text).toBe("수업 화면에서 입력합니다. 평가 안내 문서 참고");
+    expect(text).not.toContain("http");
+    expect(text).not.toContain("](");
+  });
+
+  test("keeps a link whose target is a returned path", () => {
+    const kept = "[평가](/guide?doc=user-guide%2Fevaluation)";
+    const text = stripUnmatchedLinks(
+      `입력은 수업 화면입니다. ${kept} https://next.altsis.org/guide?doc=user-guide%2Fevaluation`,
+      links
+    );
+    expect(text).toContain(kept);
+    expect(text).toContain("https://next.altsis.org/guide?doc=user-guide%2Fevaluation");
+  });
 });
 
 describe("native tool loop", () => {
@@ -658,13 +701,15 @@ describe("native tool loop", () => {
       serverCtx,
       userMessage: "할 일",
       tools: [todoTool],
-      generate: async ({ forceFinal, messages }) => {
+      generate: async ({ forceFinal, messages, tools, toolChoice }) => {
         calls += 1;
         if (forceFinal) {
           const skipped = messages.filter(
             (row) => row.role === "tool" && String(row.content).includes("한도에 도달")
           );
           expect(skipped).toHaveLength(1);
+          expect(toolChoice).toBe("none");
+          expect(tools.map((tool) => tool.name)).toEqual(["get_my_todos"]);
           return { text: "세 건까지 확인했습니다.", toolCalls: [] };
         }
         return {
@@ -681,5 +726,63 @@ describe("native tool loop", () => {
     expect(result.capped).toBe(true);
     expect(result.text).toBe("세 건까지 확인했습니다.");
     expect(calls).toBe(2);
+  });
+
+  test("re-prompts a wait-only native reply without mentioning alter fences", async () => {
+    let calls = 0;
+    const result = await runAgentLoop({
+      protocol: "native",
+      serverCtx,
+      userMessage: "오늘 할 일",
+      tools: [todoTool],
+      generate: async ({ messages, toolChoice }) => {
+        calls += 1;
+        if (calls === 1) {
+          expect(toolChoice).toBe("auto");
+          return { text: "확인해 보겠습니다", toolCalls: [] };
+        }
+        const retry = messages.map((row) => String(row.content || "")).join("\n");
+        expect(retry).toContain(
+          "도구가 필요하면 제공된 도구를 호출하고, 아니면 한국어 문장으로 답하세요."
+        );
+        expect(retry).not.toContain("펜스 하나만");
+        expect(retry).not.toContain("```");
+        expect(toolChoice).toBe("auto");
+        return { text: "출석 점검이 남아 있습니다.", toolCalls: [] };
+      },
+    });
+    expect(calls).toBe(2);
+    expect(result.toolSteps).toBe(0);
+    expect(result.text).toBe("출석 점검이 남아 있습니다.");
+  });
+
+  test("strips a fabricated guide link from the final answer", async () => {
+    let calls = 0;
+    const result = await runAgentLoop({
+      protocol: "native",
+      serverCtx,
+      userMessage: "평가할 수업이 뭐고, 어디서 입력해?",
+      tools: [todoTool, guideTool],
+      generate: async () => {
+        calls += 1;
+        if (calls === 1) {
+          return {
+            text: "",
+            toolCalls: [
+              { id: "call_guide", name: "search_product_guide", arguments: { query: "평가 입력" } },
+            ],
+          };
+        }
+        return {
+          text: "수업 화면에서 입력합니다. [평가 안내 문서](https://your-link-to-evaluation-guide)",
+          toolCalls: [],
+        };
+      },
+    });
+    expect(result.text).toBe("수업 화면에서 입력합니다. 평가 안내 문서");
+    expect(result.text).not.toContain("your-link");
+    expect(result.links).toEqual([
+      { kind: "guide", title: "안내: 평가", path: "/guide?doc=user-guide%2Fevaluation" },
+    ]);
   });
 });

@@ -60,7 +60,7 @@ const sawToolResult = (messages) =>
  * Fence path (no tools): ```alter get_my_todos, then a fenced final answer.
  * Native path (tools passed): the same turn as OpenAI/Anthropic tool_calls,
  * then a plain-text final answer.
- * @param {{ apiKey?: string, systemInstruction?: string, messages?: object[], tools?: object[] }} params
+ * @param {{ apiKey?: string, systemInstruction?: string, messages?: object[], tools?: object[], toolChoice?: string }} params
  * @returns {Promise<{ text: string, toolCalls?: object[], tokenUsage: object } | null>}
  */
 export const scriptedAgentGenerate = async ({
@@ -68,6 +68,7 @@ export const scriptedAgentGenerate = async ({
   systemInstruction,
   messages,
   tools,
+  toolChoice,
 } = {}) => {
   if (!isAlterAgentScriptedEnabled(apiKey)) return null;
   if (!isAgentPrompt(systemInstruction)) return null;
@@ -79,7 +80,7 @@ export const scriptedAgentGenerate = async ({
     await new Promise((resolve) => setTimeout(resolve, wait));
   }
   if (native) {
-    if (!sawResult) {
+    if (!sawResult && toolChoice !== "none") {
       return {
         text: "",
         toolCalls: [

@@ -226,6 +226,98 @@ describe("native tool calling", () => {
     expect(body.tools).toBeUndefined();
   });
 
+  test("a forced final keeps tools and sets tool_choice none", async () => {
+    const history = [
+      { role: "user", content: "평가할 수업이 뭐고, 어디서 입력해?" },
+      {
+        role: "assistant",
+        content: "",
+        toolCalls: [
+          { id: "call_todos", name: "get_my_todos", arguments: { scope: "course" } },
+          { id: "call_guide", name: "search_product_guide", arguments: { query: "평가 입력" } },
+        ],
+      },
+      {
+        role: "tool",
+        toolCallId: "call_todos",
+        name: "get_my_todos",
+        content: "<tool_result>todos</tool_result>",
+      },
+      {
+        role: "tool",
+        toolCallId: "call_guide",
+        name: "search_product_guide",
+        content: "<tool_result>guide</tool_result>",
+      },
+    ];
+
+    let openaiBody;
+    global.fetch = jest.fn(async (_url, options) => {
+      openaiBody = JSON.parse(options.body);
+      return jsonResponse({
+        choices: [{ message: { role: "assistant", content: "수업 화면에서 입력합니다." } }],
+        usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+      });
+    });
+    await generateText({
+      provider: "openai",
+      apiKey: "sk-test",
+      model: "gpt-4o-mini",
+      messages: history,
+      tools: TOOLS,
+      toolChoice: "none",
+    });
+    expect(openaiBody.tools.map((tool) => tool.function.name)).toEqual([
+      "get_my_todos",
+      "search_product_guide",
+    ]);
+    expect(openaiBody.tool_choice).toBe("none");
+    expect(openaiBody.messages.some((message) => message.role === "tool")).toBe(true);
+
+    let anthropicBody;
+    global.fetch = jest.fn(async (_url, options) => {
+      anthropicBody = JSON.parse(options.body);
+      return jsonResponse({
+        content: [{ type: "text", text: "수업 화면에서 입력합니다." }],
+        usage: { input_tokens: 1, output_tokens: 1 },
+      });
+    });
+    await generateText({
+      provider: "anthropic",
+      apiKey: "sk-ant-test",
+      model: "claude-sonnet-4-5",
+      messages: history.map((row) =>
+        row.toolCallId === "call_todos"
+          ? { ...row, toolCallId: "toolu_todos" }
+          : row.toolCallId === "call_guide"
+            ? { ...row, toolCallId: "toolu_guide" }
+            : row.role === "assistant"
+              ? {
+                  ...row,
+                  toolCalls: row.toolCalls.map((call) => ({
+                    ...call,
+                    id: call.name === "get_my_todos" ? "toolu_todos" : "toolu_guide",
+                  })),
+                }
+              : row
+      ),
+      tools: TOOLS,
+      toolChoice: "none",
+    });
+    expect(anthropicBody.tools.map((tool) => tool.name)).toEqual([
+      "get_my_todos",
+      "search_product_guide",
+    ]);
+    expect(anthropicBody.tool_choice).toEqual({ type: "none" });
+    const toolResult = anthropicBody.messages.find(
+      (message) =>
+        message.role === "user" &&
+        Array.isArray(message.content) &&
+        message.content.some((block) => block.type === "tool_result")
+    );
+    expect(toolResult.content.map((block) => block.tool_use_id)).toEqual(["toolu_todos", "toolu_guide"]);
+  });
+
   test("Gemini ignores tools and stays on the text API", async () => {
     let body;
     global.fetch = jest.fn(async (_url, options) => {

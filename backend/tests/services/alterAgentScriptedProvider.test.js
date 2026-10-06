@@ -122,5 +122,15 @@ describe("alterAgentScriptedProvider", () => {
     expect(second.toolCalls).toEqual([]);
     expect(second.text).toBe(SCRIPTED_AGENT_FINAL_TEXT);
     expect(second.text).not.toContain("```");
+
+    const forced = await scriptedAgentGenerate({
+      apiKey: SCRIPTED_AGENT_API_KEY,
+      systemInstruction: AGENT_PROMPT,
+      messages: [{ role: "user", content: "오늘 할 일" }],
+      tools,
+      toolChoice: "none",
+    });
+    expect(forced.toolCalls).toEqual([]);
+    expect(forced.text).toBe(SCRIPTED_AGENT_FINAL_TEXT);
   });
 });
