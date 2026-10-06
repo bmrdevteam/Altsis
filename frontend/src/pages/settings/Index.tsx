@@ -11,12 +11,14 @@ import NotificationSettings from "./tab/NotificationSettings";
 import SchoolSettings from "./tab/SchoolSettings";
 import ThemeSettings from "./tab/ThemeSettings";
 import AppInstallPage from "pages/app/Index";
+import RoutineSettings from "./tab/RoutineSettings";
 
 const sections = [
   { key: "user", label: "사용자 정보", icon: "profile" },
   { key: "social", label: "소셜 로그인", icon: "google" },
   { key: "security", label: "보안", icon: "gear" },
   { key: "notification", label: "알림", icon: "notification" },
+  { key: "routine", label: "예약 실행", icon: "notification" },
   { key: "school", label: "등록된 학교", icon: "school" },
   { key: "theme", label: "테마", icon: "grid" },
   { key: "app", label: "앱 설치", icon: "addToHome" },
@@ -27,6 +29,7 @@ const sectionComponents: Record<SettingsTab, JSX.Element> = {
   social: <SocialLoginSettings />,
   security: <SecuritySettings />,
   notification: <NotificationSettings />,
+  routine: <RoutineSettings />,
   school: <SchoolSettings />,
   theme: <ThemeSettings />,
   app: <AppInstallPage />,

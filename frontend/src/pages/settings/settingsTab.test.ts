@@ -3,6 +3,7 @@ import { parseSettingsTab } from "./settingsTab";
 describe("parseSettingsTab", () => {
   test("accepts known tabs", () => {
     expect(parseSettingsTab("notification")).toBe("notification");
+    expect(parseSettingsTab("routine")).toBe("routine");
     expect(parseSettingsTab("theme")).toBe("theme");
     expect(parseSettingsTab("app")).toBe("app");
   });

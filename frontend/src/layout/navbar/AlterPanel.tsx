@@ -67,6 +67,7 @@ import {
 import type { TSearchSeasonScope } from "./alterUi/types";
 import { ALTER_CHAT_SNAPSHOT_PROFILES } from "utils/alterChatSnapshot";
 import style from "./Alter.module.scss";
+import { describeAlterSchedule } from "utils/alterScheduleLabel";
 
 /** 기본 스냅샷 한도(50)를 넘길 때만 「데이터 확대」뱃지를 노출 */
 const DATA_EXPAND_BADGE_MIN_TOTAL =
@@ -113,6 +114,22 @@ type ChatMessage = {
   draft?: TAlterDraftResult | null;
   review?: TAlterDocumentReviewResult | null;
   links?: TAlterGuideLink[];
+  scheduleProposal?: {
+    saved?: boolean;
+    action: "create" | "delete";
+    title?: string;
+    prompt?: string;
+    scheduleId?: string;
+    timezone?: string;
+    schedule?: {
+      kind?: string;
+      time?: string;
+      weekdays?: number[];
+      onceAt?: string;
+    };
+  } | null;
+  scheduleSaved?: boolean;
+  scheduleDismissed?: boolean;
   createdAt?: string;
   /** 전송 직후 말풍선에 바로 보이는 첨부(미리보기) */
   attachments?: TAlterAttachment[];
@@ -245,6 +262,8 @@ const AlterPanel = ({ onClose }: Props) => {
     toggleFullscreen,
     setIsWorking: setAlterWorking,
     setHasBackgroundResult,
+    pendingConversationId,
+    clearPendingConversation,
   } = useAlter();
 
   const suggested = useMemo(
@@ -1233,6 +1252,50 @@ const AlterPanel = ({ onClose }: Props) => {
     }
   };
 
+  useEffect(() => {
+    if (!isOpen || !pendingConversationId) return;
+    const id = pendingConversationId;
+    clearPendingConversation();
+    void openConversation(id);
+  }, [clearPendingConversation, isOpen, pendingConversationId]);
+
+  const confirmSchedule = async (
+    msgId: string,
+    proposal: NonNullable<ChatMessage["scheduleProposal"]>
+  ) => {
+    setError("");
+    try {
+      const res = await fetch(`${alterApiBase()}/alter/schedules/confirm`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          season: currentSeason?._id,
+          proposal,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || "예약을 저장하지 못했습니다.");
+      }
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === msgId ? { ...msg, scheduleSaved: true } : msg
+        )
+      );
+    } catch (err: any) {
+      setError(err.message || "예약을 저장하지 못했습니다.");
+    }
+  };
+
+  const dismissSchedule = (msgId: string) => {
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg.id === msgId ? { ...msg, scheduleDismissed: true } : msg
+      )
+    );
+  };
+
   const clearHistorySelection = useCallback(() => {
     setSelectedHistoryIds(new Set());
   }, []);
@@ -1400,6 +1463,7 @@ const AlterPanel = ({ onClose }: Props) => {
     skill?: string;
     conversationId?: string | null;
     links?: TAlterGuideLink[];
+    scheduleProposal?: ChatMessage["scheduleProposal"];
   }> => {
     if (!response.ok || !response.body) {
       throw new Error("AI 요청에 실패했습니다.");
@@ -1414,6 +1478,7 @@ const AlterPanel = ({ onClose }: Props) => {
       skill?: string;
       conversationId?: string | null;
       links?: TAlterGuideLink[];
+      scheduleProposal?: ChatMessage["scheduleProposal"];
     } = {};
     let errMsg = "";
 
@@ -1455,6 +1520,7 @@ const AlterPanel = ({ onClose }: Props) => {
                 skill: data.skill,
                 conversationId: data.conversationId || null,
                 links: data.links || [],
+                scheduleProposal: data.scheduleProposal || null,
               };
             }
           } catch {
@@ -1888,6 +1954,7 @@ const AlterPanel = ({ onClose }: Props) => {
             draft: result.draft,
             review: result.review || null,
             links: result.links,
+            scheduleProposal: result.scheduleProposal,
             createdAt: new Date().toISOString(),
           },
         ]);
@@ -1914,6 +1981,7 @@ const AlterPanel = ({ onClose }: Props) => {
             draft: data.draft,
             review: data.review || null,
             links: data.links,
+            scheduleProposal: data.scheduleProposal || null,
             createdAt: new Date().toISOString(),
           },
         ]);
@@ -3568,6 +3636,52 @@ const AlterPanel = ({ onClose }: Props) => {
               pageContext={pageContext}
               onApply={applyDraft}
             />
+            {msg.role === "assistant" &&
+            msg.scheduleProposal &&
+            !msg.scheduleDismissed ? (
+              <div className={style.scheduleCard}>
+                <div className={style.scheduleCardTitle}>
+                  {msg.scheduleProposal.action === "delete"
+                    ? "예약 삭제"
+                    : msg.scheduleProposal.title || "예약"}
+                </div>
+                {msg.scheduleProposal.action === "create" ? (
+                  <>
+                    <div>
+                      {describeAlterSchedule(
+                        msg.scheduleProposal.schedule,
+                        msg.scheduleProposal.timezone
+                      )}
+                    </div>
+                    <div className={style.scheduleCardPrompt}>
+                      {msg.scheduleProposal.prompt}
+                    </div>
+                  </>
+                ) : (
+                  <div>이 예약을 삭제합니다.</div>
+                )}
+                {msg.scheduleSaved ? (
+                  <div>저장했습니다.</div>
+                ) : (
+                  <div className={style.scheduleCardActions}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void confirmSchedule(msg.id, msg.scheduleProposal!)
+                      }
+                    >
+                      저장
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => dismissSchedule(msg.id)}
+                    >
+                      취소
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : null}
             {msg.role === "assistant" ? (
               <AlterGuideLinks links={msg.links} />
             ) : null}

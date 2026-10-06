@@ -3,6 +3,7 @@ import {
   SCRIPTED_AGENT_API_KEY,
   SCRIPTED_AGENT_FINAL_TEXT,
   SCRIPTED_DEMO_ONLY_AGENT_MESSAGE,
+  SCRIPTED_SCHEDULE_FINAL_TEXT,
   isAlterAgentScriptedEnabled,
   scriptedAgentGenerate,
 } from "../../src/services/alterAgentScriptedProvider.js";
@@ -157,6 +158,73 @@ describe("alterAgentScriptedProvider", () => {
     });
     expect(forced.toolCalls).toEqual([]);
     expect(forced.text).toBe(SCRIPTED_AGENT_FINAL_TEXT);
+  });
+
+  test("a schedule request proposes manage_schedule and does not save", async () => {
+    process.env.NODE_ENV = "development";
+    const tools = [
+      {
+        name: "manage_schedule",
+        description: "예약",
+        parameters: { type: "object" },
+      },
+    ];
+    const message = "매주 월요일 아침 8시에 이번 주 할 일 정리해 줘";
+    const schedulePrompt = `${AGENT_PROMPT}\n- manage_schedule (예약)`;
+    const first = await scriptedAgentGenerate({
+      apiKey: SCRIPTED_AGENT_API_KEY,
+      systemInstruction: schedulePrompt,
+      messages: [{ role: "user", content: message }],
+      tools,
+    });
+    expect(first.toolCalls).toEqual([
+      {
+        id: "scripted-call-schedule",
+        name: "manage_schedule",
+        arguments: {
+          action: "propose_create",
+          title: "매주 할 일",
+          prompt: "이번 주 할 일을 조회하고, 입력 위치가 필요하면 제품 안내를 찾아 정리해 줘",
+          schedule: { kind: "weekly", time: "08:00", weekdays: [1] },
+        },
+      },
+    ]);
+    expect(JSON.stringify(first)).not.toContain('"saved":true');
+
+    const second = await scriptedAgentGenerate({
+      apiKey: SCRIPTED_AGENT_API_KEY,
+      systemInstruction: schedulePrompt,
+      tools,
+      messages: [
+        { role: "user", content: message },
+        {
+          role: "tool",
+          toolCallId: "scripted-call-schedule",
+          name: "manage_schedule",
+          content: "<tool_result>",
+        },
+      ],
+    });
+    expect(second.toolCalls).toEqual([]);
+    expect(second.text).toBe(SCRIPTED_SCHEDULE_FINAL_TEXT);
+
+    const fence = await scriptedAgentGenerate({
+      apiKey: SCRIPTED_AGENT_API_KEY,
+      systemInstruction: `${schedulePrompt}\n\`\`\`alter`,
+      messages: [{ role: "user", content: message }],
+      tools,
+    });
+    expect(fence.text).toContain('"name":"manage_schedule"');
+    expect(fence.text).not.toContain('"saved":true');
+
+    const mentionedOnly = await scriptedAgentGenerate({
+      apiKey: SCRIPTED_AGENT_API_KEY,
+      systemInstruction: `${AGENT_PROMPT}\n- manage_schedule은 저장하지 않습니다.`,
+      messages: [{ role: "user", content: "매일 할 일 정리해 줘" }],
+      tools: [{ name: "get_my_todos", description: "할 일", parameters: { type: "object" } }],
+    });
+    expect(mentionedOnly.toolCalls[0].name).toBe("get_my_todos");
+    expect(mentionedOnly.text).not.toContain("아직 저장되지 않았습니다");
   });
 
   test("dummy key never calls a provider for non-agent skills", async () => {

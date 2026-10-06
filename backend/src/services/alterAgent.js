@@ -60,6 +60,7 @@ export const executeAgentSkill = async ({
   history = [],
   guidelines = "",
   onEvent,
+  allowScheduleTool = true,
 }) => {
   const profile = FEATURE_PROFILES.agent;
   const provider = resolveProvider(academy?.aiProvider);
@@ -130,7 +131,7 @@ export const executeAgentSkill = async ({
 
   try {
     const result = await runAgentLoop({
-      tools: createAgentTools(),
+      tools: createAgentTools({ includeScheduleTool: allowScheduleTool !== false }),
       serverCtx,
       userMessage: userQuestion,
       history: recent,
@@ -151,11 +152,16 @@ export const executeAgentSkill = async ({
       tokenUsage,
     });
 
+    const toolNames = (result.steps || [])
+      .filter((step) => step?.status === "done" && step.name && step.name !== "_parse")
+      .map((step) => String(step.name));
     return {
       text: result.text || "확인한 내용이 없습니다.",
       tokenUsage,
       toolSteps: result.toolSteps,
+      toolNames,
       links: result.links || [],
+      scheduleProposal: result.scheduleProposal || null,
     };
   } catch (err) {
     if (err?.code && err.status) throw err;

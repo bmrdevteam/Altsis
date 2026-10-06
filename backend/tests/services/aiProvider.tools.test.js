@@ -77,10 +77,15 @@ describe("native tool calling", () => {
     });
 
     expect(body.tool_choice).toBe("auto");
-    expect(body.tools.map((tool) => tool.type)).toEqual(["function", "function"]);
+    expect(body.tools.map((tool) => tool.type)).toEqual([
+      "function",
+      "function",
+      "function",
+    ]);
     expect(body.tools.map((tool) => tool.function.name)).toEqual([
       "get_my_todos",
       "search_product_guide",
+      "manage_schedule",
     ]);
     expect(body.tools[0].function.parameters.properties.userId).toBeUndefined();
     expect(result.toolCalls).toEqual([
@@ -174,6 +179,7 @@ describe("native tool calling", () => {
     expect(body.tools.map((tool) => tool.name)).toEqual([
       "get_my_todos",
       "search_product_guide",
+      "manage_schedule",
     ]);
     expect(body.tools[0].input_schema.properties.academyId).toBeUndefined();
     expect(result.text).toBe("둘 다 확인합니다.");
@@ -270,6 +276,7 @@ describe("native tool calling", () => {
     expect(openaiBody.tools.map((tool) => tool.function.name)).toEqual([
       "get_my_todos",
       "search_product_guide",
+      "manage_schedule",
     ]);
     expect(openaiBody.tool_choice).toBe("none");
     expect(openaiBody.messages.some((message) => message.role === "tool")).toBe(true);
@@ -307,6 +314,7 @@ describe("native tool calling", () => {
     expect(anthropicBody.tools.map((tool) => tool.name)).toEqual([
       "get_my_todos",
       "search_product_guide",
+      "manage_schedule",
     ]);
     expect(anthropicBody.tool_choice).toEqual({ type: "none" });
     const toolResult = anthropicBody.messages.find(

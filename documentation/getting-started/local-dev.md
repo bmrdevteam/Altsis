@@ -111,3 +111,29 @@ curl -N -b /tmp/altsis.cj -H 'Content-Type: application/json' \
 Expect SSE events `tool` (`get_my_todos`, running then done) and `done` with the scripted final text. The same call as `student1` / `Student1!` has no tool events. The stream is an `error` event with `PERMISSION_DENIED`. Headers are flushed before the access check, so the HTTP status is 200.
 
 In the UI, open Alter, choose **에이전트**, and send `오늘 내 할 일`. The step list shows the to-do lookup, then the scripted answer.
+
+## 5. Scheduled runs (예약 실행)
+
+A teacher can save a routine in **설정 → 예약 실행**, or ask the agent. With the demo key, this message proposes a schedule and does not save it:
+
+`매주 월요일 아침 8시에 이번 주 할 일 정리해 줘`
+
+The reply includes a card. **저장** calls `POST /api/ai/alter/schedules/confirm`. **취소** drops the card. The model never writes the row.
+
+The same cookie as section 4 can create a routine and run it immediately (the cron tick is every minute; this does not wait):
+
+```bash
+CREATE=$(curl -s -b /tmp/altsis.cj -H 'Content-Type: application/json' \
+  -d "{\"season\":\"$SEASON\",\"title\":\"월요일 할 일\",\"prompt\":\"이번 주 할 일을 조회해서 정리해 줘\",\"timezone\":\"Asia/Seoul\",\"schedule\":{\"kind\":\"weekly\",\"time\":\"08:00\",\"weekdays\":[1]}}" \
+  http://localhost:8080/api/ai/alter/schedules)
+echo "$CREATE"
+ID=$(node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s).schedule._id))' <<<"$CREATE")
+
+curl -s -b /tmp/altsis.cj -H 'Content-Type: application/json' \
+  -d "{\"season\":\"$SEASON\"}" \
+  http://localhost:8080/api/ai/alter/schedules/$ID/run
+```
+
+Expect `lastStatus` `ok` and a short `lastResultSummary`. The owner also gets an in-app notification whose click opens that Alter conversation. `NODE_ENV=development` so the scheduler uses `REDIS_URL`. Two backend processes claim the same due row with Mongo and a Redis lock, so the slot runs once. A student `POST` to create, confirm, or run returns 403 when `season` is sent (the role is checked before the row is loaded). Another user's id is 404. An owner who is no longer a teacher can still disable or delete their own row.
+
+Weekdays are 0 (Sunday) through 6 in `Asia/Seoul`. Daily and weekly times are `HH:mm` in the schedule timezone.

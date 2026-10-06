@@ -281,6 +281,83 @@
 }
 
 // --- Form Layout Utilities ---
+.routine_help {
+  font-size: 13px;
+  color: var(--accent-3);
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+.routine_error {
+  color: var(--alert-c1, #c0392b);
+  font-size: 13px;
+}
+
+.routine_notice {
+  color: var(--accent-1);
+  font-size: 13px;
+}
+
+.routine_card {
+  background: var(--component-color);
+  border: var(--border-default);
+  border-radius: 12px;
+  padding: 16px;
+  margin: 12px 0;
+}
+
+.routine_label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-2);
+  margin: 10px 0;
+
+  input,
+  textarea,
+  select {
+    font: inherit;
+    font-weight: 500;
+    color: var(--accent-1);
+    background: var(--background-color);
+    border: var(--border-default);
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+}
+
+.weekday_row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 12px;
+  font-size: 13px;
+}
+
+.routine_actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  button {
+    font: inherit;
+    font-size: 13px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: var(--border-default);
+    background: var(--background-color);
+    color: var(--accent-1);
+    cursor: pointer;
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+  }
+}
+
 .form_row {
   display: flex;
   gap: 12px;

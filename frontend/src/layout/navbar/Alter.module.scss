@@ -1522,3 +1522,40 @@
     padding-right: 4px;
   }
 }
+
+.scheduleCard {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.12));
+  background: var(--background-color, #fff);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.scheduleCardTitle {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.scheduleCardPrompt {
+  margin-top: 4px;
+  color: var(--accent-3, #555);
+  white-space: pre-wrap;
+}
+
+.scheduleCardActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+
+  button {
+    font: inherit;
+    font-size: 13px;
+    padding: 4px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color, rgba(0, 0, 0, 0.16));
+    background: var(--component-color, #f6f6f6);
+    cursor: pointer;
+  }
+}
