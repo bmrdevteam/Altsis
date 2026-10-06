@@ -3289,60 +3289,6 @@
   }
 }
 
-.viewModeToggle {
-  display: inline-flex;
-  align-items: stretch;
-  gap: 0;
-  border: 1px solid var(--border-default-color, var(--border-color));
-  border-radius: 8px;
-  overflow: hidden;
-  flex-shrink: 0;
-  background: var(--background-color);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-}
-
-.viewModeBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: transparent;
-  color: var(--text-color-2);
-  font-size: 13px;
-  font-weight: 500;
-  font-family: inherit;
-  line-height: 1;
-  min-height: 32px;
-  padding: 0 12px;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-
-  &:hover:not(:disabled):not(.viewModeBtnActive) {
-    background: var(--background-color-2);
-    color: var(--text-color-1);
-  }
-
-  &:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
-
-  & + & {
-    border-left: 1px solid var(--border-default-color, var(--border-color));
-  }
-}
-
-.viewModeBtnActive {
-  background: var(--accent-1);
-  color: #fff;
-  font-weight: 600;
-
-  &:hover:not(:disabled) {
-    background: var(--accent-1);
-    color: #fff;
-  }
-}
-
 .reviewNav {
   display: flex;
   align-items: center;
@@ -5582,11 +5528,18 @@ tbody tr:hover .actionCell {
 /* ─── Document sections (결재·평가) ─── */
 
 .docSection {
-  margin-top: 20px;
+  margin-top: 0;
+  margin-bottom: 16px;
   padding: 20px 24px;
-  border: 1px solid var(--border-default-color, var(--border-color));
+  border: none;
   border-radius: 12px;
   background: var(--background-color);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--accent-1) 6%, transparent),
+    0 4px 12px color-mix(in srgb, var(--accent-1) 10%, transparent);
 }
 
 .docSectionHeader {
