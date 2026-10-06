@@ -13,6 +13,8 @@
  * 거부하므로 max_completion_tokens로 맞춘다.
  */
 
+import { scriptedAgentGenerate } from "./alterAgentScriptedProvider.js";
+
 /** OpenAI Chat Completions content */
 export const toOpenAIContent = (content) => {
   if (typeof content === "string") return content;
@@ -917,6 +919,8 @@ export const generateText = async ({
   temperature,
   maxTokens,
 }) => {
+  const scripted = await scriptedAgentGenerate({ systemInstruction, messages });
+  if (scripted) return scripted;
   const resolvedProvider = resolveProvider(provider);
   return getAdapter(resolvedProvider).generate({
     apiKey,
