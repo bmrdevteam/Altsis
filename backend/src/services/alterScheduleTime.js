@@ -15,6 +15,20 @@ export const PROMPT_MAX = 2000;
 export const SUMMARY_MAX = 280;
 export const NOTIFY_MAX = 180;
 export const CLAIM_LEASE_MS = 10 * 60 * 1000;
+export const EVENT_TYPES = [
+  "approval_requested",
+  "form_submitted",
+  "form_posted",
+  "calendar_created",
+  "dm_received",
+];
+export const DEBOUNCE_CHOICES_MS = [5 * 60 * 1000, 15 * 60 * 1000, 60 * 60 * 1000];
+export const DEFAULT_DEBOUNCE_MS = 15 * 60 * 1000;
+export const MAX_EVENT_ROUTINES = 3;
+export const MAX_PENDING_EVENTS = 20;
+export const MAX_ROUTINE_RUNS_PER_DAY = 6;
+export const MAX_USER_EVENT_RUNS_PER_DAY = 12;
+export const MAX_CONSECUTIVE_ERRORS = 3;
 
 const WEEKDAY_SHORT = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
 const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -222,7 +236,73 @@ export const normalizeScheduleInput = (raw = {}) => {
   return { kind, time, weekdays };
 };
 
+const idList = (value, max = 20) =>
+  [...new Set((Array.isArray(value) ? value : []).map((item) => String(item || "").trim()).filter(Boolean))].slice(
+    0,
+    max
+  );
+
+export const seoulDay = (date) =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: DEFAULT_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date instanceof Date ? date : new Date(date));
+
+export const normalizeEventSpec = (raw = {}) => {
+  const types = idList(raw.types, EVENT_TYPES.length).filter((type) => EVENT_TYPES.includes(type));
+  if (!types.length) throw scheduleError(400, "이벤트 종류를 하나 이상 고르세요.");
+  const requested = Number(raw.debounceMs);
+  const debounceMs = DEBOUNCE_CHOICES_MS.includes(requested) ? requested : DEFAULT_DEBOUNCE_MS;
+  const minIntervalMs = Math.max(
+    MIN_INTERVAL_MS,
+    Number(raw.minIntervalMs) > 0 ? Number(raw.minIntervalMs) : MIN_INTERVAL_MS
+  );
+  const scope = String(raw.filters?.calendarScope || "");
+  const filters = {
+    boardIds: idList(raw.filters?.boardIds),
+    formIds: idList(raw.filters?.formIds),
+    senderUserIds: idList(raw.filters?.senderUserIds),
+    calendarScope: ["personal", "school", "all"].includes(scope) ? scope : "",
+  };
+  const dmOptIn = raw.dmOptIn === true;
+  if (types.includes("dm_received") && !dmOptIn) {
+    throw scheduleError(
+      400,
+      "1:1 메시지 내용은 AI 제공자에게 전달됩니다. 예약마다 동의가 필요합니다.",
+      "DM_OPT_IN_REQUIRED"
+    );
+  }
+  return { types, filters, debounceMs, minIntervalMs, dmOptIn };
+};
+
+const buildEventFields = (raw) => {
+  const timezone = normalizeTimezone(raw?.timezone);
+  const title = clipText(raw?.title, TITLE_MAX);
+  const prompt = assertReadOnlyPrompt(raw?.prompt);
+  if (!title) throw scheduleError(400, "예약 이름을 입력해 주세요.");
+  const event = normalizeEventSpec(raw.event || raw);
+  const proposalKey = scheduleIdentityKey({
+    title,
+    prompt,
+    timezone,
+    trigger: "event",
+    event,
+  });
+  return {
+    title,
+    prompt,
+    timezone,
+    trigger: "event",
+    event,
+    nextRunAt: null,
+    proposalKey,
+  };
+};
+
 export const buildScheduleFields = (raw, from = new Date()) => {
+  if (raw?.trigger === "event") return buildEventFields(raw);
   const timezone = normalizeTimezone(raw?.timezone);
   const schedule = normalizeScheduleInput(raw?.schedule || raw || {});
   const spec = { ...schedule, timezone };
@@ -235,7 +315,7 @@ export const buildScheduleFields = (raw, from = new Date()) => {
   }
   assertMinInterval(spec, from);
   const proposalKey = scheduleIdentityKey({ title, prompt, schedule, timezone });
-  return { title, prompt, schedule, timezone, nextRunAt, proposalKey };
+  return { title, prompt, schedule, timezone, nextRunAt, proposalKey, trigger: "time" };
 };
 
 /** Same title, prompt, and slot confirm as one schedule. */
@@ -243,15 +323,33 @@ export const scheduleIdentityKey = (fields) => {
   const schedule = fields?.schedule || {};
   const weekdays = Array.isArray(schedule.weekdays) ? [...schedule.weekdays] : [];
   const onceAt = schedule.onceAt ? new Date(schedule.onceAt).toISOString() : "";
-  const payload = JSON.stringify({
-    title: String(fields?.title || "").trim(),
-    prompt: String(fields?.prompt || "").trim(),
-    timezone: fields?.timezone || DEFAULT_TIMEZONE,
-    kind: schedule.kind || "",
-    time: schedule.time || "",
-    weekdays,
-    onceAt: onceAt === "Invalid Date" ? "" : onceAt,
-  });
+  const event = fields?.event || {};
+  const filters = event.filters || {};
+  const payload =
+    fields?.trigger === "event"
+      ? JSON.stringify({
+          title: String(fields?.title || "").trim(),
+          prompt: String(fields?.prompt || "").trim(),
+          timezone: fields?.timezone || DEFAULT_TIMEZONE,
+          trigger: "event",
+          types: Array.isArray(event.types) ? [...event.types].sort() : [],
+          debounceMs: event.debounceMs || DEFAULT_DEBOUNCE_MS,
+          minIntervalMs: event.minIntervalMs || MIN_INTERVAL_MS,
+          dmOptIn: event.dmOptIn === true,
+          boardIds: [...(filters.boardIds || [])].map(String).sort(),
+          formIds: [...(filters.formIds || [])].map(String).sort(),
+          senderUserIds: [...(filters.senderUserIds || [])].map(String).sort(),
+          calendarScope: filters.calendarScope || "",
+        })
+      : JSON.stringify({
+          title: String(fields?.title || "").trim(),
+          prompt: String(fields?.prompt || "").trim(),
+          timezone: fields?.timezone || DEFAULT_TIMEZONE,
+          kind: schedule.kind || "",
+          time: schedule.time || "",
+          weekdays,
+          onceAt: onceAt === "Invalid Date" ? "" : onceAt,
+        });
   return createHash("sha256").update(payload).digest("hex");
 };
 
@@ -319,6 +417,12 @@ export const nextStateAfterRun = (doc, outcome, options = {}) => {
   const status = outcome.status;
   const summary = truncateSummary(outcome.summary || outcome.reason || "");
   const conversationId = outcome.conversationId ? String(outcome.conversationId) : "";
+  const eventRun = (doc?.trigger || "time") === "event";
+  const claimedAt = options.claimedAt ? new Date(options.claimedAt) : at;
+  const pendingEvents = Array.isArray(doc?.pending?.events) ? doc.pending.events : [];
+  const eventCount = eventRun
+    ? pendingEvents.filter((evt) => new Date(evt.at).getTime() <= claimedAt.getTime()).length
+    : 0;
   const runs = [
     ...(Array.isArray(doc?.runs) ? doc.runs : []),
     {
@@ -328,8 +432,47 @@ export const nextStateAfterRun = (doc, outcome, options = {}) => {
       conversationId,
       reason: status === "ok" ? "" : summary,
       toolNames: toolNamesOf(outcome),
+      ...(eventRun ? { triggerType: "event", eventCount } : {}),
     },
   ].slice(-MAX_RUN_HISTORY);
+
+  if (eventRun) {
+    const remaining = pendingEvents.filter(
+      (evt) => new Date(evt.at).getTime() > claimedAt.getTime()
+    );
+    let consecutiveErrors = Number(doc?.consecutiveErrors) || 0;
+    if (status === "error") consecutiveErrors += 1;
+    else if (status === "ok") consecutiveErrors = 0;
+    let enabled = doc?.enabled !== false && consecutiveErrors < MAX_CONSECUTIVE_ERRORS;
+    const debounce = doc?.event?.debounceMs || DEFAULT_DEBOUNCE_MS;
+    const minInterval = doc?.event?.minIntervalMs || MIN_INTERVAL_MS;
+    const nextRunAt =
+      enabled && remaining.length
+        ? new Date(at.getTime() + Math.max(debounce, minInterval))
+        : null;
+    const day = seoulDay(at);
+    const runCount =
+      (doc?.runDay === day ? Number(doc.runCount) || 0 : 0) + (status === "ok" ? 1 : 0);
+    return {
+      runs,
+      enabled,
+      nextRunAt,
+      pending: {
+        events: remaining,
+        droppedCount: remaining.length ? Number(doc?.pending?.droppedCount) || 0 : 0,
+        firstAt: remaining[0]?.at || null,
+        claimedThrough: null,
+      },
+      consecutiveErrors,
+      runDay: day,
+      runCount,
+      lastRunAt: at,
+      lastStatus: status,
+      lastResultSummary: summary,
+      claimUntil: null,
+      claimToken: "",
+    };
+  }
 
   const future =
     options.preserveFutureSlot &&

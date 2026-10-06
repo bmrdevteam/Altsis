@@ -8,7 +8,7 @@ import { useAuth } from "contexts/authContext";
 import useDatabase from "hooks/useDatabase";
 import {
   alterScheduleStatusLabel,
-  describeAlterSchedule,
+  describeAlterRoutine,
 } from "utils/alterScheduleLabel";
 
 type ScheduleSpec = {
@@ -23,6 +23,7 @@ type RunRow = {
   status?: string;
   summary?: string;
   toolNames?: string[];
+  eventCount?: number;
 };
 
 type Routine = {
@@ -37,8 +38,28 @@ type Routine = {
   lastStatus?: string;
   lastResultSummary?: string;
   createdVia?: string;
+  trigger?: "time" | "event";
+  event?: {
+    types?: string[];
+    debounceMs?: number;
+    dmOptIn?: boolean;
+    filters?: {
+      boardIds?: string[];
+      formIds?: string[];
+      senderUserIds?: string[];
+      calendarScope?: string;
+    };
+  };
   runs?: RunRow[];
 };
+
+const EVENT_OPTIONS = [
+  { value: "approval_requested", label: "결재 요청" },
+  { value: "form_submitted", label: "양식 제출" },
+  { value: "form_posted", label: "양식 게시" },
+  { value: "calendar_created", label: "학교 일정" },
+  { value: "dm_received", label: "1:1 메시지" },
+];
 
 const WEEKDAYS = [
   { value: 1, label: "월" },
@@ -58,13 +79,21 @@ const emptyForm = () => ({
   weekdays: [1] as number[],
   onceAt: "",
   timezone: "Asia/Seoul",
+  trigger: "time" as "time" | "event",
+  eventTypes: [] as string[],
+  debounceMs: 15 * 60 * 1000,
+  dmOptIn: false,
+  boardIds: [] as string[],
+  formIds: [] as string[],
+  senderIds: [] as string[],
+  calendarScope: "",
 });
 
 const errorMessage = (err: any, fallback: string) =>
   err?.response?.data?.message || err?.message || fallback;
 
 const RoutineSettings = () => {
-  const { currentSeason, currentRegistration } = useAuth();
+  const { currentSeason, currentRegistration, currentSchool } = useAuth();
   const database = useDatabase();
   const seasonId = currentSeason?._id || "";
   const isStudent = currentRegistration?.role === "student";
@@ -74,6 +103,11 @@ const RoutineSettings = () => {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  const [boards, setBoards] = useState<{ _id: string; title?: string; name?: string }[]>([]);
+  const [forms, setForms] = useState<{ _id: string; title?: string }[]>([]);
+  const [senderQuery, setSenderQuery] = useState("");
+  const [senderHits, setSenderHits] = useState<{ _id: string; userName?: string; userId?: string }[]>([]);
+  const eventsOn = currentSchool?.academyFeatures?.alterEventTriggersEnabled === true;
 
   const load = async () => {
     if (!seasonId) return;
@@ -110,11 +144,32 @@ const RoutineSettings = () => {
       schedule.time = form.time;
       if (form.kind === "weekly") schedule.weekdays = form.weekdays;
     }
+    if (form.trigger === "event") {
+      return {
+        season: seasonId,
+        title: form.title.trim(),
+        prompt: form.prompt.trim(),
+        timezone: form.timezone.trim() || "Asia/Seoul",
+        trigger: "event",
+        event: {
+          types: form.eventTypes,
+          debounceMs: form.debounceMs,
+          dmOptIn: form.dmOptIn,
+          filters: {
+            boardIds: form.boardIds,
+            formIds: form.formIds,
+            senderUserIds: form.senderIds,
+            calendarScope: form.calendarScope,
+          },
+        },
+      };
+    }
     return {
       season: seasonId,
       title: form.title.trim(),
       prompt: form.prompt.trim(),
       timezone: form.timezone.trim() || "Asia/Seoul",
+      trigger: "time",
       schedule,
     };
   };
@@ -204,8 +259,69 @@ const RoutineSettings = () => {
         ? String(row.schedule.onceAt).slice(0, 16)
         : "",
       timezone: row.timezone || "Asia/Seoul",
+      trigger: row.trigger === "event" ? "event" : "time",
+      eventTypes: row.event?.types || [],
+      debounceMs: row.event?.debounceMs || 15 * 60 * 1000,
+      dmOptIn: row.event?.dmOptIn === true,
+      boardIds: row.event?.filters?.boardIds || [],
+      formIds: row.event?.filters?.formIds || [],
+      senderIds: row.event?.filters?.senderUserIds || [],
+      calendarScope: row.event?.filters?.calendarScope || "",
     });
   };
+
+  useEffect(() => {
+    if (!seasonId || form.trigger !== "event") return;
+    let cancelled = false;
+    database
+      .R({ location: "boards" })
+      .then((data) => {
+        if (!cancelled) setBoards(data.boards || []);
+      })
+      .catch(() => {
+        if (!cancelled) setBoards([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.trigger, seasonId]);
+
+  useEffect(() => {
+    if (form.trigger !== "event" || !form.boardIds.length) {
+      setForms([]);
+      return;
+    }
+    let cancelled = false;
+    Promise.all(
+      form.boardIds.map((boardId) =>
+        database
+          .R({ location: `alt/forms?board=${encodeURIComponent(boardId)}` })
+          .then((data) => data.forms || data.altForms || [])
+          .catch(() => [])
+      )
+    ).then((groups) => {
+      if (!cancelled) setForms(groups.flat());
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.boardIds, form.trigger]);
+
+  useEffect(() => {
+    if (form.trigger !== "event" || !form.eventTypes.includes("dm_received")) return;
+    const timer = setTimeout(() => {
+      database
+        .R({
+          location: `chats/users?q=${encodeURIComponent(senderQuery)}&seasonId=${encodeURIComponent(seasonId)}`,
+        })
+        .then((data) => setSenderHits(data.users || []))
+        .catch(() => setSenderHits([]));
+    }, 300);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.eventTypes, form.trigger, seasonId, senderQuery]);
 
   if (!seasonId) {
     return (
@@ -224,9 +340,10 @@ const RoutineSettings = () => {
       <div className={style.container_title}>예약 실행</div>
       {canManage ? (
         <p className={style.routine_help}>
-          정한 시각에 Alter가 선생님 계정으로 할 일과 안내만 조회합니다. 계정당
-          5개까지, 반복은 최소 1시간입니다. 실행에 쓴 토큰은 오늘 사용량에
-          포함됩니다.
+          정한 시각이나 이벤트에 Alter가 선생님 계정으로 할 일과 안내만 조회합니다.
+          계정당 5개까지이고 그중 이벤트 예약은 3개까지입니다. 반복은 최소
+          1시간이고, 이벤트 예약은 루틴당 하루 6회, 계정당 하루 12회까지입니다.
+          실행에 쓴 토큰은 오늘 사용량에 포함됩니다.
         </p>
       ) : rows.length > 0 ? (
         <p className={style.routine_help}>
@@ -264,6 +381,163 @@ const RoutineSettings = () => {
             rows={3}
           />
         </label>
+        <label className={style.routine_label}>
+          실행
+          <select
+            value={form.trigger}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                trigger: e.target.value as "time" | "event",
+              })
+            }
+          >
+            <option value="time">시각</option>
+            <option value="event">이벤트</option>
+          </select>
+        </label>
+        {form.trigger === "event" && !eventsOn ? (
+          <p className={style.routine_help}>
+            이벤트 예약은 아카데미 관리자가 설정에서 켜야 저장됩니다.
+          </p>
+        ) : null}
+        {form.trigger === "event" ? (
+          <>
+            <div className={style.weekday_row}>
+              {EVENT_OPTIONS.map((option) => (
+                <label key={option.value}>
+                  <input
+                    type="checkbox"
+                    checked={form.eventTypes.includes(option.value)}
+                    onChange={() => {
+                      const has = form.eventTypes.includes(option.value);
+                      setForm({
+                        ...form,
+                        eventTypes: has
+                          ? form.eventTypes.filter((value) => value !== option.value)
+                          : [...form.eventTypes, option.value],
+                      });
+                    }}
+                  />
+                  {option.label}
+                </label>
+              ))}
+            </div>
+            <label className={style.routine_label}>
+              모으는 시간
+              <select
+                value={String(form.debounceMs)}
+                onChange={(e) => setForm({ ...form, debounceMs: Number(e.target.value) })}
+              >
+                <option value={String(5 * 60 * 1000)}>5분</option>
+                <option value={String(15 * 60 * 1000)}>15분</option>
+                <option value={String(60 * 60 * 1000)}>60분</option>
+              </select>
+            </label>
+            {boards.length ? (
+              <div className={style.weekday_row}>
+                {boards.map((board) => (
+                  <label key={board._id}>
+                    <input
+                      type="checkbox"
+                      checked={form.boardIds.includes(board._id)}
+                      onChange={() => {
+                        const has = form.boardIds.includes(board._id);
+                        setForm({
+                          ...form,
+                          boardIds: has
+                            ? form.boardIds.filter((id) => id !== board._id)
+                            : [...form.boardIds, board._id],
+                        });
+                      }}
+                    />
+                    {board.title || board.name || "보드"}
+                  </label>
+                ))}
+              </div>
+            ) : null}
+            {forms.length ? (
+              <div className={style.weekday_row}>
+                {forms.map((item) => (
+                  <label key={item._id}>
+                    <input
+                      type="checkbox"
+                      checked={form.formIds.includes(item._id)}
+                      onChange={() => {
+                        const has = form.formIds.includes(item._id);
+                        setForm({
+                          ...form,
+                          formIds: has
+                            ? form.formIds.filter((id) => id !== item._id)
+                            : [...form.formIds, item._id],
+                        });
+                      }}
+                    />
+                    {item.title || "양식"}
+                  </label>
+                ))}
+              </div>
+            ) : null}
+            {form.eventTypes.includes("calendar_created") ? (
+              <label className={style.routine_label}>
+                일정 범위
+                <select
+                  value={form.calendarScope}
+                  onChange={(e) => setForm({ ...form, calendarScope: e.target.value })}
+                >
+                  <option value="">학교 일정</option>
+                  <option value="school">학교 일정만</option>
+                </select>
+              </label>
+            ) : null}
+            {form.eventTypes.includes("dm_received") ? (
+              <>
+                <p className={style.routine_help}>
+                  1:1 메시지 내용은 실행 때 AI 제공자에게 전달됩니다. 그룹 채팅과 보드
+                  채팅은 포함되지 않습니다. 메시지 본문은 예약에 저장하지 않습니다.
+                </p>
+                <label className={style.routine_label}>
+                  <input
+                    type="checkbox"
+                    checked={form.dmOptIn}
+                    onChange={(e) => setForm({ ...form, dmOptIn: e.target.checked })}
+                  />
+                  1:1 메시지 내용을 AI에 보내는 데 동의합니다.
+                </label>
+                <label className={style.routine_label}>
+                  보낸 사람
+                  <input
+                    value={senderQuery}
+                    onChange={(e) => setSenderQuery(e.target.value)}
+                    placeholder="이름 또는 아이디"
+                  />
+                </label>
+                <div className={style.weekday_row}>
+                  {senderHits.map((person) => (
+                    <label key={person._id}>
+                      <input
+                        type="checkbox"
+                        checked={form.senderIds.includes(person._id)}
+                        onChange={() => {
+                          const has = form.senderIds.includes(person._id);
+                          setForm({
+                            ...form,
+                            senderIds: has
+                              ? form.senderIds.filter((id) => id !== person._id)
+                              : [...form.senderIds, person._id],
+                          });
+                        }}
+                      />
+                      {person.userName || person.userId}
+                    </label>
+                  ))}
+                </div>
+              </>
+            ) : null}
+          </>
+        ) : null}
+        {form.trigger === "time" ? (
+        <>
         <label className={style.routine_label}>
           반복
           <select
@@ -326,6 +600,8 @@ const RoutineSettings = () => {
             onChange={(e) => setForm({ ...form, timezone: e.target.value })}
           />
         </label>
+        </>
+        ) : null}
         <div className={style.routine_actions}>
           <button type="button" onClick={() => void save()} disabled={busy || (rows.length >= 5 && !editing)}>
             저장
@@ -348,7 +624,7 @@ const RoutineSettings = () => {
       {rows.map((row) => (
         <div key={row._id} className={style.routine_card}>
           <strong>{row.title}</strong>
-          <p>{describeAlterSchedule(row.schedule, row.timezone)}</p>
+          <p>{describeAlterRoutine(row)}</p>
           <p className={style.routine_help}>{row.prompt}</p>
           <p>
             마지막 실행: {alterScheduleStatusLabel(row.lastStatus)}
@@ -359,6 +635,7 @@ const RoutineSettings = () => {
             <p key={`${row._id}-run-${index}`} className={style.routine_help}>
               {alterScheduleStatusLabel(run.status)}
               {run.toolNames?.length ? ` · ${run.toolNames.join(", ")}` : ""}
+              {run.eventCount ? ` · 이벤트 ${run.eventCount}건` : ""}
               {run.summary ? ` — ${run.summary}` : ""}
             </p>
           ))}

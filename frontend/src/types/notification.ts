@@ -9,7 +9,8 @@ export type TNotificationType =
   | "boardInvitation"
   | "altFormApprovalRequest"
   | "altFormApprovalResult"
-  | "alterSchedule";
+  | "alterSchedule"
+  | "alterTrigger";
 
 export type TRelatedEntity = {
   type:

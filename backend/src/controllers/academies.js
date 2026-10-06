@@ -853,10 +853,25 @@ export const updateAiEnabled = async (req, res) => {
     if (!academy)
       return res.status(404).send({ message: __NOT_FOUND("academy") });
 
-    /* toggle or set aiEnabled */
+    const owner = req.user?.auth === "owner";
+    const eventFlag = req.body.alterEventTriggersEnabled;
+    /* School admins may flip only the event-trigger flag. */
+    if (!owner) {
+      if (typeof eventFlag !== "boolean" || "aiEnabled" in req.body) {
+        return res.status(403).send({ message: "권한이 없습니다." });
+      }
+      academy.alterEventTriggersEnabled = eventFlag;
+      await academy.save();
+      return res.status(200).send({ academy });
+    }
+
+    if (typeof eventFlag === "boolean") {
+      academy.alterEventTriggersEnabled = eventFlag;
+    }
+    /* toggle or set aiEnabled. An event-flag-only body must not flip AI. */
     if (typeof req.body.aiEnabled === "boolean") {
       academy.aiEnabled = req.body.aiEnabled;
-    } else {
+    } else if (!("alterEventTriggersEnabled" in req.body)) {
       academy.aiEnabled = !academy.aiEnabled;
     }
     const plans = normalizePlans(academy);

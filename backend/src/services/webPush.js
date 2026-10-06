@@ -34,6 +34,7 @@ export const WEB_PUSH_ELIGIBLE_TYPES = new Set([
   "altFormApprovalResult",
   "chatMessage",
   "alterSchedule",
+  "alterTrigger",
 ]);
 
 let configured = false;

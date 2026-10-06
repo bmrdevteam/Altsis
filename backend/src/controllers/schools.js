@@ -315,6 +315,7 @@ export const find = async (req, res) => {
             sitePublishEnabled:
               (academy.sitePublishEnabled ?? false) && plans.shift.enabled,
             emailNotifyEnabled: academy.emailNotifyEnabled === true,
+            alterEventTriggersEnabled: academy.alterEventTriggersEnabled === true,
           };
         }
       } catch (err) {

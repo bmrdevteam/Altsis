@@ -160,6 +160,7 @@ const academySchema = mongoose.Schema(
     chatEnabled: { type: Boolean, default: false },
     boardEnabled: { type: Boolean, default: true },
     aiEnabled: { type: Boolean, default: false },
+    alterEventTriggersEnabled: { type: Boolean, default: false },
     sitePublishEnabled: { type: Boolean, default: false },
     sitePublished: { type: Boolean, default: false },
     emailNotifyEnabled: { type: Boolean, default: false },

@@ -7,6 +7,7 @@ import { client } from "../_database/redis/index.js";
 import { logger } from "../log/logger.js";
 import { assertSeasonAiAccess } from "./aiSkills.js";
 import { executeAgentSkill } from "./alterAgent.js";
+import { loadVisibleTriggerEvents } from "./alterEventAccess.js";
 import { appendAlterTurn } from "./alterConversations.js";
 import { sendAutoNotification } from "./notifications.js";
 import {
@@ -53,7 +54,9 @@ export const loadScheduleRunContext = async (academyId, doc) => {
       user,
       String(doc.season)
     );
-    return { ...access, user };
+    const triggerEvents =
+      doc.trigger === "event" ? await loadVisibleTriggerEvents(academyId, doc) : undefined;
+    return { ...access, user, triggerEvents };
   } catch (err) {
     err.skip = true;
     throw err;
@@ -61,10 +64,74 @@ export const loadScheduleRunContext = async (academyId, doc) => {
 };
 
 const saveClaimed = (academyId, doc) => async (id, patch) => {
+  if (doc.trigger === "event") {
+    const claimedAt = doc.pending?.claimedThrough
+      ? new Date(doc.pending.claimedThrough)
+      : new Date();
+    const debounce = doc.event?.debounceMs || 15 * 60 * 1000;
+    const minInterval = doc.event?.minIntervalMs || 60 * 60 * 1000;
+    const followUp = new Date(Date.now() + Math.max(debounce, minInterval));
+    await AlterSchedule(academyId).updateOne({ _id: id, claimToken: doc.claimToken }, [
+      {
+        $set: {
+          lastRunAt: patch.lastRunAt,
+          lastStatus: patch.lastStatus,
+          lastResultSummary: patch.lastResultSummary,
+          claimUntil: null,
+          claimToken: "",
+          enabled: patch.enabled,
+          runs: patch.runs,
+          consecutiveErrors: patch.consecutiveErrors ?? 0,
+          runDay: patch.runDay || "",
+          runCount: patch.runCount || 0,
+          "pending.claimedThrough": null,
+          "pending.events": {
+            $filter: {
+              input: { $ifNull: ["$pending.events", []] },
+              as: "evt",
+              cond: { $gt: ["$$evt.at", claimedAt] },
+            },
+          },
+        },
+      },
+      {
+        $set: {
+          nextRunAt: {
+            $cond: [
+              {
+                $and: [
+                  { $eq: ["$enabled", true] },
+                  { $gt: [{ $size: { $ifNull: ["$pending.events", []] } }, 0] },
+                ],
+              },
+              followUp,
+              null,
+            ],
+          },
+          "pending.droppedCount": {
+            $cond: [
+              { $gt: [{ $size: { $ifNull: ["$pending.events", []] } }, 0] },
+              { $ifNull: ["$pending.droppedCount", 0] },
+              0,
+            ],
+          },
+        },
+      },
+    ]);
+    return;
+  }
   await AlterSchedule(academyId).updateOne(
     { _id: id, claimToken: doc.claimToken },
     { $set: patch }
   );
+};
+
+const countUserEventRuns = (academyId) => async (_academyId, doc, day) => {
+  const rows = await AlterSchedule(academyId)
+    .find({ user: doc.user, trigger: "event", runDay: day })
+    .select("runCount")
+    .lean();
+  return rows.reduce((sum, row) => sum + (Number(row.runCount) || 0), 0);
 };
 
 export const executeClaimedSchedule = (args) =>
@@ -76,6 +143,7 @@ export const executeClaimedSchedule = (args) =>
       persistTurn: appendAlterTurn,
       notify: sendAutoNotification,
       save: saveClaimed(args.academyId, args.doc),
+      userEventRuns: countUserEventRuns(args.academyId),
       ...(args.deps || {}),
     },
   });

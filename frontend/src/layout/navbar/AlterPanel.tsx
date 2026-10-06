@@ -67,7 +67,7 @@ import {
 import type { TSearchSeasonScope } from "./alterUi/types";
 import { ALTER_CHAT_SNAPSHOT_PROFILES } from "utils/alterChatSnapshot";
 import style from "./Alter.module.scss";
-import { describeAlterSchedule } from "utils/alterScheduleLabel";
+import { describeAlterRoutine } from "utils/alterScheduleLabel";
 
 /** 기본 스냅샷 한도(50)를 넘길 때만 「데이터 확대」뱃지를 노출 */
 const DATA_EXPAND_BADGE_MIN_TOTAL =
@@ -121,6 +121,8 @@ type ChatMessage = {
     prompt?: string;
     scheduleId?: string;
     timezone?: string;
+    trigger?: "time" | "event";
+    event?: { types?: string[]; debounceMs?: number; dmOptIn?: boolean };
     schedule?: {
       kind?: string;
       time?: string;
@@ -3648,10 +3650,7 @@ const AlterPanel = ({ onClose }: Props) => {
                 {msg.scheduleProposal.action === "create" ? (
                   <>
                     <div>
-                      {describeAlterSchedule(
-                        msg.scheduleProposal.schedule,
-                        msg.scheduleProposal.timezone
-                      )}
+                      {describeAlterRoutine(msg.scheduleProposal)}
                     </div>
                     <div className={style.scheduleCardPrompt}>
                       {msg.scheduleProposal.prompt}

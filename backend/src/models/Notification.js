@@ -129,6 +129,7 @@ const notificationSchema = mongoose.Schema(
         "altFormApprovalRequest",
         "altFormApprovalResult",
         "alterSchedule",
+        "alterTrigger",
       ],
       default: "direct",
     },
