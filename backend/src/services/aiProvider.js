@@ -919,7 +919,11 @@ export const generateText = async ({
   temperature,
   maxTokens,
 }) => {
-  const scripted = await scriptedAgentGenerate({ systemInstruction, messages });
+  const scripted = await scriptedAgentGenerate({
+    apiKey,
+    systemInstruction,
+    messages,
+  });
   if (scripted) return scripted;
   const resolvedProvider = resolveProvider(provider);
   return getAdapter(resolvedProvider).generate({

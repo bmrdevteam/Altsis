@@ -1,11 +1,13 @@
 /**
  * Dev/test stand-in for the Alter agent loop.
  *
- * Active only when ALTER_AGENT_SCRIPTED=1 and NODE_ENV is not production.
- * The first agent model call returns a get_my_todos tool fence. After a
- * <tool_result> is in the transcript, the next call returns a final answer.
- * Other skills keep using the real provider.
+ * Active only outside production, and only for the academy whose aiApiKey is
+ * the dummy SCRIPTED_AGENT_API_KEY. A second academy on the same process with
+ * a real key still calls the real provider. Other skills are never stubbed.
  */
+
+/** Dummy academy.aiApiKey that selects the scripted agent. Not a secret. */
+export const SCRIPTED_AGENT_API_KEY = "scripted-local-dev";
 
 const TOKEN_USAGE = {
   promptTokens: 8,
@@ -33,9 +35,9 @@ const FINAL_TURN = [
   "```",
 ].join("\n");
 
-export const isAlterAgentScriptedEnabled = () => {
+export const isAlterAgentScriptedEnabled = (apiKey) => {
   if (String(process.env.NODE_ENV || "").trim() === "production") return false;
-  return String(process.env.ALTER_AGENT_SCRIPTED || "").trim() === "1";
+  return String(apiKey || "").trim() === SCRIPTED_AGENT_API_KEY;
 };
 
 const delayMs = () => {
@@ -51,8 +53,8 @@ const isAgentPrompt = (systemInstruction) =>
  * @param {{ systemInstruction?: string, messages?: Array<{ content?: string }> }} params
  * @returns {Promise<{ text: string, tokenUsage: object } | null>}
  */
-export const scriptedAgentGenerate = async ({ systemInstruction, messages } = {}) => {
-  if (!isAlterAgentScriptedEnabled()) return null;
+export const scriptedAgentGenerate = async ({ apiKey, systemInstruction, messages } = {}) => {
+  if (!isAlterAgentScriptedEnabled(apiKey)) return null;
   if (!isAgentPrompt(systemInstruction)) return null;
 
   const sawResult = (messages || []).some((row) =>

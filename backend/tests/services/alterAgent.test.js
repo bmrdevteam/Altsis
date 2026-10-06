@@ -1,11 +1,13 @@
 import {
   MAX_AGENT_TOOL_STEPS,
+  MAX_FORMAT_RETRIES,
+  isPromiseOnlyReply,
   parseAgentAction,
   runAgentLoop,
   sanitizeToolArguments,
   wrapToolResult,
 } from "../../src/services/alterAgentProtocol.js";
-import { createAgentTools } from "../../src/services/alterAgentTools.js";
+import { createAgentTools, projectCourseTodo } from "../../src/services/alterAgentTools.js";
 
 const serverCtx = {
   academyId: "ac-real",
@@ -58,6 +60,49 @@ describe("parseAgentAction", () => {
     );
     expect(action.type).toBe("tool");
     expect(action.name).toBe("get_my_todos");
+  });
+
+  test("closes a dangling final fence instead of showing raw alter JSON", () => {
+    const answer =
+      "로그인한 계정의 할 일을 정리했습니다.\n- 보드: 출석 점검이 남아 있습니다.\n- 수업: 문학 탐구는 확인이 필요합니다.";
+    const raw = "```alter\n" + JSON.stringify({ type: "final", text: answer });
+    expect(raw.match(/```/g)).toHaveLength(1);
+    const action = parseAgentAction(raw);
+    expect(action).toEqual({ type: "final", text: answer });
+    expect(action.text).not.toContain("```");
+    expect(action.text).not.toContain('"type":"final"');
+  });
+
+  test("keeps a long answer written outside a one-line final fence", () => {
+    const outside =
+      "보드에는 필수 양식 「출석 점검」이 남아 있습니다.\n수업 「문학 탐구」는 확인이 필요합니다. 둘 다 오늘 중으로 보면 됩니다.";
+    const raw = `${outside}\n\`\`\`alter\n${JSON.stringify({
+      type: "final",
+      text: "위와 같습니다.",
+    })}\n\`\`\``;
+    expect(parseAgentAction(raw)).toEqual({ type: "final", text: outside });
+  });
+
+  test("keeps a real fenced answer when the preamble is longer", () => {
+    const preamble = "화면을 기준으로 먼저 정리하면 다음과 같습니다. ".repeat(4).trim();
+    const answer = "보드 할 일 1건(출석 점검)과 수업 할 일 1건(문학 탐구 확인)이 남아 있습니다.";
+    expect(preamble.length).toBeGreaterThan(answer.length);
+    const raw = `${preamble}\n\`\`\`alter\n${JSON.stringify({ type: "final", text: answer })}\n\`\`\``;
+    expect(parseAgentAction(raw)).toEqual({ type: "final", text: answer });
+  });
+
+  test("treats an unfenced wait-only reply as a format error", () => {
+    const raw = "할 일을 확인해 보겠습니다. 잠시만 기다려 주세요.";
+    expect(isPromiseOnlyReply(raw)).toBe(true);
+    const action = parseAgentAction(raw);
+    expect(action.type).toBe("invalid");
+    expect(action.error).toContain("final");
+  });
+
+  test("does not treat a finished answer that merely ends with a wait phrase as promise-only", () => {
+    const raw = "보드에는 출석 점검이 남아 있습니다. 잠시만 기다려 주세요.";
+    expect(isPromiseOnlyReply(raw)).toBe(false);
+    expect(parseAgentAction(raw)).toEqual({ type: "final", text: raw });
   });
 });
 
@@ -160,6 +205,132 @@ describe("runAgentLoop", () => {
     expect(result.toolSteps).toBe(1);
     expect(result.capped).toBe(false);
     expect(result.text).toBe("출석 양식이 남아 있습니다.");
+    expect(result.links).toEqual([]);
+  });
+
+  test("re-prompts a promise-only reply once without spending a tool step", async () => {
+    expect(MAX_FORMAT_RETRIES).toBe(1);
+    const executed = [];
+    let calls = 0;
+    const result = await runAgentLoop({
+      tools: [
+        {
+          name: "get_my_todos",
+          label: "내 할 일",
+          description: "할 일",
+          execute: async () => {
+            executed.push("todos");
+            return { summary: "보드 1건", items: [] };
+          },
+        },
+      ],
+      serverCtx,
+      userMessage: "오늘 할 일",
+      maxToolSteps: MAX_AGENT_TOOL_STEPS,
+      generate: async () => {
+        calls += 1;
+        if (calls === 1) return { text: "확인해 보겠습니다. 잠시만 기다려 주세요." };
+        if (calls === 2) return { text: toolCall({ scope: "all" }) };
+        return { text: '```alter\n{"type":"final","text":"출석 점검이 남아 있습니다."}\n```' };
+      },
+    });
+    expect(executed).toEqual(["todos"]);
+    expect(result.toolSteps).toBe(1);
+    expect(calls).toBe(3);
+    expect(result.text).toBe("출석 점검이 남아 있습니다.");
+  });
+
+  test("a format error still leaves the full tool-step budget", async () => {
+    const executed = [];
+    let calls = 0;
+    const result = await runAgentLoop({
+      tools: [
+        {
+          name: "get_my_todos",
+          label: "내 할 일",
+          description: "할 일",
+          execute: async () => {
+            executed.push(1);
+            return { summary: "할 일 없음", items: [] };
+          },
+        },
+      ],
+      serverCtx,
+      userMessage: "오늘 할 일",
+      maxToolSteps: MAX_AGENT_TOOL_STEPS,
+      generate: async ({ forceFinal }) => {
+        calls += 1;
+        if (calls === 1) return { text: "```alter\nnot-json\n```" };
+        if (forceFinal) return { text: '```alter\n{"type":"final","text":"더 좁혀 주세요."}\n```' };
+        return { text: toolCall({ scope: "all" }) };
+      },
+    });
+    expect(executed).toHaveLength(MAX_AGENT_TOOL_STEPS);
+    expect(result.toolSteps).toBe(MAX_AGENT_TOOL_STEPS);
+    expect(result.capped).toBe(true);
+    expect(calls).toBe(1 + MAX_AGENT_TOOL_STEPS + 1);
+  });
+
+  test("repeated promise-only replies still finish", async () => {
+    let calls = 0;
+    const result = await runAgentLoop({
+      tools: [
+        {
+          name: "get_my_todos",
+          label: "내 할 일",
+          description: "할 일",
+          execute: async () => ({ summary: "할 일 없음", items: [] }),
+        },
+      ],
+      serverCtx,
+      userMessage: "오늘 할 일",
+      maxToolSteps: 3,
+      generate: async () => {
+        calls += 1;
+        return { text: "조회해 보겠습니다." };
+      },
+    });
+    expect(calls).toBeLessThan(8);
+    expect(result.text).toContain("질문을 더 좁혀");
+    expect(result.toolSteps).toBe(3);
+  });
+
+  test("returns guide doc paths from search_product_guide", async () => {
+    let calls = 0;
+    const result = await runAgentLoop({
+      tools: [
+        {
+          name: "search_product_guide",
+          label: "제품 안내",
+          description: "안내",
+          execute: async () => ({
+            summary: "안내 1건",
+            hits: [{ doc: "user-guide/boards.md" }],
+            links: [
+              { kind: "guide", title: "안내: 보드", path: "/guide?doc=user-guide%2Fboards" },
+              { kind: "page", title: "보드", path: "/boards" },
+            ],
+          }),
+        },
+      ],
+      serverCtx,
+      userMessage: "결재 화면은 어디인가요",
+      generate: async () => {
+        calls += 1;
+        if (calls === 1) {
+          return {
+            text:
+              '```alter\n{"type":"tool","name":"search_product_guide","arguments":{"query":"결재"}}\n```',
+          };
+        }
+        return { text: '```alter\n{"type":"final","text":"보드의 할 일에서 결재를 봅니다."}\n```' };
+      },
+    });
+    expect(result.links).toEqual([
+      { kind: "guide", title: "안내: 보드", path: "/guide?doc=user-guide%2Fboards" },
+      { kind: "page", title: "보드", path: "/boards" },
+    ]);
+    expect(result.text).toBe("보드의 할 일에서 결재를 봅니다.");
   });
 
   test("feeds tool output as data, not as a new identity-bearing call", async () => {
@@ -310,7 +481,23 @@ describe("agent tools ignore identity arguments", () => {
     ]);
     expect(result.hits[0].doc).toBe("user-guide/boards.md");
     expect(result.hits[0].excerpt).toContain("할 일 탭");
+    expect(result.links).toEqual([
+      { kind: "page", title: "보드", path: "/boards" },
+      { kind: "guide", title: "안내: 보드", path: "/guide?doc=user-guide%2Fboards" },
+    ]);
     expect(JSON.stringify(result)).not.toContain("attacker");
     expect(JSON.stringify(result)).not.toContain("evil-academy");
+  });
+});
+
+describe("course todo eval labels", () => {
+  test("maps eval status codes to plain labels", () => {
+    expect(projectCourseTodo({ kind: "evaluation", syllabusTitle: "문학", evalStatus: "없음" }).evalStatus).toBe(
+      "수강생 없음"
+    );
+    expect(projectCourseTodo({ evalStatus: "대기" }).evalStatus).toBe("평가 기간 전");
+    expect(projectCourseTodo({ evalStatus: "평가중" }).evalStatus).toBe("평가 입력 필요");
+    expect(projectCourseTodo({ evalStatus: "완료" }).evalStatus).toBe("평가 완료");
+    expect(projectCourseTodo({ evalStatus: "기타" }).evalStatus).toBe("기타");
   });
 });

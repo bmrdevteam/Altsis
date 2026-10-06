@@ -81,6 +81,7 @@ export const executeAgentSkill = async ({
     seasonId: String(season?._id || context.seasonId || ""),
     registration,
     isSchoolManager: isSchoolManager(user, school?._id),
+    message: userQuestion,
   };
 
   const recent = [];
@@ -146,6 +147,7 @@ export const executeAgentSkill = async ({
       text: result.text || "확인한 내용이 없습니다.",
       tokenUsage,
       toolSteps: result.toolSteps,
+      links: result.links || [],
     };
   } catch (err) {
     if (err?.code && err.status) throw err;

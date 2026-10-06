@@ -7,6 +7,7 @@
 import { getSchoolTodosForUser } from "./schoolTodos.js";
 import { getCourseTodosForUser } from "./schoolCourseTodos.js";
 import { retrieveAlterGuide } from "./alterGuideRetrieve.js";
+import { buildAlterGuideLinks } from "./alterGuideLinks.js";
 import { maskSensitiveObject } from "./aiSafety.js";
 import { logger } from "../log/logger.js";
 
@@ -66,13 +67,25 @@ export const projectSchoolTodo = (item) =>
     submittedAt: iso(item?.submittedAt),
   });
 
+/**
+ * resolveEvalStatus codes are easy to misread ("없음" = no enrolled students).
+ * Plain labels go to the model. Whether a course with no students should be
+ * an evaluation todo at all is still an open product question.
+ */
+export const EVAL_STATUS_LABEL = {
+  없음: "수강생 없음",
+  대기: "평가 기간 전",
+  평가중: "평가 입력 필요",
+  완료: "평가 완료",
+};
+
 export const projectCourseTodo = (item) =>
   compact({
     source: "course",
     kind: item?.kind,
     label: COURSE_KIND[item?.kind] || clip(item?.kind, 40),
     classTitle: clip(item?.syllabusTitle, 80),
-    evalStatus: clip(item?.evalStatus, 20),
+    evalStatus: clip(EVAL_STATUS_LABEL[item?.evalStatus] || item?.evalStatus, 40),
     missing: Array.isArray(item?.missingEvalLabels)
       ? item.missingEvalLabels.map((label) => clip(label, 40)).filter(Boolean).slice(0, 8)
       : undefined,
@@ -173,17 +186,25 @@ export const createAgentTools = (deps = {}) => {
             isSchoolManager: !!serverCtx.isSchoolManager,
             limit: GUIDE_HITS,
           });
-          const projected = (hits || []).slice(0, GUIDE_HITS).map((hit) =>
+          const rows = (hits || []).slice(0, GUIDE_HITS);
+          const projected = rows.map((hit) =>
             compact({
               title: clip(hit.title, 120),
               doc: clip(hit.key, 160),
               excerpt: clip(hit.content, GUIDE_CHARS),
             })
           );
+          const links = buildAlterGuideLinks(rows, {
+            user: serverCtx.user,
+            school: serverCtx.school,
+            registration: serverCtx.registration,
+            message: serverCtx.message || query,
+          });
           return maskSensitiveObject({
             summary: projected.length ? `안내 ${projected.length}건` : "안내 없음",
             query,
             hits: projected,
+            links,
           });
         } catch (err) {
           logger.error(`alter agent search_product_guide: ${err.message}`);

@@ -1,10 +1,10 @@
 # 로컬 실행 (Alter 에이전트)
 
-클라우드 MongoDB·Redis·LLM 키 없이, 이 저장소에서 Alter **에이전트** 스킬을 끝까지 확인하는 방법입니다. 스크립트 응답은 `NODE_ENV=production` 이거나 `ALTER_AGENT_SCRIPTED` 가 꺼져 있으면 동작하지 않습니다.
+클라우드 MongoDB·Redis·LLM 키 없이, 이 저장소에서 Alter **에이전트** 스킬을 끝까지 확인하는 방법입니다. 스크립트 응답은 `NODE_ENV=production` 에서는 동작하지 않습니다. 그 외에는 아카데미 `aiApiKey` 가 `scripted-local-dev` 인 경우만 에이전트 호출을 대신합니다. 같은 프로세스의 다른 아카데미에 실제 키가 있으면 그 학원은 실제 모델을 탑니다.
 
 ## English
 
-Run Alter's agent skill locally without Atlas, Redis Cloud, or a real model key. The scripted provider answers only when `ALTER_AGENT_SCRIPTED=1` and `NODE_ENV` is not `production`. The first model call returns a `get_my_todos` fence. The next call, after `<tool_result>`, returns a final Korean answer.
+Run Alter's agent skill locally without Atlas, Redis Cloud, or a real model key. The scripted provider never runs in production. Otherwise it answers only when that academy's `aiApiKey` is `scripted-local-dev`, so a second academy on the same process can keep a real key. The first model call returns a `get_my_todos` fence. The next call, after `<tool_result>`, returns a final Korean answer.
 
 ## 1. MongoDB and Redis
 
@@ -55,7 +55,6 @@ ENCKEY_E=RN03obPgAsUqaeCuz2dkpF37smKvADf/MWhyDhELhtQ=
 SIGKEY_E=DgLeAel1//lEAMtabB2FiVII0N+d48VJ7ZFC3n2msvJ8w4TO48mTy0//gF0AX5msnzt+x1L2UJCNB2IyUFnWaw==
 ENCKEY_A=RN03obPgAsUqaeCuz2dkpF37smKvADf/MWhyDhELhtQ=
 SIGKEY_A=DgLeAel1//lEAMtabB2FiVII0N+d48VJ7ZFC3n2msvJ8w4TO48mTy0//gF0AX5msnzt+x1L2UJCNB2IyUFnWaw==
-ALTER_AGENT_SCRIPTED=1
 ALTER_AGENT_SCRIPTED_DELAY_MS=2000
 ```
 
@@ -68,7 +67,7 @@ PORT=3030
 BROWSER=none
 ```
 
-`ALTER_AGENT_SCRIPTED_DELAY_MS` only slows the scripted agent calls so the tool step stays on screen. Set it to `0` for a fast API check.
+시드가 데모 학원의 `aiApiKey` 를 `scripted-local-dev` 로 넣습니다. 이 값이 스크립트 응답의 스위치입니다. `ALTER_AGENT_SCRIPTED_DELAY_MS` 는 그 학원의 에이전트 호출만 늦춰 도구 단계가 화면에 남게 합니다. `0` 이면 API 확인이 바로 끝납니다.
 
 ## 3. Seed and servers
 
@@ -76,7 +75,7 @@ From `backend/` (dependencies already installed):
 
 ```bash
 node scripts/seedLocalAgentDemo.js
-NODE_ENV=development ALTER_AGENT_SCRIPTED=1 node src/index.js
+NODE_ENV=development node src/index.js
 ```
 
 Seed prints `seasonId` plus:

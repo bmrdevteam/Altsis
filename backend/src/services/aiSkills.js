@@ -5977,6 +5977,7 @@ export const runAlterSkill = async ({
       review: null,
       draft: null,
       tokenUsage: result.tokenUsage,
+      links: result.links || [],
     };
   }
 
