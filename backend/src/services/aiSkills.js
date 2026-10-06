@@ -6180,7 +6180,8 @@ export const runAlterSkill = async ({
 export const detectSkillFromMessage = (message = "") => {
   const text = String(message || "").trim();
   if (!text) return SKILL_IDS.CHAT;
-  if (/\/(에이전트|agent)\b/i.test(text)) return SKILL_IDS.AGENT;
+  // \b는 한글 뒤에서 경계가 되지 않으므로, 슬래시 명령 뒤에 글자가 더 붙으면 제외한다.
+  if (/\/(에이전트|agent)(?![가-힣a-z])/i.test(text)) return SKILL_IDS.AGENT;
   if (
     /채점.*(초안|해\s*줘|도와|작성)/.test(text) ||
     /(초안|작성).*채점/.test(text) ||
