@@ -580,7 +580,8 @@ export default function useAPIv2() {
       academyId: string;
     };
     data: {
-      aiEnabled: boolean;
+      aiEnabled?: boolean;
+      alterEventTriggersEnabled?: boolean;
     };
   }) {
     const { academy } = await database.U({

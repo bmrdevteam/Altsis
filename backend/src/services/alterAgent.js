@@ -61,6 +61,7 @@ export const executeAgentSkill = async ({
   guidelines = "",
   onEvent,
   allowScheduleTool = true,
+  triggerEvents,
 }) => {
   const profile = FEATURE_PROFILES.agent;
   const provider = resolveProvider(academy?.aiProvider);
@@ -84,6 +85,7 @@ export const executeAgentSkill = async ({
     registration,
     isSchoolManager: isSchoolManager(user, school?._id),
     message: userQuestion,
+    triggerEvents: Array.isArray(triggerEvents) ? triggerEvents : undefined,
   };
 
   const recent = [];
@@ -131,7 +133,10 @@ export const executeAgentSkill = async ({
 
   try {
     const result = await runAgentLoop({
-      tools: createAgentTools({ includeScheduleTool: allowScheduleTool !== false }),
+      tools: createAgentTools({
+        includeScheduleTool: allowScheduleTool !== false,
+        includeTriggerTool: Array.isArray(triggerEvents),
+      }),
       serverCtx,
       userMessage: userQuestion,
       history: recent,

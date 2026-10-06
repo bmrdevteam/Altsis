@@ -53,7 +53,7 @@ router.post(
 );
 
 /* AI settings */
-router.put("/:academyId/ai", isOwner, academies.updateAiEnabled);
+router.put("/:academyId/ai", isOwAdmin, academies.updateAiEnabled);
 router.put("/:academyId/ai/apikey", isOwAdmin, academies.updateAiApiKey);
 router.get("/:academyId/ai/apikey", isOwAdmin, academies.checkAiApiKey);
 router.put("/:academyId/ai/model", isOwAdmin, academies.updateAiModel);

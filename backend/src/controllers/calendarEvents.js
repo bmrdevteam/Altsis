@@ -128,6 +128,16 @@ export const create = async (req, res) => {
       eventData
     );
 
+    const { emitAlterEvent } = await import("../services/alterEvent.js");
+    emitAlterEvent(req.user.academyId, {
+      type: "calendar_created",
+      entityType: "calendarEvent",
+      entityId: String(calendarEvent._id),
+      actorUserId: String(req.user._id),
+      title: calendarEvent.title,
+      calendarScope: eventData.scope === "school" ? "school" : "personal",
+    });
+
     // 스케줄러 큐에 등록 (fire-and-forget; 옵트인 게이트는 register* 내부)
     if (calendarEvent.scheduleStart?.enabled) {
       registerEventNotification(req.user.academyId, calendarEvent).catch((err) =>

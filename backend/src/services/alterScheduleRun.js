@@ -4,9 +4,13 @@
  */
 
 import { logger } from "../log/logger.js";
+import { runWithAlterFlag } from "./alterEvent.js";
 import {
+  MAX_ROUTINE_RUNS_PER_DAY,
+  MAX_USER_EVENT_RUNS_PER_DAY,
   NOTIFY_MAX,
   nextStateAfterRun,
+  seoulDay,
   skipReasonForCode,
   slotKey,
   truncateSummary,
@@ -53,7 +57,10 @@ export const executeClaimedSchedule = async ({
         toolNames: extra.toolNames,
         at: extra.at || new Date(),
       },
-      { preserveFutureSlot }
+      {
+        preserveFutureSlot,
+        claimedAt: doc?.pending?.claimedThrough || extra.at || new Date(),
+      }
     );
     await save(doc._id, patch);
     return patch;
@@ -61,17 +68,38 @@ export const executeClaimedSchedule = async ({
 
   try {
     const ctx = await loadContext(academyId, doc);
-    const result = await runAgent({
-      academyId,
-      user: ctx.user,
-      academy: ctx.academy,
-      season: ctx.season,
-      school: ctx.school,
-      registration: ctx.registration,
-      message: doc.prompt,
-      history: [],
-      allowScheduleTool: false,
-    });
+    const eventRun = doc.trigger === "event";
+    let message = doc.prompt;
+    let triggerEvents = [];
+    if (eventRun) {
+      const day = seoulDay(new Date());
+      const mine = doc.runDay === day ? Number(doc.runCount) || 0 : 0;
+      const total = deps.userEventRuns
+        ? await deps.userEventRuns(academyId, doc, day)
+        : mine;
+      if (mine >= MAX_ROUTINE_RUNS_PER_DAY || total >= MAX_USER_EVENT_RUNS_PER_DAY) {
+        return finish("skipped", "오늘 실행 한도에 도달했습니다.");
+      }
+      triggerEvents = Array.isArray(ctx.triggerEvents) ? ctx.triggerEvents : [];
+      if (!triggerEvents.length) {
+        return finish("skipped", "확인할 수 있는 이벤트가 없습니다.");
+      }
+      message = `${doc.prompt}\n\n<event_data untrusted="true">\n${JSON.stringify(triggerEvents)}\n</event_data>`;
+    }
+    const result = await runWithAlterFlag(() =>
+      runAgent({
+        academyId,
+        user: ctx.user,
+        academy: ctx.academy,
+        season: ctx.season,
+        school: ctx.school,
+        registration: ctx.registration,
+        message,
+        history: [],
+        allowScheduleTool: false,
+        triggerEvents: eventRun ? triggerEvents : undefined,
+      })
+    );
     const saved = await persistTurn({
       academyId,
       userId: ctx.user._id,
@@ -95,7 +123,7 @@ export const executeClaimedSchedule = async ({
               userName: ctx.user.userName,
             },
           ],
-          notificationType: "alterSchedule",
+          notificationType: doc.trigger === "event" ? "alterTrigger" : "alterSchedule",
           category: "Alter",
           title: doc.title || "예약 실행",
           description: truncateSummary(summary, NOTIFY_MAX),

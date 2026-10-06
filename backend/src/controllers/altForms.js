@@ -318,6 +318,16 @@ export const create = async (req, res) => {
       syncFormCalendar(req.user.academyId, form, board, req.user).catch((err) =>
         logger.error(`Form calendar sync failed: ${err.message}`)
       );
+      const { emitAlterEvent } = await import("../services/alterEvent.js");
+      emitAlterEvent(req.user.academyId, {
+        type: "form_posted",
+        entityType: "altForm",
+        entityId: String(form._id),
+        actorUserId: String(req.user._id),
+        title: form.title,
+        boardId: String(form.board || ""),
+        formId: String(form._id),
+      });
     }
 
     return res.status(200).send({ form, sheet });
@@ -882,6 +892,19 @@ export const importForm = async (req, res) => {
 
     form.sheet = sheet._id;
     await form.save();
+
+    if (!form.isDraft) {
+      const { emitAlterEvent } = await import("../services/alterEvent.js");
+      emitAlterEvent(req.user.academyId, {
+        type: "form_posted",
+        entityType: "altForm",
+        entityId: String(form._id),
+        actorUserId: String(req.user._id),
+        title: form.title,
+        boardId: String(form.board || ""),
+        formId: String(form._id),
+      });
+    }
 
     return res.status(200).send({ form, sheet });
   } catch (err) {

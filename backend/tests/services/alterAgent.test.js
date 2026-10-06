@@ -698,10 +698,11 @@ describe("course todo eval labels", () => {
     expect(readonlyPrompt).not.toContain("manage_schedule");
     expect(readonlyPrompt).toContain("search_product_guide 결과에 나온 것만");
     // Trimmed prompt stayed under 1169. manage_schedule raised the schema
-    // from 787; keep a little room so a large accidental addition still fails.
+    // from 787 to under 1200. Event trigger fields on that tool raised it
+    // to 1644; keep a little room so a large accidental addition still fails.
     expect(native.length).toBeLessThan(1169);
-    expect(schema.length).toBeLessThan(1200);
-    expect(native.length + schema.length).toBeLessThan(2369);
+    expect(schema.length).toBeLessThan(1700);
+    expect(native.length + schema.length).toBeLessThan(2869);
   });
 });
 

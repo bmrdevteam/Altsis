@@ -12,6 +12,7 @@ import {
 } from "./notificationEmail.js";
 import { filterRecipientsBySettings } from "./calendarEventNotify.js";
 import { logger } from "../log/logger.js";
+import { emitAlterEvent } from "./alterEvent.js";
 
 /**
  * 학교/보드 수준 알림 이벤트 활성화 여부 확인
@@ -159,6 +160,23 @@ export const sendAutoNotification = async ({
     }).catch((err) => {
       logger.warn(`sendNotificationEmails failed: ${err.message}`);
     });
+
+    if (
+      notificationType === "altFormApprovalRequest" &&
+      relatedEntity?.type !== "alterConversation"
+    ) {
+      for (const user of filteredUsers) {
+        emitAlterEvent(academyId, {
+          type: "approval_requested",
+          entityType: relatedEntity?.type || "altSheetRow",
+          entityId: String(relatedEntity?.id || ""),
+          actorUserId: String(fromUser?._id || ""),
+          title,
+          recipientUserId: String(user.user || ""),
+          notificationType,
+        });
+      }
+    }
 
     return createdNotifications;
   } catch (err) {

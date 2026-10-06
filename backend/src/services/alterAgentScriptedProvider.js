@@ -170,12 +170,37 @@ export const scriptedAgentGenerate = async ({
   const scheduleToolAvailable = (Array.isArray(tools) ? tools : []).some(
     (tool) => tool?.name === "manage_schedule"
   );
+  const triggerToolAvailable = (Array.isArray(tools) ? tools : []).some(
+    (tool) => tool?.name === "get_trigger_events"
+  );
   const scheduleRequest =
     scheduleToolAvailable && isScriptedScheduleRequest(userText);
   const scheduleArgs = scheduleRequest ? scriptedScheduleArguments(userText) : null;
   const wait = delayMs();
   if (wait) {
     await new Promise((resolve) => setTimeout(resolve, wait));
+  }
+  const triggerRequest =
+    triggerToolAvailable && /<event_data/.test(userText) && !scheduleRequest;
+  if (triggerRequest) {
+    if (native) {
+      if (!sawResult && toolChoice !== "none") {
+        return {
+          text: "",
+          toolCalls: [{ id: "scripted-call-events", name: "get_trigger_events", arguments: {} }],
+          tokenUsage: { ...TOKEN_USAGE },
+        };
+      }
+      return {
+        text: "트리거로 쌓인 항목을 조회했습니다.",
+        toolCalls: [],
+        tokenUsage: { ...TOKEN_USAGE },
+      };
+    }
+    const fence = sawResult
+      ? ["```alter", JSON.stringify({ type: "final", text: "트리거로 쌓인 항목을 조회했습니다." }), "```"].join("\n")
+      : ["```alter", JSON.stringify({ type: "tool", name: "get_trigger_events", arguments: {} }), "```"].join("\n");
+    return { text: fence, tokenUsage: { ...TOKEN_USAGE } };
   }
   if (scheduleRequest) {
     if (native) {

@@ -4,11 +4,14 @@
  */
 
 import mongoose from "mongoose";
-import { AlterSchedule, Registration, Season } from "../models/index.js";
+import { Academy, AlterSchedule, Registration, Season } from "../models/index.js";
 import { PERMISSION_DENIED } from "../messages/index.js";
 import {
   CLAIM_LEASE_MS,
+  DEFAULT_DEBOUNCE_MS,
+  MAX_EVENT_ROUTINES,
   MAX_SCHEDULES_PER_USER,
+  MIN_INTERVAL_MS,
   buildScheduleFields,
   claimQuery,
   computeNextRunAt,
@@ -82,6 +85,13 @@ const limitError = () =>
 const duplicateError = () =>
   scheduleError(409, "같은 예약이 이미 있습니다.", "SCHEDULE_DUPLICATE");
 
+const eventLimitError = () =>
+  scheduleError(
+    400,
+    `이벤트 예약은 계정당 ${MAX_EVENT_ROUTINES}개까지입니다.`,
+    "EVENT_LIMIT"
+  );
+
 const findByProposalKey = async (Model, userId, proposalKey) => {
   if (!proposalKey || typeof Model.findOne !== "function") return null;
   return Model.findOne({ user: userId, proposalKey });
@@ -102,6 +112,10 @@ const insertSchedule = async (Model, user, fields, createdVia, season) => {
   if (typeof Model.countDocuments === "function") {
     const owned = await countOwned(Model, user._id);
     if (owned >= MAX_SCHEDULES_PER_USER) throw limitError();
+    if (fields.trigger === "event") {
+      const eventOwned = await Model.countDocuments({ user: user._id, trigger: "event" });
+      if (eventOwned >= MAX_EVENT_ROUTINES) throw eventLimitError();
+    }
   }
   let doc;
   try {
@@ -112,7 +126,9 @@ const insertSchedule = async (Model, user, fields, createdVia, season) => {
       season: season._id,
       title: fields.title,
       prompt: fields.prompt,
-      schedule: fields.schedule,
+      ...(fields.schedule ? { schedule: fields.schedule } : {}),
+      trigger: fields.trigger || "time",
+      ...(fields.event ? { event: fields.event } : {}),
       timezone: fields.timezone,
       enabled: true,
       nextRunAt: fields.nextRunAt,
@@ -121,6 +137,9 @@ const insertSchedule = async (Model, user, fields, createdVia, season) => {
       createdVia,
       proposalKey,
       runs: [],
+      pending: { events: [], droppedCount: 0 },
+      runCount: 0,
+      consecutiveErrors: 0,
     });
   } catch (err) {
     if (err?.code === 11000 && proposalKey) {
@@ -144,7 +163,35 @@ const insertSchedule = async (Model, user, fields, createdVia, season) => {
       throw limitError();
     }
   }
+  if (fields.trigger === "event" && typeof Model.find === "function") {
+    const rows = await Model.find({ user: user._id, trigger: "event" })
+      .sort({ createdAt: 1, _id: 1 })
+      .select("_id")
+      .lean();
+    const index = rows.findIndex((row) => String(row._id) === String(doc._id));
+    if (index < 0 || index >= MAX_EVENT_ROUTINES) {
+      if (typeof doc.deleteOne === "function") await doc.deleteOne();
+      else if (typeof Model.deleteOne === "function") {
+        await Model.deleteOne({ _id: doc._id, user: user._id });
+      }
+      throw eventLimitError();
+    }
+  }
   return publicSchedule(doc);
+};
+
+const assertEventTriggersEnabled = async (academyId, fields, deps) => {
+  if (fields.trigger !== "event") return;
+  const academy = deps.findAcademy
+    ? await deps.findAcademy(academyId)
+    : await Academy.findOne({ academyId }).select("alterEventTriggersEnabled").lean();
+  if (!academy?.alterEventTriggersEnabled) {
+    throw scheduleError(
+      403,
+      "이벤트 예약은 아카데미 설정에서 켜야 합니다.",
+      "EVENT_TRIGGERS_DISABLED"
+    );
+  }
 };
 
 export const createScheduleForUser = async (
@@ -157,6 +204,7 @@ export const createScheduleForUser = async (
   const seasonId = body?.season || body?.seasonId;
   const { season } = await assertScheduleTeacher(academyId, user, seasonId, deps);
   const fields = buildScheduleFields(body);
+  await assertEventTriggersEnabled(academyId, fields, deps);
   const Model = deps.model || AlterSchedule(academyId);
   return insertSchedule(Model, user, fields, createdVia, season);
 };
@@ -183,12 +231,16 @@ export const updateScheduleForUser = async (academyId, user, id, body, model) =>
     title: body?.title != null ? body.title : doc.title,
     prompt: body?.prompt != null ? body.prompt : doc.prompt,
     timezone: body?.timezone != null ? body.timezone : doc.timezone,
+    trigger: body?.trigger || doc.trigger || "time",
     schedule: body?.schedule != null ? body.schedule : doc.schedule,
+    event: body?.event != null ? body.event : doc.event,
   };
   const fields = buildScheduleFields(merged);
   doc.title = fields.title;
   doc.prompt = fields.prompt;
-  doc.schedule = fields.schedule;
+  doc.trigger = fields.trigger || "time";
+  if (fields.schedule) doc.schedule = fields.schedule;
+  if (fields.event) doc.event = fields.event;
   doc.timezone = fields.timezone;
   doc.nextRunAt = fields.nextRunAt;
   doc.proposalKey = fields.proposalKey;
@@ -205,7 +257,18 @@ export const updateScheduleForUser = async (academyId, user, id, body, model) =>
 export const setScheduleEnabled = async (academyId, user, id, enabled, model) => {
   const doc = await findOwnedSchedule(academyId, user, id, model);
   const on = !!enabled;
-  if (on) {
+  if (on && (doc.trigger || "time") === "event") {
+    const pending = doc.pending?.events?.length || doc.pending?.events?.size || 0;
+    if (pending) {
+      const wait = Math.max(
+        doc.event?.debounceMs || DEFAULT_DEBOUNCE_MS,
+        doc.event?.minIntervalMs || MIN_INTERVAL_MS
+      );
+      doc.nextRunAt = new Date(Date.now() + wait);
+    } else {
+      doc.nextRunAt = null;
+    }
+  } else if (on) {
     const spec = doc.schedule?.toObject ? doc.schedule.toObject() : { ...(doc.schedule || {}) };
     const next = computeNextRunAt(
       { ...spec, timezone: doc.timezone || "Asia/Seoul" },
@@ -256,7 +319,10 @@ export const confirmProposal = async (academyId, user, body, deps = {}) => {
     prompt: proposal.prompt,
     timezone: proposal.timezone,
     schedule: proposal.schedule,
+    trigger: proposal.trigger,
+    event: proposal.event,
   });
+  await assertEventTriggersEnabled(academyId, fields, deps);
   return insertSchedule(Model, user, fields, "agent", season);
 };
 
@@ -319,6 +385,7 @@ export const beginManualRun = async (academyId, user, id, seasonId, deps = {}) =
         claimUntil: new Date(now.getTime() + CLAIM_LEASE_MS),
         claimToken: token,
         lastStatus: "running",
+        "pending.claimedThrough": now,
       },
     },
     { new: false }
@@ -332,6 +399,7 @@ export const beginManualRun = async (academyId, user, id, seasonId, deps = {}) =
     claimUntil: new Date(now.getTime() + CLAIM_LEASE_MS),
     claimToken: token,
     lastStatus: "running",
+    pending: { ...(pre.pending || {}), claimedThrough: now },
   };
 };
 
@@ -344,6 +412,7 @@ export const claimDueDocument = async (model, now, leaseMs = CLAIM_LEASE_MS) => 
         claimUntil: new Date(now.getTime() + leaseMs),
         claimToken: token,
         lastStatus: "running",
+        "pending.claimedThrough": now,
       },
     },
     { new: false, sort: { nextRunAt: 1 } }
@@ -355,6 +424,7 @@ export const claimDueDocument = async (model, now, leaseMs = CLAIM_LEASE_MS) => 
     claimUntil: new Date(now.getTime() + leaseMs),
     claimToken: token,
     lastStatus: "running",
+    pending: { ...(pre.pending || {}), claimedThrough: now },
   };
 };
 

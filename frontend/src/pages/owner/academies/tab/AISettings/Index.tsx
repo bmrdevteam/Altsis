@@ -179,6 +179,29 @@ const AISettings = (props: Props) => {
   const providerMismatch =
     hasApiKey && savedProvider !== null && savedProvider !== aiProvider;
 
+  const onClickToggleEventTriggers = async () => {
+    const next = props.academyData.alterEventTriggersEnabled !== true;
+    if (
+      !window.confirm(
+        next
+          ? "이벤트 예약을 켜시겠습니까? 1:1 메시지 내용은 예약마다 동의해야 AI에 전달됩니다."
+          : "이벤트 예약을 끄시겠습니까? 이미 만든 예약은 더 이상 새 이벤트를 받지 않습니다."
+      )
+    ) {
+      return;
+    }
+    try {
+      const { academy } = await AcademyAPI.UAcademyAiEnabled({
+        params: { academyId: props.academyData.academyId },
+        data: { alterEventTriggersEnabled: next },
+      });
+      alert(SUCCESS_MESSAGE);
+      props.setAcademyData(academy);
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+  };
+
   const onClickToggleAiHandler = async () => {
     const action = props.academyData.aiEnabled ? "비활성화" : "활성화";
     if (!window.confirm(`정말 AI 기능을 ${action}하시겠습니까?`)) return;
@@ -446,6 +469,38 @@ const AISettings = (props: Props) => {
               {props.academyData.aiEnabled ? "AI 비활성화" : "AI 활성화"}
             </Button>
           )}
+        </div>
+
+        <div className={`${style.card} ${style.statusRow}`}>
+          <div className={style.statusMeta}>
+            <div className={style.statusLabel}>이벤트 예약</div>
+            <p className={style.sectionDesc}>
+              제출, 게시, 결재 요청, 학교 일정, 1:1 메시지를 모아 Alter를
+              실행합니다. 기본은 꺼져 있습니다.
+            </p>
+            <div className={style.badges}>
+              <span
+                className={`${style.badge} ${
+                  props.academyData.alterEventTriggersEnabled
+                    ? style.badgeOn
+                    : style.badgeOff
+                }`}
+              >
+                {props.academyData.alterEventTriggersEnabled
+                  ? "이벤트 예약 켜짐"
+                  : "이벤트 예약 꺼짐"}
+              </span>
+            </div>
+          </div>
+          <Button
+            type="ghost"
+            style={{ borderRadius: "4px", height: "32px" }}
+            onClick={onClickToggleEventTriggers}
+          >
+            {props.academyData.alterEventTriggersEnabled
+              ? "이벤트 예약 끄기"
+              : "이벤트 예약 켜기"}
+          </Button>
         </div>
       </section>
 

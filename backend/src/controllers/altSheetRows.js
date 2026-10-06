@@ -1054,6 +1054,19 @@ export const create = async (req, res) => {
       }
     }
 
+    if (row && row.isDraft !== true) {
+      const { emitAlterEvent } = await import("../services/alterEvent.js");
+      emitAlterEvent(req.user.academyId, {
+        type: "form_submitted",
+        entityType: "altSheetRow",
+        entityId: String(row._id),
+        actorUserId: String(req.user._id),
+        title: form.title,
+        boardId: String(form.board || ""),
+        formId: String(form._id),
+      });
+    }
+
     return res.status(200).send({ row });
   } catch (err) {
     if (err.code === 11000) {

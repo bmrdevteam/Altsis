@@ -867,6 +867,21 @@ export const sendMessage = async (req, res) => {
 
     const message = await ChatMessage(req.user.academyId).create(messageData);
 
+    if (room.type === "direct") {
+      const { emitAlterEvent } = await import("../services/alterEvent.js");
+      emitAlterEvent(req.user.academyId, {
+        type: "dm_received",
+        entityType: "chatMessage",
+        entityId: String(message._id),
+        actorUserId: String(req.user._id),
+        senderUserId: String(req.user._id),
+        title: "1:1 메시지",
+        recipientUserIds: room.participants
+          .filter((person) => String(person.user) !== String(req.user._id))
+          .map((person) => String(person.user)),
+      });
+    }
+
     // Update ChatFile with message reference if it's a file/image message
     if (attachment?.key) {
       await ChatFile(req.user.academyId).findOneAndUpdate(

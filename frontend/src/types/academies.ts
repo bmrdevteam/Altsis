@@ -57,6 +57,7 @@ export type TAcademy = {
   chatEnabled?: boolean;
   boardEnabled?: boolean;
   aiEnabled?: boolean;
+  alterEventTriggersEnabled?: boolean;
   sitePublishEnabled?: boolean;
   sitePublished?: boolean;
   emailNotifyEnabled?: boolean;
