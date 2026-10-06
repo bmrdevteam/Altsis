@@ -60,6 +60,7 @@ export const executeAgentSkill = async ({
   history = [],
   guidelines = "",
   onEvent,
+  allowScheduleTool = true,
 }) => {
   const profile = FEATURE_PROFILES.agent;
   const provider = resolveProvider(academy?.aiProvider);
@@ -130,7 +131,7 @@ export const executeAgentSkill = async ({
 
   try {
     const result = await runAgentLoop({
-      tools: createAgentTools(),
+      tools: createAgentTools({ includeScheduleTool: allowScheduleTool !== false }),
       serverCtx,
       userMessage: userQuestion,
       history: recent,
@@ -156,6 +157,7 @@ export const executeAgentSkill = async ({
       tokenUsage,
       toolSteps: result.toolSteps,
       links: result.links || [],
+      scheduleProposal: result.scheduleProposal || null,
     };
   } catch (err) {
     if (err?.code && err.status) throw err;

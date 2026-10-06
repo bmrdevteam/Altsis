@@ -33,6 +33,7 @@ export const WEB_PUSH_ELIGIBLE_TYPES = new Set([
   "altFormApprovalRequest",
   "altFormApprovalResult",
   "chatMessage",
+  "alterSchedule",
 ]);
 
 let configured = false;
@@ -189,6 +190,8 @@ export const resolveNotificationPath = async (academyId, notification) => {
       case "calendarEvent":
       case "reminder":
         return "/";
+      case "alterConversation":
+        return `/?alterConversation=${encodeURIComponent(String(entity.id))}`;
       default:
         return "/";
     }

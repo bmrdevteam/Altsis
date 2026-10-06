@@ -493,6 +493,7 @@ ${formatRule}
 - 링크는 답 아래에 붙습니다. URL이나 마크다운 링크를 쓰지 마세요.
 - source=board 는 보드 양식(미제출·결재·채점)입니다. 수업 평가가 아닙니다. 수업 평가는 source=course 이고 kind=evaluation 인 항목만입니다.
 - emptyCourses는 수강생 없는 수업 수입니다. 할 일이 아닙니다. 한 번만, 개수만, 한 문장으로 언급하세요.
+- manage_schedule은 저장하지 않습니다. prompt에는 조회와 안내만 넣으세요.
 - 도구는 최대 ${MAX_AGENT_TOOL_STEPS}번입니다. 민감정보(주민번호·연락처·주소)는 반복하지 마세요.`;
 };
 
@@ -549,6 +550,7 @@ export const runAgentLoop = async ({
   ];
   const steps = [];
   const links = [];
+  let scheduleProposal = null;
   let toolSteps = 0;
   let formatRetries = 0;
 
@@ -558,6 +560,7 @@ export const runAgentLoop = async ({
       ...extra,
       text: stripUnmatchedLinks(extra?.text, normalized),
       links: normalized,
+      ...(scheduleProposal ? { scheduleProposal } : {}),
     };
   };
 
@@ -588,6 +591,9 @@ export const runAgentLoop = async ({
           ? data.summary
           : "완료";
       if (Array.isArray(data?.links)) links.push(...data.links);
+      if (data?.proposal && data.proposal.saved !== true) {
+        scheduleProposal = data.proposal;
+      }
       emit("tool", { name: action.name, status: "done", label, summary });
       steps.push({ name: action.name, status: "done" });
       const forModel =

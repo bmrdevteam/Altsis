@@ -3,6 +3,7 @@ export const SETTINGS_TABS = [
   "social",
   "security",
   "notification",
+  "routine",
   "school",
   "theme",
   "app",

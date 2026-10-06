@@ -10,6 +10,7 @@ import { AIUsageLog } from "../models/AIUsageLog.js";
 import { AiLibraryChunk } from "../models/AiLibraryChunk.js";
 import { AiLibraryItem } from "../models/AiLibraryItem.js";
 import { AlterConversation } from "../models/AlterConversation.js";
+import { AlterSchedule } from "../models/AlterSchedule.js";
 import { AlterMessage } from "../models/AlterMessage.js";
 import { AltForm } from "../models/AltForm.js";
 import { AltFormDupCounter } from "../models/AltFormDupCounter.js";
@@ -53,6 +54,7 @@ export {
   AiLibraryItem,
   AlterConversation,
   AlterMessage,
+  AlterSchedule,
   AltForm,
   AltFormDupCounter,
   AltFormFavorite,

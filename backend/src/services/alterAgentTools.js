@@ -10,6 +10,7 @@ import { retrieveAlterGuide } from "./alterGuideRetrieve.js";
 import { buildAlterGuideLinks } from "./alterGuideLinks.js";
 import { maskSensitiveObject } from "./aiSafety.js";
 import { logger } from "../log/logger.js";
+import { buildScheduleFields } from "./alterScheduleTime.js";
 
 const TODO_LIMIT_DEFAULT = 20;
 const TODO_LIMIT_MAX = 40;
@@ -344,12 +345,107 @@ const todoSummary = (boardCount, courseCount) => {
  *   retrieveAlterGuide?: Function,
  * }} [deps]
  */
+const manageScheduleTool = (deps) => ({
+  name: "manage_schedule",
+  label: "예약",
+  description:
+    "예약 실행을 제안만 합니다. 저장은 사용자가 합니다. prompt는 조회와 안내만.",
+  arguments:
+    '{ "action": "list" | "propose_create" | "propose_delete", "title"?: string, "prompt"?: string, "schedule"?: { "kind": "once" | "daily" | "weekly", "time"?: "HH:mm", "weekdays"?: number[], "onceAt"?: string }, "scheduleId"?: string }',
+  parameters: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      action: {
+        type: "string",
+        enum: ["list", "propose_create", "propose_delete"],
+      },
+      title: { type: "string" },
+      prompt: { type: "string" },
+      scheduleId: { type: "string" },
+      timezone: { type: "string" },
+      schedule: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          kind: { type: "string", enum: ["once", "daily", "weekly"] },
+          time: { type: "string" },
+          weekdays: {
+            type: "array",
+            items: { type: "integer", minimum: 0, maximum: 6 },
+          },
+          onceAt: { type: "string" },
+        },
+      },
+    },
+    required: ["action"],
+  },
+  async execute(serverCtx, rawArgs = {}) {
+    const action = String(rawArgs.action || "").trim();
+    if (action === "list") {
+      const list =
+        deps.listSchedules ||
+        (await import("./alterScheduleService.js")).listSchedulesForTool;
+      return list(serverCtx);
+    }
+    if (action === "propose_delete") {
+      const scheduleId = clip(rawArgs.scheduleId, 64);
+      if (!scheduleId) {
+        return { summary: "예약 id 없음", saved: false, error: "scheduleId가 필요합니다." };
+      }
+      return {
+        summary: "삭제 제안입니다. 저장은 사용자가 합니다.",
+        saved: false,
+        proposal: { saved: false, action: "delete", scheduleId },
+      };
+    }
+    if (action !== "propose_create") {
+      return {
+        summary: "알 수 없는 동작",
+        saved: false,
+        error: "action은 list, propose_create, propose_delete 입니다.",
+      };
+    }
+    try {
+      const fields = buildScheduleFields({
+        title: rawArgs.title,
+        prompt: rawArgs.prompt,
+        timezone: rawArgs.timezone,
+        schedule: rawArgs.schedule,
+      });
+      return {
+        summary: "예약 제안입니다. 저장은 사용자가 합니다.",
+        saved: false,
+        proposal: {
+          saved: false,
+          action: "create",
+          title: fields.title,
+          prompt: fields.prompt,
+          schedule: {
+            ...fields.schedule,
+            onceAt: fields.schedule.onceAt
+              ? new Date(fields.schedule.onceAt).toISOString()
+              : undefined,
+          },
+          timezone: fields.timezone,
+          nextRunAt: fields.nextRunAt.toISOString(),
+        },
+      };
+    } catch (err) {
+      return {
+        summary: err.message || "예약을 제안하지 못했습니다.",
+        saved: false,
+        error: err.message,
+      };
+    }
+  },
+});
+
 export const createAgentTools = (deps = {}) => {
   const loadSchoolTodos = deps.getSchoolTodosForUser || getSchoolTodosForUser;
   const loadCourseTodos = deps.getCourseTodosForUser || getCourseTodosForUser;
   const loadGuide = deps.retrieveAlterGuide || retrieveAlterGuide;
-
-  return [
+  const tools = [
     {
       name: "get_my_todos",
       label: "내 할 일",
@@ -472,4 +568,8 @@ export const createAgentTools = (deps = {}) => {
       },
     },
   ];
+  if (deps.includeScheduleTool !== false) {
+    tools.push(manageScheduleTool(deps));
+  }
+  return tools;
 };

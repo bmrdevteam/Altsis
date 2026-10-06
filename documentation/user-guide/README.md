@@ -65,6 +65,7 @@
 | [채팅](chat.md) | DM·그룹·보드 채팅, Alter(대화·초안·검색) | ⚪ |
 | [알림](notifications.md) | 알림 수신, 잠금화면(Web Push), 유형별 설정 | ⚪ |
 | [설정](settings.md) | 프로필, 보안, 테마, 알림 | ⚪ |
+| [예약 실행](alter-schedule.md) | 선생님 Alter 루틴, 알림으로 결과 받기 | ⚪ |
 
 ---
 

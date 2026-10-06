@@ -286,6 +286,10 @@ type AlterContextValue = {
   hasBackgroundResult: boolean;
   close: () => void;
   toggle: () => void;
+  /** 알림에서 Alter 대화를 열 때 넘기는 id */
+  pendingConversationId: string | null;
+  openAlterConversation: (conversationId: string) => void;
+  clearPendingConversation: () => void;
   toggleFullscreen: () => void;
   setIsWorking: (v: boolean) => void;
   setHasBackgroundResult: (v: boolean) => void;
@@ -307,6 +311,9 @@ export const AlterProvider = ({ children }: { children: ReactNode }) => {
   const [pageContext, setPageContext] = useState<TAlterPageContext | null>(
     null
   );
+  const [pendingConversationId, setPendingConversationId] = useState<
+    string | null
+  >(null);
   const pageContextOwnerRef = useRef(0);
 
   const close = useCallback(() => {
@@ -322,6 +329,17 @@ export const AlterProvider = ({ children }: { children: ReactNode }) => {
   }, []);
   const toggleFullscreen = useCallback(
     () => setIsFullscreen((v) => !v),
+    []
+  );
+  const openAlterConversation = useCallback((conversationId: string) => {
+    const id = String(conversationId || "").trim();
+    if (!id) return;
+    setPendingConversationId(id);
+    setHasBackgroundResult(false);
+    setIsOpen(true);
+  }, []);
+  const clearPendingConversation = useCallback(
+    () => setPendingConversationId(null),
     []
   );
   const registerPageContext = useCallback((ctx: TAlterPageContext) => {
@@ -343,6 +361,9 @@ export const AlterProvider = ({ children }: { children: ReactNode }) => {
       close,
       toggle,
       toggleFullscreen,
+      pendingConversationId,
+      openAlterConversation,
+      clearPendingConversation,
       setIsWorking,
       setHasBackgroundResult,
       pageContext,
@@ -356,6 +377,9 @@ export const AlterProvider = ({ children }: { children: ReactNode }) => {
       close,
       toggle,
       toggleFullscreen,
+      pendingConversationId,
+      openAlterConversation,
+      clearPendingConversation,
       pageContext,
       registerPageContext,
     ]

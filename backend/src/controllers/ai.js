@@ -497,6 +497,7 @@ export const runAlter = async (req, res) => {
         draft: result.draft || null,
         message: result.text,
         links: result.links || [],
+        scheduleProposal: result.scheduleProposal || null,
         conversationId: savedConversationId,
         ...(result.tokenUsage ? { tokenUsage: result.tokenUsage } : {}),
       });
@@ -509,6 +510,7 @@ export const runAlter = async (req, res) => {
       review: result.review,
       draft: result.draft || null,
       links: result.links || [],
+      scheduleProposal: result.scheduleProposal || null,
       conversationId: savedConversationId,
     });
   } catch (err) {

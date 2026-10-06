@@ -5978,6 +5978,7 @@ export const runAlterSkill = async ({
       draft: null,
       tokenUsage: result.tokenUsage,
       links: result.links || [],
+      scheduleProposal: result.scheduleProposal || null,
     };
   }
 

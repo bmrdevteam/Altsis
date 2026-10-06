@@ -8,7 +8,8 @@ export type TNotificationType =
   | "reminder"
   | "boardInvitation"
   | "altFormApprovalRequest"
-  | "altFormApprovalResult";
+  | "altFormApprovalResult"
+  | "alterSchedule";
 
 export type TRelatedEntity = {
   type:
@@ -19,7 +20,8 @@ export type TRelatedEntity = {
     | "reminder"
     | "board"
     | "altSheetRow"
-    | "altForm";
+    | "altForm"
+    | "alterConversation";
   id: string;
 };
 

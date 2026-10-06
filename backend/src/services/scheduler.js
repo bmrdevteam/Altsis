@@ -28,6 +28,7 @@ import {
   registerEventReminder,
   syncAllToRedis,
 } from "./schedulerQueue.js";
+import { processDueAlterSchedules } from "./alterScheduleRunner.js";
 
 const NOTIFICATIONS_KEY = "scheduler:notifications";
 const REMINDERS_KEY = "scheduler:reminders";
@@ -452,13 +453,19 @@ export const initializeScheduler = async () => {
     }
     schedulerTickRunning = true;
     try {
-      await Promise.all([processNotifications(), processReminders()]);
+      await Promise.all([
+        processNotifications(),
+        processReminders(),
+        processDueAlterSchedules().catch((err) => {
+          logger.error(`processDueAlterSchedules failed: ${err.message}`);
+        }),
+      ]);
     } finally {
       schedulerTickRunning = false;
     }
   });
 
   logger.info(
-    "Scheduler initialized (Redis sorted set mode) - notifications and reminders enabled"
+    "Scheduler initialized (Redis sorted set mode) - notifications, reminders, and alter schedules enabled"
   );
 };

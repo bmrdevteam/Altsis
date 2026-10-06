@@ -4,6 +4,7 @@ import { isLoggedIn, isOwAdmin, isAdManager } from "../middleware/auth.js";
 import { requireSeasonSchoolManagerFromBody } from "../middleware/schoolManagerAuth.js";
 import * as ai from "../controllers/ai.js";
 import * as aiLibrary from "../controllers/aiLibrary.js";
+import * as alterSchedule from "../controllers/alterSchedule.js";
 
 //=================================
 //             AI / Alter
@@ -56,6 +57,14 @@ router.post("/alter/attachment", isLoggedIn, ai.uploadAlterAttachment);
 
 // Alter request-prompt refine (no persist / no skill run)
 router.post("/alter/refine-prompt", isLoggedIn, ai.refineAlterPrompt);
+
+// Alter routines (teacher). Confirm is the only save path for a chat proposal.
+router.get("/alter/schedules", isLoggedIn, alterSchedule.list);
+router.post("/alter/schedules/confirm", isLoggedIn, alterSchedule.confirm);
+router.post("/alter/schedules", isLoggedIn, alterSchedule.create);
+router.put("/alter/schedules/:id", isLoggedIn, alterSchedule.update);
+router.delete("/alter/schedules/:id", isLoggedIn, alterSchedule.remove);
+router.post("/alter/schedules/:id/run", isLoggedIn, alterSchedule.runNow);
 
 // Alter unified turn (skill router)
 router.post("/alter", isLoggedIn, ai.runAlter);

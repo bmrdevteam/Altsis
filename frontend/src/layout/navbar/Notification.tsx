@@ -7,6 +7,7 @@ import _ from "lodash";
 
 // hooks
 import { useAuth } from "contexts/authContext";
+import { useAlter } from "contexts/alterContext";
 
 // components
 import Svg from "assets/svg/Svg";
@@ -74,6 +75,7 @@ function formatEventTime(date: Date | string): string {
 
 const Notification = () => {
   const { currentUser } = useAuth();
+  const { openAlterConversation } = useAlter();
   const { NotificationAPI, ReminderAPI, PostAPI, EnrollmentAPI, AltSheetRowAPI } =
     useAPIv2();
 
@@ -256,6 +258,7 @@ const Notification = () => {
       "altSheetRow",
       "board",
       "altForm",
+      "alterConversation",
     ];
     return navigableTypes.includes(notification.relatedEntity.type);
   };
@@ -316,6 +319,8 @@ const Notification = () => {
       navigate(`/boards/${notification.relatedEntity.id}`);
     } else if (notification.relatedEntity?.type === "altForm") {
       navigate("/boards");
+    } else if (notification.relatedEntity?.type === "alterConversation") {
+      openAlterConversation(String(notification.relatedEntity.id));
     } else if (notification.relatedEntity?.type === "altSheetRow") {
       try {
         const { boardId, formId, row } = await AltSheetRowAPI.RAltSheetRow({

@@ -92,6 +92,59 @@ const sawToolResult = (messages) =>
     return String(row?.content || "").includes("<tool_result");
   });
 
+const latestUserText = (messages) => {
+  const rows = messages || [];
+  for (let i = rows.length - 1; i >= 0; i -= 1) {
+    const row = rows[i];
+    if (row?.role !== "user") continue;
+    const content = String(row.content || "");
+    if (content.includes("<tool_result")) continue;
+    return content;
+  }
+  return "";
+};
+
+const DAY_INDEX = { 일: 0, 월: 1, 화: 2, 수: 3, 목: 4, 금: 5, 토: 6 };
+
+/** Demo academy: a schedule-shaped request proposes manage_schedule and does not save. */
+export const isScriptedScheduleRequest = (text) => {
+  const value = String(text || "");
+  if (/매주|매일|루틴/.test(value)) return true;
+  return /예약/.test(value) && /할 일|정리|실행/.test(value);
+};
+
+export const scriptedScheduleArguments = (text) => {
+  const value = String(text || "");
+  const day = value.match(/([일월화수목금토])요일/);
+  const weekday = day ? DAY_INDEX[day[1]] : 1;
+  const hourMatch = value.match(/(\d{1,2})\s*시/);
+  let hour = hourMatch ? Number(hourMatch[1]) : 8;
+  if (/오후/.test(value) && hour < 12) hour += 12;
+  if (hour > 23) hour = 8;
+  const time = `${String(hour).padStart(2, "0")}:00`;
+  const daily = /매일/.test(value) && !/매주/.test(value);
+  const schedule = daily
+    ? { kind: "daily", time }
+    : { kind: "weekly", time, weekdays: [weekday] };
+  return {
+    action: "propose_create",
+    title: daily ? "매일 할 일" : "매주 할 일",
+    prompt: "이번 주 할 일을 조회하고, 입력 위치가 필요하면 제품 안내를 찾아 정리해 줘",
+    schedule,
+  };
+};
+
+const SCHEDULE_FINAL_TEXT =
+  "예약은 아직 저장되지 않았습니다. 아래 카드에서 저장을 눌러 주세요.";
+
+const scheduleFence = (args) =>
+  ["```alter", JSON.stringify({ type: "tool", name: "manage_schedule", arguments: args }), "```"].join(
+    "\n"
+  );
+
+const scheduleFinalFence = () =>
+  ["```alter", JSON.stringify({ type: "final", text: SCHEDULE_FINAL_TEXT }), "```"].join("\n");
+
 /**
  * Fence path (no tools): ```alter get_my_todos, then a fenced final answer.
  * Native path (tools passed): the same turn as OpenAI/Anthropic tool_calls,
@@ -111,9 +164,38 @@ export const scriptedAgentGenerate = async ({
 
   const native = Array.isArray(tools) && tools.length > 0;
   const sawResult = sawToolResult(messages);
+  const userText = latestUserText(messages);
+  const scheduleToolAvailable = /manage_schedule/.test(
+    String(systemInstruction || "")
+  );
+  const scheduleRequest =
+    scheduleToolAvailable && isScriptedScheduleRequest(userText);
+  const scheduleArgs = scheduleRequest ? scriptedScheduleArguments(userText) : null;
   const wait = delayMs();
   if (wait) {
     await new Promise((resolve) => setTimeout(resolve, wait));
+  }
+  if (scheduleRequest) {
+    if (native) {
+      if (!sawResult && toolChoice !== "none") {
+        return {
+          text: "",
+          toolCalls: [
+            {
+              id: "scripted-call-schedule",
+              name: "manage_schedule",
+              arguments: scheduleArgs,
+            },
+          ],
+          tokenUsage: { ...TOKEN_USAGE },
+        };
+      }
+      return { text: SCHEDULE_FINAL_TEXT, toolCalls: [], tokenUsage: { ...TOKEN_USAGE } };
+    }
+    return {
+      text: sawResult ? scheduleFinalFence() : scheduleFence(scheduleArgs),
+      tokenUsage: { ...TOKEN_USAGE },
+    };
   }
   if (native) {
     if (!sawResult && toolChoice !== "none") {
@@ -138,3 +220,4 @@ export const scriptedAgentGenerate = async ({
 };
 
 export const SCRIPTED_AGENT_FINAL_TEXT = FINAL_TEXT;
+export const SCRIPTED_SCHEDULE_FINAL_TEXT = SCHEDULE_FINAL_TEXT;

@@ -689,10 +689,11 @@ describe("course todo eval labels", () => {
         parameters: tool.parameters,
       }))
     );
-    // Before this trim: native system prompt 1169 chars + tool schema 787 chars.
+    // Trimmed prompt stayed under 1169. manage_schedule raised the schema
+    // from 787; keep a little room so a large accidental addition still fails.
     expect(native.length).toBeLessThan(1169);
-    expect(schema.length).toBeLessThan(787);
-    expect(native.length + schema.length).toBeLessThan(1956);
+    expect(schema.length).toBeLessThan(1200);
+    expect(native.length + schema.length).toBeLessThan(2369);
   });
 });
 
