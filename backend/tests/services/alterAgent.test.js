@@ -536,6 +536,50 @@ describe("agent tools ignore identity arguments", () => {
       expect(hit.excerpt.length).toBeLessThanOrEqual(500);
     }
   });
+
+  test("raw questions with Korean particles still rank the evaluation input steps first", async () => {
+    const guide = createAgentTools().find((tool) => tool.name === "search_product_guide");
+    for (const query of ["수업 평가는 어디서 해?", "평가할 수업이 뭐고, 어디서 입력해?"]) {
+      const result = await guide.execute({ ...serverCtx, message: query }, { query });
+      expect(result.hits[0].doc).toBe("user-guide/evaluation.md");
+      expect(result.hits[0].excerpt).toContain("담당 수업");
+      expect(result.hits[0].excerpt).toContain("저장");
+      expect(result.hits[0].title).not.toMatch(/조각/);
+    }
+  });
+
+  test("a 목차 heading does not demote a chunk that also holds the matching section", async () => {
+    const steps = [
+      "1. **수업** 페이지에서 **담당 수업** 탭을 엽니다.",
+      "2. 수강생을 고르고 평가를 입력한 뒤 **저장** 합니다.",
+      "평가를 저장하면 같은 수업의 수강생에게 반영됩니다.",
+      "입력한 평가는 수업 상세 화면에 다시 보입니다.",
+      "저장 전에는 다른 화면으로 이동하지 않습니다.",
+    ].join("\n");
+    const tools = createAgentTools({
+      retrieveAlterGuide: () => [
+        {
+          key: "user-guide/courses.md",
+          title: "수업 관리 · 조각 1",
+          content: `수업 소개입니다. ${"수업 ".repeat(80)}`,
+        },
+        {
+          key: "user-guide/evaluation.md",
+          title: "평가 · 조각 1",
+          content: ["## 목차", "- [개요](#개요)", "- [평가 입력](#평가-입력)", "## 평가 입력", steps].join(
+            "\n"
+          ),
+        },
+      ],
+    });
+    const guide = tools.find((tool) => tool.name === "search_product_guide");
+    const result = await guide.execute(serverCtx, { query: "수업 평가는 어디서 해?" });
+    expect(result.hits[0].doc).toBe("user-guide/evaluation.md");
+    expect(result.hits[0].excerpt).toContain("담당 수업");
+    expect(result.hits[0].excerpt).toContain("저장");
+    expect(result.hits[0].excerpt).not.toContain("## 목차");
+    expect(result.hits[0].excerpt).not.toContain("[개요](#개요)");
+  });
 });
 
 describe("course todo eval labels", () => {
