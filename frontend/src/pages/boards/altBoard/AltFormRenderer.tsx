@@ -774,10 +774,6 @@ const AltFormRenderer = ({
   const requiredTarget = getRequiredResponseCount(form);
   const multipleQuotaReached =
     requiredTarget != null && submittedRows.length >= requiredTarget;
-  const canShowWriteTab =
-    !!form &&
-    !multipleQuotaReached &&
-    (!!form.settings.allowMultipleResponses || submittedRows.length === 0);
   const canComposeMultiple =
     !!form?.settings.allowMultipleResponses &&
     canSubmit &&
@@ -1102,6 +1098,30 @@ const AltFormRenderer = ({
     return Object.keys(newErrors).length === 0;
   };
 
+  const enterReviewForSubmittedRow = (
+    mergedRows: TAltSheetRow[],
+    submittedRow: TAltSheetRow,
+    fallbackData?: Record<string, any>
+  ) => {
+    if (!form) return;
+    const nextSubmitted = sortSubmittedRows(mergedRows);
+    const idx = nextSubmitted.findIndex((r) => r._id === submittedRow._id);
+    setMyRows(mergedRows);
+    setData(
+      applyFieldDefaults(
+        form.fields,
+        submittedRow.data || fallbackData || {}
+      )
+    );
+    setReviewIndex(idx >= 0 ? idx : 0);
+    setEditingSubmitted(false);
+    setMyRow(null);
+    setIsSubmitted(false);
+    skipNextExternalViewMode.current = true;
+    setViewMode("review");
+    onViewModeChange?.("review");
+  };
+
   const handleSubmit = async () => {
     if (!form) return;
     const targetRow =
@@ -1169,17 +1189,7 @@ const AltFormRenderer = ({
         const merged = myRows.some((r) => r._id === row._id)
           ? myRows.map((r) => (r._id === row._id ? row : r))
           : [row, ...myRows];
-        setMyRows(merged);
-        setData(applyFieldDefaults(form.fields, row.data || submitData));
-        const nextSubmitted = sortSubmittedRows(merged);
-        const idx = nextSubmitted.findIndex((r) => r._id === row._id);
-        setReviewIndex(idx >= 0 ? idx : 0);
-        setEditingSubmitted(false);
-        setMyRow(null);
-        setIsSubmitted(false);
-        skipNextExternalViewMode.current = true;
-        setViewMode("review");
-        onViewModeChange?.("review");
+        enterReviewForSubmittedRow(merged, row, submitData);
         alert(
           editingDraft
             ? form.settings.assessmentMode
@@ -1189,41 +1199,19 @@ const AltFormRenderer = ({
               ? "과제가 수정되었습니다."
               : "응답이 수정되었습니다."
         );
-      } else if (form.settings.allowMultipleResponses) {
-        alert(
-          form.settings.assessmentMode
-            ? "과제가 제출되었습니다."
-            : "응답이 제출되었습니다."
-        );
-        const nextRows = [row, ...myRows];
-        setMyRows(nextRows);
-        setMyRow(null);
-        setEditingSubmitted(false);
-        const target = getRequiredResponseCount(form);
-        const submittedCount = sortSubmittedRows(nextRows).length;
-        if (target != null && submittedCount >= target) {
-          setReviewIndex(0);
-          setData(applyFieldDefaults(form.fields, row.data || {}));
-          skipNextExternalViewMode.current = true;
-          setViewMode("review");
-          onViewModeChange?.("review");
-          setIsSubmitted(false);
-        } else {
-          setReviewIndex(0);
-          setComposeDirty(false);
-          setData(applyFieldDefaults(form.fields));
-          setIsSubmitted(false);
-        }
       } else {
-        setMyRows([row]);
-        setMyRow(null);
-        setEditingSubmitted(false);
-        setIsSubmitted(false);
-        setReviewIndex(0);
-        setData(applyFieldDefaults(form.fields, row.data || submitData));
-        skipNextExternalViewMode.current = true;
-        setViewMode("review");
-        onViewModeChange?.("review");
+        enterReviewForSubmittedRow(
+          form.settings.allowMultipleResponses ? [row, ...myRows] : [row],
+          row,
+          submitData
+        );
+        if (form.settings.allowMultipleResponses) {
+          alert(
+            form.settings.assessmentMode
+              ? "과제가 제출되었습니다."
+              : "응답이 제출되었습니다."
+          );
+        }
       }
     } catch (err) {
       ALERT_ERROR(err);
@@ -2868,33 +2856,6 @@ const AltFormRenderer = ({
             </span>
           )}
         </div>
-        {canShowWriteTab && canShowSubmitted && (
-          <div className={style.viewModeToggle} role="tablist" aria-label="응답 보기">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={isComposeMode}
-              className={`${style.viewModeBtn} ${
-                isComposeMode ? style.viewModeBtnActive : ""
-              }`}
-              onClick={() => switchViewMode("compose")}
-              title="작성"
-            >
-              작성
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={isReviewMode}
-              className={`${style.viewModeBtn} ${
-                isReviewMode ? style.viewModeBtnActive : ""
-              }`}
-              onClick={() => switchViewMode("review")}
-            >
-              내 응답
-            </button>
-          </div>
-        )}
       </div>
 
       <div className={style.rendererStack}>
