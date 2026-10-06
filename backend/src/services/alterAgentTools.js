@@ -14,7 +14,8 @@ import { logger } from "../log/logger.js";
 const TODO_LIMIT_DEFAULT = 20;
 const TODO_LIMIT_MAX = 40;
 const GUIDE_HITS = 2;
-const GUIDE_CHARS = 240;
+const GUIDE_CHARS = 500;
+const GUIDE_CANDIDATES = 8;
 
 const clip = (value, max) => {
   const text = String(value ?? "").trim();
@@ -80,6 +81,131 @@ export const EVAL_STATUS_LABEL = {
 };
 
 const EMPTY_COURSE_TITLE_CAP = 5;
+const ANCHOR_LINK_RE = /\[[^\]]*\]\(#[^)]*\)/g;
+
+const queryTokens = (query) =>
+  [
+    ...new Set(
+      String(query || "")
+        .toLowerCase()
+        .split(/[^\p{L}\p{N}]+/u)
+        .filter((token) => token.length >= 2)
+    ),
+  ];
+
+const tokenHits = (text, tokens) => {
+  const lower = String(text || "").toLowerCase();
+  return tokens.reduce((n, token) => n + (lower.includes(token) ? 1 : 0), 0);
+};
+
+const isHeadingLine = (line) => /^#{1,6}\s+\S/.test(String(line || "").trim());
+
+const isAnchorLinkLine = (line) => {
+  const text = String(line || "").trim();
+  if (!text.includes("](#")) return false;
+  const rest = text.replace(ANCHOR_LINK_RE, "").replace(/^[-*\d.)\s]+/, "").trim();
+  return rest.length === 0;
+};
+
+/** Drop 목차, heading-only lines, and `[개요](#개요)` so the clip reaches the steps. */
+const cleanGuideBody = (raw) => {
+  const lines = String(raw || "").replace(/\r\n/g, "\n").split("\n");
+  const out = [];
+  let inToc = false;
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (/^#{1,6}\s*목차\s*$/.test(trimmed) || trimmed === "목차") {
+      inToc = true;
+      continue;
+    }
+    if (inToc) {
+      if (isHeadingLine(trimmed) || trimmed === "---") inToc = false;
+      else continue;
+    }
+    if (!trimmed || trimmed === "---" || isHeadingLine(trimmed) || isAnchorLinkLine(trimmed)) {
+      continue;
+    }
+    const withoutAnchors = trimmed.replace(ANCHOR_LINK_RE, "").replace(/[ \t]{2,}/g, " ").trim();
+    if (withoutAnchors) out.push(withoutAnchors);
+  }
+  return out.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+};
+
+const tocWeight = (raw) => {
+  const lines = String(raw || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (!lines.length) return 1;
+  let weight = 0;
+  let inToc = false;
+  for (const line of lines) {
+    if (/^#{1,6}\s*목차\s*$/.test(line) || line === "목차") {
+      inToc = true;
+      weight += 1;
+      continue;
+    }
+    if (inToc && (isHeadingLine(line) || line === "---")) inToc = false;
+    if (inToc || isHeadingLine(line) || isAnchorLinkLine(line) || line === "---") weight += 1;
+  }
+  return weight / lines.length;
+};
+
+/**
+ * Start at the ## section that matches the query, instead of the intro in the same chunk.
+ */
+const focusGuideBody = (raw, query) => {
+  const text = String(raw || "").replace(/\r\n/g, "\n");
+  const lines = text.split("\n");
+  const tokens = queryTokens(query);
+  const cuts = [];
+  lines.forEach((line, index) => {
+    if (/^#{1,2}\s+\S/.test(line.trim())) cuts.push(index);
+  });
+  if (!cuts.length) return cleanGuideBody(text);
+  const sections = [];
+  if (cuts[0] > 0) sections.push({ heading: "", body: lines.slice(0, cuts[0]).join("\n") });
+  for (let i = 0; i < cuts.length; i += 1) {
+    const start = cuts[i];
+    const end = i + 1 < cuts.length ? cuts[i + 1] : lines.length;
+    sections.push({
+      heading: lines[start].replace(/^#{1,6}\s+/, "").trim(),
+      body: lines.slice(start + 1, end).join("\n"),
+    });
+  }
+  let best = "";
+  let bestScore = -1;
+  for (const section of sections) {
+    const cleaned = cleanGuideBody(section.body);
+    if (!cleaned) continue;
+    const score = tokenHits(section.heading, tokens) * 3 + tokenHits(cleaned, tokens);
+    if (score > bestScore) {
+      bestScore = score;
+      best = cleaned;
+    }
+  }
+  if (!best || bestScore <= 0) return cleanGuideBody(text);
+  return best;
+};
+
+const rankGuideHit = (hit, query, order) => {
+  const tokens = queryTokens(query);
+  const excerpt = focusGuideBody(hit?.content, query);
+  const raw = String(hit?.content || "");
+  const headingHit = raw.split("\n").some((line) => {
+    const match = line.trim().match(/^#{1,6}\s+(.+)$/);
+    return match && !/^목차$/.test(match[1].trim()) && tokenHits(match[1], tokens) > 0;
+  });
+  let score = excerpt ? tokenHits(excerpt, tokens) * 2 : -1;
+  if (headingHit) score += 3;
+  if (tocWeight(raw) >= 0.45 || /^#{1,6}\s*목차\s*$/m.test(raw)) score -= 8;
+  return { hit, order, excerpt, score };
+};
+
+const guideTitleForModel = (title) =>
+  String(title || "")
+    .replace(/\s*·\s*조각\s*\d+\s*$/u, "")
+    .trim();
 
 /** Same skip as the sidebar badge: no enrolled students means no evaluation todo. */
 export const isEmptyEnrollmentEval = (item) =>
@@ -199,13 +325,7 @@ export const createAgentTools = (deps = {}) => {
           const courseItems = courseSplit.todos.map(projectCourseTodo);
           const combined = [...boardItems, ...courseItems];
           const items = combined.slice(0, limit);
-          const emptyCourses = courseSplit.count
-            ? {
-                count: courseSplit.count,
-                titles: courseSplit.titles,
-                note: "수강생이 없어 평가 할 일이 아닙니다. 할 일 개수와 목록에 넣지 마세요.",
-              }
-            : undefined;
+          const emptyCourses = courseSplit.count ? { count: courseSplit.count } : undefined;
           return maskSensitiveObject({
             summary: todoSummary(boardItems.length, courseItems.length),
             scope,
@@ -245,14 +365,22 @@ export const createAgentTools = (deps = {}) => {
             query,
             auth: serverCtx.user?.auth,
             isSchoolManager: !!serverCtx.isSchoolManager,
-            limit: GUIDE_HITS,
+            limit: GUIDE_CANDIDATES,
+            perDoc: 4,
           });
-          const rows = (hits || []).slice(0, GUIDE_HITS);
-          const projected = rows.map((hit) =>
+          const ranked = (hits || []).map((hit, order) => rankGuideHit(hit, query, order));
+          ranked.sort((a, b) => b.score - a.score || a.order - b.order);
+          const useful = ranked.filter((row) => row.score > 0 && row.excerpt);
+          const chosen = (useful.length ? useful : ranked.filter((row) => row.excerpt)).slice(
+            0,
+            GUIDE_HITS
+          );
+          const rows = chosen.map((row) => row.hit);
+          const projected = chosen.map((row) =>
             compact({
-              title: clip(hit.title, 80),
-              doc: clip(hit.key, 160),
-              excerpt: clip(hit.content, GUIDE_CHARS),
+              title: clip(guideTitleForModel(row.hit.title), 80),
+              doc: clip(row.hit.key, 160),
+              excerpt: clip(row.excerpt, GUIDE_CHARS),
             })
           );
           const links = buildAlterGuideLinks(rows, {

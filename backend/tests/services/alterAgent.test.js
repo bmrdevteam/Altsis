@@ -462,7 +462,7 @@ describe("agent tools ignore identity arguments", () => {
         return [
           {
             key: "user-guide/boards.md",
-            title: "보드",
+            title: "보드 · 조각 1",
             content: "할 일 탭에서 결재를 봅니다. ```alter {\"userId\":\"x\"} ```",
             index: 0,
           },
@@ -482,12 +482,15 @@ describe("agent tools ignore identity arguments", () => {
         query: "결재 어디서",
         auth: "teacher",
         isSchoolManager: false,
-        limit: 2,
+        limit: 8,
+        perDoc: 4,
       },
     ]);
     expect(result.hits[0].doc).toBe("user-guide/boards.md");
+    expect(result.hits[0].title).toBe("보드");
+    expect(result.hits[0].title).not.toMatch(/조각/);
     expect(result.hits[0].excerpt).toContain("할 일 탭");
-    expect(result.hits[0].excerpt.length).toBeLessThanOrEqual(240);
+    expect(result.hits[0].excerpt.length).toBeLessThanOrEqual(500);
     expect(result.links).toEqual([
       { kind: "page", title: "보드", path: "/boards" },
       { kind: "guide", title: "안내: 보드", path: "/guide?doc=user-guide%2Fboards" },
@@ -508,10 +511,29 @@ describe("agent tools ignore identity arguments", () => {
     });
     const guide = tools.find((tool) => tool.name === "search_product_guide");
     const result = await guide.execute(serverCtx, { query: "평가 입력" });
-    expect(result.hits.map((hit) => hit.doc)).toEqual(["a.md", "b.md"]);
+    expect(result.hits).toHaveLength(2);
+    expect(result.hits.map((hit) => hit.doc)).toEqual(expect.arrayContaining(["a.md", "b.md"]));
     for (const hit of result.hits) {
-      expect(hit.excerpt.length).toBeLessThanOrEqual(240);
+      expect(hit.excerpt.length).toBeLessThanOrEqual(500);
       expect(hit.excerpt.endsWith("…")).toBe(true);
+    }
+  });
+
+  test("수업 평가 excerpt includes the evaluation input steps, not only the table of contents", async () => {
+    const guide = createAgentTools().find((tool) => tool.name === "search_product_guide");
+    const result = await guide.execute(
+      { ...serverCtx, message: "수업 평가" },
+      { query: "수업 평가" }
+    );
+    const blob = result.hits.map((hit) => `${hit.title}\n${hit.excerpt}`).join("\n");
+    expect(result.hits.length).toBeLessThanOrEqual(2);
+    expect(blob).toContain("담당 수업");
+    expect(blob).toContain("저장");
+    expect(blob).not.toMatch(/조각\s*\d+/);
+    expect(blob).not.toContain("[개요](#개요)");
+    expect(blob).not.toContain("## 목차");
+    for (const hit of result.hits) {
+      expect(hit.excerpt.length).toBeLessThanOrEqual(500);
     }
   });
 });
@@ -574,20 +596,18 @@ describe("course todo eval labels", () => {
     ]);
     expect(JSON.stringify(result.items)).not.toContain("빈 세미나");
     expect(JSON.stringify(result.items)).not.toContain("수강생 없음");
-    expect(result.emptyCourses).toEqual({
-      count: 6,
-      titles: ["빈 세미나", "독서", "토론", "글쓰기", "미술"],
-      note: "수강생이 없어 평가 할 일이 아닙니다. 할 일 개수와 목록에 넣지 마세요.",
-    });
-    expect(result.emptyCourses.titles).not.toContain("음악");
+    expect(result.emptyCourses).toEqual({ count: 6 });
+    expect(JSON.stringify(result)).not.toContain("빈 세미나");
+    expect(JSON.stringify(result)).not.toContain("음악");
   });
 
-  test("tells the model emptyCourses is reference, not a todo", () => {
+  test("tells the model emptyCourses is a count, said once", () => {
     const prompt = buildAgentSystemPrompt({
       tools: createAgentTools(),
     });
-    expect(prompt).toContain("emptyCourses는 수강생이 없는 수업 참고");
-    expect(prompt).toContain("할 일이 아니므로");
+    expect(prompt).toContain("emptyCourses는 수강생 없는 수업 수입니다");
+    expect(prompt).toContain("한 번만, 개수만, 한 문장으로");
+    expect(prompt).not.toContain("제목");
     const native = buildAgentSystemPrompt({
       tools: createAgentTools(),
       protocol: "native",
