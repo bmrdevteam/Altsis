@@ -563,5 +563,123 @@ describe("course todo eval labels", () => {
     });
     expect(prompt).toContain("emptyCourses는 수강생이 없는 수업 참고");
     expect(prompt).toContain("할 일이 아니므로");
+    const native = buildAgentSystemPrompt({
+      tools: createAgentTools(),
+      protocol: "native",
+    });
+    expect(native).toContain("한 번에 여러 도구를 호출할 수 있습니다");
+    expect(native).not.toContain("```alter");
+  });
+});
+
+describe("native tool loop", () => {
+  const todoTool = {
+    name: "get_my_todos",
+    label: "내 할 일",
+    description: "할 일",
+    parameters: { type: "object", properties: { scope: { type: "string" } } },
+    execute: async (_ctx, args) => ({ summary: "보드 1건", args }),
+  };
+  const guideTool = {
+    name: "search_product_guide",
+    label: "제품 안내",
+    description: "안내",
+    parameters: { type: "object", properties: { query: { type: "string" } } },
+    execute: async () => ({
+      summary: "안내 1건",
+      links: [{ kind: "guide", title: "안내: 평가", path: "/guide?doc=user-guide%2Fevaluation" }],
+    }),
+  };
+
+  test("runs several tools in one turn and drops identity arguments", async () => {
+    const seen = [];
+    let calls = 0;
+    const events = [];
+    const result = await runAgentLoop({
+      protocol: "native",
+      serverCtx,
+      userMessage: "평가할 수업이 뭐고, 어디서 입력해?",
+      tools: [
+        {
+          ...todoTool,
+          execute: async (_ctx, args) => {
+            seen.push(args);
+            return { summary: "수업 1건", items: [] };
+          },
+        },
+        guideTool,
+      ],
+      onEvent: (event, data) => events.push({ event, data }),
+      generate: async ({ tools, forceFinal }) => {
+        calls += 1;
+        if (calls === 1) {
+          expect(tools.map((tool) => tool.name)).toEqual([
+            "get_my_todos",
+            "search_product_guide",
+          ]);
+          expect(tools[0].parameters.properties.userId).toBeUndefined();
+          expect(forceFinal).toBe(false);
+          return {
+            text: "",
+            toolCalls: [
+              {
+                id: "call_todos",
+                name: "get_my_todos",
+                arguments: { scope: "course", userId: "attacker", academyId: "evil" },
+              },
+              {
+                id: "call_guide",
+                name: "search_product_guide",
+                arguments: { query: "평가 입력", seasonId: "other" },
+              },
+            ],
+          };
+        }
+        return { text: "과학 실험 평가가 남았고, 수업 화면에서 입력합니다.", toolCalls: [] };
+      },
+    });
+    expect(calls).toBe(2);
+    expect(seen).toEqual([{ scope: "course" }]);
+    expect(result.toolSteps).toBe(2);
+    expect(result.capped).toBe(false);
+    expect(result.text).toContain("과학 실험");
+    expect(result.links).toEqual([
+      { kind: "guide", title: "안내: 평가", path: "/guide?doc=user-guide%2Fevaluation" },
+    ]);
+    expect(events.filter((event) => event.data?.status === "running")).toHaveLength(2);
+  });
+
+  test("stops at the tool cap even when one turn asks for more", async () => {
+    const executed = [];
+    let calls = 0;
+    const result = await runAgentLoop({
+      protocol: "native",
+      maxToolSteps: 3,
+      serverCtx,
+      userMessage: "할 일",
+      tools: [todoTool],
+      generate: async ({ forceFinal, messages }) => {
+        calls += 1;
+        if (forceFinal) {
+          const skipped = messages.filter(
+            (row) => row.role === "tool" && String(row.content).includes("한도에 도달")
+          );
+          expect(skipped).toHaveLength(1);
+          return { text: "세 건까지 확인했습니다.", toolCalls: [] };
+        }
+        return {
+          text: "",
+          toolCalls: [1, 2, 3, 4].map((n) => ({
+            id: `c${n}`,
+            name: "get_my_todos",
+            arguments: { scope: "all", n },
+          })),
+        };
+      },
+    });
+    expect(result.toolSteps).toBe(3);
+    expect(result.capped).toBe(true);
+    expect(result.text).toBe("세 건까지 확인했습니다.");
+    expect(calls).toBe(2);
   });
 });

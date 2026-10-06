@@ -72,8 +72,8 @@ const academy = await Academy.create({
   isActivated: true,
   boardEnabled: true,
   aiEnabled: true,
-  aiProvider: "gemini",
-  aiModel: "gemini-3.6-flash",
+  aiProvider: "openai",
+  aiModel: "gpt-4o-mini",
   aiApiKey: "scripted-local-dev",
   plans: {
     alt: { enabled: true },

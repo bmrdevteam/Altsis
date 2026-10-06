@@ -49,20 +49,50 @@ const delayMs = () => {
 const isAgentPrompt = (systemInstruction) =>
   /읽기 전용 에이전트/.test(String(systemInstruction || ""));
 
+const sawToolResult = (messages) =>
+  (messages || []).some((row) => {
+    if (row?.role === "tool") return true;
+    if (Array.isArray(row?.toolCalls) && row.toolCalls.length) return true;
+    return String(row?.content || "").includes("<tool_result");
+  });
+
 /**
- * @param {{ systemInstruction?: string, messages?: Array<{ content?: string }> }} params
- * @returns {Promise<{ text: string, tokenUsage: object } | null>}
+ * Fence path (no tools): ```alter get_my_todos, then a fenced final answer.
+ * Native path (tools passed): the same turn as OpenAI/Anthropic tool_calls,
+ * then a plain-text final answer.
+ * @param {{ apiKey?: string, systemInstruction?: string, messages?: object[], tools?: object[] }} params
+ * @returns {Promise<{ text: string, toolCalls?: object[], tokenUsage: object } | null>}
  */
-export const scriptedAgentGenerate = async ({ apiKey, systemInstruction, messages } = {}) => {
+export const scriptedAgentGenerate = async ({
+  apiKey,
+  systemInstruction,
+  messages,
+  tools,
+} = {}) => {
   if (!isAlterAgentScriptedEnabled(apiKey)) return null;
   if (!isAgentPrompt(systemInstruction)) return null;
 
-  const sawResult = (messages || []).some((row) =>
-    String(row?.content || "").includes("<tool_result")
-  );
+  const native = Array.isArray(tools) && tools.length > 0;
+  const sawResult = sawToolResult(messages);
   const wait = delayMs();
   if (wait) {
     await new Promise((resolve) => setTimeout(resolve, wait));
+  }
+  if (native) {
+    if (!sawResult) {
+      return {
+        text: "",
+        toolCalls: [
+          {
+            id: "scripted-call-1",
+            name: "get_my_todos",
+            arguments: { scope: "all", limit: 10 },
+          },
+        ],
+        tokenUsage: { ...TOKEN_USAGE },
+      };
+    }
+    return { text: FINAL_TEXT, toolCalls: [], tokenUsage: { ...TOKEN_USAGE } };
   }
   return {
     text: sawResult ? FINAL_TURN : TOOL_TURN,

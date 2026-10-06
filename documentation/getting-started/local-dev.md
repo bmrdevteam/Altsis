@@ -1,10 +1,10 @@
 # 로컬 실행 (Alter 에이전트)
 
-클라우드 MongoDB·Redis·LLM 키 없이, 이 저장소에서 Alter **에이전트** 스킬을 끝까지 확인하는 방법입니다. 스크립트 응답은 `NODE_ENV=production` 에서는 동작하지 않습니다. 그 외에는 아카데미 `aiApiKey` 가 `scripted-local-dev` 인 경우만 에이전트 호출을 대신합니다. 같은 프로세스의 다른 아카데미에 실제 키가 있으면 그 학원은 실제 모델을 탑니다.
+클라우드 MongoDB·Redis·LLM 키 없이, 이 저장소에서 Alter **에이전트** 스킬을 끝까지 확인하는 방법입니다. 스크립트 응답은 `NODE_ENV=production` 에서는 동작하지 않습니다. 그 외에는 아카데미 `aiApiKey` 가 `scripted-local-dev` 인 경우만 에이전트 호출을 대신합니다. 같은 프로세스의 다른 아카데미에 실제 키가 있으면 그 학원은 실제 모델을 탑니다. 데모 학원은 OpenAI라서 스크립트 응답이 네이티브 `get_my_todos` 호출을 돌려줍니다. Gemini는 alter 펜스 프로토콜을 유지합니다. 실제 키로 보려면 그 학원의 `aiProvider`를 `openai` 또는 `anthropic`으로 두세요.
 
 ## English
 
-Run Alter's agent skill locally without Atlas, Redis Cloud, or a real model key. The scripted provider never runs in production. Otherwise it answers only when that academy's `aiApiKey` is `scripted-local-dev`, so a second academy on the same process can keep a real key. The first model call returns a `get_my_todos` fence. The next call, after `<tool_result>`, returns a final Korean answer.
+Run Alter's agent skill locally without Atlas, Redis Cloud, or a real model key. The scripted provider never runs in production. Otherwise it answers only when that academy's `aiApiKey` is `scripted-local-dev`, so a second academy on the same process can keep a real key. The demo academy uses OpenAI, so the scripted stand-in returns a native `get_my_todos` tool call and then a plain final answer. Gemini keeps the alter fence protocol. A real key on the same process is used only for that academy: set `aiProvider` to `openai` or `anthropic`.
 
 ## 1. MongoDB and Redis
 

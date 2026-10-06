@@ -84,4 +84,43 @@ describe("alterAgentScriptedProvider", () => {
     });
     expect(second.text).toContain(SCRIPTED_AGENT_FINAL_TEXT);
   });
+
+  test("returns native tool_calls when the caller passes tools", async () => {
+    process.env.NODE_ENV = "development";
+    const tools = [
+      {
+        name: "get_my_todos",
+        description: "할 일",
+        parameters: { type: "object", properties: { scope: { type: "string" } } },
+      },
+    ];
+    const first = await scriptedAgentGenerate({
+      apiKey: SCRIPTED_AGENT_API_KEY,
+      systemInstruction: AGENT_PROMPT,
+      messages: [{ role: "user", content: "오늘 할 일" }],
+      tools,
+    });
+    expect(first.toolCalls).toEqual([
+      {
+        id: "scripted-call-1",
+        name: "get_my_todos",
+        arguments: { scope: "all", limit: 10 },
+      },
+    ]);
+    expect(first.text).toBe("");
+
+    const second = await scriptedAgentGenerate({
+      apiKey: SCRIPTED_AGENT_API_KEY,
+      systemInstruction: AGENT_PROMPT,
+      tools,
+      messages: [
+        { role: "user", content: "오늘 할 일" },
+        { role: "assistant", content: "", toolCalls: first.toolCalls },
+        { role: "tool", toolCallId: "scripted-call-1", name: "get_my_todos", content: "<tool_result>" },
+      ],
+    });
+    expect(second.toolCalls).toEqual([]);
+    expect(second.text).toBe(SCRIPTED_AGENT_FINAL_TEXT);
+    expect(second.text).not.toContain("```");
+  });
 });

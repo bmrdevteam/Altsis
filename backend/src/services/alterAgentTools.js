@@ -160,6 +160,23 @@ export const createAgentTools = (deps = {}) => {
       description:
         "로그인한 사용자의 보드 할 일(결재·채점·미제출)과 수업 할 일(확인·평가 입력)을 읽습니다. emptyCourses는 수강생이 없는 수업 참고이며 할 일이 아닙니다.",
       arguments: '{ "scope": "all" | "school" | "course", "limit"?: number }',
+      parameters: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          scope: {
+            type: "string",
+            enum: ["all", "school", "course"],
+            description: "all=보드와 수업, school=보드만, course=수업만",
+          },
+          limit: {
+            type: "integer",
+            minimum: 1,
+            maximum: 40,
+            description: "돌려줄 할 일 개수 상한",
+          },
+        },
+      },
       async execute(serverCtx, rawArgs = {}) {
         const scope = normalizeTodoScope(rawArgs.scope);
         const limit = clampLimit(rawArgs.limit);
@@ -212,6 +229,14 @@ export const createAgentTools = (deps = {}) => {
       description:
         "Altsis 사용 안내 문서에서 메뉴·기능 설명을 찾습니다. 학사 데이터가 아니라 제품 도움말입니다.",
       arguments: '{ "query": string }',
+      parameters: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          query: { type: "string", description: "찾을 기능이나 화면" },
+        },
+        required: ["query"],
+      },
       async execute(serverCtx, rawArgs = {}) {
         const query = clip(rawArgs.query, 500);
         if (!query) {

@@ -4,6 +4,7 @@
 
 import {
   generateText,
+  providerSupportsNativeTools,
   resolveModel,
   resolveProvider,
 } from "./aiProvider.js";
@@ -93,7 +94,8 @@ export const executeAgentSkill = async ({
     });
   }
 
-  const generate = async ({ systemInstruction, messages }) => {
+  const native = providerSupportsNativeTools(provider);
+  const generate = async ({ systemInstruction, messages, tools, forceFinal }) => {
     try {
       const result = await generateText({
         provider,
@@ -103,9 +105,13 @@ export const executeAgentSkill = async ({
         messages,
         temperature: profile.temperature,
         maxTokens: profile.maxTokens,
+        tools: forceFinal ? undefined : tools,
       });
       tokenUsage = mergeTokenUsage(tokenUsage, result.tokenUsage);
-      return { text: maskSensitiveText(result.text || "").text };
+      return {
+        text: maskSensitiveText(result.text || "").text,
+        toolCalls: Array.isArray(result.toolCalls) ? result.toolCalls : [],
+      };
     } catch (err) {
       if (!err.code) err.code = mapProviderError(err);
       logAIUsage(academyId, {
@@ -132,6 +138,7 @@ export const executeAgentSkill = async ({
       generate,
       onEvent,
       maxToolSteps: MAX_AGENT_TOOL_STEPS,
+      protocol: native ? "native" : "fence",
     });
 
     logAIUsage(academyId, {
