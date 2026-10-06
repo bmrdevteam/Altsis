@@ -13,7 +13,10 @@
  * 거부하므로 max_completion_tokens로 맞춘다.
  */
 
-import { scriptedAgentGenerate } from "./alterAgentScriptedProvider.js";
+import {
+  scriptedAgentGenerate,
+  scriptedDemoKeyBlocked,
+} from "./alterAgentScriptedProvider.js";
 
 /** OpenAI Chat Completions content */
 export const toOpenAIContent = (content) => {
@@ -1115,6 +1118,8 @@ export const generateText = async ({
     toolChoice,
   });
   if (scripted) return scripted;
+  const blocked = scriptedDemoKeyBlocked(apiKey);
+  if (blocked) return blocked;
   const resolvedProvider = resolveProvider(provider);
   const nativeTools = providerSupportsNativeTools(resolvedProvider) ? tools : undefined;
   return getAdapter(resolvedProvider).generate({
@@ -1136,9 +1141,25 @@ export const generateText = async ({
  * @returns {Promise<{text: string, tokenUsage: Object|null}>}
  */
 export const generateTextStream = async (
-  { provider, apiKey, model, systemInstruction, messages, temperature, maxTokens },
+  { provider, apiKey, model, systemInstruction, messages, temperature, maxTokens, tools, toolChoice },
   onText
 ) => {
+  const scripted = await scriptedAgentGenerate({
+    apiKey,
+    systemInstruction,
+    messages,
+    tools,
+    toolChoice,
+  });
+  if (scripted) {
+    if (scripted.text && typeof onText === "function") onText(scripted.text);
+    return scripted;
+  }
+  const blocked = scriptedDemoKeyBlocked(apiKey);
+  if (blocked) {
+    if (blocked.text && typeof onText === "function") onText(blocked.text);
+    return blocked;
+  }
   const resolvedProvider = resolveProvider(provider);
   return getAdapter(resolvedProvider).generateStream(
     {

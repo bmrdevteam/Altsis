@@ -1,7 +1,8 @@
-import { generateText } from "../../src/services/aiProvider.js";
+import { generateText, generateTextStream } from "../../src/services/aiProvider.js";
 import {
   SCRIPTED_AGENT_API_KEY,
   SCRIPTED_AGENT_FINAL_TEXT,
+  SCRIPTED_DEMO_ONLY_AGENT_MESSAGE,
   isAlterAgentScriptedEnabled,
   scriptedAgentGenerate,
 } from "../../src/services/alterAgentScriptedProvider.js";
@@ -32,6 +33,30 @@ describe("alterAgentScriptedProvider", () => {
         messages: [],
       })
     ).toBeNull();
+    const fetchSpy = jest.spyOn(global, "fetch");
+    await expect(
+      generateText({
+        provider: "openai",
+        apiKey: SCRIPTED_AGENT_API_KEY,
+        model: "gpt-4o-mini",
+        systemInstruction: AGENT_PROMPT,
+        messages: [{ role: "user", content: "오늘 할 일" }],
+      })
+    ).rejects.toMatchObject({ status: 401, code: "AI_INVALID_API_KEY" });
+    await expect(
+      generateTextStream(
+        {
+          provider: "openai",
+          apiKey: SCRIPTED_AGENT_API_KEY,
+          model: "gpt-4o-mini",
+          systemInstruction: "검색 SQL만 작성합니다.",
+          messages: [{ role: "user", content: "출석" }],
+        },
+        () => {}
+      )
+    ).rejects.toMatchObject({ status: 401, code: "AI_INVALID_API_KEY" });
+    expect(fetchSpy).not.toHaveBeenCalled();
+    fetchSpy.mockRestore();
 
     process.env.NODE_ENV = "development";
     expect(isAlterAgentScriptedEnabled("sk-real-key")).toBe(false);
@@ -132,5 +157,60 @@ describe("alterAgentScriptedProvider", () => {
     });
     expect(forced.toolCalls).toEqual([]);
     expect(forced.text).toBe(SCRIPTED_AGENT_FINAL_TEXT);
+  });
+
+  test("dummy key never calls a provider for non-agent skills", async () => {
+    process.env.NODE_ENV = "development";
+    const fetchSpy = jest.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        choices: [{ message: { role: "assistant", content: "should-not-run" } }],
+      }),
+      text: async () => "",
+    });
+
+    const chat = await generateText({
+      provider: "openai",
+      apiKey: SCRIPTED_AGENT_API_KEY,
+      model: "gpt-4o-mini",
+      systemInstruction: "검색 SQL만 작성합니다.",
+      messages: [{ role: "user", content: "출석 요약" }],
+    });
+    expect(chat.text).toBe(SCRIPTED_DEMO_ONLY_AGENT_MESSAGE);
+    expect(chat.text).toContain("에이전트 모드만");
+
+    const chunks = [];
+    const streamed = await generateTextStream(
+      {
+        provider: "gemini",
+        apiKey: `  ${SCRIPTED_AGENT_API_KEY}  `,
+        model: "gemini-2.0-flash",
+        systemInstruction: "평가 초안을 작성합니다.",
+        messages: [{ role: "user", content: "평가" }],
+      },
+      (delta) => chunks.push(delta)
+    );
+    expect(streamed.text).toBe(SCRIPTED_DEMO_ONLY_AGENT_MESSAGE);
+    expect(chunks).toEqual([SCRIPTED_DEMO_ONLY_AGENT_MESSAGE]);
+
+    const agent = await generateText({
+      provider: "openai",
+      apiKey: SCRIPTED_AGENT_API_KEY,
+      systemInstruction: AGENT_PROMPT,
+      messages: [{ role: "user", content: "오늘 할 일" }],
+    });
+    expect(agent.text).toContain('"name":"get_my_todos"');
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    const real = await generateText({
+      provider: "openai",
+      apiKey: "sk-real-key",
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: "안녕" }],
+    });
+    expect(real.text).toBe("should-not-run");
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    fetchSpy.mockRestore();
   });
 });
