@@ -4,6 +4,7 @@
  * @description Alter AI — Skill 라우팅, 강의계획서 점검, 관리자 유틸
  */
 import { logger } from "../log/logger.js";
+import { toPublicAlterError } from "../services/aiSafety.js";
 import { FIELD_REQUIRED, PERMISSION_DENIED, __NOT_FOUND } from "../messages/index.js";
 import { Academy } from "../models/Academy.js";
 import {
@@ -115,7 +116,7 @@ export const refineAlterPrompt = async (req, res) => {
 
   try {
     if (!seasonId) {
-      return res.status(400).send({ message: FIELD_REQUIRED("season") });
+      return res.status(400).send({ code: "INVALID_INPUT", message: "학기가 필요합니다." });
     }
 
     const slimContext = {
@@ -139,20 +140,8 @@ export const refineAlterPrompt = async (req, res) => {
     return res.status(200).send({ prompt: result.prompt });
   } catch (err) {
     logger.error(err.message);
-    const code =
-      err.code ||
-      (err.message && Object.values(AI_ERRORS).includes(err.message)
-        ? err.message
-        : mapProviderError(err));
-    const rawMessage = String(err.message || "").trim();
-    const isKoreanHint =
-      /[가-힣]/.test(rawMessage) && !Object.values(AI_ERRORS).includes(rawMessage);
-    const message =
-      (isKoreanHint ? rawMessage : null) ||
-      AI_ERROR_MESSAGES[code] ||
-      rawMessage ||
-      AI_ERRORS.GENERATION_FAILED;
-    return res.status(err.status || 500).send({ message });
+    const pub = toPublicAlterError(err);
+    return res.status(pub.status).send({ code: pub.code, message: pub.message });
   }
 };
 
@@ -175,7 +164,7 @@ export const reviewSyllabusContent = async (req, res) => {
     const { season: seasonId, context, message = "" } = req.body;
 
     if (!seasonId) {
-      sendEvent("error", { message: FIELD_REQUIRED("season") });
+      sendEvent("error", { code: "INVALID_INPUT", message: "학기가 필요합니다." });
       return res.end();
     }
 
@@ -206,15 +195,8 @@ export const reviewSyllabusContent = async (req, res) => {
     return res.end();
   } catch (err) {
     logger.error(err.message);
-    const code =
-      err.code ||
-      (err.message && Object.values(AI_ERRORS).includes(err.message)
-        ? err.message
-        : mapProviderError(err));
-
-    sendEvent("error", {
-      message: AI_ERROR_MESSAGES[code] || code || AI_ERRORS.GENERATION_FAILED,
-    });
+    const pub = toPublicAlterError(err);
+    sendEvent("error", { code: pub.code, message: pub.message });
     return res.end();
   }
 };

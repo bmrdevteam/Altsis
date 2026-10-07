@@ -3,7 +3,7 @@
  * does not import alter conversation, attachment, or search services.
  */
 import { logger } from "../log/logger.js";
-import { FIELD_REQUIRED } from "../messages/index.js";
+import { toPublicAlterError } from "../alter/core/errors.js";
 import { tryCommitUpload } from "../services/academyStorage.js";
 import {
   SKILL_IDS,
@@ -25,6 +25,12 @@ import { fileBucket, fileS3 } from "../_s3/fileBucket.js";
 import { processAlterUpload } from "../services/alterAttachments.js";
 import { buildSearchScopeOptions } from "../services/alterSearchCatalog.js";
 
+const sendAlterError = (res, err) => {
+  const pub = toPublicAlterError(err);
+  logger.error(err?.message || pub.message);
+  return res.status(pub.status).send({ code: pub.code, message: pub.message });
+};
+
 /**
  * @memberof APIs.AIAPI
  * @function UploadAlterAttachment API
@@ -35,7 +41,7 @@ export const uploadAlterAttachment = async (req, res) => {
   try {
     const seasonId = req.query.season || req.body?.season;
     if (!seasonId) {
-      return res.status(400).send({ message: FIELD_REQUIRED("season") });
+      return res.status(400).send({ code: "INVALID_INPUT", message: "학기가 필요합니다." });
     }
 
     await assertSeasonAiAccess(req.user.academyId, req.user, seasonId);
@@ -44,23 +50,23 @@ export const uploadAlterAttachment = async (req, res) => {
       try {
         if (err) {
           if (err.code === "LIMIT_FILE_SIZE") {
-            return res
-              .status(400)
-              .send({ message: "파일 크기는 10MB를 초과할 수 없습니다." });
+            return res.status(400).send({
+              code: "LIMIT_REACHED",
+              message: "파일 크기는 10MB를 초과할 수 없습니다.",
+            });
           }
           if (err.code === "INVALID_FILE_TYPE") {
             return res.status(400).send({
+              code: "INVALID_INPUT",
               message:
                 "지원하지 않는 파일입니다. txt/md/csv/pdf/docx/png/jpg/webp만 첨부할 수 있습니다.",
             });
           }
-          return res
-            .status(400)
-            .send({ message: err.message || "파일 업로드에 실패했습니다." });
+          return sendAlterError(res, err);
         }
 
         if (!req.file || !req.tmp?.key) {
-          return res.status(400).send({ message: FIELD_REQUIRED("file") });
+          return res.status(400).send({ code: "INVALID_INPUT", message: "파일이 필요합니다." });
         }
 
         if (!(await tryCommitUpload(res, req.user.academyId, req.file))) {
@@ -84,17 +90,11 @@ export const uploadAlterAttachment = async (req, res) => {
 
         return res.status(200).send({ attachment });
       } catch (innerErr) {
-        logger.error(innerErr.message);
-        return res.status(innerErr.status || 500).send({
-          message: innerErr.message || "서버 오류가 발생했습니다.",
-        });
+        return sendAlterError(res, innerErr);
       }
     });
   } catch (err) {
-    logger.error(err.message);
-    return res.status(err.status || 500).send({
-      message: err.message || "서버 오류가 발생했습니다.",
-    });
+    return sendAlterError(res, err);
   }
 };
 
@@ -131,8 +131,7 @@ export const getAlterSkillSettings = async (req, res) => {
     }
     return res.status(200).send(settings);
   } catch (err) {
-    logger.error(err.message);
-    return res.status(err.status || 500).send({ message: err.message });
+    return sendAlterError(res, err);
   }
 };
 
@@ -155,8 +154,7 @@ export const listAlterConversations = async (req, res) => {
     });
     return res.status(200).send({ conversations, hasMore });
   } catch (err) {
-    logger.error(err.message);
-    return res.status(err.status || 500).send({ message: err.message });
+    return sendAlterError(res, err);
   }
 };
 
@@ -184,8 +182,7 @@ export const createAlterConversation = async (req, res) => {
     });
     return res.status(200).send({ conversation });
   } catch (err) {
-    logger.error(err.message);
-    return res.status(err.status || 500).send({ message: err.message });
+    return sendAlterError(res, err);
   }
 };
 
@@ -203,8 +200,7 @@ export const listAlterMessages = async (req, res) => {
     });
     return res.status(200).send({ messages });
   } catch (err) {
-    logger.error(err.message);
-    return res.status(err.status || 500).send({ message: err.message });
+    return sendAlterError(res, err);
   }
 };
 
@@ -222,8 +218,7 @@ export const renameAlterConversation = async (req, res) => {
     });
     return res.status(200).send({ conversation });
   } catch (err) {
-    logger.error(err.message);
-    return res.status(err.status || 500).send({ message: err.message });
+    return sendAlterError(res, err);
   }
 };
 
@@ -240,8 +235,7 @@ export const deleteAlterConversation = async (req, res) => {
     });
     return res.status(200).send({ ok: true });
   } catch (err) {
-    logger.error(err.message);
-    return res.status(err.status || 500).send({ message: err.message });
+    return sendAlterError(res, err);
   }
 };
 
@@ -258,7 +252,6 @@ export const bulkDeleteAlterConversations = async (req, res) => {
     });
     return res.status(200).send(result);
   } catch (err) {
-    logger.error(err.message);
-    return res.status(err.status || 500).send({ message: err.message });
+    return sendAlterError(res, err);
   }
 };

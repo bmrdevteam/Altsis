@@ -23,7 +23,7 @@ import {
   SUMMARY_MAX,
   TITLE_MAX,
 } from "../alter/core/limits.js";
-import { scheduleError } from "../alter/core/errors.js";
+import { AlterError } from "../alter/core/errors.js";
 import { assertDmOptIn } from "../alter/policy/access.js";
 import {
   normalizeTimezone,
@@ -52,7 +52,6 @@ export {
   PROMPT_MAX,
   SUMMARY_MAX,
   TITLE_MAX,
-  scheduleError,
   normalizeTimezone,
   seoulDay,
   zonedParts,
@@ -95,7 +94,7 @@ export const normalizeWeekdays = (value) => {
   for (const raw of list) {
     const n = Number(raw);
     if (!Number.isInteger(n) || n < 0 || n > 6) {
-      throw scheduleError(400, "요일은 0(일)부터 6(토)까지입니다.");
+      throw new AlterError("INVALID_INPUT", 400, "요일은 0(일)부터 6(토)까지입니다.");
     }
     if (!days.includes(n)) days.push(n);
   }
@@ -151,22 +150,23 @@ export const computeNextRunAt = (spec, from = new Date()) => {
 export const assertMinInterval = (spec, from = new Date()) => {
   if (spec?.kind === "once") return;
   const first = computeNextRunAt(spec, from);
-  if (!first) throw scheduleError(400, "다음 실행 시각을 계산할 수 없습니다.");
+  if (!first) throw new AlterError("INVALID_INPUT", 400, "다음 실행 시각을 계산할 수 없습니다.");
   const second = computeNextRunAt(spec, first);
-  if (!second) throw scheduleError(400, "반복 간격을 계산할 수 없습니다.");
+  if (!second) throw new AlterError("INVALID_INPUT", 400, "반복 간격을 계산할 수 없습니다.");
   if (second.getTime() - first.getTime() < MIN_INTERVAL_MS) {
-    throw scheduleError(400, "예약은 최소 1시간 간격으로만 반복할 수 있습니다.");
+    throw new AlterError("INVALID_INPUT", 400, "예약은 최소 1시간 간격으로만 반복할 수 있습니다.");
   }
 };
 
 export const assertReadOnlyPrompt = (prompt) => {
   const text = String(prompt || "").trim();
-  if (!text) throw scheduleError(400, "실행할 내용을 입력해 주세요.");
+  if (!text) throw new AlterError("INVALID_INPUT", 400, "실행할 내용을 입력해 주세요.");
   if (text.length > PROMPT_MAX) {
-    throw scheduleError(400, `내용은 ${PROMPT_MAX}자 이하로 적어 주세요.`);
+    throw new AlterError("INVALID_INPUT", 400, `내용은 ${PROMPT_MAX}자 이하로 적어 주세요.`);
   }
   if (WRITE_INTENT.test(text)) {
-    throw scheduleError(
+    throw new AlterError(
+      "INVALID_INPUT",
       400,
       `예약으로 저장하는 내용은 조회와 안내만 가능합니다. ${READ_ONLY_SCHEDULE_HINT}`
     );
@@ -177,21 +177,21 @@ export const assertReadOnlyPrompt = (prompt) => {
 export const normalizeScheduleInput = (raw = {}) => {
   const kind = String(raw.kind || "").trim();
   if (kind !== "once" && kind !== "daily" && kind !== "weekly") {
-    throw scheduleError(400, "반복은 한 번, 매일, 매주 중에서 고르세요.");
+    throw new AlterError("INVALID_INPUT", 400, "반복은 한 번, 매일, 매주 중에서 고르세요.");
   }
   if (kind === "once") {
     const onceAt = new Date(raw.onceAt);
     if (!Number.isFinite(onceAt.getTime())) {
-      throw scheduleError(400, "한 번 실행할 시각이 필요합니다.");
+      throw new AlterError("INVALID_INPUT", 400, "한 번 실행할 시각이 필요합니다.");
     }
     return { kind, onceAt };
   }
   const clock = parseClock(raw.time);
-  if (!clock) throw scheduleError(400, "시각은 HH:mm 형식이어야 합니다.");
+  if (!clock) throw new AlterError("INVALID_INPUT", 400, "시각은 HH:mm 형식이어야 합니다.");
   const time = `${String(clock.hour).padStart(2, "0")}:${String(clock.minute).padStart(2, "0")}`;
   if (kind === "daily") return { kind, time };
   const weekdays = normalizeWeekdays(raw.weekdays);
-  if (!weekdays.length) throw scheduleError(400, "매주 실행은 요일을 하루 이상 고르세요.");
+  if (!weekdays.length) throw new AlterError("INVALID_INPUT", 400, "매주 실행은 요일을 하루 이상 고르세요.");
   return { kind, time, weekdays };
 };
 
@@ -203,7 +203,7 @@ const idList = (value, max = 20) =>
 
 export const normalizeEventSpec = (raw = {}) => {
   const types = idList(raw.types, EVENT_TYPES.length).filter((type) => EVENT_TYPES.includes(type));
-  if (!types.length) throw scheduleError(400, "이벤트 종류를 하나 이상 고르세요.");
+  if (!types.length) throw new AlterError("INVALID_INPUT", 400, "이벤트 종류를 하나 이상 고르세요.");
   const requested = Number(raw.debounceMs);
   const debounceMs = DEBOUNCE_CHOICES_MS.includes(requested) ? requested : DEFAULT_DEBOUNCE_MS;
   const minIntervalMs = Math.max(
@@ -226,7 +226,7 @@ const buildEventFields = (raw) => {
   const timezone = normalizeTimezone(raw?.timezone);
   const title = clipText(raw?.title, TITLE_MAX);
   const prompt = assertReadOnlyPrompt(raw?.prompt);
-  if (!title) throw scheduleError(400, "예약 이름을 입력해 주세요.");
+  if (!title) throw new AlterError("INVALID_INPUT", 400, "예약 이름을 입력해 주세요.");
   const event = normalizeEventSpec(raw.event || raw);
   const proposalKey = scheduleIdentityKey({
     title,
@@ -253,10 +253,10 @@ export const buildScheduleFields = (raw, from = new Date()) => {
   const spec = { ...schedule, timezone };
   const title = clipText(raw?.title, TITLE_MAX);
   const prompt = assertReadOnlyPrompt(raw?.prompt);
-  if (!title) throw scheduleError(400, "예약 이름을 입력해 주세요.");
+  if (!title) throw new AlterError("INVALID_INPUT", 400, "예약 이름을 입력해 주세요.");
   const nextRunAt = computeNextRunAt(spec, from);
   if (!nextRunAt) {
-    throw scheduleError(400, "다음 실행 시각이 미래여야 합니다.");
+    throw new AlterError("INVALID_INPUT", 400, "다음 실행 시각이 미래여야 합니다.");
   }
   assertMinInterval(spec, from);
   const proposalKey = scheduleIdentityKey({ title, prompt, schedule, timezone });

@@ -9,19 +9,8 @@ import { assertCtrlEnabled } from "../../services/entitlement.js";
 import { assertAiUserQuota } from "../../services/aiUsageQuota.js";
 import { AI_ERRORS } from "../../services/aiPromptPolicy.js";
 import { isSchoolManager } from "../../utils/schoolManager.js";
-import {
-  FIELD_REQUIRED,
-  PERMISSION_DENIED,
-  __NOT_FOUND,
-} from "../../messages/index.js";
-import { scheduleError } from "../core/errors.js";
-
-const httpError = (status, message, code = message) => {
-  const err = new Error(message);
-  err.status = status;
-  err.code = code;
-  return err;
-};
+import { FIELD_REQUIRED, __NOT_FOUND } from "../../messages/index.js";
+import { AlterError } from "../core/errors.js";
 
 const hasSchoolSkillConfig = (school) =>
   !!(
@@ -59,13 +48,13 @@ const DM_OPT_IN_MESSAGE =
 export const assertDmOptIn = (types, dmOptIn) => {
   const list = Array.isArray(types) ? types : [];
   if (list.includes("dm_received") && dmOptIn !== true) {
-    throw scheduleError(400, DM_OPT_IN_MESSAGE, "DM_OPT_IN_REQUIRED");
+    throw new AlterError("DM_OPT_IN_REQUIRED", 400, DM_OPT_IN_MESSAGE);
   }
 };
 
 export const assertScheduleOwnership = (user, doc) => {
   if (!doc || String(doc.user) !== String(user?._id)) {
-    throw scheduleError(404, "예약을 찾을 수 없습니다.", "NOT_FOUND");
+    throw new AlterError("NOT_FOUND", 404, "예약을 찾을 수 없습니다.");
   }
 };
 
@@ -78,10 +67,10 @@ const loadAcademy = async (academyId, deps, fields) => {
 export const assertEventTriggersEnabled = async (academyId, deps = {}) => {
   const academy = await loadAcademy(academyId, deps, "alterEventTriggersEnabled aiEnabled");
   if (!academy?.alterEventTriggersEnabled) {
-    throw scheduleError(
+    throw new AlterError(
+      "EVENT_TRIGGERS_DISABLED",
       403,
-      "이벤트 예약은 아카데미 설정에서 켜야 합니다.",
-      "EVENT_TRIGGERS_DISABLED"
+      "이벤트 예약은 아카데미 설정에서 켜야 합니다."
     );
   }
   return academy;
@@ -90,7 +79,7 @@ export const assertEventTriggersEnabled = async (academyId, deps = {}) => {
 const assertAcademyAiOn = async (academyId, deps = {}) => {
   const academy = await loadAcademy(academyId, deps, "aiEnabled alterEventTriggersEnabled");
   if (!academy?.aiEnabled) {
-    throw scheduleError(403, AI_ERRORS.NOT_ENABLED, AI_ERRORS.NOT_ENABLED);
+    throw new AlterError("AI_NOT_ENABLED", 403, "AI 기능이 활성화되지 않았습니다.");
   }
   return academy;
 };
@@ -104,31 +93,35 @@ const chatRole = (user, school, registration) =>
 
 const resolveChatContext = async (academyId, user, seasonId, deps = {}) => {
   if (!seasonId) {
-    throw httpError(400, FIELD_REQUIRED("season"));
+    throw new AlterError("INVALID_INPUT", 400, "학기가 필요합니다.");
   }
 
   const academy = deps.findAcademy
     ? await deps.findAcademy(academyId)
     : await Academy.findOne({ academyId }, "+aiApiKey");
   if (!academy) {
-    throw httpError(404, __NOT_FOUND("academy"));
+    throw new AlterError("NOT_FOUND", 404, "아카데미를 찾을 수 없습니다.");
   }
   if (!academy.aiEnabled) {
-    throw httpError(403, AI_ERRORS.NOT_ENABLED);
+    throw new AlterError("AI_NOT_ENABLED", 403, "AI 기능이 활성화되지 않았습니다.");
   }
   assertCtrlEnabled(academy);
   if (!academy.aiApiKey) {
-    throw httpError(400, AI_ERRORS.API_KEY_NOT_SET);
+    throw new AlterError("AI_API_KEY_NOT_SET", 400, "AI API 키가 설정되지 않았습니다.");
   }
 
   const season = deps.findSeason
     ? await deps.findSeason(seasonId)
     : await Season(academyId).findById(seasonId);
   if (!season) {
-    throw httpError(404, __NOT_FOUND("season"));
+    throw new AlterError("SEASON_NOT_FOUND", 404, "학기를 찾을 수 없습니다.");
   }
   if (!season.aiSettings?.enabled) {
-    throw httpError(403, AI_ERRORS.NOT_ENABLED_FOR_SEASON);
+    throw new AlterError(
+      "AI_NOT_ENABLED_FOR_SEASON",
+      403,
+      "이 학기에서 AI 기능이 활성화되지 않았습니다."
+    );
   }
 
   let school = null;
@@ -137,7 +130,7 @@ const resolveChatContext = async (academyId, user, seasonId, deps = {}) => {
       ? await deps.findSchool(season.school)
       : await School(academyId).findById(season.school);
     if (school && school.aiEnabled === false) {
-      throw httpError(403, AI_ERRORS.NOT_ENABLED);
+      throw new AlterError("AI_NOT_ENABLED", 403, "AI 기능이 활성화되지 않았습니다.");
     }
   }
 
@@ -148,7 +141,7 @@ const resolveChatContext = async (academyId, user, seasonId, deps = {}) => {
         user: user._id,
       });
   if (!registration) {
-    throw httpError(404, __NOT_FOUND("registration"));
+    throw new AlterError("NOT_FOUND", 404, "학기 등록을 찾을 수 없습니다.");
   }
 
   const useSchoolPerm = hasSchoolAiPermissionAuthority(school);
@@ -156,7 +149,7 @@ const resolveChatContext = async (academyId, user, seasonId, deps = {}) => {
   const seasonPerm = season.aiSettings?.permission;
   const role = chatRole(user, school, registration);
   if (role === "student") {
-    throw httpError(403, PERMISSION_DENIED);
+    throw new AlterError("PERMISSION_DENIED", 403, "권한이 없습니다.");
   }
   const exception = findAiPermissionException(schoolPerm?.exceptions, user);
   const hasPermission = exception
@@ -166,7 +159,7 @@ const resolveChatContext = async (academyId, user, seasonId, deps = {}) => {
       : !!seasonPerm?.teacher;
 
   if (!hasPermission) {
-    throw httpError(403, PERMISSION_DENIED);
+    throw new AlterError("PERMISSION_DENIED", 403, "권한이 없습니다.");
   }
 
   if (!deps.skipQuota) {
@@ -197,13 +190,13 @@ const resolveScheduleContext = async (academyId, user, seasonId, options) => {
   let registration = null;
   if (options.requireRole !== false) {
     if (!seasonId) {
-      throw scheduleError(400, "학기가 필요합니다.", "FIELD_REQUIRED");
+      throw new AlterError("INVALID_INPUT", 400, "학기가 필요합니다.");
     }
     season = deps.findSeason
       ? await deps.findSeason(seasonId)
       : await Season(academyId).findById(seasonId).select("school");
     if (!season) {
-      throw scheduleError(404, "학기를 찾을 수 없습니다.", "SEASON_NOT_FOUND");
+      throw new AlterError("SEASON_NOT_FOUND", 404, "학기를 찾을 수 없습니다.");
     }
     registration = deps.findRegistration
       ? await deps.findRegistration(seasonId, user._id)
@@ -212,10 +205,10 @@ const resolveScheduleContext = async (academyId, user, seasonId, options) => {
           user: user._id,
         });
     if (!isScheduleTeacher(user, registration)) {
-      throw scheduleError(
+      throw new AlterError(
+        "PERMISSION_DENIED",
         403,
-        "예약 실행은 선생님만 사용할 수 있습니다.",
-        PERMISSION_DENIED
+        "예약 실행은 선생님만 사용할 수 있습니다."
       );
     }
   }
@@ -257,11 +250,11 @@ const resolveLoadedEventContext = (user, seasonId, options) => {
       actor?.auth === "owner" ||
       isSchoolManager(actor, loaded.school?._id || loaded.school);
     if (!elevated) {
-      throw httpError(403, PERMISSION_DENIED);
+      throw new AlterError("PERMISSION_DENIED", 403, "권한이 없습니다.");
     }
   }
   if (academy && academy.aiEnabled === false) {
-    throw httpError(403, AI_ERRORS.NOT_ENABLED);
+    throw new AlterError("AI_NOT_ENABLED", 403, "AI 기능이 활성화되지 않았습니다.");
   }
   if (options.dm) assertDmOptIn(options.dm.types, options.dm.dmOptIn);
   return {
