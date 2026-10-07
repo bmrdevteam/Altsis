@@ -6,7 +6,8 @@ import { Academy, AlterSchedule, User } from "../models/index.js";
 import { client } from "../_database/redis/index.js";
 import { logger } from "../log/logger.js";
 import { resolveAlterContext } from "../alter/policy/access.js";
-import { executeAgentSkill } from "./alterAgent.js";
+import { runEventAgent } from "../alter/runners/event/run.js";
+import { runScheduleAgent } from "../alter/runners/schedule/run.js";
 import { loadVisibleTriggerEvents } from "./alterEventAccess.js";
 import { appendAlterTurn } from "./alterConversations.js";
 import { sendAutoNotification } from "./notifications.js";
@@ -137,7 +138,8 @@ export const executeClaimedSchedule = (args) =>
     ...args,
     deps: {
       loadContext: loadScheduleRunContext,
-      executeAgent: executeAgentSkill,
+      executeAgent: (args) =>
+        Array.isArray(args?.triggerEvents) ? runEventAgent(args) : runScheduleAgent(args),
       persistTurn: appendAlterTurn,
       notify: sendAutoNotification,
       save: saveClaimed(args.academyId, args.doc),

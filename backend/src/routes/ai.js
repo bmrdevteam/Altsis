@@ -4,7 +4,9 @@ import { isLoggedIn, isOwAdmin, isAdManager } from "../middleware/auth.js";
 import { requireSeasonSchoolManagerFromBody } from "../middleware/schoolManagerAuth.js";
 import * as ai from "../controllers/ai.js";
 import * as aiLibrary from "../controllers/aiLibrary.js";
-import * as alterSchedule from "../controllers/alterSchedule.js";
+import * as alterChat from "./alterChatHandlers.js";
+import * as alterTurn from "./alterTurnHandler.js";
+import * as alterSchedule from "./alterScheduleHandlers.js";
 
 //=================================
 //             AI / Alter
@@ -17,7 +19,7 @@ router.get("/usage/me", isLoggedIn, ai.getMyAiUsage);
 router.get("/skills", isLoggedIn, ai.listAiSkills);
 
 // Alter prep settings (school library / season fallback)
-router.get("/alter/skill-settings", isLoggedIn, ai.getAlterSkillSettings);
+router.get("/alter/skill-settings", isLoggedIn, alterChat.getAlterSkillSettings);
 
 // Alter library (school official + teacher personal/shared)
 router.get("/library", isLoggedIn, aiLibrary.list);
@@ -29,31 +31,31 @@ router.delete("/library/:itemId", isLoggedIn, aiLibrary.remove);
 router.get("/library/:itemId/download", isLoggedIn, aiLibrary.download);
 
 // Alter conversation persistence
-router.get("/alter/conversations", isLoggedIn, ai.listAlterConversations);
-router.post("/alter/conversations", isLoggedIn, ai.createAlterConversation);
+router.get("/alter/conversations", isLoggedIn, alterChat.listAlterConversations);
+router.post("/alter/conversations", isLoggedIn, alterChat.createAlterConversation);
 router.post(
   "/alter/conversations/bulk-delete",
   isLoggedIn,
-  ai.bulkDeleteAlterConversations
+  alterChat.bulkDeleteAlterConversations
 );
 router.get(
   "/alter/conversations/:id/messages",
   isLoggedIn,
-  ai.listAlterMessages
+  alterChat.listAlterMessages
 );
 router.patch(
   "/alter/conversations/:id",
   isLoggedIn,
-  ai.renameAlterConversation
+  alterChat.renameAlterConversation
 );
 router.delete(
   "/alter/conversations/:id",
   isLoggedIn,
-  ai.deleteAlterConversation
+  alterChat.deleteAlterConversation
 );
 
 // Alter attachment upload (text extract / image key)
-router.post("/alter/attachment", isLoggedIn, ai.uploadAlterAttachment);
+router.post("/alter/attachment", isLoggedIn, alterChat.uploadAlterAttachment);
 
 // Alter request-prompt refine (no persist / no skill run)
 router.post("/alter/refine-prompt", isLoggedIn, ai.refineAlterPrompt);
@@ -67,7 +69,7 @@ router.delete("/alter/schedules/:id", isLoggedIn, alterSchedule.remove);
 router.post("/alter/schedules/:id/run", isLoggedIn, alterSchedule.runNow);
 
 // Alter unified turn (skill router)
-router.post("/alter", isLoggedIn, ai.runAlter);
+router.post("/alter", isLoggedIn, alterTurn.runAlter);
 
 // Syllabus draft skill (SSE — legacy path alias)
 router.post("/syllabus/review", isLoggedIn, ai.reviewSyllabusContent);

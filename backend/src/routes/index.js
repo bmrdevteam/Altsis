@@ -31,6 +31,10 @@ import { router as memos } from "./memos.js";
 import { router as themeSettings } from "./themeSettings.js";
 import { router as userCalendars } from "./userCalendars.js";
 import { router as test } from "./test.js";
+import { registerAlterAgentRunner } from "../services/aiSkills.js";
+import { runChatAgent } from "../alter/runners/chat/run.js";
+
+registerAlterAgentRunner(runChatAgent);
 
 export const routers = [
   { label: "academies", routes: academies },

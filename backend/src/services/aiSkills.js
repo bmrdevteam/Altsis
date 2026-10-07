@@ -110,7 +110,12 @@ import {
 } from "./weekdaySchedule.js";
 import { logger } from "../log/logger.js";
 import { executeSearchSkill } from "./alterSearch.js";
-import { executeAgentSkill } from "./alterAgent.js";
+/** Set from the route composition root so this file does not import the agent. */
+let runRegisteredAgent = null;
+
+export const registerAlterAgentRunner = (fn) => {
+  runRegisteredAgent = typeof fn === "function" ? fn : null;
+};
 
 export { parseFormResponseDraftResponse } from "./formResponseDraft.js";
 export {
@@ -5851,7 +5856,12 @@ export const runAlterSkill = async ({
       SKILL_IDS.AGENT,
       context?.referenceIndexes
     );
-    const result = await executeAgentSkill({
+    if (typeof runRegisteredAgent !== "function") {
+      const err = new Error("에이전트 러너가 연결되지 않았습니다.");
+      err.status = 500;
+      throw err;
+    }
+    const result = await runRegisteredAgent({
       academyId,
       user,
       academy,

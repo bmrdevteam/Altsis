@@ -304,6 +304,7 @@ export const MAX_FORMAT_RETRIES = 1;
  * @param {(input: { systemInstruction: string, messages: object[], tools?: object[], catalog?: object[], toolChoice?: "auto"|"none", forceFinal: boolean, pageNote?: string, guidelines?: string }) => Promise<{ text?: string, toolCalls?: object[] }>} params.generate
  * @param {(event: string, data: object) => void} [params.onEvent]
  * @param {number} [params.maxToolSteps]
+ * @param {number} [params.maxFormatRetries]
  */
 export const runAgentLoop = async ({
   tools,
@@ -315,6 +316,7 @@ export const runAgentLoop = async ({
   generate,
   onEvent,
   maxToolSteps = MAX_AGENT_TOOL_STEPS,
+  maxFormatRetries = MAX_FORMAT_RETRIES,
 }) => {
   const emit = typeof onEvent === "function" ? onEvent : () => {};
   const byName = new Map((tools || []).map((tool) => [tool.name, tool]));
@@ -462,7 +464,7 @@ export const runAgentLoop = async ({
             ? NATIVE_FORMAT_ERROR
             : action.error;
         pushFormatError(turn.text, error);
-        if (formatRetries < MAX_FORMAT_RETRIES) {
+        if (formatRetries < maxFormatRetries) {
           formatRetries += 1;
           continue;
         }

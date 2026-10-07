@@ -49,6 +49,7 @@ export const defineTool = (spec) => {
     input: spec.input,
     permission: { roles: [...roles], access: String(spec.permission.access) },
     readOnly: spec.readOnly === true,
+    effect: spec.effect === "write" ? "write" : "read",
     untrustedOutput: spec.untrustedOutput === true,
     promptHints,
     include: typeof spec.include === "function" ? spec.include : () => true,
