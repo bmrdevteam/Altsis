@@ -24,6 +24,7 @@ import {
   TITLE_MAX,
 } from "../alter/core/limits.js";
 import { scheduleError } from "../alter/core/errors.js";
+import { assertDmOptIn } from "../alter/policy/access.js";
 import {
   normalizeTimezone,
   seoulDay,
@@ -217,13 +218,7 @@ export const normalizeEventSpec = (raw = {}) => {
     calendarScope: ["personal", "school", "all"].includes(scope) ? scope : "",
   };
   const dmOptIn = raw.dmOptIn === true;
-  if (types.includes("dm_received") && !dmOptIn) {
-    throw scheduleError(
-      400,
-      "1:1 메시지 내용은 AI 제공자에게 전달됩니다. 예약마다 동의가 필요합니다.",
-      "DM_OPT_IN_REQUIRED"
-    );
-  }
+  assertDmOptIn(types, dmOptIn);
   return { types, filters, debounceMs, minIntervalMs, dmOptIn };
 };
 

@@ -42,9 +42,8 @@ import {
   getReferenceLimits,
 } from "./aiPromptPolicy.js";
 import { maskSensitiveText } from "./aiSafety.js";
+import { loadGuidelinesTemplateContext, resolveAlterContext } from "./seasonAiAccess.js";
 import { logAIUsage } from "./aiUsage.js";
-import { assertAiUserQuota } from "./aiUsageQuota.js";
-import { assertCtrlEnabled } from "./entitlement.js";
 import {
   isSchoolOfficialVisibility,
   isStaffAuth,
@@ -273,26 +272,6 @@ const hasSchoolSkillConfig = (school) =>
     typeof school.aiConfig.skills === "object" &&
     Object.keys(school.aiConfig.skills).length > 0
   );
-
-const findAiPermissionException = (exceptions, user) => {
-  const id = String(user?._id || "").trim();
-  const login = String(user?.userId || "").trim();
-  return (exceptions || []).find(
-    (item) =>
-      (id && String(item.user) === id) ||
-      (login && String(item.userId) === login)
-  );
-};
-
-const hasSchoolAiPermissionAuthority = (school) => {
-  const perm = school?.aiConfig?.permission;
-  return (
-    hasSchoolSkillConfig(school) ||
-    perm?.teacher === true ||
-    perm?.student === true ||
-    (perm?.exceptions || []).length > 0
-  );
-};
 
 const defaultSkillGuide = (skill) => {
   // chat: 상황형 기본 지침 없음 — 공통 안전·화면 맥락만 (alterCorePrompt)
@@ -963,106 +942,20 @@ const runEvaluationGeneration = async ({
 };
 
 /**
- * 학기/학교 AI 접근 권한 확인
+ * 학기/학교 AI 접근 권한 확인. 구현은 alter/policy의 resolveAlterContext.
  */
 export const assertSeasonAiAccess = async (academyId, user, seasonId) => {
-  if (!seasonId) {
-    const err = new Error(FIELD_REQUIRED("season"));
-    err.status = 400;
-    err.code = FIELD_REQUIRED("season");
-    throw err;
-  }
-
-  const academy = await Academy.findOne({ academyId }, "+aiApiKey");
-  if (!academy) {
-    const err = new Error(__NOT_FOUND("academy"));
-    err.status = 404;
-    err.code = __NOT_FOUND("academy");
-    throw err;
-  }
-  if (!academy.aiEnabled) {
-    const err = new Error(AI_ERRORS.NOT_ENABLED);
-    err.status = 403;
-    err.code = AI_ERRORS.NOT_ENABLED;
-    throw err;
-  }
-  assertCtrlEnabled(academy);
-  if (!academy.aiApiKey) {
-    const err = new Error(AI_ERRORS.API_KEY_NOT_SET);
-    err.status = 400;
-    err.code = AI_ERRORS.API_KEY_NOT_SET;
-    throw err;
-  }
-
-  const season = await Season(academyId).findById(seasonId);
-  if (!season) {
-    const err = new Error(__NOT_FOUND("season"));
-    err.status = 404;
-    err.code = __NOT_FOUND("season");
-    throw err;
-  }
-  if (!season.aiSettings?.enabled) {
-    const err = new Error(AI_ERRORS.NOT_ENABLED_FOR_SEASON);
-    err.status = 403;
-    err.code = AI_ERRORS.NOT_ENABLED_FOR_SEASON;
-    throw err;
-  }
-
-  let school = null;
-  if (season.school) {
-    school = await School(academyId).findById(season.school);
-    if (school && school.aiEnabled === false) {
-      const err = new Error(AI_ERRORS.NOT_ENABLED);
-      err.status = 403;
-      err.code = AI_ERRORS.NOT_ENABLED;
-      throw err;
-    }
-  }
-
-  const registration = await Registration(academyId).findOne({
-    season: seasonId,
-    user: user._id,
-  });
-  if (!registration) {
-    const err = new Error(__NOT_FOUND("registration"));
-    err.status = 404;
-    err.code = __NOT_FOUND("registration");
-    throw err;
-  }
-
-  const useSchoolPerm = hasSchoolAiPermissionAuthority(school);
-  const schoolPerm = school?.aiConfig?.permission;
-  const seasonPerm = season.aiSettings?.permission;
-  const role =
-    isSchoolManager(user, school?._id) ||
-    user.auth === "owner" ||
-    registration.role === "teacher"
-      ? "teacher"
-      : "student";
-  if (role === "student") {
-    const err = new Error(PERMISSION_DENIED);
-    err.status = 403;
-    err.code = PERMISSION_DENIED;
-    throw err;
-  }
-  const exception = findAiPermissionException(schoolPerm?.exceptions, user);
-  const hasPermission = exception
-    ? !!exception.isAllowed
-    : useSchoolPerm
-      ? !!schoolPerm?.teacher
-      : !!seasonPerm?.teacher;
-
-  if (!hasPermission) {
-    const err = new Error(PERMISSION_DENIED);
-    err.status = 403;
-    err.code = PERMISSION_DENIED;
-    throw err;
-  }
-
-  await assertAiUserQuota(academyId, user, academy);
-
-  return { academy, season, school, registration };
+  const ctx = await resolveAlterContext(academyId, user, seasonId, { runner: "chat" });
+  return {
+    academy: ctx.academy,
+    season: ctx.season,
+    school: ctx.school,
+    registration: ctx.registration,
+  };
 };
+
+export const assertGuidelinesTemplateAccess = (academyId, user, seasonId) =>
+  loadGuidelinesTemplateContext(academyId, user, seasonId);
 
 /**
  * 모범 계획서 → 스타일 기준

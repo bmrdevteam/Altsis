@@ -5,7 +5,7 @@
 import { Academy, AlterSchedule, User } from "../models/index.js";
 import { client } from "../_database/redis/index.js";
 import { logger } from "../log/logger.js";
-import { assertSeasonAiAccess } from "./aiSkills.js";
+import { resolveAlterContext } from "../alter/policy/access.js";
 import { executeAgentSkill } from "./alterAgent.js";
 import { loadVisibleTriggerEvents } from "./alterEventAccess.js";
 import { appendAlterTurn } from "./alterConversations.js";
@@ -49,11 +49,9 @@ export const loadScheduleRunContext = async (academyId, doc) => {
     throw err;
   }
   try {
-    const access = await assertSeasonAiAccess(
-      academyId,
-      user,
-      String(doc.season)
-    );
+    const access = await resolveAlterContext(academyId, user, String(doc.season), {
+      runner: "agent",
+    });
     const triggerEvents =
       doc.trigger === "event" ? await loadVisibleTriggerEvents(academyId, doc) : undefined;
     return { ...access, user, triggerEvents };

@@ -6,6 +6,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { Academy, AlterSchedule, Registration } from "../models/index.js";
 import { logger } from "../log/logger.js";
+import { isScheduleTeacher } from "../alter/policy/access.js";
 import {
   DEFAULT_DEBOUNCE_MS,
   MAX_PENDING_EVENTS,
@@ -190,7 +191,7 @@ export const enqueueAlterEvent = async (academyId, evt, deps = {}) => {
         .findOne({ season: routine.season, user: routine.user })
         .select("role")
         .lean();
-      return reg?.role === "teacher";
+      return isScheduleTeacher(routine, reg);
     });
   const canQueue =
     deps.canQueue ||
