@@ -1,6 +1,8 @@
 import mongoose from "mongoose";
 import { executeAgentSkill } from "../../services/alterAgent.js";
 import { executeClaimedSchedule } from "../../services/alterScheduleRun.js";
+import { runSkillAgent } from "../runners/skill/run.js";
+import { selectSkill } from "../skills/registry.js";
 import { SCRIPTED_AGENT_API_KEY } from "../../services/alterAgentScriptedProvider.js";
 import { readFixtureTodoFacts } from "../tools/lib/fixtureTodoFacts.js";
 import { EVAL_ACADEMY } from "./mongo.js";
@@ -29,9 +31,19 @@ const cast = () => {
   };
 };
 
+const executeTurn = (scenario, people) => {
+  const skill = selectSkill({
+    message: scenario.input?.prompt || "",
+    role: people.registration?.role,
+  });
+  if (!skill) return executeAgentSkill;
+  return (params) => runSkillAgent({ ...params, skillId: skill.id });
+};
+
 const runAgent = async (scenario, people, academy, options) => {
   const parseEvents = [];
-  const result = await executeAgentSkill({
+  const execute = executeTurn(scenario, people);
+  const result = await execute({
     academyId: "eval",
     user: people.user,
     academy,
