@@ -221,6 +221,12 @@ export const runReadToolsCheck = async () => {
   expectOk(!statusText.includes(phone), "제출전화");
   expectOk(!statusText.includes(park.userId), "제출아이디");
 
+  const byName = await tool("get_form_submission_status").execute(ctxA, { query: "출석결재" });
+  const byNameText = JSON.stringify(byName);
+  expectOk(byName.forms?.[0]?.submittedCount === 1, "이름조회");
+  expectOk(byNameText.includes("박학생"), "이름조회제출");
+  expectOk(!byNameText.includes("formId") && !byNameText.includes("boardId"), "이름조회식별자");
+
   const otherStatus = await tool("get_form_submission_status").execute(ctxB, {
     formId: String(form._id),
   });
@@ -228,6 +234,11 @@ export const runReadToolsCheck = async () => {
   expectOk(otherStatus.summary === "담당 수업이 아닙니다.", "다른교사");
   expectOk(!otherText.includes("박학생") && !otherText.includes("최학생"), "다른교사이름");
   expectOk(!otherText.includes("submittedCount"), "다른교사수");
+
+  const otherByName = await tool("get_form_submission_status").execute(ctxB, { query: "출석결재" });
+  const otherByNameText = JSON.stringify(otherByName);
+  expectOk(otherByName.summary === "담당 수업이 아닙니다.", "다른교사이름조회");
+  expectOk(!otherByNameText.includes("박학생") && !otherByNameText.includes("최학생"), "다른교사이름조회유출");
 
   const calendar = await tool("get_calendar").execute(ctxA, {
     start: "2026-10-01",

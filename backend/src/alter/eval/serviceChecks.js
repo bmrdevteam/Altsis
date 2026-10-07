@@ -13,6 +13,7 @@ import { assertReadOnlyPrompt } from "../../services/alterScheduleTime.js";
 import { EVAL_ACADEMY } from "./mongo.js";
 import { runAgentScenario } from "./agentScenario.js";
 import { runReadToolsCheck } from "../tools/readToolsFixture.js";
+import { runOtherClassCheck } from "../tools/submissionBoundaryCheck.js";
 
 const person = (userId) => ({
   _id: new mongoose.Types.ObjectId(),
@@ -60,6 +61,7 @@ export const runServiceCheck = async (scenario, options) => {
   if (scenario.check === "deleted-row") return deletedRow(scenario, options);
   if (scenario.check === "flag-off") return flagOff();
   if (scenario.check === "read-tools") return runReadToolsCheck();
+  if (scenario.check === "read-other-class") return runOtherClassCheck();
   throw new Error(`unknown check ${scenario.check}`);
 };
 

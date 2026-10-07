@@ -184,6 +184,10 @@
   "get_form_submission_status": {
     "type": "object",
     "properties": {
+      "query": {
+        "description": "양식 또는 보드 이름",
+        "type": "string"
+      },
       "formId": {
         "type": "string"
       },

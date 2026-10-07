@@ -52,7 +52,7 @@ export default defineTool({
   readOnly: true,
   untrustedOutput: true,
   promptHints: [
-    "내가 승인해야 하는 양식 결재와 수업 확인만 get_pending_approvals로 보세요. 미제출·채점은 get_my_todos입니다.",
+    "내가 승인해야 하는 양식 결재와 수업 확인은 get_pending_approvals만 보세요. 검색으로 결재를 찾지 마세요. 미제출·채점은 get_my_todos입니다.",
     "학생 연락처와 제출 본문은 말하지 마세요. 양식·수업 이름과 건수만 말하세요.",
   ],
   async handler(ctx, rawArgs = {}) {

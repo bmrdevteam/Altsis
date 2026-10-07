@@ -698,11 +698,12 @@ describe("course todo eval labels", () => {
     expect(readonlyPrompt).not.toContain("manage_schedule");
     expect(readonlyPrompt).toContain("search_product_guide 결과에 나온 것만");
     // N2 chat tools raised the native prompt to 1300 and the schema to 2227.
-    // N3 read tools (approvals, submission status, calendar, courses) raised
-    // them to 1935 and 3136. Keep a little room so a large accidental addition still fails.
-    expect(native.length).toBeLessThan(2100);
+    // N3 read tools raised them to 1935 and 3136. Routing hints and the
+    // title-lookup field raised the native prompt to 2229 and the sum to 5439.
+    // Keep a little room so a large accidental addition still fails.
+    expect(native.length).toBeLessThan(2400);
     expect(schema.length).toBeLessThan(3400);
-    expect(native.length + schema.length).toBeLessThan(5400);
+    expect(native.length + schema.length).toBeLessThan(5600);
   });
 });
 

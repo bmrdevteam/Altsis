@@ -72,7 +72,7 @@ export default defineTool({
   readOnly: true,
   untrustedOutput: true,
   promptHints: [
-    "내가 맡거나 개설한 수업의 시간·강의실·수강 인원은 get_my_courses입니다.",
+    "내가 맡거나 개설한 수업의 시간·강의실·수강 인원은 get_my_courses만 보세요. 검색으로 수업을 찾지 마세요.",
     "수강생 이름은 없습니다. 인원 수만 말하고, 다른 교사 수업은 만들지 마세요.",
   ],
   async handler(ctx, rawArgs = {}) {

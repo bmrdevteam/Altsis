@@ -202,6 +202,44 @@ describe("alter tool contract", () => {
     });
     expect(counted.summary).toBe("조회되지 않았습니다.");
 
+    let omitted = false;
+    const failedSearch = await search.execute(
+      {
+        ...teacher,
+        runReadOnlySearch: async (args) => {
+          omitted = args?.omitSubmissionTables === true;
+          const err = new Error("SQL 실행에 실패했습니다");
+          err.tokenUsage = {
+            promptTokens: 3000,
+            candidatesTokens: 200,
+            thoughtsTokens: 0,
+            totalTokens: 3200,
+          };
+          throw err;
+        },
+      },
+      { question: "10학년 정보 A반 양식 제출 현황" }
+    );
+    expect(omitted).toBe(true);
+    expect(failedSearch.summary).toBe("검색에 실패했습니다. 질문을 조금 더 구체적으로 적어 주세요.");
+    expect(failedSearch.usage).toEqual({
+      promptTokens: 3000,
+      candidatesTokens: 200,
+      thoughtsTokens: 0,
+      totalTokens: 3200,
+    });
+    expect(JSON.stringify(failedSearch)).not.toContain("SQL 실행에 실패했습니다");
+
+    const submission = createAgentTools().find((item) => item.name === "get_form_submission_status");
+    const submissionGuide = `${submission.description}\n${submission.promptHints.join("\n")}`;
+    expect(submissionGuide).not.toMatch(/formId|boardId/);
+    expect(submissionGuide).toContain("query");
+    const searchGuide = search.promptHints.join("\n");
+    expect(searchGuide).toContain("get_form_submission_status");
+    expect(searchGuide).toContain("get_pending_approvals");
+    expect(searchGuide).toContain("get_calendar");
+    expect(searchGuide).toContain("get_my_courses");
+
     const credit = createAgentTools().find((tool) => tool.name === "lookup_credit_rules");
     const deniedCredit = await credit.execute(student, { query: "학점 규정" });
     expect(deniedCredit.summary).toBe("권한이 없습니다.");

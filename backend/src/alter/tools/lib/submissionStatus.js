@@ -1,7 +1,9 @@
 /**
- * Submission counts for a class form or board.
- * Only a class the teacher owns or manages, and only if that teacher can
- * already open the full sheet in the UI.
+ * Submission counts for a form or board this teacher may already open.
+ * Class boards stay limited to classes they own or manage.
+ * A team or staff board with no class syllabus is included when they can
+ * already open the full sheet in the UI (canViewAllRows), for example a
+ * staff board such as 고등 교사팀. Title lookup uses only that set.
  */
 
 import { AltForm, AltSheetRow, Board, Syllabus, User } from "../../../models/index.js";
@@ -112,6 +114,64 @@ export const projectFormStatus = async (academyId, form, board) => {
   });
 };
 
+const fold = (value) => String(value || "").replace(/\s+/g, "").toLowerCase();
+
+/** Title match in either direction, ignoring case and spaces. */
+export const titlesMatch = (title, query) => {
+  const left = fold(title);
+  const right = fold(query);
+  if (left.length < 2 || right.length < 2) return false;
+  return left.includes(right) || right.includes(left);
+};
+
+/**
+ * Pick forms inside an already-authorized set.
+ * Exact title, then exact board name, then a unique contains match.
+ * Several hits stay candidates and are not loaded.
+ */
+export const pickSubmissionMatches = (pairs, query) => {
+  const q = fold(query);
+  const list = Array.isArray(pairs) ? pairs : [];
+  if (q.length < 2) return { kind: "none", pairs: [] };
+  const exactForms = list.filter((pair) => fold(pair.form?.title) === q);
+  if (exactForms.length === 1) return { kind: "one", pairs: exactForms };
+  if (exactForms.length > 1) return { kind: "many", pairs: exactForms };
+
+  const exactBoardIds = [
+    ...new Set(
+      list.filter((pair) => fold(pair.board?.name) === q).map((pair) => idText(pair.board?._id))
+    ),
+  ].filter(Boolean);
+  if (exactBoardIds.length === 1) {
+    return {
+      kind: "board",
+      pairs: list.filter((pair) => idText(pair.board?._id) === exactBoardIds[0]),
+    };
+  }
+  if (exactBoardIds.length > 1) {
+    return {
+      kind: "many",
+      pairs: list.filter((pair) => exactBoardIds.includes(idText(pair.board?._id))),
+    };
+  }
+
+  const formHits = list.filter((pair) => titlesMatch(pair.form?.title, query));
+  const formIds = [...new Set(formHits.map((pair) => idText(pair.form?._id)))].filter(Boolean);
+  if (formIds.length === 1) return { kind: "one", pairs: formHits };
+  if (formIds.length > 1) return { kind: "many", pairs: formHits };
+
+  const boardHits = list.filter((pair) => titlesMatch(pair.board?.name, query));
+  const boardIds = [...new Set(boardHits.map((pair) => idText(pair.board?._id)))].filter(Boolean);
+  if (boardIds.length === 1) {
+    return {
+      kind: "board",
+      pairs: list.filter((pair) => idText(pair.board?._id) === boardIds[0]),
+    };
+  }
+  if (boardIds.length > 1) return { kind: "many", pairs: boardHits };
+  return { kind: "none", pairs: [] };
+};
+
 const notFound = () => ({
   summary: "양식을 찾을 수 없습니다.",
   error: "양식을 찾을 수 없습니다.",
@@ -130,6 +190,108 @@ const forbidden = () => ({
   forms: [],
 });
 
+const needName = () => ({
+  summary: "양식 이름이 필요합니다.",
+  error: "양식 이름이 필요합니다.",
+  forms: [],
+});
+
+const candidateRow = (pair) =>
+  compact({
+    form: clip(pair.form?.title, 80),
+    board: clip(pair.board?.name, 80),
+  });
+
+const ambiguous = (pairs) => ({
+  summary: "같은 이름의 양식이 여러 개입니다. 양식 이름을 더 구체적으로 말해 주세요.",
+  candidates: (pairs || []).slice(0, FORM_CAP).map(candidateRow),
+  forms: [],
+});
+
+const summarizeRows = (rows) => {
+  const submitted = rows.reduce((sum, row) => sum + (row.submittedCount || 0), 0);
+  const missing = rows.reduce((sum, row) => sum + (row.missingCount || 0), 0);
+  return {
+    summary: rows.length ? `제출 ${submitted}명 · 미제출 ${missing}명` : "양식 없음",
+    forms: rows,
+  };
+};
+
+const projectPairs = async (academyId, pairs) => {
+  const rows = [];
+  for (const pair of (pairs || []).slice(0, FORM_CAP)) {
+    rows.push(await projectFormStatus(academyId, pair.form, pair.board));
+  }
+  return summarizeRows(rows);
+};
+
+/** owned class, other teacher's class, or a team/staff board with no syllabus. */
+const boardAccess = (board, syllabus, user, schoolId) => {
+  if (!board || board.isActive === false) return "missing";
+  if (idText(board.school) !== idText(schoolId)) return "missing";
+  if (board.syllabus) {
+    return ownsOrManagesClass(syllabus, user, schoolId) ? "owned" : "other";
+  }
+  return "team";
+};
+
+const canSeeForm = (form, board, user, schoolRole, access) => {
+  if (access !== "owned" && access !== "team") return false;
+  return canViewAllRows(form, board, user, schoolRole || null);
+};
+
+const statusForBoard = async ({ academyId, user, schoolRole, schoolId, board, forms }) => {
+  const syllabus = board?.syllabus
+    ? await Syllabus(academyId).findById(board.syllabus).select("school user teachers").lean()
+    : null;
+  const access = boardAccess(board, syllabus, user, schoolId);
+  if (access === "missing") return notFound();
+  if (access === "other") return classDenied();
+  const visible = (forms || []).filter((form) => canSeeForm(form, board, user, schoolRole, access));
+  if (!visible.length) return forbidden();
+  return projectPairs(
+    academyId,
+    visible.map((form) => ({ form, board }))
+  );
+};
+
+const statusForQuery = async ({ academyId, user, schoolRole, schoolId, query }) => {
+  const boards = await Board(academyId)
+    .find({ school: schoolId, isActive: { $ne: false } })
+    .limit(400)
+    .lean();
+  if (!boards.length) return notFound();
+  const syllabusIds = boards.map((board) => board.syllabus).filter(Boolean);
+  const syllabi = syllabusIds.length
+    ? await Syllabus(academyId).find({ _id: { $in: syllabusIds } }).select("school user teachers").lean()
+    : [];
+  const syllabusById = new Map((syllabi || []).map((row) => [idText(row._id), row]));
+  const boardById = new Map(boards.map((board) => [idText(board._id), board]));
+  const forms = await AltForm(academyId)
+    .find({
+      board: { $in: boards.map((board) => board._id) },
+      isActive: true,
+      isDraft: { $ne: true },
+    })
+    .limit(500)
+    .lean();
+  const visible = [];
+  const hiddenClass = [];
+  for (const form of forms || []) {
+    const board = boardById.get(idText(form.board));
+    if (!board) continue;
+    const access = boardAccess(board, syllabusById.get(idText(board.syllabus)), user, schoolId);
+    const pair = { form, board };
+    if (canSeeForm(form, board, user, schoolRole, access)) visible.push(pair);
+    else if (access === "other") hiddenClass.push(pair);
+  }
+  const picked = pickSubmissionMatches(visible, query);
+  if (picked.kind === "one" || picked.kind === "board") return projectPairs(academyId, picked.pairs);
+  if (picked.kind === "many") return ambiguous(picked.pairs);
+  if (pickSubmissionMatches(hiddenClass, query).kind !== "none") return classDenied();
+  return notFound();
+};
+
 export const loadSubmissionStatus = async ({
   academyId,
   user,
@@ -137,21 +299,20 @@ export const loadSubmissionStatus = async ({
   schoolRole,
   formId,
   boardId,
+  query,
 }) => {
-  if (!formId && !boardId) {
-    return {
-      summary: "양식 또는 보드가 필요합니다.",
-      error: "양식 또는 보드가 필요합니다.",
-      forms: [],
-    };
-  }
   const schoolId = school?._id;
+  const title = String(query || "").trim().slice(0, 120);
+  if (!formId && !boardId && !title) return needName();
   if (!academyId || !schoolId || !user) {
     return {
       summary: "학교 또는 사용자 정보가 없습니다.",
       error: "학교 또는 사용자 정보가 없습니다.",
       forms: [],
     };
+  }
+  if (!formId && !boardId) {
+    return statusForQuery({ academyId, user, schoolRole, schoolId, query: title });
   }
 
   let board = null;
@@ -173,26 +334,5 @@ export const loadSubmissionStatus = async ({
       .limit(FORM_CAP)
       .lean();
   }
-
-  if (!board?.syllabus) return classDenied();
-  const syllabus = await Syllabus(academyId)
-    .findById(board.syllabus)
-    .select("school user teachers")
-    .lean();
-  if (!ownsOrManagesClass(syllabus, user, schoolId)) return classDenied();
-  if (!forms.length) return { summary: "양식 없음", forms: [] };
-
-  const visible = forms.filter((form) => canViewAllRows(form, board, user, schoolRole || null));
-  if (!visible.length) return forbidden();
-
-  const rows = [];
-  for (const form of visible.slice(0, FORM_CAP)) {
-    rows.push(await projectFormStatus(academyId, form, board));
-  }
-  const submitted = rows.reduce((sum, row) => sum + (row.submittedCount || 0), 0);
-  const missing = rows.reduce((sum, row) => sum + (row.missingCount || 0), 0);
-  return {
-    summary: `제출 ${submitted}명 · 미제출 ${missing}명`,
-    forms: rows,
-  };
+  return statusForBoard({ academyId, user, schoolRole, schoolId, board, forms });
 };

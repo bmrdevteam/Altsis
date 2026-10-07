@@ -48,6 +48,7 @@ export default defineTool({
   untrustedOutput: true,
   promptHints: [
     "출석·인원·성적 같은 학사 데이터는 search_school_data만 사용하세요. 이 도구는 읽기 전용입니다.",
+    "제출·미제출은 get_form_submission_status, 내가 할 결재는 get_pending_approvals, 학교 일정은 get_calendar, 담당 수업은 get_my_courses로 보세요. 그 질문은 이 검색에 넣지 마세요.",
     "검색이 실패하면 SQL이나 내부 오류를 옮기지 말고, 질문을 더 구체적으로 해 달라고만 하세요.",
   ],
   include: chatOnly,
@@ -80,6 +81,7 @@ export default defineTool({
         message: question,
         history: [],
         guidelines: "",
+        omitSubmissionTables: true,
       });
       const rowCount = Number(result?.draft?.rowCount);
       const usage = asUsage(result?.tokenUsage);
@@ -91,7 +93,8 @@ export default defineTool({
       };
     } catch (err) {
       logger.error(`alter search_school_data: ${err.message}`);
-      return failed();
+      const usage = asUsage(err?.tokenUsage);
+      return usage ? { ...failed(), usage } : failed();
     }
   },
 });

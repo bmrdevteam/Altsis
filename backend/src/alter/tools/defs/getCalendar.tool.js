@@ -42,7 +42,7 @@ export default defineTool({
   readOnly: true,
   untrustedOutput: true,
   promptHints: [
-    "학교 일정은 get_calendar입니다. start와 end로 기간을 주세요. 92일을 넘기지 마세요.",
+    "학교 일정은 get_calendar만 보세요. start와 end로 기간을 주세요. 92일을 넘기지 마세요. 검색으로 일정을 찾지 마세요.",
     "개인 일정과 다른 학교 일정은 이 도구에 없습니다. 없는 행사는 만들지 마세요.",
   ],
   async handler(ctx, rawArgs = {}) {
