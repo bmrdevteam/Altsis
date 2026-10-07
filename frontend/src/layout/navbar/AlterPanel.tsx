@@ -10,7 +10,7 @@ import { createPortal } from "react-dom";
 import { useAuth } from "contexts/authContext";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import { TAlterSkillId, useAlter } from "contexts/alterContext";
-import { MESSAGE } from "hooks/_message";
+import { friendlyAlterError, readAlterSse } from "./alterUi/sse";
 import useAPIv2 from "hooks/useAPIv2";
 import { isEmptyEval } from "utils/evaluationCsv";
 import { TAlterConversation } from "types/alterChat";
@@ -1454,87 +1454,11 @@ const AlterPanel = ({ onClose }: Props) => {
     }
   };
 
-  const parseSse = async (
+  const parseSse = (
     response: Response,
     onStep: (m: string) => void,
     onActivity?: () => void
-  ): Promise<{
-    draft?: TAlterDraftResult | null;
-    review?: TAlterDocumentReviewResult | null;
-    message?: string;
-    skill?: string;
-    conversationId?: string | null;
-    links?: TAlterGuideLink[];
-    scheduleProposal?: ChatMessage["scheduleProposal"];
-  }> => {
-    if (!response.ok || !response.body) {
-      throw new Error("AI 요청에 실패했습니다.");
-    }
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-    let result: {
-      draft?: TAlterDraftResult | null;
-      review?: TAlterDocumentReviewResult | null;
-      message?: string;
-      skill?: string;
-      conversationId?: string | null;
-      links?: TAlterGuideLink[];
-      scheduleProposal?: ChatMessage["scheduleProposal"];
-    } = {};
-    let errMsg = "";
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      onActivity?.();
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-      let eventType = "";
-      for (const line of lines) {
-        if (line.startsWith("event: ")) eventType = line.slice(7);
-        else if (line.startsWith("data: ") && eventType) {
-          try {
-            const data = JSON.parse(line.slice(6));
-            if (eventType === "step") onStep(data.message || "");
-            else if (eventType === "tool") {
-              const label = data.label || data.name || "도구";
-              if (data.status === "running") onStep(`${label} 조회 중…`);
-              else if (data.status === "done") {
-                onStep(data.summary ? `${label}: ${data.summary}` : `${label} 완료`);
-              } else if (data.status === "error") {
-                onStep(data.summary ? `${label}: ${data.summary}` : `${label} 실패`);
-              }
-            } else if (eventType === "error") {
-              errMsg =
-                MESSAGE.get(data.message) ||
-                data.message ||
-                "AI 처리 중 오류가 발생했습니다.";
-              if (data.conversationId) {
-                result.conversationId = data.conversationId;
-              }
-            } else if (eventType === "done") {
-              result = {
-                draft: data.draft || null,
-                review: data.review || null,
-                message: data.message || data.text || "",
-                skill: data.skill,
-                conversationId: data.conversationId || null,
-                links: data.links || [],
-                scheduleProposal: data.scheduleProposal || null,
-              };
-            }
-          } catch {
-            // ignore
-          }
-          eventType = "";
-        }
-      }
-    }
-    if (errMsg) throw new Error(errMsg);
-    return result;
-  };
+  ) => readAlterSse(response, { onStep, onActivity });
 
   const combinedSourceText = () => {
     const parts = [
@@ -1966,9 +1890,10 @@ const AlterPanel = ({ onClose }: Props) => {
           const data = await response.json().catch(() => ({}));
           if (data.conversationId) setConversationId(data.conversationId);
           throw new Error(
-            MESSAGE.get(data.message) ||
-              data.message ||
+            friendlyAlterError(
+              { code: data.code, message: data.message },
               "AI 요청에 실패했습니다."
+            )
           );
         }
         const data = await response.json();
@@ -2010,9 +1935,7 @@ const AlterPanel = ({ onClose }: Props) => {
       if (err.message === "AI_USAGE_LIMIT_EXCEEDED") {
         refreshMyUsage();
       }
-      setError(
-        MESSAGE.get(err.message) || err.message || "AI 처리에 실패했습니다."
-      );
+      setError(friendlyAlterError({ message: err.message }, "AI 처리에 실패했습니다."));
     } finally {
       window.clearTimeout(timeoutId);
       setIsWorking(false);
@@ -2275,9 +2198,10 @@ const AlterPanel = ({ onClose }: Props) => {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(
-          MESSAGE.get(data.message) ||
-            data.message ||
+          friendlyAlterError(
+            { code: data.code, message: data.message },
             "요청문을 다듬지 못했습니다."
+          )
         );
       }
       const prompt = String(data.prompt || "").trim();
@@ -2415,9 +2339,10 @@ const AlterPanel = ({ onClose }: Props) => {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
           setError(
-            MESSAGE.get(data.message) ||
-              data.message ||
+            friendlyAlterError(
+              { code: data.code, message: data.message },
               `"${file.name}" 첨부에 실패했습니다.`
+            )
           );
           setSourceAttachments((prev) =>
             prev.filter((a) => {

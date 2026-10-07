@@ -1,4 +1,4 @@
-import { scheduleError } from "./errors.js";
+import { AlterError } from "./errors.js";
 import { DEFAULT_TIMEZONE } from "./limits.js";
 
 const WEEKDAY_SHORT = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
@@ -23,7 +23,7 @@ export const zonedParts = (date, timeZone) => {
   if (hour === 24) hour = 0;
   const weekday = WEEKDAY_SHORT[bag.weekday];
   if (!Number.isFinite(hour) || weekday == null) {
-    throw scheduleError(400, "시간대를 해석하지 못했습니다.");
+    throw new AlterError("INVALID_INPUT", 400, "시간대를 해석하지 못했습니다.");
   }
   return {
     year: Number(bag.year),
@@ -63,8 +63,8 @@ export const normalizeTimezone = (value) => {
   try {
     zonedParts(new Date(), zone);
   } catch (err) {
-    if (err?.code === "INVALID_SCHEDULE") throw err;
-    throw scheduleError(400, "시간대를 확인할 수 없습니다.");
+    if (err instanceof AlterError) throw err;
+    throw new AlterError("INVALID_INPUT", 400, "시간대를 확인할 수 없습니다.");
   }
   return zone;
 };

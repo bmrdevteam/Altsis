@@ -1,10 +1,9 @@
 /**
- * Alter turn HTTP handler. SSE event names and payloads stay as they were
- * on the AI controller. The agent skill runs through the registered chat runner.
+ * Alter turn HTTP handler. SSE event names stay as they were.
+ * error events are { code, message }. The agent skill runs through the chat runner.
  */
 import { logger } from "../log/logger.js";
-import { FIELD_REQUIRED } from "../messages/index.js";
-import { AI_ERRORS } from "../services/aiPromptPolicy.js";
+import { AlterError, toPublicAlterError } from "../alter/core/errors.js";
 import {
   SKILL_IDS,
   runAlterSkill,
@@ -14,27 +13,6 @@ import {
   appendAlterTurn,
   setAlterConversationStatus,
 } from "../services/alterConversations.js";
-
-const mapProviderError = (err) => {
-  if (err.status === 404) return AI_ERRORS.MODEL_NOT_FOUND;
-  if (err.status === 401 || err.status === 403) return AI_ERRORS.INVALID_API_KEY;
-  return AI_ERRORS.GENERATION_FAILED;
-};
-
-const AI_ERROR_MESSAGES = {
-  [AI_ERRORS.EMPTY_RESPONSE]:
-    "AI가 빈 응답을 반환했습니다. 모델 설정을 확인하거나 다시 시도해주세요.",
-  [AI_ERRORS.INVALID_JSON]:
-    "AI 응답 형식이 올바르지 않습니다. 다시 시도해 주세요.",
-  [AI_ERRORS.MODEL_NOT_FOUND]:
-    "AI 모델을 찾을 수 없습니다. 모델 설정을 확인해주세요.",
-  [AI_ERRORS.INVALID_API_KEY]:
-    "AI API 키가 유효하지 않습니다. 설정을 확인해주세요.",
-  [AI_ERRORS.GENERATION_FAILED]:
-    "AI 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.",
-  [AI_ERRORS.USAGE_LIMIT_EXCEEDED]:
-    "오늘 AI 사용량(Alt) 한도를 초과했습니다. 관리자에게 문의해 주세요.",
-};
 
 /**
  * Alter 범용 턴 (Skill 라우팅)
@@ -95,11 +73,14 @@ export const runAlter = async (req, res) => {
 
   try {
     if (!seasonId) {
+      const missing = toPublicAlterError(
+        new AlterError("INVALID_INPUT", 400, "학기가 필요합니다.")
+      );
       if (wantsSse) {
-        sendEvent("error", { message: FIELD_REQUIRED("season") });
+        sendEvent("error", { code: missing.code, message: missing.message });
         return res.end();
       }
-      return res.status(400).send({ message: FIELD_REQUIRED("season") });
+      return res.status(missing.status).send({ code: missing.code, message: missing.message });
     }
 
     if (wantsSse) sendEvent("step", { message: "설정 확인 중..." });
@@ -205,29 +186,11 @@ export const runAlter = async (req, res) => {
         // ignore
       }
     }
-    const code =
-      err.code ||
-      (err.message && Object.values(AI_ERRORS).includes(err.message)
-        ? err.message
-        : mapProviderError(err));
-    // 한글 안내 메시지는 코드 기본문구보다 우선 (예: 빈 칸 없음)
-    const rawMessage = String(err.message || "").trim();
-    const isKoreanHint = /[가-힣]/.test(rawMessage) && !Object.values(AI_ERRORS).includes(rawMessage);
-    const message =
-      (err.code === "AI_TIMEOUT" && err.message) ||
-      (rawMessage &&
-      /응답 시간이 초과|timeout/i.test(rawMessage)
-        ? rawMessage
-        : null) ||
-      (isKoreanHint ? rawMessage : null) ||
-      AI_ERROR_MESSAGES[code] ||
-      rawMessage ||
-      AI_ERRORS.GENERATION_FAILED;
-
+    const pub = toPublicAlterError(err);
     if (wantsSse) {
-      sendEvent("error", { message, conversationId });
+      sendEvent("error", { code: pub.code, message: pub.message, conversationId });
       return res.end();
     }
-    return res.status(err.status || 500).send({ message, conversationId });
+    return res.status(pub.status).send({ code: pub.code, message: pub.message, conversationId });
   }
 };

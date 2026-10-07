@@ -1,6 +1,4 @@
-import {
-  scheduleError,
-} from "../../src/alter/core/errors.js";
+import { AlterError, ALTER_ERROR_CODES, toPublicAlterError } from "../../src/alter/core/errors.js";
 import { MAX_AGENT_TOOL_STEPS, SUMMARY_MAX } from "../../src/alter/core/limits.js";
 import {
   normalizeTimezone,
@@ -18,12 +16,53 @@ import { stripMarkdown, stripUnmatchedLinks, truncateSummary } from "../../src/a
 import { toolTurn } from "../../src/alter/core/trace.js";
 
 describe("alter core helpers", () => {
-  test("scheduleError keeps status and code", () => {
-    const err = scheduleError(400, "잘못된 예약", "INVALID_SCHEDULE");
-    expect(err).toBeInstanceOf(Error);
+  test("AlterError keeps status and a Korean public body", () => {
+    const err = new AlterError("INVALID_INPUT", 400, "잘못된 예약");
+    expect(err).toBeInstanceOf(AlterError);
     expect(err.message).toBe("잘못된 예약");
     expect(err.status).toBe(400);
-    expect(err.code).toBe("INVALID_SCHEDULE");
+    expect(err.code).toBe("INVALID_INPUT");
+    expect(ALTER_ERROR_CODES.PROVIDER_ERROR).toBe("PROVIDER_ERROR");
+  });
+
+  test("public errors are {code, message} and hide internal text", () => {
+    expect(toPublicAlterError(new AlterError("AI_NOT_ENABLED", 403, "AI_NOT_ENABLED"))).toEqual({
+      status: 403,
+      code: "AI_NOT_ENABLED",
+      message: "AI 기능이 활성화되지 않았습니다.",
+    });
+    expect(toPublicAlterError({ status: 404, code: "NOT_FOUND", message: "예약을 찾을 수 없습니다." })).toEqual({
+      status: 404,
+      code: "NOT_FOUND",
+      message: "예약을 찾을 수 없습니다.",
+    });
+    expect(toPublicAlterError({ status: 400, message: "SEASON_REQUIRED" })).toMatchObject({
+      code: "SEASON_REQUIRED",
+      message: "학기가 필요합니다.",
+    });
+    expect(toPublicAlterError({ status: 403, code: "FORBIDDEN" }).message).toBe("권한이 없습니다.");
+    expect(toPublicAlterError({ status: 429, code: "LIMIT_REACHED" }).code).toBe("LIMIT_REACHED");
+    expect(toPublicAlterError({ status: 500, code: "TOOL_ERROR", message: "boom" })).toEqual({
+      status: 500,
+      code: "TOOL_ERROR",
+      message: "도구 실행에 실패했습니다.",
+    });
+    expect(toPublicAlterError({ status: 500, message: "connect ECONNREFUSED" })).toEqual({
+      status: 500,
+      code: "PROVIDER_ERROR",
+      message: "AI 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+    });
+    const leaked = toPublicAlterError({
+      status: 400,
+      code: "AI_GENERATION_FAILED",
+      message: "SQL이 비어 있습니다.",
+    });
+    expect(leaked.message).not.toContain("SQL이 비어");
+    expect(leaked.code).toBe("AI_GENERATION_FAILED");
+    expect(toPublicAlterError({ status: 400, code: "INVALID_SCHEDULE", message: "시각은 HH:mm 형식이어야 합니다." })).toMatchObject({
+      code: "INVALID_INPUT",
+      message: "시각은 HH:mm 형식이어야 합니다.",
+    });
   });
 
   test("limits stay at the previous numbers", () => {

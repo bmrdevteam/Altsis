@@ -3,6 +3,7 @@
  */
 
 import { logger } from "../log/logger.js";
+import { toPublicAlterError } from "../alter/core/errors.js";
 import {
   beginManualRun,
   confirmProposal,
@@ -16,12 +17,9 @@ import {
 import { executeClaimedSchedule } from "../services/alterScheduleRunner.js";
 
 const sendError = (res, err) => {
-  const status = err.status || 500;
-  if (status >= 500) logger.error(err.message);
-  return res.status(status).send({
-    message: err.message || "요청을 처리하지 못했습니다.",
-    code: err.code,
-  });
+  const pub = toPublicAlterError(err);
+  if (pub.status >= 500) logger.error(err.message);
+  return res.status(pub.status).send({ code: pub.code, message: pub.message });
 };
 
 const seasonOf = (req) =>

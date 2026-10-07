@@ -18,8 +18,8 @@ import {
   buildScheduleFields,
   claimQuery,
   computeNextRunAt,
-  scheduleError,
 } from "./alterScheduleTime.js";
+import { AlterError } from "../alter/core/errors.js";
 
 const claimToken = (now) =>
   `${now.getTime()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -63,20 +63,20 @@ export const listSchedulesForUser = async (academyId, user) => {
 const countOwned = async (Model, userId) => Model.countDocuments({ user: userId });
 
 const limitError = () =>
-  scheduleError(
+  new AlterError(
+    "SCHEDULE_LIMIT",
     400,
-    `예약은 계정당 ${MAX_SCHEDULES_PER_USER}개까지입니다.`,
-    "SCHEDULE_LIMIT"
+    `예약은 계정당 ${MAX_SCHEDULES_PER_USER}개까지입니다.`
   );
 
 const duplicateError = () =>
-  scheduleError(409, "같은 예약이 이미 있습니다.", "SCHEDULE_DUPLICATE");
+  new AlterError("SCHEDULE_DUPLICATE", 409, "같은 예약이 이미 있습니다.");
 
 const eventLimitError = () =>
-  scheduleError(
+  new AlterError(
+    "EVENT_LIMIT",
     400,
-    `이벤트 예약은 계정당 ${MAX_EVENT_ROUTINES}개까지입니다.`,
-    "EVENT_LIMIT"
+    `이벤트 예약은 계정당 ${MAX_EVENT_ROUTINES}개까지입니다.`
   );
 
 const findByProposalKey = async (Model, userId, proposalKey) => {
@@ -196,15 +196,15 @@ export const createScheduleForUser = async (
 export const findOwnedSchedule = async (academyId, user, id, model) => {
   const scheduleId = String(id || "").trim();
   if (!model && !asId(scheduleId)) {
-    throw scheduleError(404, "예약을 찾을 수 없습니다.", "NOT_FOUND");
+    throw new AlterError("NOT_FOUND", 404, "예약을 찾을 수 없습니다.");
   }
   if (!scheduleId) {
-    throw scheduleError(404, "예약을 찾을 수 없습니다.", "NOT_FOUND");
+    throw new AlterError("NOT_FOUND", 404, "예약을 찾을 수 없습니다.");
   }
   const Model = modelOf(academyId, model);
   const doc = await Model.findOne({ _id: scheduleId, user: user._id });
   if (!doc) {
-    throw scheduleError(404, "예약을 찾을 수 없습니다.", "NOT_FOUND");
+    throw new AlterError("NOT_FOUND", 404, "예약을 찾을 수 없습니다.");
   }
   return doc;
 };
@@ -277,7 +277,7 @@ export const setScheduleEnabled = async (academyId, user, id, enabled, model, de
       new Date()
     );
     if (!next) {
-      throw scheduleError(400, "이미 지난 한 번 예약은 다시 켤 수 없습니다.");
+      throw new AlterError("INVALID_INPUT", 400, "이미 지난 한 번 예약은 다시 켤 수 없습니다.");
     }
     doc.nextRunAt = next;
   }
@@ -304,7 +304,7 @@ export const confirmProposal = async (academyId, user, body, deps = {}) => {
   const seasonId = body?.season || body?.seasonId;
   const { season } = await assertScheduleTeacher(academyId, user, seasonId, deps);
   if (!proposal || proposal.saved === true) {
-    throw scheduleError(400, "저장할 제안이 없습니다.");
+    throw new AlterError("INVALID_INPUT", 400, "저장할 제안이 없습니다.");
   }
   const Model = deps.model || AlterSchedule(academyId);
   if (proposal.action === "delete") {
@@ -314,7 +314,7 @@ export const confirmProposal = async (academyId, user, body, deps = {}) => {
     return { deleted: true, id: String(doc._id) };
   }
   if (proposal.action !== "create") {
-    throw scheduleError(400, "저장할 제안이 없습니다.");
+    throw new AlterError("INVALID_INPUT", 400, "저장할 제안이 없습니다.");
   }
   const fields = buildScheduleFields({
     title: proposal.title,
@@ -393,7 +393,7 @@ export const beginManualRun = async (academyId, user, id, seasonId, deps = {}) =
     { new: false }
   );
   if (!previous) {
-    throw scheduleError(409, "이미 실행 중입니다.", "SCHEDULE_RUNNING");
+    throw new AlterError("SCHEDULE_RUNNING", 409, "이미 실행 중입니다.");
   }
   const pre = previous.toObject ? previous.toObject() : previous;
   return {

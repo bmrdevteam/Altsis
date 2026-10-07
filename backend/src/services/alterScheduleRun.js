@@ -3,6 +3,7 @@
  * Callers pass those in so tests stay free of their import graph.
  */
 
+import { toPublicAlterError } from "../alter/core/errors.js";
 import { withEventRunPrompt } from "../alter/runners/event/prompt.js";
 import { logger } from "../log/logger.js";
 import { runWithAlterFlag } from "./alterEvent.js";
@@ -142,7 +143,7 @@ export const executeClaimedSchedule = async ({
       return finish("skipped", reason);
     }
     logger.error(`alter schedule run failed ${doc._id}: ${err.message}`);
-    return finish("error", err.message || "실행하지 못했습니다.");
+    return finish("error", toPublicAlterError(err).message);
   }
 };
 

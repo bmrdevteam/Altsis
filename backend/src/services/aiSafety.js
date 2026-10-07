@@ -5,3 +5,4 @@
  */
 
 export { maskSensitiveText, maskSensitiveObject } from "../alter/core/safety.js";
+export { toPublicAlterError } from "../alter/core/errors.js";
