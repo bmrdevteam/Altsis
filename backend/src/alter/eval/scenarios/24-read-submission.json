@@ -27,7 +27,7 @@
     }
   },
   "scripted": [
-    { "call": "get_form_submission_status", "arguments": {} },
+    { "call": "get_form_submission_status", "arguments": { "query": "출석결재" } },
     { "final": "제출 현황을 확인했습니다." }
   ]
 }
