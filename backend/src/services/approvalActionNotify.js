@@ -120,6 +120,8 @@ export async function sendApprovalActionNotifications({
           description: `「${stepLabel}」승인이 필요합니다.`,
           relatedEntity: { type: "altSheetRow", id: row._id },
           fromUser,
+          formName: form.title,
+          boardName: board.name,
         });
       }
     }

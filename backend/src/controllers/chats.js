@@ -6,6 +6,7 @@
  */
 
 import { logger } from "../log/logger.js";
+import { emitDomainEvent } from "../events/domainEvents.js";
 import {
   ChatRoom,
   ChatMessage,
@@ -868,9 +869,8 @@ export const sendMessage = async (req, res) => {
     const message = await ChatMessage(req.user.academyId).create(messageData);
 
     if (room.type === "direct") {
-      const { emitAlterEvent } = await import("../services/alterEvent.js");
-      emitAlterEvent(req.user.academyId, {
-        type: "dm_received",
+      emitDomainEvent("dm_received", {
+        academyId: req.user.academyId,
         entityType: "chatMessage",
         entityId: String(message._id),
         actorUserId: String(req.user._id),
