@@ -20,7 +20,7 @@
 
 의존 방향: `runners → agent → tools → policy → core`. `core`(`src/alter/core/`)는 node 기본 모듈과 다른 `core` 파일만 의존한다. 도메인·policy·tools·providers·agent·runners를 부르지 않는다. `policy/access.js`의 `resolveAlterContext`가 채팅·에이전트·예약 생성/수정·러너·트리거 도구의 접근 검사다. 학원 AI, 역할, 소유, 이벤트 플래그, DM 동의를 여기서 본다. 기존 도메인 서비스는 `tools`와 `policy`만 부를 수 있다. `tools`/`skills`/`providers`는 `runners`와 `agent`를 import하지 않는다. `providers`는 `tools`를 import하지 않는다. `eval`은 러너·에이전트·프로바이더를 부를 수 있다. 마스킹·자르기·링크 정리·래핑·일정 상수·시간대·id는 `core`에 있고, `services/aiSafety.js`·`alterScheduleTime.js`·`alterAgentProtocol.js`는 기존 경로로 다시 내보낸다. 채팅·에이전트의 기존 입구는 `assertSeasonAiAccess`로 같은 검사를 부른다.
 
-경계는 `npm run lint:deps`다. 설정은 `backend/.dependency-cruiser.cjs`이고, 이미 있는 위반 21건은 `backend/.dependency-cruiser-known-violations.json`에 있다. 파일과 그 위반을 없앨 이전 PR은 [dependency-baseline.md](dependency-baseline.md)에 있다. 새 위반은 실패다. 백엔드에는 eslint 설정이 없고, 실제 결합의 상당수가 `await import()`라 `no-restricted-imports`는 넣지 않았다.
+경계는 `npm run lint:deps`다. 설정은 `backend/.dependency-cruiser.cjs`이고, 이미 있는 위반 20건은 `backend/.dependency-cruiser-known-violations.json`에 있다. 파일과 그 위반을 없앨 이전 PR은 [dependency-baseline.md](dependency-baseline.md)에 있다. 새 위반은 실패다. 백엔드에는 eslint 설정이 없고, 실제 결합의 상당수가 `await import()`라 `no-restricted-imports`는 넣지 않았다.
 
 ## 도구를 추가하는 법
 
@@ -29,3 +29,11 @@
 3. `handler(ctx, input)`는 서버가 만든 `ctx`만 신원으로 쓴다. 실행 시점에 다시 볼 접근은 `resolveAlterContext`를 부른다. 마스킹과 `MAX_TOOL_RESULT_CHARS` 상한은 레지스트리가 `core/safety`로 한다. 도구는 원본만 돌려준다.
 4. `tools/registry.js`의 `TOOLS`에 그 파일을 넣는다. OpenAI·Anthropic 스키마, Gemini 인자 줄, 시스템 프롬프트의 도구 안내는 여기서 나온다. 도구를 빼면 그 힌트도 프롬프트에서 빠진다.
 5. 계약 테스트가 이름·스키마·역할·`readOnly`·`promptHints`·결과 상한을 본다. 새 도구면 eval 시나리오를 정상 1개, 거절 1개 함께 넣는다.
+
+## 프로바이더를 추가하는 법
+
+1. `providers/<id>.js`에 어댑터를 둔다. `id`, `capabilities`(`nativeTools`, `streaming`, `images`), `generate`가 있다.
+2. `generate`는 메시지와 레지스트리의 중립 도구 스키마(`name`, `description`, `parameters`)를 받고 `{ text, toolCalls, usage, finish }`를 돌려준다. `usage`는 `promptTokens`, `candidatesTokens`, `thoughtsTokens`, `totalTokens`다. 와이어 형식의 토큰 수는 `providers/usage.js`로 맞춘다.
+3. 네이티브 도구가 없으면 `withFenceTools`로 감싼다. 펜스 파싱은 그 래퍼가 하고, 루프는 `toolCalls`만 본다.
+4. `providers/llm.js`의 `createLlm`에 등록한다. 에이전트는 `llm.generate`만 부른다. `aiProvider.js`와 `fetch`를 도구·스킬·루프에서 직접 부르지 않는다.
+5. 스크립트 대역은 `id: "scripted"`다. 계획은 `scriptedPlan` 인자로만 넘긴다. 전역에 넣지 않는다. 계약 테스트 `providers/__tests__/contract.test.js`에 같은 정규화 픽스처를 추가한다.
