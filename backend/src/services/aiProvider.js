@@ -13,10 +13,35 @@
  * 거부하므로 max_completion_tokens로 맞춘다.
  */
 
-import {
-  scriptedAgentGenerate,
-  scriptedDemoKeyBlocked,
-} from "./alterAgentScriptedProvider.js";
+const SCRIPTED_DEMO_KEY = "scripted-local-dev";
+const SCRIPTED_DEMO_ONLY_AGENT_MESSAGE =
+  "로컬 데모용 가짜 키라 에이전트 모드만 쓸 수 있어요. 진짜 AI는 실제 API 키가 있는 학원에서 테스트하세요.";
+
+/**
+ * Non-agent skills still stop on the demo key here. The agent uses the
+ * scripted adapter and does not come through this function.
+ * @param {string} [apiKey]
+ * @returns {{ text: string, toolCalls: object[], tokenUsage: object } | null}
+ */
+const demoKeyWithoutAgent = (apiKey) => {
+  if (String(apiKey || "").trim() !== SCRIPTED_DEMO_KEY) return null;
+  if (String(process.env.NODE_ENV || "").trim() === "production") {
+    const err = new Error("AI API key is not valid");
+    err.status = 401;
+    err.code = "AI_INVALID_API_KEY";
+    throw err;
+  }
+  return {
+    text: SCRIPTED_DEMO_ONLY_AGENT_MESSAGE,
+    toolCalls: [],
+    tokenUsage: {
+      promptTokens: 0,
+      candidatesTokens: 0,
+      thoughtsTokens: 0,
+      totalTokens: 0,
+    },
+  };
+};
 
 /** OpenAI Chat Completions content */
 export const toOpenAIContent = (content) => {
@@ -1109,18 +1134,8 @@ export const generateText = async ({
   maxTokens,
   tools,
   toolChoice,
-  scriptedPlan,
 }) => {
-  const scripted = await scriptedAgentGenerate({
-    apiKey,
-    systemInstruction,
-    messages,
-    tools,
-    toolChoice,
-    scriptedPlan,
-  });
-  if (scripted) return scripted;
-  const blocked = scriptedDemoKeyBlocked(apiKey);
+  const blocked = demoKeyWithoutAgent(apiKey);
   if (blocked) return blocked;
   const resolvedProvider = resolveProvider(provider);
   const nativeTools = providerSupportsNativeTools(resolvedProvider) ? tools : undefined;
@@ -1153,23 +1168,10 @@ export const generateTextStream = async (
     maxTokens,
     tools,
     toolChoice,
-    scriptedPlan,
   },
   onText
 ) => {
-  const scripted = await scriptedAgentGenerate({
-    apiKey,
-    systemInstruction,
-    messages,
-    tools,
-    toolChoice,
-    scriptedPlan,
-  });
-  if (scripted) {
-    if (scripted.text && typeof onText === "function") onText(scripted.text);
-    return scripted;
-  }
-  const blocked = scriptedDemoKeyBlocked(apiKey);
+  const blocked = demoKeyWithoutAgent(apiKey);
   if (blocked) {
     if (blocked.text && typeof onText === "function") onText(blocked.text);
     return blocked;
