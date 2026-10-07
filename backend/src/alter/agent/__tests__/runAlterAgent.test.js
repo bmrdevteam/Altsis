@@ -92,4 +92,77 @@ describe("runAlterAgent", () => {
     });
     expect(result.tokenUsage).toBe(result.usage);
   });
+
+  test("nested tool usage is traced and reported after the outer usage log", async () => {
+    const seen = [];
+    let billed = null;
+    let asked = false;
+    const result = await runAlterAgent({
+      ctx: {},
+      input: { message: "오늘 결석" },
+      mode: "chat",
+      tools: [
+        {
+          name: "search_school_data",
+          label: "학사 검색",
+          description: "검색",
+          readOnly: true,
+          effect: "read",
+          parameters: { type: "object", properties: {} },
+          async execute() {
+            return {
+              summary: "조회되지 않았습니다.",
+              usage: {
+                promptTokens: 4000,
+                candidatesTokens: 400,
+                thoughtsTokens: 0,
+                totalTokens: 4400,
+              },
+            };
+          },
+        },
+      ],
+      provider: {
+        async generate({ messages, forceFinal }) {
+          seen.push(messages);
+          if (!forceFinal && !asked) {
+            asked = true;
+            return {
+              text: "",
+              toolCalls: [{ id: "c1", name: "search_school_data", arguments: {} }],
+              usage: usage(1),
+            };
+          }
+          return { text: "조회되지 않았습니다.", toolCalls: [], usage: usage(1) };
+        },
+        onComplete(tokenUsage) {
+          billed = tokenUsage;
+        },
+      },
+    });
+
+    expect(billed).toEqual({
+      promptTokens: 2,
+      candidatesTokens: 2,
+      thoughtsTokens: 0,
+      totalTokens: 4,
+    });
+    expect(result.tokenUsage).toEqual({
+      promptTokens: 4002,
+      candidatesTokens: 402,
+      thoughtsTokens: 0,
+      totalTokens: 4404,
+    });
+    expect(result.usage).toBe(result.tokenUsage);
+    expect(result.trace[0].usage).toEqual({
+      promptTokens: 4000,
+      candidatesTokens: 400,
+      thoughtsTokens: 0,
+      totalTokens: 4400,
+    });
+    const toolMessage = seen.at(-1).find((row) => row.role === "tool");
+    expect(toolMessage.content).toContain("조회되지 않았습니다.");
+    expect(toolMessage.content).not.toContain("4400");
+    expect(toolMessage.content).not.toContain("promptTokens");
+  });
 });

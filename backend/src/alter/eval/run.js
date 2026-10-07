@@ -50,6 +50,16 @@ const tokensFrom = (usage) => ({
   total: Number(usage?.totalTokens) || 0,
 });
 
+const sumTokens = (rows) =>
+  rows.reduce(
+    (sum, row) => ({
+      prompt: sum.prompt + (Number(row.tokens?.prompt) || 0),
+      completion: sum.completion + (Number(row.tokens?.completion) || 0),
+      total: sum.total + (Number(row.tokens?.total) || 0),
+    }),
+    { prompt: 0, completion: 0, total: 0 }
+  );
+
 const writeEvalReport = (report) => {
   const dir = join(process.cwd(), "src/alter/eval/out");
   mkdirSync(dir, { recursive: true });
@@ -142,6 +152,7 @@ export const runEval = async ({
     skipped,
     ran: passed + failed,
     total: scenarios.length,
+    tokens: sumTokens(rows),
     scenarios: rows,
     failures: rows.filter((row) => row.status === "fail").flatMap((row) => row.assertions),
   };

@@ -178,6 +178,30 @@ describe("alter tool contract", () => {
     expect(hidden.readOnly).toBe(true);
     expect(hidden.summary).toBe("검색에 실패했습니다. 질문을 조금 더 구체적으로 적어 주세요.");
 
+    const counted = await search.execute(
+      {
+        ...teacher,
+        runReadOnlySearch: async () => ({
+          text: "조회되지 않았습니다.",
+          draft: { rowCount: 0 },
+          tokenUsage: {
+            promptTokens: 4000,
+            candidatesTokens: 400,
+            thoughtsTokens: 0,
+            totalTokens: 4400,
+          },
+        }),
+      },
+      { question: "오늘 결석" }
+    );
+    expect(counted.usage).toEqual({
+      promptTokens: 4000,
+      candidatesTokens: 400,
+      thoughtsTokens: 0,
+      totalTokens: 4400,
+    });
+    expect(counted.summary).toBe("조회되지 않았습니다.");
+
     const credit = createAgentTools().find((tool) => tool.name === "lookup_credit_rules");
     const deniedCredit = await credit.execute(student, { query: "학점 규정" });
     expect(deniedCredit.summary).toBe("권한이 없습니다.");

@@ -12,6 +12,7 @@ import {
 } from "../alter/core/safety.js";
 import { stripUnmatchedLinks } from "../alter/core/text.js";
 import { toolTurn } from "../alter/core/trace.js";
+import { addUsage, asUsage } from "../alter/core/usage.js";
 
 export {
   MAX_AGENT_TOOL_STEPS,
@@ -339,9 +340,11 @@ export const runAgentLoop = async ({
   let scheduleProposal = null;
   let toolSteps = 0;
   let formatRetries = 0;
+  let nestedUsage = null;
 
-  const noteTurn = (names, wrapped) => {
-    trace.push(toolTurn(names, wrapped));
+  const noteTurn = (names, wrapped, usage) => {
+    nestedUsage = addUsage(nestedUsage, usage);
+    trace.push(toolTurn(names, wrapped, usage));
   };
 
   const done = (extra) => {
@@ -351,6 +354,7 @@ export const runAgentLoop = async ({
       text: stripUnmatchedLinks(extra?.text, normalized),
       links: normalized,
       trace,
+      nestedUsage,
       ...(scheduleProposal ? { scheduleProposal } : {}),
     };
   };
@@ -360,14 +364,16 @@ export const runAgentLoop = async ({
     const label = tool?.label || action.name;
     const safeArgs = sanitizeToolArguments(action.arguments || {});
     emit("tool", { name: action.name, status: "running", label });
+    const finish = (wrapped, usage) => ({ wrapped, usage: asUsage(usage) });
     if (!tool) {
       const payload = { error: "없는 도구입니다.", name: action.name };
       emit("tool", { name: action.name, status: "error", label, summary: payload.error });
       steps.push({ name: action.name, status: "error" });
-      return wrapToolResult(action.name || "unknown", payload);
+      return finish(wrapToolResult(action.name || "unknown", payload));
     }
     try {
       const data = await tool.execute(serverCtx, safeArgs);
+      const usage = asUsage(data?.usage);
       const summary =
         data && typeof data.summary === "string" && data.summary
           ? data.summary
@@ -380,13 +386,16 @@ export const runAgentLoop = async ({
       steps.push({ name: action.name, status: "done" });
       const forModel =
         data && typeof data === "object" && !Array.isArray(data) ? { ...data } : data;
-      if (forModel && typeof forModel === "object") delete forModel.links;
-      return wrapToolResult(action.name, forModel);
+      if (forModel && typeof forModel === "object") {
+        delete forModel.links;
+        delete forModel.usage;
+      }
+      return finish(wrapToolResult(action.name, forModel), usage);
     } catch (_) {
       const payload = { error: "도구를 실행하지 못했습니다." };
       emit("tool", { name: action.name, status: "error", label, summary: payload.error });
       steps.push({ name: action.name, status: "error" });
-      return wrapToolResult(action.name, payload);
+      return finish(wrapToolResult(action.name, payload));
     }
   };
 
@@ -454,9 +463,9 @@ export const runAgentLoop = async ({
         if (action.type === "tool") {
           messages.push({ role: "assistant", content: turn.text });
           toolSteps += 1;
-          const wrapped = await runTool(action);
-          noteTurn([action.name], [wrapped]);
-          messages.push({ role: "user", content: wrapped });
+          const ran = await runTool(action);
+          noteTurn([action.name], [ran.wrapped], ran.usage);
+          messages.push({ role: "user", content: ran.wrapped });
           continue;
         }
         const error =
@@ -482,16 +491,18 @@ export const runAgentLoop = async ({
       });
       const turnNames = [];
       const turnWrapped = [];
+      let turnUsage = null;
       for (const call of accepted) {
         toolSteps += 1;
-        const wrapped = await runTool(call);
+        const ran = await runTool(call);
         turnNames.push(call.name);
-        turnWrapped.push(wrapped);
+        turnWrapped.push(ran.wrapped);
+        turnUsage = addUsage(turnUsage, ran.usage);
         messages.push({
           role: "tool",
           toolCallId: call.id,
           name: call.name,
-          content: wrapped,
+          content: ran.wrapped,
         });
       }
       for (const call of skipped) {
@@ -506,7 +517,7 @@ export const runAgentLoop = async ({
           content: wrapped,
         });
       }
-      noteTurn(turnNames, turnWrapped);
+      noteTurn(turnNames, turnWrapped, turnUsage);
       if (toolSteps >= limit) break;
     }
 

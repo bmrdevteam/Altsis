@@ -468,7 +468,7 @@ graph TD
   - `modes`에 `real`이 없는 시나리오(soak-E)는 건너뜁니다. 건너뜀은 실패가 아닙니다.
   - CLI는 시나리오 단위로 통과·실패·건너뜀을 세고, 실패한 단언을 시나리오 아래에 적습니다. 단언 줄 수를 실패 건수로 세지 않습니다.
   - 시나리오가 0건이거나 하나라도 실패하면 종료 코드는 0이 아닙니다. `--only`를 빼면 그 모드에서 돌 수 있는 시나리오 전부입니다.
-- **보고서**: `backend/src/alter/eval/out/<시각>.json`. 시나리오마다 `status`, `toolNames`, `tokens`(prompt, completion, total), `latencyMs`. CLI는 같은 내용을 짧은 표로 찍습니다. 이 디렉터리는 git에 넣지 않습니다.
+- **보고서**: `backend/src/alter/eval/out/<시각>.json`. 시나리오마다 `status`, `toolNames`, `tokens`(prompt, completion, total), `latencyMs`. `tokens`와 보고서 합계에는 도구가 따로 호출한 모델 사용량(예: `search_school_data`)이 포함됩니다. CLI는 시나리오 표와 합계를 찍습니다. 이 디렉터리는 git에 넣지 않습니다.
 - (선택, 아직 없음) **record/replay**: real 응답을 카세트로 저장했다가 scripted처럼 재생합니다.
 
 ### 9.4 실행

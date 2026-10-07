@@ -6,6 +6,7 @@
 import { z } from "zod";
 import { executeSearchSkill } from "../../../services/alterSearch.js";
 import { logger } from "../../../log/logger.js";
+import { asUsage } from "../../core/usage.js";
 import { resolveAlterContext } from "../../policy/access.js";
 import { defineTool } from "../defineTool.js";
 import { clip } from "../lib/compact.js";
@@ -81,10 +82,12 @@ export default defineTool({
         guidelines: "",
       });
       const rowCount = Number(result?.draft?.rowCount);
+      const usage = asUsage(result?.tokenUsage);
       return {
         summary: publicSummary(result?.text),
         rowCount: Number.isFinite(rowCount) ? rowCount : 0,
         readOnly: true,
+        ...(usage ? { usage } : {}),
       };
     } catch (err) {
       logger.error(`alter search_school_data: ${err.message}`);

@@ -5,6 +5,7 @@
  */
 
 import { maskSensitiveText } from "../core/safety.js";
+import { addUsage } from "../core/usage.js";
 import { createAgentTools } from "../tools/registry.js";
 import { llm } from "../../services/alterLlm.js";
 import {
@@ -16,33 +17,6 @@ import {
 const UNATTENDED = new Set(["schedule", "event"]);
 
 const isWriteTool = (tool) => tool?.readOnly === false || tool?.effect === "write";
-
-const asUsage = (raw) => {
-  if (!raw || typeof raw !== "object") return null;
-  return {
-    promptTokens: Number(raw.promptTokens) || 0,
-    candidatesTokens: Number(raw.candidatesTokens) || 0,
-    thoughtsTokens: Number(raw.thoughtsTokens) || 0,
-    totalTokens: Number(raw.totalTokens) || 0,
-  };
-};
-
-const mergeUsage = (current, raw) => {
-  const next = asUsage(raw);
-  if (!next) return current || null;
-  const prev = asUsage(current) || {
-    promptTokens: 0,
-    candidatesTokens: 0,
-    thoughtsTokens: 0,
-    totalTokens: 0,
-  };
-  return {
-    promptTokens: prev.promptTokens + next.promptTokens,
-    candidatesTokens: prev.candidatesTokens + next.candidatesTokens,
-    thoughtsTokens: prev.thoughtsTokens + next.thoughtsTokens,
-    totalTokens: prev.totalTokens + next.totalTokens,
-  };
-};
 
 const depsForMode = (mode, ctx = {}) => {
   if (mode === "event") {
@@ -92,7 +66,7 @@ export const runAlterAgent = async ({
         toolChoice: turn.toolChoice,
         forceFinal: turn.forceFinal,
       });
-      tokenUsage = mergeUsage(tokenUsage, result?.tokenUsage || result?.usage);
+      tokenUsage = addUsage(tokenUsage, result?.tokenUsage || result?.usage);
       return {
         text: maskSensitiveText(result?.text || "").text,
         toolCalls: Array.isArray(result?.toolCalls) ? result.toolCalls : [],
@@ -122,7 +96,7 @@ export const runAlterAgent = async ({
         maxTokens: limits.maxTokens ?? provider.maxTokens,
         scriptedPlan: provider.scriptedPlan,
       });
-      tokenUsage = mergeUsage(tokenUsage, result.usage);
+      tokenUsage = addUsage(tokenUsage, result.usage);
       return {
         text: maskSensitiveText(result.text || "").text,
         toolCalls: Array.isArray(result.toolCalls) ? result.toolCalls : [],
@@ -147,6 +121,7 @@ export const runAlterAgent = async ({
   });
 
   if (typeof provider.onComplete === "function") provider.onComplete(tokenUsage);
+  const reportedUsage = addUsage(tokenUsage, result.nestedUsage);
 
   const toolNames = (result.steps || [])
     .filter((step) => step?.status === "done" && step.name && step.name !== "_parse")
@@ -159,8 +134,8 @@ export const runAlterAgent = async ({
     scheduleProposal,
     toolNames,
     toolSteps: result.toolSteps,
-    tokenUsage,
-    usage: tokenUsage,
+    tokenUsage: reportedUsage,
+    usage: reportedUsage,
     trace: result.trace || [],
   };
 };

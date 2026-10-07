@@ -25,11 +25,21 @@ describe("alter eval harness", () => {
   test("scripted golden scenarios pass", async () => {
     const report = await runEval({ mode: "scripted", writeReport: false });
     expect(report.failures).toEqual([]);
-    expect(report.passed).toBe(22);
+    expect(report.passed).toBe(28);
     expect(report.failed).toBe(0);
     expect(report.skipped).toBe(0);
-    expect(report.ran).toBe(22);
-    expect(report.total).toBe(22);
+    expect(report.ran).toBe(28);
+    expect(report.total).toBe(28);
+    expect(report.tokens).toEqual(
+      report.scenarios.reduce(
+        (sum, row) => ({
+          prompt: sum.prompt + row.tokens.prompt,
+          completion: sum.completion + row.tokens.completion,
+          total: sum.total + row.tokens.total,
+        }),
+        { prompt: 0, completion: 0, total: 0 }
+      )
+    );
   }, 180000);
 
   test("real mode stays out of the test run", async () => {
@@ -98,6 +108,7 @@ describe("alter eval harness", () => {
       expect(demo.text).toContain("수업 페이지에서 평가합니다.");
       expect(soak.text).toBe("");
       expect(demo.tokens).toEqual({ prompt: 4, completion: 5, total: 9 });
+      expect(report.tokens).toEqual({ prompt: 4, completion: 5, total: 9 });
       expect(demo.latencyMs).toBeGreaterThanOrEqual(0);
       expect(soak.status).toBe("skip");
       const saved = JSON.parse(readFileSync(report.reportFile, "utf8"));
