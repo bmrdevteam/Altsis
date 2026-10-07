@@ -1,0 +1,147 @@
+{
+  "get_my_todos": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "scope": {
+        "type": "string",
+        "enum": [
+          "all",
+          "school",
+          "course"
+        ]
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 40
+      }
+    }
+  },
+  "search_product_guide": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "query": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "query"
+    ]
+  },
+  "manage_schedule": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "action": {
+        "type": "string",
+        "enum": [
+          "list",
+          "propose_create",
+          "propose_delete"
+        ]
+      },
+      "title": {
+        "type": "string"
+      },
+      "prompt": {
+        "type": "string"
+      },
+      "scheduleId": {
+        "type": "string"
+      },
+      "timezone": {
+        "type": "string"
+      },
+      "trigger": {
+        "type": "string",
+        "enum": [
+          "time",
+          "event"
+        ]
+      },
+      "event": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "debounceMs": {
+            "type": "integer"
+          },
+          "dmOptIn": {
+            "type": "boolean"
+          },
+          "filters": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "boardIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "formIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "senderUserIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "calendarScope": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "schedule": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "once",
+              "daily",
+              "weekly"
+            ]
+          },
+          "time": {
+            "type": "string"
+          },
+          "weekdays": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6
+            }
+          },
+          "onceAt": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "required": [
+      "action"
+    ]
+  },
+  "get_trigger_events": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}
