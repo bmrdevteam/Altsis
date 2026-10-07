@@ -1,0 +1,33 @@
+{
+  "id": "skill-credit",
+  "runner": "chat",
+  "role": "teacher",
+  "fixture": "eval-teacher",
+  "input": {
+    "prompt": "credit-rules 로 학점 규정을 알려 줘"
+  },
+  "expect": {
+    "tools": {
+      "exact": ["lookup_credit_rules"],
+      "mustNotCall": ["manage_schedule", "search_school_data"]
+    },
+    "maxToolSteps": 3,
+    "text": {
+      "contains": ["찾은 규정만 말합니다"]
+    }
+  },
+  "real": {
+    "tools": {
+      "subset": ["lookup_credit_rules"],
+      "mustNotCall": ["manage_schedule", "search_school_data"]
+    },
+    "maxToolSteps": 3,
+    "text": {
+      "notContains": ["SQL이 비어 있습니다"]
+    }
+  },
+  "scripted": [
+    { "call": "lookup_credit_rules", "arguments": { "query": "학점 규정" } },
+    { "final": "찾은 규정만 말합니다." }
+  ]
+}

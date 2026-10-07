@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import { executeAgentSkill } from "../../services/alterAgent.js";
 import { executeClaimedSchedule } from "../../services/alterScheduleRun.js";
 import { runSkillAgent } from "../runners/skill/run.js";
-import { selectSkill } from "../skills/registry.js";
+import { listSkills, selectSkill } from "../skills/registry.js";
 import { SCRIPTED_AGENT_API_KEY } from "../../services/alterAgentScriptedProvider.js";
 import { readFixtureTodoFacts } from "../tools/lib/fixtureTodoFacts.js";
 import { EVAL_ACADEMY } from "./mongo.js";
@@ -14,36 +14,40 @@ const academyFor = (override) => ({
   aiEnabled: true,
 });
 
-const cast = () => {
+const cast = (scenario) => {
   const schoolId = new mongoose.Types.ObjectId();
   const seasonId = new mongoose.Types.ObjectId();
+  const role = scenario?.role === "student" ? "student" : "teacher";
   const user = {
     _id: new mongoose.Types.ObjectId(),
-    userId: "teacher1",
-    userName: "김교사",
-    auth: "member",
+    userId: role === "student" ? "student1" : "teacher1",
+    userName: role === "student" ? "김학생" : "김교사",
+    auth: role === "student" ? "student" : "member",
   };
   return {
     user,
     school: { _id: schoolId },
     season: { _id: seasonId },
-    registration: { role: "teacher" },
+    registration: { role },
   };
 };
 
 const executeTurn = (scenario, people) => {
-  const skill = selectSkill({
-    message: scenario.input?.prompt || "",
-    role: people.registration?.role,
-  });
-  if (!skill) return executeAgentSkill;
-  return (params) => runSkillAgent({ ...params, skillId: skill.id });
+  const message = scenario.input?.prompt || "";
+  const role = people.registration?.role;
+  const skill = selectSkill({ message, role });
+  if (skill) return (params) => runSkillAgent({ ...params, skillId: skill.id });
+  const named = listSkills().find((item) => message.includes(item.id));
+  if (named) return (params) => runSkillAgent({ ...params, skillId: named.id });
+  return executeAgentSkill;
 };
 
 const runAgent = async (scenario, people, academy, options) => {
   const parseEvents = [];
   const execute = executeTurn(scenario, people);
-  const result = await execute({
+  let result;
+  try {
+    result = await execute({
     academyId: "eval",
     user: people.user,
     academy,
@@ -62,6 +66,23 @@ const runAgent = async (scenario, people, academy, options) => {
       }
     },
   });
+  } catch (err) {
+    if (err?.code === "FORBIDDEN" || err?.code === "PERMISSION_DENIED") {
+      return {
+        text: err.message || "권한이 없습니다.",
+        toolNames: [],
+        toolSteps: 0,
+        links: [],
+        proposal: null,
+        parseErrors: 0,
+        trace: [],
+        tokenUsage: null,
+        status: err.status || 403,
+        code: err.code,
+      };
+    }
+    throw err;
+  }
   return {
     text: result.text || "",
     toolNames: result.toolNames || [],
@@ -86,7 +107,7 @@ const withFixtureTodos = async (scenario, people, result, mode) => {
 };
 
 export const runAgentScenario = async (scenario, options = {}) => {
-  const people = cast();
+  const people = cast(scenario);
   const academy = academyFor(options.academy);
   if (scenario.runner === "chat") {
     const result = await runAgent(scenario, people, academy, options);

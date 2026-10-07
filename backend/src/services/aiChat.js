@@ -15,7 +15,7 @@ import { maskSensitiveText } from "./aiSafety.js";
 import { logAIUsage } from "./aiUsage.js";
 import { assertAiUserQuota } from "./aiUsageQuota.js";
 import { assertCtrlEnabled } from "./entitlement.js";
-import { buildBoardAlterSystemPrompt } from "./alterCorePrompt.js";
+import { buildBoardAlterSystemPrompt } from "./aiAlterPublic.js";
 
 /** 보드 Alter 세션만 (양식 aiChat form/fieldId/row 세션 제외) */
 export const boardAlterSessionFilter = (boardId, studentId) => {

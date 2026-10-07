@@ -5,8 +5,11 @@
 
 import { createAgentTools, listTools } from "../tools/registry.js";
 import fixtureBrief from "./defs/fixtureBrief.skill.js";
+import schoolSearch from "./defs/schoolSearch.skill.js";
+import creditRules from "./defs/creditRules.skill.js";
+import screenSummary from "./defs/screenSummary.skill.js";
 
-const SKILLS = [fixtureBrief];
+const SKILLS = [fixtureBrief, schoolSearch, creditRules, screenSummary];
 
 const knownTools = new Set(listTools().map((tool) => tool.name));
 for (const skill of SKILLS) {
@@ -38,7 +41,7 @@ export const describeSkills = (role) =>
 
 /**
  * Pick a skill when the message names its id and the role is allowed.
- * Ordinary chat does not name fixture-brief, so it stays on the full tool set.
+ * Ordinary chat does not name these ids, so it keeps the full chat tool set.
  */
 export const selectSkill = ({ message, role } = {}) => {
   const text = String(message || "");

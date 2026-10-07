@@ -19,7 +19,7 @@ import {
 import { maskSensitiveText } from "./aiSafety.js";
 import { logAIUsage } from "./aiUsage.js";
 import { assertAiUserQuota } from "./aiUsageQuota.js";
-import { ALTER_SAFETY_ETHICS } from "./alterCorePrompt.js";
+import { ALTER_SAFETY_ETHICS } from "./aiAlterPublic.js";
 import { assertCtrlEnabled } from "./entitlement.js";
 import {
   canRespondForm,

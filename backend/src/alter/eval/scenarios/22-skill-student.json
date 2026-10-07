@@ -1,0 +1,32 @@
+{
+  "id": "skill-student-search",
+  "runner": "chat",
+  "role": "student",
+  "fixture": "eval-student",
+  "input": {
+    "prompt": "school-search 로 출석 인원을 찾아 줘"
+  },
+  "expect": {
+    "status": 403,
+    "code": "FORBIDDEN",
+    "tools": {
+      "exact": [],
+      "mustNotCall": ["search_school_data", "manage_schedule"]
+    },
+    "text": {
+      "contains": ["권한이 없습니다."],
+      "notContains": ["SQL이 비어 있습니다", "SELECT"]
+    }
+  },
+  "real": {
+    "status": 403,
+    "code": "FORBIDDEN",
+    "tools": {
+      "exact": []
+    },
+    "text": {
+      "contains": ["권한이 없습니다."],
+      "notContains": ["SQL이 비어 있습니다", "SELECT"]
+    }
+  }
+}

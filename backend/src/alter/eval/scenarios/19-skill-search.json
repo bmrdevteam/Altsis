@@ -1,0 +1,34 @@
+{
+  "id": "skill-search",
+  "runner": "chat",
+  "role": "teacher",
+  "fixture": "eval-teacher",
+  "input": {
+    "prompt": "school-search 로 출석 인원을 찾아 줘"
+  },
+  "expect": {
+    "tools": {
+      "exact": ["search_school_data"],
+      "mustNotCall": ["manage_schedule", "lookup_credit_rules", "get_current_screen"]
+    },
+    "maxToolSteps": 3,
+    "text": {
+      "contains": ["검색 결과만 말합니다"],
+      "notContains": ["SQL이 비어 있습니다", "SELECT"]
+    }
+  },
+  "real": {
+    "tools": {
+      "subset": ["search_school_data"],
+      "mustNotCall": ["manage_schedule"]
+    },
+    "maxToolSteps": 3,
+    "text": {
+      "notContains": ["SQL이 비어 있습니다", "SELECT", "INSERT", "UPDATE"]
+    }
+  },
+  "scripted": [
+    { "call": "search_school_data", "arguments": { "question": "출석 인원" } },
+    { "final": "검색 결과만 말합니다." }
+  ]
+}

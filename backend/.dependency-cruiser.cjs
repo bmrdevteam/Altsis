@@ -56,11 +56,11 @@ module.exports = {
     {
       name: "domain-not-to-alter",
       comment:
-        "controllers와 Alter 밖 services는 alter를 import하지 않는다. 동적 import도 포함한다. services/aiSafety.js와 services/seasonAiAccess.js는 core·policy의 기존 공개 경로로, 재수출만 한다.",
+        "controllers와 Alter 밖 services는 alter를 import하지 않는다. 동적 import도 포함한다. services/aiSafety.js, services/seasonAiAccess.js, services/aiAlterPublic.js는 재수출만 하는 공개 경로다.",
       severity: "error",
       from: {
         path: "^src/(controllers|services)/",
-        pathNot: "^src/services/(alter|aiSafety\\.js$|seasonAiAccess\\.js$)",
+        pathNot: "^src/services/(alter|aiSafety\\.js$|seasonAiAccess\\.js$|aiAlterPublic\\.js$)",
       },
       to: { path: "^src/(alter/|services/alter)" },
     },

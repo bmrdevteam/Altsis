@@ -31,11 +31,22 @@ import { router as memos } from "./memos.js";
 import { router as themeSettings } from "./themeSettings.js";
 import { router as userCalendars } from "./userCalendars.js";
 import { router as test } from "./test.js";
-import { registerAlterAgentRunner } from "../services/aiSkills.js";
+import { registerAlterAgentRunner, registerAlterSearchRunner } from "../services/aiSkills.js";
 import { runChatAgent } from "../alter/runners/chat/run.js";
 import { subscribeDomainEvents } from "../alter/runners/event/subscribe.js";
+import { getSkill } from "../alter/skills/registry.js";
+import { executeSearchSkill } from "../services/alterSearch.js";
 
 registerAlterAgentRunner(runChatAgent);
+registerAlterSearchRunner(async (args) => {
+  const skill = getSkill("school-search");
+  if (!skill || !skill.tools.includes("search_school_data")) {
+    const err = new Error("검색 스킬이 연결되지 않았습니다.");
+    err.status = 500;
+    throw err;
+  }
+  return executeSearchSkill(args);
+});
 subscribeDomainEvents();
 
 export const routers = [

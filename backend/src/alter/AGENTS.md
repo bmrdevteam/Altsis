@@ -20,7 +20,7 @@
 
 의존 방향: `runners → agent → tools → policy → core`. `runners`는 `skills`를 부를 수 있다. `core`(`src/alter/core/`)는 node 기본 모듈과 다른 `core` 파일만 의존한다. 도메인·policy·tools·providers·agent·runners를 부르지 않는다. `policy/access.js`의 `resolveAlterContext`가 채팅·에이전트·예약 생성/수정·러너·트리거 도구의 접근 검사다. 학원 AI, 역할, 소유, 이벤트 플래그, DM 동의를 여기서 본다. 기존 도메인 서비스는 `tools`와 `policy`만 부를 수 있다. `tools`/`skills`/`providers`는 `runners`와 `agent`를 import하지 않는다. `skills`는 `providers`도 import하지 않는다. `providers`는 `tools`를 import하지 않는다. `eval`은 러너·에이전트·프로바이더를 부를 수 있다. 마스킹·자르기·링크 정리·래핑·일정 상수·시간대·id는 `core`에 있고, `services/aiSafety.js`·`alterScheduleTime.js`·`alterAgentProtocol.js`는 기존 경로로 다시 내보낸다. 채팅·에이전트의 기존 입구는 `assertSeasonAiAccess`로 같은 검사를 부른다.
 
-경계는 `npm run lint:deps`다. 설정은 `backend/.dependency-cruiser.cjs`이고, 이미 있는 위반 8건은 `backend/.dependency-cruiser-known-violations.json`에 있다. 파일과 그 위반을 없앨 이전 PR은 [dependency-baseline.md](dependency-baseline.md)에 있다. 새 위반은 실패다. 백엔드에는 eslint 설정이 없고, 실제 결합의 상당수가 `await import()`라 `no-restricted-imports`는 넣지 않았다.
+경계는 `npm run lint:deps`다. 설정은 `backend/.dependency-cruiser.cjs`이고, 알려진 위반은 0건이다. 목록은 `backend/.dependency-cruiser-known-violations.json`에 있고, 파일 설명은 [dependency-baseline.md](dependency-baseline.md)에 있다. 새 위반은 실패다. 도메인이 Alter 서비스 심볼을 부를 때는 `services/aiAlterPublic.js`만 쓴다. 그 파일은 재수출만 한다. 백엔드에는 eslint 설정이 없고, 실제 결합의 상당수가 `await import()`라 `no-restricted-imports`는 넣지 않았다.
 
 ## 도구를 추가하는 법
 
@@ -37,6 +37,7 @@
 3. `skills/registry.js`의 `SKILLS`에 그 파일을 넣는다. 채팅은 메시지에 스킬 `id`가 있고 역할이 맞을 때만 그 스킬을 고른다. 고르지 않으면 기존 도구 집합 그대로다.
 4. `runners/skill/run.js`가 고른 스킬의 도구만 `runAlterAgent`에 넘긴다. 단계 한도는 에이전트 한도를 그대로 쓴다. 스킬 파일에서 `providers`와 `agent`를 import하지 않는다.
 5. 계약 테스트 `skills/__tests__/contract.test.js`가 id·절차·역할·허용 도구를 본다. eval은 선택 1개, 허용 도구 밖 호출이 실행되지 않는 거절 1개를 함께 넣는다.
+6. 이미 있는 학사 검색·학점 규정·화면 요약은 `school-search`, `credit-rules`, `screen-summary`다. 도구는 `search_school_data`, `lookup_credit_rules`, `get_current_screen`이고 채팅에만 나온다. 예약·이벤트 러너에는 `include`로 빠진다. 검색 SQL 가드는 `executeSearchSkill`에 있고, 도구 결과에는 SQL과 내부 오류를 넣지 않는다. HTTP 검색 스킬은 `registerAlterSearchRunner`로 같은 실행 함수를 쓴다. 초안 스킬(`syllabus-draft` 등)은 응답을 유지하려고 기존 실행 함수에 둔다.
 
 ## 프로바이더를 추가하는 법
 
