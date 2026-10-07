@@ -43,6 +43,9 @@ export default defineTool({
   permission: { roles: ["teacher"], access: "self" },
   readOnly: true,
   untrustedOutput: false,
+  promptHints: [
+    "manage_schedule은 저장하지 않습니다. prompt에는 조회와 안내만 넣으세요. 쓰기 요청은 거절하고, 매일 9시에 채점할 항목이 있는지 정리처럼 조회 예약을 대신 제안하세요.",
+  ],
   include: (deps) => deps.includeScheduleTool !== false,
   async handler(ctx, rawArgs = {}) {
     const action = String(rawArgs.action || "").trim();

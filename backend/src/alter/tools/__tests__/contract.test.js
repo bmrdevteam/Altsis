@@ -51,6 +51,11 @@ describe("alter tool contract", () => {
       expect(tool.permission.roles.length).toBeGreaterThan(0);
       expect(tool.permission.access.length).toBeGreaterThan(0);
       expect(tool.readOnly).toBe(true);
+      expect(Array.isArray(tool.promptHints)).toBe(true);
+      expect(tool.promptHints.length).toBeGreaterThan(0);
+      for (const hint of tool.promptHints) {
+        expect(String(hint).trim().length).toBeGreaterThan(0);
+      }
       const keys = propertyNames(tool.parameters);
       expect(keys.some((key) => IDENTITY_ARG_KEYS.has(key))).toBe(false);
       const huge = { summary: "큼", blob: "가".repeat(MAX_TOOL_RESULT_CHARS + 500) };

@@ -37,6 +37,7 @@ const toRuntimeTool = (tool, deps) => ({
   permission: tool.permission,
   readOnly: tool.readOnly,
   untrustedOutput: tool.untrustedOutput,
+  promptHints: tool.promptHints,
   parameters: tool.parameters,
   arguments: tool.arguments,
   async execute(serverCtx, rawArgs) {
