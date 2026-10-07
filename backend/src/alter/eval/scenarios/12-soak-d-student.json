@@ -1,0 +1,18 @@
+{
+  "id": "soak-D-student",
+  "mode": "scripted",
+  "runner": "chat",
+  "role": "student",
+  "fixture": "eval-student",
+  "check": "student-403",
+  "expect": {
+    "statuses": [
+      403,
+      403,
+      403
+    ],
+    "codes": [
+      "PERMISSION_DENIED"
+    ]
+  }
+}

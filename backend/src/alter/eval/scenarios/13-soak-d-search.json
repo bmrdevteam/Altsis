@@ -1,0 +1,22 @@
+{
+  "id": "soak-D-demo-search",
+  "mode": "scripted",
+  "runner": "chat",
+  "role": "teacher",
+  "fixture": "eval-teacher",
+  "input": {
+    "prompt": "출석 인원을 검색해 줘"
+  },
+  "expect": {
+    "text": {
+      "notContains": [
+        "SQL이 비어 있습니다"
+      ]
+    }
+  },
+  "scripted": [
+    {
+      "final": "그 질문은 에이전트 도구로 집계하지 않습니다. 화면의 검색을 사용해 주세요."
+    }
+  ]
+}

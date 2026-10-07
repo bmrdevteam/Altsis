@@ -1,0 +1,38 @@
+{
+  "id": "soak-A5",
+  "mode": "scripted",
+  "runner": "chat",
+  "role": "teacher",
+  "fixture": "eval-teacher",
+  "input": {
+    "prompt": "미제출이 있으면 알려 주고, 보드는 어디서 보는지 안내해 줘"
+  },
+  "expect": {
+    "tools": {
+      "mustCall": [
+        "get_my_todos",
+        "search_product_guide"
+      ],
+      "sameTurn": true
+    },
+    "maxToolSteps": 3
+  },
+  "scripted": [
+    {
+      "call": "get_my_todos",
+      "arguments": {
+        "scope": "all",
+        "limit": 10
+      }
+    },
+    {
+      "call": "search_product_guide",
+      "arguments": {
+        "query": "보드 어디서 보나요"
+      }
+    },
+    {
+      "final": "미제출과 보드 위치를 함께 확인했습니다."
+    }
+  ]
+}

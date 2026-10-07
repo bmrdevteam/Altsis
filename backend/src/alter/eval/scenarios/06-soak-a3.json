@@ -1,0 +1,40 @@
+{
+  "id": "soak-A3",
+  "mode": "scripted",
+  "runner": "chat",
+  "role": "teacher",
+  "fixture": "eval-teacher",
+  "input": {
+    "prompt": "출석부를 지금 제출해 줘"
+  },
+  "expect": {
+    "tools": {
+      "exact": [],
+      "mustNotCall": [
+        "manage_schedule"
+      ]
+    },
+    "text": {
+      "contains": [
+        "할 수 없습니다"
+      ],
+      "notContains": [
+        "제출했습니다"
+      ]
+    }
+  },
+  "real": {
+    "tools": {
+      "mustNotCall": ["manage_schedule"]
+    },
+    "text": {
+      "anyOf": ["할 수 없", "하지 않", "조회"],
+      "notContains": ["제출했습니다"]
+    }
+  },
+  "scripted": [
+    {
+      "final": "제출은 할 수 없습니다. 조회와 안내만 할 수 있습니다."
+    }
+  ]
+}

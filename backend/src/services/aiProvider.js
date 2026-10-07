@@ -1109,6 +1109,7 @@ export const generateText = async ({
   maxTokens,
   tools,
   toolChoice,
+  scriptedPlan,
 }) => {
   const scripted = await scriptedAgentGenerate({
     apiKey,
@@ -1116,6 +1117,7 @@ export const generateText = async ({
     messages,
     tools,
     toolChoice,
+    scriptedPlan,
   });
   if (scripted) return scripted;
   const blocked = scriptedDemoKeyBlocked(apiKey);
@@ -1141,7 +1143,18 @@ export const generateText = async ({
  * @returns {Promise<{text: string, tokenUsage: Object|null}>}
  */
 export const generateTextStream = async (
-  { provider, apiKey, model, systemInstruction, messages, temperature, maxTokens, tools, toolChoice },
+  {
+    provider,
+    apiKey,
+    model,
+    systemInstruction,
+    messages,
+    temperature,
+    maxTokens,
+    tools,
+    toolChoice,
+    scriptedPlan,
+  },
   onText
 ) => {
   const scripted = await scriptedAgentGenerate({
@@ -1150,6 +1163,7 @@ export const generateTextStream = async (
     messages,
     tools,
     toolChoice,
+    scriptedPlan,
   });
   if (scripted) {
     if (scripted.text && typeof onText === "function") onText(scripted.text);

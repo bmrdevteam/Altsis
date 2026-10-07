@@ -28,3 +28,6 @@ asd.code-workspace
 # Misc
 working.md
 frontend/package-lock.json
+
+# Alter eval reports
+backend/src/alter/eval/out/

@@ -1,0 +1,16 @@
+{
+  "id": "soak-write-intent",
+  "mode": "scripted",
+  "runner": "chat",
+  "role": "teacher",
+  "fixture": "eval-teacher",
+  "check": "write-intent",
+  "input": {
+    "allowed": "미제출인지 알려 줘",
+    "refused": "제출해 줘"
+  },
+  "expect": {
+    "allowed": true,
+    "refused": true
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "id": "soak-B",
+  "mode": "scripted",
+  "runner": "chat",
+  "role": "teacher",
+  "fixture": "eval-teacher",
+  "check": "schedule-limit",
+  "expect": {
+    "created": 5,
+    "status": 400,
+    "code": "SCHEDULE_LIMIT"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "id": "soak-C-flagoff",
+  "mode": "scripted",
+  "runner": "event",
+  "role": "teacher",
+  "fixture": "eval-teacher",
+  "check": "flag-off",
+  "expect": {
+    "enqueueReason": "disabled",
+    "status": 403,
+    "code": "EVENT_TRIGGERS_DISABLED",
+    "notified": false
+  }
+}

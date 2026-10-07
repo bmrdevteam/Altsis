@@ -1,0 +1,77 @@
+{
+  "id": "demo-3",
+  "mode": "scripted",
+  "runner": "chat",
+  "role": "teacher",
+  "fixture": "eval-teacher",
+  "input": {
+    "prompt": "매일 밤 9시에 학생 과제 채점해 주고, 안 되면 채점할 게 있는지만 알려주는 예약으로 해 줘"
+  },
+  "expect": {
+    "tools": {
+      "exact": [
+        "manage_schedule"
+      ],
+      "mustNotCall": [
+        "get_trigger_events"
+      ]
+    },
+    "maxToolSteps": 3,
+    "text": {
+      "contains": [
+        "제안했습니다",
+        "채점은 하지"
+      ],
+      "notContains": [
+        "채점했습니다",
+        "자동 채점",
+        "채점 기능"
+      ]
+    },
+    "proposal": {
+      "action": "create",
+      "saved": false,
+      "schedule": {
+        "kind": "daily",
+        "time": "21:00"
+      },
+      "promptNotContains": [
+        "채점해"
+      ]
+    }
+  },
+  "real": {
+    "tools": {
+      "subset": ["manage_schedule"]
+    },
+    "text": {
+      "matches": ["채점[^.\\n]{0,15}(않|없|못)"]
+    },
+    "proposal": {
+      "action": "create",
+      "saved": false,
+      "schedule": {
+        "kind": "daily",
+        "time": "21:00"
+      },
+      "promptReadOnly": true
+    }
+  },
+  "scripted": [
+    {
+      "call": "manage_schedule",
+      "arguments": {
+        "action": "propose_create",
+        "title": "매일 저녁 채점 항목 조회",
+        "prompt": "학생 과제 중 채점할 항목이 있는지 조회해 요약해 주세요. 채점이나 제출은 하지 않고, 채점할 항목이 없으면 없다고 안내해 주세요.",
+        "schedule": {
+          "kind": "daily",
+          "time": "21:00"
+        }
+      }
+    },
+    {
+      "final": "매일 밤 9시에 채점할 과제가 있는지 조회해 알려주는 예약을 제안했습니다. 실제 채점은 하지 않으며, 예약 저장은 사용자가 직접 완료해야 합니다."
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "id": "demo-1",
+  "mode": "scripted",
+  "runner": "schedule",
+  "role": "teacher",
+  "fixture": "eval-teacher",
+  "input": {
+    "title": "월요일 아침 브리핑",
+    "prompt": "이번 주 할 일을 우선순위로 정리해 줘. 수강생이 없는 수업은 한 줄로만 적어 줘."
+  },
+  "expect": {
+    "tools": {
+      "exact": [
+        "get_my_todos"
+      ]
+    },
+    "maxToolSteps": 3,
+    "text": {
+      "containsOnce": [
+        "수강생이 없는 수업"
+      ],
+      "notContains": [
+        "http://",
+        "https://"
+      ]
+    },
+    "notification": {
+      "type": "alterSchedule",
+      "maxChars": 180,
+      "noMarkdown": true
+    }
+  },
+  "real": {
+    "tools": {
+      "subset": ["get_my_todos"]
+    },
+    "maxToolSteps": 3,
+    "text": {
+      "anyOf": ["수강생이 없는 수업", "수강생 없는 수업"],
+      "notContains": ["http://", "https://"]
+    },
+    "notification": {
+      "type": "alterSchedule",
+      "maxChars": 180,
+      "noMarkdown": true
+    }
+  },
+  "scripted": [
+    {
+      "call": "get_my_todos",
+      "arguments": {
+        "scope": "all",
+        "limit": 10
+      }
+    },
+    {
+      "final": "**우선 처리할 보드 항목**\n수강생이 없는 수업은 11개입니다."
+    }
+  ]
+}
