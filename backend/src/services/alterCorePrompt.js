@@ -4,7 +4,7 @@
  */
 
 import { normalizeGuidelines, PROMPT_LIMITS, truncateText } from "./aiPromptPolicy.js";
-import { maskSensitiveText } from "./aiSafety.js";
+import { maskSensitiveText } from "../alter/core/safety.js";
 
 /** 모든 Alter 채널 공통 안전·윤리 */
 export const ALTER_SAFETY_ETHICS = `[안전 지침 - 반드시 준수]

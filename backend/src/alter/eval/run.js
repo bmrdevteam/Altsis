@@ -6,7 +6,7 @@ import { loadScenarios, scenarioSelected } from "./loadScenarios.js";
 import { startEvalMongo, stopEvalMongo } from "./mongo.js";
 import { redactSecrets } from "./redact.js";
 import { runServiceCheck } from "./serviceChecks.js";
-import { maskSensitiveText } from "../../services/aiSafety.js";
+import { maskSensitiveText } from "../core/safety.js";
 
 const ANSWER_PREVIEW = 1000;
 
