@@ -1,0 +1,35 @@
+{
+  "id": "image-ok",
+  "runner": "chat",
+  "role": "teacher",
+  "fixture": "eval-teacher",
+  "academy": { "imageGenEnabled": true },
+  "input": {
+    "prompt": "간단한 막대 차트 그림을 만들어 줘"
+  },
+  "expect": {
+    "tools": {
+      "exact": ["generate_image"]
+    },
+    "text": {
+      "contains": ["https://example.com/generated/chart.png", "생성된 차트"]
+    }
+  },
+  "real": {
+    "tools": {
+      "allow": ["generate_image"]
+    },
+    "text": {
+      "matches": ["https://"]
+    }
+  },
+  "scripted": [
+    {
+      "call": "generate_image",
+      "arguments": { "prompt": "간단한 막대 차트" }
+    },
+    {
+      "final": "생성된 차트입니다. https://example.com/generated/chart.png"
+    }
+  ]
+}

@@ -13,6 +13,7 @@ const academyFor = (override) => ({
   aiModel: override?.aiModel || "gpt-4o-mini",
   aiEnabled: true,
   webSearchEnabled: override?.webSearchEnabled === true,
+  imageGenEnabled: override?.imageGenEnabled === true,
 });
 
 const cast = (scenario) => {
@@ -111,6 +112,7 @@ export const runAgentScenario = async (scenario, options = {}) => {
   const people = cast(scenario);
   const academy = academyFor(options.academy);
   if (scenario.academy?.webSearchEnabled === true) academy.webSearchEnabled = true;
+  if (scenario.academy?.imageGenEnabled === true) academy.imageGenEnabled = true;
   if (scenario.runner === "chat") {
     const result = await runAgent(scenario, people, academy, options);
     return withFixtureTodos(scenario, people, result, options.mode);

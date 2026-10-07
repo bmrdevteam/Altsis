@@ -1,0 +1,31 @@
+{
+  "id": "image-off",
+  "runner": "chat",
+  "role": "teacher",
+  "fixture": "eval-teacher",
+  "input": {
+    "prompt": "막대 차트 그림을 만들어 줘"
+  },
+  "expect": {
+    "tools": {
+      "exact": [],
+      "mustNotCall": ["generate_image"]
+    },
+    "text": {
+      "contains": ["이미지 생성은 꺼져 있습니다."]
+    }
+  },
+  "real": {
+    "tools": {
+      "mustNotCall": ["generate_image"]
+    },
+    "text": {
+      "matches": ["꺼져|없습니다|이미지"]
+    }
+  },
+  "scripted": [
+    {
+      "final": "이미지 생성은 꺼져 있습니다."
+    }
+  ]
+}

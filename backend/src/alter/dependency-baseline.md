@@ -2,7 +2,7 @@
 
 `npm run lint:deps`의 알려진 위반은 0건이다. 새 위반은 실패다. 기계가 읽는 목록은 `backend/.dependency-cruiser-known-violations.json`이고 지금은 빈 배열이다. P3에서 마스킹 1건을 뺐고(24→23), P4에서 `alter/eval/serviceChecks.js` → `models/AlterSchedule.js` 1건을 뺐다(23→22), P5에서 `alter/eval/run.js` → `models/Academy.js` 1건을 뺐다(22→21). P6은 도구 힌트만 옮겼다. P7에서 `services/aiProvider.js` → `services/alterAgentScriptedProvider.js` 1건을 뺐다(21→20). P8에서 채팅 컨트롤러 3건, 예약 컨트롤러 2건, 스케줄러 1건, `aiSkills.js` → `alterAgent.js` 1건을 뺐다(20→13). P9에서 도메인이 `alterEvent.js`를 부르던 5건을 뺐다(13→8). P10은 오류 계약만 맞춰 8건을 유지했다. N1은 스킬 프레임만 추가하고 검색 import는 빼지 않아 8건을 유지했다. N2에서 그 8건을 뺐다(8→0).
 
-N3는 읽기 도구 4개를 `tools`에서 도메인 서비스로만 불러 0건을 유지했다. 예약·이벤트도 이 도구를 고른다. 채팅 검색이 제출 표를 빼는 플래그도 `tools` → `services/alterSearch*` 안에 있어 0건을 유지한다. N4 웹 검색은 `tools`가 `services/alterWebSearch.js`만 부르고, 그 서비스가 프로바이더 검색을 부른다. 플래그가 꺼져 있으면 도구가 목록에 없어 0건을 유지한다.
+N3는 읽기 도구 4개를 `tools`에서 도메인 서비스로만 불러 0건을 유지했다. 예약·이벤트도 이 도구를 고른다. 채팅 검색이 제출 표를 빼는 플래그도 `tools` → `services/alterSearch*` 안에 있어 0건을 유지한다. N4 웹 검색은 `tools`가 `services/alterWebSearch.js`만 부르고, 그 서비스가 프로바이더 검색을 부른다. 플래그가 꺼져 있으면 도구가 목록에 없어 0건을 유지한다. N5 이미지 생성은 `tools`가 `services/alterImage.js`만 부르고, 그 서비스가 프로바이더와 저장을 부른다. 채팅이 아니거나 플래그가 꺼져 있으면 도구가 목록에 없어 0건을 유지한다.
 
 N2가 뺀 간선은 구현 파일을 다른 이름으로 바꾼 것이 아니다. `services/aiAlterPublic.js`가 `alterAttachments`, `alterCorePrompt`, `alterGuideRetrieve`, `alterGuideLinks`를 그대로 다시 내보내고, `aiSkills.js`·`aiChat.js`·`formAiChat.js`·`refineAlterPrompt.js`는 그 이음새만 부른다. `aiSafety.js`, `seasonAiAccess.js`와 같이 `domain-not-to-alter`의 `pathNot`에 있다. 검색은 에이전트와 같다. `routes/index.js`가 `school-search` 스킬 정의를 확인한 뒤 `executeSearchSkill`을 `registerAlterSearchRunner`로 연결하므로 `aiSkills.js`는 `alterSearch.js`를 import하지 않는다. HTTP 검색 응답 모양은 그대로다.
 

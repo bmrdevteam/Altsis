@@ -15,6 +15,7 @@ import { runAgentScenario } from "./agentScenario.js";
 import { runReadToolsCheck } from "../tools/readToolsFixture.js";
 import { runOtherClassCheck } from "../tools/submissionBoundaryCheck.js";
 import { runWebSearchCheck } from "../tools/webSearchFixture.js";
+import { runImageGenCheck } from "../tools/imageGenFixture.js";
 
 const person = (userId) => ({
   _id: new mongoose.Types.ObjectId(),
@@ -64,6 +65,7 @@ export const runServiceCheck = async (scenario, options) => {
   if (scenario.check === "read-tools") return runReadToolsCheck();
   if (scenario.check === "read-other-class") return runOtherClassCheck();
   if (scenario.check === "web-search") return runWebSearchCheck();
+  if (scenario.check === "image-gen") return runImageGenCheck();
   throw new Error(`unknown check ${scenario.check}`);
 };
 

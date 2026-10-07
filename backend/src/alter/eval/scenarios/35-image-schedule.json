@@ -1,0 +1,33 @@
+{
+  "id": "image-schedule",
+  "runner": "schedule",
+  "role": "teacher",
+  "fixture": "eval-teacher",
+  "academy": { "imageGenEnabled": true },
+  "input": {
+    "prompt": "예약으로 막대 차트 그림을 만들어 줘",
+    "title": "차트 그림"
+  },
+  "expect": {
+    "tools": {
+      "exact": [],
+      "mustNotCall": ["generate_image"]
+    },
+    "text": {
+      "contains": ["예약에서는 이미지를 만들지 않습니다."]
+    }
+  },
+  "real": {
+    "tools": {
+      "mustNotCall": ["generate_image"]
+    },
+    "text": {
+      "matches": ["예약|이미지|않"]
+    }
+  },
+  "scripted": [
+    {
+      "final": "예약에서는 이미지를 만들지 않습니다."
+    }
+  ]
+}
