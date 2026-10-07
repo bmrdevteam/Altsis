@@ -104,6 +104,13 @@ describe("assembled agent prompt", () => {
     expect(unattended).toContain("get_form_submission_status");
     expect(unattended).toContain("get_calendar");
     expect(unattended).toContain("get_my_courses");
+    expect(unattended).not.toContain("web_search");
+    const web = buildAgentSystemPrompt({
+      tools: createAgentTools({ includeScheduleTool: false, webSearchEnabled: true }),
+      protocol: "native",
+    });
+    expect(web).toContain("web_search");
+    expect(web).toContain("학생 이름, 성적, 연락처");
   });
 
   test("removing a tool removes only that tool's hints", () => {

@@ -147,6 +147,13 @@ describe("alter core helpers", () => {
       ]);
       expect(kept).toContain("[할 일](/todos)");
       expect(kept).not.toContain("evil.test");
+      const cited = stripUnmatchedLinks(
+        "출처 https://example.com/weather 그리고 https://evil.test/x",
+        [],
+        ["https://example.com/weather"]
+      );
+      expect(cited).toContain("https://example.com/weather");
+      expect(cited).not.toContain("evil.test");
     } finally {
       process.env.URL = previous;
     }

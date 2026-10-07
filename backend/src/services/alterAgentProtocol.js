@@ -336,6 +336,7 @@ export const runAgentLoop = async ({
   ];
   const steps = [];
   const links = [];
+  const sourceUrls = [];
   const trace = [];
   let scheduleProposal = null;
   let toolSteps = 0;
@@ -351,7 +352,7 @@ export const runAgentLoop = async ({
     const normalized = normalizeAlterGuideLinks(links);
     return {
       ...extra,
-      text: stripUnmatchedLinks(extra?.text, normalized),
+      text: stripUnmatchedLinks(extra?.text, normalized, sourceUrls),
       links: normalized,
       trace,
       nestedUsage,
@@ -379,6 +380,12 @@ export const runAgentLoop = async ({
           ? data.summary
           : "완료";
       if (Array.isArray(data?.links)) links.push(...data.links);
+      if (Array.isArray(data?.sourceUrls)) {
+        for (const url of data.sourceUrls) {
+          const clean = String(url || "").trim();
+          if (/^https:\/\/[^\s]+$/i.test(clean) && clean.length <= 500) sourceUrls.push(clean);
+        }
+      }
       if (data?.proposal && data.proposal.saved !== true) {
         scheduleProposal = data.proposal;
       }
@@ -389,6 +396,7 @@ export const runAgentLoop = async ({
       if (forModel && typeof forModel === "object") {
         delete forModel.links;
         delete forModel.usage;
+        delete forModel.sourceUrls;
       }
       return finish(wrapToolResult(action.name, forModel), usage);
     } catch (_) {

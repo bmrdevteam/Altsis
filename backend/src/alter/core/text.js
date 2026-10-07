@@ -144,11 +144,20 @@ const cleanupStrippedLinkLines = (text, labels) => {
  * process.env.URL). Anything else keeps the label text, then empty bullets
  * and link lead-ins are removed.
  */
-export const stripUnmatchedLinks = (text, links) => {
+export const stripUnmatchedLinks = (text, links, sourceUrls = []) => {
   const paths = linkPathsFrom(links);
+  const sources = new Set(
+    (Array.isArray(sourceUrls) ? sourceUrls : [])
+      .map((url) => String(url || "").trim())
+      .filter((url) => /^https:\/\/[^\s]+$/i.test(url))
+  );
+  const keepHref = (href) => {
+    const raw = String(href || "").trim();
+    return hrefMatchesLinkPath(raw, paths) || sources.has(raw);
+  };
   const strippedLabels = [];
   let out = String(text || "").replace(MARKDOWN_LINK_RE, (full, label, href) => {
-    if (hrefMatchesLinkPath(href, paths)) return full;
+    if (keepHref(href)) return full;
     const kept = String(label || "").trim();
     strippedLabels.push(kept);
     return kept;
@@ -156,7 +165,7 @@ export const stripUnmatchedLinks = (text, links) => {
   out = out.replace(BARE_URL_RE, (url) => {
     const core = url.replace(/[.,!?;:]+$/g, "");
     const tail = url.slice(core.length);
-    if (hrefMatchesLinkPath(core, paths)) return url;
+    if (keepHref(core)) return url;
     return tail;
   });
   out = cleanupStrippedLinkLines(out, strippedLabels);

@@ -45,6 +45,7 @@ describe("alter tool contract", () => {
       "get_form_submission_status",
       "get_calendar",
       "get_my_courses",
+      "web_search",
     ]);
     for (const tool of tools) {
       expect(tool.name).toMatch(/^[a-z][a-z0-9_]{0,63}$/);

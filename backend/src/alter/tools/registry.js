@@ -14,6 +14,7 @@ import getPendingApprovals from "./defs/getPendingApprovals.tool.js";
 import getFormSubmissionStatus from "./defs/getFormSubmissionStatus.tool.js";
 import getCalendar from "./defs/getCalendar.tool.js";
 import getMyCourses from "./defs/getMyCourses.tool.js";
+import webSearch from "./defs/webSearch.tool.js";
 
 const TOOLS = [
   getMyTodos,
@@ -27,6 +28,7 @@ const TOOLS = [
   getFormSubmissionStatus,
   getCalendar,
   getMyCourses,
+  webSearch,
 ];
 
 const byName = new Map(TOOLS.map((tool) => [tool.name, tool]));
