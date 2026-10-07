@@ -36,6 +36,7 @@ const toRuntimeTool = (tool, deps) => ({
   description: tool.description,
   permission: tool.permission,
   readOnly: tool.readOnly,
+  effect: tool.effect,
   untrustedOutput: tool.untrustedOutput,
   promptHints: tool.promptHints,
   parameters: tool.parameters,

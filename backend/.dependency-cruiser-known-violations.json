@@ -1,44 +1,6 @@
 // 알려진 위반. 새 위반은 여기 넣지 않는다.
 // 파일과 제거 PR: src/alter/dependency-baseline.md
 [
-  // P8. 채팅 컨트롤러가 대화·첨부·검색 범위를 직접 부른다.
-  {
-    "type": "dependency",
-    "from": "src/controllers/ai.js",
-    "to": "src/services/alterAttachments.js",
-    "rule": { "severity": "error", "name": "domain-not-to-alter" }
-  },
-  {
-    "type": "dependency",
-    "from": "src/controllers/ai.js",
-    "to": "src/services/alterConversations.js",
-    "rule": { "severity": "error", "name": "domain-not-to-alter" }
-  },
-  {
-    "type": "dependency",
-    "from": "src/controllers/ai.js",
-    "to": "src/services/alterSearchCatalog.js",
-    "rule": { "severity": "error", "name": "domain-not-to-alter" }
-  },
-  // P8. 예약 컨트롤러와 스케줄러가 러너를 직접 부른다.
-  {
-    "type": "dependency",
-    "from": "src/controllers/alterSchedule.js",
-    "to": "src/services/alterScheduleRunner.js",
-    "rule": { "severity": "error", "name": "domain-not-to-alter" }
-  },
-  {
-    "type": "dependency",
-    "from": "src/controllers/alterSchedule.js",
-    "to": "src/services/alterScheduleService.js",
-    "rule": { "severity": "error", "name": "domain-not-to-alter" }
-  },
-  {
-    "type": "dependency",
-    "from": "src/services/scheduler.js",
-    "to": "src/services/alterScheduleRunner.js",
-    "rule": { "severity": "error", "name": "domain-not-to-alter" }
-  },
   // P9. 도메인 이벤트는 emitAlterEvent 대신 domainEvents로 넘긴다.
   {
     "type": "dependency",
@@ -68,13 +30,6 @@
     "type": "dependency",
     "from": "src/services/notifications.js",
     "to": "src/services/alterEvent.js",
-    "rule": { "severity": "error", "name": "domain-not-to-alter" }
-  },
-  // P8. 에이전트 진입점이 aiSkills에 있다.
-  {
-    "type": "dependency",
-    "from": "src/services/aiSkills.js",
-    "to": "src/services/alterAgent.js",
     "rule": { "severity": "error", "name": "domain-not-to-alter" }
   },
   // N1. 검색 스킬을 alter/skills로 옮긴다.

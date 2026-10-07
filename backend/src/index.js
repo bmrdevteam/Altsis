@@ -1,6 +1,7 @@
 import { app, ready } from "./app.js";
 import { initializeWebSocket } from "./utils/webSocket.js";
-import { initializeScheduler } from "./services/scheduler.js";
+import { initializeScheduler, setAlterScheduleTick } from "./services/scheduler.js";
+import { processDueAlterSchedules } from "./services/alterScheduleRunner.js";
 import { migrateExistingPostsToPublic } from "./migrations/postVisibilityPublic.js";
 import { migrateSeasonAiToSchool } from "./migrations/migrateSeasonAiToSchool.js";
 import { logger } from "./log/logger.js";
@@ -13,6 +14,7 @@ const startServer = async () => {
     logger.info(`Express server listening on port ${server.address().port}`);
   });
   initializeWebSocket(server);
+  setAlterScheduleTick(() => processDueAlterSchedules());
   await initializeScheduler();
   // 기존 문서 공개 상태 복구 (1회)
   migrateExistingPostsToPublic().catch((err) =>

@@ -28,7 +28,12 @@ import {
   registerEventReminder,
   syncAllToRedis,
 } from "./schedulerQueue.js";
-import { processDueAlterSchedules } from "./alterScheduleRunner.js";
+let runAlterScheduleTick = () => Promise.resolve();
+
+/** index.js registers the due-schedule pass so this file does not import it. */
+export const setAlterScheduleTick = (fn) => {
+  runAlterScheduleTick = typeof fn === "function" ? fn : () => Promise.resolve();
+};
 
 const NOTIFICATIONS_KEY = "scheduler:notifications";
 const REMINDERS_KEY = "scheduler:reminders";
@@ -456,7 +461,7 @@ export const initializeScheduler = async () => {
       await Promise.all([
         processNotifications(),
         processReminders(),
-        processDueAlterSchedules().catch((err) => {
+        Promise.resolve(runAlterScheduleTick()).catch((err) => {
           logger.error(`processDueAlterSchedules failed: ${err.message}`);
         }),
       ]);

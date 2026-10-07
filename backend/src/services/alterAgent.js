@@ -1,29 +1,14 @@
 /**
- * Alter agent skill — fenced JSON tool loop over read-only tools.
+ * Alter agent skill. Provider resolution and usage logs stay here.
+ * The loop itself is runAlterAgent.
  */
 
 import { resolveModel, resolveProvider } from "./aiProvider.js";
-import { llm } from "./alterLlm.js";
 import { AI_ERRORS, FEATURE_PROFILES, truncateText } from "./aiPromptPolicy.js";
 import { maskSensitiveText } from "../alter/core/safety.js";
 import { logAIUsage } from "./aiUsage.js";
 import { isSchoolManager } from "../utils/schoolManager.js";
-import { createAgentTools } from "./alterAgentTools.js";
-import {
-  MAX_AGENT_TOOL_STEPS,
-  runAgentLoop,
-} from "./alterAgentProtocol.js";
-
-const mergeTokenUsage = (a, b) => {
-  if (!b) return a || null;
-  if (!a) return { ...b };
-  return {
-    promptTokens: (a.promptTokens || 0) + (b.promptTokens || 0),
-    candidatesTokens: (a.candidatesTokens || 0) + (b.candidatesTokens || 0),
-    thoughtsTokens: (a.thoughtsTokens || 0) + (b.thoughtsTokens || 0),
-    totalTokens: (a.totalTokens || 0) + (b.totalTokens || 0),
-  };
-};
+import { runAlterAgent } from "../alter/agent/runAlterAgent.js";
 
 const mapProviderError = (err) => {
   if (err?.code === "AI_TIMEOUT" || err?.status === 504) {
@@ -41,10 +26,18 @@ const pageNoteFromContext = (context = {}) => {
   return maskSensitiveText(note).text.slice(0, 200);
 };
 
+const resolveMode = ({ mode, allowScheduleTool, triggerEvents }) => {
+  if (mode === "chat" || mode === "schedule" || mode === "event") return mode;
+  if (Array.isArray(triggerEvents)) return "event";
+  if (allowScheduleTool === false) return "schedule";
+  return "chat";
+};
+
 /**
+ * Masks the turn and resolves the provider. Runners pass the result to runAlterAgent.
  * @param {object} params
  */
-export const executeAgentSkill = async ({
+export const prepareAlterAgentCall = ({
   academyId,
   user,
   academy,
@@ -60,11 +53,11 @@ export const executeAgentSkill = async ({
   triggerEvents,
   scriptedPlan,
   generate: generateOverride,
+  mode,
 }) => {
   const profile = FEATURE_PROFILES.agent;
-  const provider = resolveProvider(academy?.aiProvider);
-  const modelName = resolveModel(provider, academy?.aiModel);
-  let tokenUsage = null;
+  const resolvedProvider = resolveProvider(academy?.aiProvider);
+  const modelName = resolveModel(resolvedProvider, academy?.aiModel);
 
   const userQuestion = maskSensitiveText(String(message || "").trim()).text;
   if (!userQuestion) {
@@ -73,19 +66,6 @@ export const executeAgentSkill = async ({
     err.code = AI_ERRORS.GENERATION_FAILED;
     throw err;
   }
-
-  const serverCtx = {
-    academyId,
-    user,
-    academy,
-    school,
-    season,
-    seasonId: String(season?._id || context.seasonId || ""),
-    registration,
-    isSchoolManager: isSchoolManager(user, school?._id),
-    message: userQuestion,
-    triggerEvents: Array.isArray(triggerEvents) ? triggerEvents : undefined,
-  };
 
   const recent = [];
   for (const row of (history || []).slice(-6)) {
@@ -96,109 +76,77 @@ export const executeAgentSkill = async ({
     });
   }
 
-  const generate = async ({
-    systemInstruction,
-    messages,
-    tools,
-    catalog,
-    toolChoice,
-    forceFinal,
-    pageNote,
-    guidelines: guideText,
-  }) => {
-    if (typeof generateOverride === "function") {
-      const result = await generateOverride({
-        systemInstruction,
-        messages,
-        tools,
-        toolChoice,
-        forceFinal,
-      });
-      tokenUsage = mergeTokenUsage(tokenUsage, result?.tokenUsage || result?.usage);
-      return {
-        text: maskSensitiveText(result?.text || "").text,
-        toolCalls: Array.isArray(result?.toolCalls) ? result.toolCalls : [],
-      };
-    }
-    try {
-      const adapter = llm.resolve({ provider: academy?.aiProvider, apiKey: academy?.aiApiKey });
-      const result = await llm.generate({
-        adapter,
-        provider: academy?.aiProvider,
-        apiKey: academy.aiApiKey,
-        model: modelName,
-        system: systemInstruction,
-        messages,
-        tools,
-        catalog,
-        toolChoice: toolChoice || (forceFinal ? "none" : undefined),
-        forceFinal,
-        pageNote,
-        guidelines: guideText,
-        temperature: profile.temperature,
-        maxTokens: profile.maxTokens,
-        scriptedPlan,
-      });
-      tokenUsage = mergeTokenUsage(tokenUsage, result.usage);
-      return {
-        text: maskSensitiveText(result.text || "").text,
-        toolCalls: Array.isArray(result.toolCalls) ? result.toolCalls : [],
-      };
-    } catch (err) {
-      if (!err.code) err.code = mapProviderError(err);
-      logAIUsage(academyId, {
-        user,
-        provider,
-        model: modelName,
-        feature: profile.feature,
-        success: false,
-        errorCode: err.code,
-        tokenUsage,
-      });
-      throw err;
-    }
-  };
-
-  try {
-    const result = await runAgentLoop({
-      tools: createAgentTools({
-        includeScheduleTool: allowScheduleTool !== false,
-        includeTriggerTool: Array.isArray(triggerEvents),
-      }),
-      serverCtx,
-      userMessage: userQuestion,
-      history: recent,
-      guidelines: truncateText(guidelines || "", 4000),
-      pageNote: pageNoteFromContext(context),
-      generate,
-      onEvent,
-      maxToolSteps: MAX_AGENT_TOOL_STEPS,
-    });
-
-    logAIUsage(academyId, {
+  const resolvedMode = resolveMode({ mode, allowScheduleTool, triggerEvents });
+  return {
+    ctx: {
+      academyId,
       user,
-      provider,
+      academy,
+      school,
+      season,
+      seasonId: String(season?._id || context.seasonId || ""),
+      registration,
+      isSchoolManager: isSchoolManager(user, school?._id),
+      message: userQuestion,
+      triggerEvents: Array.isArray(triggerEvents) ? triggerEvents : undefined,
+      allowScheduleTool,
+    },
+    input: {
+      message: userQuestion,
+      history: recent,
+      pageNote: pageNoteFromContext(context),
+      guidelines: truncateText(guidelines || "", 4000),
+      attachments: context.attachments,
+    },
+    mode: resolvedMode,
+    onEvent,
+    provider: {
+      id: academy?.aiProvider,
+      apiKey: academy?.aiApiKey,
       model: modelName,
-      feature: profile.feature,
-      success: true,
-      tokenUsage,
-    });
+      temperature: profile.temperature,
+      maxTokens: profile.maxTokens,
+      scriptedPlan,
+      generate: typeof generateOverride === "function" ? generateOverride : undefined,
+      onError(err, tokenUsage) {
+        if (!err.code) err.code = mapProviderError(err);
+        logAIUsage(academyId, {
+          user,
+          provider: resolvedProvider,
+          model: modelName,
+          feature: profile.feature,
+          success: false,
+          errorCode: err.code,
+          tokenUsage,
+        });
+      },
+      onComplete(tokenUsage) {
+        logAIUsage(academyId, {
+          user,
+          provider: resolvedProvider,
+          model: modelName,
+          feature: profile.feature,
+          success: true,
+          tokenUsage,
+        });
+      },
+    },
+    limits: { maxTokens: profile.maxTokens },
+  };
+};
 
-    const toolNames = (result.steps || [])
-      .filter((step) => step?.status === "done" && step.name && step.name !== "_parse")
-      .map((step) => String(step.name));
-    return {
-      text: result.text || "확인한 내용이 없습니다.",
-      tokenUsage,
-      toolSteps: result.toolSteps,
-      toolNames,
-      links: result.links || [],
-      scheduleProposal: result.scheduleProposal || null,
-      trace: result.trace || [],
-    };
+export const guardAlterAgent = async (run) => {
+  try {
+    return await run();
   } catch (err) {
     if (err?.code && err.status) throw err;
     if (!err.code) err.code = mapProviderError(err);
     throw err;
   }
 };
+
+/**
+ * @param {object} params
+ */
+export const executeAgentSkill = (params) =>
+  guardAlterAgent(() => runAlterAgent(prepareAlterAgentCall(params)));
