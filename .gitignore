@@ -31,3 +31,6 @@ frontend/package-lock.json
 
 # Alter eval reports
 backend/src/alter/eval/out/
+
+# Temporary probe for the dependency-boundary test
+backend/src/alter/core/depProbe.js

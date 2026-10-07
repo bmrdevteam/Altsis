@@ -10,7 +10,8 @@
     "local": "cross-env NODE_ENV=local nodemon src/index.js --ignore **/tests/*",
     "sync-guide-docs": "node scripts/syncGuideDocs.js",
     "pretest": "node scripts/syncGuideDocs.js",
-    "test": "jest -c ./jest.config.json --detectOpenHandles --forceExit",
+    "lint:deps": "depcruise --config .dependency-cruiser.cjs --ignore-known .dependency-cruiser-known-violations.json src",
+    "test": "npm run lint:deps && jest -c ./jest.config.json --detectOpenHandles --forceExit",
     "alter:eval": "node src/alter/eval/cli.js",
     "eval:scripted": "node src/alter/eval/cli.js",
     "eval:real": "node src/alter/eval/cli.js --real",
@@ -55,18 +56,19 @@
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^4.7.1"
   },
-  "packageManager": "yarn@3.2.3",
   "devDependencies": {
     "@babel/core": "^7.26.0",
     "@babel/plugin-transform-modules-commonjs": "^7.26.0",
     "@babel/plugin-transform-runtime": "^7.26.0",
     "@babel/preset-env": "^7.26.0",
     "babel-jest": "^29.7.0",
+    "dependency-cruiser": "16.10.4",
     "docdash": "^2.0.1",
     "jest": "^29.7.0",
     "jsdoc": "^4.0.2",
     "mongodb-memory-server": "10.1.4",
     "node-mocks-http": "^1.12.2"
   },
-  "type": "module"
+  "type": "module",
+  "packageManager": "yarn@3.2.3"
 }
