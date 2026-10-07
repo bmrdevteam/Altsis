@@ -24,7 +24,7 @@ try {
 }
 
 say(
-  `${report.mode} scenarios passed ${report.passed} failed ${report.failed} skipped ${report.skipped} ran ${report.ran}`
+  `${report.mode} scenarios passed ${report.passed} failed ${report.failed} skipped ${report.skipped} ran ${report.ran} tokens ${report.tokens?.total ?? 0}`
 );
 say("id\tstatus\ttools\tms\ttokens");
 for (const row of report.scenarios || []) {

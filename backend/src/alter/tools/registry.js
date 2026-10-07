@@ -10,6 +10,10 @@ import getTriggerEvents from "./defs/getTriggerEvents.tool.js";
 import searchSchoolData from "./defs/searchSchoolData.tool.js";
 import lookupCreditRules from "./defs/lookupCreditRules.tool.js";
 import getCurrentScreen from "./defs/getCurrentScreen.tool.js";
+import getPendingApprovals from "./defs/getPendingApprovals.tool.js";
+import getFormSubmissionStatus from "./defs/getFormSubmissionStatus.tool.js";
+import getCalendar from "./defs/getCalendar.tool.js";
+import getMyCourses from "./defs/getMyCourses.tool.js";
 
 const TOOLS = [
   getMyTodos,
@@ -19,6 +23,10 @@ const TOOLS = [
   searchSchoolData,
   lookupCreditRules,
   getCurrentScreen,
+  getPendingApprovals,
+  getFormSubmissionStatus,
+  getCalendar,
+  getMyCourses,
 ];
 
 const byName = new Map(TOOLS.map((tool) => [tool.name, tool]));

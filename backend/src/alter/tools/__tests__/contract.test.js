@@ -41,6 +41,10 @@ describe("alter tool contract", () => {
       "search_school_data",
       "lookup_credit_rules",
       "get_current_screen",
+      "get_pending_approvals",
+      "get_form_submission_status",
+      "get_calendar",
+      "get_my_courses",
     ]);
     for (const tool of tools) {
       expect(tool.name).toMatch(/^[a-z][a-z0-9_]{0,63}$/);
@@ -137,6 +141,12 @@ describe("alter tool contract", () => {
     expect(unattended).not.toContain("search_school_data");
     expect(unattended).not.toContain("lookup_credit_rules");
     expect(unattended).not.toContain("get_current_screen");
+    expect(unattended).toEqual(expect.arrayContaining([
+      "get_pending_approvals",
+      "get_form_submission_status",
+      "get_calendar",
+      "get_my_courses",
+    ]));
     const eventNames = createAgentTools({
       includeTriggerTool: true,
       includeScheduleTool: false,
@@ -168,6 +178,68 @@ describe("alter tool contract", () => {
     expect(hidden.readOnly).toBe(true);
     expect(hidden.summary).toBe("검색에 실패했습니다. 질문을 조금 더 구체적으로 적어 주세요.");
 
+    const counted = await search.execute(
+      {
+        ...teacher,
+        runReadOnlySearch: async () => ({
+          text: "조회되지 않았습니다.",
+          draft: { rowCount: 0 },
+          tokenUsage: {
+            promptTokens: 4000,
+            candidatesTokens: 400,
+            thoughtsTokens: 0,
+            totalTokens: 4400,
+          },
+        }),
+      },
+      { question: "오늘 결석" }
+    );
+    expect(counted.usage).toEqual({
+      promptTokens: 4000,
+      candidatesTokens: 400,
+      thoughtsTokens: 0,
+      totalTokens: 4400,
+    });
+    expect(counted.summary).toBe("조회되지 않았습니다.");
+
+    let omitted = false;
+    const failedSearch = await search.execute(
+      {
+        ...teacher,
+        runReadOnlySearch: async (args) => {
+          omitted = args?.omitSubmissionTables === true;
+          const err = new Error("SQL 실행에 실패했습니다");
+          err.tokenUsage = {
+            promptTokens: 3000,
+            candidatesTokens: 200,
+            thoughtsTokens: 0,
+            totalTokens: 3200,
+          };
+          throw err;
+        },
+      },
+      { question: "10학년 정보 A반 양식 제출 현황" }
+    );
+    expect(omitted).toBe(true);
+    expect(failedSearch.summary).toBe("검색에 실패했습니다. 질문을 조금 더 구체적으로 적어 주세요.");
+    expect(failedSearch.usage).toEqual({
+      promptTokens: 3000,
+      candidatesTokens: 200,
+      thoughtsTokens: 0,
+      totalTokens: 3200,
+    });
+    expect(JSON.stringify(failedSearch)).not.toContain("SQL 실행에 실패했습니다");
+
+    const submission = createAgentTools().find((item) => item.name === "get_form_submission_status");
+    const submissionGuide = `${submission.description}\n${submission.promptHints.join("\n")}`;
+    expect(submissionGuide).not.toMatch(/formId|boardId/);
+    expect(submissionGuide).toContain("query");
+    const searchGuide = search.promptHints.join("\n");
+    expect(searchGuide).toContain("get_form_submission_status");
+    expect(searchGuide).toContain("get_pending_approvals");
+    expect(searchGuide).toContain("get_calendar");
+    expect(searchGuide).toContain("get_my_courses");
+
     const credit = createAgentTools().find((tool) => tool.name === "lookup_credit_rules");
     const deniedCredit = await credit.execute(student, { query: "학점 규정" });
     expect(deniedCredit.summary).toBe("권한이 없습니다.");
@@ -181,5 +253,74 @@ describe("alter tool contract", () => {
     expect(seen.summary).toContain("수업 평가");
     expect(seen.summary).toContain("문학");
     expect(seen.pageType).toBe("evaluation");
+  });
+
+  test("read tools deny students, stay on unattended runners, and mask names", async () => {
+    const student = {
+      user: { _id: "student", auth: "student" },
+      registration: { role: "student" },
+      academy: { aiEnabled: true },
+      school: { _id: "school" },
+      seasonId: "season",
+    };
+    const teacher = {
+      user: { _id: "teacher", auth: "member" },
+      registration: { role: "teacher" },
+      academy: { aiEnabled: true },
+      school: { _id: "school" },
+      seasonId: "season",
+    };
+    const names = [
+      "get_pending_approvals",
+      "get_form_submission_status",
+      "get_calendar",
+      "get_my_courses",
+    ];
+    const offered = createAgentTools();
+    for (const name of names) {
+      const tool = offered.find((item) => item.name === name);
+      expect(tool.readOnly).toBe(true);
+      const denied = await tool.execute(student, {});
+      expect(denied.summary).toBe("권한이 없습니다.");
+      expect(JSON.stringify(denied)).not.toContain("student@example.com");
+    }
+    const eventNames = createAgentTools({
+      includeTriggerTool: true,
+      includeScheduleTool: false,
+    }).map((tool) => tool.name);
+    for (const name of names) expect(eventNames).toContain(name);
+
+    const phone = "010-9999-8888";
+    const email = "teacher@example.com";
+    const approvals = offered.find((tool) => tool.name === "get_pending_approvals");
+    const maskedApprovals = await approvals.execute(
+      {
+        ...teacher,
+        loadSchoolTodos: async () => ({
+          items: [{ kind: "approve", formTitle: "출석", respondentName: `박학생 ${phone}` }],
+        }),
+        loadCourseTodos: async () => ({ items: [] }),
+      },
+      {}
+    );
+    const approvalText = JSON.stringify(maskedApprovals);
+    expect(approvalText).toContain("[연락처]");
+    expect(approvalText).not.toContain(phone);
+    expect(approvalText).not.toContain("userId");
+
+    const calendar = offered.find((tool) => tool.name === "get_calendar");
+    const maskedCalendar = await calendar.execute(
+      {
+        ...teacher,
+        academyId: "eval",
+        listSchoolEvents: async () => [
+          { title: `행사 ${email}`, start: "2026-10-03T01:00:00.000Z", end: "2026-10-03T02:00:00.000Z" },
+        ],
+      },
+      { start: "2026-10-01", end: "2026-10-07" }
+    );
+    const calendarText = JSON.stringify(maskedCalendar);
+    expect(calendarText).toContain("[이메일]");
+    expect(calendarText).not.toContain(email);
   });
 });

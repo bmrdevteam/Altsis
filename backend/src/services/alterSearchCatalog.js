@@ -73,6 +73,12 @@ export const FORM_RESERVED_COLUMNS = new Set([
   "answers_json",
 ]);
 
+/** Agent search drops these so it cannot read another teacher's submissions. */
+export const isSubmissionSearchTable = (name) => {
+  const text = String(name || "");
+  return text === "forms" || text === "form_rows" || text.startsWith("form_");
+};
+
 export const formTableName = (title) => {
   const slug = String(title || "item")
     .trim()
@@ -961,6 +967,7 @@ export const buildSearchCatalog = async ({
   seasonScope = "current",
   seasonId,
   grade = "",
+  omitSubmissionTables = false,
 }) => {
   const seasonIds = await resolveSeasonIds({
     academyId,
@@ -1393,7 +1400,16 @@ export const buildSearchCatalog = async ({
     )
   );
 
-  return { seasonIds, specs, evalColumns, formTables, overflowFormTitles };
+  const exposed = omitSubmissionTables
+    ? specs.filter((row) => !isSubmissionSearchTable(row.name))
+    : specs;
+  return {
+    seasonIds,
+    specs: exposed,
+    evalColumns,
+    formTables: omitSubmissionTables ? [] : formTables,
+    overflowFormTitles: omitSubmissionTables ? [] : overflowFormTitles,
+  };
 };
 
 const uniqDistinct = (values) =>

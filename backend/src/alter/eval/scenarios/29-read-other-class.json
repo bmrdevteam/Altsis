@@ -1,0 +1,25 @@
+{
+  "id": "read-other-class",
+  "runner": "chat",
+  "role": "teacher",
+  "fixture": "eval-teacher",
+  "check": "read-other-class",
+  "expect": {
+    "tools": {
+      "exact": ["get_form_submission_status", "search_school_data"]
+    },
+    "text": {
+      "contains": ["다른 교사 수업 제출은 없습니다", "교사 보드 제출은 보입니다"],
+      "notContains": ["정보학생", "유출", "formId", "boardId"]
+    }
+  },
+  "real": {
+    "tools": {
+      "exact": ["get_form_submission_status", "search_school_data"]
+    },
+    "text": {
+      "contains": ["다른 교사 수업 제출은 없습니다", "교사 보드 제출은 보입니다"],
+      "notContains": ["정보학생", "유출", "formId", "boardId"]
+    }
+  }
+}

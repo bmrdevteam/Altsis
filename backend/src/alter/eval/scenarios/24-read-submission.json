@@ -1,0 +1,33 @@
+{
+  "id": "read-submission",
+  "runner": "chat",
+  "role": "teacher",
+  "fixture": "eval-teacher",
+  "input": {
+    "prompt": "이 양식의 제출 현황을 인원 수로 알려 줘"
+  },
+  "expect": {
+    "tools": {
+      "exact": ["get_form_submission_status"]
+    },
+    "maxToolSteps": 3,
+    "text": {
+      "contains": ["제출 현황을 확인했습니다"],
+      "notContains": ["SELECT"]
+    }
+  },
+  "real": {
+    "tools": {
+      "subset": ["get_form_submission_status"],
+      "allow": ["get_form_submission_status", "get_my_todos", "get_my_courses"]
+    },
+    "maxToolSteps": 3,
+    "text": {
+      "notContains": ["010-", "SELECT", "INSERT"]
+    }
+  },
+  "scripted": [
+    { "call": "get_form_submission_status", "arguments": { "query": "출석결재" } },
+    { "final": "제출 현황을 확인했습니다." }
+  ]
+}

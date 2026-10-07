@@ -22,11 +22,16 @@
   },
   "real": {
     "tools": {
-      "allow": ["get_my_todos"]
+      "allow": [
+        "get_my_todos",
+        "search_school_data",
+        "get_form_submission_status",
+        "get_my_courses"
+      ]
     },
     "text": {
       "notContains": ["홍길동", "99명"],
-      "anyOf": ["없습니다", "확인되지", "찾지 못했", "없어요"]
+      "matches": ["없|확인되지|찾지 못했|없어요|조회되지|나오지 않|구체적"]
     }
   },
   "scripted": [

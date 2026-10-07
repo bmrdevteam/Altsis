@@ -100,6 +100,10 @@ describe("assembled agent prompt", () => {
     expect(unattended).not.toContain("lookup_credit_rules");
     expect(unattended).not.toContain("get_current_screen");
     expect(unattended).toContain("get_my_todos");
+    expect(unattended).toContain("get_pending_approvals");
+    expect(unattended).toContain("get_form_submission_status");
+    expect(unattended).toContain("get_calendar");
+    expect(unattended).toContain("get_my_courses");
   });
 
   test("removing a tool removes only that tool's hints", () => {

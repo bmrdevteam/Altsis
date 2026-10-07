@@ -240,7 +240,7 @@ registry.toMcp()                      // (후속) tools/list 모양
 | syllabus/evaluation/archive/document/form/activity draft | `draft_*` (read, llm, chat 전용) | 결과는 **초안**입니다. 저장은 기존 UI 버튼으로 하고, 이후 write 도구로 확장 |
 | document-review, assessment-grade | `review_document`, `suggest_grades` (read, llm) | 채점 결과 반영은 write 도구로 따로 둡니다(확인 필수) |
 
-신규 읽기 도구(같은 틀): `get_pending_approvals`, `get_form_submission_status`, `get_calendar`, `get_my_courses`.
+신규 읽기 도구(같은 틀, N3 완료): `get_pending_approvals`, `get_form_submission_status`, `get_calendar`, `get_my_courses`. 네 도구 모두 읽기 전용이라 채팅·예약·이벤트에서 고릅니다. 제출 현황은 양식 이름으로 찾습니다. 맡거나 관리하는 수업과, 수업 보드가 아닌 교사 보드 중 화면에서 기록 전체를 이미 보는 보드만 인원 수와 이름으로 돌려줍니다. 채팅 검색은 제출·응답 표를 빼 이 범위를 우회하지 않습니다.
 외부: `web_search` (cost: external, untrustedOutput), `generate_image` (cost: external, 학원 플래그).
 
 ### 5.3 (후속) MCP 서버 노출
@@ -357,7 +357,7 @@ graph TD
 - **알림·컨트롤러 결합 해소**:
   - `notifications.js`와 컨트롤러 5곳은 `domainEvents`로 발행하고, `runners/event`가 구독합니다(F7). 양식 이벤트의 제목에는 보드 이름, 양식 이름, 승인/제출/게시가 들어갑니다.
 - **강제 수단**:
-  1. `dependency-cruiser`가 주 도구입니다. 설정은 `backend/.dependency-cruiser.cjs`, 명령은 `npm run lint:deps`입니다. `await import()`를 포함합니다. 알려진 위반은 0건이고 `backend/.dependency-cruiser-known-violations.json`은 빈 배열입니다. 파일 설명은 `backend/src/alter/dependency-baseline.md`입니다. P2는 24건, P3에서 23건, P4에서 22건, P5에서 21건입니다. P6은 프롬프트 조립이라 21건을 유지했습니다. P7에서 20건, P8에서 13건, P9에서 8건입니다. P10과 N1은 8건을 유지했습니다. N2에서 0건입니다. 새 위반은 실패입니다. `npm test`가 이 명령을 먼저 실행합니다.
+  1. `dependency-cruiser`가 주 도구입니다. 설정은 `backend/.dependency-cruiser.cjs`, 명령은 `npm run lint:deps`입니다. `await import()`를 포함합니다. 알려진 위반은 0건이고 `backend/.dependency-cruiser-known-violations.json`은 빈 배열입니다. 파일 설명은 `backend/src/alter/dependency-baseline.md`입니다. P2는 24건, P3에서 23건, P4에서 22건, P5에서 21건입니다. P6은 프롬프트 조립이라 21건을 유지했습니다. P7에서 20건, P8에서 13건, P9에서 8건입니다. P10과 N1은 8건을 유지했습니다. N2에서 0건입니다. N3도 0건을 유지했습니다. 새 위반은 실패입니다. `npm test`가 이 명령을 먼저 실행합니다.
   2. eslint `no-restricted-imports`는 백엔드에 eslint 설정이 없고, 컨트롤러의 `await import()`를 잡지 못해 넣지 않았습니다. D2의 주 도구가 그 동적 import를 봅니다.
   3. **도구 계약 테스트** `alter/tools/__tests__/contract.test.js`가 모든 등록 도구에 대해 다음을 검사합니다:
      - 이름 형식·유일성
@@ -468,7 +468,7 @@ graph TD
   - `modes`에 `real`이 없는 시나리오(soak-E)는 건너뜁니다. 건너뜀은 실패가 아닙니다.
   - CLI는 시나리오 단위로 통과·실패·건너뜀을 세고, 실패한 단언을 시나리오 아래에 적습니다. 단언 줄 수를 실패 건수로 세지 않습니다.
   - 시나리오가 0건이거나 하나라도 실패하면 종료 코드는 0이 아닙니다. `--only`를 빼면 그 모드에서 돌 수 있는 시나리오 전부입니다.
-- **보고서**: `backend/src/alter/eval/out/<시각>.json`. 시나리오마다 `status`, `toolNames`, `tokens`(prompt, completion, total), `latencyMs`. CLI는 같은 내용을 짧은 표로 찍습니다. 이 디렉터리는 git에 넣지 않습니다.
+- **보고서**: `backend/src/alter/eval/out/<시각>.json`. 시나리오마다 `status`, `toolNames`, `tokens`(prompt, completion, total), `latencyMs`. `tokens`와 보고서 합계에는 도구가 따로 호출한 모델 사용량(예: `search_school_data`)이 포함됩니다. CLI는 시나리오 표와 합계를 찍습니다. 이 디렉터리는 git에 넣지 않습니다.
 - (선택, 아직 없음) **record/replay**: real 응답을 카세트로 저장했다가 scripted처럼 재생합니다.
 
 ### 9.4 실행
@@ -484,7 +484,7 @@ graph TD
 
 ### 1단계 — 동작 보존 (behavior-preserving)
 
-P1–P10, N1, N2는 완료입니다. 알려진 의존 위반은 0건입니다. 초안 스킬의 `exposeAsTool`은 응답을 유지하려고 기존 실행 함수에 남아 있습니다.
+P1–P10, N1, N2, N3는 완료입니다. 알려진 의존 위반은 0건입니다. 초안 스킬의 `exposeAsTool`은 응답을 유지하려고 기존 실행 함수에 남아 있습니다.
 
 | PR | 내용 | 수용 기준 |
 |---|---|---|
@@ -505,7 +505,7 @@ P1–P10, N1, N2는 완료입니다. 알려진 의존 위반은 0건입니다. �
 |---|---|---|
 | **N1** 스킬 프레임 | 완료. `defineSkill` + `skills/registry.js` + `runners/skill`. 필드는 id, name, description, when, tools, input(zod), prompt, readOnly, permission.roles. 예시 스킬 `fixture-brief`. 고른 스킬의 도구만 `runAlterAgent`에 넘기고 한도는 에이전트 한도를 쓴다. 기준선 8건 유지. 사용자에게 보이는 변화 없음 | 계약 테스트 `skills/__tests__/contract.test.js`. eval `skill-select`, `skill-tools` |
 | **N2** 스킬 래핑 | 완료. `school-search`(`search_school_data`), `credit-rules`(`lookup_credit_rules`), `screen-summary`(`get_current_screen`). 채팅에서 id로 고르거나 도구를 부른다. HTTP 검색은 스킬 정의를 확인한 뒤 기존 `executeSearchSkill`을 호출해 응답 모양을 유지한다. SQL 가드와 「SQL이 비어 있습니다」 비노출을 유지한다. 기준선 8→0. 초안 `exposeAsTool`은 기존 실행에 남긴다. **보이는 변화:** 채팅 시스템 프롬프트에 세 도구와 힌트가 들어간다. 예약·이벤트 도구 목록은 그대로다. id가 메시지에 있으면 그 스킬의 도구만 남는다 | eval `skill-search`, `skill-credit`, `skill-screen`, `skill-student-search`. 학생은 검색 스킬이 403 |
-| **N3** 읽기 도구 확장 | `get_pending_approvals`, `get_form_submission_status`, `get_calendar`, `get_my_courses` | 계약 테스트, 학생/타인 격리 eval |
+| **N3** 읽기 도구 확장 | 완료. `get_pending_approvals`, `get_form_submission_status`, `get_calendar`, `get_my_courses`. 모두 `readOnly`이고 `resolveAlterContext`를 거친다. 예약·이벤트도 이 도구를 고른다. 제출 현황은 이름으로 찾고, 맡거나 관리하는 수업과 화면에서 기록 전체를 보는 교사 보드만, 수와 이름만. 채팅 `search_school_data`는 제출·응답 표를 빼 다른 교사 수업 제출이 새지 않게 한다. HTTP 검색은 그대로다. 기준선 0건 유지. **보이는 변화:** 채팅·예약·이벤트 프롬프트에 네 도구와 힌트가 들어간다. 제출·결재·일정·수업 질문은 그 도구로 보낸다 | 계약 테스트, 학생/타인 수업 격리 eval, 다른 교사 수업 이름 조회 거절 |
 | **N4** 웹 검색 | `web_search` (external, untrusted, 학원 플래그, 비용 한도) | 플래그 off면 목록에 없음. 프롬프트 주입 eval |
 | **N5** 이미지 생성 | `generate_image` (external, 학원 플래그, 쿼터) | 쿼터 초과 오류 코드. 결과는 첨부로 저장 |
 | **N6** 쓰기 확인 일반화 | `Proposal` 저장 + `/proposals/:id/confirm` + `ConfirmCard`. manage_schedule을 첫 사례로 이전 | 기존 예약 확인 UX 동일, 멱등성 테스트 |

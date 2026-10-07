@@ -157,5 +157,17 @@ describe("alter core helpers", () => {
     expect(toolTurn(["todo"], [wrapped])).toEqual({ names: ["todo"], untrusted: true });
     expect(toolTurn(["todo"], ["plain"])).toEqual({ names: ["todo"], untrusted: false });
     expect(toolTurn([""], [wrapped])).toEqual({ names: [], untrusted: false });
+    expect(
+      toolTurn(["search"], [wrapped], {
+        promptTokens: 4000,
+        candidatesTokens: 400,
+        totalTokens: 4400,
+      }).usage
+    ).toEqual({
+      promptTokens: 4000,
+      candidatesTokens: 400,
+      thoughtsTokens: 0,
+      totalTokens: 4400,
+    });
   });
 });

@@ -184,12 +184,19 @@ export const executeSearchSkill = async ({
   history = [],
   guidelines = "",
   onEvent,
+  omitSubmissionTables = false,
 }) => {
   const profile = FEATURE_PROFILES.search;
   const emit = typeof onEvent === "function" ? onEvent : () => {};
   const provider = resolveProvider(academy.aiProvider);
   const modelName = resolveModel(provider, academy.aiModel);
   let tokenUsage = null;
+  const abort = (err) => {
+    if (tokenUsage && err && typeof err === "object" && !err.tokenUsage) {
+      err.tokenUsage = tokenUsage;
+    }
+    throw err;
+  };
 
   const userQuestion = maskSensitiveText(String(message || "").trim()).text;
   if (!userQuestion) {
@@ -213,6 +220,7 @@ export const executeSearchSkill = async ({
       seasonScope,
       seasonId,
       grade,
+      omitSubmissionTables: omitSubmissionTables === true,
     });
   const searchSchema = await peekSearchSchema({
     academyId,
@@ -293,7 +301,7 @@ export const executeSearchSkill = async ({
         errorCode: err.code,
         tokenUsage,
       });
-      throw err;
+      abort(err);
     }
     sql = parseSqlFromText(llmText);
     try {
@@ -321,7 +329,7 @@ export const executeSearchSkill = async ({
       errorCode: err.code,
       tokenUsage,
     });
-    throw err;
+    abort(err);
   }
 
   const resolveTables = (sqlText) => {
@@ -430,7 +438,7 @@ export const executeSearchSkill = async ({
       errorCode: err.code,
       tokenUsage,
     });
-    throw err;
+    abort(err);
   }
 
   emit("step", { message: "검색 결과를 정리하는 중..." });
