@@ -355,8 +355,8 @@ graph TD
   - `notifications.js:169`와 컨트롤러 5곳의 `emitAlterEvent`를 `domainEvents.emit("form_submitted", …)`로 바꿉니다.
   - `runners/event`가 구독합니다(F7).
 - **강제 수단**:
-  1. `dependency-cruiser` 규칙 파일(`.dependency-cruiser.cjs`)과 `npm run lint:deps`를 CI에 넣습니다. ESM 동적 import도 잡습니다.
-  2. 보조로 `eslint no-restricted-imports`(overrides per folder). 빠른 편집기 피드백용입니다.
+  1. `dependency-cruiser`가 주 도구입니다. 설정은 `backend/.dependency-cruiser.cjs`, 명령은 `npm run lint:deps`입니다. `await import()`를 포함합니다. 이미 있는 위반 24건은 `backend/.dependency-cruiser-known-violations.json`이고, 파일과 제거 PR은 `backend/src/alter/dependency-baseline.md`입니다. 새 위반은 실패입니다. `npm test`가 이 명령을 먼저 실행합니다.
+  2. eslint `no-restricted-imports`는 백엔드에 eslint 설정이 없고, 컨트롤러의 `await import()`를 잡지 못해 넣지 않았습니다. D2의 주 도구가 그 동적 import를 봅니다.
   3. **도구 계약 테스트** `alter/tools/__tests__/contract.test.js`가 모든 등록 도구에 대해 다음을 검사합니다:
      - 이름 형식·유일성
      - zod 스키마의 JSON Schema 변환 성공
@@ -387,7 +387,7 @@ graph TD
 9. 새 도구·스킬 PR에는 eval 시나리오 최소 1개(정상) + 1개(권한/거절)를 함께 넣는다.
 10. 파일은 300줄 안팎을 목표로, 400줄 넘으면 분리. 도메인 코드에서 alter/* import 금지. 알림은 P9까지 기존 emitAlterEvent. P9에서 domainEvents.js로만 발행하며, 그 파일은 아직 없다.
 11. 완료 조건: npm test, npm run lint:deps, npm run eval:scripted 모두 통과.
-    `lint:deps`는 P2에서 생긴다. 그 전에는 npm test와 npm run eval:scripted가 완료 조건이다.
+    `npm test`가 `lint:deps`를 먼저 실행한다.
 ```
 
 루트 `AGENTS.md`에는 한 줄 링크만 추가합니다(기존 「마무리」 워크플로 유지).
@@ -485,7 +485,7 @@ graph TD
 | PR | 내용 | 수용 기준 |
 |---|---|---|
 | **P1** 안전망 | `alter/eval` 골격 + 스크립트 어댑터 시나리오 주입 + §9.2 골든 시나리오와 soak 가장자리(학생 403, 한도 5, 중복 확인, 쓰기 오탐, 삭제된 행). 코드 이동 없음 | `eval:scripted` 통과. 기존 테스트 변화 없음. real 모드는 수동 |
-| **P2** 경계 도구 | `dependency-cruiser` 도입(현 위반은 baseline으로 기록), `alter/AGENTS.md` | `lint:deps` CI 통과. 새 위반 0 |
+| **P2** 경계 도구 | `dependency-cruiser`(`backend/.dependency-cruiser.cjs`). 알려진 위반 24건은 `backend/.dependency-cruiser-known-violations.json`. 파일과 제거 PR은 `backend/src/alter/dependency-baseline.md`. `npm run lint:deps`. `npm test`가 이 명령을 먼저 실행 | 기준선 통과. 새 위반 0 |
 | **P3** core 추출 | `alter/core/{errors,safety,text,trace}`. stripMarkdown·truncate·링크정리·wrapToolResult 이동, 기존 경로는 re-export | 동작 동일(스냅샷 테스트). alterScheduleTime·Protocol 줄 수 감소 |
 | **P4** policy 추출 | `resolveAlterContext` = `assertSeasonAiAccess` 이동. aiSkills·runner·schedule·event·controllers/ai의 중복 검사 교체 | 권한 매트릭스 테스트(교사/학생/플래그 off/AI off) 동일. **예약 생성 시 AI off면 403**(의도된 강화로 명시) |
 | **P5** 도구 레지스트리 | `defineTool`(zod) + registry. 기존 4개 도구 이전, `arguments` 문자열 자동 생성, 마스킹·래핑을 레지스트리로 | 계약 테스트 통과. native 스키마 스냅샷 동일. **Gemini 펜스 설명에 trigger/event 포함**(F2 수정). get_trigger_events 마스킹 |

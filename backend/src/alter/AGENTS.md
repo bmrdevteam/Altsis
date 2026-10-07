@@ -16,6 +16,8 @@
 8. 프로바이더는 `llm` 포트로만 호출한다. `aiProvider.js`와 `fetch`를 도구·스킬에서 직접 호출하지 않는다.
 9. 새 도구·스킬 PR에는 eval 시나리오를 정상 1개, 권한 또는 거절 1개 함께 넣는다.
 10. 파일은 300줄 안팎을 목표로 하고, 400줄을 넘으면 나눈다. 도메인 코드(`src/controllers`, Alter 밖 `src/services`)에서 `alter/*`를 import하지 않는다. 알림은 P9까지 기존 `emitAlterEvent`를 유지한다. P9에서 `src/events/domainEvents.js`로만 발행하며, 그 파일은 아직 없다.
-11. 완료 조건은 `npm test`와 `npm run eval:scripted`다. `npm run lint:deps`는 P2에서 추가되며, 그 뒤로는 세 명령이 모두 통과해야 한다.
+11. 완료 조건은 `npm test`, `npm run lint:deps`, `npm run eval:scripted`다. `npm test`가 `lint:deps`를 먼저 돌린다.
 
 의존 방향: `runners → agent → tools → policy → core`. `core`는 아무것도 의존하지 않는다. 기존 도메인 서비스는 `tools`와 `policy`만 부를 수 있다. `tools`/`skills`/`providers`는 `runners`와 `agent`를 import하지 않는다. `providers`는 `tools`를 import하지 않는다. `eval`은 러너·에이전트·프로바이더를 부를 수 있다.
+
+경계는 `npm run lint:deps`다. 설정은 `backend/.dependency-cruiser.cjs`이고, 이미 있는 위반 24건은 `backend/.dependency-cruiser-known-violations.json`에 있다. 파일과 그 위반을 없앨 이전 PR은 [dependency-baseline.md](dependency-baseline.md)에 있다. 새 위반은 실패다. 백엔드에는 eslint 설정이 없고, 실제 결합의 상당수가 `await import()`라 `no-restricted-imports`는 넣지 않았다.
