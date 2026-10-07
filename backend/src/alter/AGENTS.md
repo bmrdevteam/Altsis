@@ -12,7 +12,7 @@
 4. 권한 검사는 `policy/`만 한다. 컨트롤러와 도구 안에서 `registration.role`을 직접 비교하지 않는다. 컨트롤러에 업무 로직을 넣지 않는다.
 5. 사용자 글이나 외부 글이 섞인 결과는 `untrustedOutput: true`다. 마스킹과 `<tool_result untrusted="true">` 래핑은 레지스트리가 한다. 도구는 원본만 돌려주고, 마스킹을 도구 안에서 중복하지 않는다.
 6. 쓰기는 `effect: "write"` + `needsConfirm: true` + `commit()`이다. `execute`는 제안만 만든다. 예약·이벤트 같은 무인 러너에서는 `runAlterAgent`가 모드로 쓰기 도구를 빼므로, 러너 코드에서 빼는 관례에 기대지 않는다.
-7. 오류는 `AlterError(code, status, userMessage)` 하나다. HTTP와 SSE는 `{ code, message }`다. 내부 메시지는 로그에만 남기고 사용자에게 보내지 않는다. (통일은 P10. 새 코드는 이 계약을 먼저 따른다.)
+7. 오류는 `AlterError(code, status, userMessage)` 하나다. HTTP와 SSE는 `{ code, message }`다. `message`는 한국어다. 내부 메시지는 로그에만 남기고 사용자에게 보내지 않는다. 안정 코드는 `AI_NOT_ENABLED`, `FORBIDDEN`, `NOT_FOUND`, `LIMIT_REACHED`, `PROVIDER_ERROR`, `TOOL_ERROR`, `INVALID_INPUT`을 포함한다.
 8. 프로바이더는 `llm` 포트로만 호출한다. `aiProvider.js`와 `fetch`를 도구·스킬에서 직접 호출하지 않는다.
 9. 새 도구·스킬 PR에는 eval 시나리오를 정상 1개, 권한 또는 거절 1개 함께 넣는다.
 10. 파일은 300줄 안팎을 목표로 하고, 400줄을 넘으면 나눈다. 도메인 코드(`src/controllers`, Alter 밖 `src/services`)에서 `alter/*`를 import하지 않는다. 도메인 이벤트는 `src/events/domainEvents.js`로만 발행한다. `runners/event`가 구독한다.
