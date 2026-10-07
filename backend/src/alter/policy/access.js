@@ -281,6 +281,22 @@ const resolveLoadedEventContext = (user, seasonId, options) => {
 };
 
 /**
+ * Real eval reads the academy provider settings here so the eval runner
+ * does not import models. The key stays out of logs in the caller.
+ */
+export const loadAcademyProviderSettings = async (academyId) => {
+  const row = await Academy.findOne({ academyId })
+    .select("+aiApiKey aiProvider aiModel")
+    .lean();
+  if (!row) return null;
+  return {
+    aiApiKey: String(row.aiApiKey || ""),
+    aiProvider: row.aiProvider || "",
+    aiModel: row.aiModel || "",
+  };
+};
+
+/**
  * @param {string} academyId
  * @param {object} user
  * @param {string} [seasonId]

@@ -134,11 +134,4 @@
     "to": "src/services/alterCorePrompt.js",
     "rule": { "severity": "error", "name": "domain-not-to-alter" }
   },
-  // P7. real 모드가 학원 키를 모델에서 직접 읽는다.
-  {
-    "type": "dependency",
-    "from": "src/alter/eval/run.js",
-    "to": "src/models/Academy.js",
-    "rule": { "severity": "error", "name": "only-tools-and-policy-touch-domain" }
-  },
 ]

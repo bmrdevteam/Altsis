@@ -7,6 +7,7 @@ import { startEvalMongo, stopEvalMongo } from "./mongo.js";
 import { redactSecrets } from "./redact.js";
 import { runServiceCheck } from "./serviceChecks.js";
 import { maskSensitiveText } from "../core/safety.js";
+import { loadAcademyProviderSettings } from "../policy/access.js";
 
 const ANSWER_PREVIEW = 1000;
 
@@ -19,10 +20,7 @@ export const previewAnswer = (text, secrets = []) => {
 };
 
 const loadRealAcademy = async (academyId, onSecret) => {
-  const { Academy } = await import("../../models/Academy.js");
-  const row = await Academy.findOne({ academyId })
-    .select("+aiApiKey aiProvider aiModel")
-    .lean();
+  const row = await loadAcademyProviderSettings(academyId);
   const apiKey = String(row?.aiApiKey || "");
   if (!apiKey) {
     throw new Error("학원 설정에서 프로바이더 키를 읽지 못했습니다.");
