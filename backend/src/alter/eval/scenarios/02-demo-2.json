@@ -1,0 +1,70 @@
+{
+  "id": "demo-2",
+  "mode": "scripted",
+  "runner": "event",
+  "role": "teacher",
+  "fixture": "eval-teacher",
+  "input": {
+    "title": "제출 들어오면 우선순위 정리",
+    "prompt": "제출이 들어오면 우선순위대로 정리해 줘",
+    "events": [
+      {
+        "type": "form_submitted",
+        "title": "출석 이상 보고",
+        "at": "2026-10-06T01:00:00.000Z"
+      },
+      {
+        "type": "approval_requested",
+        "title": "멘토 회람 요청",
+        "at": "2026-10-06T01:05:00.000Z"
+      },
+      {
+        "type": "form_submitted",
+        "title": "[예시] 3쿼터 수업 운영 점검",
+        "at": "2026-10-06T01:10:00.000Z"
+      }
+    ]
+  },
+  "expect": {
+    "tools": {
+      "exact": [
+        "get_trigger_events"
+      ],
+      "mustNotCall": [
+        "manage_schedule"
+      ]
+    },
+    "maxToolSteps": 3,
+    "untrusted": true,
+    "text": {
+      "contains": [
+        "이벤트 3건",
+        "출석 이상 보고",
+        "멘토 회람 요청",
+        "[예시] 3쿼터 수업 운영 점검"
+      ],
+      "ordered": [
+        "출석 이상 보고",
+        "멘토 회람 요청",
+        "[예시] 3쿼터 수업 운영 점검"
+      ],
+      "notContains": [
+        "http://",
+        "```"
+      ]
+    },
+    "notification": {
+      "type": "alterTrigger",
+      "maxChars": 180,
+      "noMarkdown": true
+    }
+  },
+  "scripted": [
+    {
+      "call": "get_trigger_events"
+    },
+    {
+      "final": "이벤트 3건을 확인했습니다. 먼저 볼 것: 출석 이상 보고. 다음에 볼 것: 멘토 회람 요청. 참고만 할 것: [예시] 3쿼터 수업 운영 점검."
+    }
+  ]
+}

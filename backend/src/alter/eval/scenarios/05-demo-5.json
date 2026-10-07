@@ -1,0 +1,17 @@
+{
+  "id": "demo-5",
+  "mode": "scripted",
+  "runner": "chat",
+  "role": "teacher",
+  "fixture": "eval-teacher",
+  "check": "cross-account",
+  "expect": {
+    "status": 404,
+    "code": "NOT_FOUND",
+    "messageContains": "예약을 찾을 수 없습니다.",
+    "statuses": [
+      404,
+      404
+    ]
+  }
+}

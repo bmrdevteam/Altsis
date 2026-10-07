@@ -4,8 +4,10 @@ import {
   SCRIPTED_AGENT_FINAL_TEXT,
   SCRIPTED_DEMO_ONLY_AGENT_MESSAGE,
   SCRIPTED_SCHEDULE_FINAL_TEXT,
+  clearScriptedEvalPlan,
   isAlterAgentScriptedEnabled,
   scriptedAgentGenerate,
+  setScriptedEvalPlan,
 } from "../../src/services/alterAgentScriptedProvider.js";
 
 const AGENT_PROMPT = "당신은 Altsis Alter의 읽기 전용 에이전트입니다.";
@@ -335,5 +337,50 @@ describe("alterAgentScriptedProvider", () => {
     expect(real.text).toBe("should-not-run");
     expect(fetchSpy).toHaveBeenCalledTimes(1);
     fetchSpy.mockRestore();
+  });
+
+  test("an eval plan replays tools, then the fixed script returns", async () => {
+    process.env.NODE_ENV = "development";
+    setScriptedEvalPlan([
+      { call: "get_my_todos", arguments: { scope: "all" } },
+      { call: "search_product_guide", arguments: { query: "평가" } },
+      { final: "두 도구를 확인했습니다." },
+    ]);
+    const tools = [
+      { name: "get_my_todos", description: "할 일", parameters: { type: "object" } },
+      { name: "search_product_guide", description: "안내", parameters: { type: "object" } },
+    ];
+    try {
+      const first = await scriptedAgentGenerate({
+        apiKey: SCRIPTED_AGENT_API_KEY,
+        systemInstruction: AGENT_PROMPT,
+        messages: [{ role: "user", content: "안내" }],
+        tools,
+      });
+      expect(first.toolCalls.map((call) => call.name)).toEqual([
+        "get_my_todos",
+        "search_product_guide",
+      ]);
+      const second = await scriptedAgentGenerate({
+        apiKey: SCRIPTED_AGENT_API_KEY,
+        systemInstruction: AGENT_PROMPT,
+        messages: [
+          { role: "user", content: "안내" },
+          { role: "assistant", content: "", toolCalls: first.toolCalls },
+        ],
+        tools,
+      });
+      expect(second.toolCalls).toEqual([]);
+      expect(second.text).toBe("두 도구를 확인했습니다.");
+    } finally {
+      clearScriptedEvalPlan();
+    }
+    const restored = await scriptedAgentGenerate({
+      apiKey: SCRIPTED_AGENT_API_KEY,
+      systemInstruction: AGENT_PROMPT,
+      messages: [{ role: "user", content: "오늘 할 일" }],
+      tools,
+    });
+    expect(restored.toolCalls.map((call) => call.name)).toEqual(["get_my_todos"]);
   });
 });

@@ -1,0 +1,49 @@
+{
+  "id": "demo-4",
+  "mode": "scripted",
+  "runner": "chat",
+  "role": "teacher",
+  "fixture": "eval-teacher",
+  "input": {
+    "prompt": "미제출 양식이 있으면 알려주고, 수업 평가는 어디서 하는지도 안내해 줘"
+  },
+  "expect": {
+    "tools": {
+      "mustCall": [
+        "get_my_todos",
+        "search_product_guide"
+      ],
+      "sameTurn": true
+    },
+    "maxToolSteps": 3,
+    "links": [
+      "/courses",
+      "/guide?doc=user-guide/evaluation"
+    ],
+    "text": {
+      "notContains": [
+        "평가 마법사",
+        "http://",
+        "https://"
+      ]
+    }
+  },
+  "scripted": [
+    {
+      "call": "get_my_todos",
+      "arguments": {
+        "scope": "all",
+        "limit": 10
+      }
+    },
+    {
+      "call": "search_product_guide",
+      "arguments": {
+        "query": "수업 평가는 어디서 하나요"
+      }
+    },
+    {
+      "final": "미제출 양식이 있으면 수업 페이지에서 평가합니다. 화면 위치는 안내 결과의 링크만 따릅니다."
+    }
+  ]
+}

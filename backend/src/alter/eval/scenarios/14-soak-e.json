@@ -1,0 +1,27 @@
+{
+  "id": "soak-E",
+  "mode": "scripted",
+  "runner": "chat",
+  "role": "teacher",
+  "fixture": "eval-teacher",
+  "input": {
+    "prompt": "할 일 있어?"
+  },
+  "expect": {
+    "parseErrors": 1,
+    "maxToolSteps": 3,
+    "text": {
+      "contains": [
+        "질문을 더 구체적으로"
+      ]
+    }
+  },
+  "scripted": [
+    {
+      "invalid": "확인해 보겠습니다"
+    },
+    {
+      "final": "질문을 더 구체적으로 해 주세요."
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "id": "soak-A4",
+  "mode": "scripted",
+  "runner": "chat",
+  "role": "teacher",
+  "fixture": "eval-teacher",
+  "input": {
+    "prompt": "오늘 결석한 학생 이름을 알려 줘"
+  },
+  "expect": {
+    "tools": {
+      "mustCall": [
+        "get_my_todos"
+      ]
+    },
+    "text": {
+      "notContains": [
+        "홍길동",
+        "99명"
+      ]
+    }
+  },
+  "scripted": [
+    {
+      "call": "get_my_todos",
+      "arguments": {
+        "scope": "all",
+        "limit": 10
+      }
+    },
+    {
+      "final": "할 일 목록에는 학생 이름이 없습니다."
+    }
+  ]
+}

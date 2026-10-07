@@ -76,6 +76,99 @@ export const scriptedDemoKeyBlocked = (apiKey) => {
   };
 };
 
+/** Eval-only playback. Unset, the demo academy keeps the fixed script below. */
+let scriptedEvalPlan = null;
+const scriptedTrace = [];
+
+export const setScriptedEvalPlan = (steps) => {
+  scriptedEvalPlan = Array.isArray(steps) && steps.length ? steps : null;
+  scriptedTrace.length = 0;
+};
+
+export const clearScriptedEvalPlan = () => {
+  scriptedEvalPlan = null;
+  scriptedTrace.length = 0;
+};
+
+export const readScriptedTrace = () => scriptedTrace.map((row) => ({ ...row }));
+
+const groupScriptedPlan = (steps, native) => {
+  const turns = [];
+  let batch = [];
+  const flush = () => {
+    if (!batch.length) return;
+    if (native) turns.push({ toolCalls: batch });
+    else {
+      for (const call of batch) turns.push({ toolCalls: [call] });
+    }
+    batch = [];
+  };
+  for (const step of steps) {
+    if (step?.call) {
+      batch.push({
+        name: String(step.call),
+        arguments:
+          step.arguments && typeof step.arguments === "object" && !Array.isArray(step.arguments)
+            ? step.arguments
+            : {},
+      });
+      continue;
+    }
+    flush();
+    if (step && (step.final != null || step.invalid != null)) {
+      turns.push({
+        text: String(step.final != null ? step.final : step.invalid),
+      });
+    }
+  }
+  flush();
+  return turns;
+};
+
+const playScriptedPlan = ({ messages, tools, toolChoice, native }) => {
+  const listed = new Set((Array.isArray(tools) ? tools : []).map((tool) => tool?.name));
+  const turns = groupScriptedPlan(scriptedEvalPlan, native);
+  const index = (messages || []).filter((row) => row?.role === "assistant").length;
+  const turn = turns[index] || turns[turns.length - 1] || { text: "" };
+  const calls = (turn.toolCalls || []).filter((call) => !listed.size || listed.has(call.name));
+  scriptedTrace.push({
+    index,
+    names: calls.map((call) => call.name),
+    text: turn.text || "",
+    messages: (messages || []).map((row) => ({
+      role: row?.role,
+      content: String(row?.content || ""),
+    })),
+  });
+  const usage = { ...TOKEN_USAGE };
+  if (toolChoice !== "none" && calls.length && index < turns.length) {
+    if (native) {
+      return {
+        text: "",
+        toolCalls: calls.map((call, i) => ({
+          id: `scripted-plan-${index}-${i}`,
+          name: call.name,
+          arguments: call.arguments,
+        })),
+        tokenUsage: usage,
+      };
+    }
+    const call = calls[0];
+    return {
+      text: ["```alter", JSON.stringify({ type: "tool", name: call.name, arguments: call.arguments }), "```"].join(
+        "\n"
+      ),
+      tokenUsage: usage,
+    };
+  }
+  const text = String(turn.text || "");
+  if (native) return { text, toolCalls: [], tokenUsage: usage };
+  return {
+    text: ["```alter", JSON.stringify({ type: "final", text }), "```"].join("\n"),
+    tokenUsage: usage,
+  };
+};
+
 const delayMs = () => {
   const n = Number(process.env.ALTER_AGENT_SCRIPTED_DELAY_MS || 0);
   if (!Number.isFinite(n) || n <= 0) return 0;
@@ -180,6 +273,7 @@ export const scriptedAgentGenerate = async ({
   if (wait) {
     await new Promise((resolve) => setTimeout(resolve, wait));
   }
+  if (scriptedEvalPlan) return playScriptedPlan({ messages, tools, toolChoice, native });
   const triggerRequest =
     triggerToolAvailable && /get_trigger_events/.test(userText) && !scheduleRequest;
   if (triggerRequest) {
