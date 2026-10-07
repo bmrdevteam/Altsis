@@ -40,6 +40,13 @@ module.exports = {
       to: { path: "^src/alter/providers/" },
     },
     {
+      name: "skills-not-to-providers",
+      comment: "skills는 providers와 agent 내부를 부르지 않는다. 실행은 runners/skill이 runAlterAgent로 한다.",
+      severity: "error",
+      from: { path: "^src/alter/skills/" },
+      to: { path: "^src/alter/providers/" },
+    },
+    {
       name: "providers-not-to-tools",
       comment: "providers는 tools를 부르지 않는다.",
       severity: "error",

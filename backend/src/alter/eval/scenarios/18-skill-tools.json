@@ -1,0 +1,25 @@
+{
+  "id": "skill-tools",
+  "runner": "chat",
+  "role": "teacher",
+  "fixture": "eval-teacher",
+  "modes": ["scripted"],
+  "input": {
+    "prompt": "fixture-brief 로 일정을 만들고 할 일도 봐 줘"
+  },
+  "expect": {
+    "tools": {
+      "exact": ["get_my_todos"],
+      "mustNotCall": ["manage_schedule", "search_product_guide", "get_trigger_events"]
+    },
+    "maxToolSteps": 3,
+    "text": {
+      "contains": ["허용된 도구만 실행했습니다"]
+    }
+  },
+  "scripted": [
+    { "call": "manage_schedule", "arguments": { "action": "list" } },
+    { "call": "get_my_todos", "arguments": { "scope": "all", "limit": 10 } },
+    { "final": "허용된 도구만 실행했습니다." }
+  ]
+}

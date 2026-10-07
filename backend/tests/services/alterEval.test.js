@@ -25,11 +25,11 @@ describe("alter eval harness", () => {
   test("scripted golden scenarios pass", async () => {
     const report = await runEval({ mode: "scripted", writeReport: false });
     expect(report.failures).toEqual([]);
-    expect(report.passed).toBe(16);
+    expect(report.passed).toBe(18);
     expect(report.failed).toBe(0);
     expect(report.skipped).toBe(0);
-    expect(report.ran).toBe(16);
-    expect(report.total).toBe(16);
+    expect(report.ran).toBe(18);
+    expect(report.total).toBe(18);
   }, 180000);
 
   test("real mode stays out of the test run", async () => {

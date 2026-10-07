@@ -1,0 +1,24 @@
+{
+  "id": "skill-select",
+  "runner": "chat",
+  "role": "teacher",
+  "fixture": "eval-teacher",
+  "modes": ["scripted"],
+  "input": {
+    "prompt": "fixture-brief 스킬로 이번 주 할 일을 확인해 줘"
+  },
+  "expect": {
+    "tools": {
+      "exact": ["get_my_todos"],
+      "mustNotCall": ["search_product_guide", "manage_schedule"]
+    },
+    "maxToolSteps": 3,
+    "text": {
+      "contains": ["할 일만 확인했습니다"]
+    }
+  },
+  "scripted": [
+    { "call": "get_my_todos", "arguments": { "scope": "all", "limit": 10 } },
+    { "final": "할 일만 확인했습니다." }
+  ]
+}
