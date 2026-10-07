@@ -235,5 +235,17 @@
       "query"
     ],
     "additionalProperties": false
+  },
+  "generate_image": {
+    "type": "object",
+    "properties": {
+      "prompt": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "additionalProperties": false
   }
 }

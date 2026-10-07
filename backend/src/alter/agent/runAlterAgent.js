@@ -20,16 +20,18 @@ const isWriteTool = (tool) => tool?.readOnly === false || tool?.effect === "writ
 
 const depsForMode = (mode, ctx = {}) => {
   const webSearchEnabled = ctx.academy?.webSearchEnabled === true;
+  const imageGenEnabled = mode === "chat" && ctx.academy?.imageGenEnabled === true;
   if (mode === "event") {
-    return { includeScheduleTool: false, includeTriggerTool: true, webSearchEnabled };
+    return { includeScheduleTool: false, includeTriggerTool: true, webSearchEnabled, imageGenEnabled };
   }
   if (mode === "schedule") {
-    return { includeScheduleTool: false, includeTriggerTool: false, webSearchEnabled };
+    return { includeScheduleTool: false, includeTriggerTool: false, webSearchEnabled, imageGenEnabled };
   }
   return {
     includeScheduleTool: ctx.allowScheduleTool !== false,
     includeTriggerTool: Array.isArray(ctx.triggerEvents),
     webSearchEnabled,
+    imageGenEnabled,
   };
 };
 
@@ -54,9 +56,11 @@ export const runAlterAgent = async ({
 }) => {
   const resolvedMode = UNATTENDED.has(mode) || mode === "chat" ? mode : "chat";
   const selected = Array.isArray(tools) ? tools : createAgentTools(depsForMode(resolvedMode, ctx));
-  const runnable = UNATTENDED.has(resolvedMode)
-    ? selected.filter((tool) => !isWriteTool(tool))
-    : selected;
+  const runnable = selected.filter((tool) => {
+    if (tool?.chatOnly === true && resolvedMode !== "chat") return false;
+    if (UNATTENDED.has(resolvedMode) && isWriteTool(tool)) return false;
+    return true;
+  });
 
   let tokenUsage = null;
   const generate = async (turn) => {
@@ -111,7 +115,7 @@ export const runAlterAgent = async ({
 
   const result = await runAgentLoop({
     tools: runnable,
-    serverCtx: ctx,
+    serverCtx: { ...ctx, mode: resolvedMode },
     userMessage: input.message,
     history: input.history || [],
     guidelines: input.guidelines || "",
@@ -132,6 +136,7 @@ export const runAlterAgent = async ({
   return {
     text: result.text || "확인한 내용이 없습니다.",
     links: result.links || [],
+    images: result.images || [],
     proposals: scheduleProposal ? [scheduleProposal] : [],
     scheduleProposal,
     toolNames,

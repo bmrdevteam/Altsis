@@ -21,5 +21,15 @@ describe("academy AI flags", () => {
     expect(applied.eventOnly).toBe(true);
     expect(events.alterEventTriggersEnabled).toBe(true);
     expect(events.webSearchEnabled).toBe(false);
+
+    const ownerImage = { aiEnabled: true, imageGenEnabled: false };
+    applyAcademyAiFlags(ownerImage, { imageGenEnabled: true }, { owner: true });
+    expect(ownerImage.imageGenEnabled).toBe(true);
+    expect(ownerImage.aiEnabled).toBe(true);
+
+    const adminImage = { aiEnabled: true, imageGenEnabled: false, alterEventTriggersEnabled: false };
+    const imageDenied = applyAcademyAiFlags(adminImage, { imageGenEnabled: true }, { owner: false });
+    expect(imageDenied.status).toBe(403);
+    expect(adminImage.imageGenEnabled).toBe(false);
   });
 });

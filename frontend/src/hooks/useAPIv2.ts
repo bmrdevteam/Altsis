@@ -583,6 +583,7 @@ export default function useAPIv2() {
       aiEnabled?: boolean;
       alterEventTriggersEnabled?: boolean;
       webSearchEnabled?: boolean;
+      imageGenEnabled?: boolean;
     };
   }) {
     const { academy } = await database.U({

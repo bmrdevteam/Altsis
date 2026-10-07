@@ -29,3 +29,7 @@ export const WEB_QUERY_MAX = 200;
 export const WEB_SNIPPET_MAX = 240;
 export const WEB_TITLE_MAX = 120;
 export const WEB_SEARCH_DAILY_LIMIT = 20;
+export const IMAGE_DAILY_LIMIT = 10;
+export const IMAGE_PROMPT_MAX = 500;
+export const IMAGE_BYTES_MAX = 4 * 1024 * 1024;
+export const IMAGE_SIZE = "1024x1024";

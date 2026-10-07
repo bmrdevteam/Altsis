@@ -114,6 +114,7 @@ type ChatMessage = {
   draft?: TAlterDraftResult | null;
   review?: TAlterDocumentReviewResult | null;
   links?: TAlterGuideLink[];
+  images?: { url: string; alt?: string }[];
   scheduleProposal?: {
     saved?: boolean;
     action: "create" | "delete";
@@ -1880,6 +1881,7 @@ const AlterPanel = ({ onClose }: Props) => {
             draft: result.draft,
             review: result.review || null,
             links: result.links,
+            images: result.images,
             scheduleProposal: result.scheduleProposal,
             createdAt: new Date().toISOString(),
           },
@@ -1908,6 +1910,7 @@ const AlterPanel = ({ onClose }: Props) => {
             draft: data.draft,
             review: data.review || null,
             links: data.links,
+            images: data.images,
             scheduleProposal: data.scheduleProposal || null,
             createdAt: new Date().toISOString(),
           },
@@ -3547,6 +3550,24 @@ const AlterPanel = ({ onClose }: Props) => {
           >
             {msg.role === "user" && msg.attachments?.length
               ? renderAttachmentBlock(msg.attachments)
+              : null}
+            {msg.role === "assistant" && msg.images?.length
+              ? renderAttachmentBlock(
+                  msg.images
+                    .filter((image) => image?.url)
+                    .map((image) => ({
+                      kind: "image" as const,
+                      name: image.alt || "생성된 이미지",
+                      previewUrl: image.url,
+                    }))
+                )
+              : null}
+            {msg.role === "assistant" &&
+            !msg.images?.length &&
+            msg.attachments?.some((item) => item.kind === "image" && item.previewUrl)
+              ? renderAttachmentBlock(
+                  msg.attachments.filter((item) => item.kind === "image" && item.previewUrl)
+                )
               : null}
             {msg.content ? (
               msg.role === "assistant" ? (

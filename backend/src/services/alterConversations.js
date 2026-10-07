@@ -458,6 +458,7 @@ export const appendAlterTurn = async ({
   draft,
   links,
   attachments,
+  assistantAttachments,
   markWorking = false,
 }) => {
   const season = await resolveSeasonSchool(academyId, seasonId);
@@ -522,6 +523,7 @@ export const appendAlterTurn = async ({
       review: review || null,
       draft: draft || null,
       links: normalizeAlterGuideLinks(links),
+      attachments: normalizeStoredAttachments(assistantAttachments),
       tokenUsage: tokenUsage || undefined,
     });
     created.push(aiDoc.toObject());
