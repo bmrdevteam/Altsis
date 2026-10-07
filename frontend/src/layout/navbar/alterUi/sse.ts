@@ -5,6 +5,7 @@ export type AlterSseDone = {
   skill?: string;
   conversationId?: string | null;
   links?: any[];
+  images?: { url: string; alt?: string }[];
   scheduleProposal?: any;
 };
 
@@ -104,6 +105,7 @@ const parseBlock = (block: string): ParsedSse | null => {
           skill: data.skill,
           conversationId: data.conversationId || null,
           links: data.links || [],
+          images: Array.isArray(data.images) ? data.images : [],
           scheduleProposal: data.scheduleProposal || null,
         },
       };

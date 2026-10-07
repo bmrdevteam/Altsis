@@ -141,6 +141,14 @@ export const runAlter = async (req, res) => {
           review: result.review || null,
           draft: result.draft || null,
           links: result.links || [],
+          assistantAttachments: (result.images || [])
+            .filter((image) => image?.key)
+            .map((image) => ({
+              kind: "image",
+              name: image.name || image.alt || "생성된 이미지",
+              key: image.key,
+              mimeType: image.mimeType || "image/png",
+            })),
           markWorking: false,
         });
         savedConversationId = String(saved.conversation._id);
@@ -156,6 +164,10 @@ export const runAlter = async (req, res) => {
         draft: result.draft || null,
         message: result.text,
         links: result.links || [],
+        images: (result.images || []).map((image) => ({
+          url: image.url,
+          alt: image.alt || "생성된 이미지",
+        })),
         scheduleProposal: result.scheduleProposal || null,
         conversationId: savedConversationId,
         ...(result.tokenUsage ? { tokenUsage: result.tokenUsage } : {}),
@@ -169,6 +181,10 @@ export const runAlter = async (req, res) => {
       review: result.review,
       draft: result.draft || null,
       links: result.links || [],
+      images: (result.images || []).map((image) => ({
+        url: image.url,
+        alt: image.alt || "생성된 이미지",
+      })),
       scheduleProposal: result.scheduleProposal || null,
       conversationId: savedConversationId,
     });

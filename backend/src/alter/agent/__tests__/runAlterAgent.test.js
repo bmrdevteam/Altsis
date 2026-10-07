@@ -66,6 +66,57 @@ describe("runAlterAgent", () => {
     }
   });
 
+  test("image generation stays off outside chat even when the academy flag is on", async () => {
+    for (const mode of ["schedule", "event"]) {
+      const plan = scripted();
+      await runAlterAgent({
+        ctx: {
+          academy: { imageGenEnabled: true },
+          triggerEvents: mode === "event" ? [] : undefined,
+        },
+        input: { message: "차트" },
+        mode,
+        provider: { generate: plan.generate },
+      });
+      expect(plan.offered[0]).not.toContain("generate_image");
+    }
+    const chat = scripted();
+    await runAlterAgent({
+      ctx: { academy: { imageGenEnabled: true } },
+      input: { message: "차트" },
+      mode: "chat",
+      provider: { generate: chat.generate },
+    });
+    expect(chat.offered[0]).toContain("generate_image");
+
+    const executed = [];
+    const offered = [];
+    await runAlterAgent({
+      ctx: { academy: { imageGenEnabled: true } },
+      input: { message: "차트" },
+      mode: "schedule",
+      tools: [
+        tool({ name: "lookup_note", readOnly: true, effect: "read", executed }),
+        {
+          ...tool({ name: "generate_image", readOnly: true, effect: "read", executed }),
+          chatOnly: true,
+        },
+      ],
+      provider: {
+        async generate({ tools }) {
+          offered.push((tools || []).map((item) => item.name));
+          return {
+            text: "예약에서는 이미지를 만들지 않습니다.",
+            toolCalls: [{ name: "generate_image", arguments: { prompt: "차트" } }],
+            usage: usage(1),
+          };
+        },
+      },
+    });
+    expect(offered[0]).toEqual(["lookup_note"]);
+    expect(executed).not.toContain("generate_image");
+  });
+
   test("schedule and event cannot call write tools", async () => {
     for (const mode of ["schedule", "event"]) {
       const executed = [];

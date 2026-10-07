@@ -202,6 +202,29 @@ const AISettings = (props: Props) => {
     }
   };
 
+  const onClickToggleImageGen = async () => {
+    const next = props.academyData.imageGenEnabled !== true;
+    if (
+      !window.confirm(
+        next
+          ? "이미지 생성을 켜시겠습니까? 채팅에서만 그림을 만들고, 예약과 이벤트에서는 만들지 않습니다. 실존하는 학생이나 사람은 거절합니다. 기본은 꺼져 있습니다."
+          : "이미지 생성을 끄시겠습니까? 도구 목록에서 바로 빠집니다."
+      )
+    ) {
+      return;
+    }
+    try {
+      const { academy } = await AcademyAPI.UAcademyAiEnabled({
+        params: { academyId: props.academyData.academyId },
+        data: { imageGenEnabled: next },
+      });
+      alert(SUCCESS_MESSAGE);
+      props.setAcademyData(academy);
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+  };
+
   const onClickToggleEventTriggers = async () => {
     const next = props.academyData.alterEventTriggersEnabled !== true;
     if (
@@ -551,6 +574,35 @@ const AISettings = (props: Props) => {
             onClick={onClickToggleWebSearch}
           >
             {props.academyData.webSearchEnabled ? "웹 검색 끄기" : "웹 검색 켜기"}
+          </Button>
+        </div>
+
+        <div className={`${style.card} ${style.statusRow}`}>
+          <div className={style.statusMeta}>
+            <div className={style.statusLabel}>이미지 생성</div>
+            <p className={style.sectionDesc}>
+              채팅에서만 그림 한 장을 만듭니다. 기본은 꺼져 있고, 예약·이벤트에서는
+              만들지 않습니다. 하루 사용자당 10회, 한 장은 1024 크기까지입니다.
+              실존하는 학생이나 사람은 거절합니다.
+            </p>
+            <div className={style.badges}>
+              <span
+                className={`${style.badge} ${
+                  props.academyData.imageGenEnabled
+                    ? style.badgeOn
+                    : style.badgeOff
+                }`}
+              >
+                {props.academyData.imageGenEnabled ? "이미지 생성 켜짐" : "이미지 생성 꺼짐"}
+              </span>
+            </div>
+          </div>
+          <Button
+            type="ghost"
+            style={{ borderRadius: "4px", height: "32px" }}
+            onClick={onClickToggleImageGen}
+          >
+            {props.academyData.imageGenEnabled ? "이미지 생성 끄기" : "이미지 생성 켜기"}
           </Button>
         </div>
       </section>

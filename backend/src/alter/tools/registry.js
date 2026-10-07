@@ -15,6 +15,7 @@ import getFormSubmissionStatus from "./defs/getFormSubmissionStatus.tool.js";
 import getCalendar from "./defs/getCalendar.tool.js";
 import getMyCourses from "./defs/getMyCourses.tool.js";
 import webSearch from "./defs/webSearch.tool.js";
+import generateImage from "./defs/generateImage.tool.js";
 
 const TOOLS = [
   getMyTodos,
@@ -29,6 +30,7 @@ const TOOLS = [
   getCalendar,
   getMyCourses,
   webSearch,
+  generateImage,
 ];
 
 const byName = new Map(TOOLS.map((tool) => [tool.name, tool]));
@@ -59,6 +61,7 @@ const toRuntimeTool = (tool, deps) => ({
   readOnly: tool.readOnly,
   effect: tool.effect,
   untrustedOutput: tool.untrustedOutput,
+  chatOnly: tool.chatOnly === true,
   promptHints: tool.promptHints,
   parameters: tool.parameters,
   arguments: tool.arguments,

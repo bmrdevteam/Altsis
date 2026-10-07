@@ -337,6 +337,7 @@ export const runAgentLoop = async ({
   const steps = [];
   const links = [];
   const sourceUrls = [];
+  const images = [];
   const trace = [];
   let scheduleProposal = null;
   let toolSteps = 0;
@@ -356,6 +357,7 @@ export const runAgentLoop = async ({
       links: normalized,
       trace,
       nestedUsage,
+      ...(images.length ? { images } : {}),
       ...(scheduleProposal ? { scheduleProposal } : {}),
     };
   };
@@ -386,6 +388,19 @@ export const runAgentLoop = async ({
           if (/^https:\/\/[^\s]+$/i.test(clean) && clean.length <= 500) sourceUrls.push(clean);
         }
       }
+      if (Array.isArray(data?.images) && images.length === 0) {
+        const image = data.images.find((item) => /^https:\/\/\S+$/i.test(String(item?.url || "").trim()));
+        const url = String(image?.url || "").trim();
+        if (image && url.length <= 2000) {
+          images.push({
+            url,
+            alt: String(image.alt || "생성된 이미지").replace(/\s+/g, " ").trim().slice(0, 80),
+            key: String(image.key || "").slice(0, 500),
+            mimeType: String(image.mimeType || "image/png").slice(0, 100),
+            name: String(image.name || "생성된 이미지").slice(0, 80),
+          });
+        }
+      }
       if (data?.proposal && data.proposal.saved !== true) {
         scheduleProposal = data.proposal;
       }
@@ -397,6 +412,12 @@ export const runAgentLoop = async ({
         delete forModel.links;
         delete forModel.usage;
         delete forModel.sourceUrls;
+        if (Array.isArray(forModel.images)) {
+          forModel.images = forModel.images.slice(0, 1).map((image) => ({
+            url: String(image?.url || "").slice(0, 2000),
+            alt: String(image?.alt || "").slice(0, 80),
+          }));
+        }
       }
       return finish(wrapToolResult(action.name, forModel), usage);
     } catch (_) {

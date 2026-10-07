@@ -51,6 +51,7 @@ export const defineTool = (spec) => {
     readOnly: spec.readOnly === true,
     effect: spec.effect === "write" ? "write" : "read",
     untrustedOutput: spec.untrustedOutput === true,
+    chatOnly: spec.chatOnly === true,
     promptHints,
     include: typeof spec.include === "function" ? spec.include : () => true,
     handler: spec.handler,

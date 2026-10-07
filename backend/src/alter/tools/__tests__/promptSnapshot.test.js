@@ -105,12 +105,20 @@ describe("assembled agent prompt", () => {
     expect(unattended).toContain("get_calendar");
     expect(unattended).toContain("get_my_courses");
     expect(unattended).not.toContain("web_search");
+    expect(unattended).not.toContain("generate_image");
+    expect(chat).not.toContain("generate_image");
     const web = buildAgentSystemPrompt({
       tools: createAgentTools({ includeScheduleTool: false, webSearchEnabled: true }),
       protocol: "native",
     });
     expect(web).toContain("web_search");
     expect(web).toContain("학생 이름, 성적, 연락처");
+    const image = buildAgentSystemPrompt({
+      tools: createAgentTools({ imageGenEnabled: true }),
+      protocol: "native",
+    });
+    expect(image).toContain("generate_image");
+    expect(image).toContain("실존하는 사람의 그림은 거절됩니다");
   });
 
   test("removing a tool removes only that tool's hints", () => {

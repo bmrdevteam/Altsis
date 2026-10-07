@@ -31,6 +31,7 @@ import { validate } from "../utils/validate.js";
  * @prop {boolean} boardEnabled=true - 보드 기능 활성화 상태
  * @prop {boolean} aiEnabled=false - AI 기능 활성화 상태
  * @prop {boolean} webSearchEnabled=false - Alter 웹 검색. 기본은 꺼짐. owner만 켠다
+ * @prop {boolean} imageGenEnabled=false - Alter 이미지 생성. 기본은 꺼짐. owner만 켜고 채팅만 쓴다
  * @prop {boolean} sitePublishEnabled=false - 공개 웹사이트 기능 허용 (owner)
  * @prop {boolean} sitePublished=false - 공개 웹사이트 외부 게시 여부 (admin)
  * @prop {boolean} emailNotifyEnabled=false - 이메일 알림 기능 허용 (owner)
@@ -163,6 +164,7 @@ const academySchema = mongoose.Schema(
     aiEnabled: { type: Boolean, default: false },
     alterEventTriggersEnabled: { type: Boolean, default: false },
     webSearchEnabled: { type: Boolean, default: false },
+    imageGenEnabled: { type: Boolean, default: false },
     sitePublishEnabled: { type: Boolean, default: false },
     sitePublished: { type: Boolean, default: false },
     emailNotifyEnabled: { type: Boolean, default: false },
