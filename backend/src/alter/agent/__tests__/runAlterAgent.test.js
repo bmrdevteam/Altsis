@@ -44,6 +44,28 @@ const scripted = () => {
 };
 
 describe("runAlterAgent", () => {
+  test("web search is offered on every runner only when the academy flag is on", async () => {
+    const cases = [
+      { mode: "chat", enabled: false },
+      { mode: "schedule", enabled: true },
+      { mode: "event", enabled: true },
+    ];
+    for (const row of cases) {
+      const plan = scripted();
+      await runAlterAgent({
+        ctx: {
+          academy: { webSearchEnabled: row.enabled },
+          triggerEvents: row.mode === "event" ? [] : undefined,
+        },
+        input: { message: "날씨" },
+        mode: row.mode,
+        provider: { generate: plan.generate },
+      });
+      if (row.enabled) expect(plan.offered[0]).toContain("web_search");
+      else expect(plan.offered[0]).not.toContain("web_search");
+    }
+  });
+
   test("schedule and event cannot call write tools", async () => {
     for (const mode of ["schedule", "event"]) {
       const executed = [];

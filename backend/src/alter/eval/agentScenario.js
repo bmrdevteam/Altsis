@@ -12,6 +12,7 @@ const academyFor = (override) => ({
   aiApiKey: override?.aiApiKey || SCRIPTED_AGENT_API_KEY,
   aiModel: override?.aiModel || "gpt-4o-mini",
   aiEnabled: true,
+  webSearchEnabled: override?.webSearchEnabled === true,
 });
 
 const cast = (scenario) => {
@@ -109,6 +110,7 @@ const withFixtureTodos = async (scenario, people, result, mode) => {
 export const runAgentScenario = async (scenario, options = {}) => {
   const people = cast(scenario);
   const academy = academyFor(options.academy);
+  if (scenario.academy?.webSearchEnabled === true) academy.webSearchEnabled = true;
   if (scenario.runner === "chat") {
     const result = await runAgent(scenario, people, academy, options);
     return withFixtureTodos(scenario, people, result, options.mode);

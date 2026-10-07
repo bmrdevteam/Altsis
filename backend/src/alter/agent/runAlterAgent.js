@@ -19,15 +19,17 @@ const UNATTENDED = new Set(["schedule", "event"]);
 const isWriteTool = (tool) => tool?.readOnly === false || tool?.effect === "write";
 
 const depsForMode = (mode, ctx = {}) => {
+  const webSearchEnabled = ctx.academy?.webSearchEnabled === true;
   if (mode === "event") {
-    return { includeScheduleTool: false, includeTriggerTool: true };
+    return { includeScheduleTool: false, includeTriggerTool: true, webSearchEnabled };
   }
   if (mode === "schedule") {
-    return { includeScheduleTool: false, includeTriggerTool: false };
+    return { includeScheduleTool: false, includeTriggerTool: false, webSearchEnabled };
   }
   return {
     includeScheduleTool: ctx.allowScheduleTool !== false,
     includeTriggerTool: Array.isArray(ctx.triggerEvents),
+    webSearchEnabled,
   };
 };
 

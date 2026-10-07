@@ -1,0 +1,31 @@
+{
+  "id": "web-off",
+  "runner": "chat",
+  "role": "teacher",
+  "fixture": "eval-teacher",
+  "input": {
+    "prompt": "오늘 서울 날씨를 웹에서 찾아 줘"
+  },
+  "expect": {
+    "tools": {
+      "exact": [],
+      "mustNotCall": ["web_search"]
+    },
+    "text": {
+      "contains": ["웹 검색은 꺼져 있습니다."]
+    }
+  },
+  "real": {
+    "tools": {
+      "mustNotCall": ["web_search"]
+    },
+    "text": {
+      "matches": ["꺼져|없습니다|웹 검색"]
+    }
+  },
+  "scripted": [
+    {
+      "final": "웹 검색은 꺼져 있습니다."
+    }
+  ]
+}

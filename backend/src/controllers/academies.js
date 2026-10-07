@@ -50,6 +50,7 @@ import {
   listProviderModels,
   pickPreferredModel,
 } from "../services/aiProvider.js";
+import { applyAcademyAiFlags } from "../services/academyAiFlags.js";
 import { TOKENS_PER_ALT } from "../services/aiUsageQuota.js";
 import {
   countActiveSeats,
@@ -854,25 +855,13 @@ export const updateAiEnabled = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("academy") });
 
     const owner = req.user?.auth === "owner";
-    const eventFlag = req.body.alterEventTriggersEnabled;
-    /* School admins may flip only the event-trigger flag. */
-    if (!owner) {
-      if (typeof eventFlag !== "boolean" || "aiEnabled" in req.body) {
-        return res.status(403).send({ message: "권한이 없습니다." });
-      }
-      academy.alterEventTriggersEnabled = eventFlag;
+    const applied = applyAcademyAiFlags(academy, req.body, { owner });
+    if (applied.status) {
+      return res.status(applied.status).send({ message: applied.message });
+    }
+    if (applied.eventOnly) {
       await academy.save();
       return res.status(200).send({ academy });
-    }
-
-    if (typeof eventFlag === "boolean") {
-      academy.alterEventTriggersEnabled = eventFlag;
-    }
-    /* toggle or set aiEnabled. An event-flag-only body must not flip AI. */
-    if (typeof req.body.aiEnabled === "boolean") {
-      academy.aiEnabled = req.body.aiEnabled;
-    } else if (!("alterEventTriggersEnabled" in req.body)) {
-      academy.aiEnabled = !academy.aiEnabled;
     }
     const plans = normalizePlans(academy);
     plans.ctrl.enabled = !!academy.aiEnabled;

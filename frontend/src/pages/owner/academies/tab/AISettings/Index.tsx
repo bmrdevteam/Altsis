@@ -179,6 +179,29 @@ const AISettings = (props: Props) => {
   const providerMismatch =
     hasApiKey && savedProvider !== null && savedProvider !== aiProvider;
 
+  const onClickToggleWebSearch = async () => {
+    const next = props.academyData.webSearchEnabled !== true;
+    if (
+      !window.confirm(
+        next
+          ? "웹 검색을 켜시겠습니까? 선생님의 공개 질문이 설정된 AI 제공자의 웹 검색으로 나갑니다. 학생 연락처는 빼지만, 기본은 꺼져 있습니다."
+          : "웹 검색을 끄시겠습니까? 도구 목록에서 바로 빠집니다."
+      )
+    ) {
+      return;
+    }
+    try {
+      const { academy } = await AcademyAPI.UAcademyAiEnabled({
+        params: { academyId: props.academyData.academyId },
+        data: { webSearchEnabled: next },
+      });
+      alert(SUCCESS_MESSAGE);
+      props.setAcademyData(academy);
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+  };
+
   const onClickToggleEventTriggers = async () => {
     const next = props.academyData.alterEventTriggersEnabled !== true;
     if (
@@ -500,6 +523,34 @@ const AISettings = (props: Props) => {
             {props.academyData.alterEventTriggersEnabled
               ? "이벤트 예약 끄기"
               : "이벤트 예약 켜기"}
+          </Button>
+        </div>
+
+        <div className={`${style.card} ${style.statusRow}`}>
+          <div className={style.statusMeta}>
+            <div className={style.statusLabel}>웹 검색</div>
+            <p className={style.sectionDesc}>
+              공개 웹 검색 도구입니다. 기본은 꺼져 있고, 켜야 채팅·예약·이벤트가
+              외부 검색을 호출합니다. 하루 사용자당 20회입니다.
+            </p>
+            <div className={style.badges}>
+              <span
+                className={`${style.badge} ${
+                  props.academyData.webSearchEnabled
+                    ? style.badgeOn
+                    : style.badgeOff
+                }`}
+              >
+                {props.academyData.webSearchEnabled ? "웹 검색 켜짐" : "웹 검색 꺼짐"}
+              </span>
+            </div>
+          </div>
+          <Button
+            type="ghost"
+            style={{ borderRadius: "4px", height: "32px" }}
+            onClick={onClickToggleWebSearch}
+          >
+            {props.academyData.webSearchEnabled ? "웹 검색 끄기" : "웹 검색 켜기"}
           </Button>
         </div>
       </section>
