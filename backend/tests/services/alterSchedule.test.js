@@ -29,6 +29,7 @@ import {
 const teacherDeps = {
   findSeason: async () => ({ _id: "season1", school: "school1" }),
   findRegistration: async () => ({ role: "teacher" }),
+  findAcademy: async () => ({ aiEnabled: true, alterEventTriggersEnabled: true }),
 };
 
 const weeklyFields = () =>
@@ -714,13 +715,14 @@ describe("alter schedule permissions and confirm", () => {
       user,
       "sched-1",
       { title: "아침 할 일" },
-      model
+      model,
+      teacherDeps
     );
     expect(updated.title).toBe("아침 할 일");
     doc.title = "아침 할 일";
     doc.enabled = false;
     doc.nextRunAt = new Date("2020-01-01T00:00:00.000Z");
-    const enabled = await setScheduleEnabled("demo", user, "sched-1", true, model);
+    const enabled = await setScheduleEnabled("demo", user, "sched-1", true, model, teacherDeps);
     expect(enabled.enabled).toBe(true);
     expect(new Date(enabled.nextRunAt).getTime()).toBeGreaterThan(Date.now() - 1000);
     const removed = await deleteScheduleForUser("demo", user, "sched-1", model);
@@ -731,15 +733,21 @@ describe("alter schedule permissions and confirm", () => {
   test("re-enabling a passed daily slot does not fire immediately", async () => {
     const doc = {
       _id: "sched-1",
+      user: user._id,
       timezone: "Asia/Seoul",
       schedule: { kind: "daily", time: "09:00" },
       nextRunAt: new Date("2020-01-01T00:00:00.000Z"),
       enabled: false,
       save: async () => {},
     };
-    const row = await setScheduleEnabled("demo", user, "sched-1", true, {
-      findOne: async () => doc,
-    });
+    const row = await setScheduleEnabled(
+      "demo",
+      user,
+      "sched-1",
+      true,
+      { findOne: async () => doc },
+      teacherDeps
+    );
     const next = new Date(row.nextRunAt).getTime();
     expect(next).toBeGreaterThan(Date.now());
     expect(next - Date.now()).toBeLessThan(26 * 60 * 60 * 1000);

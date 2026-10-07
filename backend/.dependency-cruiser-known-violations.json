@@ -141,11 +141,4 @@
     "to": "src/models/Academy.js",
     "rule": { "severity": "error", "name": "only-tools-and-policy-touch-domain" }
   },
-  // P4. 예약 모델은 policy 뒤로 간다.
-  {
-    "type": "dependency",
-    "from": "src/alter/eval/serviceChecks.js",
-    "to": "src/models/AlterSchedule.js",
-    "rule": { "severity": "error", "name": "only-tools-and-policy-touch-domain" }
-  }
 ]

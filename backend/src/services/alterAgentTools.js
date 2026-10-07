@@ -11,6 +11,7 @@ import { buildAlterGuideLinks } from "./alterGuideLinks.js";
 import { maskSensitiveObject } from "../alter/core/safety.js";
 import { logger } from "../log/logger.js";
 import { buildScheduleFields } from "./alterScheduleTime.js";
+import { resolveAlterContext } from "../alter/policy/access.js";
 
 const TODO_LIMIT_DEFAULT = 20;
 const TODO_LIMIT_MAX = 40;
@@ -608,6 +609,18 @@ export const createAgentTools = (deps = {}) => {
       parameters: { type: "object", additionalProperties: false, properties: {} },
       async execute(serverCtx) {
         const events = Array.isArray(serverCtx?.triggerEvents) ? serverCtx.triggerEvents : [];
+        try {
+          await resolveAlterContext(serverCtx?.academyId, serverCtx?.user, serverCtx?.seasonId, {
+            runner: "event",
+            loaded: serverCtx || {},
+          });
+        } catch (err) {
+          return {
+            summary: "이벤트를 볼 수 없음",
+            events: [],
+            error: err.code || err.message,
+          };
+        }
         return {
           summary: events.length ? `이벤트 ${events.length}건` : "이벤트 없음",
           events,

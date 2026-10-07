@@ -6,7 +6,6 @@
 import { logger } from "../log/logger.js";
 import { FIELD_REQUIRED, PERMISSION_DENIED, __NOT_FOUND } from "../messages/index.js";
 import { Academy } from "../models/Academy.js";
-import { Season, School } from "../models/index.js";
 import {
   generateText,
   listProviderModels,
@@ -28,14 +27,11 @@ import {
 import { maskSensitiveText } from "../services/aiSafety.js";
 import { logAIUsage } from "../services/aiUsage.js";
 import { tryCommitUpload } from "../services/academyStorage.js";
-import { assertCtrlEnabled } from "../services/entitlement.js";
-import {
-  assertAiUserQuota,
-  getMyAiUsage as getMyAiUsageSvc,
-} from "../services/aiUsageQuota.js";
+import { getMyAiUsage as getMyAiUsageSvc } from "../services/aiUsageQuota.js";
 import {
   SKILL_IDS,
   listSkills,
+  assertGuidelinesTemplateAccess,
   assertSeasonAiAccess,
   executeSyllabusDraftSkill,
   runAlterSkill,
@@ -690,48 +686,15 @@ export const generateGuidelinesTemplate = async (req, res) => {
       return res.status(400).send({ message: FIELD_REQUIRED("season") });
     }
 
-    const academy = await Academy.findOne(
-      { academyId: req.user.academyId },
-      "+aiApiKey"
+    const gate = await assertGuidelinesTemplateAccess(
+      req.user.academyId,
+      req.user,
+      seasonId
     );
-    if (!academy) {
-      return res.status(404).send({ message: __NOT_FOUND("academy") });
+    if (gate.error) {
+      return res.status(gate.error.status).send({ message: gate.error.message });
     }
-    if (!academy.aiEnabled) {
-      return res.status(403).send({ message: AI_ERRORS.NOT_ENABLED });
-    }
-    try {
-      assertCtrlEnabled(academy);
-    } catch (planErr) {
-      return res.status(planErr.status || 403).send({
-        message: planErr.code || planErr.message,
-      });
-    }
-    if (!academy.aiApiKey) {
-      return res.status(400).send({ message: AI_ERRORS.API_KEY_NOT_SET });
-    }
-
-    const season = await Season(req.user.academyId).findById(seasonId);
-    if (!season) {
-      return res.status(404).send({ message: __NOT_FOUND("season") });
-    }
-
-    let schoolName = "";
-    if (season.school) {
-      const school = await School(req.user.academyId).findById(season.school);
-      if (school && school.aiEnabled === false) {
-        return res.status(403).send({ message: AI_ERRORS.NOT_ENABLED });
-      }
-      schoolName = school?.schoolName || "";
-    }
-
-    try {
-      await assertAiUserQuota(req.user.academyId, req.user, academy);
-    } catch (quotaErr) {
-      return res.status(quotaErr.status || 403).send({
-        message: quotaErr.code || quotaErr.message,
-      });
-    }
+    const { academy, season, schoolName } = gate;
 
     const fields = extractSyllabusInputFields(season.formSyllabus);
     const fieldNames = fields.map((f) => f.name).slice(0, 24);

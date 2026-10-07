@@ -8,7 +8,7 @@ import {
   findOwnedSchedule,
   setScheduleEnabled,
 } from "../../services/alterScheduleService.js";
-import { AlterSchedule } from "../../models/AlterSchedule.js";
+import { scheduleModelFor } from "../../services/alterScheduleService.js";
 import { assertReadOnlyPrompt } from "../../services/alterScheduleTime.js";
 import { EVAL_ACADEMY } from "./mongo.js";
 import { runAgentScenario } from "./agentScenario.js";
@@ -29,8 +29,8 @@ const depsFor = (role) => {
     deps: {
       findSeason: async () => ({ _id: seasonId, school: schoolId }),
       findRegistration: async () => ({ role }),
-      findAcademy: async () => ({ alterEventTriggersEnabled: true }),
-      model: AlterSchedule(EVAL_ACADEMY),
+      findAcademy: async () => ({ aiEnabled: true, alterEventTriggersEnabled: true }),
+      model: scheduleModelFor(EVAL_ACADEMY),
     },
   };
 };
@@ -260,7 +260,7 @@ const flagOff = async () => {
   );
   const user = person("teacher-flag");
   const { seasonId, deps } = depsFor("teacher");
-  deps.findAcademy = async () => ({ alterEventTriggersEnabled: false });
+  deps.findAcademy = async () => ({ aiEnabled: true, alterEventTriggersEnabled: false });
   const created = await caught(() =>
     createScheduleForUser(
       EVAL_ACADEMY,

@@ -30,7 +30,7 @@ import {
 const teacherDeps = {
   findSeason: async () => ({ _id: "season1", school: "school1" }),
   findRegistration: async () => ({ role: "teacher" }),
-  findAcademy: async () => ({ alterEventTriggersEnabled: true }),
+  findAcademy: async () => ({ aiEnabled: true, alterEventTriggersEnabled: true }),
 };
 
 const user = { _id: "teacher-object", userId: "teacher1" };

@@ -4,8 +4,11 @@
  */
 
 import mongoose from "mongoose";
-import { Academy, AlterSchedule, Registration, Season } from "../models/index.js";
-import { PERMISSION_DENIED } from "../messages/index.js";
+import { AlterSchedule } from "../models/index.js";
+import {
+  isScheduleTeacher,
+  resolveAlterContext,
+} from "../alter/policy/access.js";
 import {
   CLAIM_LEASE_MS,
   DEFAULT_DEBOUNCE_MS,
@@ -23,33 +26,17 @@ const claimToken = (now) =>
 
 const modelOf = (academyId, model) => model || AlterSchedule(academyId);
 
-export const isScheduleTeacher = (_user, registration) =>
-  registration?.role === "teacher";
+export { isScheduleTeacher };
+
+export const scheduleModelFor = (academyId) => AlterSchedule(academyId);
 
 export const assertScheduleTeacher = async (academyId, user, seasonId, deps = {}) => {
-  if (!seasonId) {
-    throw scheduleError(400, "학기가 필요합니다.", "FIELD_REQUIRED");
-  }
-  const season = deps.findSeason
-    ? await deps.findSeason(seasonId)
-    : await Season(academyId).findById(seasonId).select("school");
-  if (!season) {
-    throw scheduleError(404, "학기를 찾을 수 없습니다.", "SEASON_NOT_FOUND");
-  }
-  const registration = deps.findRegistration
-    ? await deps.findRegistration(seasonId, user._id)
-    : await Registration(academyId).findOne({
-        season: seasonId,
-        user: user._id,
-      });
-  if (!isScheduleTeacher(user, registration)) {
-    throw scheduleError(
-      403,
-      "예약 실행은 선생님만 사용할 수 있습니다.",
-      PERMISSION_DENIED
-    );
-  }
-  return { season, registration };
+  const ctx = await resolveAlterContext(academyId, user, seasonId, {
+    runner: "schedule",
+    deps,
+    requireRole: true,
+  });
+  return { season: ctx.season, registration: ctx.registration };
 };
 
 const asId = (value) => {
@@ -180,18 +167,15 @@ const insertSchedule = async (Model, user, fields, createdVia, season) => {
   return publicSchedule(doc);
 };
 
-const assertEventTriggersEnabled = async (academyId, fields, deps) => {
-  if (fields.trigger !== "event") return;
-  const academy = deps.findAcademy
-    ? await deps.findAcademy(academyId)
-    : await Academy.findOne({ academyId }).select("alterEventTriggersEnabled").lean();
-  if (!academy?.alterEventTriggersEnabled) {
-    throw scheduleError(
-      403,
-      "이벤트 예약은 아카데미 설정에서 켜야 합니다.",
-      "EVENT_TRIGGERS_DISABLED"
-    );
-  }
+const gateScheduleWrite = async (academyId, user, seasonId, fields, deps, owned) => {
+  await resolveAlterContext(academyId, user, seasonId, {
+    runner: "schedule",
+    deps,
+    requireRole: !owned,
+    requireAi: true,
+    requireEventTriggers: fields?.trigger === "event",
+    owned,
+  });
 };
 
 export const createScheduleForUser = async (
@@ -204,7 +188,7 @@ export const createScheduleForUser = async (
   const seasonId = body?.season || body?.seasonId;
   const { season } = await assertScheduleTeacher(academyId, user, seasonId, deps);
   const fields = buildScheduleFields(body);
-  await assertEventTriggersEnabled(academyId, fields, deps);
+  await gateScheduleWrite(academyId, user, seasonId, fields, deps);
   const Model = deps.model || AlterSchedule(academyId);
   return insertSchedule(Model, user, fields, createdVia, season);
 };
@@ -225,7 +209,7 @@ export const findOwnedSchedule = async (academyId, user, id, model) => {
   return doc;
 };
 
-export const updateScheduleForUser = async (academyId, user, id, body, model) => {
+export const updateScheduleForUser = async (academyId, user, id, body, model, deps = {}) => {
   const doc = await findOwnedSchedule(academyId, user, id, model);
   const merged = {
     title: body?.title != null ? body.title : doc.title,
@@ -236,6 +220,14 @@ export const updateScheduleForUser = async (academyId, user, id, body, model) =>
     event: body?.event != null ? body.event : doc.event,
   };
   const fields = buildScheduleFields(merged);
+  await gateScheduleWrite(
+    academyId,
+    user,
+    doc.season || body?.season || body?.seasonId,
+    fields,
+    deps,
+    doc
+  );
   doc.title = fields.title;
   doc.prompt = fields.prompt;
   doc.trigger = fields.trigger || "time";
@@ -254,9 +246,19 @@ export const updateScheduleForUser = async (academyId, user, id, body, model) =>
   return publicSchedule(doc);
 };
 
-export const setScheduleEnabled = async (academyId, user, id, enabled, model) => {
+export const setScheduleEnabled = async (academyId, user, id, enabled, model, deps = {}) => {
   const doc = await findOwnedSchedule(academyId, user, id, model);
   const on = !!enabled;
+  if (on) {
+    await gateScheduleWrite(
+      academyId,
+      user,
+      doc.season,
+      { trigger: doc.trigger || "time" },
+      deps,
+      doc
+    );
+  }
   if (on && (doc.trigger || "time") === "event") {
     const pending = doc.pending?.events?.length || doc.pending?.events?.size || 0;
     if (pending) {
@@ -322,7 +324,7 @@ export const confirmProposal = async (academyId, user, body, deps = {}) => {
     trigger: proposal.trigger,
     event: proposal.event,
   });
-  await assertEventTriggersEnabled(academyId, fields, deps);
+  await gateScheduleWrite(academyId, user, seasonId, fields, deps);
   return insertSchedule(Model, user, fields, "agent", season);
 };
 

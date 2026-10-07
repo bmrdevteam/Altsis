@@ -81,6 +81,7 @@ export const executeAgentSkill = async ({
   const serverCtx = {
     academyId,
     user,
+    academy,
     school,
     season,
     seasonId: String(season?._id || context.seasonId || ""),
