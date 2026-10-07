@@ -8,7 +8,7 @@ import { getSchoolTodosForUser } from "./schoolTodos.js";
 import { getCourseTodosForUser } from "./schoolCourseTodos.js";
 import { retrieveAlterGuide } from "./alterGuideRetrieve.js";
 import { buildAlterGuideLinks } from "./alterGuideLinks.js";
-import { maskSensitiveObject } from "./aiSafety.js";
+import { maskSensitiveObject } from "../alter/core/safety.js";
 import { logger } from "../log/logger.js";
 import { buildScheduleFields } from "./alterScheduleTime.js";
 

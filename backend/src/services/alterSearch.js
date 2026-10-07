@@ -8,7 +8,7 @@ import {
   resolveModel,
 } from "./aiProvider.js";
 import { AI_ERRORS, FEATURE_PROFILES, truncateText } from "./aiPromptPolicy.js";
-import { maskSensitiveText } from "./aiSafety.js";
+import { maskSensitiveText } from "../alter/core/safety.js";
 import { logAIUsage } from "./aiUsage.js";
 import {
   buildSearchCatalog,

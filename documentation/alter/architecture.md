@@ -299,8 +299,9 @@ UI   → 확인 카드 (preview) → POST /api/ai/alter/proposals/:id/confirm
 
 ```
 backend/src/alter/
-  core/        errors.js, context.types.js, safety.js(mask·wrapUntrusted·neutralizeFences),
+  core/        errors.js, limits.js, time.js, ids.js, safety.js(mask·wrapUntrusted·neutralizeFences),
                text.js(stripMarkdown·truncate·링크정리), trace.js
+               (P3 완료. context.types.js와 AlterError 통일은 아직 아님)
   policy/      access.js(resolveAlterContext), permissions.js, proposals.js(확인 흐름), quota.js
   providers/   adapter.js(인터페이스), openai.js, anthropic.js, gemini.js, fence.js(데코레이터),
                scripted.js, llm.js(사용량·오류 매핑 래퍼)
@@ -355,7 +356,7 @@ graph TD
   - `notifications.js:169`와 컨트롤러 5곳의 `emitAlterEvent`를 `domainEvents.emit("form_submitted", …)`로 바꿉니다.
   - `runners/event`가 구독합니다(F7).
 - **강제 수단**:
-  1. `dependency-cruiser`가 주 도구입니다. 설정은 `backend/.dependency-cruiser.cjs`, 명령은 `npm run lint:deps`입니다. `await import()`를 포함합니다. 이미 있는 위반 24건은 `backend/.dependency-cruiser-known-violations.json`이고, 파일과 제거 PR은 `backend/src/alter/dependency-baseline.md`입니다. 새 위반은 실패입니다. `npm test`가 이 명령을 먼저 실행합니다.
+  1. `dependency-cruiser`가 주 도구입니다. 설정은 `backend/.dependency-cruiser.cjs`, 명령은 `npm run lint:deps`입니다. `await import()`를 포함합니다. 이미 있는 위반 23건은 `backend/.dependency-cruiser-known-violations.json`이고, 파일과 제거 PR은 `backend/src/alter/dependency-baseline.md`입니다. P2는 24건이었고 P3에서 마스킹 1건을 뺐습니다. 새 위반은 실패입니다. `npm test`가 이 명령을 먼저 실행합니다.
   2. eslint `no-restricted-imports`는 백엔드에 eslint 설정이 없고, 컨트롤러의 `await import()`를 잡지 못해 넣지 않았습니다. D2의 주 도구가 그 동적 import를 봅니다.
   3. **도구 계약 테스트** `alter/tools/__tests__/contract.test.js`가 모든 등록 도구에 대해 다음을 검사합니다:
      - 이름 형식·유일성
@@ -485,8 +486,8 @@ graph TD
 | PR | 내용 | 수용 기준 |
 |---|---|---|
 | **P1** 안전망 | `alter/eval` 골격 + 스크립트 어댑터 시나리오 주입 + §9.2 골든 시나리오와 soak 가장자리(학생 403, 한도 5, 중복 확인, 쓰기 오탐, 삭제된 행). 코드 이동 없음 | `eval:scripted` 통과. 기존 테스트 변화 없음. real 모드는 수동 |
-| **P2** 경계 도구 | `dependency-cruiser`(`backend/.dependency-cruiser.cjs`). 알려진 위반 24건은 `backend/.dependency-cruiser-known-violations.json`. 파일과 제거 PR은 `backend/src/alter/dependency-baseline.md`. `npm run lint:deps`. `npm test`가 이 명령을 먼저 실행 | 기준선 통과. 새 위반 0 |
-| **P3** core 추출 | `alter/core/{errors,safety,text,trace}`. stripMarkdown·truncate·링크정리·wrapToolResult 이동, 기존 경로는 re-export | 동작 동일(스냅샷 테스트). alterScheduleTime·Protocol 줄 수 감소 |
+| **P2** 경계 도구 | `dependency-cruiser`(`backend/.dependency-cruiser.cjs`). 알려진 위반은 `backend/.dependency-cruiser-known-violations.json`. 파일과 제거 PR은 `backend/src/alter/dependency-baseline.md`(P2 시점 24건, P3 이후 23건). `npm run lint:deps`. `npm test`가 이 명령을 먼저 실행 | 기준선 통과. 새 위반 0 |
+| **P3** core 추출 | 완료. `alter/core/{errors,limits,time,ids,safety,text,trace}`. 마스킹·래핑·truncate·링크정리·일정 상수·시간대·identity/slot 키를 옮김. `aiSafety.js`·`alterScheduleTime.js`·`alterAgentProtocol.js`는 re-export. 도메인은 `aiSafety.js`를 유지하고, 그 파일만 core 재수출 이음새. 기준선 24→23. `AlterError` 통일은 P10 | 동작 동일. `tests/services/alterCore.test.js`. alterScheduleTime·Protocol 줄 수 감소 |
 | **P4** policy 추출 | `resolveAlterContext` = `assertSeasonAiAccess` 이동. aiSkills·runner·schedule·event·controllers/ai의 중복 검사 교체 | 권한 매트릭스 테스트(교사/학생/플래그 off/AI off) 동일. **예약 생성 시 AI off면 403**(의도된 강화로 명시) |
 | **P5** 도구 레지스트리 | `defineTool`(zod) + registry. 기존 4개 도구 이전, `arguments` 문자열 자동 생성, 마스킹·래핑을 레지스트리로 | 계약 테스트 통과. native 스키마 스냅샷 동일. **Gemini 펜스 설명에 trigger/event 포함**(F2 수정). get_trigger_events 마스킹 |
 | **P6** promptHints | 루프 프롬프트의 도구 규칙 → 각 도구 `promptHints`. 러너 문구 → 러너 블록 | 조립된 시스템 프롬프트 문자열 스냅샷이 의미상 동일(순서만 변경 허용). eval 통과 |

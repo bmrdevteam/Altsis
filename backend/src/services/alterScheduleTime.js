@@ -4,33 +4,64 @@
  * in that timezone, matching Date#getUTCDay after the zone conversion.
  */
 
-import { createHash } from "crypto";
+import {
+  CLAIM_LEASE_MS,
+  DEBOUNCE_CHOICES_MS,
+  DEFAULT_DEBOUNCE_MS,
+  DEFAULT_TIMEZONE,
+  EVENT_TYPES,
+  MAX_CONSECUTIVE_ERRORS,
+  MAX_EVENT_ROUTINES,
+  MAX_PENDING_EVENTS,
+  MAX_ROUTINE_RUNS_PER_DAY,
+  MAX_RUN_HISTORY,
+  MAX_SCHEDULES_PER_USER,
+  MAX_USER_EVENT_RUNS_PER_DAY,
+  MIN_INTERVAL_MS,
+  NOTIFY_MAX,
+  PROMPT_MAX,
+  SUMMARY_MAX,
+  TITLE_MAX,
+} from "../alter/core/limits.js";
+import { scheduleError } from "../alter/core/errors.js";
+import {
+  normalizeTimezone,
+  seoulDay,
+  zonedParts,
+  zonedWallTimeToUtc,
+} from "../alter/core/time.js";
+import { scheduleIdentityKey, slotKey } from "../alter/core/ids.js";
+import { stripMarkdown, truncateSummary } from "../alter/core/text.js";
 
-export const DEFAULT_TIMEZONE = "Asia/Seoul";
-export const MIN_INTERVAL_MS = 60 * 60 * 1000;
-export const MAX_SCHEDULES_PER_USER = 5;
-export const MAX_RUN_HISTORY = 10;
-export const TITLE_MAX = 80;
-export const PROMPT_MAX = 2000;
-export const SUMMARY_MAX = 280;
-export const NOTIFY_MAX = 180;
-export const CLAIM_LEASE_MS = 10 * 60 * 1000;
-export const EVENT_TYPES = [
-  "approval_requested",
-  "form_submitted",
-  "form_posted",
-  "calendar_created",
-  "dm_received",
-];
-export const DEBOUNCE_CHOICES_MS = [5 * 60 * 1000, 15 * 60 * 1000, 60 * 60 * 1000];
-export const DEFAULT_DEBOUNCE_MS = 15 * 60 * 1000;
-export const MAX_EVENT_ROUTINES = 3;
-export const MAX_PENDING_EVENTS = 20;
-export const MAX_ROUTINE_RUNS_PER_DAY = 6;
-export const MAX_USER_EVENT_RUNS_PER_DAY = 12;
-export const MAX_CONSECUTIVE_ERRORS = 3;
+export {
+  CLAIM_LEASE_MS,
+  DEBOUNCE_CHOICES_MS,
+  DEFAULT_DEBOUNCE_MS,
+  DEFAULT_TIMEZONE,
+  EVENT_TYPES,
+  MAX_CONSECUTIVE_ERRORS,
+  MAX_EVENT_ROUTINES,
+  MAX_PENDING_EVENTS,
+  MAX_ROUTINE_RUNS_PER_DAY,
+  MAX_RUN_HISTORY,
+  MAX_SCHEDULES_PER_USER,
+  MAX_USER_EVENT_RUNS_PER_DAY,
+  MIN_INTERVAL_MS,
+  NOTIFY_MAX,
+  PROMPT_MAX,
+  SUMMARY_MAX,
+  TITLE_MAX,
+  scheduleError,
+  normalizeTimezone,
+  seoulDay,
+  zonedParts,
+  zonedWallTimeToUtc,
+  scheduleIdentityKey,
+  slotKey,
+  stripMarkdown,
+  truncateSummary,
+};
 
-const WEEKDAY_SHORT = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
 const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
 /** Imperatives only. Bare nouns (미제출, 결재 대기, 채점할 게) stay readable. */
 const WRITE_INTENT =
@@ -39,69 +70,7 @@ const WRITE_INTENT =
 export const READ_ONLY_SCHEDULE_HINT =
   "대신 조회만 하는 내용으로 제안하세요. 예: 매일 9시에 채점할 항목이 있는지 정리.";
 
-export const scheduleError = (status, message, code = "INVALID_SCHEDULE") => {
-  const err = new Error(message);
-  err.status = status;
-  err.code = code;
-  return err;
-};
-
 const clipText = (value, max) => String(value ?? "").trim().slice(0, max);
-
-export const zonedParts = (date, timeZone) => {
-  const fmt = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    weekday: "short",
-    hourCycle: "h23",
-  });
-  const bag = {};
-  for (const part of fmt.formatToParts(date)) {
-    if (part.type !== "literal") bag[part.type] = part.value;
-  }
-  let hour = Number(bag.hour);
-  if (hour === 24) hour = 0;
-  const weekday = WEEKDAY_SHORT[bag.weekday];
-  if (!Number.isFinite(hour) || weekday == null) {
-    throw scheduleError(400, "시간대를 해석하지 못했습니다.");
-  }
-  return {
-    year: Number(bag.year),
-    month: Number(bag.month),
-    day: Number(bag.day),
-    hour,
-    minute: Number(bag.minute),
-    second: Number(bag.second),
-    weekday,
-  };
-};
-
-const zoneOffsetMs = (date, timeZone) => {
-  const parts = zonedParts(date, timeZone);
-  const asUtc = Date.UTC(
-    parts.year,
-    parts.month - 1,
-    parts.day,
-    parts.hour,
-    parts.minute,
-    parts.second
-  );
-  return asUtc - date.getTime();
-};
-
-export const zonedWallTimeToUtc = ({ year, month, day, hour, minute, timeZone }) => {
-  const utcGuess = Date.UTC(year, month - 1, day, hour, minute, 0);
-  const offset = zoneOffsetMs(new Date(utcGuess), timeZone);
-  let utc = utcGuess - offset;
-  const offset2 = zoneOffsetMs(new Date(utc), timeZone);
-  if (offset2 !== offset) utc = utcGuess - offset2;
-  return new Date(utc);
-};
 
 const addCalendarDays = (parts, days) => {
   const utc = new Date(Date.UTC(parts.year, parts.month - 1, parts.day + days));
@@ -111,17 +80,6 @@ const addCalendarDays = (parts, days) => {
     day: utc.getUTCDate(),
     weekday: utc.getUTCDay(),
   };
-};
-
-export const normalizeTimezone = (value) => {
-  const zone = String(value || "").trim() || DEFAULT_TIMEZONE;
-  try {
-    zonedParts(new Date(), zone);
-  } catch (err) {
-    if (err?.code === "INVALID_SCHEDULE") throw err;
-    throw scheduleError(400, "시간대를 확인할 수 없습니다.");
-  }
-  return zone;
 };
 
 export const parseClock = (value) => {
@@ -242,14 +200,6 @@ const idList = (value, max = 20) =>
     max
   );
 
-export const seoulDay = (date) =>
-  new Intl.DateTimeFormat("en-CA", {
-    timeZone: DEFAULT_TIMEZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date instanceof Date ? date : new Date(date));
-
 export const normalizeEventSpec = (raw = {}) => {
   const types = idList(raw.types, EVENT_TYPES.length).filter((type) => EVENT_TYPES.includes(type));
   if (!types.length) throw scheduleError(400, "이벤트 종류를 하나 이상 고르세요.");
@@ -318,52 +268,6 @@ export const buildScheduleFields = (raw, from = new Date()) => {
   return { title, prompt, schedule, timezone, nextRunAt, proposalKey, trigger: "time" };
 };
 
-/** Same title, prompt, and slot confirm as one schedule. */
-export const scheduleIdentityKey = (fields) => {
-  const schedule = fields?.schedule || {};
-  const weekdays = Array.isArray(schedule.weekdays) ? [...schedule.weekdays] : [];
-  const onceAt = schedule.onceAt ? new Date(schedule.onceAt).toISOString() : "";
-  const event = fields?.event || {};
-  const filters = event.filters || {};
-  const payload =
-    fields?.trigger === "event"
-      ? JSON.stringify({
-          title: String(fields?.title || "").trim(),
-          prompt: String(fields?.prompt || "").trim(),
-          timezone: fields?.timezone || DEFAULT_TIMEZONE,
-          trigger: "event",
-          types: Array.isArray(event.types) ? [...event.types].sort() : [],
-          debounceMs: event.debounceMs || DEFAULT_DEBOUNCE_MS,
-          minIntervalMs: event.minIntervalMs || MIN_INTERVAL_MS,
-          dmOptIn: event.dmOptIn === true,
-          boardIds: [...(filters.boardIds || [])].map(String).sort(),
-          formIds: [...(filters.formIds || [])].map(String).sort(),
-          senderUserIds: [...(filters.senderUserIds || [])].map(String).sort(),
-          calendarScope: filters.calendarScope || "",
-        })
-      : JSON.stringify({
-          title: String(fields?.title || "").trim(),
-          prompt: String(fields?.prompt || "").trim(),
-          timezone: fields?.timezone || DEFAULT_TIMEZONE,
-          kind: schedule.kind || "",
-          time: schedule.time || "",
-          weekdays,
-          onceAt: onceAt === "Invalid Date" ? "" : onceAt,
-        });
-  return createHash("sha256").update(payload).digest("hex");
-};
-
-export const stripMarkdown = (text) =>
-  String(text ?? "")
-    .replace(/```[\s\S]*?```/g, " ")
-    .replace(/`([^`\n]*)`/g, "$1")
-    .replace(/!\[[^\]]*]\([^)]*\)/g, " ")
-    .replace(/\[([^\]]*)]\([^)]*\)/g, "$1")
-    .replace(/^#{1,6}\s+/gm, "")
-    .replace(/[*_~]+/g, "")
-    .replace(/^\s*[-*+]\s+/gm, "")
-    .replace(/^\s*\d+\.\s+/gm, "");
-
 export const claimQuery = (now) => ({
   enabled: true,
   nextRunAt: { $lte: now },
@@ -385,17 +289,6 @@ export const matchesClaimQuery = (doc, now) => {
     if (Number.isFinite(held) && held > at) return false;
   }
   return true;
-};
-
-export const slotKey = (academyId, doc) => {
-  const when = new Date(doc?.nextRunAt).toISOString();
-  return `scheduler:dedup:alter-schedule:${academyId}:${doc?._id}:${when}`;
-};
-
-export const truncateSummary = (text, max = SUMMARY_MAX) => {
-  const value = stripMarkdown(text).replace(/\s+/g, " ").trim();
-  if (value.length <= max) return value;
-  return `${value.slice(0, max - 1)}…`;
 };
 
 const toolNamesOf = (outcome) =>
