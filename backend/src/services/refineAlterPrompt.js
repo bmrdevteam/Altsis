@@ -19,7 +19,7 @@ import {
   ALTER_HOWTO_EXAMPLE_PROMPTS,
   ALTER_SAFETY_ETHICS,
   PAGE_TYPE_LABELS,
-} from "./alterCorePrompt.js";
+} from "./aiAlterPublic.js";
 import { SKILL_CATALOG, assertSeasonAiAccess, resolveSkillId } from "./aiSkills.js";
 
 export const REFINE_ALTER_PROMPT_RULES = `[요청 다듬기]

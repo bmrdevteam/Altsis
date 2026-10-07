@@ -1,0 +1,33 @@
+{
+  "id": "skill-screen",
+  "runner": "chat",
+  "role": "teacher",
+  "fixture": "eval-teacher",
+  "input": {
+    "prompt": "screen-summary 로 지금 화면을 요약해 줘"
+  },
+  "expect": {
+    "tools": {
+      "exact": ["get_current_screen"],
+      "mustNotCall": ["manage_schedule", "search_school_data", "lookup_credit_rules"]
+    },
+    "maxToolSteps": 3,
+    "text": {
+      "contains": ["화면만 요약합니다"]
+    }
+  },
+  "real": {
+    "tools": {
+      "subset": ["get_current_screen"],
+      "mustNotCall": ["manage_schedule", "search_school_data"]
+    },
+    "maxToolSteps": 3,
+    "text": {
+      "notContains": ["SQL이 비어 있습니다"]
+    }
+  },
+  "scripted": [
+    { "call": "get_current_screen", "arguments": {} },
+    { "final": "화면만 요약합니다." }
+  ]
+}

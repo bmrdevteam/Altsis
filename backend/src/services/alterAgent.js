@@ -90,6 +90,17 @@ export const prepareAlterAgentCall = ({
       message: userQuestion,
       triggerEvents: Array.isArray(triggerEvents) ? triggerEvents : undefined,
       allowScheduleTool,
+      scriptedDemo:
+        String(academy?.aiApiKey || "").trim() === "scripted-local-dev" &&
+        String(process.env.NODE_ENV || "").trim() !== "production",
+      screen: {
+        pageType: context.pageType,
+        subject: context.subject,
+        classTitle: context.classTitle,
+        label: context.label,
+        boardName: context.boardName,
+        reviewSummary: context.reviewSummary,
+      },
     },
     input: {
       message: userQuestion,

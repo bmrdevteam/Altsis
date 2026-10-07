@@ -65,7 +65,15 @@ import {
 import {
   attachmentsToSourceText,
   buildMultimodalUserContent,
-} from "./alterAttachments.js";
+  ALTER_HOWTO_EXAMPLE_PROMPTS,
+  buildAlterChatSystemPrompt,
+  detectAlterHowtoIntent,
+  withAlterSafety,
+  buildAlterChatPageContext,
+  buildAlterChatPageData,
+  retrieveAlterGuide,
+  buildAlterGuideLinks,
+} from "./aiAlterPublic.js";
 import {
   isFormResponseWritableType,
   parseFormResponseDraftResponse,
@@ -91,14 +99,6 @@ import {
   sanitizeAiDocResponseFill,
 } from "./formResponseSlots.js";
 import {
-  ALTER_HOWTO_EXAMPLE_PROMPTS,
-  buildAlterChatSystemPrompt,
-  detectAlterHowtoIntent,
-  withAlterSafety,
-} from "./alterCorePrompt.js";
-import { retrieveAlterGuide } from "./alterGuideRetrieve.js";
-import { buildAlterGuideLinks } from "./alterGuideLinks.js";
-import {
   ensureChunksForItems,
   retrieveLibraryChunks,
 } from "./aiLibraryChunks.js";
@@ -109,19 +109,20 @@ import {
   zonedLocalToUtc,
 } from "./weekdaySchedule.js";
 import { logger } from "../log/logger.js";
-import { executeSearchSkill } from "./alterSearch.js";
-/** Set from the route composition root so this file does not import the agent. */
+/** Set from the route composition root so this file does not import the agent or search. */
 let runRegisteredAgent = null;
+let runRegisteredSearch = null;
 
 export const registerAlterAgentRunner = (fn) => {
   runRegisteredAgent = typeof fn === "function" ? fn : null;
 };
 
+export const registerAlterSearchRunner = (fn) => {
+  runRegisteredSearch = typeof fn === "function" ? fn : null;
+};
+
 export { parseFormResponseDraftResponse } from "./formResponseDraft.js";
-export {
-  buildAlterChatPageContext,
-  buildAlterChatPageData,
-} from "./alterCorePrompt.js";
+export { buildAlterChatPageContext, buildAlterChatPageData };
 
 const IMAGE_HINT =
   "첨부 이미지가 있으면 내용을 참고하세요. 이미지에서 읽은 내용이 불명확하면 추측하지 말고 표시하세요.";
@@ -5893,7 +5894,12 @@ export const runAlterSkill = async ({
       SKILL_IDS.SEARCH,
       context?.referenceIndexes
     );
-    const result = await executeSearchSkill({
+    if (typeof runRegisteredSearch !== "function") {
+      const err = new Error("검색 러너가 연결되지 않았습니다.");
+      err.status = 500;
+      throw err;
+    }
+    const result = await runRegisteredSearch({
       academyId,
       user,
       academy,

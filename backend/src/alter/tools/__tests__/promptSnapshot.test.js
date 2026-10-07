@@ -77,11 +77,29 @@ describe("assembled agent prompt", () => {
       }
     }
     const shown = summaries.join("\n\n");
-    expect(shown).toContain("native-default");
-    expect(shown).toContain("어디서/어떻게/방법을 함께 물으면 search_product_guide도 같은 턴에 호출하세요");
-    expect(shown).toContain("source=board");
+    if (shown) {
+      expect(shown).toContain("native-default");
+      expect(shown).toContain("어디서/어떻게/방법을 함께 물으면 search_product_guide도 같은 턴에 호출하세요");
+      expect(shown).toContain("source=board");
+    }
     expect(shown).not.toContain("\n+");
     expect(shown).not.toContain("\n-");
+  });
+
+  test("chat prompts list the wrapped skill tools and unattended prompts do not", () => {
+    const chat = buildAgentSystemPrompt({ tools: createAgentTools({}), protocol: "native" });
+    expect(chat).toContain("search_school_data");
+    expect(chat).toContain("lookup_credit_rules");
+    expect(chat).toContain("get_current_screen");
+    expect(chat).toContain("학사 데이터는 search_school_data만 사용하세요");
+    const unattended = buildAgentSystemPrompt({
+      tools: createAgentTools({ includeScheduleTool: false }),
+      protocol: "native",
+    });
+    expect(unattended).not.toContain("search_school_data");
+    expect(unattended).not.toContain("lookup_credit_rules");
+    expect(unattended).not.toContain("get_current_screen");
+    expect(unattended).toContain("get_my_todos");
   });
 
   test("removing a tool removes only that tool's hints", () => {

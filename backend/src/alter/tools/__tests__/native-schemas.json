@@ -1,7 +1,6 @@
 {
   "get_my_todos": {
     "type": "object",
-    "additionalProperties": false,
     "properties": {
       "scope": {
         "type": "string",
@@ -16,11 +15,11 @@
         "minimum": 1,
         "maximum": 40
       }
-    }
+    },
+    "additionalProperties": false
   },
   "search_product_guide": {
     "type": "object",
-    "additionalProperties": false,
     "properties": {
       "query": {
         "type": "string"
@@ -28,11 +27,11 @@
     },
     "required": [
       "query"
-    ]
+    ],
+    "additionalProperties": false
   },
   "manage_schedule": {
     "type": "object",
-    "additionalProperties": false,
     "properties": {
       "action": {
         "type": "string",
@@ -63,7 +62,6 @@
       },
       "event": {
         "type": "object",
-        "additionalProperties": false,
         "properties": {
           "types": {
             "type": "array",
@@ -79,7 +77,6 @@
           },
           "filters": {
             "type": "object",
-            "additionalProperties": false,
             "properties": {
               "boardIds": {
                 "type": "array",
@@ -102,13 +99,14 @@
               "calendarScope": {
                 "type": "string"
               }
-            }
+            },
+            "additionalProperties": false
           }
-        }
+        },
+        "additionalProperties": false
       },
       "schedule": {
         "type": "object",
-        "additionalProperties": false,
         "properties": {
           "kind": {
             "type": "string",
@@ -132,16 +130,44 @@
           "onceAt": {
             "type": "string"
           }
-        }
+        },
+        "additionalProperties": false
       }
     },
     "required": [
       "action"
-    ]
+    ],
+    "additionalProperties": false
   },
   "get_trigger_events": {
     "type": "object",
-    "additionalProperties": false,
-    "properties": {}
+    "properties": {},
+    "additionalProperties": false
+  },
+  "search_school_data": {
+    "type": "object",
+    "properties": {
+      "question": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "question"
+    ],
+    "additionalProperties": false
+  },
+  "lookup_credit_rules": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string"
+      }
+    },
+    "additionalProperties": false
+  },
+  "get_current_screen": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
   }
 }

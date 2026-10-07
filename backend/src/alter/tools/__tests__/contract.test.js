@@ -38,6 +38,9 @@ describe("alter tool contract", () => {
       "search_product_guide",
       "manage_schedule",
       "get_trigger_events",
+      "search_school_data",
+      "lookup_credit_rules",
+      "get_current_screen",
     ]);
     for (const tool of tools) {
       expect(tool.name).toMatch(/^[a-z][a-z0-9_]{0,63}$/);
@@ -121,5 +124,62 @@ describe("alter tool contract", () => {
     expect(denied.events).toEqual([]);
     expect(denied.error).toBe("PERMISSION_DENIED");
     expect(JSON.stringify(denied)).not.toContain(phone);
+  });
+
+  test("wrapped skills stay off unattended runners and hide search internals", async () => {
+    const chatNames = createAgentTools().map((tool) => tool.name);
+    expect(chatNames).toEqual(expect.arrayContaining([
+      "search_school_data",
+      "lookup_credit_rules",
+      "get_current_screen",
+    ]));
+    const unattended = createAgentTools({ includeScheduleTool: false }).map((tool) => tool.name);
+    expect(unattended).not.toContain("search_school_data");
+    expect(unattended).not.toContain("lookup_credit_rules");
+    expect(unattended).not.toContain("get_current_screen");
+    const eventNames = createAgentTools({
+      includeTriggerTool: true,
+      includeScheduleTool: false,
+    }).map((tool) => tool.name);
+    expect(eventNames).not.toContain("search_school_data");
+
+    const student = {
+      user: { _id: "student", auth: "student" },
+      registration: { role: "student" },
+      academy: { aiEnabled: true },
+    };
+    const search = createAgentTools().find((tool) => tool.name === "search_school_data");
+    const deniedSearch = await search.execute(student, { question: "출석 인원" });
+    expect(deniedSearch.summary).toBe("권한이 없습니다.");
+    expect(JSON.stringify(deniedSearch)).not.toMatch(/SQL|SELECT/i);
+
+    const teacher = {
+      user: { _id: "teacher", auth: "member" },
+      registration: { role: "teacher" },
+      academy: { aiEnabled: true, aiApiKey: "real-key" },
+      school: { _id: "school" },
+      runReadOnlySearch: async () => {
+        const err = new Error("SQL이 비어 있습니다");
+        throw err;
+      },
+    };
+    const hidden = await search.execute(teacher, { question: "출석 인원" });
+    expect(JSON.stringify(hidden)).not.toContain("SQL이 비어 있습니다");
+    expect(hidden.readOnly).toBe(true);
+    expect(hidden.summary).toBe("검색에 실패했습니다. 질문을 조금 더 구체적으로 적어 주세요.");
+
+    const credit = createAgentTools().find((tool) => tool.name === "lookup_credit_rules");
+    const deniedCredit = await credit.execute(student, { query: "학점 규정" });
+    expect(deniedCredit.summary).toBe("권한이 없습니다.");
+    expect(deniedCredit.hits).toEqual([]);
+
+    const screen = createAgentTools().find((tool) => tool.name === "get_current_screen");
+    const seen = await screen.execute(
+      { ...student, screen: { pageType: "evaluation", label: "문학" } },
+      {}
+    );
+    expect(seen.summary).toContain("수업 평가");
+    expect(seen.summary).toContain("문학");
+    expect(seen.pageType).toBe("evaluation");
   });
 });

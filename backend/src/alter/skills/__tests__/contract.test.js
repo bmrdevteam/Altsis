@@ -21,7 +21,7 @@ describe("alter skill contract", () => {
   test("the example skill has an id, a procedure, a role, and registry tools", () => {
     const ids = skills.map((skill) => skill.id);
     expect(new Set(ids).size).toBe(ids.length);
-    expect(ids).toEqual(["fixture-brief"]);
+    expect(ids).toEqual(["fixture-brief", "school-search", "credit-rules", "screen-summary"]);
     const registered = new Set(listTools().map((tool) => tool.name));
     for (const skill of skills) {
       expect(skill.id).toMatch(/^[a-z][a-z0-9-]{0,63}$/);
@@ -30,7 +30,8 @@ describe("alter skill contract", () => {
       expect(skill.when.length).toBeGreaterThan(0);
       expect(skill.prompt.length).toBeGreaterThan(0);
       expect(skill.readOnly).toBe(true);
-      expect(skill.permission.roles).toEqual(["teacher"]);
+      expect(skill.permission.roles.length).toBeGreaterThan(0);
+      expect(skill.permission.roles).toContain("teacher");
       expect(skill.parameters.type).toBe("object");
       expect(skill.parameters.additionalProperties).toBe(false);
       expect(skill.tools.length).toBeGreaterThan(0);
@@ -46,13 +47,32 @@ describe("alter skill contract", () => {
     );
     expect(selectSkill({ message: "이번 주 할 일을 정리해 줘", role: "teacher" })).toBeNull();
     expect(selectSkill({ message: "fixture-brief", role: "student" })).toBeNull();
-    expect(describeSkills("teacher").map((skill) => skill.id)).toEqual(["fixture-brief"]);
-    expect(describeSkills("student")).toEqual([]);
+    expect(selectSkill({ message: "school-search 로 출석을 찾아 줘", role: "teacher" })?.id).toBe(
+      "school-search"
+    );
+    expect(selectSkill({ message: "school-search 로 출석을 찾아 줘", role: "student" })).toBeNull();
+    expect(selectSkill({ message: "screen-summary 로 화면을 봐 줘", role: "student" })?.id).toBe(
+      "screen-summary"
+    );
+    expect(describeSkills("teacher").map((skill) => skill.id)).toEqual([
+      "fixture-brief",
+      "school-search",
+      "credit-rules",
+      "screen-summary",
+    ]);
+    expect(describeSkills("student").map((skill) => skill.id)).toEqual(["screen-summary"]);
+    expect(getSkill("screen-summary").permission.roles).toEqual(["teacher", "student"]);
     expect(getSkill("missing")).toBeNull();
     const offered = toolsForSkill(getSkill("fixture-brief"), { includeScheduleTool: true }).map(
       (tool) => tool.name
     );
     expect(offered).toEqual(["get_my_todos"]);
+    expect(
+      toolsForSkill(getSkill("school-search"), { includeScheduleTool: true }).map((tool) => tool.name)
+    ).toEqual(["search_school_data"]);
+    expect(
+      toolsForSkill(getSkill("school-search"), { includeScheduleTool: false }).map((tool) => tool.name)
+    ).toEqual([]);
   });
 
   test("skill modules do not import providers or the agent", () => {

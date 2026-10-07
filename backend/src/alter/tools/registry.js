@@ -7,8 +7,19 @@ import getMyTodos from "./defs/getMyTodos.tool.js";
 import searchProductGuide from "./defs/searchProductGuide.tool.js";
 import manageSchedule from "./defs/manageSchedule.tool.js";
 import getTriggerEvents from "./defs/getTriggerEvents.tool.js";
+import searchSchoolData from "./defs/searchSchoolData.tool.js";
+import lookupCreditRules from "./defs/lookupCreditRules.tool.js";
+import getCurrentScreen from "./defs/getCurrentScreen.tool.js";
 
-const TOOLS = [getMyTodos, searchProductGuide, manageSchedule, getTriggerEvents];
+const TOOLS = [
+  getMyTodos,
+  searchProductGuide,
+  manageSchedule,
+  getTriggerEvents,
+  searchSchoolData,
+  lookupCreditRules,
+  getCurrentScreen,
+];
 
 const byName = new Map(TOOLS.map((tool) => [tool.name, tool]));
 
