@@ -128,7 +128,8 @@ export default defineSkill({
 });
 ```
 
-- 스킬은 `tools`와 `llm` 포트만 받습니다. 프로바이더 모듈을 직접 import하지 않습니다.
+- 완료(N1). 지금 `defineSkill` 필드는 `id`, `name`, `description`, `when`, `tools`(레지스트리 이름), `input`(zod), `prompt`(절차 문자열), `readOnly`, `permission.roles`다. 예시 스킬은 `skills/defs/fixtureBrief.skill.js`의 `fixture-brief`뿐이다. `runners/skill`이 메시지 안의 id와 역할로 스킬을 고르고, 그 도구만 `runAlterAgent`에 넘긴다. 단계 한도는 에이전트 한도다. 채팅 문구에 id가 없으면 도구 집합은 이전과 같다. 사용자에게 보이는 변화는 없다.
+- 스킬은 `tools`와 `llm` 포트만 받습니다. `providers`와 `agent`를 import하지 않습니다. 위 예시의 `exposeAsTool`과 `run`은 N2다. 검색 스킬 이전은 N2다.
 - `exposeAsTool`이 있으면 레지스트리가 자동으로 도구로 등록합니다. 이렇게 해서 「기존 스킬을 에이전트가 부르는 도구로 감싸기」가 됩니다.
 - 학원별 설정(`Academy`/`School.aiConfig`)은 정책 계층이 읽어서 `ctx.config.skills[id]`로 넘깁니다.
 - `agent`는 더 이상 스킬이 아닙니다. 현재는 `SKILL_IDS.AGENT`(aiSkills.js:249)로 들어가 있어 계층이 뒤집혀 있습니다.
@@ -306,7 +307,8 @@ backend/src/alter/
   providers/   adapter.js(인터페이스), openai.js, anthropic.js, gemini.js, fence.js(데코레이터),
                scripted.js, llm.js(사용량·오류 매핑 래퍼)
   tools/       defineTool.js, registry.js, lib/(투영 헬퍼), defs/*.tool.js
-  skills/      defineSkill.js, registry.js, prompts/*.md|js, defs/*.skill.js
+  skills/      defineSkill.js, registry.js, defs/*.skill.js
+               (N1 완료. 예시 스킬 fixture-brief. exposeAsTool·실스킬은 N2)
   agent/       runAlterAgent.js, loop.js, prompt.js(공통 정체성·안전·hints 조립), limits.js
   runners/     chat/(controller 어댑터, sse.js), schedule/(cron, claim, state), event/(bus 구독, queue, access)
   events/      (도메인 이벤트 구독 측; 발행은 src/events/domainEvents.js)
@@ -328,7 +330,6 @@ graph TD
   agent --> policy
   agent --> core
   skills --> tools
-  skills --> providers
   skills --> core
   tools --> policy
   tools --> core
@@ -349,13 +350,14 @@ graph TD
 
 - **금지 규칙**:
   - `tools`/`skills`/`providers` → `runners`, `agent`
+  - `skills` → `providers`
   - `providers` → `tools`
   - `tools` → `providers` (LLM이 필요하면 `ctx.llm` 포트)
   - 도메인(`src/controllers`, `src/services` 중 alter 외부) → `alter/**`. 예외는 `src/events/domainEvents.js` 발행뿐입니다.
 - **알림·컨트롤러 결합 해소**:
   - `notifications.js`와 컨트롤러 5곳은 `domainEvents`로 발행하고, `runners/event`가 구독합니다(F7). 양식 이벤트의 제목에는 보드 이름, 양식 이름, 승인/제출/게시가 들어갑니다.
 - **강제 수단**:
-  1. `dependency-cruiser`가 주 도구입니다. 설정은 `backend/.dependency-cruiser.cjs`, 명령은 `npm run lint:deps`입니다. `await import()`를 포함합니다. 이미 있는 위반 8건은 `backend/.dependency-cruiser-known-violations.json`이고, 파일과 제거 PR은 `backend/src/alter/dependency-baseline.md`입니다. P2는 24건, P3에서 23건, P4에서 22건, P5에서 21건입니다. P6은 프롬프트 조립이라 21건을 유지했습니다. P7에서 20건, P8에서 13건, P9에서 8건입니다. P10은 오류 계약이라 8건을 유지했습니다. 새 위반은 실패입니다. `npm test`가 이 명령을 먼저 실행합니다.
+  1. `dependency-cruiser`가 주 도구입니다. 설정은 `backend/.dependency-cruiser.cjs`, 명령은 `npm run lint:deps`입니다. `await import()`를 포함합니다. 이미 있는 위반 8건은 `backend/.dependency-cruiser-known-violations.json`이고, 파일과 제거 PR은 `backend/src/alter/dependency-baseline.md`입니다. P2는 24건, P3에서 23건, P4에서 22건, P5에서 21건입니다. P6은 프롬프트 조립이라 21건을 유지했습니다. P7에서 20건, P8에서 13건, P9에서 8건입니다. P10은 오류 계약이라 8건을 유지했습니다. N1은 스킬 프레임이라 8건을 유지했습니다. 새 위반은 실패입니다. `npm test`가 이 명령을 먼저 실행합니다.
   2. eslint `no-restricted-imports`는 백엔드에 eslint 설정이 없고, 컨트롤러의 `await import()`를 잡지 못해 넣지 않았습니다. D2의 주 도구가 그 동적 import를 봅니다.
   3. **도구 계약 테스트** `alter/tools/__tests__/contract.test.js`가 모든 등록 도구에 대해 다음을 검사합니다:
      - 이름 형식·유일성
@@ -375,7 +377,7 @@ graph TD
 # Alter — AI 코딩 규칙
 1. 새 기능은 먼저 "도구인가, 스킬인가, 러너인가"를 정한다.
    - 데이터를 읽거나 한 가지 행동 → tools/defs/<name>.tool.js (P5에서 생김. defineTool로만 추가한다.)
-   - 여러 도구 + 프롬프트 절차 → skills/defs/<id>.skill.js (스킬 이전 PR에서 만든다. 미리 만들지 않는다.)
+   - 여러 도구 + 프롬프트 절차 → skills/defs/<id>.skill.js (N1에서 생김. defineSkill로만 추가한다.)
    - 새 실행 계기(시간/이벤트/채널) → runners/<name>/ (러너 이전 PR에서 만든다. 미리 만들지 않는다.)
 2. 도구는 defineTool로만 만든다. 스키마는 zod 하나. 손으로 쓴 JSON Schema·인자 문자열 금지.
 3. 도구 이름을 agent/, runners/, providers/ 코드에 문자열로 쓰지 않는다. 도구 전용 프롬프트 규칙은 promptHints에.
@@ -482,7 +484,7 @@ graph TD
 
 ### 1단계 — 동작 보존 (behavior-preserving)
 
-P1–P10은 완료입니다. 남은 의존 위반 8건은 2단계 N1·N2입니다.
+P1–P10과 N1은 완료입니다. 남은 의존 위반 8건은 N2입니다.
 
 | PR | 내용 | 수용 기준 |
 |---|---|---|
@@ -501,8 +503,8 @@ P1–P10은 완료입니다. 남은 의존 위반 8건은 2단계 N1·N2입니�
 
 | PR | 내용 | 수용 기준 |
 |---|---|---|
-| **N1** 스킬 프레임 | `defineSkill` + 스킬 레지스트리. search 스킬부터 이전(`search_school_data` 도구 노출) | 기존 search UI 동작 동일 + 에이전트에서 호출 가능. eval 2개 |
-| **N2** 스킬 래핑 | 규정(라이브러리 검색), 화면 요약(`get_current_screen`), draft 계열 `exposeAsTool` | 스킬별 eval 정상+거절. aiSkills.js 줄 수 단계적 감소 |
+| **N1** 스킬 프레임 | 완료. `defineSkill` + `skills/registry.js` + `runners/skill`. 필드는 id, name, description, when, tools, input(zod), prompt, readOnly, permission.roles. 예시 스킬 `fixture-brief`만 둔다. 고른 스킬의 도구만 `runAlterAgent`에 넘기고 한도는 에이전트 한도를 쓴다. 실제 검색·초안 스킬은 N2. 기준선 8건 유지. 사용자에게 보이는 변화 없음 | 계약 테스트 `skills/__tests__/contract.test.js`. eval `skill-select`, `skill-tools` |
+| **N2** 스킬 래핑 | 검색 스킬(`search_school_data`), 규정(라이브러리 검색), 화면 요약(`get_current_screen`), draft 계열 `exposeAsTool`. `aiSkills.js` → `alterSearch.js` 간선은 여기로 남았다 | 스킬별 eval 정상+거절. aiSkills.js 줄 수 단계적 감소 |
 | **N3** 읽기 도구 확장 | `get_pending_approvals`, `get_form_submission_status`, `get_calendar`, `get_my_courses` | 계약 테스트, 학생/타인 격리 eval |
 | **N4** 웹 검색 | `web_search` (external, untrusted, 학원 플래그, 비용 한도) | 플래그 off면 목록에 없음. 프롬프트 주입 eval |
 | **N5** 이미지 생성 | `generate_image` (external, 학원 플래그, 쿼터) | 쿼터 초과 오류 코드. 결과는 첨부로 저장 |
