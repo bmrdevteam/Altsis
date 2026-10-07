@@ -14,6 +14,7 @@ import { EVAL_ACADEMY } from "./mongo.js";
 import { runAgentScenario } from "./agentScenario.js";
 import { runReadToolsCheck } from "../tools/readToolsFixture.js";
 import { runOtherClassCheck } from "../tools/submissionBoundaryCheck.js";
+import { runWebSearchCheck } from "../tools/webSearchFixture.js";
 
 const person = (userId) => ({
   _id: new mongoose.Types.ObjectId(),
@@ -62,6 +63,7 @@ export const runServiceCheck = async (scenario, options) => {
   if (scenario.check === "flag-off") return flagOff();
   if (scenario.check === "read-tools") return runReadToolsCheck();
   if (scenario.check === "read-other-class") return runOtherClassCheck();
+  if (scenario.check === "web-search") return runWebSearchCheck();
   throw new Error(`unknown check ${scenario.check}`);
 };
 

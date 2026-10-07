@@ -25,11 +25,11 @@ describe("alter eval harness", () => {
   test("scripted golden scenarios pass", async () => {
     const report = await runEval({ mode: "scripted", writeReport: false });
     expect(report.failures).toEqual([]);
-    expect(report.passed).toBe(29);
+    expect(report.passed).toBe(32);
     expect(report.failed).toBe(0);
     expect(report.skipped).toBe(0);
-    expect(report.ran).toBe(29);
-    expect(report.total).toBe(29);
+    expect(report.ran).toBe(32);
+    expect(report.total).toBe(32);
     expect(report.tokens).toEqual(
       report.scenarios.reduce(
         (sum, row) => ({
