@@ -19,6 +19,134 @@ const fail = (id, message) => `${id}: ${message}`;
 
 const textOf = (result) => String(result?.text || "");
 
+/** School subjects a model invents when the fixture has no such course. Longer names first. */
+const COURSE_SUBJECTS = [
+  "생명과학",
+  "지구과학",
+  "통합과학",
+  "통합사회",
+  "중국어",
+  "일본어",
+  "스페인어",
+  "프랑스어",
+  "독일어",
+  "국어",
+  "수학",
+  "영어",
+  "과학",
+  "사회",
+  "역사",
+  "문학",
+  "독서",
+  "물리",
+  "화학",
+  "생물",
+  "음악",
+  "미술",
+  "체육",
+  "도덕",
+  "한문",
+  "정보",
+  "기술",
+  "가정",
+  "토론",
+  "글쓰기",
+  "경제",
+  "정치",
+  "지리",
+  "윤리",
+];
+
+const COURSE_SUBJECT_RE = new RegExp(
+  `(?<![가-힣])(?:${COURSE_SUBJECTS.join("|")})(?=(?:은|는|이|가|을|를|의|도|만|과|와|로|에)?(?![가-힣]))`,
+  "g"
+);
+
+const NAMED_CLASS_RE = /(?<![가-힣])([가-힣A-Za-z0-9]{2,20})\s*(?:수업|과목|강의)/g;
+
+const CLASS_PREFIX_STOP = new Set([
+  "없는",
+  "있는",
+  "다른",
+  "해당",
+  "모든",
+  "담당",
+  "우리",
+  "전체",
+  "이번",
+  "오늘",
+  "내일",
+  "각",
+  "별도",
+  "추가",
+  "이런",
+  "그런",
+  "어떤",
+  "학생",
+  "교사",
+  "선생님",
+  "평가",
+  "보드",
+  "항목",
+  "우선",
+  "처리",
+  "안내",
+  "조회",
+  "확인",
+]);
+
+const GRAMMAR_TAIL = /(은|는|이|가|을|를|의|도|만|과|와|로|에|한|할|된|인|고|서|며)$/;
+
+const nameAllowed = (name, allowed) =>
+  allowed.some((row) => {
+    const known = String(row || "").trim();
+    return known.length >= 2 && (known === name || known.includes(name));
+  });
+
+/** Course titles in `text` that are not syllabus names from the fixture. */
+export const fabricatedCourseNames = (text, allowedNames = []) => {
+  const source = String(text || "");
+  const allowed = Array.isArray(allowedNames) ? allowedNames : [];
+  const found = new Set();
+  const consider = (name) => {
+    const clean = String(name || "").trim();
+    if (clean.length < 2 || CLASS_PREFIX_STOP.has(clean) || GRAMMAR_TAIL.test(clean)) return;
+    if (nameAllowed(clean, allowed)) return;
+    found.add(clean);
+  };
+  for (const match of source.matchAll(COURSE_SUBJECT_RE)) consider(match[0]);
+  for (const match of source.matchAll(NAMED_CLASS_RE)) consider(match[1]);
+  return [...found];
+};
+
+const checkEmptyCourseMention = (id, text, rule, fixtureTodos, errors) => {
+  if (!rule || typeof rule !== "object") return;
+  const count = Number(fixtureTodos?.emptyCourseCount);
+  if (!Number.isFinite(count)) {
+    errors.push(fail(id, "fixture empty-course count missing"));
+    return;
+  }
+  if (count > 0) {
+    const phrases = Array.isArray(rule.phrases) ? rule.phrases : [];
+    if (phrases.length && !phrases.some((needle) => includes(text, needle))) {
+      errors.push(fail(id, `text matched none of ${phrases.join(" / ")}`));
+    }
+    return;
+  }
+  const none = rule.whenNone || {};
+  const phrases = Array.isArray(none.anyOf) ? none.anyOf : [];
+  if (phrases.length && !phrases.some((needle) => includes(text, needle))) {
+    errors.push(fail(id, `text matched none of ${phrases.join(" / ")}`));
+  }
+  for (const pattern of none.matches || []) {
+    if (!textMatches(text, pattern)) errors.push(fail(id, `text missed /${pattern}/`));
+  }
+  if (none.noFabricatedCourseNames) {
+    const names = fabricatedCourseNames(text, fixtureTodos?.courseNames || []);
+    if (names.length) errors.push(fail(id, `fabricated course names ${names.join(", ")}`));
+  }
+};
+
 /** In real mode a `real` block replaces `expect`. Scripted phrases stay on the scripted side. */
 export const expectForMode = (scenario, mode) => {
   if (mode === "real" && scenario?.real && typeof scenario.real === "object") return scenario.real;
@@ -105,6 +233,7 @@ export const checkExpect = (scenario, result, mode = "scripted") => {
       at = next;
     }
   }
+  checkEmptyCourseMention(id, text, textExpect.emptyCourses, result?.fixtureTodos, errors);
 
   if (expect.notification) {
     const note = result.notification;

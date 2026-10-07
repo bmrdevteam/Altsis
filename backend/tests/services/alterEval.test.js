@@ -1,8 +1,11 @@
 import { readFileSync, rmSync } from "fs";
+import mongoose from "mongoose";
 import { evalExitCode, parseEvalArgs } from "../../src/alter/eval/args.js";
-import { checkExpect, textMatches } from "../../src/alter/eval/assertions.js";
+import { checkExpect, fabricatedCourseNames, textMatches } from "../../src/alter/eval/assertions.js";
+import { EVAL_ACADEMY, startEvalMongo, stopEvalMongo } from "../../src/alter/eval/mongo.js";
 import { redactSecrets } from "../../src/alter/eval/redact.js";
 import { previewAnswer, runEval } from "../../src/alter/eval/run.js";
+import { readFixtureTodoFacts } from "../../src/alter/tools/lib/fixtureTodoFacts.js";
 
 const DEMO3_REFUSAL = "채점[^.\\n]{0,15}(않|없|못)";
 const DEMO3_SAMPLES = [
@@ -129,6 +132,63 @@ describe("alter eval harness", () => {
         "real"
       )[0]
     ).toMatch(/bad pattern/);
+  });
+
+  test("demo-1 requires the empty-course phrase only when the fixture count is above zero", () => {
+    const scenario = JSON.parse(readFileSync("src/alter/eval/scenarios/01-demo-1.json", "utf8"));
+    expect(scenario.expect.text.containsOnce).toEqual(["수강생이 없는 수업"]);
+    expect(scenario.real.text.anyOf).toBeUndefined();
+    const judge = (text, fixtureTodos) =>
+      checkExpect(
+        scenario,
+        {
+          text,
+          toolNames: ["get_my_todos"],
+          toolSteps: 1,
+          notification: { type: "alterSchedule", description: "이번 주 할 일이 없습니다." },
+          fixtureTodos,
+        },
+        "real"
+      );
+    const none = { emptyCourseCount: 0, courseNames: [] };
+    expect(judge("이번 주 할 일이 없습니다.", none)).toEqual([]);
+    expect(judge("확인할 수업은 없고, 이번 주 할 일이 없습니다.", none)).toEqual([]);
+    expect(fabricatedCourseNames("수강생이 없는 수업은 없습니다.", [])).toEqual([]);
+    expect(judge("이번 주 할 일이 없습니다. 수학 수업 평가가 있습니다.", none)[0]).toMatch(
+      /fabricated course names 수학/
+    );
+    expect(judge("이번 주 할 일이 없습니다. 수학은 평가 대상이 아닙니다.", none)[0]).toMatch(
+      /fabricated course names 수학/
+    );
+    expect(judge("수강생이 없는 수업은 11개입니다.", none)[0]).toMatch(/text missed/);
+    expect(judge("수강생이 없는 수업은 2개입니다.", { emptyCourseCount: 2, courseNames: ["문학"] })).toEqual(
+      []
+    );
+    expect(judge("이번 주 할 일이 없습니다.", { emptyCourseCount: 2, courseNames: [] })[0]).toMatch(
+      /수강생이 없는 수업/
+    );
+    expect(
+      judge("이번 주 할 일이 없습니다. 수학은 수강생이 있습니다.", {
+        emptyCourseCount: 0,
+        courseNames: ["수학"],
+      })
+    ).toEqual([]);
+    expect(judge("이번 주 할 일이 없습니다.", undefined)[0]).toMatch(/empty-course count missing/);
+  });
+
+  test("the eval-teacher fixture has no courses without students", async () => {
+    await startEvalMongo();
+    try {
+      const facts = await readFixtureTodoFacts({
+        academyId: EVAL_ACADEMY,
+        user: { _id: new mongoose.Types.ObjectId(), userId: "teacher1" },
+        school: { _id: new mongoose.Types.ObjectId() },
+        seasonId: String(new mongoose.Types.ObjectId()),
+      });
+      expect(facts).toEqual({ emptyCourseCount: 0, courseNames: [] });
+    } finally {
+      await stopEvalMongo();
+    }
   });
 
   test("report answers are masked and truncated", () => {

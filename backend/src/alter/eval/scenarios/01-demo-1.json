@@ -36,8 +36,14 @@
     },
     "maxToolSteps": 3,
     "text": {
-      "anyOf": ["수강생이 없는 수업", "수강생 없는 수업"],
-      "notContains": ["http://", "https://"]
+      "notContains": ["http://", "https://"],
+      "emptyCourses": {
+        "phrases": ["수강생이 없는 수업", "수강생 없는 수업"],
+        "whenNone": {
+          "matches": ["할 일[^\\n]{0,16}없"],
+          "noFabricatedCourseNames": true
+        }
+      }
     },
     "notification": {
       "type": "alterSchedule",
