@@ -344,6 +344,8 @@ graph TD
   domainEvents[src/events/domainEvents.js] -.구독.-> runners
 ```
 
+`core`는 도메인을 포함한 어디에도 의존하지 않는다. 기존 도메인 서비스를 부르는 것은 `tools`와 `policy`뿐이다.
+
 - **금지 규칙**:
   - `tools`/`skills`/`providers` → `runners`, `agent`
   - `providers` → `tools`
@@ -372,9 +374,9 @@ graph TD
 ```md
 # Alter — AI 코딩 규칙
 1. 새 기능은 먼저 "도구인가, 스킬인가, 러너인가"를 정한다.
-   - 데이터를 읽거나 한 가지 행동 → tools/defs/<name>.tool.js
-   - 여러 도구 + 프롬프트 절차 → skills/defs/<id>.skill.js
-   - 새 실행 계기(시간/이벤트/채널) → runners/<name>/
+   - 데이터를 읽거나 한 가지 행동 → tools/defs/<name>.tool.js (도구 이전 PR에서 만든다. 미리 만들지 않는다.)
+   - 여러 도구 + 프롬프트 절차 → skills/defs/<id>.skill.js (스킬 이전 PR에서 만든다. 미리 만들지 않는다.)
+   - 새 실행 계기(시간/이벤트/채널) → runners/<name>/ (러너 이전 PR에서 만든다. 미리 만들지 않는다.)
 2. 도구는 defineTool로만 만든다. 스키마는 zod 하나. 손으로 쓴 JSON Schema·인자 문자열 금지.
 3. 도구 이름을 agent/, runners/, providers/ 코드에 문자열로 쓰지 않는다. 도구 전용 프롬프트 규칙은 promptHints에.
 4. 권한 검사는 policy/만. 컨트롤러·도구 안에서 registration.role 직접 비교 금지.
@@ -383,7 +385,7 @@ graph TD
 7. 오류는 AlterError(code, status, userMessage). 내부 메시지를 사용자에게 보내지 않는다.
 8. 프로바이더는 llm 포트로만 호출. aiProvider.js·fetch 직접 호출 금지.
 9. 새 도구·스킬 PR에는 eval 시나리오 최소 1개(정상) + 1개(권한/거절)를 함께 넣는다.
-10. 파일은 300줄 안팎을 목표로, 400줄 넘으면 분리. 도메인 코드에서 alter/* import 금지(domainEvents로).
+10. 파일은 300줄 안팎을 목표로, 400줄 넘으면 분리. 도메인 코드에서 alter/* import 금지. 알림은 P9까지 기존 emitAlterEvent. P9에서 domainEvents.js로만 발행하며, 그 파일은 아직 없다.
 11. 완료 조건: npm test, npm run lint:deps, npm run eval:scripted 모두 통과.
     `lint:deps`는 P2에서 생긴다. 그 전에는 npm test와 npm run eval:scripted가 완료 조건이다.
 ```
@@ -396,33 +398,41 @@ graph TD
 
 ### 9.1 시나리오 형식
 
-시나리오는 JSON으로 둡니다. 백엔드에 YAML 파서가 없고, D4는 JS(+ JSDoc)를 유지합니다. 아래 예시는 필드 모양만 보여 주며, 파일은 `scenarios/*.json`입니다.
+시나리오는 `backend/src/alter/eval/scenarios/*.json`입니다. 파일 이름 앞의 숫자(`02-demo-2.json`)는 정렬용이고, 고르는 키는 `id`입니다. YAML은 쓰지 않습니다.
 
-```yaml
-# 필드 예시. 저장은 alter/eval/scenarios/demo-2.json
-id: demo-case-2
-source: altsis-logs/demo-cases/SUMMARY.md#case-2
-runner: event
-fixture: bmr-teacher1           # fixtures/ 의 시드 스냅샷(학교·양식·학기)
-actor: { academy: bmr, user: teacher1, role: teacher }
-flags: { alterEventTriggersEnabled: true }
-input:
-  prompt: "제출이 들어오면 우선순위대로 정리해 줘"
-  events:
-    - { type: form_submitted, title: "출석 이상 보고" }
-    - { type: approval_requested, title: "멘토 회람 요청" }
-    - { type: form_submitted, title: "[예시] 3쿼터 수업 운영 점검" }
-expect:
-  tools: { mustCall: [get_trigger_events], mustNotCall: [manage_schedule, propose_routine] }
-  maxToolSteps: 3
-  text:
-    contains: ["출석 이상 보고"]
-    notContains: ["http", "```"]
-  notification: { type: alterTrigger, maxChars: 180, noMarkdown: true }
-  pii: none
-scripted:                       # scripted 모드에서 모델 대신 재생할 계획
-  - call: get_trigger_events
-  - final: "이벤트 3건을 확인했습니다. 먼저 볼 것: 출석 이상 보고 …"
+| 필드 | 의미 |
+|---|---|
+| `id` | 시나리오 이름. `--only demo-`처럼 접두사로 고릅니다. |
+| `runner` | `chat`, `schedule`, `event` |
+| `role` | `teacher` 또는 `student` |
+| `fixture` | 라벨(`eval-teacher`, `eval-student`). 메모리 서버가 그 역할의 사용자를 새로 만듭니다. bmr 스냅샷이 아닙니다. |
+| `modes` | 허용 모드. 없으면 scripted와 real 둘 다. 형식 오류를 재생하는 soak-E는 `["scripted"]`라 real에서는 건너뜁니다. 예전 필드 `mode: "scripted"`는 라벨일 뿐이고 모드를 제한하지 않습니다. |
+| `check` | 있으면 서비스 검사(다른 계정, 한도, 학생 403 등). 없으면 에이전트 루프입니다. |
+| `input` | `prompt`. 이벤트 러너는 `events` 배열. |
+| `expect` | scripted의 엄격한 단언. 도구 exact, 고정 문구. |
+| `real` | real에서 `expect`를 통째로 바꿉니다. `text.anyOf`, `tools.subset`(이 도구는 포함, 다른 도구는 있어도 됨), `tools.allow`(호출이 이 목록 안이면 통과, 빈 호출도 됨), `proposal.promptReadOnly`. 스크립트 문장은 넣지 않습니다. |
+| `scripted` | scripted 모드에서 모델 대신 재생할 계획. 프로덕션 전역이 아니라 `scriptedPlan` 인자로만 넘깁니다. |
+
+```json
+{
+  "id": "demo-2",
+  "runner": "event",
+  "role": "teacher",
+  "fixture": "eval-teacher",
+  "input": {
+    "prompt": "제출이 들어오면 우선순위대로 정리해 줘",
+    "events": [{ "type": "form_submitted", "title": "출석 이상 보고" }]
+  },
+  "expect": {
+    "tools": { "exact": ["get_trigger_events"] },
+    "text": { "contains": ["이벤트 3건", "출석 이상 보고"] }
+  },
+  "real": {
+    "tools": { "subset": ["get_trigger_events"] },
+    "text": { "contains": ["출석 이상 보고"] }
+  },
+  "scripted": [{ "call": "get_trigger_events" }, { "final": "이벤트 3건을 확인했습니다." }]
+}
 ```
 
 ### 9.2 초기 골든 시나리오 (데모·soak에서 추출)
@@ -446,18 +456,23 @@ scripted:                       # scripted 모드에서 모델 대신 재생할 
 
 ### 9.3 모드
 - **scripted (기본, CI)**:
-  - 시나리오의 `scripted` 계획을 스크립트 어댑터가 재생합니다.
+  - 시나리오의 `scripted` 계획을 `scriptedPlan` 인자로 스크립트 어댑터에 넘깁니다. 프로덕션 프로바이더에 평가용 전역 상태는 두지 않습니다.
   - 실제 도구·정책·러너·마스킹을 끝까지 통과시켜 **구조 회귀**를 잡습니다.
-  - fixture는 MongoMemoryServer 시드를 씁니다. 결정적입니다.
-- **real (수동·야간)**:
-  - bmr 학원 설정 프로바이더(예: gpt-5.6-luna)로 같은 시나리오를 돌립니다.
-  - 단언은 같고, 텍스트 단언은 느슨한 규칙(contains/notContains/정규식)만 씁니다.
-  - 결과 JSON(통과율, 토큰, 지연, toolNames)을 `eval/out/`에 저장합니다. 키는 env에서만 읽고 출력하지 않습니다.
-- (선택) **record/replay**: real 실행의 모델 응답을 카세트로 저장했다가 scripted처럼 재생합니다. 프롬프트 변경의 영향을 저렴하게 봅니다.
+  - 저장소는 MongoMemoryServer입니다. `MONGOMS_SYSTEM_BINARY`가 있으면 그 바이너리를 쓰고, 없으면 기본 다운로드를 씁니다. 경로를 코드에 적지 않습니다.
+  - 에이전트 루프가 턴마다 도구 이름과 untrusted 래핑 여부를 기록합니다. `sameTurn`과 `untrusted` 단언은 이 추적을 봅니다.
+- **real (수동)**:
+  - `--academy` 학원(기본 `bmr`) 설정의 프로바이더로 돌립니다. 키는 학원 설정에서 읽고, 출력과 보고서에서는 지웁니다.
+  - `real` 블록이 있으면 그것이 단언입니다. 키워드 `anyOf`, 도구는 exact 대신 subset, 스크립트 문장은 요구하지 않습니다. `real` 블록이 없는 서비스 검사는 `expect`를 그대로 씁니다.
+  - `modes`에 `real`이 없는 시나리오(soak-E)는 건너뜁니다. 건너뜀은 실패가 아닙니다.
+  - CLI는 시나리오 단위로 통과·실패·건너뜀을 세고, 실패한 단언을 시나리오 아래에 적습니다. 단언 줄 수를 실패 건수로 세지 않습니다.
+  - 시나리오가 0건이거나 하나라도 실패하면 종료 코드는 0이 아닙니다. `--only`를 빼면 그 모드에서 돌 수 있는 시나리오 전부입니다.
+- **보고서**: `backend/src/alter/eval/out/<시각>.json`. 시나리오마다 `status`, `toolNames`, `tokens`(prompt, completion, total), `latencyMs`. CLI는 같은 내용을 짧은 표로 찍습니다. 이 디렉터리는 git에 넣지 않습니다.
+- (선택, 아직 없음) **record/replay**: real 응답을 카세트로 저장했다가 scripted처럼 재생합니다.
 
-### 9.4 CI
-- `npm run eval:scripted`로 jest 프로젝트를 분리합니다. PR마다 실행하고, 시나리오 실패는 빌드 실패입니다.
-- `npm run eval:real -- --only demo-*`는 수동 실행입니다. 보고서는 PR 코멘트용 요약으로 남깁니다.
+### 9.4 실행
+- `npm run eval:scripted`와 `npm run alter:eval`은 `node src/alter/eval/cli.js`입니다. 별도 jest 프로젝트가 아닙니다.
+- 같은 스크립트 세트는 `backend/tests/services/alterEval.test.js`로 jest(`npm test`)에도 들어갑니다. 시나리오 실패는 테스트 실패입니다.
+- `npm run eval:real -- --only demo-*`는 수동입니다. `NODE_ENV=test`에서는 `ALTER_EVAL_REAL=1`이 없으면 거절합니다.
 
 ---
 
