@@ -34,6 +34,20 @@
       ]
     }
   },
+  "real": {
+    "unavailable": true,
+    "excerptContains": ["출석 이상 보고"],
+    "excerptNotContains": ["비밀 본문"],
+    "runStatus": "ok",
+    "tools": {
+      "subset": ["get_trigger_events"]
+    },
+    "untrusted": true,
+    "text": {
+      "contains": ["출석 이상 보고"],
+      "notContains": ["비밀 본문"]
+    }
+  },
   "scripted": [
     {
       "call": "get_trigger_events"

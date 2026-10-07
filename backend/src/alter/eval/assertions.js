@@ -1,3 +1,5 @@
+import { assertReadOnlyPrompt } from "../../services/alterScheduleTime.js";
+
 const MARKDOWN_RE = /\*\*|```|\[[^\]]*]\([^)]+\)/;
 
 const includes = (text, needle) => String(text || "").includes(needle);
@@ -6,9 +8,15 @@ const fail = (id, message) => `${id}: ${message}`;
 
 const textOf = (result) => String(result?.text || "");
 
-export const checkExpect = (scenario, result) => {
+/** In real mode a `real` block replaces `expect`. Scripted phrases stay on the scripted side. */
+export const expectForMode = (scenario, mode) => {
+  if (mode === "real" && scenario?.real && typeof scenario.real === "object") return scenario.real;
+  return scenario?.expect || {};
+};
+
+export const checkExpect = (scenario, result, mode = "scripted") => {
   const id = scenario.id;
-  const expect = scenario.expect || {};
+  const expect = expectForMode(scenario, mode);
   const errors = [];
   const text = textOf(result);
   const toolNames = result?.toolNames || [];
@@ -26,9 +34,22 @@ export const checkExpect = (scenario, result) => {
   for (const name of tools.mustNotCall || []) {
     if (toolNames.includes(name)) errors.push(fail(id, `called ${name}`));
   }
+  for (const name of tools.subset || []) {
+    if (!toolNames.includes(name)) errors.push(fail(id, `missing tool ${name}`));
+  }
+  if (Array.isArray(tools.allow)) {
+    for (const name of toolNames) {
+      if (!tools.allow.includes(name)) errors.push(fail(id, `tool ${name} is not allowed`));
+    }
+  }
   if (tools.sameTurn) {
     const first = (result.trace || [])[0]?.names || [];
-    for (const name of tools.mustCall || tools.exact || []) {
+    const required = tools.mustCall?.length
+      ? tools.mustCall
+      : tools.exact?.length
+        ? tools.exact
+        : tools.subset || [];
+    for (const name of required) {
       if (!first.includes(name)) errors.push(fail(id, `${name} was not in the first turn`));
     }
   }
@@ -42,6 +63,11 @@ export const checkExpect = (scenario, result) => {
   }
   for (const needle of textExpect.notContains || []) {
     if (includes(text, needle)) errors.push(fail(id, `text has ${needle}`));
+  }
+  if (Array.isArray(textExpect.anyOf) && textExpect.anyOf.length) {
+    if (!textExpect.anyOf.some((needle) => includes(text, needle))) {
+      errors.push(fail(id, `text matched none of ${textExpect.anyOf.join(" / ")}`));
+    }
   }
   for (const needle of textExpect.containsOnce || []) {
     const found = text.split(needle).length - 1;
@@ -77,11 +103,8 @@ export const checkExpect = (scenario, result) => {
   }
 
   if (expect.untrusted) {
-    const blob = (result.trace || [])
-      .flatMap((row) => row.messages || [])
-      .map((row) => row.content)
-      .join("\n");
-    if (!blob.includes('untrusted="true"')) errors.push(fail(id, "tool result was not wrapped"));
+    const wrapped = (result.trace || []).some((row) => row?.untrusted === true);
+    if (!wrapped) errors.push(fail(id, "tool result was not wrapped"));
   }
 
   if (expect.proposal) {
@@ -104,6 +127,13 @@ export const checkExpect = (scenario, result) => {
       }
       for (const needle of expect.proposal.promptNotContains || []) {
         if (includes(proposal.prompt, needle)) errors.push(fail(id, `prompt has ${needle}`));
+      }
+      if (expect.proposal.promptReadOnly) {
+        try {
+          assertReadOnlyPrompt(proposal.prompt);
+        } catch (_) {
+          errors.push(fail(id, "routine prompt has a write verb"));
+        }
       }
     }
   }

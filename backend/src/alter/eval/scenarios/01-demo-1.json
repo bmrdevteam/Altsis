@@ -30,6 +30,21 @@
       "noMarkdown": true
     }
   },
+  "real": {
+    "tools": {
+      "subset": ["get_my_todos"]
+    },
+    "maxToolSteps": 3,
+    "text": {
+      "anyOf": ["수강생이 없는 수업", "수강생 없는 수업"],
+      "notContains": ["http://", "https://"]
+    },
+    "notification": {
+      "type": "alterSchedule",
+      "maxChars": 180,
+      "noMarkdown": true
+    }
+  },
   "scripted": [
     {
       "call": "get_my_todos",

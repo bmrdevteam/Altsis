@@ -560,9 +560,24 @@ export const runAgentLoop = async ({
   ];
   const steps = [];
   const links = [];
+  const trace = [];
   let scheduleProposal = null;
   let toolSteps = 0;
   let formatRetries = 0;
+
+  const noteTurn = (names, wrapped) => {
+    const called = (Array.isArray(names) ? names : [])
+      .map((name) => String(name || ""))
+      .filter(Boolean);
+    const bodies = (Array.isArray(wrapped) ? wrapped : []).map((row) => String(row ?? ""));
+    trace.push({
+      names: called,
+      untrusted:
+        called.length > 0 &&
+        bodies.length > 0 &&
+        bodies.every((row) => row.includes('untrusted="true"')),
+    });
+  };
 
   const done = (extra) => {
     const normalized = normalizeAlterGuideLinks(links);
@@ -570,6 +585,7 @@ export const runAgentLoop = async ({
       ...extra,
       text: stripUnmatchedLinks(extra?.text, normalized),
       links: normalized,
+      trace,
       ...(scheduleProposal ? { scheduleProposal } : {}),
     };
   };
@@ -688,6 +704,7 @@ export const runAgentLoop = async ({
           messages.push({ role: "assistant", content: turn.text });
           toolSteps += 1;
           const wrapped = await runTool(action);
+          noteTurn([action.name], [wrapped]);
           messages.push({ role: "user", content: wrapped });
           continue;
         }
@@ -712,9 +729,13 @@ export const runAgentLoop = async ({
         content: turn.text,
         toolCalls: turn.toolCalls,
       });
+      const turnNames = [];
+      const turnWrapped = [];
       for (const call of accepted) {
         toolSteps += 1;
         const wrapped = await runTool(call);
+        turnNames.push(call.name);
+        turnWrapped.push(wrapped);
         messages.push({
           role: "tool",
           toolCallId: call.id,
@@ -723,15 +744,18 @@ export const runAgentLoop = async ({
         });
       }
       for (const call of skipped) {
+        const wrapped = wrapToolResult(call.name, {
+          error: "도구 호출 한도에 도달해 실행하지 않았습니다.",
+        });
+        turnWrapped.push(wrapped);
         messages.push({
           role: "tool",
           toolCallId: call.id,
           name: call.name,
-          content: wrapToolResult(call.name, {
-            error: "도구 호출 한도에 도달해 실행하지 않았습니다.",
-          }),
+          content: wrapped,
         });
       }
+      noteTurn(turnNames, turnWrapped);
       if (toolSteps >= limit) break;
     }
 
@@ -771,6 +795,7 @@ export const runAgentLoop = async ({
     }
     toolSteps += 1;
     const wrapped = await runTool(action);
+    noteTurn([action.name], [wrapped]);
     messages.push({ role: "user", content: wrapped });
   }
 

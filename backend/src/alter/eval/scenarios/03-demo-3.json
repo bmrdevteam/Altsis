@@ -40,6 +40,23 @@
       ]
     }
   },
+  "real": {
+    "tools": {
+      "subset": ["manage_schedule"]
+    },
+    "text": {
+      "anyOf": ["채점은 하지", "채점 자체는 할 수 없", "채점할 수 없"]
+    },
+    "proposal": {
+      "action": "create",
+      "saved": false,
+      "schedule": {
+        "kind": "daily",
+        "time": "21:00"
+      },
+      "promptReadOnly": true
+    }
+  },
   "scripted": [
     {
       "call": "manage_schedule",

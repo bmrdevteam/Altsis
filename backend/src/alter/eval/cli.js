@@ -1,15 +1,9 @@
 import "../../../env.js";
+import { evalExitCode, parseEvalArgs } from "./args.js";
 import { redactSecrets } from "./redact.js";
 import { runEval } from "./run.js";
 
-const args = process.argv.slice(2);
-const real = args.includes("--real");
-const onlyFlag = args.find((arg) => arg.startsWith("--only"));
-const only = onlyFlag?.includes("=")
-  ? onlyFlag.slice("--only=".length)
-  : args[args.indexOf("--only") + 1] || "";
-const academyFlag = args.find((arg) => arg.startsWith("--academy="));
-const academyId = academyFlag ? academyFlag.slice("--academy=".length) : "bmr";
+const { real, only, academyId } = parseEvalArgs(process.argv.slice(2));
 
 const secrets = [];
 const say = (line) => {
@@ -28,6 +22,16 @@ try {
   say(err?.message || "eval failed");
   process.exit(1);
 }
-say(`${report.mode} passed ${report.passed} failed ${report.failures.length} total ${report.total}`);
-for (const row of report.failures) say(row);
-process.exit(report.failures.length ? 1 : 0);
+
+say(
+  `${report.mode} scenarios passed ${report.passed} failed ${report.failed} skipped ${report.skipped} ran ${report.ran}`
+);
+say("id\tstatus\ttools\tms\ttokens");
+for (const row of report.scenarios || []) {
+  const tools = (row.toolNames || []).join(",") || "-";
+  say(`${row.id}\t${row.status}\t${tools}\t${row.latencyMs ?? 0}\t${row.tokens?.total ?? 0}`);
+  if (row.status !== "fail") continue;
+  for (const line of row.assertions || []) say(`  ${line}`);
+}
+if (report.reportFile) say(report.reportFile);
+process.exit(evalExitCode(report));

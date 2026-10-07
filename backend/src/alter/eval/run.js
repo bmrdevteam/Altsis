@@ -1,3 +1,5 @@
+import { mkdirSync, writeFileSync } from "fs";
+import { join } from "path";
 import { checkExpect } from "./assertions.js";
 import { runAgentScenario } from "./agentScenario.js";
 import { loadScenarios, scenarioSelected } from "./loadScenarios.js";
@@ -25,7 +27,38 @@ const loadRealAcademy = async (academyId, onSecret) => {
   };
 };
 
-export const runEval = async ({ mode = "scripted", only = "", onSecret, academyId = "bmr" } = {}) => {
+/** Explicit `modes` wins. A legacy `mode` label does not limit the run. */
+export const scenarioModes = (scenario) => {
+  if (Array.isArray(scenario?.modes) && scenario.modes.length) {
+    return scenario.modes.map((mode) => String(mode));
+  }
+  return ["scripted", "real"];
+};
+
+const tokensFrom = (usage) => ({
+  prompt: Number(usage?.promptTokens) || 0,
+  completion: Number(usage?.candidatesTokens) || 0,
+  total: Number(usage?.totalTokens) || 0,
+});
+
+const writeEvalReport = (report) => {
+  const dir = join(process.cwd(), "src/alter/eval/out");
+  mkdirSync(dir, { recursive: true });
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const file = join(dir, `${stamp}.json`);
+  writeFileSync(file, `${JSON.stringify(report, null, 2)}\n`);
+  return file;
+};
+
+export const runEval = async ({
+  mode = "scripted",
+  only = "",
+  onSecret,
+  academyId = "bmr",
+  academy: injectedAcademy = null,
+  generate,
+  writeReport = true,
+} = {}) => {
   if (mode === "real" && process.env.NODE_ENV === "test" && process.env.ALTER_EVAL_REAL !== "1") {
     throw new Error("real 모드는 수동 실행입니다.");
   }
@@ -35,28 +68,71 @@ export const runEval = async ({ mode = "scripted", only = "", onSecret, academyI
     secrets.push(value);
     if (typeof onSecret === "function") onSecret(value);
   };
-  let academy = null;
-  if (mode === "real") academy = await loadRealAcademy(academyId, remember);
+  let academy = injectedAcademy;
+  if (mode === "real" && !academy) academy = await loadRealAcademy(academyId, remember);
+  if (academy?.aiApiKey) remember(academy.aiApiKey);
   await startEvalMongo();
-  const failures = [];
+  const rows = [];
   let passed = 0;
+  let failed = 0;
+  let skipped = 0;
   try {
     for (const scenario of scenarios) {
-      if (scenario.mode === "real" && mode !== "real") continue;
+      if (!scenarioModes(scenario).includes(mode)) {
+        skipped += 1;
+        rows.push({
+          id: scenario.id,
+          status: "skip",
+          assertions: [],
+          toolNames: [],
+          tokens: tokensFrom(null),
+          latencyMs: 0,
+        });
+        continue;
+      }
+      const started = Date.now();
       try {
         const result = scenario.check
-          ? await runServiceCheck(scenario, { mode, academy })
-          : await runAgentScenario(scenario, { mode, academy });
-        const found = checkExpect(scenario, result);
-        if (found.length) failures.push(...found);
+          ? await runServiceCheck(scenario, { mode, academy, generate })
+          : await runAgentScenario(scenario, { mode, academy, generate });
+        const found = checkExpect(scenario, result, mode).map((line) => redactSecrets(line, secrets));
+        const row = {
+          id: scenario.id,
+          status: found.length ? "fail" : "pass",
+          assertions: found,
+          toolNames: result.toolNames || [],
+          tokens: tokensFrom(result.tokenUsage),
+          latencyMs: Date.now() - started,
+        };
+        rows.push(row);
+        if (found.length) failed += 1;
         else passed += 1;
       } catch (err) {
+        failed += 1;
         const message = redactSecrets(err?.message || String(err), secrets);
-        failures.push(`${scenario.id}: ${message}`);
+        rows.push({
+          id: scenario.id,
+          status: "fail",
+          assertions: [`${scenario.id}: ${message}`],
+          toolNames: [],
+          tokens: tokensFrom(null),
+          latencyMs: Date.now() - started,
+        });
       }
     }
   } finally {
     await stopEvalMongo();
   }
-  return { passed, failed: failures, failures, total: scenarios.length, mode };
+  const report = {
+    mode,
+    passed,
+    failed,
+    skipped,
+    ran: passed + failed,
+    total: scenarios.length,
+    scenarios: rows,
+    failures: rows.filter((row) => row.status === "fail").flatMap((row) => row.assertions),
+  };
+  if (writeReport) report.reportFile = writeEvalReport(report);
+  return report;
 };

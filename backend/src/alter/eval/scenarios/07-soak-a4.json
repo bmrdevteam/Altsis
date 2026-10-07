@@ -20,6 +20,15 @@
       ]
     }
   },
+  "real": {
+    "tools": {
+      "allow": ["get_my_todos"]
+    },
+    "text": {
+      "notContains": ["홍길동", "99명"],
+      "anyOf": ["없습니다", "확인되지", "찾지 못했", "없어요"]
+    }
+  },
   "scripted": [
     {
       "call": "get_my_todos",

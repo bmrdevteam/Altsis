@@ -62,6 +62,8 @@ export const executeAgentSkill = async ({
   onEvent,
   allowScheduleTool = true,
   triggerEvents,
+  scriptedPlan,
+  generate: generateOverride,
 }) => {
   const profile = FEATURE_PROFILES.agent;
   const provider = resolveProvider(academy?.aiProvider);
@@ -99,6 +101,20 @@ export const executeAgentSkill = async ({
 
   const native = providerSupportsNativeTools(provider);
   const generate = async ({ systemInstruction, messages, tools, toolChoice, forceFinal }) => {
+    if (typeof generateOverride === "function") {
+      const result = await generateOverride({
+        systemInstruction,
+        messages,
+        tools,
+        toolChoice,
+        forceFinal,
+      });
+      tokenUsage = mergeTokenUsage(tokenUsage, result?.tokenUsage);
+      return {
+        text: maskSensitiveText(result?.text || "").text,
+        toolCalls: Array.isArray(result?.toolCalls) ? result.toolCalls : [],
+      };
+    }
     try {
       const result = await generateText({
         provider,
@@ -110,6 +126,7 @@ export const executeAgentSkill = async ({
         maxTokens: profile.maxTokens,
         tools,
         toolChoice: toolChoice || (forceFinal ? "none" : undefined),
+        scriptedPlan,
       });
       tokenUsage = mergeTokenUsage(tokenUsage, result.tokenUsage);
       return {
@@ -167,6 +184,7 @@ export const executeAgentSkill = async ({
       toolNames,
       links: result.links || [],
       scheduleProposal: result.scheduleProposal || null,
+      trace: result.trace || [],
     };
   } catch (err) {
     if (err?.code && err.status) throw err;

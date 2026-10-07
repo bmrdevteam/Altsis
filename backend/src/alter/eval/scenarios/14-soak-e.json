@@ -1,6 +1,7 @@
 {
   "id": "soak-E",
   "mode": "scripted",
+  "modes": ["scripted"],
   "runner": "chat",
   "role": "teacher",
   "fixture": "eval-teacher",

@@ -76,22 +76,6 @@ export const scriptedDemoKeyBlocked = (apiKey) => {
   };
 };
 
-/** Eval-only playback. Unset, the demo academy keeps the fixed script below. */
-let scriptedEvalPlan = null;
-const scriptedTrace = [];
-
-export const setScriptedEvalPlan = (steps) => {
-  scriptedEvalPlan = Array.isArray(steps) && steps.length ? steps : null;
-  scriptedTrace.length = 0;
-};
-
-export const clearScriptedEvalPlan = () => {
-  scriptedEvalPlan = null;
-  scriptedTrace.length = 0;
-};
-
-export const readScriptedTrace = () => scriptedTrace.map((row) => ({ ...row }));
-
 const groupScriptedPlan = (steps, native) => {
   const turns = [];
   let batch = [];
@@ -125,21 +109,12 @@ const groupScriptedPlan = (steps, native) => {
   return turns;
 };
 
-const playScriptedPlan = ({ messages, tools, toolChoice, native }) => {
+const playScriptedPlan = ({ messages, tools, toolChoice, native, scriptedPlan }) => {
   const listed = new Set((Array.isArray(tools) ? tools : []).map((tool) => tool?.name));
-  const turns = groupScriptedPlan(scriptedEvalPlan, native);
+  const turns = groupScriptedPlan(scriptedPlan, native);
   const index = (messages || []).filter((row) => row?.role === "assistant").length;
   const turn = turns[index] || turns[turns.length - 1] || { text: "" };
   const calls = (turn.toolCalls || []).filter((call) => !listed.size || listed.has(call.name));
-  scriptedTrace.push({
-    index,
-    names: calls.map((call) => call.name),
-    text: turn.text || "",
-    messages: (messages || []).map((row) => ({
-      role: row?.role,
-      content: String(row?.content || ""),
-    })),
-  });
   const usage = { ...TOKEN_USAGE };
   if (toolChoice !== "none" && calls.length && index < turns.length) {
     if (native) {
@@ -251,6 +226,7 @@ export const scriptedAgentGenerate = async ({
   messages,
   tools,
   toolChoice,
+  scriptedPlan,
 } = {}) => {
   if (!isAlterAgentScriptedEnabled(apiKey)) return null;
   if (!isAgentPrompt(systemInstruction)) return null;
@@ -273,7 +249,9 @@ export const scriptedAgentGenerate = async ({
   if (wait) {
     await new Promise((resolve) => setTimeout(resolve, wait));
   }
-  if (scriptedEvalPlan) return playScriptedPlan({ messages, tools, toolChoice, native });
+  if (Array.isArray(scriptedPlan) && scriptedPlan.length) {
+    return playScriptedPlan({ messages, tools, toolChoice, native, scriptedPlan });
+  }
   const triggerRequest =
     triggerToolAvailable && /get_trigger_events/.test(userText) && !scheduleRequest;
   if (triggerRequest) {

@@ -59,6 +59,27 @@
       "noMarkdown": true
     }
   },
+  "real": {
+    "tools": {
+      "subset": ["get_trigger_events"],
+      "mustNotCall": ["manage_schedule"]
+    },
+    "maxToolSteps": 3,
+    "untrusted": true,
+    "text": {
+      "contains": [
+        "출석 이상 보고",
+        "멘토 회람 요청",
+        "[예시] 3쿼터 수업 운영 점검"
+      ],
+      "notContains": ["http", "```"]
+    },
+    "notification": {
+      "type": "alterTrigger",
+      "maxChars": 180,
+      "noMarkdown": true
+    }
+  },
   "scripted": [
     {
       "call": "get_trigger_events"
