@@ -16,6 +16,7 @@ const NAME_RE = /^[a-z][a-z0-9_]{0,63}$/;
  *   permission: { roles: string[], access: string },
  *   readOnly: boolean,
  *   untrustedOutput?: boolean,
+ *   promptHints: string[],
  *   include?: (deps: object) => boolean,
  *   handler: (ctx: object, input: object) => Promise<object>,
  * }} spec
@@ -34,6 +35,12 @@ export const defineTool = (spec) => {
   if (!spec.permission?.access) {
     throw new Error(`${spec.name} 에 access 가 없습니다.`);
   }
+  const promptHints = (Array.isArray(spec.promptHints) ? spec.promptHints : [])
+    .map((hint) => String(hint || "").trim())
+    .filter(Boolean);
+  if (promptHints.length === 0) {
+    throw new Error(`${spec.name} promptHints 가 비어 있습니다.`);
+  }
   const parameters = jsonSchemaFromZod(spec.input);
   return {
     name: spec.name,
@@ -43,6 +50,7 @@ export const defineTool = (spec) => {
     permission: { roles: [...roles], access: String(spec.permission.access) },
     readOnly: spec.readOnly === true,
     untrustedOutput: spec.untrustedOutput === true,
+    promptHints,
     include: typeof spec.include === "function" ? spec.include : () => true,
     handler: spec.handler,
     parameters,

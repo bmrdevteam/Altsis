@@ -5,7 +5,7 @@
 1. 새 기능은 먼저 「도구인가, 스킬인가, 러너인가」를 정한다.
    - 데이터를 읽거나 한 가지 행동 → `tools/defs/<name>.tool.js`.
    - 여러 도구와 프롬프트 절차 → `skills/defs/<id>.skill.js`. 이 폴더는 스킬 이전 PR에서 만든다. 미리 만들지 않는다.
-   - 새 실행 계기(시간, 이벤트, 채널) → `runners/<name>/`. 이 폴더는 러너 이전 PR에서 만든다. 미리 만들지 않는다.
+   - 새 실행 계기(시간, 이벤트, 채널) → `runners/<name>/`. 이벤트 실행 문구는 `runners/event/prompt.js`에 있다. 러너 본체는 P8까지 만들지 않는다.
    - 시나리오 평가는 `eval/scenarios/`에만 둔다. 제품 동작은 바꾸지 않는다.
 2. 도구는 `defineTool`로만 만든다. 스키마는 zod 하나다. 손으로 쓴 JSON Schema와 인자 문자열은 금지다. 레지스트리가 OpenAI·Anthropic 스키마와 Gemini 인자 줄을 만든다.
 3. 도구 이름을 `agent/`, `runners/`, `providers/` 코드에 문자열로 쓰지 않는다. 도구 전용 프롬프트 규칙은 `promptHints`에 둔다.
@@ -25,7 +25,7 @@
 ## 도구를 추가하는 법
 
 1. `tools/defs/<camelName>.tool.js`에 `defineTool` 하나를 둔다. `name`은 snake_case이고 한 번 정하면 바꾸지 않는다.
-2. `input`은 zod 하나다. `description`, `permission.roles`, `permission.access`, `readOnly`를 적는다. 지금은 읽기만 있으므로 `readOnly: true`다.
+2. `input`은 zod 하나다. `description`, `permission.roles`, `permission.access`, `readOnly`, `promptHints`를 적는다. 지금은 읽기만 있으므로 `readOnly: true`다. `promptHints`는 비어 있으면 안 된다. 언제 부르는지, 인자를 어떻게 쓰는지, 결과를 어떻게 말하는지 적는다.
 3. `handler(ctx, input)`는 서버가 만든 `ctx`만 신원으로 쓴다. 실행 시점에 다시 볼 접근은 `resolveAlterContext`를 부른다. 마스킹과 `MAX_TOOL_RESULT_CHARS` 상한은 레지스트리가 `core/safety`로 한다. 도구는 원본만 돌려준다.
-4. `tools/registry.js`의 `TOOLS`에 그 파일을 넣는다. OpenAI·Anthropic 스키마와 Gemini 인자 줄은 여기서 생성된다.
-5. 계약 테스트가 이름·스키마·역할·`readOnly`·결과 상한을 본다. 새 도구면 eval 시나리오를 정상 1개, 거절 1개 함께 넣는다.
+4. `tools/registry.js`의 `TOOLS`에 그 파일을 넣는다. OpenAI·Anthropic 스키마, Gemini 인자 줄, 시스템 프롬프트의 도구 안내는 여기서 나온다. 도구를 빼면 그 힌트도 프롬프트에서 빠진다.
+5. 계약 테스트가 이름·스키마·역할·`readOnly`·`promptHints`·결과 상한을 본다. 새 도구면 eval 시나리오를 정상 1개, 거절 1개 함께 넣는다.

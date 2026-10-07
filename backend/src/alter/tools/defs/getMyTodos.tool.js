@@ -40,6 +40,10 @@ export default defineTool({
   permission: { roles: ["teacher"], access: "self" },
   readOnly: true,
   untrustedOutput: true,
+  promptHints: [
+    "source=board 는 보드 양식(미제출·결재·채점)입니다. 수업 평가가 아닙니다. 수업 평가는 source=course 이고 kind=evaluation 인 항목만입니다.",
+    "emptyCourses는 수강생 없는 수업 수입니다. 할 일이 아닙니다. 한 번만, 개수만, 한 문장으로 언급하세요.",
+  ],
   async handler(ctx, rawArgs = {}) {
     const scope = normalizeTodoScope(rawArgs.scope);
     const limit = clampLimit(rawArgs.limit);

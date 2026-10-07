@@ -22,6 +22,10 @@ export default defineTool({
   permission: { roles: ["teacher"], access: "self" },
   readOnly: true,
   untrustedOutput: true,
+  promptHints: [
+    "어디서/어떻게/방법을 함께 물으면 search_product_guide도 같은 턴에 호출하세요. 할 일만으로 화면 위치를 만들지 마세요.",
+    "메뉴·알림·기능은 search_product_guide 결과에 나온 것만 안내하세요.",
+  ],
   async handler(ctx, rawArgs = {}) {
     const loadGuide = ctx.deps?.retrieveAlterGuide || retrieveAlterGuide;
     const query = clip(rawArgs.query, 500);
