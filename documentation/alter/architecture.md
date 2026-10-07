@@ -356,7 +356,7 @@ graph TD
   - `notifications.js:169`와 컨트롤러 5곳의 `emitAlterEvent`를 `domainEvents.emit("form_submitted", …)`로 바꿉니다.
   - `runners/event`가 구독합니다(F7).
 - **강제 수단**:
-  1. `dependency-cruiser`가 주 도구입니다. 설정은 `backend/.dependency-cruiser.cjs`, 명령은 `npm run lint:deps`입니다. `await import()`를 포함합니다. 이미 있는 위반 22건은 `backend/.dependency-cruiser-known-violations.json`이고, 파일과 제거 PR은 `backend/src/alter/dependency-baseline.md`입니다. P2는 24건, P3에서 23건, P4에서 22건입니다. 새 위반은 실패입니다. `npm test`가 이 명령을 먼저 실행합니다.
+  1. `dependency-cruiser`가 주 도구입니다. 설정은 `backend/.dependency-cruiser.cjs`, 명령은 `npm run lint:deps`입니다. `await import()`를 포함합니다. 이미 있는 위반 21건은 `backend/.dependency-cruiser-known-violations.json`이고, 파일과 제거 PR은 `backend/src/alter/dependency-baseline.md`입니다. P2는 24건, P3에서 23건, P4에서 22건, P5에서 21건입니다. 새 위반은 실패입니다. `npm test`가 이 명령을 먼저 실행합니다.
   2. eslint `no-restricted-imports`는 백엔드에 eslint 설정이 없고, 컨트롤러의 `await import()`를 잡지 못해 넣지 않았습니다. D2의 주 도구가 그 동적 import를 봅니다.
   3. **도구 계약 테스트** `alter/tools/__tests__/contract.test.js`가 모든 등록 도구에 대해 다음을 검사합니다:
      - 이름 형식·유일성
@@ -375,7 +375,7 @@ graph TD
 ```md
 # Alter — AI 코딩 규칙
 1. 새 기능은 먼저 "도구인가, 스킬인가, 러너인가"를 정한다.
-   - 데이터를 읽거나 한 가지 행동 → tools/defs/<name>.tool.js (도구 이전 PR에서 만든다. 미리 만들지 않는다.)
+   - 데이터를 읽거나 한 가지 행동 → tools/defs/<name>.tool.js (P5에서 생김. defineTool로만 추가한다.)
    - 여러 도구 + 프롬프트 절차 → skills/defs/<id>.skill.js (스킬 이전 PR에서 만든다. 미리 만들지 않는다.)
    - 새 실행 계기(시간/이벤트/채널) → runners/<name>/ (러너 이전 PR에서 만든다. 미리 만들지 않는다.)
 2. 도구는 defineTool로만 만든다. 스키마는 zod 하나. 손으로 쓴 JSON Schema·인자 문자열 금지.
@@ -486,10 +486,10 @@ graph TD
 | PR | 내용 | 수용 기준 |
 |---|---|---|
 | **P1** 안전망 | `alter/eval` 골격 + 스크립트 어댑터 시나리오 주입 + §9.2 골든 시나리오와 soak 가장자리(학생 403, 한도 5, 중복 확인, 쓰기 오탐, 삭제된 행). 코드 이동 없음 | `eval:scripted` 통과. 기존 테스트 변화 없음. real 모드는 수동 |
-| **P2** 경계 도구 | `dependency-cruiser`(`backend/.dependency-cruiser.cjs`). 알려진 위반은 `backend/.dependency-cruiser-known-violations.json`. 파일과 제거 PR은 `backend/src/alter/dependency-baseline.md`(P2 시점 24건, P4 이후 22건). `npm run lint:deps`. `npm test`가 이 명령을 먼저 실행 | 기준선 통과. 새 위반 0 |
+| **P2** 경계 도구 | `dependency-cruiser`(`backend/.dependency-cruiser.cjs`). 알려진 위반은 `backend/.dependency-cruiser-known-violations.json`. 파일과 제거 PR은 `backend/src/alter/dependency-baseline.md`(P2 시점 24건, P5 이후 21건). `npm run lint:deps`. `npm test`가 이 명령을 먼저 실행 | 기준선 통과. 새 위반 0 |
 | **P3** core 추출 | 완료. `alter/core/{errors,limits,time,ids,safety,text,trace}`. 마스킹·래핑·truncate·링크정리·일정 상수·시간대·identity/slot 키를 옮김. `aiSafety.js`·`alterScheduleTime.js`·`alterAgentProtocol.js`는 re-export. 도메인은 `aiSafety.js`를 유지하고, 그 파일만 core 재수출 이음새. 기준선 24→23. `AlterError` 통일은 P10 | 동작 동일. `tests/services/alterCore.test.js`. alterScheduleTime·Protocol 줄 수 감소 |
 | **P4** policy 추출 | 완료. `alter/policy/access.js`의 `resolveAlterContext`. 채팅·에이전트는 기존 `assertSeasonAiAccess`와 같은 검사. 예약 생성·수정·확인·다시 켜기, 러너, 트리거 도구가 이 함수를 쓴다. 역할·소유·이벤트 플래그·DM 동의 포함. **의도된 변화: 학원 AI가 꺼져 있으면 예약 생성·수정이 403 `AI_NOT_ENABLED`.** 기준선 23→22 | 권한 매트릭스 `tests/services/alterPolicy.test.js`. 학생 403·플래그 off는 그대로 |
-| **P5** 도구 레지스트리 | `defineTool`(zod) + registry. 기존 4개 도구 이전, `arguments` 문자열 자동 생성, 마스킹·래핑을 레지스트리로 | 계약 테스트 통과. native 스키마 스냅샷 동일. **Gemini 펜스 설명에 trigger/event 포함**(F2 수정). get_trigger_events 마스킹 |
+| **P5** 도구 레지스트리 | 완료. `defineTool`(zod) + `tools/registry.js`. 기존 4개 도구(`get_my_todos`, `search_product_guide`, `manage_schedule`, `get_trigger_events`)를 `tools/defs`로 옮김. OpenAI·Anthropic JSON Schema와 Gemini 인자 줄은 zod에서 생성. 마스킹과 `MAX_TOOL_RESULT_CHARS` 상한은 레지스트리. 기준선 22→21 | 계약 테스트 `tools/__tests__/contract.test.js`. native 스키마는 이전과 같음(`$schema`와 기본 정수 범위 제거). **동작 변화 둘:** Gemini 펜스 인자에 `trigger`/`event`/`timezone`이 포함된다(F2). `get_trigger_events` 결과는 `core/safety`로 마스킹된다(F5). 그 외는 같다 |
 | **P6** promptHints | 루프 프롬프트의 도구 규칙 → 각 도구 `promptHints`. 러너 문구 → 러너 블록 | 조립된 시스템 프롬프트 문자열 스냅샷이 의미상 동일(순서만 변경 허용). eval 통과 |
 | **P7** provider 어댑터 | `ProviderAdapter` + `withFenceTools` + `scripted` 어댑터 + `llm.generate` 래퍼. aiProvider.js의 스크립트 단락 제거 | aiProvider.* 테스트 통과. 데모 학원 동작 동일. 루프에서 protocol 분기 제거 |
 | **P8** 단일 진입점 | `runAlterAgent` + `runners/chat`, `runners/schedule`, `runners/event`. `SKILL_IDS.AGENT` 경로는 진입점으로 위임 | SSE 이벤트 순서·필드 동일. 예약 runs[] 필드 동일. eval 전부 통과 |

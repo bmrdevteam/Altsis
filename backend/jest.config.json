@@ -3,7 +3,8 @@
   "testMatch": [
     "**/tests/APIs/userAPI/**",
     "**/tests/utils/**/*.test.js",
-    "**/tests/services/**/*.test.js"
+    "**/tests/services/**/*.test.js",
+    "**/src/alter/**/__tests__/**/*.test.js"
   ],
   "testEnvironment": "node",
   "resetMocks": true,
