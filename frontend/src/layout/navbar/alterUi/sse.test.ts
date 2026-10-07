@@ -61,4 +61,59 @@ describe("alter sse parser", () => {
       readAlterSse({ ok: true, body: body as unknown as ReadableStream<Uint8Array> }, { onStep: () => {} })
     ).rejects.toThrow("AI 기능이 활성화되지 않았습니다.");
   });
+
+  const readerFrom = (chunks: string[]) => {
+    const encoded = chunks.map((chunk) => new TextEncoder().encode(chunk));
+    let index = 0;
+    return {
+      ok: true,
+      body: {
+        getReader: () => ({
+          read: async () => {
+            if (index >= encoded.length) return { done: true as const, value: undefined };
+            const value = encoded[index];
+            index += 1;
+            return { done: false as const, value };
+          },
+        }),
+      } as unknown as ReadableStream<Uint8Array>,
+    };
+  };
+
+  test("keeps a data line that is split across chunks", async () => {
+    const payload = '{"message":"이번 주 할 일이 없습니다.","skill":"agent"}';
+    const splitAt = payload.indexOf("할");
+    const head = takeSseEvents(`event: done\ndata: ${payload.slice(0, splitAt)}`);
+    expect(head.events).toEqual([]);
+    const tail = takeSseEvents(`${head.rest}${payload.slice(splitAt)}\n\n`);
+    expect(tail.events[0].done).toMatchObject({
+      message: "이번 주 할 일이 없습니다.",
+      skill: "agent",
+    });
+
+    const steps: string[] = [];
+    const result = await readAlterSse(
+      readerFrom([
+        `event: step\ndata: {"message":"설정 확인 중..."}\n\nevent: done\ndata: ${payload.slice(0, splitAt)}`,
+        `${payload.slice(splitAt)}\n\n`,
+      ]),
+      { onStep: (message) => steps.push(message) }
+    );
+    expect(steps).toEqual(["설정 확인 중..."]);
+    expect(result.message).toBe("이번 주 할 일이 없습니다.");
+  });
+
+  test("keeps the event type when the chunk ends before data", async () => {
+    const head = takeSseEvents("event: done\n");
+    expect(head.events).toEqual([]);
+    expect(head.rest).toBe("event: done\n");
+    const tail = takeSseEvents(`${head.rest}data: {"message":"끝","skill":"agent"}\n\n`);
+    expect(tail.events[0].done).toMatchObject({ message: "끝", skill: "agent" });
+
+    const result = await readAlterSse(
+      readerFrom(["event: done\n", 'data: {"message":"끝","skill":"agent"}\n\n']),
+      { onStep: () => {} }
+    );
+    expect(result).toMatchObject({ message: "끝", skill: "agent" });
+  });
 });

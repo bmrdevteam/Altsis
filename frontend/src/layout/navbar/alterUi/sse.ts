@@ -73,44 +73,55 @@ export type ParsedSse = {
   done?: AlterSseDone;
 };
 
-/** One event/data pair. Incomplete input returns null and keeps the buffer. */
-export const takeSseEvents = (buffer: string) => {
-  const events: ParsedSse[] = [];
-  const lines = buffer.split("\n");
-  const rest = lines.pop() || "";
+const parseBlock = (block: string): ParsedSse | null => {
   let eventType = "";
-  for (const line of lines) {
+  let dataLine = "";
+  for (const raw of block.split("\n")) {
+    const line = raw.replace(/\r$/, "");
+    if (!line || line.startsWith(":")) continue;
     if (line.startsWith("event: ")) eventType = line.slice(7).trim();
-    else if (line.startsWith("data: ") && eventType) {
-      try {
-        const data = JSON.parse(line.slice(6));
-        if (eventType === "step") events.push({ kind: "step", step: data.message || "" });
-        else if (eventType === "tool") events.push({ kind: "tool", step: toolStep(data) });
-        else if (eventType === "error") {
-          events.push({
-            kind: "error",
-            error: friendlyAlterError(data),
-            conversationId: data.conversationId,
-          });
-        } else if (eventType === "done") {
-          events.push({
-            kind: "done",
-            done: {
-              draft: data.draft || null,
-              review: data.review || null,
-              message: data.message || data.text || "",
-              skill: data.skill,
-              conversationId: data.conversationId || null,
-              links: data.links || [],
-              scheduleProposal: data.scheduleProposal || null,
-            },
-          });
-        }
-      } catch {
-        // ignore a bad data line, same as the panel used to
-      }
-      eventType = "";
+    else if (line.startsWith("data: ")) dataLine = line.slice(6);
+  }
+  if (!eventType || !dataLine) return null;
+  try {
+    const data = JSON.parse(dataLine);
+    if (eventType === "step") return { kind: "step", step: data.message || "" };
+    if (eventType === "tool") return { kind: "tool", step: toolStep(data) };
+    if (eventType === "error") {
+      return {
+        kind: "error",
+        error: friendlyAlterError(data),
+        conversationId: data.conversationId,
+      };
     }
+    if (eventType === "done") {
+      return {
+        kind: "done",
+        done: {
+          draft: data.draft || null,
+          review: data.review || null,
+          message: data.message || data.text || "",
+          skill: data.skill,
+          conversationId: data.conversationId || null,
+          links: data.links || [],
+          scheduleProposal: data.scheduleProposal || null,
+        },
+      };
+    }
+  } catch {
+    // ignore a bad data line, same as the panel used to
+  }
+  return null;
+};
+
+/** Complete events end with a blank line. An unfinished block stays in rest. */
+export const takeSseEvents = (buffer: string) => {
+  const parts = buffer.split(/\n\n/);
+  const rest = parts.pop() ?? "";
+  const events: ParsedSse[] = [];
+  for (const block of parts) {
+    const event = parseBlock(block);
+    if (event) events.push(event);
   }
   return { rest, events };
 };
