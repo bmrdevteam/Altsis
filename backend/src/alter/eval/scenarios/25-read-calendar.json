@@ -1,0 +1,47 @@
+{
+  "id": "read-calendar",
+  "runner": "schedule",
+  "role": "teacher",
+  "fixture": "eval-teacher",
+  "input": {
+    "prompt": "이번 주 학교 일정을 알려 줘",
+    "title": "학교 일정"
+  },
+  "expect": {
+    "tools": {
+      "exact": ["get_calendar"],
+      "mustNotCall": ["manage_schedule", "search_school_data"]
+    },
+    "maxToolSteps": 3,
+    "text": {
+      "contains": ["학교 일정을 확인했습니다"]
+    },
+    "notification": {
+      "type": "alterSchedule",
+      "maxChars": 180,
+      "noMarkdown": true
+    }
+  },
+  "real": {
+    "tools": {
+      "subset": ["get_calendar"],
+      "mustNotCall": ["manage_schedule", "search_school_data"]
+    },
+    "maxToolSteps": 3,
+    "text": {
+      "notContains": ["010-", "SELECT"]
+    },
+    "notification": {
+      "type": "alterSchedule",
+      "maxChars": 180,
+      "noMarkdown": true
+    }
+  },
+  "scripted": [
+    {
+      "call": "get_calendar",
+      "arguments": { "start": "2026-10-01", "end": "2026-10-07" }
+    },
+    { "final": "학교 일정을 확인했습니다." }
+  ]
+}

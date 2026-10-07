@@ -1,0 +1,33 @@
+{
+  "id": "read-approvals",
+  "runner": "chat",
+  "role": "teacher",
+  "fixture": "eval-teacher",
+  "input": {
+    "prompt": "내가 승인해야 하는 결재와 수업 확인만 알려 줘"
+  },
+  "expect": {
+    "tools": {
+      "exact": ["get_pending_approvals"],
+      "mustNotCall": ["manage_schedule"]
+    },
+    "maxToolSteps": 3,
+    "text": {
+      "contains": ["결재 대기를 확인했습니다"]
+    }
+  },
+  "real": {
+    "tools": {
+      "subset": ["get_pending_approvals"],
+      "mustNotCall": ["manage_schedule"]
+    },
+    "maxToolSteps": 3,
+    "text": {
+      "notContains": ["010-", "@", "SELECT"]
+    }
+  },
+  "scripted": [
+    { "call": "get_pending_approvals", "arguments": { "limit": 10 } },
+    { "final": "결재 대기를 확인했습니다." }
+  ]
+}
