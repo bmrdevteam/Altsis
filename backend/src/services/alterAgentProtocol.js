@@ -220,7 +220,7 @@ export const parseAgentAction = (raw) => {
   return { type: "final", text: plain };
 };
 
-const FORCE_FINAL_NOTE = `도구 호출 한도에 도달했습니다. 더 이상 도구를 호출하지 마세요.
+export const FORCE_FINAL_NOTE = `도구 호출 한도에 도달했습니다. 더 이상 도구를 호출하지 마세요.
 지금까지의 <tool_result>만 근거로 한국어 최종 답을 \`\`\`alter 펜스의 {"type":"final","text":"..."} 로만 작성하세요.`;
 
 const NATIVE_FORCE_FINAL_NOTE = `도구 호출 한도에 도달했습니다. 더 이상 도구를 호출하지 마세요.
@@ -301,10 +301,9 @@ export const MAX_FORMAT_RETRIES = 1;
  * @param {Array<{ role: string, content: string }>} [params.history]
  * @param {string} [params.guidelines]
  * @param {string} [params.pageNote]
- * @param {(input: { systemInstruction: string, messages: object[], tools?: object[], toolChoice?: "auto"|"none", forceFinal: boolean }) => Promise<{ text?: string, toolCalls?: object[] }>} params.generate
+ * @param {(input: { systemInstruction: string, messages: object[], tools?: object[], catalog?: object[], toolChoice?: "auto"|"none", forceFinal: boolean, pageNote?: string, guidelines?: string }) => Promise<{ text?: string, toolCalls?: object[] }>} params.generate
  * @param {(event: string, data: object) => void} [params.onEvent]
  * @param {number} [params.maxToolSteps]
- * @param {"fence"|"native"} [params.protocol]
  */
 export const runAgentLoop = async ({
   tools,
@@ -316,16 +315,14 @@ export const runAgentLoop = async ({
   generate,
   onEvent,
   maxToolSteps = MAX_AGENT_TOOL_STEPS,
-  protocol = "fence",
 }) => {
   const emit = typeof onEvent === "function" ? onEvent : () => {};
   const byName = new Map((tools || []).map((tool) => [tool.name, tool]));
-  const native = protocol === "native";
   const systemBase = buildAgentSystemPrompt({
     tools,
     guidelines,
     pageNote,
-    protocol: native ? "native" : "fence",
+    protocol: "native",
   });
   const messages = [
     ...(history || []).map((row) => ({
@@ -354,23 +351,6 @@ export const runAgentLoop = async ({
       trace,
       ...(scheduleProposal ? { scheduleProposal } : {}),
     };
-  };
-
-  const fenceToolDefs = (tools || [])
-    .filter((tool) => tool?.name)
-    .map((tool) => ({
-      name: tool.name,
-      description: tool.description,
-      parameters: tool.parameters,
-    }));
-  const callModel = async (forceFinal) => {
-    const generated = await generate({
-      systemInstruction: forceFinal ? `${systemBase}\n\n${FORCE_FINAL_NOTE}` : systemBase,
-      messages,
-      tools: fenceToolDefs.length ? fenceToolDefs : undefined,
-      forceFinal,
-    });
-    return String(generated?.text || "");
   };
 
   const runTool = async (action) => {
@@ -412,7 +392,7 @@ export const runAgentLoop = async ({
 
   const limit = Math.max(0, Number(maxToolSteps) || 0);
 
-  if (native) {
+  {
     const toolDefs = (tools || [])
       .filter((tool) => tool?.name && tool.parameters)
       .map((tool) => ({
@@ -436,8 +416,11 @@ export const runAgentLoop = async ({
         systemInstruction: forceFinal ? `${systemBase}\n\n${NATIVE_FORCE_FINAL_NOTE}` : systemBase,
         messages,
         tools: toolDefs.length ? toolDefs : undefined,
+        catalog: tools,
         toolChoice: forceFinal ? "none" : "auto",
         forceFinal,
+        pageNote,
+        guidelines,
       });
       return {
         text: String(generated?.text || ""),
@@ -532,48 +515,4 @@ export const runAgentLoop = async ({
     }
     return done({ text: parsed.text, toolSteps, capped: true, steps });
   }
-
-  while (toolSteps < limit) {
-    const text = await callModel(false);
-    const action = parseAgentAction(text);
-    if (action.type === "final") {
-      return done({ text: action.text, toolSteps, capped: false, steps });
-    }
-    messages.push({ role: "assistant", content: text });
-    if (action.type === "invalid") {
-      emit("tool", {
-        name: "_parse",
-        status: "error",
-        label: "도구 형식",
-        summary: "형식을 다시 확인하는 중",
-      });
-      messages.push({
-        role: "user",
-        content: wrapToolResult("_parse", { error: action.error }),
-      });
-      steps.push({ name: "_parse", status: "error" });
-      if (formatRetries < MAX_FORMAT_RETRIES) {
-        formatRetries += 1;
-        continue;
-      }
-      toolSteps += 1;
-      continue;
-    }
-    toolSteps += 1;
-    const wrapped = await runTool(action);
-    noteTurn([action.name], [wrapped]);
-    messages.push({ role: "user", content: wrapped });
-  }
-
-  const closing = await callModel(true);
-  const last = parseAgentAction(closing);
-  if (last.type === "tool" || last.type === "invalid") {
-    return done({ text: CAP_FALLBACK, toolSteps, capped: true, steps });
-  }
-  return done({
-    text: last.text || CAP_FALLBACK,
-    toolSteps,
-    capped: true,
-    steps,
-  });
 };

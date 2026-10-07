@@ -2,12 +2,8 @@
  * Alter agent skill — fenced JSON tool loop over read-only tools.
  */
 
-import {
-  generateText,
-  providerSupportsNativeTools,
-  resolveModel,
-  resolveProvider,
-} from "./aiProvider.js";
+import { resolveModel, resolveProvider } from "./aiProvider.js";
+import { llm } from "./alterLlm.js";
 import { AI_ERRORS, FEATURE_PROFILES, truncateText } from "./aiPromptPolicy.js";
 import { maskSensitiveText } from "../alter/core/safety.js";
 import { logAIUsage } from "./aiUsage.js";
@@ -100,8 +96,16 @@ export const executeAgentSkill = async ({
     });
   }
 
-  const native = providerSupportsNativeTools(provider);
-  const generate = async ({ systemInstruction, messages, tools, toolChoice, forceFinal }) => {
+  const generate = async ({
+    systemInstruction,
+    messages,
+    tools,
+    catalog,
+    toolChoice,
+    forceFinal,
+    pageNote,
+    guidelines: guideText,
+  }) => {
     if (typeof generateOverride === "function") {
       const result = await generateOverride({
         systemInstruction,
@@ -110,26 +114,32 @@ export const executeAgentSkill = async ({
         toolChoice,
         forceFinal,
       });
-      tokenUsage = mergeTokenUsage(tokenUsage, result?.tokenUsage);
+      tokenUsage = mergeTokenUsage(tokenUsage, result?.tokenUsage || result?.usage);
       return {
         text: maskSensitiveText(result?.text || "").text,
         toolCalls: Array.isArray(result?.toolCalls) ? result.toolCalls : [],
       };
     }
     try {
-      const result = await generateText({
-        provider,
+      const adapter = llm.resolve({ provider: academy?.aiProvider, apiKey: academy?.aiApiKey });
+      const result = await llm.generate({
+        adapter,
+        provider: academy?.aiProvider,
         apiKey: academy.aiApiKey,
         model: modelName,
-        systemInstruction,
+        system: systemInstruction,
         messages,
+        tools,
+        catalog,
+        toolChoice: toolChoice || (forceFinal ? "none" : undefined),
+        forceFinal,
+        pageNote,
+        guidelines: guideText,
         temperature: profile.temperature,
         maxTokens: profile.maxTokens,
-        tools,
-        toolChoice: toolChoice || (forceFinal ? "none" : undefined),
         scriptedPlan,
       });
-      tokenUsage = mergeTokenUsage(tokenUsage, result.tokenUsage);
+      tokenUsage = mergeTokenUsage(tokenUsage, result.usage);
       return {
         text: maskSensitiveText(result.text || "").text,
         toolCalls: Array.isArray(result.toolCalls) ? result.toolCalls : [],
@@ -163,7 +173,6 @@ export const executeAgentSkill = async ({
       generate,
       onEvent,
       maxToolSteps: MAX_AGENT_TOOL_STEPS,
-      protocol: native ? "native" : "fence",
     });
 
     logAIUsage(academyId, {

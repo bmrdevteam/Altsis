@@ -1,4 +1,5 @@
 import { generateText, generateTextStream } from "../../src/services/aiProvider.js";
+import { llm } from "../../src/services/alterLlm.js";
 import {
   SCRIPTED_AGENT_API_KEY,
   SCRIPTED_AGENT_FINAL_TEXT,
@@ -84,14 +85,15 @@ describe("alterAgentScriptedProvider", () => {
       })
     ).toBeNull();
 
-    const first = await generateText({
+    const first = await llm.generate({
       provider: "openai",
       apiKey: SCRIPTED_AGENT_API_KEY,
-      systemInstruction: AGENT_PROMPT,
+      system: AGENT_PROMPT,
       messages: [{ role: "user", content: "오늘 할 일" }],
+      tools: [{ name: "get_my_todos", description: "할 일", parameters: { type: "object" } }],
     });
-    expect(first.text).toContain('"name":"get_my_todos"');
-    expect(first.text).not.toContain("userId");
+    expect(first.toolCalls.map((call) => call.name)).toEqual(["get_my_todos"]);
+    expect(JSON.stringify(first)).not.toContain("userId");
 
     const realAcademy = await scriptedAgentGenerate({
       apiKey: "sk-real-key",
@@ -317,13 +319,14 @@ describe("alterAgentScriptedProvider", () => {
     expect(streamed.text).toBe(SCRIPTED_DEMO_ONLY_AGENT_MESSAGE);
     expect(chunks).toEqual([SCRIPTED_DEMO_ONLY_AGENT_MESSAGE]);
 
-    const agent = await generateText({
+    const agent = await llm.generate({
       provider: "openai",
       apiKey: SCRIPTED_AGENT_API_KEY,
-      systemInstruction: AGENT_PROMPT,
+      system: AGENT_PROMPT,
       messages: [{ role: "user", content: "오늘 할 일" }],
+      tools: [{ name: "get_my_todos", description: "할 일", parameters: { type: "object" } }],
     });
-    expect(agent.text).toContain('"name":"get_my_todos"');
+    expect(agent.toolCalls.map((call) => call.name)).toEqual(["get_my_todos"]);
     expect(fetchSpy).not.toHaveBeenCalled();
 
     const real = await generateText({
@@ -359,10 +362,10 @@ describe("alterAgentScriptedProvider", () => {
       "get_my_todos",
       "search_product_guide",
     ]);
-    const second = await generateText({
+    const second = await llm.generate({
       provider: "openai",
       apiKey: SCRIPTED_AGENT_API_KEY,
-      systemInstruction: AGENT_PROMPT,
+      system: AGENT_PROMPT,
       messages: [
         { role: "user", content: "안내" },
         { role: "assistant", content: "", toolCalls: first.toolCalls },

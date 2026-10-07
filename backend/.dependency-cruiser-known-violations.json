@@ -70,13 +70,6 @@
     "to": "src/services/alterEvent.js",
     "rule": { "severity": "error", "name": "domain-not-to-alter" }
   },
-  // P7. 스크립트 어댑터를 aiProvider에서 뺀다.
-  {
-    "type": "dependency",
-    "from": "src/services/aiProvider.js",
-    "to": "src/services/alterAgentScriptedProvider.js",
-    "rule": { "severity": "error", "name": "domain-not-to-alter" }
-  },
   // P8. 에이전트 진입점이 aiSkills에 있다.
   {
     "type": "dependency",
