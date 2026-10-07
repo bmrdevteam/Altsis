@@ -8,6 +8,8 @@ Follow [`.agents/rules/code-quality-standards.md`](.agents/rules/code-quality-st
 
 Six pillars: Architecture & Clean Code · Security (OWASP) · Performance · Testing & Reliability · Documentation · Accessibility (UI).
 
+Alter 코드 규칙은 [`backend/src/alter/AGENTS.md`](backend/src/alter/AGENTS.md)를 따른다.
+
 ## Project context
 
 See [`CLAUDE.md`](CLAUDE.md) for commands, multi-DB architecture, frontend/backend patterns, and domain concepts.

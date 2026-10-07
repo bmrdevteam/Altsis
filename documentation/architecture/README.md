@@ -13,6 +13,7 @@ Altsis의 전체 시스템 구조와 핵심 설계 원리를 설명하는 문서
 | [인증 및 권한](authentication.md) | 사용자 인증 체계, 세션 관리, 역할 기반 권한 모델 |
 | [실시간 통신](realtime.md) | Socket.io 기반 알림, 수강신청, 채팅 실시간 기능 |
 | [파일 저장소](file-storage.md) | AWS S3 기반 파일 업로드, 리사이징, 다운로드 체계 |
+| [Alter 구조](../alter/architecture.md) | Alter 도구·스킬·러너 설계와 감사 메모. 제품 안내 묶음에는 넣지 않음 |
 
 ---
 
