@@ -45,7 +45,7 @@
       "subset": ["manage_schedule"]
     },
     "text": {
-      "anyOf": ["채점은 하지", "채점 자체는 할 수 없", "채점할 수 없"]
+      "matches": ["채점[^.\\n]{0,15}(않|없|못)"]
     },
     "proposal": {
       "action": "create",

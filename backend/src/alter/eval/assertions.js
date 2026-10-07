@@ -4,6 +4,17 @@ const MARKDOWN_RE = /\*\*|```|\[[^\]]*]\([^)]+\)/;
 
 const includes = (text, needle) => String(text || "").includes(needle);
 
+/** True when `pattern` is a valid regex and matches `text`. Invalid patterns do not match. */
+export const textMatches = (text, pattern) => {
+  const source = String(pattern ?? "");
+  if (!source) return false;
+  try {
+    return new RegExp(source).test(String(text ?? ""));
+  } catch (_) {
+    return false;
+  }
+};
+
 const fail = (id, message) => `${id}: ${message}`;
 
 const textOf = (result) => String(result?.text || "");
@@ -68,6 +79,16 @@ export const checkExpect = (scenario, result, mode = "scripted") => {
     if (!textExpect.anyOf.some((needle) => includes(text, needle))) {
       errors.push(fail(id, `text matched none of ${textExpect.anyOf.join(" / ")}`));
     }
+  }
+  for (const pattern of textExpect.matches || []) {
+    let ok = false;
+    try {
+      ok = new RegExp(pattern).test(text);
+    } catch (_) {
+      errors.push(fail(id, `bad pattern ${pattern}`));
+      continue;
+    }
+    if (!ok) errors.push(fail(id, `text missed /${pattern}/`));
   }
   for (const needle of textExpect.containsOnce || []) {
     const found = text.split(needle).length - 1;

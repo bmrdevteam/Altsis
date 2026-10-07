@@ -6,6 +6,17 @@ import { loadScenarios, scenarioSelected } from "./loadScenarios.js";
 import { startEvalMongo, stopEvalMongo } from "./mongo.js";
 import { redactSecrets } from "./redact.js";
 import { runServiceCheck } from "./serviceChecks.js";
+import { maskSensitiveText } from "../../services/aiSafety.js";
+
+const ANSWER_PREVIEW = 1000;
+
+/** Final answer stored in the report: PII masked, secrets redacted, then cut to about 1,000 chars. */
+export const previewAnswer = (text, secrets = []) => {
+  const masked = maskSensitiveText(text).text;
+  const hidden = redactSecrets(masked, secrets);
+  if (hidden.length <= ANSWER_PREVIEW) return hidden;
+  return `${hidden.slice(0, ANSWER_PREVIEW)}…`;
+};
 
 const loadRealAcademy = async (academyId, onSecret) => {
   const { Academy } = await import("../../models/Academy.js");
@@ -87,6 +98,7 @@ export const runEval = async ({
           toolNames: [],
           tokens: tokensFrom(null),
           latencyMs: 0,
+          text: "",
         });
         continue;
       }
@@ -103,6 +115,7 @@ export const runEval = async ({
           toolNames: result.toolNames || [],
           tokens: tokensFrom(result.tokenUsage),
           latencyMs: Date.now() - started,
+          text: previewAnswer(result.text, secrets),
         };
         rows.push(row);
         if (found.length) failed += 1;
@@ -117,6 +130,7 @@ export const runEval = async ({
           toolNames: [],
           tokens: tokensFrom(null),
           latencyMs: Date.now() - started,
+          text: "",
         });
       }
     }

@@ -1,7 +1,16 @@
 import { readFileSync, rmSync } from "fs";
 import { evalExitCode, parseEvalArgs } from "../../src/alter/eval/args.js";
+import { checkExpect, textMatches } from "../../src/alter/eval/assertions.js";
 import { redactSecrets } from "../../src/alter/eval/redact.js";
-import { runEval } from "../../src/alter/eval/run.js";
+import { previewAnswer, runEval } from "../../src/alter/eval/run.js";
+
+const DEMO3_REFUSAL = "채점[^.\\n]{0,15}(않|없|못)";
+const DEMO3_SAMPLES = [
+  "실제 과제 채점은 할 수 없습니다",
+  "실제 채점은 수행하지 않으며",
+  "과제를 직접 채점하거나 제출할 수 없습니다",
+  "채점 자체는 수행하지 않으며",
+];
 
 const stubAcademy = {
   aiApiKey: "stub-key-value-xxxx",
@@ -83,17 +92,57 @@ describe("alter eval harness", () => {
       const soak = report.scenarios.find((row) => row.id === "soak-E");
       expect(demo.status).toBe("pass");
       expect(demo.toolNames).toEqual(["get_my_todos", "search_product_guide"]);
+      expect(demo.text).toContain("수업 페이지에서 평가합니다.");
+      expect(soak.text).toBe("");
       expect(demo.tokens).toEqual({ prompt: 4, completion: 5, total: 9 });
       expect(demo.latencyMs).toBeGreaterThanOrEqual(0);
       expect(soak.status).toBe("skip");
       const saved = JSON.parse(readFileSync(report.reportFile, "utf8"));
       expect(saved.scenarios.map((row) => row.status)).toEqual(["pass", "skip"]);
+      expect(saved.scenarios.find((row) => row.id === "demo-4").text).toContain("수업 페이지에서 평가합니다.");
       expect(JSON.stringify(saved)).not.toContain(stubAcademy.aiApiKey);
       rmSync(report.reportFile, { force: true });
     } finally {
       delete process.env.ALTER_EVAL_REAL;
     }
   }, 60000);
+
+  test("demo-3 real refusal regex accepts the observed wordings", () => {
+    const scenario = JSON.parse(readFileSync("src/alter/eval/scenarios/03-demo-3.json", "utf8"));
+    expect(scenario.real.text.matches).toEqual([DEMO3_REFUSAL]);
+    for (const sample of DEMO3_SAMPLES) {
+      expect(textMatches(sample, DEMO3_REFUSAL)).toBe(true);
+      expect(
+        checkExpect(
+          { id: "demo-3", real: { text: { matches: [DEMO3_REFUSAL] } } },
+          { text: sample },
+          "real"
+        )
+      ).toEqual([]);
+    }
+    expect(textMatches("채점했습니다", DEMO3_REFUSAL)).toBe(false);
+    expect(textMatches("채점. 없습니다", DEMO3_REFUSAL)).toBe(false);
+    expect(
+      checkExpect(
+        { id: "demo-3", real: { text: { matches: ["("] } } },
+        { text: "채점 없음" },
+        "real"
+      )[0]
+    ).toMatch(/bad pattern/);
+  });
+
+  test("report answers are masked and truncated", () => {
+    expect(previewAnswer("메일 teacher@school.com 전화 010-1234-5678")).toBe(
+      "메일 [이메일] 전화 [연락처]"
+    );
+    expect(previewAnswer("주민 900101-1234567")).toBe("주민 [개인정보]");
+    const key = "sk-live-secret-value";
+    expect(previewAnswer(`key ${key} here`, [key])).toBe("key [redacted] here");
+    const long = "가".repeat(1200);
+    const preview = previewAnswer(long);
+    expect(preview.endsWith("…")).toBe(true);
+    expect(preview.length).toBe(1001);
+  });
 
   test("printed output drops the provider key", () => {
     const key = "sk-live-secret-value";
