@@ -169,5 +169,55 @@
     "type": "object",
     "properties": {},
     "additionalProperties": false
+  },
+  "get_pending_approvals": {
+    "type": "object",
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 20
+      }
+    },
+    "additionalProperties": false
+  },
+  "get_form_submission_status": {
+    "type": "object",
+    "properties": {
+      "formId": {
+        "type": "string"
+      },
+      "boardId": {
+        "type": "string"
+      }
+    },
+    "additionalProperties": false
+  },
+  "get_calendar": {
+    "type": "object",
+    "properties": {
+      "start": {
+        "type": "string"
+      },
+      "end": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "start",
+      "end"
+    ],
+    "additionalProperties": false
+  },
+  "get_my_courses": {
+    "type": "object",
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 20
+      }
+    },
+    "additionalProperties": false
   }
 }

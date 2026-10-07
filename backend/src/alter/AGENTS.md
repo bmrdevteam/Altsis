@@ -29,6 +29,7 @@
 3. `handler(ctx, input)`는 서버가 만든 `ctx`만 신원으로 쓴다. 실행 시점에 다시 볼 접근은 `resolveAlterContext`를 부른다. 마스킹과 `MAX_TOOL_RESULT_CHARS` 상한은 레지스트리가 `core/safety`로 한다. 도구는 원본만 돌려준다.
 4. `tools/registry.js`의 `TOOLS`에 그 파일을 넣는다. OpenAI·Anthropic 스키마, Gemini 인자 줄, 시스템 프롬프트의 도구 안내는 여기서 나온다. 도구를 빼면 그 힌트도 프롬프트에서 빠진다.
 5. 계약 테스트가 이름·스키마·역할·`readOnly`·`promptHints`·결과 상한을 본다. 새 도구면 eval 시나리오를 정상 1개, 거절 1개 함께 넣는다.
+6. 읽기 도구 `get_pending_approvals`, `get_form_submission_status`, `get_calendar`, `get_my_courses`는 `include`로 빼지 않는다. 채팅·예약·이벤트에 모두 나온다. 실행 전에 `resolveAlterContext`로 선생님인지 다시 본다. 제출 현황은 그 선생님이 맡거나 관리하는 수업 양식만 세고, 로그인 아이디와 답안은 넣지 않는다. 수업 목록은 시간·강의실·수강 인원만, 학교 일정은 그 학교의 학교 일정만 돌려준다.
 
 ## 스킬을 추가하는 법
 

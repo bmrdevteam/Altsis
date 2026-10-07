@@ -84,6 +84,10 @@ describe("native tool calling", () => {
       "function",
       "function",
       "function",
+      "function",
+      "function",
+      "function",
+      "function",
     ]);
     expect(body.tools.map((tool) => tool.function.name)).toEqual([
       "get_my_todos",
@@ -92,6 +96,10 @@ describe("native tool calling", () => {
       "search_school_data",
       "lookup_credit_rules",
       "get_current_screen",
+      "get_pending_approvals",
+      "get_form_submission_status",
+      "get_calendar",
+      "get_my_courses",
     ]);
     expect(body.tools[0].function.parameters.properties.userId).toBeUndefined();
     expect(result.toolCalls).toEqual([
@@ -189,6 +197,10 @@ describe("native tool calling", () => {
       "search_school_data",
       "lookup_credit_rules",
       "get_current_screen",
+      "get_pending_approvals",
+      "get_form_submission_status",
+      "get_calendar",
+      "get_my_courses",
     ]);
     expect(body.tools[0].input_schema.properties.academyId).toBeUndefined();
     expect(result.text).toBe("둘 다 확인합니다.");
@@ -289,6 +301,10 @@ describe("native tool calling", () => {
       "search_school_data",
       "lookup_credit_rules",
       "get_current_screen",
+      "get_pending_approvals",
+      "get_form_submission_status",
+      "get_calendar",
+      "get_my_courses",
     ]);
     expect(openaiBody.tool_choice).toBe("none");
     expect(openaiBody.messages.some((message) => message.role === "tool")).toBe(true);
@@ -330,6 +346,10 @@ describe("native tool calling", () => {
       "search_school_data",
       "lookup_credit_rules",
       "get_current_screen",
+      "get_pending_approvals",
+      "get_form_submission_status",
+      "get_calendar",
+      "get_my_courses",
     ]);
     expect(anthropicBody.tool_choice).toEqual({ type: "none" });
     const toolResult = anthropicBody.messages.find(

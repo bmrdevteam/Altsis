@@ -41,6 +41,10 @@ describe("alter tool contract", () => {
       "search_school_data",
       "lookup_credit_rules",
       "get_current_screen",
+      "get_pending_approvals",
+      "get_form_submission_status",
+      "get_calendar",
+      "get_my_courses",
     ]);
     for (const tool of tools) {
       expect(tool.name).toMatch(/^[a-z][a-z0-9_]{0,63}$/);
@@ -137,6 +141,12 @@ describe("alter tool contract", () => {
     expect(unattended).not.toContain("search_school_data");
     expect(unattended).not.toContain("lookup_credit_rules");
     expect(unattended).not.toContain("get_current_screen");
+    expect(unattended).toEqual(expect.arrayContaining([
+      "get_pending_approvals",
+      "get_form_submission_status",
+      "get_calendar",
+      "get_my_courses",
+    ]));
     const eventNames = createAgentTools({
       includeTriggerTool: true,
       includeScheduleTool: false,
@@ -181,5 +191,74 @@ describe("alter tool contract", () => {
     expect(seen.summary).toContain("수업 평가");
     expect(seen.summary).toContain("문학");
     expect(seen.pageType).toBe("evaluation");
+  });
+
+  test("read tools deny students, stay on unattended runners, and mask names", async () => {
+    const student = {
+      user: { _id: "student", auth: "student" },
+      registration: { role: "student" },
+      academy: { aiEnabled: true },
+      school: { _id: "school" },
+      seasonId: "season",
+    };
+    const teacher = {
+      user: { _id: "teacher", auth: "member" },
+      registration: { role: "teacher" },
+      academy: { aiEnabled: true },
+      school: { _id: "school" },
+      seasonId: "season",
+    };
+    const names = [
+      "get_pending_approvals",
+      "get_form_submission_status",
+      "get_calendar",
+      "get_my_courses",
+    ];
+    const offered = createAgentTools();
+    for (const name of names) {
+      const tool = offered.find((item) => item.name === name);
+      expect(tool.readOnly).toBe(true);
+      const denied = await tool.execute(student, {});
+      expect(denied.summary).toBe("권한이 없습니다.");
+      expect(JSON.stringify(denied)).not.toContain("student@example.com");
+    }
+    const eventNames = createAgentTools({
+      includeTriggerTool: true,
+      includeScheduleTool: false,
+    }).map((tool) => tool.name);
+    for (const name of names) expect(eventNames).toContain(name);
+
+    const phone = "010-9999-8888";
+    const email = "teacher@example.com";
+    const approvals = offered.find((tool) => tool.name === "get_pending_approvals");
+    const maskedApprovals = await approvals.execute(
+      {
+        ...teacher,
+        loadSchoolTodos: async () => ({
+          items: [{ kind: "approve", formTitle: "출석", respondentName: `박학생 ${phone}` }],
+        }),
+        loadCourseTodos: async () => ({ items: [] }),
+      },
+      {}
+    );
+    const approvalText = JSON.stringify(maskedApprovals);
+    expect(approvalText).toContain("[연락처]");
+    expect(approvalText).not.toContain(phone);
+    expect(approvalText).not.toContain("userId");
+
+    const calendar = offered.find((tool) => tool.name === "get_calendar");
+    const maskedCalendar = await calendar.execute(
+      {
+        ...teacher,
+        academyId: "eval",
+        listSchoolEvents: async () => [
+          { title: `행사 ${email}`, start: "2026-10-03T01:00:00.000Z", end: "2026-10-03T02:00:00.000Z" },
+        ],
+      },
+      { start: "2026-10-01", end: "2026-10-07" }
+    );
+    const calendarText = JSON.stringify(maskedCalendar);
+    expect(calendarText).toContain("[이메일]");
+    expect(calendarText).not.toContain(email);
   });
 });
