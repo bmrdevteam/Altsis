@@ -4,6 +4,7 @@
  * @see TAltSheetRow in {@link Models.AltSheetRow}
  */
 import { logger } from "../log/logger.js";
+import { emitDomainEvent } from "../events/domainEvents.js";
 import { AltForm, AltFormDupCounter, AltSheet, AltSheetRow, Board, User, School } from "../models/index.js";
 import {
   getAltBoardRole,
@@ -1027,6 +1028,8 @@ export const create = async (req, res) => {
               description: `${req.user.userName}님이 「${approvalData.steps[0].label}」승인을 요청했습니다.`,
               relatedEntity: { type: "altSheetRow", id: row._id },
               fromUser: req.user,
+              formName: form.title,
+              boardName: board.name,
             });
           } catch {
             logger.warn("승인 요청 알림 전송 실패");
@@ -1047,6 +1050,8 @@ export const create = async (req, res) => {
             description: `${req.user.userName}님이 문서를 회람했습니다.`,
             relatedEntity: { type: "altSheetRow", id: row._id },
             fromUser: req.user,
+            formName: form.title,
+            boardName: board.name,
           });
         } catch {
           logger.warn("회람 알림 전송 실패");
@@ -1055,12 +1060,14 @@ export const create = async (req, res) => {
     }
 
     if (row && row.isDraft !== true) {
-      const { emitAlterEvent } = await import("../services/alterEvent.js");
-      emitAlterEvent(req.user.academyId, {
-        type: "form_submitted",
+      emitDomainEvent("form_submitted", {
+        academyId: req.user.academyId,
         entityType: "altSheetRow",
         entityId: String(row._id),
         actorUserId: String(req.user._id),
+        formName: form.title,
+        boardName: board.name,
+        kind: "submission",
         title: form.title,
         boardId: String(form.board || ""),
         formId: String(form._id),
@@ -1375,6 +1382,8 @@ export const update = async (req, res) => {
             description: `${req.user.userName}님이 문서를 회람했습니다.`,
             relatedEntity: { type: "altSheetRow", id: row._id },
             fromUser: req.user,
+            formName: form.title,
+            boardName: board.name,
           });
         } catch {
           logger.warn("회람 알림 전송 실패");

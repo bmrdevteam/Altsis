@@ -12,7 +12,7 @@ import {
 } from "./notificationEmail.js";
 import { filterRecipientsBySettings } from "./calendarEventNotify.js";
 import { logger } from "../log/logger.js";
-import { emitAlterEvent } from "./alterEvent.js";
+import { emitDomainEvent } from "../events/domainEvents.js";
 
 /**
  * 학교/보드 수준 알림 이벤트 활성화 여부 확인
@@ -68,6 +68,8 @@ export const sendAutoNotification = async ({
   description,
   relatedEntity,
   fromUser,
+  formName,
+  boardName,
 }) => {
   try {
     if (!toUserList?.length) {
@@ -166,12 +168,15 @@ export const sendAutoNotification = async ({
       relatedEntity?.type !== "alterConversation"
     ) {
       for (const user of filteredUsers) {
-        emitAlterEvent(academyId, {
-          type: "approval_requested",
+        emitDomainEvent("approval_requested", {
+          academyId,
           entityType: relatedEntity?.type || "altSheetRow",
           entityId: String(relatedEntity?.id || ""),
           actorUserId: String(fromUser?._id || ""),
           title,
+          formName,
+          boardName,
+          kind: "approval",
           recipientUserId: String(user.user || ""),
           notificationType,
         });

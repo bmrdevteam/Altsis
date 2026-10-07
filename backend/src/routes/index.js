@@ -33,8 +33,10 @@ import { router as userCalendars } from "./userCalendars.js";
 import { router as test } from "./test.js";
 import { registerAlterAgentRunner } from "../services/aiSkills.js";
 import { runChatAgent } from "../alter/runners/chat/run.js";
+import { subscribeDomainEvents } from "../alter/runners/event/subscribe.js";
 
 registerAlterAgentRunner(runChatAgent);
+subscribeDomainEvents();
 
 export const routers = [
   { label: "academies", routes: academies },

@@ -1,37 +1,6 @@
 // 알려진 위반. 새 위반은 여기 넣지 않는다.
 // 파일과 제거 PR: src/alter/dependency-baseline.md
 [
-  // P9. 도메인 이벤트는 emitAlterEvent 대신 domainEvents로 넘긴다.
-  {
-    "type": "dependency",
-    "from": "src/controllers/altForms.js",
-    "to": "src/services/alterEvent.js",
-    "rule": { "severity": "error", "name": "domain-not-to-alter" }
-  },
-  {
-    "type": "dependency",
-    "from": "src/controllers/altSheetRows.js",
-    "to": "src/services/alterEvent.js",
-    "rule": { "severity": "error", "name": "domain-not-to-alter" }
-  },
-  {
-    "type": "dependency",
-    "from": "src/controllers/calendarEvents.js",
-    "to": "src/services/alterEvent.js",
-    "rule": { "severity": "error", "name": "domain-not-to-alter" }
-  },
-  {
-    "type": "dependency",
-    "from": "src/controllers/chats.js",
-    "to": "src/services/alterEvent.js",
-    "rule": { "severity": "error", "name": "domain-not-to-alter" }
-  },
-  {
-    "type": "dependency",
-    "from": "src/services/notifications.js",
-    "to": "src/services/alterEvent.js",
-    "rule": { "severity": "error", "name": "domain-not-to-alter" }
-  },
   // N1. 검색 스킬을 alter/skills로 옮긴다.
   {
     "type": "dependency",

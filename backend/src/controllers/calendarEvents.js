@@ -6,6 +6,7 @@
 
 import mongoose from "mongoose";
 import { logger } from "../log/logger.js";
+import { emitDomainEvent } from "../events/domainEvents.js";
 import { CalendarEvent, Enrollment, Syllabus, Registration, UserCalendar } from "../models/index.js";
 import {
   FIELD_REQUIRED,
@@ -128,9 +129,8 @@ export const create = async (req, res) => {
       eventData
     );
 
-    const { emitAlterEvent } = await import("../services/alterEvent.js");
-    emitAlterEvent(req.user.academyId, {
-      type: "calendar_created",
+    emitDomainEvent("calendar_created", {
+      academyId: req.user.academyId,
       entityType: "calendarEvent",
       entityId: String(calendarEvent._id),
       actorUserId: String(req.user._id),

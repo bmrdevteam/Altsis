@@ -353,10 +353,9 @@ graph TD
   - `tools` → `providers` (LLM이 필요하면 `ctx.llm` 포트)
   - 도메인(`src/controllers`, `src/services` 중 alter 외부) → `alter/**`. 예외는 `src/events/domainEvents.js` 발행뿐입니다.
 - **알림·컨트롤러 결합 해소**:
-  - `notifications.js:169`와 컨트롤러 5곳의 `emitAlterEvent`를 `domainEvents.emit("form_submitted", …)`로 바꿉니다.
-  - `runners/event`가 구독합니다(F7).
+  - `notifications.js`와 컨트롤러 5곳은 `domainEvents`로 발행하고, `runners/event`가 구독합니다(F7). 양식 이벤트의 제목에는 보드 이름, 양식 이름, 승인/제출/게시가 들어갑니다.
 - **강제 수단**:
-  1. `dependency-cruiser`가 주 도구입니다. 설정은 `backend/.dependency-cruiser.cjs`, 명령은 `npm run lint:deps`입니다. `await import()`를 포함합니다. 이미 있는 위반 13건은 `backend/.dependency-cruiser-known-violations.json`이고, 파일과 제거 PR은 `backend/src/alter/dependency-baseline.md`입니다. P2는 24건, P3에서 23건, P4에서 22건, P5에서 21건입니다. P6은 프롬프트 조립이라 21건을 유지했습니다. P7에서 20건, P8에서 13건입니다. 새 위반은 실패입니다. `npm test`가 이 명령을 먼저 실행합니다.
+  1. `dependency-cruiser`가 주 도구입니다. 설정은 `backend/.dependency-cruiser.cjs`, 명령은 `npm run lint:deps`입니다. `await import()`를 포함합니다. 이미 있는 위반 8건은 `backend/.dependency-cruiser-known-violations.json`이고, 파일과 제거 PR은 `backend/src/alter/dependency-baseline.md`입니다. P2는 24건, P3에서 23건, P4에서 22건, P5에서 21건입니다. P6은 프롬프트 조립이라 21건을 유지했습니다. P7에서 20건, P8에서 13건, P9에서 8건입니다. 새 위반은 실패입니다. `npm test`가 이 명령을 먼저 실행합니다.
   2. eslint `no-restricted-imports`는 백엔드에 eslint 설정이 없고, 컨트롤러의 `await import()`를 잡지 못해 넣지 않았습니다. D2의 주 도구가 그 동적 import를 봅니다.
   3. **도구 계약 테스트** `alter/tools/__tests__/contract.test.js`가 모든 등록 도구에 대해 다음을 검사합니다:
      - 이름 형식·유일성
@@ -386,7 +385,7 @@ graph TD
 7. 오류는 AlterError(code, status, userMessage). 내부 메시지를 사용자에게 보내지 않는다.
 8. 프로바이더는 llm 포트로만 호출. aiProvider.js·fetch 직접 호출 금지.
 9. 새 도구·스킬 PR에는 eval 시나리오 최소 1개(정상) + 1개(권한/거절)를 함께 넣는다.
-10. 파일은 300줄 안팎을 목표로, 400줄 넘으면 분리. 도메인 코드에서 alter/* import 금지. 알림은 P9까지 기존 emitAlterEvent. P9에서 domainEvents.js로만 발행하며, 그 파일은 아직 없다.
+10. 파일은 300줄 안팎을 목표로, 400줄 넘으면 분리. 도메인 코드에서 alter/* import 금지. 도메인 이벤트는 src/events/domainEvents.js로만 발행하고 runners/event가 구독한다.
 11. 완료 조건: npm test, npm run lint:deps, npm run eval:scripted 모두 통과.
     `npm test`가 `lint:deps`를 먼저 실행한다.
 ```
@@ -493,7 +492,7 @@ graph TD
 | **P6** promptHints | 완료. 루프에 있던 도구 규칙을 각 도구 `promptHints`로 옮김. 시스템 프롬프트는 등록된 도구의 힌트만 붙인다. 이벤트 실행 문구는 `runners/event/prompt.js`. 기준선은 21건 유지 | 같은 도구 집합의 프롬프트는 줄 내용이 같고 규칙 순서만 바뀜(`promptSnapshot.test.js`). 계약 테스트는 `promptHints`가 비어 있지 않음을 본다. eval 통과 |
 | **P7** provider 어댑터 | 완료. `providers/`의 OpenAI·Anthropic·Gemini·scripted가 같은 `generate`를 쓴다. Gemini는 `withFenceTools`. 스크립트 계획은 호출 인자이고 전역이 아니다. 에이전트 루프는 `llm.generate`만 보고 protocol 분기가 없다. `aiProvider.js`는 스크립트 어댑터를 import하지 않는다. 기준선 21→20 | 계약 테스트 `providers/__tests__/contract.test.js`. aiProvider.* 통과. 데모 학원·eval 동일. 프로덕션이 아닌 `aiProvider: "scripted"`는 센티넬 키 없이도 스크립트 어댑터다 |
 | **P8** 단일 진입점 | 완료. `runAlterAgent`가 모델 호출, 레지스트리 도구 선택·실행, 단계 한도, 트레이스, 정규화된 사용량을 맡는다. `runners/chat`, `runners/schedule`, `runners/event`가 입력을 만들어 호출한다. 무인 모드(schedule, event)는 진입점이 쓰기 도구를 뺀다. `SKILL_IDS.AGENT`는 채팅 러너로 위임한다. 기준선 20→13 | SSE 이벤트 순서·필드 동일. 예약 runs[] 필드 동일. eval 통과 |
-| **P9** 도메인 이벤트 | `src/events/domainEvents.js`. notifications·컨트롤러 5곳 교체, runners/event 구독 | alterEvent 테스트 통과. `lint:deps`에서 도메인→alter 위반 0 |
+| **P9** 도메인 이벤트 | 완료. `src/events/domainEvents.js`가 프로세스 안 EventEmitter다. 이름: `approval_requested`, `form_submitted`, `form_posted`, `calendar_created`, `dm_received`. notifications와 컨트롤러 5곳은 이 버스로 발행하고 `runners/event`가 구독해 기존 큐에 넣는다. 기준선 13→8. **동작 변화 하나:** 양식 이벤트의 모델용 제목에 보드 이름, 양식 이름, 승인/제출/게시가 들어간다. | alterEvent 테스트 통과. `lint:deps`에서 도메인→alter 위반은 남은 N1·N2뿐 |
 | **P10** 오류 계약 | `AlterError` + HTTP/SSE `{code,message}` 통일. 프론트 SSE 파서를 `alterUi/sse.ts`로 분리 | 오류 매트릭스 테스트. 데모 검색 내부 문구 비노출 |
 
 ### 2단계 — 새 기능

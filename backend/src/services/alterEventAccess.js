@@ -175,6 +175,9 @@ export const filterVisibleEvents = async (events, canSee) => {
     };
     if (evt.formId) visible.formId = String(evt.formId);
     if (evt.boardId) visible.boardId = String(evt.boardId);
+    if (evt.formName) visible.formName = String(evt.formName);
+    if (evt.boardName) visible.boardName = String(evt.boardName);
+    if (evt.kind) visible.kind = String(evt.kind);
     if (seen.unavailable) visible.unavailable = true;
     kept.push(visible);
   }

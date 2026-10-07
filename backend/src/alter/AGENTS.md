@@ -15,12 +15,12 @@
 7. 오류는 `AlterError(code, status, userMessage)` 하나다. HTTP와 SSE는 `{ code, message }`다. 내부 메시지는 로그에만 남기고 사용자에게 보내지 않는다. (통일은 P10. 새 코드는 이 계약을 먼저 따른다.)
 8. 프로바이더는 `llm` 포트로만 호출한다. `aiProvider.js`와 `fetch`를 도구·스킬에서 직접 호출하지 않는다.
 9. 새 도구·스킬 PR에는 eval 시나리오를 정상 1개, 권한 또는 거절 1개 함께 넣는다.
-10. 파일은 300줄 안팎을 목표로 하고, 400줄을 넘으면 나눈다. 도메인 코드(`src/controllers`, Alter 밖 `src/services`)에서 `alter/*`를 import하지 않는다. 알림은 P9까지 기존 `emitAlterEvent`를 유지한다. P9에서 `src/events/domainEvents.js`로만 발행하며, 그 파일은 아직 없다.
+10. 파일은 300줄 안팎을 목표로 하고, 400줄을 넘으면 나눈다. 도메인 코드(`src/controllers`, Alter 밖 `src/services`)에서 `alter/*`를 import하지 않는다. 도메인 이벤트는 `src/events/domainEvents.js`로만 발행한다. `runners/event`가 구독한다.
 11. 완료 조건은 `npm test`, `npm run lint:deps`, `npm run eval:scripted`다. `npm test`가 `lint:deps`를 먼저 돌린다.
 
 의존 방향: `runners → agent → tools → policy → core`. `core`(`src/alter/core/`)는 node 기본 모듈과 다른 `core` 파일만 의존한다. 도메인·policy·tools·providers·agent·runners를 부르지 않는다. `policy/access.js`의 `resolveAlterContext`가 채팅·에이전트·예약 생성/수정·러너·트리거 도구의 접근 검사다. 학원 AI, 역할, 소유, 이벤트 플래그, DM 동의를 여기서 본다. 기존 도메인 서비스는 `tools`와 `policy`만 부를 수 있다. `tools`/`skills`/`providers`는 `runners`와 `agent`를 import하지 않는다. `providers`는 `tools`를 import하지 않는다. `eval`은 러너·에이전트·프로바이더를 부를 수 있다. 마스킹·자르기·링크 정리·래핑·일정 상수·시간대·id는 `core`에 있고, `services/aiSafety.js`·`alterScheduleTime.js`·`alterAgentProtocol.js`는 기존 경로로 다시 내보낸다. 채팅·에이전트의 기존 입구는 `assertSeasonAiAccess`로 같은 검사를 부른다.
 
-경계는 `npm run lint:deps`다. 설정은 `backend/.dependency-cruiser.cjs`이고, 이미 있는 위반 13건은 `backend/.dependency-cruiser-known-violations.json`에 있다. 파일과 그 위반을 없앨 이전 PR은 [dependency-baseline.md](dependency-baseline.md)에 있다. 새 위반은 실패다. 백엔드에는 eslint 설정이 없고, 실제 결합의 상당수가 `await import()`라 `no-restricted-imports`는 넣지 않았다.
+경계는 `npm run lint:deps`다. 설정은 `backend/.dependency-cruiser.cjs`이고, 이미 있는 위반 8건은 `backend/.dependency-cruiser-known-violations.json`에 있다. 파일과 그 위반을 없앨 이전 PR은 [dependency-baseline.md](dependency-baseline.md)에 있다. 새 위반은 실패다. 백엔드에는 eslint 설정이 없고, 실제 결합의 상당수가 `await import()`라 `no-restricted-imports`는 넣지 않았다.
 
 ## 도구를 추가하는 법
 
@@ -45,3 +45,9 @@
 3. `schedule`과 `event`는 무인 모드다. 쓰기 도구(`readOnly === false` 또는 `effect === "write"`)는 `runAlterAgent`가 뺀다. 러너에서 한 번 더 거르지 않는다.
 4. SSE, 예약 claim, 일일 한도, 디바운스, 알림, 루프 방지는 러너 바깥의 기존 전달 경로에 둔다. 러너는 그 경로가 넘긴 인자로 에이전트만 호출한다.
 5. 채팅 스킬 `SKILL_IDS.AGENT`는 `registerAlterAgentRunner`로 채팅 러너를 연결한다. `aiSkills.js`가 `alter/agent`를 직접 import하지 않는다.
+
+## 도메인 이벤트를 발행하는 법
+
+1. 도메인 코드는 `emitDomainEvent(name, payload)`만 부른다. 이름은 `approval_requested`, `form_submitted`, `form_posted`, `calendar_created`, `dm_received`다. `alter/*`를 import하지 않는다.
+2. 양식 이벤트 payload에는 `formName`, `boardName`, `kind`(`approval` | `submission` | `post`)를 넣는다. 구독자가 이 값으로 모델이 읽는 제목을 만든다.
+3. `runners/event/subscribe.js`가 버스를 구독해 기존 큐로 넘긴다. 루프 방지, 디바운스, 일일 한도, 옵트인은 큐에 그대로 있다.

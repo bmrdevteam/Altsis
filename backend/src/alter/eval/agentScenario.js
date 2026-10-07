@@ -2,6 +2,8 @@ import mongoose from "mongoose";
 import { executeAgentSkill } from "../../services/alterAgent.js";
 import { executeClaimedSchedule } from "../../services/alterScheduleRun.js";
 import { SCRIPTED_AGENT_API_KEY } from "../../services/alterAgentScriptedProvider.js";
+import { readFixtureTodoFacts } from "../tools/lib/fixtureTodoFacts.js";
+import { EVAL_ACADEMY } from "./mongo.js";
 
 const academyFor = (override) => ({
   aiProvider: override?.aiProvider || "openai",
@@ -60,10 +62,24 @@ const runAgent = async (scenario, people, academy, options) => {
   };
 };
 
+const withFixtureTodos = async (scenario, people, result, mode) => {
+  if (mode !== "real" || !scenario?.real?.text?.emptyCourses) return result;
+  const fixtureTodos = await readFixtureTodoFacts({
+    academyId: EVAL_ACADEMY,
+    user: people.user,
+    school: people.school,
+    seasonId: String(people.season?._id || ""),
+  });
+  return { ...result, fixtureTodos };
+};
+
 export const runAgentScenario = async (scenario, options = {}) => {
   const people = cast();
   const academy = academyFor(options.academy);
-  if (scenario.runner === "chat") return runAgent(scenario, people, academy, options);
+  if (scenario.runner === "chat") {
+    const result = await runAgent(scenario, people, academy, options);
+    return withFixtureTodos(scenario, people, result, options.mode);
+  }
   const notifications = [];
   const doc = {
     _id: new mongoose.Types.ObjectId(),
@@ -102,18 +118,23 @@ export const runAgentScenario = async (scenario, options = {}) => {
   });
   const agent = doc._agent || {};
   const note = notifications[0];
-  return {
-    text: agent.text || "",
-    toolNames: agent.toolNames || patch?.runs?.at?.(-1)?.toolNames || [],
-    toolSteps: agent.toolSteps || 0,
-    links: agent.links || [],
-    proposal: agent.proposal || null,
-    parseErrors: agent.parseErrors || 0,
-    trace: agent.trace || [],
-    tokenUsage: agent.tokenUsage || null,
-    notification: note
-      ? { type: note.notificationType, description: note.description || "" }
-      : null,
-    runStatus: patch?.lastStatus || "",
-  };
+  return withFixtureTodos(
+    scenario,
+    people,
+    {
+      text: agent.text || "",
+      toolNames: agent.toolNames || patch?.runs?.at?.(-1)?.toolNames || [],
+      toolSteps: agent.toolSteps || 0,
+      links: agent.links || [],
+      proposal: agent.proposal || null,
+      parseErrors: agent.parseErrors || 0,
+      trace: agent.trace || [],
+      tokenUsage: agent.tokenUsage || null,
+      notification: note
+        ? { type: note.notificationType, description: note.description || "" }
+        : null,
+      runStatus: patch?.lastStatus || "",
+    },
+    options.mode
+  );
 };

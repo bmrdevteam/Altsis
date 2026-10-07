@@ -10,6 +10,7 @@ import { canManageForm, canModifyForm, getAltBoardRole, hasSubmittedForList, res
 import { cloneAltFormToBoard } from "../services/altFormClone.js";
 import { buildApprovalAccessOr, sanitizeApprovalGroups } from "../utils/approvalLine.js";
 import { isBoardNotificationEnabled } from "../services/notifications.js";
+import { emitDomainEvent } from "../events/domainEvents.js";
 import { getUserRoleInSeason, isSeasonScopedBoard } from "../services/boards.js";
 import {
   submittedSheetRowFilter,
@@ -318,13 +319,14 @@ export const create = async (req, res) => {
       syncFormCalendar(req.user.academyId, form, board, req.user).catch((err) =>
         logger.error(`Form calendar sync failed: ${err.message}`)
       );
-      const { emitAlterEvent } = await import("../services/alterEvent.js");
-      emitAlterEvent(req.user.academyId, {
-        type: "form_posted",
+      emitDomainEvent("form_posted", {
+        academyId: req.user.academyId,
         entityType: "altForm",
         entityId: String(form._id),
         actorUserId: String(req.user._id),
-        title: form.title,
+        formName: form.title,
+        boardName: board.name,
+        kind: "post",
         boardId: String(form.board || ""),
         formId: String(form._id),
       });
@@ -894,13 +896,14 @@ export const importForm = async (req, res) => {
     await form.save();
 
     if (!form.isDraft) {
-      const { emitAlterEvent } = await import("../services/alterEvent.js");
-      emitAlterEvent(req.user.academyId, {
-        type: "form_posted",
+      emitDomainEvent("form_posted", {
+        academyId: req.user.academyId,
         entityType: "altForm",
         entityId: String(form._id),
         actorUserId: String(req.user._id),
-        title: form.title,
+        formName: form.title,
+        boardName: board.name,
+        kind: "post",
         boardId: String(form.board || ""),
         formId: String(form._id),
       });

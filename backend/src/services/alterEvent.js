@@ -43,6 +43,11 @@ export const sanitizePendingEvent = (evt, now = new Date()) => {
     calendarScope: scope === "school" || scope === "personal" ? scope : "",
     at: evt?.at instanceof Date ? evt.at : now,
     title: clipEventTitle(evt?.title),
+    ...(clipEventTitle(evt?.formName) ? { formName: clipEventTitle(evt.formName) } : {}),
+    ...(clipEventTitle(evt?.boardName) ? { boardName: clipEventTitle(evt.boardName) } : {}),
+    ...(evt?.kind === "approval" || evt?.kind === "submission" || evt?.kind === "post"
+      ? { kind: evt.kind }
+      : {}),
   };
 };
 
