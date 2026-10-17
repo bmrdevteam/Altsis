@@ -2,6 +2,7 @@ import express from "express";
 const router = express.Router();
 import { isLoggedIn, isAdManager } from "../middleware/auth.js";
 import { isBoardEnabled } from "../middleware/board.js";
+import { requireAcademyAlter } from "../middleware/alter.js";
 
 import * as boards from "../controllers/boards.js";
 import * as boardChats from "../controllers/boardChats.js";
@@ -100,9 +101,9 @@ router.put("/:_id/chat/read", isLoggedIn, isBoardEnabled, boardChats.markBoardCh
 router.post("/:_id/chat/upload", isLoggedIn, isBoardEnabled, boardChats.uploadBoardChatFile);
 
 // AI 채팅 (Alter)
-router.get("/:_id/ai-chat/settings", isLoggedIn, isBoardEnabled, aiChats.getAIChatSettings);
-router.get("/:_id/ai-chat/sessions", isLoggedIn, isBoardEnabled, aiChats.getAIChatSessions);
-router.get("/:_id/ai-chat/sessions/:sessionId/messages", isLoggedIn, isBoardEnabled, aiChats.getAIChatMessages);
-router.post("/:_id/ai-chat/messages", isLoggedIn, isBoardEnabled, aiChats.sendAIChatMessage);
+router.get("/:_id/ai-chat/settings", isLoggedIn, isBoardEnabled, requireAcademyAlter, aiChats.getAIChatSettings);
+router.get("/:_id/ai-chat/sessions", isLoggedIn, isBoardEnabled, requireAcademyAlter, aiChats.getAIChatSessions);
+router.get("/:_id/ai-chat/sessions/:sessionId/messages", isLoggedIn, isBoardEnabled, requireAcademyAlter, aiChats.getAIChatMessages);
+router.post("/:_id/ai-chat/messages", isLoggedIn, isBoardEnabled, requireAcademyAlter, aiChats.sendAIChatMessage);
 
 export { router };

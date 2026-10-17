@@ -8,6 +8,8 @@ import { schoolAiLibraryMulter } from "../_s3/aiRefMulter.js";
 import { tryCommitUpload } from "../services/academyStorage.js";
 import { PROMPT_LIMITS, truncateText } from "../services/aiPromptPolicy.js";
 import { assertSeasonAiAccess } from "../services/aiSkills.js";
+import { Academy } from "../models/Academy.js";
+import { assertAcademyAlterEnabled } from "../services/entitlement.js";
 import { isStaffAuth } from "../services/aiLibraryAcl.js";
 import {
   createLibraryItemDoc,
@@ -59,6 +61,10 @@ export const assertLibraryPageAccess = async ({
   if (!schoolId) {
     throwHttp(400, FIELD_REQUIRED("school"));
   }
+  const academy = await Academy.findOne({ academyId });
+  if (!academy) throwHttp(404, __NOT_FOUND("academy"));
+  assertAcademyAlterEnabled(academy);
+
   const school = await loadSchoolForLibrary(academyId, schoolId);
   const staff = isStaffAuth(user?.auth, user, schoolId);
   if (staff) {

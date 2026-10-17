@@ -176,7 +176,7 @@ const School = (props: Props) => {
                           ),
                         }
                       : {}),
-                    ...(schoolData.academyFeatures?.aiEnabled !== false
+                    ...(schoolData.academyFeatures?.aiEnabled === true
                       ? {
                           AI: (
                             <SchoolAISettings
@@ -239,7 +239,7 @@ const School = (props: Props) => {
                           ),
                         }
                       : {}),
-                    ...(schoolData.academyFeatures?.aiEnabled !== false
+                    ...(schoolData.academyFeatures?.aiEnabled === true
                       ? {
                           AI: (
                             <SchoolAISettings

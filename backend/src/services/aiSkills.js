@@ -44,7 +44,7 @@ import {
 import { maskSensitiveText } from "./aiSafety.js";
 import { logAIUsage } from "./aiUsage.js";
 import { assertAiUserQuota } from "./aiUsageQuota.js";
-import { assertCtrlEnabled } from "./entitlement.js";
+import { assertAcademyAlterEnabled } from "./entitlement.js";
 import {
   isSchoolOfficialVisibility,
   isStaffAuth,
@@ -968,13 +968,7 @@ export const assertSeasonAiAccess = async (academyId, user, seasonId) => {
     err.code = __NOT_FOUND("academy");
     throw err;
   }
-  if (!academy.aiEnabled) {
-    const err = new Error(AI_ERRORS.NOT_ENABLED);
-    err.status = 403;
-    err.code = AI_ERRORS.NOT_ENABLED;
-    throw err;
-  }
-  assertCtrlEnabled(academy);
+  assertAcademyAlterEnabled(academy);
   if (!academy.aiApiKey) {
     const err = new Error(AI_ERRORS.API_KEY_NOT_SET);
     err.status = 400;

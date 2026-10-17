@@ -14,6 +14,8 @@ import { TAiLibraryItem } from "types/schools";
 
 describe("canAccessAlterLibrary", () => {
   const school = {
+    aiEnabled: true,
+    academyFeatures: { aiEnabled: true },
     aiConfig: { permission: { teacher: true, student: false }, skills: {} },
   };
   const season = { aiSettings: { enabled: true } };
@@ -44,6 +46,20 @@ describe("canAccessAlterLibrary", () => {
         role: "teacher",
         school,
         season: { aiSettings: { enabled: false } },
+      })
+    ).toBe(false);
+  });
+
+  test("아카데미 Alter가 꺼지면 관리자도 접근하지 못한다", () => {
+    expect(
+      canAccessAlterLibrary({
+        auth: "admin",
+        role: "teacher",
+        school: {
+          ...school,
+          academyFeatures: { aiEnabled: false },
+        },
+        season,
       })
     ).toBe(false);
   });

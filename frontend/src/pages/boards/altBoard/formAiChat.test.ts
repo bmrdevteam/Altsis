@@ -7,6 +7,7 @@ import {
 import {
   canAuthorFormAiChat,
   canShowAlter,
+  isAcademyAlterOn,
   resolveAiRolePermission,
 } from "./formAiPermission";
 
@@ -122,6 +123,24 @@ describe("formAiPermission", () => {
     expect(
       canShowAlter(school, { aiSettings: { enabled: false } }, { role: "teacher" })
     ).toBe(false);
+    expect(
+      canShowAlter(
+        { ...school, academyFeatures: { aiEnabled: false } },
+        season,
+        { role: "teacher", auth: "admin" }
+      )
+    ).toBe(false);
+    expect(
+      canShowAlter(
+        { ...school, academyFeatures: undefined },
+        season,
+        { role: "teacher", auth: "admin" }
+      )
+    ).toBe(false);
+    expect(isAcademyAlterOn(school)).toBe(true);
+    expect(isAcademyAlterOn({ academyFeatures: { aiEnabled: false } })).toBe(
+      false
+    );
   });
 
   test("canShowAlter uses teacher exceptions", () => {

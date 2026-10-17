@@ -20,7 +20,7 @@ import { maskSensitiveText } from "./aiSafety.js";
 import { logAIUsage } from "./aiUsage.js";
 import { assertAiUserQuota } from "./aiUsageQuota.js";
 import { ALTER_SAFETY_ETHICS } from "./alterCorePrompt.js";
-import { assertCtrlEnabled } from "./entitlement.js";
+import { assertAcademyAlterEnabled } from "./entitlement.js";
 import {
   canRespondForm,
   canViewAllRows,
@@ -156,8 +156,7 @@ export const assertFormAiInfrastructure = async ({
 }) => {
   const academy = await Academy.findOne({ academyId }, "+aiApiKey");
   if (!academy) throwHttp(404, __NOT_FOUND("academy"));
-  if (!academy.aiEnabled) throwHttp(403, AI_ERRORS.NOT_ENABLED, AI_ERRORS.NOT_ENABLED);
-  assertCtrlEnabled(academy);
+  assertAcademyAlterEnabled(academy);
   if (!academy.aiApiKey) {
     throwHttp(400, AI_ERRORS.API_KEY_NOT_SET, AI_ERRORS.API_KEY_NOT_SET);
   }

@@ -1,9 +1,12 @@
 import express from "express";
 const router = express.Router();
 import { isLoggedIn, isOwAdmin, isAdManager } from "../middleware/auth.js";
+import { requireAcademyAlter } from "../middleware/alter.js";
 import { requireSeasonSchoolManagerFromBody } from "../middleware/schoolManagerAuth.js";
 import * as ai from "../controllers/ai.js";
 import * as aiLibrary from "../controllers/aiLibrary.js";
+
+router.use(requireAcademyAlter);
 
 //=================================
 //             AI / Alter

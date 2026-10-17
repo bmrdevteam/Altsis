@@ -3,6 +3,7 @@ const router = express.Router();
 import * as schools from "../controllers/schools.js";
 import { isAdManager, isAdmin, isLoggedIn } from "../middleware/auth.js";
 import { requireSchoolManagerParam } from "../middleware/schoolManagerAuth.js";
+import { requireAcademyAlter } from "../middleware/alter.js";
 
 //=================================
 //             School
@@ -59,48 +60,56 @@ router.get(
   "/:_id/ai-config",
   isAdManager,
   requireSchoolManagerParam,
+  requireAcademyAlter,
   schools.findAiConfig
 );
 router.put(
   "/:_id/ai-config",
   isAdManager,
   requireSchoolManagerParam,
+  requireAcademyAlter,
   schools.updateAiConfig
 );
 router.get(
   "/:_id/ai-library",
   isAdManager,
   requireSchoolManagerParam,
+  requireAcademyAlter,
   schools.listAiLibrary
 );
 router.post(
   "/:_id/ai-library",
   isAdManager,
   requireSchoolManagerParam,
+  requireAcademyAlter,
   schools.createAiLibraryItem
 );
 router.post(
   "/:_id/ai-library/upload",
   isAdManager,
   requireSchoolManagerParam,
+  requireAcademyAlter,
   schools.uploadAiLibraryItem
 );
 router.put(
   "/:_id/ai-library/:itemId",
   isAdManager,
   requireSchoolManagerParam,
+  requireAcademyAlter,
   schools.updateAiLibraryItem
 );
 router.get(
   "/:_id/ai-library/:itemId/download",
   isAdManager,
   requireSchoolManagerParam,
+  requireAcademyAlter,
   schools.downloadAiLibraryItem
 );
 router.delete(
   "/:_id/ai-library/:itemId",
   isAdManager,
   requireSchoolManagerParam,
+  requireAcademyAlter,
   schools.deleteAiLibraryItem
 );
 

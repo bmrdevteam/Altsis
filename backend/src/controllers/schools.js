@@ -28,7 +28,7 @@ import { profileS3, profileBucket } from "../_s3/profileBucket.js";
 import { fileS3, fileBucket } from "../_s3/fileBucket.js";
 import { schoolAiLibraryMulter } from "../_s3/aiRefMulter.js";
 import { tryCommitUpload } from "../services/academyStorage.js";
-import { normalizePlans } from "../services/entitlement.js";
+import { isAcademyAlterEnabled, normalizePlans } from "../services/entitlement.js";
 import { extractText } from "../utils/textExtractor.js";
 import {
   normalizeGuidelines,
@@ -310,7 +310,7 @@ export const find = async (req, res) => {
           academyFeatures = {
             chatEnabled: (academy.chatEnabled ?? false) && plans.shift.enabled,
             boardEnabled: (academy.boardEnabled ?? true) && plans.shift.enabled,
-            aiEnabled: (academy.aiEnabled ?? false) && plans.ctrl.enabled,
+            aiEnabled: isAcademyAlterEnabled(academy),
             sitePublishEnabled:
               (academy.sitePublishEnabled ?? false) && plans.shift.enabled,
             emailNotifyEnabled: academy.emailNotifyEnabled === true,

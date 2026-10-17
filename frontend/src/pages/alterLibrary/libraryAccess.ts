@@ -1,4 +1,7 @@
-import { canShowAlter } from "pages/boards/altBoard/formAiPermission";
+import {
+  canShowAlter,
+  isAcademyAlterOn,
+} from "pages/boards/altBoard/formAiPermission";
 import { TSchool } from "types/schools";
 import { TAiSettings } from "types/seasons";
 import { isSchoolManager, TSchoolManagerUser } from "utils/schoolManager";
@@ -30,6 +33,7 @@ export const canAccessAlterLibrary = ({
   userId?: string | null;
   user?: TSchoolManagerUser;
 }) => {
+  if (!isAcademyAlterOn(school)) return false;
   if (isLibraryStaffAuth(auth, user, school?._id)) return true;
   if (role !== "teacher") return false;
   return canShowAlter(school, season, {

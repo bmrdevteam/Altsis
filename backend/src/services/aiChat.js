@@ -14,7 +14,7 @@ import { FEATURE_PROFILES, AI_ERRORS } from "./aiPromptPolicy.js";
 import { maskSensitiveText } from "./aiSafety.js";
 import { logAIUsage } from "./aiUsage.js";
 import { assertAiUserQuota } from "./aiUsageQuota.js";
-import { assertCtrlEnabled } from "./entitlement.js";
+import { assertAcademyAlterEnabled, isAcademyAlterEnabled } from "./entitlement.js";
 import { buildBoardAlterSystemPrompt } from "./alterCorePrompt.js";
 
 /** 보드 Alter 세션만 (양식 aiChat form/fieldId/row 세션 제외) */
@@ -70,11 +70,13 @@ export const buildAIChatContents = (board, messages) => {
 export const callAI = async (academyId, systemInstruction, messages, user) => {
   const academy = await Academy.findOne({ academyId }, "+aiApiKey");
 
-  if (!academy || !academy.aiEnabled || !academy.aiApiKey) {
+  if (!academy) {
     throw new Error(AI_ERRORS.NOT_AVAILABLE);
   }
-
-  assertCtrlEnabled(academy);
+  assertAcademyAlterEnabled(academy);
+  if (!academy.aiApiKey) {
+    throw new Error(AI_ERRORS.NOT_AVAILABLE);
+  }
 
   await assertAiUserQuota(academyId, user, academy);
 
@@ -159,7 +161,6 @@ export const getBoardTeacherUserIds = (board) => {
  */
 export const checkAIEnabled = async (academyId) => {
   const academy = await Academy.findOne({ academyId }, "+aiApiKey");
-  if (!academy?.aiEnabled || !academy?.aiApiKey) return false;
-  const { normalizePlans } = await import("./entitlement.js");
-  return normalizePlans(academy).ctrl.enabled;
+  if (!academy?.aiApiKey) return false;
+  return isAcademyAlterEnabled(academy);
 };

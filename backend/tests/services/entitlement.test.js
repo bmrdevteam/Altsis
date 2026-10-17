@@ -15,13 +15,16 @@ import {
   STORAGE_LIMIT,
 } from "../../src/messages/index.js";
 import {
+  assertAcademyAlterEnabled,
   assertAltSeats,
   assertCtrlTokens,
   assertShiftEnabled,
   assertShiftStorage,
+  isAcademyAlterEnabled,
   listActiveSeasonWarnings,
   normalizePlans,
   parsePlanPatch,
+  writePlansToAcademy,
   priceOf,
   rollCtrlUsedTokens,
   SEAT_UNIT_PRICE,
@@ -68,6 +71,50 @@ describe("entitlement", () => {
     );
     expect(rolled.usedTokens).toBe(0);
     expect(rolled.usageMonth).toBe("2026-08");
+  });
+
+  test("isAcademyAlterEnabled requires both aiEnabled and CTRL", () => {
+    expect(isAcademyAlterEnabled({ aiEnabled: true })).toBe(true);
+    expect(
+      isAcademyAlterEnabled({
+        aiEnabled: true,
+        plans: { ctrl: { enabled: false } },
+      })
+    ).toBe(false);
+    expect(
+      isAcademyAlterEnabled({
+        aiEnabled: false,
+        plans: { ctrl: { enabled: true } },
+      })
+    ).toBe(false);
+    expect(
+      isAcademyAlterEnabled({
+        aiEnabled: true,
+        plans: { ctrl: { enabled: true } },
+      })
+    ).toBe(true);
+
+    const academy = {
+      aiEnabled: true,
+      plans: {
+        alt: { enabled: true },
+        shift: { enabled: true },
+        ctrl: { enabled: true, tokenLimit: null, usedTokens: 0 },
+      },
+    };
+    const off = normalizePlans(academy);
+    off.ctrl.enabled = false;
+    writePlansToAcademy(academy, off);
+    expect(academy.aiEnabled).toBe(false);
+    expect(academy.plans.ctrl.enabled).toBe(false);
+    expect(isAcademyAlterEnabled(academy)).toBe(false);
+    expect(() => assertAcademyAlterEnabled(academy)).toThrow("AI_NOT_ENABLED");
+
+    const on = normalizePlans(academy);
+    on.ctrl.enabled = true;
+    writePlansToAcademy(academy, on);
+    expect(isAcademyAlterEnabled(academy)).toBe(true);
+    expect(() => assertAcademyAlterEnabled(academy)).not.toThrow();
   });
 
   test("normalizePlans uses explicit plans over flags", () => {

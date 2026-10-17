@@ -6431,6 +6431,16 @@ tbody tr:hover .actionCell {
   }
 }
 
+.aiChatDisabled {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-color-2);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .aiChatField {
   display: flex;
   flex-direction: column;

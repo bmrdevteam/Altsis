@@ -324,6 +324,27 @@ export function assertCtrlEnabled(academy) {
   }
 }
 
+/**
+ * 아카데미 Alter(CTRL) 사용 여부.
+ * 소유자 플랜의 CTRL과 AI 토글은 둘 다 켜져 있어야 한다.
+ */
+export function isAcademyAlterEnabled(academy) {
+  if (!academy?.aiEnabled) return false;
+  return !!normalizePlans(academy).ctrl.enabled;
+}
+
+/** 아카데미 Alter가 꺼져 있으면 403. CTRL만 꺼진 경우는 PLAN_CTRL_REQUIRED. */
+export function assertAcademyAlterEnabled(academy) {
+  if (isAcademyAlterEnabled(academy)) return;
+  if (academy?.aiEnabled) {
+    assertCtrlEnabled(academy);
+  }
+  const err = new Error("AI_NOT_ENABLED");
+  err.status = 403;
+  err.code = "AI_NOT_ENABLED";
+  throw err;
+}
+
 export function assertCtrlTokens(academy, { addTokens = 0 } = {}) {
   const plans = normalizePlans(academy);
   if (!plans.ctrl.enabled) {

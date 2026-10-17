@@ -13,6 +13,8 @@ import {
   ChatMessageBubble,
 } from "layout/navbar/chatUi";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import { useAuth } from "contexts/authContext";
+import { isAcademyAlterOn } from "./formAiPermission";
 import { getUsageMeter } from "utils/aiUsageMeter";
 import FieldDocResources from "./FieldDocResources";
 import { TFormFileRef } from "./formFilePreview";
@@ -61,6 +63,9 @@ const FormAiChatField = ({
   onPreview,
 }: Props) => {
   const { AltFormAPI, AIAPI } = useAPIv2();
+  const { currentSchool } = useAuth();
+  const schoolKnown = currentSchool != null;
+  const alterOff = schoolKnown && !isAcademyAlterOn(currentSchool);
   const [messages, setMessages] = useState<TAIChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
@@ -99,12 +104,12 @@ const FormAiChatField = ({
   }, []);
 
   useEffect(() => {
-    if (disabled) return;
+    if (!schoolKnown || disabled || alterOff) return;
     refreshMyUsage();
-  }, [disabled, refreshMyUsage]);
+  }, [schoolKnown, disabled, alterOff, refreshMyUsage]);
 
   useEffect(() => {
-    if (!loadedSessionId || !formId) return;
+    if (!schoolKnown || alterOff || !loadedSessionId || !formId) return;
     let cancelled = false;
     setLoading(true);
     AltFormAPI.RFormAiChatMessages({
@@ -125,7 +130,7 @@ const FormAiChatField = ({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- useAPIv2 refs are unstable
-  }, [formId, loadedSessionId, disabled]);
+  }, [formId, loadedSessionId, disabled, schoolKnown, alterOff]);
 
   useEffect(() => {
     const el = logRef.current;
@@ -151,7 +156,7 @@ const FormAiChatField = ({
 
   const handleSend = async () => {
     const content = draft.trim();
-    if (sending || disabled || usageLimitExceeded) return;
+    if (sending || disabled || alterOff || usageLimitExceeded) return;
     if (!isGradeSkill && !content) return;
     setSending(true);
     try {
@@ -190,6 +195,16 @@ const FormAiChatField = ({
       setSending(false);
     }
   };
+
+  if (!schoolKnown) return null;
+
+  if (alterOff) {
+    return (
+      <p className={style.aiChatDisabled}>
+        이 아카데미에서는 Alter를 사용할 수 없습니다.
+      </p>
+    );
+  }
 
   const fieldUi = (
     <div

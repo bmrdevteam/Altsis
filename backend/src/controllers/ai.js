@@ -28,7 +28,7 @@ import {
 import { maskSensitiveText } from "../services/aiSafety.js";
 import { logAIUsage } from "../services/aiUsage.js";
 import { tryCommitUpload } from "../services/academyStorage.js";
-import { assertCtrlEnabled } from "../services/entitlement.js";
+import { assertAcademyAlterEnabled } from "../services/entitlement.js";
 import {
   assertAiUserQuota,
   getMyAiUsage as getMyAiUsageSvc,
@@ -693,11 +693,8 @@ export const generateGuidelinesTemplate = async (req, res) => {
     if (!academy) {
       return res.status(404).send({ message: __NOT_FOUND("academy") });
     }
-    if (!academy.aiEnabled) {
-      return res.status(403).send({ message: AI_ERRORS.NOT_ENABLED });
-    }
     try {
-      assertCtrlEnabled(academy);
+      assertAcademyAlterEnabled(academy);
     } catch (planErr) {
       return res.status(planErr.status || 403).send({
         message: planErr.code || planErr.message,

@@ -57,6 +57,11 @@ export const resolveAiRolePermission = (
   return useSchoolPerm ? !!schoolPerm?.student : !!seasonPerm?.student;
 };
 
+/** 아카데미 Alter(CTRL)가 켜져 있을 때만 true. 플래그가 없으면 숨긴다. */
+export const isAcademyAlterOn = (
+  school?: { academyFeatures?: { aiEnabled?: boolean } } | null
+) => school?.academyFeatures?.aiEnabled === true;
+
 /** 네비 Alter 아이콘 표시 여부 */
 export const canShowAlter = (
   school?: SchoolLike | null,
@@ -69,8 +74,8 @@ export const canShowAlter = (
     schoolId?: unknown;
   }
 ) => {
+  if (!isAcademyAlterOn(school)) return false;
   if (school?.aiEnabled === false) return false;
-  if (school?.academyFeatures?.aiEnabled === false) return false;
   if (!season?.aiSettings?.enabled) return false;
   const isStaffAuth = opts?.user
     ? isSchoolManager(opts.user, opts.schoolId)
@@ -89,8 +94,8 @@ export const canAuthorFormAiChat = (
   season?: SeasonLike | null,
   userId?: string | null
 ) => {
+  if (!isAcademyAlterOn(school)) return false;
   if (school?.aiEnabled === false) return false;
-  if (school?.academyFeatures?.aiEnabled === false) return false;
   if (!season?.aiSettings?.enabled) return false;
   return resolveAiRolePermission(school, season, "teacher", userId);
 };
