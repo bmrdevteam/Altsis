@@ -38,6 +38,41 @@ const pushHit = (hits, seen, limit, { title, url, snippet }) => {
   });
 };
 
+const hostLabel = (url) => {
+  try {
+    const host = new URL(String(url || "")).hostname.replace(/^www\./i, "");
+    return host || "출처";
+  } catch (_) {
+    return "출처";
+  }
+};
+
+/**
+ * OpenAI only returns web_search_call.action.sources when the request asks
+ * for them. Those rows are https URLs without titles, and the message can
+ * still say there were no results.
+ */
+export const citationsFromOpenAISources = (json, limit = MAX_WEB_RESULTS) => {
+  const hits = [];
+  const seen = new Set();
+  const cap = Math.max(1, limit);
+  const items = Array.isArray(json?.output) ? json.output : [];
+  for (const item of items) {
+    if (item?.type && item.type !== "web_search_call") continue;
+    const sources = item?.action?.sources;
+    if (!Array.isArray(sources)) continue;
+    for (const source of sources) {
+      if (source?.type && source.type !== "url") continue;
+      pushHit(hits, seen, cap, {
+        title: source?.title || hostLabel(source?.url),
+        url: source?.url,
+        snippet: "",
+      });
+    }
+  }
+  return hits;
+};
+
 /** OpenAI output_text annotations of type url_citation, with the cited span. */
 export const citationsFromAnnotations = (json, limit = MAX_WEB_RESULTS) => {
   const hits = [];

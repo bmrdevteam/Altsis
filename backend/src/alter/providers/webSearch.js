@@ -15,6 +15,7 @@ import {
   citationsFromAnnotations,
   citationsFromAnthropic,
   citationsFromGemini,
+  citationsFromOpenAISources,
   providerSearchStatus,
 } from "./webCitations.js";
 import { isScriptedDemoKey } from "./scripted.js";
@@ -125,6 +126,19 @@ const postJson = async (fetchImpl, url, { headers, body }) => {
   return json;
 };
 
+const mergeHits = (groups, limit) => {
+  const hits = [];
+  const seen = new Set();
+  for (const group of groups) {
+    for (const hit of group || []) {
+      if (!hit?.url || seen.has(hit.url) || hits.length >= limit) continue;
+      seen.add(hit.url);
+      hits.push(hit);
+    }
+  }
+  return hits;
+};
+
 const citedOrCollected = (cited, json, limit) => {
   const hits = cited.length ? cited : collectWebHits(json, limit);
   return withSnippets(hits, "").slice(0, limit);
@@ -134,6 +148,7 @@ const searchOpenAI = async ({ apiKey, model, query, limit, fetchImpl }) => {
   const body = {
     model: model || "gpt-4o-mini",
     tools: [{ type: "web_search", search_context_size: "low" }],
+    include: ["web_search_call.action.sources"],
     input: askSources(query),
     max_output_tokens: WEB_SEARCH_MAX_OUTPUT,
   };
@@ -142,8 +157,12 @@ const searchOpenAI = async ({ apiKey, model, query, limit, fetchImpl }) => {
     headers: { authorization: `Bearer ${apiKey}` },
     body,
   });
+  const cited = mergeHits(
+    [citationsFromAnnotations(json, limit), citationsFromOpenAISources(json, limit)],
+    limit
+  );
   return guardWebSearch({
-    results: citedOrCollected(citationsFromAnnotations(json, limit), json, limit),
+    results: citedOrCollected(cited, json, limit),
     usage: normalizeUsage(json?.usage),
     status: providerSearchStatus("openai", json),
   });

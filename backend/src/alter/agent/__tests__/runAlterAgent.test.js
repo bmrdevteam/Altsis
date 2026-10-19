@@ -453,6 +453,81 @@ describe("runAlterAgent", () => {
     }
   });
 
+  test("a search that cites nothing still attaches its source list", async () => {
+    let toolPayload = "";
+    const tool = createAgentTools({ webSearchEnabled: true }).find((item) => item.name === "web_search");
+    let asked = false;
+    const result = await runAlterAgent({
+      ctx: {
+        academy: {
+          webSearchEnabled: true,
+          aiProvider: "openai",
+          aiApiKey: "sk-test-secret-value",
+          aiModel: "gpt-4o-mini",
+        },
+        user: { auth: "member" },
+        registration: { role: "teacher" },
+        fetchWeb: async () => ({
+          ok: true,
+          status: 200,
+          text: async () =>
+            JSON.stringify({
+              status: "completed",
+              output: [
+                {
+                  type: "web_search_call",
+                  status: "completed",
+                  action: {
+                    type: "search",
+                    sources: [
+                      { type: "url", url: "https://random.org/weather" },
+                      { type: "url", url: "https://randombasis.com/guide" },
+                    ],
+                  },
+                },
+                {
+                  type: "message",
+                  content: [{ type: "output_text", text: "검색 결과가 없습니다.", annotations: [] }],
+                },
+              ],
+              usage: { input_tokens: 100, output_tokens: 20, total_tokens: 120 },
+            }),
+        }),
+      },
+      input: { message: "오늘 공공 날씨를 웹에서 찾아 출처와 함께 알려 줘" },
+      mode: "chat",
+      tools: [tool],
+      provider: {
+        async generate({ messages, forceFinal }) {
+          if (!forceFinal && !asked) {
+            asked = true;
+            return {
+              text: "",
+              toolCalls: [{ name: "web_search", arguments: { query: "오늘 공공 날씨" } }],
+              usage: usage(1),
+            };
+          }
+          const row = messages.find((item) => item.role === "tool");
+          toolPayload = String(row?.content || "");
+          return {
+            text: "오늘의 공공 날씨에 대한 검색 결과가 없습니다",
+            toolCalls: [],
+            usage: usage(1),
+          };
+        },
+      },
+    });
+    expect(toolPayload).toContain("https://random.org/weather");
+    expect(toolPayload).toContain("https://randombasis.com/guide");
+    expect(toolPayload).toContain("검색 결과:");
+    expect(result.links.map((link) => link.path)).toEqual([
+      "https://random.org/weather",
+      "https://randombasis.com/guide",
+    ]);
+    expect(result.text).toContain("출처는 답 아래에 있습니다.");
+    expect(result.tokenUsage.totalTokens).toBe(124);
+  });
+
   test("the scripted demo shows the off note, a source link, and an image url", async () => {
     let fetched = false;
     const fetchImpl = async () => {

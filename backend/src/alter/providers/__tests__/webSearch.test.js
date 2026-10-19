@@ -291,6 +291,48 @@ describe("provider web search", () => {
     expect(JSON.stringify(result)).not.toContain(blob.slice(0, 40));
   });
 
+  test("untitled search sources stay even when the message says there are none", async () => {
+    let body = null;
+    const result = await runProviderWebSearch({
+      provider: "openai",
+      apiKey: "sk-test-secret-value",
+      model: "gpt-4o-mini",
+      query: "오늘 공공 날씨",
+      fetchImpl: async (_url, init) => {
+        body = JSON.parse(init.body);
+        return jsonResponse({
+          status: "completed",
+          output: [
+            {
+              type: "web_search_call",
+              status: "completed",
+              action: {
+                type: "search",
+                sources: [
+                  { type: "url", url: "https://www.random.org/weather" },
+                  { type: "url", url: "https://randombasis.com/guide" },
+                  { type: "api", name: "oai-weather" },
+                ],
+              },
+            },
+            {
+              type: "message",
+              content: [{ type: "output_text", text: "검색 결과가 없습니다.", annotations: [] }],
+            },
+          ],
+          usage: { input_tokens: 100, output_tokens: 20, total_tokens: 120 },
+        });
+      },
+    });
+    expect(body.include).toEqual(["web_search_call.action.sources"]);
+    expect(result.ok).toBe(true);
+    expect(result.results).toEqual([
+      { title: "random.org", url: "https://www.random.org/weather", snippet: "" },
+      { title: "randombasis.com", url: "https://randombasis.com/guide", snippet: "" },
+    ]);
+    expect(JSON.stringify(result)).not.toContain("검색 결과가 없습니다");
+  });
+
   test("a provider error does not echo the key", async () => {
     const key = "sk-test-secret-value";
     const result = await runProviderWebSearch({
