@@ -446,8 +446,10 @@ export const runAgentLoop = async ({
         }
       }
       return finish(wrapToolResult(action.name, forModel), usage, audits, data);
-    } catch (_) {
-      const payload = { error: "도구를 실행하지 못했습니다." };
+    } catch (err) {
+      const payload = {
+        error: err?.gateDenial && err.message ? String(err.message) : "도구를 실행하지 못했습니다.",
+      };
       emit("tool", { name: action.name, status: "error", label, summary: payload.error });
       steps.push({ name: action.name, status: "error" });
       return finish(wrapToolResult(action.name, payload));

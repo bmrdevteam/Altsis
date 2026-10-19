@@ -4,9 +4,10 @@
  */
 
 import { AlterError } from "../../core/errors.js";
+import { buildSkillGate } from "../../policy/skillGate.js";
 import { guardAlterAgent, prepareAlterAgentCall } from "../../../services/alterAgent.js";
 import { runAlterAgent } from "../../agent/runAlterAgent.js";
-import { getSkill, selectSkill, toolsForSkill } from "../../skills/registry.js";
+import { resolveSkillForTurn, toolsForSkill } from "../../skills/registry.js";
 
 const depsFor = (mode, ctx = {}) => {
   if (mode === "event") return { includeScheduleTool: false, includeTriggerTool: true };
@@ -17,28 +18,42 @@ const depsFor = (mode, ctx = {}) => {
   };
 };
 
-export const runSkillAgent = (args = {}) =>
-  guardAlterAgent(() => {
-    const prepared = prepareAlterAgentCall(args);
-    const skill = args.skillId
-      ? getSkill(args.skillId)
-      : selectSkill({
-          message: prepared.input.message,
-          role: prepared.ctx.registration?.role,
-        });
-    if (!skill) throw new AlterError("NOT_FOUND", 404, "스킬을 찾을 수 없습니다.");
-    const role = String(prepared.ctx.registration?.role || "");
-    if (!skill.permission.roles.includes(role)) {
-      throw new AlterError("FORBIDDEN", 403, "권한이 없습니다.");
-    }
-    const prior = String(prepared.input.guidelines || "").trim();
-    return runAlterAgent({
-      ...prepared,
+/** Shared by the live chat runner and the skill runner. */
+export const prepareGatedTurn = (args = {}) => {
+  const prepared = prepareAlterAgentCall(args);
+  const role = String(prepared.ctx.registration?.role || "");
+  const skill = resolveSkillForTurn({
+    message: prepared.input.message,
+    role,
+    skillId: args.skillId,
+  });
+  const skillGate = buildSkillGate(prepared.ctx, skill);
+  if (skill && !skill.permission.roles.includes(role)) {
+    throw new AlterError("FORBIDDEN", 403, "권한이 없습니다.");
+  }
+  const base = {
+    ...prepared,
+    limits: { ...(prepared.limits || {}), ...(args.limits || {}) },
+  };
+  if (!skill) return { prepared: base, skillGate, skill: null };
+  const prior = String(prepared.input.guidelines || "").trim();
+  return {
+    skill,
+    skillGate,
+    prepared: {
+      ...base,
       tools: toolsForSkill(skill, depsFor(prepared.mode, prepared.ctx)),
       input: {
         ...prepared.input,
         guidelines: [skill.prompt, prior].filter(Boolean).join("\n\n"),
       },
-      limits: { ...(prepared.limits || {}), ...(args.limits || {}) },
-    });
+    },
+  };
+};
+
+export const runSkillAgent = (args = {}) =>
+  guardAlterAgent(() => {
+    const turned = prepareGatedTurn(args);
+    if (!turned.skill) throw new AlterError("NOT_FOUND", 404, "스킬을 찾을 수 없습니다.");
+    return runAlterAgent({ ...turned.prepared, skillGate: turned.skillGate });
   });

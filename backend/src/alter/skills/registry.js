@@ -54,6 +54,18 @@ export const selectSkill = ({ message, role } = {}) => {
   );
 };
 
+/**
+ * The skill for this turn. An explicit id wins.
+ * A named id the role cannot use is still returned so the runner can refuse it.
+ */
+export const resolveSkillForTurn = ({ message, role, skillId } = {}) => {
+  if (skillId) return getSkill(skillId);
+  const selected = selectSkill({ message, role });
+  if (selected) return selected;
+  const text = String(message || "");
+  return listSkills().find((skill) => text.includes(skill.id)) || null;
+};
+
 /** Runtime tools for one skill. Names outside the skill are omitted. */
 export const toolsForSkill = (skill, deps = {}) => {
   const allowed = new Set(skill?.tools || []);

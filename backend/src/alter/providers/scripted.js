@@ -138,7 +138,13 @@ const playScriptedPlan = ({ messages, tools, toolChoice, native, scriptedPlan })
       tokenUsage: usage,
     };
   }
-  const text = String(turn.text || "");
+  let text = String(turn.text || "");
+  // A turn whose every call was dropped (the tool is not offered) is not an answer.
+  // Use the next written line, so a blocked call still reaches its scripted final.
+  if (!text && listed.size && (turn.toolCalls || []).length && !calls.length) {
+    const later = turns.slice(index + 1).find((row) => String(row.text || "").trim());
+    if (later) text = String(later.text);
+  }
   if (native) return { text, toolCalls: [], tokenUsage: usage };
   return {
     text: ["```alter", JSON.stringify({ type: "final", text }), "```"].join("\n"),

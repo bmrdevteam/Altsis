@@ -3,6 +3,7 @@
  * Allowed tools are registry names. This module does not call a provider.
  */
 
+import { expandActorRoles, resolveSkillMeta } from "../core/skillMeta.js";
 import { jsonSchemaFromZod } from "../tools/schema.js";
 
 const ID_RE = /^[a-z][a-z0-9-]{0,63}$/;
@@ -45,6 +46,23 @@ export const defineSkill = (spec) => {
   if (typeof spec.readOnly !== "boolean") {
     throw new Error(`${id} readOnly 는 boolean 이어야 합니다.`);
   }
+  const roleNames = roles.map((role) => String(role));
+  const extra = spec.meta && typeof spec.meta === "object" ? spec.meta : {};
+  const meta = resolveSkillMeta({
+    id,
+    title: name,
+    description,
+    kind: spec.readOnly ? "read" : "draft",
+    channel: spec.readOnly ? "tool" : "dispatch",
+    costTier: "low",
+    requiredFlags: [],
+    screens: [],
+    ...extra,
+    id,
+    allowedTools: extra.allowedTools || tools,
+    requiredRoles: extra.requiredRoles || expandActorRoles(roleNames),
+    studentAllowed: extra.studentAllowed ?? roleNames.includes("student"),
+  });
   return {
     id,
     name,
@@ -55,6 +73,7 @@ export const defineSkill = (spec) => {
     parameters: jsonSchemaFromZod(spec.input),
     prompt,
     readOnly: spec.readOnly,
-    permission: { roles: roles.map((role) => String(role)) },
+    permission: { roles: roleNames },
+    meta,
   };
 };

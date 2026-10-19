@@ -103,6 +103,16 @@ export default defineTool({
   permission: { roles: ["teacher"], access: "self" },
   readOnly: true,
   chatOnly: true,
+  meta: {
+    kind: "draft",
+    channel: "tool",
+    intendedChannel: "dispatch",
+    requiredFlags: ["imageGenEnabled"],
+    costTier: "high",
+    piiSensitive: true,
+    studentAllowed: false,
+    reversible: false,
+  },
   promptHints: [
     "차트나 도식처럼 새 그림이 필요할 때만 generate_image를 호출하세요. 학사 데이터는 search_school_data, 제품 안내는 search_product_guide입니다.",
     "prompt에는 그림 설명만 적으세요. 학생 이름, 얼굴, 연락처, 성적, 실존 인물은 넣지 마세요. 실존하는 사람의 그림은 거절됩니다.",

@@ -76,6 +76,14 @@ export default defineTool({
   permission: { roles: ["teacher"], access: "self" },
   readOnly: true,
   untrustedOutput: true,
+  meta: {
+    kind: "read",
+    channel: "tool",
+    requiredFlags: ["webSearchEnabled"],
+    piiSensitive: true,
+    studentAllowed: false,
+    costTier: "low",
+  },
   promptHints: [
     "학교 밖 공개 정보가 필요할 때만 web_search를 호출하세요. 학사 데이터는 search_school_data, 제품 안내는 search_product_guide입니다.",
     "query에는 사용자가 물은 공개 질문만 적으세요. 학생 이름, 성적, 연락처, 학번, 학교 내부 기록은 넣지 마세요.",

@@ -6,6 +6,7 @@
 
 import { maskSensitiveText } from "../core/safety.js";
 import { addUsage } from "../core/usage.js";
+import { allowListedTool, guardToolExecute } from "../policy/skillGate.js";
 import { createAgentTools, disabledCapabilityHints } from "../tools/registry.js";
 import { llm } from "../../services/alterLlm.js";
 import {
@@ -54,17 +55,22 @@ export const runAlterAgent = async ({
   provider = {},
   limits = {},
   onEvent,
+  skillGate,
 }) => {
   const resolvedMode = UNATTENDED.has(mode) || mode === "chat" ? mode : "chat";
   const ownedTools = !Array.isArray(tools);
   const deps = depsForMode(resolvedMode, ctx);
-  const selected = ownedTools ? createAgentTools(deps) : tools;
+  const selected = (ownedTools ? createAgentTools(deps) : tools).filter((tool) =>
+    allowListedTool(tool, skillGate)
+  );
   const disabledHints = ownedTools ? disabledCapabilityHints(deps) : [];
-  const runnable = selected.filter((tool) => {
-    if (tool?.chatOnly === true && resolvedMode !== "chat") return false;
-    if (UNATTENDED.has(resolvedMode) && isWriteTool(tool)) return false;
-    return true;
-  });
+  const runnable = selected
+    .filter((tool) => {
+      if (tool?.chatOnly === true && resolvedMode !== "chat") return false;
+      if (UNATTENDED.has(resolvedMode) && isWriteTool(tool)) return false;
+      return true;
+    })
+    .map((tool) => guardToolExecute(tool, skillGate));
 
   let tokenUsage = null;
   const generate = async (turn) => {

@@ -226,6 +226,21 @@ describe("provider adapter contract", () => {
     expect(again.toolCalls.map((call) => call.name)).toEqual(["get_my_todos"]);
   });
 
+  test("a scripted call that is not offered falls through to the next written line", async () => {
+    process.env.NODE_ENV = "test";
+    const adapter = createScriptedAdapter();
+    const turn = await adapter.generate({
+      ...REQUEST,
+      apiKey: SCRIPTED_AGENT_API_KEY,
+      scriptedPlan: [
+        { call: "web_search", arguments: { query: "서울 날씨" } },
+        { final: "웹 검색은 꺼져 있습니다. 학원 소유자가 AI 설정에서 켤 수 있습니다." },
+      ],
+    });
+    expect(turn.toolCalls).toEqual([]);
+    expect(turn.text).toContain("웹 검색은 꺼져 있습니다.");
+  });
+
   test("resolve picks scripted from the provider id or the demo key, and not in production", () => {
     process.env.NODE_ENV = "test";
     const llm = createLlm({
