@@ -52,6 +52,8 @@ const alterMessageSchema = mongoose.Schema(
     attachments: { type: [alterAttachmentSchema], default: [] },
     review: { type: mongoose.Schema.Types.Mixed, default: null },
     draft: { type: mongoose.Schema.Types.Mixed, default: null },
+    /** 제안·반영 확인 카드. 요청 본문은 서버 확인 기록에만 둔다. */
+    confirmation: { type: mongoose.Schema.Types.Mixed, default: null },
     /** 제품 안내 답 아래 화면/가이드 바로가기 */
     links: { type: [alterGuideLinkSchema], default: [] },
     tokenUsage: tokenUsageSchema,

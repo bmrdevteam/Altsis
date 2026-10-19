@@ -4764,7 +4764,7 @@ export const executeFormDraftSkill = async ({
   const profile = FEATURE_PROFILES.formDraft;
   const emit = typeof onEvent === "function" ? onEvent : () => {};
 
-  if (user?.auth !== "admin" && user?.auth !== "manager") {
+  if (user?.auth !== "admin" && user?.auth !== "manager" && user?.auth !== "owner") {
     const err = new Error(PERMISSION_DENIED);
     err.status = 403;
     err.code = PERMISSION_DENIED;
@@ -5884,6 +5884,8 @@ export const runAlterSkill = async ({
       links: result.links || [],
       images: result.images || [],
       scheduleProposal: result.scheduleProposal || null,
+      draft: result.draft || null,
+      confirmation: result.confirmation || null,
     };
   }
 

@@ -4,6 +4,7 @@
  */
 import { logger } from "../log/logger.js";
 import { toPublicAlterError } from "../alter/core/errors.js";
+import { redeemDispatch } from "../alter/skills/dispatch.js";
 import { tryCommitUpload } from "../services/academyStorage.js";
 import {
   SKILL_IDS,
@@ -281,6 +282,50 @@ export const deleteAlterConversation = async (req, res) => {
  * Alter 대화 일괄 삭제(소프트)
  * @route POST /ai/alter/conversations/bulk-delete
  */
+const CONFIRM_STATUS = {
+  NOT_FOUND: 404,
+  FORBIDDEN: 403,
+  CONSUMED: 409,
+  EXPIRED: 410,
+  STAGE: 409,
+  NO_EXECUTOR: 501,
+};
+
+/**
+ * Spend a one-time skill confirmation.
+ * proceed runs the draft. apply records consent and does not save the form.
+ * @route POST /ai/alter/confirmations/:id
+ */
+export const postAlterConfirmation = async (req, res) => {
+  try {
+    const action = String(req.body?.action || "");
+    const outcome = await redeemDispatch({
+      academyId: req.user.academyId,
+      actorId: req.user._id,
+      user: req.user,
+      confirmationId: req.params.id,
+      action,
+    });
+    if (!outcome.ok) {
+      return res.status(CONFIRM_STATUS[outcome.code] || 400).send({
+        code: outcome.code,
+        message: outcome.message,
+      });
+    }
+    return res.status(200).send({
+      ok: true,
+      applied: outcome.applied === true,
+      cancelled: outcome.cancelled === true,
+      skill: outcome.skillId || null,
+      message: outcome.text || "",
+      draft: outcome.draft || null,
+      confirmation: outcome.confirmation || null,
+    });
+  } catch (err) {
+    return sendAlterError(res, err);
+  }
+};
+
 export const bulkDeleteAlterConversations = async (req, res) => {
   try {
     const result = await bulkDeleteAlterConversationsSvc({

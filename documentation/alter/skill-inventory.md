@@ -1,7 +1,7 @@
 # Alter 스킬 전수 조사 (0단계)
 
 - 기준: `cursor/alter-n4-followup-1f65` 위 코드
-- 상태: 1단계 게이트가 읽는 분류. 작성형 스킬의 실행은 아직 기존 HTTP 경로다.
+- 상태: 1단계 게이트가 읽는 분류. form-draft는 2단계 디스패치와 확인 카드를 탄다. 나머지 작성형 실행은 아직 기존 HTTP 경로다.
 - 기계가 읽는 목록: `backend/src/alter/skills/catalog.js`와 각 `defineTool` / `defineSkill`의 `meta`
 - 문서를 따로 둔 이유: 원인 메모(P-1~P-4), 역할 매핑, 학생 권한, 감사 로그처럼 실행 메타데이터가 아닌 조사 결과가 있다. 허용 판단에 쓰는 필드(kind, channel, 역할, 플래그, 확인, 학생 허용)는 코드가 기준이다.
 

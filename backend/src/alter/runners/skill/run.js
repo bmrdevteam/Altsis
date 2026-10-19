@@ -7,6 +7,7 @@ import { AlterError } from "../../core/errors.js";
 import { buildSkillGate } from "../../policy/skillGate.js";
 import { guardAlterAgent, prepareAlterAgentCall } from "../../../services/alterAgent.js";
 import { runAlterAgent } from "../../agent/runAlterAgent.js";
+import { getCapability } from "../../skills/catalog.js";
 import { resolveSkillForTurn, toolsForSkill } from "../../skills/registry.js";
 
 const depsFor = (mode, ctx = {}) => {
@@ -28,6 +29,15 @@ export const prepareGatedTurn = (args = {}) => {
     skillId: args.skillId,
   });
   const skillGate = buildSkillGate(prepared.ctx, skill);
+  const requestedChip = String(args.chipId || "").trim();
+  if (requestedChip && requestedChip !== "chat" && requestedChip !== "agent") {
+    const meta = getCapability(requestedChip);
+    skillGate.chip = {
+      id: meta?.id || requestedChip,
+      title: meta?.title || requestedChip,
+      allowedTools: meta?.allowedTools || [],
+    };
+  }
   if (skill && !skill.permission.roles.includes(role)) {
     throw new AlterError("FORBIDDEN", 403, "권한이 없습니다.");
   }

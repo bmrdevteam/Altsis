@@ -101,6 +101,7 @@ export const prepareAlterAgentCall = ({
         boardName: context.boardName,
         reviewSummary: context.reviewSummary,
       },
+      pageContext: context,
     },
     input: {
       message: userQuestion,

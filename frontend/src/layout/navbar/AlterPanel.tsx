@@ -15,6 +15,7 @@ import {
   readActiveConversation,
   writeActiveConversation,
 } from "./alterUi/activeConversation";
+import { confirmationCardState } from "./alterUi/confirmationCard";
 import { friendlyAlterError, readAlterSse } from "./alterUi/sse";
 import useAPIv2 from "hooks/useAPIv2";
 import { isEmptyEval } from "utils/evaluationCsv";
@@ -137,6 +138,15 @@ type ChatMessage = {
     };
   } | null;
   scheduleSaved?: boolean;
+  confirmation?: {
+    id: string;
+    stage: string;
+    skillId?: string;
+    title?: string;
+    status?: string;
+    expiresAt?: string;
+    summary?: string;
+  } | null;
   scheduleDismissed?: boolean;
   createdAt?: string;
   /** 전송 직후 말풍선에 바로 보이는 첨부(미리보기) */
@@ -1226,6 +1236,7 @@ const AlterPanel = ({ onClose }: Props) => {
         skill?: string;
         review?: any;
         draft?: any;
+        confirmation?: ChatMessage["confirmation"];
         links?: TAlterGuideLink[];
         createdAt?: string;
         attachments?: Array<{
@@ -1269,6 +1280,7 @@ const AlterPanel = ({ onClose }: Props) => {
             review: m.review || null,
             draft: m.draft || null,
             links: m.links,
+            confirmation: m.confirmation || null,
             createdAt: m.createdAt,
             attachments: attachments.length > 0 ? attachments : undefined,
           };
@@ -1959,6 +1971,7 @@ const AlterPanel = ({ onClose }: Props) => {
             links: result.links,
             images: result.images,
             scheduleProposal: result.scheduleProposal,
+            confirmation: result.confirmation || null,
             createdAt: new Date().toISOString(),
           },
         ]);
@@ -1994,6 +2007,7 @@ const AlterPanel = ({ onClose }: Props) => {
             links: data.links,
             images: data.images,
             scheduleProposal: data.scheduleProposal || null,
+            confirmation: data.confirmation || null,
             createdAt: new Date().toISOString(),
           },
         ]);
@@ -2497,7 +2511,61 @@ const AlterPanel = ({ onClose }: Props) => {
     }
   };
 
-  const applyDraft = (msgId: string, draftResult: TAlterDraftResult) => {
+  const redeemConfirmation = async (
+    id: string,
+    action: "proceed" | "cancel" | "apply"
+  ) => {
+    const res = await fetch(`${alterApiBase()}/alter/confirmations/${id}`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, seasonId: currentSeason?._id }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.message || "확인에 실패했습니다.");
+    }
+    return data as {
+      message?: string;
+      draft?: TAlterDraftResult | null;
+      confirmation?: ChatMessage["confirmation"];
+      cancelled?: boolean;
+      applied?: boolean;
+    };
+  };
+
+  const answerConfirmation = async (
+    msgId: string,
+    card: NonNullable<ChatMessage["confirmation"]>,
+    action: "proceed" | "cancel"
+  ) => {
+    setError("");
+    try {
+      const data = await redeemConfirmation(card.id, action);
+      setMessages((prev) =>
+        prev.map((msg) => {
+          if (msg.id !== msgId) return msg;
+          if (action === "cancel") {
+            return {
+              ...msg,
+              confirmation: { ...card, status: "cancelled" },
+            };
+          }
+          return {
+            ...msg,
+            content: data.message || msg.content,
+            draft: data.draft || msg.draft,
+            confirmation: data.confirmation || null,
+            skill: data.draft ? card.skillId || msg.skill : msg.skill,
+          };
+        })
+      );
+    } catch (err: any) {
+      setError(err.message || "확인에 실패했습니다.");
+    }
+  };
+
+  const applyDraft = async (msgId: string, draftResult: TAlterDraftResult) => {
     if (isSyllabusDraft(draftResult)) {
       if (!pageContext?.applyInfoDraft) return;
       const values: Record<string, string> = {};
@@ -2637,6 +2705,17 @@ const AlterPanel = ({ onClose }: Props) => {
     }
 
     if (isFormDraft(draftResult)) {
+      const confirmationId = (draftResult as { confirmationId?: string }).confirmationId;
+      if (!confirmationId) {
+        setError("확인 없이 양식에 반영할 수 없습니다.");
+        return;
+      }
+      try {
+        await redeemConfirmation(confirmationId, "apply");
+      } catch (err: any) {
+        setError(err.message || "확인 없이 양식에 반영할 수 없습니다.");
+        return;
+      }
       if (!pageContext?.applyFormDraft) {
         setError("양식 문서를 연 뒤 초안을 반영할 수 있습니다.");
         return;
@@ -3666,6 +3745,41 @@ const AlterPanel = ({ onClose }: Props) => {
               pageContext={pageContext}
               onApply={applyDraft}
             />
+            {msg.role === "assistant" &&
+            msg.confirmation &&
+            confirmationCardState(msg.confirmation) === "pending" ? (
+              <div className={style.scheduleCard}>
+                <div className={style.scheduleCardTitle}>
+                  {msg.confirmation.title || "스킬 확인"}
+                </div>
+                <div>{msg.confirmation.summary || msg.content}</div>
+                <div className={style.scheduleCardActions}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void answerConfirmation(msg.id, msg.confirmation!, "proceed")
+                    }
+                  >
+                    진행
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void answerConfirmation(msg.id, msg.confirmation!, "cancel")
+                    }
+                  >
+                    취소
+                  </button>
+                </div>
+              </div>
+            ) : null}
+            {msg.role === "assistant" &&
+            msg.confirmation &&
+            confirmationCardState(msg.confirmation) === "expired" ? (
+              <div className={style.scheduleCard}>
+                확인 시간이 지났습니다. 다시 확인해 주세요.
+              </div>
+            ) : null}
             {msg.role === "assistant" &&
             msg.scheduleProposal &&
             !msg.scheduleDismissed ? (

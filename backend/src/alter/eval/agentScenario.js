@@ -68,6 +68,7 @@ const runAgent = async (scenario, people, academy, options) => {
     allowScheduleTool: scenario.runner !== "event" && scenario.runner !== "schedule",
     triggerEvents: scenario.runner === "event" ? scenario.input?.events || [] : undefined,
     scriptedPlan: options.mode === "real" ? undefined : scenario.scripted,
+    chipId: scenario.chip,
     generate: options.generate,
     onEvent: (name, data) => {
       if (name === "tool" && data?.name === "_parse" && data?.status === "error") {
@@ -98,6 +99,8 @@ const runAgent = async (scenario, people, academy, options) => {
     toolSteps: result.toolSteps || 0,
     links: result.links || [],
     proposal: result.scheduleProposal || null,
+    draft: result.draft || null,
+    confirmation: result.confirmation || null,
     parseErrors: parseEvents.length,
     trace: result.trace || [],
     tokenUsage: result.tokenUsage || null,
