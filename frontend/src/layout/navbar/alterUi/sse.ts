@@ -7,6 +7,15 @@ export type AlterSseDone = {
   links?: any[];
   images?: { url: string; alt?: string }[];
   scheduleProposal?: any;
+  confirmation?: {
+    id: string;
+    stage: string;
+    skillId?: string;
+    title?: string;
+    status?: string;
+    expiresAt?: string;
+    summary?: string;
+  } | null;
 };
 
 export type AlterSseHandlers = {
@@ -107,6 +116,7 @@ const parseBlock = (block: string): ParsedSse | null => {
           links: data.links || [],
           images: Array.isArray(data.images) ? data.images : [],
           scheduleProposal: data.scheduleProposal || null,
+          confirmation: data.confirmation || null,
         },
       };
     }

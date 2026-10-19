@@ -257,6 +257,22 @@ export const checkExpect = (scenario, result, mode = "scripted") => {
     if (!wrapped) errors.push(fail(id, "tool result was not wrapped"));
   }
 
+  if (expect.confirmation) {
+    const card = result.confirmation;
+    if (!card) errors.push(fail(id, "confirmation missing"));
+    else {
+      if (expect.confirmation.stage && card.stage !== expect.confirmation.stage) {
+        errors.push(fail(id, `confirmation stage ${card.stage}`));
+      }
+      if (expect.confirmation.skillId && card.skillId !== expect.confirmation.skillId) {
+        errors.push(fail(id, `confirmation skill ${card.skillId}`));
+      }
+      if (expect.confirmation.executed === false && result.draft) {
+        errors.push(fail(id, "draft ran before confirmation"));
+      }
+    }
+  }
+
   if (expect.proposal) {
     const proposal = result.proposal;
     if (!proposal) errors.push(fail(id, "proposal missing"));

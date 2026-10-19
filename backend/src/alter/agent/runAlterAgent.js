@@ -7,7 +7,8 @@
 import { maskSensitiveText } from "../core/safety.js";
 import { addUsage } from "../core/usage.js";
 import { allowListedTool, guardToolExecute } from "../policy/skillGate.js";
-import { createAgentTools, disabledCapabilityHints } from "../tools/registry.js";
+import useSkillTool from "../tools/defs/useSkill.tool.js";
+import { createAgentTools, disabledCapabilityHints, toRuntimeTool } from "../tools/registry.js";
 import { llm } from "../../services/alterLlm.js";
 import {
   MAX_AGENT_TOOL_STEPS,
@@ -60,9 +61,10 @@ export const runAlterAgent = async ({
   const resolvedMode = UNATTENDED.has(mode) || mode === "chat" ? mode : "chat";
   const ownedTools = !Array.isArray(tools);
   const deps = depsForMode(resolvedMode, ctx);
-  const selected = (ownedTools ? createAgentTools(deps) : tools).filter((tool) =>
-    allowListedTool(tool, skillGate)
-  );
+  const baseTools = ownedTools ? createAgentTools(deps) : tools;
+  const withDispatch =
+    ownedTools && resolvedMode === "chat" ? [...baseTools, toRuntimeTool(useSkillTool, deps)] : baseTools;
+  const selected = withDispatch.filter((tool) => allowListedTool(tool, skillGate));
   const disabledHints = ownedTools ? disabledCapabilityHints(deps) : [];
   const runnable = selected
     .filter((tool) => {
@@ -126,7 +128,7 @@ export const runAlterAgent = async ({
   const result = await runAgentLoop({
     tools: runnable,
     disabledHints,
-    serverCtx: { ...ctx, mode: resolvedMode },
+    serverCtx: { ...ctx, mode: resolvedMode, skillGate },
     userMessage: input.message,
     history: input.history || [],
     guidelines: input.guidelines || "",
@@ -150,6 +152,8 @@ export const runAlterAgent = async ({
     images: result.images || [],
     proposals: scheduleProposal ? [scheduleProposal] : [],
     scheduleProposal,
+    draft: result.draft || null,
+    confirmation: result.confirmation || null,
     toolNames,
     toolSteps: result.toolSteps,
     tokenUsage: reportedUsage,

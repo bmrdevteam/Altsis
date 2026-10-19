@@ -4,6 +4,7 @@
  */
 import { logger } from "../log/logger.js";
 import { AlterError, toPublicAlterError } from "../alter/core/errors.js";
+import { attachApplyConfirmation } from "../alter/skills/dispatch.js";
 import {
   SKILL_IDS,
   runAlterSkill,
@@ -120,6 +121,19 @@ export const runAlter = async (req, res) => {
       onEvent: sendEvent,
     });
 
+    if (skill === SKILL_IDS.FORM_DRAFT && result?.draft && !result.confirmation) {
+      const attached = await attachApplyConfirmation({
+        academyId: req.user.academyId,
+        actorId: req.user._id,
+        skillId: skill,
+        request: message,
+        draft: result.draft,
+        summary: result.text,
+      });
+      result.draft = attached.draft;
+      result.confirmation = attached.confirmation;
+    }
+
     let savedConversationId = conversationId;
     if (persist !== false) {
       try {
@@ -140,6 +154,7 @@ export const runAlter = async (req, res) => {
           tokenUsage: result.tokenUsage,
           review: result.review || null,
           draft: result.draft || null,
+          confirmation: result.confirmation || null,
           links: result.links || [],
           assistantAttachments: (result.images || [])
             .filter((image) => image?.key)
@@ -169,6 +184,7 @@ export const runAlter = async (req, res) => {
           alt: image.alt || "생성된 이미지",
         })),
         scheduleProposal: result.scheduleProposal || null,
+        confirmation: result.confirmation || null,
         conversationId: savedConversationId,
         ...(result.tokenUsage ? { tokenUsage: result.tokenUsage } : {}),
       });
@@ -186,6 +202,7 @@ export const runAlter = async (req, res) => {
         alt: image.alt || "생성된 이미지",
       })),
       scheduleProposal: result.scheduleProposal || null,
+      confirmation: result.confirmation || null,
       conversationId: savedConversationId,
     });
   } catch (err) {

@@ -31,13 +31,33 @@ import { router as memos } from "./memos.js";
 import { router as themeSettings } from "./themeSettings.js";
 import { router as userCalendars } from "./userCalendars.js";
 import { router as test } from "./test.js";
-import { registerAlterAgentRunner, registerAlterSearchRunner } from "../services/aiSkills.js";
+import {
+  assertSeasonAiAccess,
+  executeFormDraftSkill,
+  registerAlterAgentRunner,
+  registerAlterSearchRunner,
+} from "../services/aiSkills.js";
 import { runChatAgent } from "../alter/runners/chat/run.js";
+import { registerConfirmationPort, registerDispatchExecutor } from "../alter/skills/dispatch.js";
+import { confirmationMongoPort } from "../services/alterConfirmations.js";
 import { subscribeDomainEvents } from "../alter/runners/event/subscribe.js";
 import { getSkill } from "../alter/skills/registry.js";
 import { executeSearchSkill } from "../services/alterSearch.js";
 
 registerAlterAgentRunner(runChatAgent);
+registerConfirmationPort(confirmationMongoPort);
+registerDispatchExecutor("form-draft", async ({ academyId, user, seasonId, context, message }) => {
+  const loaded = await assertSeasonAiAccess(academyId, user, seasonId);
+  return executeFormDraftSkill({
+    academyId,
+    user,
+    academy: loaded.academy,
+    season: loaded.season,
+    school: loaded.school,
+    context: context || {},
+    message,
+  });
+});
 registerAlterSearchRunner(async (args) => {
   const skill = getSkill("school-search");
   if (!skill || !skill.tools.includes("search_school_data")) {

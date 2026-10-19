@@ -1,0 +1,27 @@
+{
+  "id": "form-propose",
+  "runner": "chat",
+  "role": "admin",
+  "fixture": "eval-teacher",
+  "modes": ["scripted"],
+  "input": {
+    "prompt": "시간표 양식을 만들어줘"
+  },
+  "expect": {
+    "tools": {
+      "exact": [],
+      "mustNotCall": ["use_skill", "web_search", "generate_image"]
+    },
+    "text": {
+      "contains": ["양식 스킬로 초안을 만들 수 있습니다.", "진행할까요?"]
+    },
+    "confirmation": {
+      "stage": "propose",
+      "skillId": "form-draft",
+      "executed": false
+    }
+  },
+  "scripted": [
+    { "final": "읽기 전용이라 양식을 만들지 않습니다." }
+  ]
+}

@@ -79,7 +79,7 @@ export const runTool = async (tool, ctx, rawArgs) => {
   return finalizeToolResult(tool, result);
 };
 
-const toRuntimeTool = (tool, deps) => ({
+export const toRuntimeTool = (tool, deps) => ({
   name: tool.name,
   label: tool.label,
   description: tool.description,

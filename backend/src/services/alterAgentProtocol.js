@@ -351,6 +351,8 @@ export const runAgentLoop = async ({
   const images = [];
   const trace = [];
   let scheduleProposal = null;
+  let draft = null;
+  let confirmation = null;
   let toolSteps = 0;
   let formatRetries = 0;
   let nestedUsage = null;
@@ -376,6 +378,8 @@ export const runAgentLoop = async ({
       nestedUsage,
       ...(images.length ? { images } : {}),
       ...(scheduleProposal ? { scheduleProposal } : {}),
+      ...(draft ? { draft } : {}),
+      ...(confirmation ? { confirmation } : {}),
     };
   };
 
@@ -426,6 +430,8 @@ export const runAgentLoop = async ({
       if (data?.proposal && data.proposal.saved !== true) {
         scheduleProposal = data.proposal;
       }
+      if (data?.draft) draft = data.draft;
+      if (data?.confirmation) confirmation = data.confirmation;
       emit("tool", { name: action.name, status: "done", label, summary });
       steps.push({ name: action.name, status: "done" });
       const forModel =
@@ -438,6 +444,8 @@ export const runAgentLoop = async ({
         delete forModel.usage;
         delete forModel.sourceUrls;
         delete forModel.auditQuery;
+        delete forModel.draft;
+        delete forModel.confirmation;
         if (Array.isArray(forModel.images)) {
           forModel.images = forModel.images.slice(0, 1).map((image) => ({
             url: String(image?.url || "").slice(0, 2000),
