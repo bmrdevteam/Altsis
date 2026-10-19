@@ -1,8 +1,10 @@
 import { readFileSync } from "fs";
 import { join } from "path";
+import { logger } from "../../../log/logger.js";
 import { toAnthropicTools, toOpenAITools } from "../../../services/aiProvider.js";
 import { MAX_TOOL_RESULT_CHARS } from "../../core/limits.js";
 import { IDENTITY_ARG_KEYS } from "../../core/safety.js";
+import { sanitizeWebQuery } from "../defs/webSearch.tool.js";
 import {
   createAgentTools,
   finalizeToolResult,
@@ -132,6 +134,46 @@ describe("alter tool contract", () => {
     expect(deleted.events[0].title).toBe("출석 이상 보고");
     expect(deleted.events[0].excerpt).toBeUndefined();
     expect(deletedPacked).not.toContain("비밀 본문");
+
+    const onlyDeleted = await tool.execute(
+      {
+        triggerEvents: [
+          {
+            type: "form_submitted",
+            title: "출석결재",
+            excerpt: "비밀 답안 010-1111-2222",
+            unavailable: true,
+          },
+          {
+            type: "form_submitted",
+            title: "과제",
+            excerpt: "다른 본문",
+            unavailable: true,
+          },
+        ],
+      },
+      {}
+    );
+    expect(onlyDeleted.summary).toContain("삭제되어 본문이 없는 항목 2건");
+    expect(onlyDeleted.events.map((row) => row.title)).toEqual(["출석결재", "과제"]);
+    expect(onlyDeleted.events.every((row) => row.excerpt == null && row.unavailable === true)).toBe(true);
+    const onlyPacked = JSON.stringify(onlyDeleted);
+    expect(onlyPacked).not.toContain("비밀 답안");
+    expect(onlyPacked).not.toContain("010-1111-2222");
+    expect(onlyPacked).not.toContain("다른 본문");
+
+    const mixed = await tool.execute(
+      {
+        triggerEvents: [
+          { title: "남은 제출", excerpt: "공개 요약", unavailable: false },
+          { title: "지운 제출", excerpt: "숨긴 본문", unavailable: true },
+        ],
+      },
+      {}
+    );
+    expect(mixed.events[0].excerpt).toBe("공개 요약");
+    expect(mixed.events[1].excerpt).toBeUndefined();
+    expect(JSON.stringify(mixed)).not.toContain("숨긴 본문");
 
     const huge = await tool.execute({
       triggerEvents: [{ title: `${phone}${"가".repeat(MAX_TOOL_RESULT_CHARS)}`, excerpt: email }],
@@ -344,5 +386,73 @@ describe("alter tool contract", () => {
     const calendarText = JSON.stringify(maskedCalendar);
     expect(calendarText).toContain("[이메일]");
     expect(calendarText).not.toContain(email);
+  });
+
+  test("web search drops a contact-only query and keeps only https hits", async () => {
+    const phone = "01012345678";
+    const email = "teacher@example.com";
+    const rrn = "900101-1234567";
+    expect(sanitizeWebQuery(`${phone} ${email} ${rrn}`)).toBe("");
+    expect(sanitizeWebQuery(`홍길동 ${phone} ${email} 학번 2024001 오늘 날씨`)).toBe(
+      "홍길동 학번 오늘 날씨"
+    );
+
+    const tool = createAgentTools({ webSearchEnabled: true }).find((item) => item.name === "web_search");
+    let seen = null;
+    const lines = [];
+    const spy = jest.spyOn(logger, "info").mockImplementation((msg) => {
+      lines.push(String(msg));
+    });
+    try {
+      const blocked = await tool.execute(
+        {
+          academy: { webSearchEnabled: true },
+          user: { auth: "member" },
+          registration: { role: "teacher" },
+          searchWeb: async () => {
+            throw new Error("should not search");
+          },
+        },
+        { query: `${phone} ${email}` }
+      );
+      expect(blocked.error).toBe("INVALID_INPUT");
+      expect(JSON.stringify(blocked)).not.toContain(phone);
+      expect(JSON.stringify(blocked)).not.toContain(email);
+
+      const result = await tool.execute(
+        {
+          academy: { webSearchEnabled: true },
+          user: { auth: "member" },
+          registration: { role: "teacher" },
+          searchWeb: async ({ query }) => {
+            seen = query;
+            return {
+              ok: true,
+              results: [
+                { title: "평문", url: "http://example.com/a", snippet: phone },
+                { title: "안내", url: "https://example.com/a", snippet: `맑음 ${phone}` },
+                { title: "안내", url: "https://example.com/a" },
+                { title: "   ", url: "https://example.com/b" },
+                { title: "길다", url: `https://example.com/${"c".repeat(500)}` },
+              ],
+            };
+          },
+        },
+        { query: `홍길동 ${phone} ${email} 오늘 날씨` }
+      );
+      expect(seen).toBe("홍길동 오늘 날씨");
+      expect(result.auditQuery).toBe("홍길동 오늘 날씨");
+      expect(result.results.map((hit) => hit.url)).toEqual(["https://example.com/a", "https://example.com/b"]);
+      expect(result.links.map((link) => link.title)).toEqual(["안내", "출처"]);
+      expect(result.summary).toBe("검색 결과: 안내 출처");
+      const packed = JSON.stringify(result);
+      expect(packed).not.toContain(phone);
+      expect(packed).not.toContain(email);
+      expect(packed).not.toContain("http://");
+      expect(lines.join("\n")).toContain("alter web_search audit 홍길동 오늘 날씨");
+      expect(lines.join("\n")).not.toContain(phone);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });

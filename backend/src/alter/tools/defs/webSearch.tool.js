@@ -34,6 +34,30 @@ const stopped = (summary, error, extra = {}) => ({
   ...extra,
 });
 
+const httpsHit = (hit) => {
+  const url = String(hit?.url || "").trim();
+  if (!/^https:\/\/\S+$/i.test(url) || url.length > 500) return null;
+  const title = String(hit?.title || "").replace(/\s+/g, " ").trim().slice(0, 40) || "출처";
+  return {
+    title,
+    url,
+    snippet: String(hit?.snippet || "").replace(/\s+/g, " ").trim().slice(0, 240),
+  };
+};
+
+const publicHits = (rows) => {
+  const hits = [];
+  const seen = new Set();
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const hit = httpsHit(row);
+    if (!hit || seen.has(hit.url)) continue;
+    seen.add(hit.url);
+    hits.push(hit);
+    if (hits.length >= 5) break;
+  }
+  return hits;
+};
+
 const audited = (query, extra = {}) => {
   const usage = asUsage(extra.usage);
   return {
@@ -97,16 +121,14 @@ export default defineTool({
         return stopped("웹 검색이 끝나기 전에 중단되어 출처를 가져오지 못했습니다.", "TOOL_ERROR", trail);
       }
       if (!result?.ok) return stopped(FAILED, "PROVIDER_ERROR", trail);
-      const results = Array.isArray(result.results) ? result.results.slice(0, 5) : [];
+      const results = publicHits(result.results);
       const usage = asUsage(result.usage);
-      const titles = results.map((hit) => hit.title || "").filter(Boolean).join(" ");
-      const links = results
-        .filter((hit) => typeof hit.url === "string")
-        .map((hit) => ({
-          kind: "web",
-          title: String(hit.title || "출처").slice(0, 40),
-          path: hit.url,
-        }));
+      const titles = results.map((hit) => hit.title).filter(Boolean).join(" ");
+      const links = results.map((hit) => ({
+        kind: "web",
+        title: hit.title,
+        path: hit.url,
+      }));
       return {
         summary: titles ? `검색 결과: ${titles}` : "해당하는 공개 검색 결과가 없습니다.",
         results,

@@ -314,6 +314,7 @@ describe("runAlterAgent", () => {
   test("disabled hints follow the runner and the flag, including an academy admin", async () => {
     const capture = async (mode, academy) => {
       let system = "";
+      let names = [];
       await runAlterAgent({
         ctx: {
           academy,
@@ -326,30 +327,40 @@ describe("runAlterAgent", () => {
         provider: {
           async generate(turn) {
             system = turn.systemInstruction || "";
+            names = (turn.tools || []).map((tool) => tool.name);
             return { text: "확인했습니다.", toolCalls: [], usage: usage(1) };
           },
         },
       });
-      return system;
+      return { system, names };
     };
 
-    const off = await capture("chat", { webSearchEnabled: false, imageGenEnabled: false });
-    expect(off).toContain("웹 검색은 꺼져 있습니다.");
-    expect(off).toContain("이미지 생성은 꺼져 있습니다.");
-    expect(off).not.toContain("web_search를 호출");
-    expect(off).not.toContain("generate_image를 호출");
+    for (const mode of ["chat", "schedule", "event"]) {
+      const off = await capture(mode, { webSearchEnabled: false, imageGenEnabled: false });
+      expect(off.system).toContain("웹 검색은 꺼져 있습니다.");
+      expect(off.system).toContain("이미지 생성은 꺼져 있습니다.");
+      expect(off.system).not.toContain("예약과 이벤트에서는 이미지를 만들지 않습니다.");
+      expect(off.system).not.toContain("web_search를 호출");
+      expect(off.system).not.toContain("generate_image를 호출");
+      expect(off.names).not.toContain("web_search");
+      expect(off.names).not.toContain("generate_image");
+    }
 
     for (const mode of ["schedule", "event"]) {
-      const system = await capture(mode, { webSearchEnabled: false, imageGenEnabled: true });
-      expect(system).toContain("웹 검색은 꺼져 있습니다.");
-      expect(system).toContain("예약과 이벤트에서는 이미지를 만들지 않습니다.");
-      expect(system).not.toContain("generate_image를 호출");
+      const blocked = await capture(mode, { webSearchEnabled: true, imageGenEnabled: true });
+      expect(blocked.system).not.toContain("웹 검색은 꺼져 있습니다.");
+      expect(blocked.system).toContain("web_search를 호출");
+      expect(blocked.system).toContain("예약과 이벤트에서는 이미지를 만들지 않습니다.");
+      expect(blocked.system).not.toContain("generate_image를 호출");
+      expect(blocked.names).toContain("web_search");
+      expect(blocked.names).not.toContain("generate_image");
     }
 
     const chatOn = await capture("chat", { webSearchEnabled: true, imageGenEnabled: true });
-    expect(chatOn).not.toContain("웹 검색은 꺼져 있습니다.");
-    expect(chatOn).toContain("web_search를 호출");
-    expect(chatOn).toContain("generate_image를 호출");
+    expect(chatOn.system).not.toContain("웹 검색은 꺼져 있습니다.");
+    expect(chatOn.system).toContain("web_search를 호출");
+    expect(chatOn.system).toContain("generate_image를 호출");
+    expect(chatOn.names).toEqual(expect.arrayContaining(["web_search", "generate_image"]));
   });
 
   test("a skill tool list does not inherit chat capability hints", async () => {

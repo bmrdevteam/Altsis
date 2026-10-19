@@ -1,5 +1,5 @@
-import { runProviderWebSearch } from "../webSearch.js";
 import { runAlterWebSearch } from "../../../services/alterWebSearch.js";
+import { runProviderWebSearch } from "../webSearch.js";
 
 const jsonResponse = (body, status = 200) => ({
   ok: status >= 200 && status < 300,
@@ -331,6 +331,136 @@ describe("provider web search", () => {
       { title: "randombasis.com", url: "https://randombasis.com/guide", snippet: "" },
     ]);
     expect(JSON.stringify(result)).not.toContain("검색 결과가 없습니다");
+  });
+
+  test("mixed, duplicate, blank, and empty source lists keep only usable https rows", async () => {
+    const longUrl = `https://example.com/${"b".repeat(500)}`;
+    const mixed = await runProviderWebSearch({
+      provider: "openai",
+      apiKey: "sk-test-secret-value",
+      model: "gpt-4o-mini",
+      query: "오늘 날씨",
+      fetchImpl: async () =>
+        jsonResponse({
+          status: "completed",
+          output: [
+            {
+              type: "message",
+              content: [
+                {
+                  type: "output_text",
+                  text: "맑음입니다. 본문 속 https://example.com/secret 는 출처가 아닙니다.",
+                  annotations: [
+                    {
+                      type: "url_citation",
+                      url: "https://example.com/a",
+                      title: "안내",
+                      start_index: 0,
+                      end_index: 2,
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              type: "web_search_call",
+              action: {
+                type: "search",
+                sources: [
+                  { type: "url", url: "https://example.com/a", title: "다른제목" },
+                  { type: "url", url: "https://example.com/a" },
+                  { type: "url", url: "http://example.com/no" },
+                  { type: "url", url: longUrl },
+                  { type: "url", url: "https://example.com/b", title: "   " },
+                  { type: "url", url: "not-a-url" },
+                  { type: "url", url: "https://example.com/c" },
+                  { type: "url", url: "https://example.com/d" },
+                  { type: "url", url: "https://example.com/e" },
+                  { type: "url", url: "https://example.com/f" },
+                ],
+              },
+            },
+          ],
+          usage: { input_tokens: 10, output_tokens: 4, total_tokens: 14 },
+        }),
+    });
+    expect(mixed.ok).toBe(true);
+    expect(mixed.results).toEqual([
+      { title: "안내", url: "https://example.com/a", snippet: "맑음" },
+      { title: "example.com", url: "https://example.com/b", snippet: "" },
+      { title: "example.com", url: "https://example.com/c", snippet: "" },
+      { title: "example.com", url: "https://example.com/d", snippet: "" },
+      { title: "example.com", url: "https://example.com/e", snippet: "" },
+    ]);
+    expect(JSON.stringify(mixed)).not.toContain("secret");
+    expect(JSON.stringify(mixed)).not.toContain("http://");
+
+    const empty = await runProviderWebSearch({
+      provider: "openai",
+      apiKey: "sk-test-secret-value",
+      query: "오늘 날씨",
+      fetchImpl: async () =>
+        jsonResponse({
+          status: "completed",
+          output: [
+            { type: "web_search_call", action: { type: "search", sources: [] } },
+            {
+              type: "message",
+              content: [
+                {
+                  type: "output_text",
+                  text: "see https://example.com/secret",
+                  annotations: [],
+                },
+              ],
+            },
+          ],
+          usage: { input_tokens: 14000, output_tokens: 1000, total_tokens: 15000 },
+        }),
+    });
+    expect(empty).toMatchObject({ ok: true, results: [] });
+    expect(empty.usage.totalTokens).toBe(15000);
+    expect(JSON.stringify(empty)).not.toContain("secret");
+  });
+
+  test("the token budget keeps a citation and rejects an empty overrun", async () => {
+    const kept = await runProviderWebSearch({
+      provider: "openai",
+      apiKey: "sk-test-secret-value",
+      query: "오늘 날씨",
+      fetchImpl: async () =>
+        jsonResponse({
+          status: "completed",
+          output: [
+            {
+              type: "web_search_call",
+              action: { type: "search", sources: [{ type: "url", url: "https://example.com/a" }] },
+            },
+          ],
+          usage: { input_tokens: 14000, output_tokens: 1001, total_tokens: 15001 },
+        }),
+    });
+    expect(kept.ok).toBe(true);
+    expect(kept.results).toEqual([{ title: "example.com", url: "https://example.com/a", snippet: "" }]);
+    expect(kept.usage.totalTokens).toBe(15001);
+
+    const httpOnly = await runProviderWebSearch({
+      provider: "openai",
+      apiKey: "sk-test-secret-value",
+      query: "오늘 날씨",
+      fetchImpl: async () =>
+        jsonResponse({
+          status: "incomplete",
+          output: [
+            {
+              type: "web_search_call",
+              action: { type: "search", sources: [{ type: "url", url: "http://example.com/a" }] },
+            },
+          ],
+          usage: { input_tokens: 20, output_tokens: 4, total_tokens: 24 },
+        }),
+    });
+    expect(httpOnly).toMatchObject({ ok: false, error: "TOOL_ERROR", results: [] });
   });
 
   test("a provider error does not echo the key", async () => {

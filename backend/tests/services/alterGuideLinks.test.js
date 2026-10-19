@@ -114,4 +114,14 @@ describe("normalizeAlterGuideLinks", () => {
       { kind: "web", title: "공공 날씨 안내", path: "https://example.com/weather" },
     ]);
   });
+
+  test("빈 제목, 공백이 섞인 주소, 너무 긴 주소는 빠진다", () => {
+    const out = normalizeAlterGuideLinks([
+      { kind: "web", title: "   ", path: "https://example.com/blank" },
+      { kind: "web", title: "안내", path: "https://example.com/a b" },
+      { kind: "web", title: "길다", path: `https://example.com/${"a".repeat(500)}` },
+      { kind: "web", title: "남음", path: "https://example.com/keep" },
+    ]);
+    expect(out).toEqual([{ kind: "web", title: "남음", path: "https://example.com/keep" }]);
+  });
 });

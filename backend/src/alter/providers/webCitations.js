@@ -63,8 +63,9 @@ export const citationsFromOpenAISources = (json, limit = MAX_WEB_RESULTS) => {
     if (!Array.isArray(sources)) continue;
     for (const source of sources) {
       if (source?.type && source.type !== "url") continue;
+      const titled = clip(source?.title, WEB_TITLE_MAX);
       pushHit(hits, seen, cap, {
-        title: source?.title || hostLabel(source?.url),
+        title: titled || hostLabel(source?.url),
         url: source?.url,
         snippet: "",
       });
