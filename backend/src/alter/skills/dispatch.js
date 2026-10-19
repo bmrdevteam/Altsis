@@ -5,6 +5,7 @@
 
 import { issueConfirmation, publicConfirmation, redeemConfirmation } from "../core/confirmation.js";
 import { planDispatch } from "../policy/dispatchPlan.js";
+import { recordSkillAudit, resetAuditPort } from "./auditPort.js";
 import { getCapability } from "./catalog.js";
 
 const executors = new Map();
@@ -25,6 +26,7 @@ export const resetDispatchState = () => {
   executors.clear();
   memory.clear();
   port = null;
+  resetAuditPort();
 };
 
 const saveRecord = async (academyId, record) => {
@@ -40,6 +42,10 @@ const loadRecord = async (academyId, id) => {
 
 const actorIdOf = (ctx) => String(ctx?.user?._id || ctx?.user?.id || "");
 const schoolIdOf = (ctx) => String(ctx?.school?._id || ctx?.schoolId || "");
+
+const noteDispatch = async (entry) => {
+  await recordSkillAudit(entry);
+};
 
 const proposalText = (capability, stage) => {
   const title = capability?.title || "초안";
@@ -63,7 +69,7 @@ const issue = async ({ academyId, ctx, skillId, stage, request, summary, title, 
   return publicConfirmation(record, { title, summary });
 };
 
-const runExecutor = async ({ academyId, ctx, capability, request }) => {
+const runExecutor = async ({ academyId, ctx, capability, request, role }) => {
   const exec = executors.get(capability.id);
   if (!exec) {
     return {
@@ -91,9 +97,22 @@ const runExecutor = async ({ academyId, ctx, capability, request }) => {
     request,
     summary,
     title: capability.title,
-    payload: { request },
+    payload: { request, role: role || "" },
   });
   const draft = result?.draft ? { ...result.draft, confirmationId: card.id } : null;
+  await noteDispatch({
+    academyId,
+    userId: actorIdOf(ctx),
+    role: role || "",
+    skillId: capability.id,
+    kind: capability.kind,
+    decision: "execute",
+    reasonCode: "ALLOW",
+    confirmationId: card.id,
+    conversationId: ctx?.conversationId || "",
+    costEstimate: capability.costTier === "high" ? 1 : 0,
+    query: request,
+  });
   return {
     text: summary,
     draft,
@@ -125,6 +144,16 @@ export const dispatchTurn = async ({ skillId, request, skillGate, ctx, academyId
     capability,
   });
   if (plan.decision === "deny") {
+    await noteDispatch({
+      academyId: academy,
+      userId: actorIdOf(ctx),
+      role: skillGate?.actor?.role || "",
+      skillId: id,
+      kind: capability.kind,
+      decision: "deny",
+      reasonCode: plan.reasonCode,
+      query: String(request || ctx?.message || ""),
+    });
     return {
       text: plan.userMessage,
       draft: null,
@@ -146,13 +175,33 @@ export const dispatchTurn = async ({ skillId, request, skillGate, ctx, academyId
       title: capability.title,
       payload: {
         request: asked,
+        role: skillGate?.actor?.role || "",
         seasonId: ctx?.seasonId || "",
         pageContext: ctx?.pageContext || null,
       },
     });
+    await noteDispatch({
+      academyId: academy,
+      userId: actorIdOf(ctx),
+      role: skillGate?.actor?.role || "",
+      skillId: id,
+      kind: capability.kind,
+      decision: "propose",
+      reasonCode: plan.stage,
+      confirmationId: card.id,
+      conversationId: ctx?.conversationId || "",
+      costEstimate: capability.costTier === "high" ? 1 : 0,
+      query: asked,
+    });
     return { text, draft: null, confirmation: card, executed: false };
   }
-  return runExecutor({ academyId: academy, ctx, capability, request: asked });
+  return runExecutor({
+    academyId: academy,
+    ctx,
+    capability,
+    request: asked,
+    role: skillGate?.actor?.role || "",
+  });
 };
 
 /**
@@ -169,8 +218,21 @@ export const redeemDispatch = async ({
   const redeemed = redeemConfirmation(record, { actorId, action });
   if (!redeemed.ok) return redeemed;
   await saveRecord(academyId, redeemed.next);
-  if (action === "cancel") return { ok: true, cancelled: true, skillId: record.skillId };
-  if (action === "apply") return { ok: true, applied: true, skillId: record.skillId };
+  if (action === "cancel" || action === "apply") {
+    await noteDispatch({
+      academyId,
+      userId: actorId,
+      role: record.payload?.role || "",
+      skillId: record.skillId,
+      kind: getCapability(record.skillId)?.kind || "",
+      decision: action,
+      reasonCode: action === "apply" ? "APPLY" : "CANCEL",
+      confirmationId: record.id,
+      query: record.request,
+    });
+    if (action === "cancel") return { ok: true, cancelled: true, skillId: record.skillId };
+    return { ok: true, applied: true, skillId: record.skillId };
+  }
   const capability = getCapability(record.skillId);
   if (!capability) return { ok: false, code: "NOT_FOUND", message: "스킬을 찾을 수 없습니다." };
   const ctx = {
@@ -185,6 +247,7 @@ export const redeemDispatch = async ({
     ctx,
     capability,
     request: record.request,
+    role: record.payload?.role || "",
   });
   if (!ran.executed) {
     return { ok: false, code: "NO_EXECUTOR", message: ran.text };

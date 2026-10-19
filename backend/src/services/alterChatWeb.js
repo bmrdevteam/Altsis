@@ -4,6 +4,7 @@
  */
 
 import { actorFromAlterCtx, evaluateSkillAccess, flagsFromAcademy } from "../alter/policy/skillGate.js";
+import { recordSkillAudit } from "../alter/skills/auditPort.js";
 import webSearch from "../alter/tools/defs/webSearch.tool.js";
 
 export const asksPublicWeb = (message) => {
@@ -31,6 +32,16 @@ export const runChatWeb = async ({
     flags,
     capability: webSearch.meta,
     phase: "execute",
+  });
+  await recordSkillAudit({
+    academyId,
+    userId: String(user?._id || ""),
+    role: actor.role,
+    skillId: "web_search",
+    kind: "read",
+    decision: access.decision === "allow" ? "execute" : "deny",
+    reasonCode: access.reasonCode,
+    query: message,
   });
   if (access.decision !== "allow") {
     return { handled: true, text: access.userMessage, links: [] };

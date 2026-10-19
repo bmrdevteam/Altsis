@@ -1,7 +1,7 @@
 # Alter 스킬 전수 조사 (0단계)
 
 - 기준: `cursor/alter-n4-followup-1f65` 위 코드
-- 상태: 1단계 게이트가 읽는 분류. form-draft는 2단계 디스패치와 확인 카드를 탄다. 나머지 작성형 실행은 아직 기존 HTTP 경로다.
+- 상태: 1~3단계 게이트와 디스패치가 읽는 분류. 예약·이벤트 러너도 같은 게이트를 타고, 감사 로그는 학년도 보존과 열람 API가 있다.
 - 기계가 읽는 목록: `backend/src/alter/skills/catalog.js`와 각 `defineTool` / `defineSkill`의 `meta`
 - 문서를 따로 둔 이유: 원인 메모(P-1~P-4), 역할 매핑, 학생 권한, 감사 로그처럼 실행 메타데이터가 아닌 조사 결과가 있다. 허용 판단에 쓰는 필드(kind, channel, 역할, 플래그, 확인, 학생 허용)는 코드가 기준이다.
 
@@ -62,7 +62,7 @@ staff·teacher = owner, admin, manager, 학기 교사.
 | form-draft | draft | owner, admin, manager | before_apply | 아니오 | form-editor |
 | assessment-grade | draft | staff·teacher | before_apply | 아니오 | assessment-grade |
 
-`executeFormDraftSkill`은 아직 `user.auth`가 admin 또는 manager일 때만 실행한다. owner는 레지스트리에는 있고, HTTP 실행 함수에는 아직 없다. 2단계에서 게이트로 맞춘다.
+`executeFormDraftSkill`은 owner, admin, manager가 실행한다. 교사와 학생은 거부된다.
 
 칩 `chat`과 `agent`는 스킬 제한이 아니다. `search` 칩은 `search_school_data`를 쓰는 기존 검색 러너다.
 
@@ -91,22 +91,22 @@ staff·teacher = owner, admin, manager, 학기 교사.
 
 `academyAiFlags.js`의 키는 `alterEventTriggersEnabled`, `webSearchEnabled`, `imageGenEnabled`다. 기본은 꺼짐. owner만 값을 바꾼다. 읽기 게이트는 플래그를 역할보다 먼저 보고, 꺼져 있으면 owner도 거부한다.
 
-학년도 시작일을 학원 설정으로 둔 필드는 없다. `Season.year`는 표시용이다. 감사 로그 만료는 학년도가 없으면 3월 1일을 경계로 계산한다 (`core/auditRetention.js`).
+학년도 시작일을 학원 설정으로 둔 필드는 없다. `Season.year`는 표시용이다. 감사 로그 만료는 학년도가 없으면 3월 1일을 경계로 계산한다 (`core/auditRetention.js`). 플래그가 꺼진 안내에는 「학원 소유자가 AI 설정에서 켤 수 있습니다」가 들어간다.
 
-## 감사 로그 (Q7, 설계만)
+## 감사 로그 (Q7)
 
-전용 감사 컬렉션은 없다. AI 사용량은 `logAIUsage`, 웹 검색은 마스킹된 검색어만 로그에 남긴다. 원문 프롬프트는 남기지 않는다.
+학원별 `AlterAuditLog`에 제안, 허용, 거부, 실행, 반영, 취소, 열람을 남긴다. 원문 프롬프트와 모델 응답은 저장하지 않고, 검색어는 마스킹한다. `expiresAt`은 기록이 생긴 학년도의 다음 학년도가 끝나는 시각이고, Mongo TTL(`expireAfterSeconds: 0`)과 매일 03:15 UTC 삭제가 그 시각이 지난 문서를 지운다.
 
-보존·열람 필드는 `core/auditRetention.js`에 있다. 2026학년도 기록은 2027학년도가 끝나는 시점(기본 2028-02-29)에 만료된다. owner는 전체, admin은 자기 학원 요약(비용 추정 제외), manager 이하는 열람 없음. 삭제 배치와 열람 API는 4단계다.
+`GET /api/ai/alter/audits`가 열람이다. owner는 전체 학원과 비용 추정을 보고, admin은 자기 학원의 요약 필드만 본다. manager 이하는 403이다. 다운로드 경로는 없다. 열람 자체는 `decision=view`로 남고, 그 조회의 응답에는 방금 쓴 열람 기록이 들어가지 않는다. 응답의 `metrics`는 스킬별 호출 수, 거부 수, 거부율이고, owner에게만 비용 합계가 있다. 마지막 삭제 건수는 `metrics.purged`다.
 
 ## P-1 ~ P-4
 
 | # | 원인 | 이번 처리 |
 |---|---|---|
-| P-1 | 에이전트 모드에는 작성형 디스패치가 없다. 양식 칩은 `executeFormDraftSkill`로 따로 간다. | 2단계. 메타데이터만 등록 |
+| P-1 | 에이전트 모드에는 작성형 디스패치가 없다. 양식 칩은 `executeFormDraftSkill`로 따로 간다. | 칩이 없으면 제안 카드, 칩이 있으면 바로 미리보기. 확인 없이 반영하지 않는다 |
 | P-2 | 스킬 id로 도구를 좁히는 코드가 eval의 `executeTurn`에만 있었다. 라이브 `runChatAgent`는 도구 전체를 넘겼다. | 라이브와 eval 채팅이 `runners/chat` → `prepareGatedTurn` → `evaluateSkillAccess`를 같이 쓴다 |
 | P-3 | 대화 목록은 저장되지만 열린 id는 React state뿐이었다. | 브라우저 저장 + `PUT/GET /ai/alter/conversations/active` |
-| P-4 | 챗봇 칩은 도구가 없는 LLM 턴이다. 웹 검색 도구는 에이전트 목록에만 있고, 플래그가 꺼지면 그 목록에서도 빠진다. 플래그 미적용이 아니다. | 챗봇에 웹 검색을 붙이는 일은 3단계. 1단계는 에이전트 경로의 플래그 거부를 owner까지 맞춘다 |
+| P-4 | 챗봇 칩은 도구가 없는 LLM 턴이다. 웹 검색 도구는 에이전트 목록에만 있고, 플래그가 꺼지면 그 목록에서도 빠진다. 플래그 미적용이 아니다. | 챗봇의 웹·날씨·뉴스 질문은 같은 읽기 게이트를 탄 뒤 검색 결과를 답변 맥락에 붙인다. 플래그가 꺼지면 검색하지 않고 꺼짐 안내를 반환한다 |
 
 ## 확인 카드
 

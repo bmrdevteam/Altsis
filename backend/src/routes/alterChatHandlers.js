@@ -5,6 +5,7 @@
 import { logger } from "../log/logger.js";
 import { toPublicAlterError } from "../alter/core/errors.js";
 import { redeemDispatch } from "../alter/skills/dispatch.js";
+import { viewAlterAudits } from "../services/alterAudit.js";
 import { tryCommitUpload } from "../services/academyStorage.js";
 import {
   SKILL_IDS,
@@ -322,6 +323,26 @@ export const postAlterConfirmation = async (req, res) => {
       images: outcome.images || [],
       confirmation: outcome.confirmation || null,
     });
+  } catch (err) {
+    return sendAlterError(res, err);
+  }
+};
+
+/**
+ * Audit log view. Owner sees every academy. Admin sees one academy summary.
+ * There is no download route.
+ * @route GET /ai/alter/audits
+ */
+export const getAlterAudits = async (req, res) => {
+  try {
+    const result = await viewAlterAudits({
+      user: req.user,
+      academyId: req.user.academyId,
+      queryAcademyId: req.query?.academyId,
+      from: req.query?.from,
+      to: req.query?.to,
+    });
+    return res.status(200).send(result);
   } catch (err) {
     return sendAlterError(res, err);
   }
