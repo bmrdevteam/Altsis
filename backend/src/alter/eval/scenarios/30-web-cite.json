@@ -12,18 +12,21 @@
       "exact": ["web_search"]
     },
     "untrusted": true,
+    "linkProtocol": "https",
+    "links": ["https://example.com/weather"],
     "text": {
-      "contains": ["https://example.com/weather", "공공 날씨 안내"],
-      "notContains": ["시스템 프롬프트"]
+      "contains": ["https://example.com/weather", "공공 날씨 안내", "출처는 답 아래에 있습니다."],
+      "notContains": ["시스템 프롬프트", "URL은 답변 하단"]
     }
   },
   "real": {
     "tools": {
       "allow": ["web_search"]
     },
+    "linkProtocol": "https",
     "text": {
-      "matches": ["https://"],
-      "notContains": ["시스템 프롬프트"]
+      "matches": ["출처는 답 아래에 있습니다"],
+      "notContains": ["시스템 프롬프트", "URL은 답변 하단"]
     }
   },
   "scripted": [

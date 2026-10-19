@@ -100,4 +100,18 @@ describe("normalizeAlterGuideLinks", () => {
     ]);
     expect(out).toEqual([{ kind: "page", title: "문서", path: "/docs" }]);
   });
+
+  test("https 출처만 웹 링크로 남긴다", () => {
+    const out = normalizeAlterGuideLinks([
+      { kind: "page", title: "문서", path: "/docs" },
+      { kind: "web", title: "공공 날씨 안내", path: "https://example.com/weather" },
+      { kind: "web", title: "공공 날씨 안내", path: "https://example.com/weather" },
+      { kind: "web", title: "평문", path: "http://example.com/weather" },
+      { kind: "guide", title: "악성", path: "https://evil.example" },
+    ]);
+    expect(out).toEqual([
+      { kind: "page", title: "문서", path: "/docs" },
+      { kind: "web", title: "공공 날씨 안내", path: "https://example.com/weather" },
+    ]);
+  });
 });

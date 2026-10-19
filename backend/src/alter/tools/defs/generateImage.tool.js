@@ -61,8 +61,12 @@ export default defineTool({
   promptHints: [
     "차트나 도식처럼 새 그림이 필요할 때만 generate_image를 호출하세요. 학사 데이터는 search_school_data, 제품 안내는 search_product_guide입니다.",
     "prompt에는 그림 설명만 적으세요. 학생 이름, 얼굴, 연락처, 성적, 실존 인물은 넣지 마세요. 실존하는 사람의 그림은 거절됩니다.",
-    "결과의 url이 만든 그림입니다. 답에는 그 주소만 적고, 결과에 없는 주소는 만들지 마세요.",
+    "결과의 그림은 화면에 붙습니다. 답에는 그림 설명만 적고, 결과에 없는 주소는 만들지 마세요.",
   ],
+  disabledHint: (deps = {}) =>
+    deps.imageGenRequested === true
+      ? "예약과 이벤트에서는 이미지를 만들지 않습니다. 그림 요청은 거절하세요."
+      : "그림이나 차트를 만들어 달라면 다른 도구로 대신 찾지 마세요. 이미지 생성은 꺼져 있습니다. 학원 소유자가 AI 설정에서 켤 수 있습니다.",
   include: (deps = {}) => deps.imageGenEnabled === true,
   async handler(ctx, rawArgs = {}) {
     if (ctx?.mode && ctx.mode !== "chat") return stopped(BLOCKED, "FORBIDDEN");

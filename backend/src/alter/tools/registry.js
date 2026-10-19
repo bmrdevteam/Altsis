@@ -39,6 +39,15 @@ const asObject = (raw) => (raw && typeof raw === "object" && !Array.isArray(raw)
 
 export const listTools = () => TOOLS.slice();
 
+/** Hints for capabilities that are not in the tool list. The loop prints them as-is. */
+export const disabledCapabilityHints = (deps = {}) =>
+  TOOLS.flatMap((tool) => {
+    if (tool.include(deps)) return [];
+    const hint = typeof tool.disabledHint === "function" ? tool.disabledHint(deps) : tool.disabledHint;
+    const text = String(hint || "").trim();
+    return text ? [text] : [];
+  });
+
 export const getTool = (name) => byName.get(name) || null;
 
 /**

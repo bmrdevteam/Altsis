@@ -113,6 +113,26 @@ describe("alter tool contract", () => {
     expect(packed).not.toContain(email);
     expect(packed).toContain("무시");
 
+    const deleted = await tool.execute(
+      {
+        triggerEvents: [
+          {
+            type: "form_submitted",
+            title: "출석 이상 보고",
+            excerpt: "비밀 본문",
+            unavailable: true,
+          },
+        ],
+      },
+      {}
+    );
+    const deletedPacked = JSON.stringify(deleted);
+    expect(deleted.summary).toContain("삭제되어 본문이 없는 항목");
+    expect(deleted.events[0].status).toBe("삭제되어 본문을 볼 수 없습니다");
+    expect(deleted.events[0].title).toBe("출석 이상 보고");
+    expect(deleted.events[0].excerpt).toBeUndefined();
+    expect(deletedPacked).not.toContain("비밀 본문");
+
     const huge = await tool.execute({
       triggerEvents: [{ title: `${phone}${"가".repeat(MAX_TOOL_RESULT_CHARS)}`, excerpt: email }],
     });

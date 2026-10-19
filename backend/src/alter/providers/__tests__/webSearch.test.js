@@ -113,6 +113,74 @@ describe("provider web search", () => {
     }
   });
 
+  test("a reasoning model asks for sources with a low effort and a higher output cap", async () => {
+    let body = null;
+    await runProviderWebSearch({
+      provider: "openai",
+      apiKey: "sk-test-secret-value",
+      model: "gpt-5.6-luna",
+      query: "오늘 날씨",
+      fetchImpl: async (_url, init) => {
+        body = JSON.parse(init.body);
+        return jsonResponse({
+          status: "completed",
+          output: [
+            {
+              type: "message",
+              content: [
+                {
+                  type: "output_text",
+                  text: "오늘은 맑습니다. 출처는 공공 날씨 안내입니다.",
+                  annotations: [
+                    {
+                      type: "url_citation",
+                      url: "https://example.com/weather",
+                      title: "공공 날씨 안내",
+                      start_index: 14,
+                      end_index: 19,
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+          usage: { input_tokens: 40, output_tokens: 20, total_tokens: 60 },
+        });
+      },
+    }).then((result) => {
+      expect(body.reasoning).toEqual({ effort: "low" });
+      expect(body.max_output_tokens).toBe(4096);
+      expect(body.tools[0].search_context_size).toBe("low");
+      expect(body.input).toContain("출처");
+      expect(result.results[0]).toMatchObject({
+        title: "공공 날씨 안내",
+        url: "https://example.com/weather",
+        snippet: "공공 날씨",
+      });
+    });
+  });
+
+  test("an incomplete search with no citations is a tool error and keeps the key out", async () => {
+    const key = "sk-test-secret-value";
+    const result = await runProviderWebSearch({
+      provider: "openai",
+      apiKey: key,
+      model: "gpt-5.6-luna",
+      query: "오늘 날씨",
+      fetchImpl: async () =>
+        jsonResponse({
+          status: "incomplete",
+          output: [{ type: "reasoning" }],
+          usage: { input_tokens: 28000, output_tokens: 800, total_tokens: 28800 },
+        }),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.error).toBe("TOOL_ERROR");
+    expect(result.results).toEqual([]);
+    expect(result.usage.totalTokens).toBe(28800);
+    expect(JSON.stringify(result)).not.toContain(key);
+  });
+
   test("a provider error does not echo the key", async () => {
     const key = "sk-test-secret-value";
     const result = await runProviderWebSearch({

@@ -43,13 +43,21 @@ export const runAlterWebSearch = async ({ ctx = {}, query, limit, countToday } =
     limit,
     fetchImpl: ctx.fetchWeb,
   });
-  if (result?.ok && !result.scripted && academyId && user._id && user.userId && user.userName) {
+  if (
+    !result?.scripted &&
+    result?.usage &&
+    academyId &&
+    user._id &&
+    user.userId &&
+    user.userName
+  ) {
     await logAIUsage(academyId, {
       user,
       provider: ctx.academy?.aiProvider || "unknown",
       model: ctx.academy?.aiModel || "unknown",
       feature: WEB_SEARCH_FEATURE,
-      success: true,
+      success: result.ok === true,
+      errorCode: result.ok ? undefined : result.error,
       tokenUsage: result.usage,
     });
   }

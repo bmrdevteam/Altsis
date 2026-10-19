@@ -1,7 +1,7 @@
 import { asUsage } from "./usage.js";
 
 /** One model turn that called tools, and whether every result was wrapped. */
-export const toolTurn = (names, wrapped, usage) => {
+export const toolTurn = (names, wrapped, usage, auditsIn) => {
   const called = (Array.isArray(names) ? names : [])
     .map((name) => String(name || ""))
     .filter(Boolean);
@@ -15,5 +15,12 @@ export const toolTurn = (names, wrapped, usage) => {
   };
   const counted = asUsage(usage);
   if (counted) turn.usage = counted;
+  const audits = (Array.isArray(auditsIn) ? auditsIn : [])
+    .map((row) => ({
+      name: String(row?.name || ""),
+      query: String(row?.query || "").replace(/\s+/g, " ").trim().slice(0, 200),
+    }))
+    .filter((row) => row.name && row.query);
+  if (audits.length) turn.audits = audits;
   return turn;
 };

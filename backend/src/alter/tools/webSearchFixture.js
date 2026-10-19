@@ -53,6 +53,7 @@ export const runWebSearchCheck = async () => {
   );
   const packed = JSON.stringify({ off, result, seen });
   const query = seen[0] || "";
+  const audit = String(result?.auditQuery || "");
   const leaked =
     offered.includes("web_search") ||
     calledWhileOff ||
@@ -60,7 +61,10 @@ export const runWebSearchCheck = async () => {
     packed.includes(EMAIL) ||
     packed.includes(SNIPPET_PHONE) ||
     query.includes("010") ||
-    query.includes("@");
+    query.includes("@") ||
+    audit !== query ||
+    audit.includes("010") ||
+    audit.includes("@");
   if (leaked || !packed.includes("[연락처]") || !query.includes("오늘 날씨")) {
     return { text: "유출", toolNames: ["web_search"] };
   }

@@ -44,6 +44,75 @@ const scripted = () => {
 };
 
 describe("runAlterAgent", () => {
+  test("a disabled web search tells the user it is off instead of searching school data", async () => {
+    let system = "";
+    await runAlterAgent({
+      ctx: { academy: { webSearchEnabled: false, imageGenEnabled: false } },
+      input: { message: "오늘 서울 날씨를 웹에서 찾아 줘" },
+      mode: "chat",
+      provider: {
+        async generate(turn) {
+          system = turn.systemInstruction || "";
+          return { text: "웹 검색은 꺼져 있습니다.", toolCalls: [], usage: usage(1) };
+        },
+      },
+    });
+    expect(system).toContain("웹 검색은 꺼져 있습니다.");
+    expect(system).toContain("AI 설정");
+    expect(system).toContain("search_school_data");
+    expect(system).not.toContain("web_search를 호출");
+  });
+
+  test("sanitized web query is traced and https sources are attached", async () => {
+    const result = await runAlterAgent({
+      ctx: { academy: { webSearchEnabled: true } },
+      input: { message: "날씨" },
+      mode: "chat",
+      tools: [
+        {
+          name: "web_search",
+          label: "웹 검색",
+          description: "검색",
+          readOnly: true,
+          promptHints: ["제목만"],
+          parameters: { type: "object", properties: { query: { type: "string" } } },
+          async execute() {
+            return {
+              summary: "검색 결과: 공공 날씨 안내",
+              auditQuery: "날씨",
+              links: [{ kind: "web", title: "공공 날씨 안내", path: "https://example.com/weather" }],
+              sourceUrls: ["https://example.com/weather"],
+            };
+          },
+        },
+      ],
+      provider: {
+        async generate({ forceFinal }) {
+          if (!forceFinal) {
+            return {
+              text: "",
+              toolCalls: [{ name: "web_search", arguments: { query: "010-1234-5678 날씨" } }],
+              usage: usage(1),
+            };
+          }
+          return {
+            text: "공공 날씨 안내입니다. URL은 답변 하단에 첨부됩니다.",
+            toolCalls: [],
+            usage: usage(1),
+          };
+        },
+      },
+    });
+    expect(result.trace[0].audits).toEqual([{ name: "web_search", query: "날씨" }]);
+    expect(JSON.stringify(result.trace)).not.toContain("010-1234-5678");
+    expect(result.links).toEqual([
+      { kind: "web", title: "공공 날씨 안내", path: "https://example.com/weather" },
+    ]);
+    expect(result.text).toContain("공공 날씨 안내");
+    expect(result.text).toContain("출처는 답 아래에 있습니다.");
+    expect(result.text).not.toContain("URL은 답변 하단");
+  });
+
   test("web search is offered on every runner only when the academy flag is on", async () => {
     const cases = [
       { mode: "chat", enabled: false },

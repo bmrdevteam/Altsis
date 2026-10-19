@@ -2,6 +2,7 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { buildAgentSystemPrompt } from "../../../services/alterAgentProtocol.js";
 import { createAgentTools } from "../../../services/alterAgentTools.js";
+import { disabledCapabilityHints } from "../registry.js";
 
 const saved = JSON.parse(
   readFileSync(join(process.cwd(), "src/alter/tools/__tests__/prompt-snapshot.json"), "utf8")
@@ -113,6 +114,27 @@ describe("assembled agent prompt", () => {
     });
     expect(web).toContain("web_search");
     expect(web).toContain("학생 이름, 성적, 연락처");
+    expect(web).toContain("제목만");
+    const off = buildAgentSystemPrompt({
+      tools: createAgentTools({}),
+      protocol: "native",
+      disabledHints: disabledCapabilityHints({}),
+    });
+    expect(off).toContain("웹 검색은 꺼져 있습니다.");
+    expect(off).toContain("AI 설정");
+    expect(off).toContain("이미지 생성은 꺼져 있습니다.");
+    expect(off).not.toContain("web_search를 호출");
+    const scheduled = buildAgentSystemPrompt({
+      tools: createAgentTools({ includeScheduleTool: false, imageGenRequested: true, webSearchEnabled: true }),
+      protocol: "native",
+      disabledHints: disabledCapabilityHints({
+        includeScheduleTool: false,
+        imageGenRequested: true,
+        webSearchEnabled: true,
+      }),
+    });
+    expect(scheduled).toContain("예약과 이벤트에서는 이미지를 만들지 않습니다.");
+    expect(scheduled).not.toContain("이미지 생성은 꺼져 있습니다.");
     const image = buildAgentSystemPrompt({
       tools: createAgentTools({ imageGenEnabled: true }),
       protocol: "native",
