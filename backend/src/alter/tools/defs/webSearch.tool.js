@@ -95,10 +95,12 @@ export default defineTool({
   async handler(ctx, rawArgs = {}) {
     if (ctx?.academy?.webSearchEnabled !== true) return stopped(OFF, "FORBIDDEN");
     try {
-      await resolveAlterContext(ctx?.academyId, ctx?.user, ctx?.seasonId, {
-        runner: "event",
-        loaded: ctx || {},
-      });
+      if (ctx?.accessChecked !== true) {
+        await resolveAlterContext(ctx?.academyId, ctx?.user, ctx?.seasonId, {
+          runner: "event",
+          loaded: ctx || {},
+        });
+      }
     } catch (err) {
       logger.error(`alter web_search denied: ${err.code || err.message}`);
       return stopped("권한이 없습니다.", "PERMISSION_DENIED");

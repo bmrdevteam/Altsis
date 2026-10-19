@@ -37,7 +37,7 @@ describe("skill gate", () => {
     expect(denied.reasonCode).toBe("FLAG_OFF");
     expect(denied.nextAction).toBe("enable_flag");
     expect(denied.userMessage).toContain("이미지 생성");
-    expect(denied.userMessage).toContain("학원 설정");
+    expect(denied.userMessage).toContain("학원 소유자가 AI 설정에서 켤 수 있습니다.");
 
     const allowed = evaluateSkillAccess({
       actor: owner,

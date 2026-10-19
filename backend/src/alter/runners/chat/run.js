@@ -21,6 +21,7 @@ const idleResult = (text, extra = {}) => ({
   usage: null,
   trace: [],
   draft: extra.draft || null,
+  images: extra.images || [],
   confirmation: extra.confirmation || null,
 });
 
@@ -40,6 +41,7 @@ export const runChatAgent = (args = {}) =>
         toolNames: dispatched.executed ? ["use_skill"] : [],
         toolSteps: dispatched.executed ? 1 : 0,
         draft: dispatched.draft,
+        images: dispatched.images,
         confirmation: dispatched.confirmation,
       });
     }

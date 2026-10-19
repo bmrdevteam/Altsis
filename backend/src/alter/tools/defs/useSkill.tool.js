@@ -31,7 +31,7 @@ const useSkill = defineTool({
     costTier: "low",
   },
   promptHints: [
-    "시간표·출력 양식 문서를 만들어 달라는 요청이면 use_skill skillId form-draft 를 호출하세요. 읽기 도구로 양식 문서를 대신 만들지 마세요.",
+    "시간표·출력 양식은 use_skill skillId form-draft, 그림·차트·일러스트는 use_skill skillId generate_image 를 호출하세요. 읽기 도구로 그 결과를 대신 만들지 마세요.",
     "request에는 사용자의 요청 문장을 그대로 적으세요. 확인 카드가 돌아오면 같은 스킬을 다시 호출하지 마세요.",
   ],
   include: () => true,

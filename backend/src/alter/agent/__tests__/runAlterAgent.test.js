@@ -159,7 +159,8 @@ describe("runAlterAgent", () => {
       mode: "chat",
       provider: { generate: chat.generate },
     });
-    expect(chat.offered[0]).toContain("generate_image");
+    expect(chat.offered[0]).not.toContain("generate_image");
+    expect(chat.offered[0]).toContain("use_skill");
 
     const executed = [];
     const offered = [];
@@ -359,8 +360,10 @@ describe("runAlterAgent", () => {
     const chatOn = await capture("chat", { webSearchEnabled: true, imageGenEnabled: true });
     expect(chatOn.system).not.toContain("웹 검색은 꺼져 있습니다.");
     expect(chatOn.system).toContain("web_search를 호출");
-    expect(chatOn.system).toContain("generate_image를 호출");
-    expect(chatOn.names).toEqual(expect.arrayContaining(["web_search", "generate_image"]));
+    expect(chatOn.system).toContain("use_skill");
+    expect(chatOn.system).not.toContain("generate_image를 호출");
+    expect(chatOn.names).toEqual(expect.arrayContaining(["web_search", "use_skill"]));
+    expect(chatOn.names).not.toContain("generate_image");
   });
 
   test("a skill tool list does not inherit chat capability hints", async () => {
@@ -802,9 +805,8 @@ describe("runAlterAgent", () => {
       mode: "chat",
       provider,
     });
-    expect(picture.toolNames).toContain("generate_image");
-    expect(picture.images[0].url).toBe("https://example.com/generated/chart.png");
-    expect(picture.text).toContain("https://example.com/generated/chart.png");
+    expect(picture.toolNames).not.toContain("generate_image");
+    expect(picture.text).toContain("이미지 생성은 꺼져 있습니다");
 
     const blocked = await runAlterAgent({
       ctx: {

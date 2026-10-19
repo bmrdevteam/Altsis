@@ -112,9 +112,14 @@ import { logger } from "../log/logger.js";
 /** Set from the route composition root so this file does not import the agent or search. */
 let runRegisteredAgent = null;
 let runRegisteredSearch = null;
+let runRegisteredChatWeb = null;
 
 export const registerAlterAgentRunner = (fn) => {
   runRegisteredAgent = typeof fn === "function" ? fn : null;
+};
+
+export const registerChatWeb = (fn) => {
+  runRegisteredChatWeb = typeof fn === "function" ? fn : null;
 };
 
 export const registerAlterSearchRunner = (fn) => {
@@ -5649,6 +5654,46 @@ ${outputFormat}`;
 /**
  * Alter 한 턴 실행 (Skill 라우팅)
  */
+const DISPATCH_EXECUTORS = {
+  "syllabus-draft": executeSyllabusDraftSkill,
+  "evaluation-draft": executeEvaluationDraftSkill,
+  "archive-draft": executeArchiveDraftSkill,
+  "document-draft": executeDocumentDraftSkill,
+  "document-review": executeDocumentReviewSkill,
+  "form-response-draft": executeFormResponseDraftSkill,
+  "activity-draft": executeActivityDraftSkill,
+  "form-draft": executeFormDraftSkill,
+  "assessment-grade": executeAssessmentGradeSkill,
+};
+
+/** Shared by the chip route and the dispatch confirmation. */
+export const executeDispatchSkill = async ({
+  skillId,
+  academyId,
+  user,
+  seasonId,
+  context,
+  message,
+}) => {
+  const fn = DISPATCH_EXECUTORS[skillId];
+  if (!fn) {
+    const err = new Error("이 스킬 실행기가 아직 연결되지 않았습니다.");
+    err.status = 501;
+    throw err;
+  }
+  const loaded = await assertSeasonAiAccess(academyId, user, seasonId);
+  return fn({
+    academyId,
+    user,
+    academy: loaded.academy,
+    season: loaded.season,
+    school: loaded.school,
+    registration: loaded.registration,
+    context: context || {},
+    message,
+  });
+};
+
 export const runAlterSkill = async ({
   academyId,
   user,
@@ -5996,7 +6041,7 @@ export const runAlterSkill = async ({
         message,
       })
     : [];
-  const systemInstruction = buildAlterChatSystem(
+  let systemInstruction = buildAlterChatSystem(
     { ...chatPromptPack, references: chatReferences },
     context,
     boardTitle,
@@ -6039,6 +6084,32 @@ export const runAlterSkill = async ({
     err.status = 400;
     err.code = FIELD_REQUIRED("message");
     throw err;
+  }
+
+  if (typeof runRegisteredChatWeb === "function") {
+    const web = await runRegisteredChatWeb({
+      academyId,
+      user,
+      academy,
+      season,
+      school,
+      registration,
+      message,
+    });
+    if (web?.handled) {
+      return {
+        skill,
+        text: web.text || "웹 검색을 마치지 못했습니다.",
+        review: null,
+        draft: null,
+        tokenUsage: null,
+        links: web.links || [],
+      };
+    }
+    if (web?.preface) {
+      systemInstruction = `${systemInstruction}\n\n${web.preface}`;
+    }
+    if (Array.isArray(web?.links) && web.links.length) links.push(...web.links);
   }
 
   onEvent?.("step", { message: "Alter가 답변을 준비하고 있습니다..." });

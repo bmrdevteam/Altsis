@@ -33,30 +33,56 @@ import { router as userCalendars } from "./userCalendars.js";
 import { router as test } from "./test.js";
 import {
   assertSeasonAiAccess,
-  executeFormDraftSkill,
+  executeDispatchSkill,
   registerAlterAgentRunner,
   registerAlterSearchRunner,
+  registerChatWeb,
 } from "../services/aiSkills.js";
 import { runChatAgent } from "../alter/runners/chat/run.js";
 import { registerConfirmationPort, registerDispatchExecutor } from "../alter/skills/dispatch.js";
 import { confirmationMongoPort } from "../services/alterConfirmations.js";
+import { runChatWeb } from "../services/alterChatWeb.js";
+import generateImageTool from "../alter/tools/defs/generateImage.tool.js";
 import { subscribeDomainEvents } from "../alter/runners/event/subscribe.js";
 import { getSkill } from "../alter/skills/registry.js";
 import { executeSearchSkill } from "../services/alterSearch.js";
 
 registerAlterAgentRunner(runChatAgent);
+registerChatWeb(runChatWeb);
 registerConfirmationPort(confirmationMongoPort);
-registerDispatchExecutor("form-draft", async ({ academyId, user, seasonId, context, message }) => {
-  const loaded = await assertSeasonAiAccess(academyId, user, seasonId);
-  return executeFormDraftSkill({
-    academyId,
-    user,
-    academy: loaded.academy,
-    season: loaded.season,
-    school: loaded.school,
-    context: context || {},
-    message,
-  });
+for (const skillId of [
+  "syllabus-draft",
+  "evaluation-draft",
+  "archive-draft",
+  "document-draft",
+  "document-review",
+  "form-response-draft",
+  "activity-draft",
+  "form-draft",
+  "assessment-grade",
+]) {
+  registerDispatchExecutor(skillId, (args) => executeDispatchSkill({ ...args, skillId }));
+}
+registerDispatchExecutor("generate_image", async ({ academyId, user, message, seasonId, academy }) => {
+  const loaded = academy || (seasonId ? (await assertSeasonAiAccess(academyId, user, seasonId)).academy : null);
+  if (!loaded) {
+    return { text: "학원 설정을 확인하지 못했습니다.", draft: null, images: [] };
+  }
+  const data = await generateImageTool.handler(
+    {
+      academyId,
+      user,
+      academy: loaded,
+      accessChecked: true,
+      mode: "chat",
+    },
+    { prompt: message }
+  );
+  return {
+    text: data.summary || "이미지를 만들지 못했습니다.",
+    draft: { kind: "image", images: data.images || [] },
+    images: data.images || [],
+  };
 });
 registerAlterSearchRunner(async (args) => {
   const skill = getSkill("school-search");
