@@ -539,6 +539,145 @@ describe("runAlterAgent", () => {
     expect(result.tokenUsage.totalTokens).toBe(124);
   });
 
+  test("an image provider refusal names the status without the key or the prompt", async () => {
+    const key = "sk-test-secret-value";
+    const phone = "010-1234-5678";
+    let calls = 0;
+    let toolPayload = "";
+    const lines = [];
+    const spy = jest.spyOn(logger, "error").mockImplementation((msg) => {
+      lines.push(String(msg));
+    });
+    const tool = createAgentTools({ imageGenEnabled: true }).find((item) => item.name === "generate_image");
+    let asked = false;
+    try {
+      const result = await runAlterAgent({
+        ctx: {
+          academy: { imageGenEnabled: true, aiProvider: "openai", aiApiKey: key, aiModel: "gpt-5.6-luna" },
+          user: { auth: "member" },
+          registration: { role: "teacher" },
+          fetchImage: async () => {
+            calls += 1;
+            return {
+              ok: false,
+              status: 403,
+              text: async () =>
+                JSON.stringify({
+                  error: {
+                    message: `gpt-image-1 denied for ${key}. ${phone}`,
+                    type: "invalid_request_error",
+                    code: "model_not_found",
+                  },
+                }),
+            };
+          },
+        },
+        input: { message: "간단한 막대 차트 그림을 만들어 줘" },
+        mode: "chat",
+        tools: [tool],
+        provider: {
+          async generate({ messages, forceFinal }) {
+            if (!forceFinal && !asked) {
+              asked = true;
+              return {
+                text: "",
+                toolCalls: [{ name: "generate_image", arguments: { prompt: `막대 차트 ${phone}` } }],
+                usage: usage(1),
+              };
+            }
+            const row = messages.find((item) => item.role === "tool");
+            toolPayload = String(row?.content || "");
+            return { text: "막대 차트 이미지 생성에 실패했습니다.", toolCalls: [], usage: usage(1) };
+          },
+        },
+      });
+      expect(calls).toBe(1);
+      expect(toolPayload).toContain("이 학원 키로는 이미지를 만들지 못했습니다");
+      expect(toolPayload).toContain("model_not_found");
+      expect(toolPayload).toContain("403");
+      expect(toolPayload).not.toContain(key);
+      expect(toolPayload).not.toContain(phone);
+      expect(result.trace[0].diagnostics).toEqual([
+        { name: "generate_image", error: "PROVIDER_ERROR", providerCode: "model_not_found", status: 403 },
+      ]);
+      expect(lines.join("\n")).toContain("alter generate_image PROVIDER_ERROR 403 model_not_found");
+      expect(lines.join("\n")).not.toContain(key);
+      expect(lines.join("\n")).not.toContain(phone);
+      expect(result.images).toEqual([]);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  test("a local file bucket reports storage, not image generation, after one provider call", async () => {
+    const key = "sk-test-secret-value";
+    const phone = "010-1234-5678";
+    const previousBucket = process.env.s3_bucket2;
+    process.env.s3_bucket2 = "test-bucket-2";
+    let calls = 0;
+    let toolPayload = "";
+    const lines = [];
+    const spy = jest.spyOn(logger, "error").mockImplementation((msg) => {
+      lines.push(String(msg));
+    });
+    const tool = createAgentTools({ imageGenEnabled: true }).find((item) => item.name === "generate_image");
+    let asked = false;
+    try {
+      const result = await runAlterAgent({
+        ctx: {
+          academy: { imageGenEnabled: true, aiProvider: "openai", aiApiKey: key, aiModel: "gpt-5.6-luna" },
+          user: { auth: "member" },
+          registration: { role: "teacher" },
+          fetchImage: async () => {
+            calls += 1;
+            return {
+              ok: true,
+              status: 200,
+              text: async () =>
+                JSON.stringify({
+                  data: [{ b64_json: Buffer.from("png-bytes").toString("base64") }],
+                  usage: { input_tokens: 20, output_tokens: 274, total_tokens: 294 },
+                }),
+            };
+          },
+        },
+        input: { message: `간단한 막대 차트 ${phone}` },
+        mode: "chat",
+        tools: [tool],
+        provider: {
+          async generate({ messages, forceFinal }) {
+            if (!forceFinal && !asked) {
+              asked = true;
+              return {
+                text: "",
+                toolCalls: [{ name: "generate_image", arguments: { prompt: `막대 차트 ${phone}` } }],
+                usage: usage(1),
+              };
+            }
+            const row = messages.find((item) => item.role === "tool");
+            toolPayload = String(row?.content || "");
+            return { text: "이미지를 만들었지만 저장할 파일 버킷이 없습니다.", toolCalls: [], usage: usage(1) };
+          },
+        },
+      });
+      expect(calls).toBe(1);
+      expect(toolPayload).toContain("저장할 파일 버킷이 없습니다");
+      expect(toolPayload).toContain("local_bucket");
+      expect(toolPayload).not.toContain("이미지 생성에 실패했습니다");
+      expect(toolPayload).not.toContain(key);
+      expect(toolPayload).not.toContain(phone);
+      expect(result.trace[0].diagnostics).toEqual([
+        { name: "generate_image", error: "STORAGE_ERROR", providerCode: "local_bucket" },
+      ]);
+      expect(lines.join("\n")).toContain("alter generate_image STORAGE_ERROR local_bucket");
+      expect(result.images).toEqual([]);
+      expect(result.tokenUsage.totalTokens).toBe(298);
+    } finally {
+      process.env.s3_bucket2 = previousBucket;
+      spy.mockRestore();
+    }
+  });
+
   test("the scripted demo shows the off note, a source link, and an image url", async () => {
     let fetched = false;
     const fetchImpl = async () => {

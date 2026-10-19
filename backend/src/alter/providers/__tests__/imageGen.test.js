@@ -1,4 +1,5 @@
 import { decodeImageBytes, runProviderImage } from "../imageGen.js";
+import { localFileBucket, runAlterImage, storeGeneratedImage } from "../../../services/alterImage.js";
 import { IMAGE_BYTES_MAX } from "../../core/limits.js";
 
 const jsonResponse = (body, status = 200) => ({
@@ -84,6 +85,194 @@ describe("provider image generation", () => {
     expect(seen[0].init.headers.authorization).toBe("Bearer sk-test-secret-value");
     expect(seen[0].init.body).toContain("1024x1024");
     expect(seen[1].init.headers["x-goog-api-key"]).toBe("gem-test-secret-value");
+  });
+
+  test("provider errors keep status and code, and drop the message", async () => {
+    const key = "sk-test-secret-value";
+    const prompt = "막대 차트 010-1234-5678";
+    const cases = [
+      {
+        status: 403,
+        body: {
+          error: {
+            message: `no access to gpt-image-1 for ${key}. prompt ${prompt}`,
+            type: "invalid_request_error",
+            code: "model_not_found",
+          },
+        },
+        expect: { ok: false, error: "PROVIDER_ERROR", status: 403, providerCode: "model_not_found" },
+      },
+      {
+        status: 429,
+        body: {
+          error: {
+            message: `slow down ${key}`,
+            type: "rate_limit_error",
+            code: "rate_limit_exceeded",
+          },
+        },
+        expect: { ok: false, error: "PROVIDER_ERROR", status: 429, providerCode: "rate_limit_exceeded" },
+      },
+      {
+        status: 400,
+        body: {
+          error: {
+            message: `rejected ${prompt}`,
+            type: "invalid_request_error",
+            code: "content_policy_violation",
+          },
+        },
+        expect: { ok: false, error: "PROVIDER_ERROR", status: 400, providerCode: "content_policy_violation" },
+      },
+      {
+        status: 500,
+        body: `upstream ${key}`,
+        json: false,
+        expect: { ok: false, error: "PROVIDER_ERROR", status: 500 },
+      },
+    ];
+    for (const row of cases) {
+      let calls = 0;
+      const result = await runProviderImage({
+        provider: "openai",
+        apiKey: key,
+        prompt,
+        fetchImpl: async () => {
+          calls += 1;
+          return {
+            ok: row.status < 400,
+            status: row.status,
+            text: async () => (row.json === false ? String(row.body) : JSON.stringify(row.body)),
+          };
+        },
+      });
+      expect(calls).toBe(1);
+      expect(result).toEqual(row.expect);
+      const packed = JSON.stringify(result);
+      expect(packed).not.toContain(key);
+      expect(packed).not.toContain("010-1234-5678");
+      expect(packed).not.toContain("upstream");
+      expect(packed).not.toContain("no access");
+    }
+  });
+
+  test("a finished response without image bytes is not fetched again", async () => {
+    const secret = "X-Amz-Signature-secretvalue";
+    let calls = 0;
+    const result = await runProviderImage({
+      provider: "openai",
+      apiKey: "sk-test-secret-value",
+      prompt: "막대 차트",
+      fetchImpl: async () => {
+        calls += 1;
+        return jsonResponse({
+          data: [{ url: `https://cdn.example/img?${secret}` }],
+        });
+      },
+    });
+    expect(calls).toBe(1);
+    expect(result).toEqual({ ok: false, error: "PROVIDER_ERROR", status: 200, providerCode: "url_only" });
+    expect(JSON.stringify(result)).not.toContain(secret);
+  });
+
+  test("a scripted image is returned without storage", async () => {
+    let stored = false;
+    const result = await runAlterImage({
+      ctx: {
+        academy: { aiProvider: "openai", aiApiKey: "scripted-local-dev" },
+        fetchImage: async () => {
+          throw new Error("network");
+        },
+      },
+      prompt: "막대 차트",
+      storeImage: async () => {
+        stored = true;
+        return { ok: false, error: "STORAGE_ERROR" };
+      },
+    });
+    expect(stored).toBe(false);
+    expect(result.scripted).toBe(true);
+    expect(result.url).toBe("https://example.com/generated/chart.png");
+  });
+
+  test("a local placeholder bucket is a storage failure, not another provider call", async () => {
+    const previousBucket = process.env.s3_bucket2;
+    const previousKey = process.env.s3_accessKeyId2;
+    const png = { academyId: "eval", userId: "teacher", bytes: Buffer.from("png"), mimeType: "image/png" };
+    let calls = 0;
+    try {
+      process.env.s3_bucket2 = "test-bucket-2";
+      process.env.s3_accessKeyId2 = "real-looking-key";
+      expect(localFileBucket()).toBe(true);
+      expect(await storeGeneratedImage(png)).toEqual({
+        ok: false,
+        error: "STORAGE_ERROR",
+        providerCode: "local_bucket",
+      });
+      process.env.s3_bucket2 = "local-files";
+      expect((await storeGeneratedImage(png)).providerCode).toBe("local_bucket");
+      process.env.s3_bucket2 = "altsis-files";
+      process.env.s3_accessKeyId2 = "test-access-key-2";
+      expect((await storeGeneratedImage(png)).providerCode).toBe("local_bucket");
+      process.env.s3_accessKeyId2 = "real-looking-key";
+      expect(await storeGeneratedImage({ bytes: png.bytes, mimeType: png.mimeType })).toEqual({
+        ok: false,
+        error: "STORAGE_ERROR",
+        providerCode: "missing_owner",
+      });
+      process.env.s3_bucket2 = "test-bucket-2";
+      const result = await runAlterImage({
+        ctx: {
+          academy: { aiProvider: "openai", aiApiKey: "sk-test-secret-value" },
+          fetchImage: async () => {
+            calls += 1;
+            return jsonResponse({
+              data: [{ b64_json: PNG }],
+              usage: { input_tokens: 20, output_tokens: 274, total_tokens: 294 },
+            });
+          },
+        },
+        prompt: "막대 차트",
+      });
+      expect(calls).toBe(1);
+      expect(result.error).toBe("STORAGE_ERROR");
+      expect(result.providerCode).toBe("local_bucket");
+      expect(result.usage.totalTokens).toBe(294);
+      expect(JSON.stringify(result)).not.toContain("sk-test-secret-value");
+    } finally {
+      process.env.s3_bucket2 = previousBucket;
+      process.env.s3_accessKeyId2 = previousKey;
+    }
+  });
+
+  test("a storage failure stays distinct and does not call the provider twice", async () => {
+    const PNG = Buffer.from("png-bytes").toString("base64");
+    let calls = 0;
+    const err = new Error("The request signature we calculated does not match sk-test-secret-value");
+    err.code = "InvalidAccessKeyId";
+    const result = await runAlterImage({
+      ctx: {
+        academy: { aiProvider: "openai", aiApiKey: "sk-test-secret-value" },
+        fetchImage: async () => {
+          calls += 1;
+          return jsonResponse({
+            data: [{ b64_json: PNG }],
+            usage: { input_tokens: 20, output_tokens: 80, total_tokens: 100 },
+          });
+        },
+      },
+      prompt: "막대 차트",
+      storeImage: async () => {
+        throw err;
+      },
+    });
+    expect(calls).toBe(1);
+    expect(result.ok).toBe(false);
+    expect(result.error).toBe("STORAGE_ERROR");
+    expect(result.providerCode).toBe("InvalidAccessKeyId");
+    expect(result.usage.totalTokens).toBe(100);
+    expect(JSON.stringify(result)).not.toContain("sk-test-secret-value");
+    expect(JSON.stringify(result)).not.toContain("signature");
   });
 
   test("oversized bytes are rejected", () => {

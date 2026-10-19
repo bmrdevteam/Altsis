@@ -11,7 +11,7 @@ import {
   wrapToolResult,
 } from "../alter/core/safety.js";
 import { finishSourceNote, stripUnmatchedLinks } from "../alter/core/text.js";
-import { toolTurn } from "../alter/core/trace.js";
+import { toolDiagnostic, toolTurn } from "../alter/core/trace.js";
 import { addUsage, asUsage } from "../alter/core/usage.js";
 
 export {
@@ -354,9 +354,9 @@ export const runAgentLoop = async ({
   let formatRetries = 0;
   let nestedUsage = null;
 
-  const noteTurn = (names, wrapped, usage, audits) => {
+  const noteTurn = (names, wrapped, usage, audits, diagnostics) => {
     nestedUsage = addUsage(nestedUsage, usage);
-    trace.push(toolTurn(names, wrapped, usage, audits));
+    trace.push(toolTurn(names, wrapped, usage, audits, diagnostics));
   };
 
   const done = (extra) => {
@@ -383,7 +383,12 @@ export const runAgentLoop = async ({
     const label = tool?.label || action.name;
     const safeArgs = sanitizeToolArguments(action.arguments || {});
     emit("tool", { name: action.name, status: "running", label });
-    const finish = (wrapped, usage, audits) => ({ wrapped, usage: asUsage(usage), audits: audits || [] });
+    const finish = (wrapped, usage, audits, data) => ({
+      wrapped,
+      usage: asUsage(usage),
+      audits: audits || [],
+      diagnostics: [toolDiagnostic(action.name, data)].filter(Boolean),
+    });
     if (!tool) {
       const payload = { error: "없는 도구입니다.", name: action.name };
       emit("tool", { name: action.name, status: "error", label, summary: payload.error });
@@ -439,7 +444,7 @@ export const runAgentLoop = async ({
           }));
         }
       }
-      return finish(wrapToolResult(action.name, forModel), usage, audits);
+      return finish(wrapToolResult(action.name, forModel), usage, audits, data);
     } catch (_) {
       const payload = { error: "도구를 실행하지 못했습니다." };
       emit("tool", { name: action.name, status: "error", label, summary: payload.error });
@@ -514,7 +519,7 @@ export const runAgentLoop = async ({
           messages.push({ role: "assistant", content: turn.text });
           toolSteps += 1;
           const ran = await runTool(action);
-          noteTurn([action.name], [ran.wrapped], ran.usage, ran.audits);
+          noteTurn([action.name], [ran.wrapped], ran.usage, ran.audits, ran.diagnostics);
           messages.push({ role: "user", content: ran.wrapped });
           continue;
         }
@@ -542,6 +547,7 @@ export const runAgentLoop = async ({
       const turnNames = [];
       const turnWrapped = [];
       const turnAudits = [];
+      const turnDiagnostics = [];
       let turnUsage = null;
       for (const call of accepted) {
         toolSteps += 1;
@@ -549,6 +555,7 @@ export const runAgentLoop = async ({
         turnNames.push(call.name);
         turnWrapped.push(ran.wrapped);
         turnAudits.push(...(ran.audits || []));
+        turnDiagnostics.push(...(ran.diagnostics || []));
         turnUsage = addUsage(turnUsage, ran.usage);
         messages.push({
           role: "tool",
@@ -569,7 +576,7 @@ export const runAgentLoop = async ({
           content: wrapped,
         });
       }
-      noteTurn(turnNames, turnWrapped, turnUsage, turnAudits);
+      noteTurn(turnNames, turnWrapped, turnUsage, turnAudits, turnDiagnostics);
       if (toolSteps >= limit) break;
     }
 
