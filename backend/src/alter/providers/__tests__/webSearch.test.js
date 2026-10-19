@@ -181,6 +181,116 @@ describe("provider web search", () => {
     expect(JSON.stringify(result)).not.toContain(key);
   });
 
+  test("anthropic and gemini unfinished searches with no hits are tool errors", async () => {
+    const blob = "B".repeat(12000);
+    const cases = [
+      {
+        provider: "anthropic",
+        body: {
+          stop_reason: "max_tokens",
+          content: [{ type: "text", text: blob }],
+          usage: { input_tokens: 20000, output_tokens: 4096 },
+        },
+        expectBody: (parsed) => {
+          expect(parsed.max_tokens).toBe(4096);
+          expect(parsed.reasoning).toBeUndefined();
+        },
+      },
+      {
+        provider: "gemini",
+        model: "gemini-3.6-flash",
+        body: {
+          candidates: [{ finishReason: "MAX_TOKENS", content: { parts: [{ text: blob }] } }],
+          usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 4096, totalTokenCount: 20000 },
+        },
+        expectBody: (parsed) => {
+          expect(parsed.generationConfig.maxOutputTokens).toBe(4096);
+        },
+      },
+    ];
+    for (const row of cases) {
+      let parsed = null;
+      const result = await runProviderWebSearch({
+        provider: row.provider,
+        apiKey: "sk-test-secret-value",
+        model: row.model,
+        query: "오늘 날씨",
+        fetchImpl: async (_url, init) => {
+          parsed = JSON.parse(init.body);
+          return jsonResponse(row.body);
+        },
+      });
+      row.expectBody(parsed);
+      expect(JSON.stringify(parsed).length).toBeLessThan(500);
+      expect(result.ok).toBe(false);
+      expect(result.error).toBe("TOOL_ERROR");
+      expect(result.results).toEqual([]);
+      expect(result.usage.totalTokens).toBeGreaterThan(15000);
+      expect(JSON.stringify(result)).not.toContain(blob.slice(0, 40));
+      expect(JSON.stringify(result)).not.toContain("sk-test-secret-value");
+    }
+  });
+
+  test("a finished search over the token budget with no hits is a tool error", async () => {
+    const result = await runProviderWebSearch({
+      provider: "openai",
+      apiKey: "sk-test-secret-value",
+      model: "gpt-4o-mini",
+      query: "오늘 날씨",
+      fetchImpl: async () =>
+        jsonResponse({
+          status: "completed",
+          output: [],
+          usage: { input_tokens: 14000, output_tokens: 1001, total_tokens: 15001 },
+        }),
+    });
+    expect(result).toMatchObject({ ok: false, error: "TOOL_ERROR", results: [] });
+    expect(result.usage.totalTokens).toBe(15001);
+  });
+
+  test("an unfinished search keeps a short citation and drops the rest of the body", async () => {
+    const blob = "B".repeat(30000);
+    const text = `맑음 ${blob}`;
+    const result = await runProviderWebSearch({
+      provider: "openai",
+      apiKey: "sk-test-secret-value",
+      model: "gpt-5.6-luna",
+      query: "오늘 날씨",
+      fetchImpl: async () =>
+        jsonResponse({
+          status: "incomplete",
+          output: [
+            {
+              type: "message",
+              content: [
+                {
+                  type: "output_text",
+                  text,
+                  annotations: [
+                    {
+                      type: "url_citation",
+                      url: "https://example.com/weather",
+                      title: "공공 날씨 안내",
+                      start_index: 0,
+                      end_index: 2,
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+          usage: { input_tokens: 20000, output_tokens: 4000, total_tokens: 24000 },
+        }),
+    });
+    expect(result.ok).toBe(true);
+    expect(result.results).toEqual([
+      { title: "공공 날씨 안내", url: "https://example.com/weather", snippet: "맑음" },
+    ]);
+    expect(result.usage.totalTokens).toBe(24000);
+    expect(JSON.stringify(result).length).toBeLessThan(500);
+    expect(JSON.stringify(result)).not.toContain(blob.slice(0, 40));
+  });
+
   test("a provider error does not echo the key", async () => {
     const key = "sk-test-secret-value";
     const result = await runProviderWebSearch({

@@ -87,7 +87,13 @@ const INCOMPLETE = new Set(["incomplete", "max_tokens", "MAX_TOKENS", "length"])
 
 const askSources = (query) => `출처의 제목과 주소만 짧게 답하세요.\n질문: ${query}`;
 
-/** Keep partial citations. An unfinished call with none is a tool error, not an empty answer. */
+/**
+ * Classify after the provider responds. The request already caps output and,
+ * for reasoning models, asks for low effort. That does not stop a live provider
+ * from billing hidden reasoning before this response is seen. No hits, plus an
+ * unfinished status or a total over the per-call budget, is a tool error.
+ * Partial citations are kept. Usage is returned either way so the caller can record it.
+ */
 export const guardWebSearch = ({ results, usage, status } = {}) => {
   const hits = Array.isArray(results) ? results : [];
   const incomplete = INCOMPLETE.has(String(status || ""));
