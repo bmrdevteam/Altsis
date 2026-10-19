@@ -3,6 +3,7 @@
  * Native parameters and the Gemini argument line are generated from it.
  */
 
+import { expandActorRoles, resolveSkillMeta } from "../core/skillMeta.js";
 import { fenceArguments, jsonSchemaFromZod } from "./schema.js";
 
 const NAME_RE = /^[a-z][a-z0-9_]{0,63}$/;
@@ -43,14 +44,33 @@ export const defineTool = (spec) => {
     throw new Error(`${spec.name} promptHints 가 비어 있습니다.`);
   }
   const parameters = jsonSchemaFromZod(spec.input);
+  const readOnly = spec.readOnly === true;
+  const effect = spec.effect === "write" ? "write" : "read";
+  const extra = spec.meta && typeof spec.meta === "object" ? spec.meta : {};
+  const meta = resolveSkillMeta({
+    id: spec.name,
+    title: spec.label || spec.name,
+    description: spec.description,
+    kind: readOnly && effect !== "write" ? "read" : "write",
+    channel: "tool",
+    costTier: "low",
+    allowedTools: [],
+    requiredFlags: [],
+    screens: [],
+    ...extra,
+    id: spec.name,
+    requiredRoles: extra.requiredRoles || expandActorRoles(roles),
+    studentAllowed: extra.studentAllowed ?? roles.includes("student"),
+  });
   return {
     name: spec.name,
     label: spec.label || "",
     description: String(spec.description || ""),
     input: spec.input,
     permission: { roles: [...roles], access: String(spec.permission.access) },
-    readOnly: spec.readOnly === true,
-    effect: spec.effect === "write" ? "write" : "read",
+    readOnly,
+    effect,
+    meta,
     untrustedOutput: spec.untrustedOutput === true,
     chatOnly: spec.chatOnly === true,
     promptHints,

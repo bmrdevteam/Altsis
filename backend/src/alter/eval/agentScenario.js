@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { executeAgentSkill } from "../../services/alterAgent.js";
 import { executeClaimedSchedule } from "../../services/alterScheduleRun.js";
+import { runChatAgent } from "../runners/chat/run.js";
 import { runSkillAgent } from "../runners/skill/run.js";
 import { listSkills, selectSkill } from "../skills/registry.js";
 import { SCRIPTED_AGENT_API_KEY } from "../../services/alterAgentScriptedProvider.js";
@@ -19,22 +20,28 @@ const academyFor = (override) => ({
 const cast = (scenario) => {
   const schoolId = new mongoose.Types.ObjectId();
   const seasonId = new mongoose.Types.ObjectId();
-  const role = scenario?.role === "student" ? "student" : "teacher";
+  const requested = String(scenario?.role || "teacher");
+  const registrationRole = requested === "student" ? "student" : "teacher";
+  const auth =
+    requested === "owner" || requested === "admin" || requested === "manager" || requested === "student"
+      ? requested
+      : "member";
   const user = {
     _id: new mongoose.Types.ObjectId(),
-    userId: role === "student" ? "student1" : "teacher1",
-    userName: role === "student" ? "김학생" : "김교사",
-    auth: role === "student" ? "student" : "member",
+    userId: registrationRole === "student" ? "student1" : "teacher1",
+    userName: registrationRole === "student" ? "김학생" : "김교사",
+    auth,
   };
   return {
     user,
     school: { _id: schoolId },
     season: { _id: seasonId },
-    registration: { role },
+    registration: { role: registrationRole },
   };
 };
 
 const executeTurn = (scenario, people) => {
+  if (scenario.runner === "chat") return runChatAgent;
   const message = scenario.input?.prompt || "";
   const role = people.registration?.role;
   const skill = selectSkill({ message, role });

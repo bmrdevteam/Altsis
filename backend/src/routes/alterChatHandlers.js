@@ -19,6 +19,8 @@ import {
   renameAlterConversation as renameAlterConversationSvc,
   deleteAlterConversation as deleteAlterConversationSvc,
   bulkDeleteAlterConversations as bulkDeleteAlterConversationsSvc,
+  getActiveAlterConversation as getActiveAlterConversationSvc,
+  setActiveAlterConversation as setActiveAlterConversationSvc,
 } from "../services/alterConversations.js";
 import { alterMulter } from "../_s3/alterMulter.js";
 import { fileBucket, fileS3 } from "../_s3/fileBucket.js";
@@ -153,6 +155,42 @@ export const listAlterConversations = async (req, res) => {
       beforeId: req.query.beforeId,
     });
     return res.status(200).send({ conversations, hasMore });
+  } catch (err) {
+    return sendAlterError(res, err);
+  }
+};
+
+/**
+ * 새로고침 뒤에 다시 열 대화
+ * @route GET /ai/alter/conversations/active?school=
+ */
+export const getActiveAlterConversation = async (req, res) => {
+  try {
+    const conversation = await getActiveAlterConversationSvc({
+      academyId: req.user.academyId,
+      userId: req.user._id,
+      schoolId: req.query.school,
+    });
+    return res.status(200).send({ conversation: conversation || null });
+  } catch (err) {
+    return sendAlterError(res, err);
+  }
+};
+
+/**
+ * @route PUT /ai/alter/conversations/active
+ * conversationId 가 없으면 활성 대화를 지운다.
+ */
+export const setActiveAlterConversation = async (req, res) => {
+  try {
+    const { conversationId, school: schoolId } = req.body || {};
+    const result = await setActiveAlterConversationSvc({
+      academyId: req.user.academyId,
+      userId: req.user._id,
+      schoolId,
+      conversationId: conversationId || null,
+    });
+    return res.status(200).send(result);
   } catch (err) {
     return sendAlterError(res, err);
   }

@@ -2,6 +2,7 @@
  * Single zod tool registry. Provider schemas are generated from each tool's input.
  */
 
+import { evaluateSkillAccess } from "../policy/skillGate.js";
 import { finalizeToolResult } from "./finalize.js";
 import getMyTodos from "./defs/getMyTodos.tool.js";
 import searchProductGuide from "./defs/searchProductGuide.tool.js";
@@ -55,6 +56,22 @@ export const getTool = (name) => byName.get(name) || null;
  * the handler, which keeps the previous clamp and default behavior.
  */
 export const runTool = async (tool, ctx, rawArgs) => {
+  if (ctx?.skillGate) {
+    const decision = evaluateSkillAccess({
+      actor: ctx.skillGate.actor,
+      flags: ctx.skillGate.flags,
+      chip: ctx.skillGate.chip,
+      capability: tool.meta,
+      phase: "execute",
+    });
+    if (decision.decision === "deny") {
+      return finalizeToolResult(tool, {
+        summary: decision.userMessage,
+        error: "FORBIDDEN",
+        readOnly: true,
+      });
+    }
+  }
   const raw = asObject(rawArgs);
   const parsed = tool.input.safeParse(raw);
   const input = parsed.success ? parsed.data : raw;
@@ -69,6 +86,7 @@ const toRuntimeTool = (tool, deps) => ({
   permission: tool.permission,
   readOnly: tool.readOnly,
   effect: tool.effect,
+  meta: tool.meta,
   untrustedOutput: tool.untrustedOutput,
   chatOnly: tool.chatOnly === true,
   promptHints: tool.promptHints,

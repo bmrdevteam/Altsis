@@ -3,10 +3,12 @@
  * SSE delivery stays on the HTTP handler.
  */
 
-import { guardAlterAgent, prepareAlterAgentCall } from "../../../services/alterAgent.js";
+import { guardAlterAgent } from "../../../services/alterAgent.js";
 import { runAlterAgent } from "../../agent/runAlterAgent.js";
+import { prepareGatedTurn } from "../skill/run.js";
 
 export const runChatAgent = (args = {}) =>
-  guardAlterAgent(() =>
-    runAlterAgent(prepareAlterAgentCall({ ...args, mode: "chat" }))
-  );
+  guardAlterAgent(() => {
+    const turned = prepareGatedTurn({ ...args, mode: "chat" });
+    return runAlterAgent({ ...turned.prepared, skillGate: turned.skillGate });
+  });

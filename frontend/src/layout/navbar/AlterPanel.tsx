@@ -10,6 +10,11 @@ import { createPortal } from "react-dom";
 import { useAuth } from "contexts/authContext";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import { TAlterSkillId, useAlter } from "contexts/alterContext";
+import {
+  chooseConversationToRestore,
+  readActiveConversation,
+  writeActiveConversation,
+} from "./alterUi/activeConversation";
 import { friendlyAlterError, readAlterSse } from "./alterUi/sse";
 import useAPIv2 from "hooks/useAPIv2";
 import { isEmptyEval } from "utils/evaluationCsv";
@@ -570,6 +575,25 @@ const AlterPanel = ({ onClose }: Props) => {
     pageContext,
   ]);
 
+  const rememberActiveConversation = useCallback(
+    (id: string | null) => {
+      const userId = currentUser?._id;
+      const schoolId = currentSchool?._id;
+      if (!userId || !schoolId) return;
+      writeActiveConversation(userId, schoolId, id);
+      void fetch(`${alterApiBase()}/alter/conversations/active`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          school: schoolId,
+          conversationId: id,
+        }),
+      }).catch(() => undefined);
+    },
+    [currentSchool?._id, currentUser?._id]
+  );
+
   const startNewConversation = useCallback(
     (preferSkill?: TAlterSkillId) => {
       if (isWorking) {
@@ -577,6 +601,7 @@ const AlterPanel = ({ onClose }: Props) => {
         return;
       }
       setConversationId(null);
+      rememberActiveConversation(null);
       setConversationTitle("새 대화");
       revokeMessagePreviews();
       setMessages([]);
@@ -602,7 +627,13 @@ const AlterPanel = ({ onClose }: Props) => {
       setShowPrep(prep);
       if (prep) setPrepCollapsed(shouldDefaultCollapsePrep(next));
     },
-    [isWorking, resetPrepDefaultsForPage, revokeMessagePreviews, suggested]
+    [
+      isWorking,
+      rememberActiveConversation,
+      resetPrepDefaultsForPage,
+      revokeMessagePreviews,
+      suggested,
+    ]
   );
 
   const lastSkillPageTypeRef = useRef<string | undefined>(undefined);
@@ -625,7 +656,8 @@ const AlterPanel = ({ onClose }: Props) => {
   // pageType이 바뀌면 이전 대화 맥락과 분리 (작업 중이 아닐 때)
   const prevPageTypeRef = useRef<string | undefined>(undefined);
   useEffect(() => {
-    const pageType = pageContext?.pageType || "general";
+    const pageType = pageContext?.pageType;
+    if (!pageType) return;
     const prev = prevPageTypeRef.current;
     prevPageTypeRef.current = pageType;
     if (prev === undefined || prev === pageType) return;
@@ -1248,8 +1280,11 @@ const AlterPanel = ({ onClose }: Props) => {
       const prep = showsPrepDock(restored);
       setShowPrep(prep);
       if (prep) setPrepCollapsed(shouldDefaultCollapsePrep(restored));
+      rememberActiveConversation(id);
+      return true;
     } catch (err: any) {
       setError(err.message || "대화를 불러오지 못했습니다.");
+      return false;
     } finally {
       setHistoryLoading(false);
     }
@@ -1261,6 +1296,46 @@ const AlterPanel = ({ onClose }: Props) => {
     clearPendingConversation();
     void openConversation(id);
   }, [clearPendingConversation, isOpen, pendingConversationId]);
+
+  const restoreStartedRef = useRef(false);
+  useEffect(() => {
+    if (pendingConversationId) {
+      restoreStartedRef.current = true;
+      return;
+    }
+    if (!isOpen || restoreStartedRef.current) return;
+    const userId = currentUser?._id;
+    const schoolId = currentSchool?._id;
+    if (!userId || !schoolId) return;
+    restoreStartedRef.current = true;
+    const stored = readActiveConversation(userId, schoolId);
+    const loadServerId = async () => {
+      try {
+        const res = await fetch(
+          `${alterApiBase()}/alter/conversations/active?school=${encodeURIComponent(schoolId)}`,
+          { credentials: "include" }
+        );
+        if (!res.ok) return null;
+        const data = await res.json();
+        return (data.conversation?._id as string | undefined) || null;
+      } catch {
+        return null;
+      }
+    };
+    void (async () => {
+      const id = stored
+        ? chooseConversationToRestore(stored, null)
+        : chooseConversationToRestore(null, await loadServerId());
+      if (!id) return;
+      const opened = await openConversation(id);
+      if (!opened && stored?.conversationId) {
+        const serverId = await loadServerId();
+        if (serverId && serverId !== id) await openConversation(serverId);
+      }
+    })();
+    // 패널을 처음 열 때 한 번만 복원한다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSchool?._id, currentUser?._id, isOpen, pendingConversationId]);
 
   const confirmSchedule = async (
     msgId: string,
@@ -1870,6 +1945,7 @@ const AlterPanel = ({ onClose }: Props) => {
         );
         if (result.conversationId) {
           setConversationId(result.conversationId);
+          rememberActiveConversation(result.conversationId);
         }
         setMessages((prev) => [
           ...prev,
@@ -1890,7 +1966,10 @@ const AlterPanel = ({ onClose }: Props) => {
       } else {
         if (!response.ok) {
           const data = await response.json().catch(() => ({}));
-          if (data.conversationId) setConversationId(data.conversationId);
+          if (data.conversationId) {
+            setConversationId(data.conversationId);
+            rememberActiveConversation(data.conversationId);
+          }
           throw new Error(
             friendlyAlterError(
               { code: data.code, message: data.message },
@@ -1899,7 +1978,10 @@ const AlterPanel = ({ onClose }: Props) => {
           );
         }
         const data = await response.json();
-        if (data.conversationId) setConversationId(data.conversationId);
+        if (data.conversationId) {
+          setConversationId(data.conversationId);
+          rememberActiveConversation(data.conversationId);
+        }
         setMessages((prev) => [
           ...prev,
           {

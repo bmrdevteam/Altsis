@@ -32,6 +32,8 @@ router.get("/library/:itemId/download", isLoggedIn, aiLibrary.download);
 
 // Alter conversation persistence
 router.get("/alter/conversations", isLoggedIn, alterChat.listAlterConversations);
+router.get("/alter/conversations/active", isLoggedIn, alterChat.getActiveAlterConversation);
+router.put("/alter/conversations/active", isLoggedIn, alterChat.setActiveAlterConversation);
 router.post("/alter/conversations", isLoggedIn, alterChat.createAlterConversation);
 router.post(
   "/alter/conversations/bulk-delete",
