@@ -198,12 +198,16 @@ describe("provider image generation", () => {
   test("a local placeholder bucket is a storage failure, not another provider call", async () => {
     const previousBucket = process.env.s3_bucket2;
     const previousKey = process.env.s3_accessKeyId2;
+    const previousEndpoint = process.env.s3_endpoint2;
     const png = { academyId: "eval", userId: "teacher", bytes: Buffer.from("png"), mimeType: "image/png" };
     let calls = 0;
     try {
       process.env.s3_bucket2 = "test-bucket-2";
       process.env.s3_accessKeyId2 = "real-looking-key";
+      delete process.env.s3_endpoint2;
       expect(localFileBucket()).toBe(true);
+      expect(localFileBucket("test-bucket-2", "test-access-key-2", "http://127.0.0.1:9000")).toBe(false);
+      expect(localFileBucket("local-files", "test-access-key-2", "  ")).toBe(true);
       expect(await storeGeneratedImage(png)).toEqual({
         ok: false,
         error: "STORAGE_ERROR",
@@ -242,6 +246,8 @@ describe("provider image generation", () => {
     } finally {
       process.env.s3_bucket2 = previousBucket;
       process.env.s3_accessKeyId2 = previousKey;
+      if (previousEndpoint == null) delete process.env.s3_endpoint2;
+      else process.env.s3_endpoint2 = previousEndpoint;
     }
   });
 

@@ -7,6 +7,7 @@ import { z } from "zod";
 import { IMAGE_DAILY_LIMIT, IMAGE_PROMPT_MAX } from "../../core/limits.js";
 import { maskSensitiveText } from "../../core/safety.js";
 import { asUsage } from "../../core/usage.js";
+import { viewableFileUrl } from "../../../_s3/fileBucket.js";
 import { logger } from "../../../log/logger.js";
 import { countImageGensToday, runAlterImage } from "../../../services/alterImage.js";
 import { resolveAlterContext } from "../../policy/access.js";
@@ -92,12 +93,6 @@ const logFailure = (result) => {
   );
 };
 
-const httpsUrl = (value) => {
-  const url = String(value || "").trim();
-  if (!/^https:\/\/\S+$/i.test(url) || url.length > 2000) return "";
-  return url;
-};
-
 export default defineTool({
   name: "generate_image",
   label: "이미지 생성",
@@ -157,7 +152,7 @@ export default defineTool({
         logFailure({ ...result, error });
         return stopped(noticeFor({ ...result, error }), error, failureFields(result));
       }
-      const url = httpsUrl(result?.url);
+      const url = viewableFileUrl(result?.url);
       if (!url) {
         logFailure({ error: "STORAGE_ERROR", providerCode: "unsigned_url" });
         return stopped(STORE_FAILED, "STORAGE_ERROR", { providerCode: "unsigned_url" });

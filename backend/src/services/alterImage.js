@@ -3,6 +3,7 @@
  * alter/providers. Scripted results are not stored or logged.
  */
 
+import { fileBucket, fileS3, signUrlForView, viewableFileUrl } from "../_s3/fileBucket.js";
 import { IMAGE_BYTES_MAX, IMAGE_DAILY_LIMIT } from "../alter/core/limits.js";
 import { runProviderImage, safeProviderCode } from "../alter/providers/imageGen.js";
 import { getDayWindowUTC } from "./aiUsageQuota.js";
@@ -26,15 +27,20 @@ const LOCAL_FILE_BUCKETS = new Set(["test-bucket-2", "local-files"]);
 const LOCAL_FILE_KEYS = new Set(["test-access-key-2"]);
 
 /**
- * Jest defaults and the local guide are not a file bucket. A real academy
- * bucket with a real key still uploads, and that failure stays a storage error.
+ * Jest defaults and the local guide are not a file bucket unless `s3_endpoint2`
+ * points at a store. A configured endpoint uploads there, including those names.
  */
 export const localFileBucket = (
   name = process.env.s3_bucket2,
-  accessKeyId = process.env.s3_accessKeyId2
-) =>
-  LOCAL_FILE_BUCKETS.has(String(name || "").trim()) ||
-  LOCAL_FILE_KEYS.has(String(accessKeyId || "").trim());
+  accessKeyId = process.env.s3_accessKeyId2,
+  endpoint = process.env.s3_endpoint2
+) => {
+  if (String(endpoint || "").trim()) return false;
+  return (
+    LOCAL_FILE_BUCKETS.has(String(name || "").trim()) ||
+    LOCAL_FILE_KEYS.has(String(accessKeyId || "").trim())
+  );
+};
 
 const extFor = (mimeType) => {
   if (mimeType === "image/jpeg") return "jpg";
@@ -53,7 +59,6 @@ export const storeGeneratedImage = async ({ academyId, userId, bytes, mimeType }
   const id = `${Date.now().toString(36)}-${Math.random().toString(16).slice(2, 10)}`;
   const key = `${academyId}/alter/generated/${userId}/${id}.${extFor(mime)}`;
   try {
-    const { fileBucket, fileS3, signUrlForView } = await import("../_s3/fileBucket.js");
     await fileS3
       .putObject({
         Bucket: fileBucket,
@@ -62,10 +67,8 @@ export const storeGeneratedImage = async ({ academyId, userId, bytes, mimeType }
         ContentType: mime,
       })
       .promise();
-    const url = signUrlForView(key, 3600);
-    if (!/^https:\/\/\S+$/i.test(String(url || ""))) {
-      return { ok: false, error: "STORAGE_ERROR", providerCode: "unsigned_url" };
-    }
+    const url = viewableFileUrl(signUrlForView(key, 3600));
+    if (!url) return { ok: false, error: "STORAGE_ERROR", providerCode: "unsigned_url" };
     return { ok: true, key, url, mimeType: mime };
   } catch (err) {
     const providerCode = safeProviderCode(err?.code);

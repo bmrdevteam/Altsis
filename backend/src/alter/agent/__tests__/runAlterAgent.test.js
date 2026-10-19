@@ -678,6 +678,79 @@ describe("runAlterAgent", () => {
     }
   });
 
+  test("a configured http file endpoint keeps the signed image on the answer", async () => {
+    const previous = process.env.s3_endpoint2;
+    process.env.s3_endpoint2 = "http://127.0.0.1:9000";
+    const url = "http://127.0.0.1:9000/local-bucket/eval/chart.png?X-Amz-Signature=abc";
+    const tool = createAgentTools({ imageGenEnabled: true }).find((item) => item.name === "generate_image");
+    let asked = false;
+    try {
+      const kept = await runAlterAgent({
+        ctx: {
+          academy: { imageGenEnabled: true, aiProvider: "openai", aiApiKey: "sk-test", aiModel: "gpt-5.6-luna" },
+          user: { auth: "member" },
+          registration: { role: "teacher" },
+          generateImage: async () => ({
+            ok: true,
+            url,
+            key: "eval/chart.png",
+            alt: "생성된 차트",
+            mimeType: "image/png",
+          }),
+        },
+        input: { message: "간단한 막대 차트 그림을 만들어 줘" },
+        mode: "chat",
+        tools: [tool],
+        provider: {
+          async generate({ forceFinal }) {
+            if (!forceFinal && !asked) {
+              asked = true;
+              return {
+                text: "",
+                toolCalls: [{ name: "generate_image", arguments: { prompt: "막대 차트" } }],
+                usage: usage(1),
+              };
+            }
+            return { text: "막대 차트를 만들었습니다.", toolCalls: [], usage: usage(1) };
+          },
+        },
+      });
+      expect(kept.images[0].url).toBe(url);
+      expect(kept.text).toContain(url);
+      delete process.env.s3_endpoint2;
+      asked = false;
+      const dropped = await runAlterAgent({
+        ctx: {
+          academy: { imageGenEnabled: true, aiProvider: "openai", aiApiKey: "sk-test", aiModel: "gpt-5.6-luna" },
+          user: { auth: "member" },
+          registration: { role: "teacher" },
+          generateImage: async () => ({ ok: true, url, alt: "생성된 차트", mimeType: "image/png" }),
+        },
+        input: { message: "간단한 막대 차트 그림을 만들어 줘" },
+        mode: "chat",
+        tools: [tool],
+        provider: {
+          async generate({ forceFinal }) {
+            if (!forceFinal && !asked) {
+              asked = true;
+              return {
+                text: "",
+                toolCalls: [{ name: "generate_image", arguments: { prompt: "막대 차트" } }],
+                usage: usage(1),
+              };
+            }
+            return { text: "저장하지 못했습니다.", toolCalls: [], usage: usage(1) };
+          },
+        },
+      });
+      expect(dropped.images).toEqual([]);
+      expect(dropped.text).not.toContain("127.0.0.1");
+    } finally {
+      if (previous == null) delete process.env.s3_endpoint2;
+      else process.env.s3_endpoint2 = previous;
+    }
+  });
+
   test("the scripted demo shows the off note, a source link, and an image url", async () => {
     let fetched = false;
     const fetchImpl = async () => {

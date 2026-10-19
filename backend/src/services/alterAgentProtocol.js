@@ -10,6 +10,7 @@ import {
   sanitizeToolArguments,
   wrapToolResult,
 } from "../alter/core/safety.js";
+import { viewableFileUrl } from "../_s3/fileBucket.js";
 import { finishSourceNote, stripUnmatchedLinks } from "../alter/core/text.js";
 import { toolDiagnostic, toolTurn } from "../alter/core/trace.js";
 import { addUsage, asUsage } from "../alter/core/usage.js";
@@ -410,9 +411,9 @@ export const runAgentLoop = async ({
         }
       }
       if (Array.isArray(data?.images) && images.length === 0) {
-        const image = data.images.find((item) => /^https:\/\/\S+$/i.test(String(item?.url || "").trim()));
-        const url = String(image?.url || "").trim();
-        if (image && url.length <= 2000) {
+        const image = data.images.find((item) => viewableFileUrl(item?.url));
+        const url = viewableFileUrl(image?.url);
+        if (image && url) {
           images.push({
             url,
             alt: String(image.alt || "생성된 이미지").replace(/\s+/g, " ").trim().slice(0, 80),
