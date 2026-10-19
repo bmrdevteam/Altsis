@@ -43,6 +43,9 @@ const alterConversationSchema = mongoose.Schema(
       enum: ["idle", "working", "error"],
       default: "idle",
     },
+    /** 이 사용자·학교에서 마지막으로 연 대화 */
+    active: { type: Boolean, default: false },
+    lastOpenedAt: { type: Date },
     isDeleted: { type: Boolean, default: false },
   },
   { timestamps: true }
@@ -51,6 +54,7 @@ const alterConversationSchema = mongoose.Schema(
 alterConversationSchema.index({ user: 1, school: 1, lastMessageAt: -1 });
 alterConversationSchema.index({ user: 1, season: 1, lastMessageAt: -1 });
 alterConversationSchema.index({ user: 1, school: 1, isDeleted: 1 });
+alterConversationSchema.index({ user: 1, school: 1, active: 1 });
 
 export const AlterConversation = (dbName) => {
   return conn[dbName].model("AlterConversation", alterConversationSchema);

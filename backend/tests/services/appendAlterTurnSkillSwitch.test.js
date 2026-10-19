@@ -26,6 +26,7 @@ jest.mock("../../src/models/AlterConversation.js", () => ({
   AlterConversation: () => ({
     findOne: jest.fn(async () => mockConversation),
     create: jest.fn(),
+    updateMany: jest.fn(async () => ({ modifiedCount: 0 })),
   }),
 }));
 

@@ -285,6 +285,48 @@ export const getOwnedConversation = async ({
   return doc;
 };
 
+const clearActiveConversations = async (academyId, userId, schoolId) => {
+  const query = { user: userId, active: true };
+  if (schoolId) query.school = schoolId;
+  await AlterConversation(academyId).updateMany(query, { $set: { active: false } });
+};
+
+export const getActiveAlterConversation = async ({ academyId, userId, schoolId }) => {
+  if (!schoolId) return null;
+  return AlterConversation(academyId)
+    .findOne({
+      user: userId,
+      school: schoolId,
+      active: true,
+      isDeleted: false,
+    })
+    .lean();
+};
+
+export const setActiveAlterConversation = async ({
+  academyId,
+  userId,
+  schoolId,
+  conversationId,
+}) => {
+  if (!conversationId) {
+    await clearActiveConversations(academyId, userId, schoolId);
+    return { conversation: null };
+  }
+  const doc = await getOwnedConversation({ academyId, userId, conversationId });
+  if (schoolId && doc.school && String(doc.school) !== String(schoolId)) {
+    const err = new Error(__NOT_FOUND("conversation"));
+    err.status = 404;
+    err.code = __NOT_FOUND("conversation");
+    throw err;
+  }
+  await clearActiveConversations(academyId, userId, doc.school || schoolId);
+  doc.active = true;
+  doc.lastOpenedAt = new Date();
+  await doc.save();
+  return { conversation: doc.toObject() };
+};
+
 export const listAlterMessages = async ({
   academyId,
   userId,
@@ -560,6 +602,17 @@ export const appendAlterTurn = async ({
     conversation.title = titleFromMessage(userMessage);
   }
   if (syllabusId != null) conversation.syllabusId = String(syllabusId || "");
+  await AlterConversation(academyId).updateMany(
+    {
+      user: userId,
+      school: schoolId,
+      active: true,
+      _id: { $ne: conversation._id },
+    },
+    { $set: { active: false } }
+  );
+  conversation.active = true;
+  conversation.lastOpenedAt = new Date();
   await conversation.save();
 
   return {
