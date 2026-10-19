@@ -5,6 +5,7 @@
  */
 
 import { resolveSkillMeta } from "../core/skillMeta.js";
+import { recordSkillAudit } from "../skills/auditPort.js";
 
 const FLAG_LABEL = {
   webSearchEnabled: "웹 검색",
@@ -154,6 +155,22 @@ export const allowListedTool = (tool, skillGate) => {
   );
 };
 
+const noteToolDecision = async (tool, skillGate, serverCtx, args, decision) => {
+  if (decision.decision !== "allow" && decision.decision !== "deny") return;
+  await recordSkillAudit({
+    academyId: serverCtx?.academyId,
+    userId: String(serverCtx?.user?._id || ""),
+    role: skillGate?.actor?.role || "",
+    skillId: tool?.meta?.id || tool?.name || "",
+    kind: tool?.meta?.kind || "",
+    decision: decision.decision === "deny" ? "deny" : "execute",
+    reasonCode: decision.reasonCode,
+    query: tool?.name === "web_search" ? args?.query : "",
+    conversationId: serverCtx?.conversationId || "",
+    costEstimate: tool?.meta?.costTier === "high" ? 1 : 0,
+  });
+};
+
 export const guardToolExecute = (tool, skillGate) => {
   if (!skillGate || !tool || typeof tool.execute !== "function") return tool;
   const execute = tool.execute.bind(tool);
@@ -167,6 +184,7 @@ export const guardToolExecute = (tool, skillGate) => {
         capability: tool.meta,
         phase: "execute",
       });
+      await noteToolDecision(tool, skillGate, serverCtx, args, decision);
       if (decision.decision === "deny") {
         const err = new Error(decision.userMessage);
         err.gateDenial = true;

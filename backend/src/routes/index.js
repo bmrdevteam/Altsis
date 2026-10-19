@@ -40,7 +40,9 @@ import {
 } from "../services/aiSkills.js";
 import { runChatAgent } from "../alter/runners/chat/run.js";
 import { registerConfirmationPort, registerDispatchExecutor } from "../alter/skills/dispatch.js";
+import { registerAuditPort } from "../alter/skills/auditPort.js";
 import { confirmationMongoPort } from "../services/alterConfirmations.js";
+import { recordAlterAudit, startAuditPurge } from "../services/alterAudit.js";
 import { runChatWeb } from "../services/alterChatWeb.js";
 import generateImageTool from "../alter/tools/defs/generateImage.tool.js";
 import { subscribeDomainEvents } from "../alter/runners/event/subscribe.js";
@@ -50,6 +52,8 @@ import { executeSearchSkill } from "../services/alterSearch.js";
 registerAlterAgentRunner(runChatAgent);
 registerChatWeb(runChatWeb);
 registerConfirmationPort(confirmationMongoPort);
+registerAuditPort(recordAlterAudit);
+startAuditPurge();
 for (const skillId of [
   "syllabus-draft",
   "evaluation-draft",

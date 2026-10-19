@@ -2,6 +2,8 @@ import mongoose from "mongoose";
 import { executeAgentSkill } from "../../services/alterAgent.js";
 import { executeClaimedSchedule } from "../../services/alterScheduleRun.js";
 import { runChatAgent } from "../runners/chat/run.js";
+import { runEventAgent } from "../runners/event/run.js";
+import { runScheduleAgent } from "../runners/schedule/run.js";
 import { runSkillAgent } from "../runners/skill/run.js";
 import { listSkills, selectSkill } from "../skills/registry.js";
 import { SCRIPTED_AGENT_API_KEY } from "../../services/alterAgentScriptedProvider.js";
@@ -42,6 +44,8 @@ const cast = (scenario) => {
 
 const executeTurn = (scenario, people) => {
   if (scenario.runner === "chat") return runChatAgent;
+  if (scenario.runner === "schedule") return runScheduleAgent;
+  if (scenario.runner === "event") return runEventAgent;
   const message = scenario.input?.prompt || "";
   const role = people.registration?.role;
   const skill = selectSkill({ message, role });

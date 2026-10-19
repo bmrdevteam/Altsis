@@ -2,6 +2,7 @@ import { issueConfirmation, redeemConfirmation } from "../../core/confirmation.j
 import { planDispatch } from "../../policy/dispatchPlan.js";
 import { actorFromAlterCtx } from "../../policy/skillGate.js";
 import { dispatchTurn, redeemDispatch, resetDispatchState, registerDispatchExecutor } from "../dispatch.js";
+import { registerAuditPort } from "../auditPort.js";
 import { dispatchSkillForMessage, matchDispatchIntent } from "../intent.js";
 
 const admin = actorFromAlterCtx({ user: { _id: "admin-1", auth: "admin" }, registration: { role: "teacher" } });
@@ -41,6 +42,8 @@ describe("dispatch confirmation", () => {
   });
 
   test("no chip proposes and does not run the executor", async () => {
+    const seen = [];
+    registerAuditPort((entry) => seen.push(entry));
     let ran = 0;
     registerDispatchExecutor("form-draft", async () => {
       ran += 1;
@@ -56,6 +59,9 @@ describe("dispatch confirmation", () => {
     expect(result.draft).toBeNull();
     expect(result.confirmation.stage).toBe("propose");
     expect(result.text).toContain("진행할까요?");
+    expect(seen.map((entry) => entry.decision)).toEqual(["propose"]);
+    expect(seen[0].skillId).toBe("form-draft");
+    expect(seen[0].prompt).toBeUndefined();
   });
 
   test("the proposal card runs the executor once", async () => {

@@ -72,6 +72,7 @@ router.post("/alter/schedules/:id/run", isLoggedIn, alterSchedule.runNow);
 
 // Alter unified turn (skill router)
 router.post("/alter/confirmations/:id", isLoggedIn, alterChat.postAlterConfirmation);
+router.get("/alter/audits", isLoggedIn, alterChat.getAlterAudits);
 router.post("/alter", isLoggedIn, alterTurn.runAlter);
 
 // Syllabus draft skill (SSE — legacy path alias)
