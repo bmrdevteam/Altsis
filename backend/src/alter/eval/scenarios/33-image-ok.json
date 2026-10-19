@@ -9,18 +9,24 @@
   },
   "expect": {
     "tools": {
-      "exact": ["generate_image"]
+      "exact": [],
+      "mustNotCall": ["generate_image"]
     },
     "text": {
-      "contains": ["https://example.com/generated/chart.png", "생성된 차트"]
+      "contains": ["실행 전에 확인이 필요합니다.", "진행할까요?"]
+    },
+    "confirmation": {
+      "stage": "propose_execute",
+      "skillId": "generate_image",
+      "executed": false
     }
   },
   "real": {
     "tools": {
-      "allow": ["generate_image"]
+      "mustNotCall": ["generate_image"]
     },
     "text": {
-      "matches": ["https?://"]
+      "matches": ["진행할까요"]
     }
   },
   "scripted": [

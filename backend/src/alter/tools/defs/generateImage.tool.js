@@ -105,7 +105,7 @@ export default defineTool({
   chatOnly: true,
   meta: {
     kind: "draft",
-    channel: "tool",
+    channel: "dispatch",
     intendedChannel: "dispatch",
     requiredFlags: ["imageGenEnabled"],
     costTier: "high",
@@ -128,10 +128,12 @@ export default defineTool({
     if (ctx?.academy?.imageGenEnabled !== true) return stopped(OFF, "FORBIDDEN");
     if (refusesRealPerson(rawArgs.prompt)) return stopped(REAL_PERSON, "FORBIDDEN");
     try {
-      await resolveAlterContext(ctx?.academyId, ctx?.user, ctx?.seasonId, {
-        runner: "event",
-        loaded: ctx || {},
-      });
+      if (ctx?.accessChecked !== true) {
+        await resolveAlterContext(ctx?.academyId, ctx?.user, ctx?.seasonId, {
+          runner: "event",
+          loaded: ctx || {},
+        });
+      }
     } catch (err) {
       logger.error(`alter generate_image denied: ${err.code || err.message}`);
       return stopped("권한이 없습니다.", "PERMISSION_DENIED");

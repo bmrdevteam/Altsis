@@ -121,7 +121,18 @@ export const runAlter = async (req, res) => {
       onEvent: sendEvent,
     });
 
-    if (skill === SKILL_IDS.FORM_DRAFT && result?.draft && !result.confirmation) {
+    const confirmOnApply = new Set([
+      SKILL_IDS.SYLLABUS_DRAFT,
+      SKILL_IDS.EVALUATION_DRAFT,
+      SKILL_IDS.ARCHIVE_DRAFT,
+      SKILL_IDS.DOCUMENT_DRAFT,
+      SKILL_IDS.DOCUMENT_REVIEW,
+      SKILL_IDS.FORM_RESPONSE_DRAFT,
+      SKILL_IDS.ACTIVITY_DRAFT,
+      SKILL_IDS.FORM_DRAFT,
+      SKILL_IDS.ASSESSMENT_GRADE,
+    ]);
+    if (confirmOnApply.has(skill) && result?.draft && !result.confirmation) {
       const attached = await attachApplyConfirmation({
         academyId: req.user.academyId,
         actorId: req.user._id,

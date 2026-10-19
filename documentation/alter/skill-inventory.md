@@ -15,7 +15,7 @@
 | studentAllowed | 이번 범위의 새 스킬은 `false`. 화면 요약만 기존처럼 학생 역할이 있다 |
 | 플래그 | 역할보다 먼저. owner 포함 전원 거부 |
 
-`generate_image`는 지금 도구로 호출된다. 메타데이터의 `intendedChannel`은 `dispatch`다. 통로를 바꾸는 작업은 3단계다. 1단계에서 목록에서 빼지 않는다.
+`generate_image`의 실행 통로는 `dispatch`다. 에이전트 목록에는 없고, 확인 뒤에 `use_skill`로 실행한다. 챗봇의 웹 검색은 같은 읽기 게이트를 탄 뒤 답변 맥락에 붙는다.
 
 ## 도구 (채널 tool)
 
@@ -33,7 +33,7 @@
 | get_calendar | read | staff·teacher | | none | 아니오 | low | 그 학교의 학교 일정 |
 | get_my_courses | read | staff·teacher | | none | 아니오 | low | 시간·강의실·수강 인원 |
 | web_search | read | staff·teacher | webSearchEnabled | none | 아니오 | low | 공개 웹. 연락처 마스킹. 하루 20회 |
-| generate_image | draft | staff·teacher | imageGenEnabled | both | 아니오 | high | 채팅만. 첨부 1장. 하루 10회. 실행 통로는 아직 tool |
+| generate_image | draft | staff·teacher | imageGenEnabled | both | 아니오 | high | 채팅만. 첨부 1장. 하루 10회. 통로는 dispatch |
 
 staff·teacher = owner, admin, manager, 학기 교사.
 

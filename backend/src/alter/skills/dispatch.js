@@ -79,6 +79,8 @@ const runExecutor = async ({ academyId, ctx, capability, request }) => {
     seasonId: ctx?.seasonId || ctx?.pageContext?.seasonId,
     context: ctx?.pageContext || {},
     message: request,
+    academy: ctx?.academy,
+    mode: "chat",
   });
   const summary = result?.text || "초안을 만들었습니다. 확인 후 반영해 주세요.";
   const card = await issue({
@@ -92,7 +94,13 @@ const runExecutor = async ({ academyId, ctx, capability, request }) => {
     payload: { request },
   });
   const draft = result?.draft ? { ...result.draft, confirmationId: card.id } : null;
-  return { text: summary, draft, confirmation: card, executed: true };
+  return {
+    text: summary,
+    draft,
+    images: Array.isArray(result?.images) ? result.images : [],
+    confirmation: card,
+    executed: true,
+  };
 };
 
 /**
@@ -185,6 +193,7 @@ export const redeemDispatch = async ({
     ok: true,
     text: ran.text,
     draft: ran.draft,
+    images: ran.images || [],
     confirmation: ran.confirmation,
     skillId: record.skillId,
   };

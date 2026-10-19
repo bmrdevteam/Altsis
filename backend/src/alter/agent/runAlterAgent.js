@@ -61,9 +61,11 @@ export const runAlterAgent = async ({
   const resolvedMode = UNATTENDED.has(mode) || mode === "chat" ? mode : "chat";
   const ownedTools = !Array.isArray(tools);
   const deps = depsForMode(resolvedMode, ctx);
-  const baseTools = ownedTools ? createAgentTools(deps) : tools;
+  const catalog = ownedTools
+    ? createAgentTools(deps).filter((tool) => tool?.meta?.channel !== "dispatch")
+    : tools;
   const withDispatch =
-    ownedTools && resolvedMode === "chat" ? [...baseTools, toRuntimeTool(useSkillTool, deps)] : baseTools;
+    ownedTools && resolvedMode === "chat" ? [...catalog, toRuntimeTool(useSkillTool, deps)] : catalog;
   const selected = withDispatch.filter((tool) => allowListedTool(tool, skillGate));
   const disabledHints = ownedTools ? disabledCapabilityHints(deps) : [];
   const runnable = selected

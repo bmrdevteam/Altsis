@@ -34,6 +34,8 @@ describe("dispatch confirmation", () => {
 
   test("a timetable request matches form-draft and ignores submission wording", () => {
     expect(matchDispatchIntent("시간표 양식을 만들어줘")).toBe("form-draft");
+    expect(matchDispatchIntent("막대 차트 그림을 만들어 줘")).toBe("generate_image");
+    expect(matchDispatchIntent("학부모 상담 공지 초안 써줘")).toBe("document-draft");
     expect(matchDispatchIntent("미제출 양식이 있으면 알려줘")).toBeNull();
     expect(dispatchSkillForMessage("시간표 양식을 만들어줘", { id: "syllabus-draft" })).toBeNull();
   });

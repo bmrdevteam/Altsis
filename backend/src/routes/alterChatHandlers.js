@@ -319,6 +319,7 @@ export const postAlterConfirmation = async (req, res) => {
       skill: outcome.skillId || null,
       message: outcome.text || "",
       draft: outcome.draft || null,
+      images: outcome.images || [],
       confirmation: outcome.confirmation || null,
     });
   } catch (err) {

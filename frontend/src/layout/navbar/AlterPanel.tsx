@@ -2528,6 +2528,7 @@ const AlterPanel = ({ onClose }: Props) => {
     return data as {
       message?: string;
       draft?: TAlterDraftResult | null;
+      images?: { url: string; alt?: string }[];
       confirmation?: ChatMessage["confirmation"];
       cancelled?: boolean;
       applied?: boolean;
@@ -2555,6 +2556,7 @@ const AlterPanel = ({ onClose }: Props) => {
             ...msg,
             content: data.message || msg.content,
             draft: data.draft || msg.draft,
+            images: data.images?.length ? data.images : msg.images,
             confirmation: data.confirmation || null,
             skill: data.draft ? card.skillId || msg.skill : msg.skill,
           };

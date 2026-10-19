@@ -85,10 +85,9 @@ export const buildSkillGate = (ctx = {}, skill = null) => ({
 const flagMessage = (meta, actor) => {
   const label = flagLabel(meta.requiredFlags);
   const particle = batchim(label);
-  if (actor?.role === "owner") {
-    return `이 학원은 ${label}${particle} 꺼져 있습니다. 학원 설정에서 켠 뒤 사용할 수 있습니다.`;
-  }
-  return `이 학원은 ${label}${particle} 꺼져 있습니다. 플랫폼 관리자에게 활성화를 요청할 수 있습니다.`;
+  const off = `이 학원은 ${label}${particle} 꺼져 있습니다. 학원 소유자가 AI 설정에서 켤 수 있습니다.`;
+  if (actor?.role === "owner") return off;
+  return `${off} 플랫폼 관리자에게 활성화를 요청할 수 있습니다.`;
 };
 
 const chipMessage = (chip) => {
