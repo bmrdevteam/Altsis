@@ -124,6 +124,11 @@ export const runEval = async ({
           tokens: tokensFrom(result.tokenUsage),
           latencyMs: Date.now() - started,
           text: previewAnswer(result.text, secrets),
+          ...((result.trace || []).some((row) => row?.diagnostics?.length)
+            ? {
+                diagnostics: (result.trace || []).flatMap((row) => row.diagnostics || []),
+              }
+            : {}),
         };
         rows.push(row);
         if (found.length) failed += 1;

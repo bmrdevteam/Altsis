@@ -6,7 +6,7 @@
 
 import { maskSensitiveText } from "../core/safety.js";
 import { addUsage } from "../core/usage.js";
-import { createAgentTools } from "../tools/registry.js";
+import { createAgentTools, disabledCapabilityHints } from "../tools/registry.js";
 import { llm } from "../../services/alterLlm.js";
 import {
   MAX_AGENT_TOOL_STEPS,
@@ -20,18 +20,19 @@ const isWriteTool = (tool) => tool?.readOnly === false || tool?.effect === "writ
 
 const depsForMode = (mode, ctx = {}) => {
   const webSearchEnabled = ctx.academy?.webSearchEnabled === true;
-  const imageGenEnabled = mode === "chat" && ctx.academy?.imageGenEnabled === true;
+  const imageFlag = ctx.academy?.imageGenEnabled === true;
+  const imageGenEnabled = mode === "chat" && imageFlag;
+  const shared = { webSearchEnabled, imageGenEnabled, imageGenRequested: imageFlag };
   if (mode === "event") {
-    return { includeScheduleTool: false, includeTriggerTool: true, webSearchEnabled, imageGenEnabled };
+    return { includeScheduleTool: false, includeTriggerTool: true, ...shared };
   }
   if (mode === "schedule") {
-    return { includeScheduleTool: false, includeTriggerTool: false, webSearchEnabled, imageGenEnabled };
+    return { includeScheduleTool: false, includeTriggerTool: false, ...shared };
   }
   return {
     includeScheduleTool: ctx.allowScheduleTool !== false,
     includeTriggerTool: Array.isArray(ctx.triggerEvents),
-    webSearchEnabled,
-    imageGenEnabled,
+    ...shared,
   };
 };
 
@@ -55,7 +56,10 @@ export const runAlterAgent = async ({
   onEvent,
 }) => {
   const resolvedMode = UNATTENDED.has(mode) || mode === "chat" ? mode : "chat";
-  const selected = Array.isArray(tools) ? tools : createAgentTools(depsForMode(resolvedMode, ctx));
+  const ownedTools = !Array.isArray(tools);
+  const deps = depsForMode(resolvedMode, ctx);
+  const selected = ownedTools ? createAgentTools(deps) : tools;
+  const disabledHints = ownedTools ? disabledCapabilityHints(deps) : [];
   const runnable = selected.filter((tool) => {
     if (tool?.chatOnly === true && resolvedMode !== "chat") return false;
     if (UNATTENDED.has(resolvedMode) && isWriteTool(tool)) return false;
@@ -115,6 +119,7 @@ export const runAlterAgent = async ({
 
   const result = await runAgentLoop({
     tools: runnable,
+    disabledHints,
     serverCtx: { ...ctx, mode: resolvedMode },
     userMessage: input.message,
     history: input.history || [],

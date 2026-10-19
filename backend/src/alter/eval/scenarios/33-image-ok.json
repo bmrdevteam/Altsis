@@ -20,7 +20,7 @@
       "allow": ["generate_image"]
     },
     "text": {
-      "matches": ["https://"]
+      "matches": ["https?://"]
     }
   },
   "scripted": [

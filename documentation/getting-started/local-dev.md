@@ -112,6 +112,16 @@ Expect SSE events `tool` (`get_my_todos`, running then done) and `done` with the
 
 In the UI, open Alter, choose **에이전트**, and send `오늘 내 할 일`. The step list shows the to-do lookup, then the scripted answer.
 
+같은 데모 키에서 아래 문장은 할 일 조회 대신 웹·이미지 안내를 돌려줍니다. 평가용 `scriptedPlan`이 있으면 그 계획이 우선이고, 네트워크는 호출하지 않습니다. 검색어와 그림 설명은 사용자가 친 문장이 아니라 고정된 공개 문구입니다.
+
+- `오늘 서울 날씨를 웹에서 찾아 줘` (기본, 웹 검색 꺼짐): 소유자가 AI 설정에서 켤 수 있다는 문장.
+- 학원 `webSearchEnabled`를 켠 뒤 같은 질문: 출처 링크 `https://example.com/weather`와 「출처는 답 아래에 있습니다.」
+- `간단한 막대 차트 그림을 만들어 줘` (이미지 꺼짐): 이미지 생성이 꺼져 있다는 문장.
+- `imageGenEnabled`를 켠 뒤 같은 질문: 답에 `https://example.com/generated/chart.png`.
+- 예약 실행에서 그림 요청: 예약과 이벤트에서는 이미지를 만들지 않는다는 문장.
+
+The same demo key uses those sentences instead of the to-do lookup. A caller-supplied `scriptedPlan` still wins, and none of these calls leave the process.
+
 ## 5. Scheduled runs (예약 실행)
 
 A teacher can save a routine in **설정 → 예약 실행**, or ask the agent. With the demo key, this message proposes a schedule and does not save it:

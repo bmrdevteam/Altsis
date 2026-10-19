@@ -16,18 +16,30 @@ const GuideLinkChips = ({ links }: Props) => {
 
   return (
     <div className={style.guideLinkRow} role="group" aria-label="바로가기">
-      {items.map((link) => (
-        <button
-          key={`${link.kind}:${link.path}`}
-          type="button"
-          className={`${style.guideLinkChip} ${
-            link.kind === "guide" ? style.guideLinkChipGuide : ""
-          }`}
-          onClick={() => navigate(link.path)}
-        >
-          {link.title}
-        </button>
-      ))}
+      {items.map((link) =>
+        link.kind === "web" ? (
+          <a
+            key={`${link.kind}:${link.path}`}
+            className={style.guideLinkChip}
+            href={link.path}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {link.title}
+          </a>
+        ) : (
+          <button
+            key={`${link.kind}:${link.path}`}
+            type="button"
+            className={`${style.guideLinkChip} ${
+              link.kind === "guide" ? style.guideLinkChipGuide : ""
+            }`}
+            onClick={() => navigate(link.path)}
+          >
+            {link.title}
+          </button>
+        )
+      )}
     </div>
   );
 };

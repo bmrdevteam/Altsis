@@ -14,6 +14,7 @@ const renderFenceSystem = (req = {}) => {
     guidelines: req.guidelines || "",
     pageNote: req.pageNote || "",
     protocol: "fence",
+    disabledHints: req.disabledHints || [],
   });
   return req.forceFinal ? `${base}\n\n${FORCE_FINAL_NOTE}` : base;
 };

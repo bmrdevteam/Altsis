@@ -8,6 +8,8 @@
  * production the key is rejected before any network call.
  */
 
+import { scriptedCapabilityTurn } from "./scriptedDemo.js";
+
 /** Dummy academy.aiApiKey that selects the scripted agent. Not a secret. */
 export const SCRIPTED_AGENT_API_KEY = "scripted-local-dev";
 
@@ -298,6 +300,16 @@ export const scriptedAgentGenerate = async ({
       tokenUsage: { ...TOKEN_USAGE },
     };
   }
+  const capability = scriptedCapabilityTurn({
+    native,
+    tools,
+    userText,
+    systemInstruction: instruction,
+    sawResult,
+    toolChoice,
+    busy: scheduleRequest || triggerRequest,
+  });
+  if (capability) return capability;
   if (native) {
     if (!sawResult && toolChoice !== "none") {
       return {

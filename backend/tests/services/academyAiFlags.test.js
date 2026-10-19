@@ -31,5 +31,25 @@ describe("academy AI flags", () => {
     const imageDenied = applyAcademyAiFlags(adminImage, { imageGenEnabled: true }, { owner: false });
     expect(imageDenied.status).toBe(403);
     expect(adminImage.imageGenEnabled).toBe(false);
+
+    const both = { aiEnabled: true, webSearchEnabled: false, imageGenEnabled: true, alterEventTriggersEnabled: false };
+    const bundled = applyAcademyAiFlags(
+      both,
+      { alterEventTriggersEnabled: true, webSearchEnabled: true },
+      { owner: false }
+    );
+    expect(bundled.status).toBe(403);
+    expect(both.alterEventTriggersEnabled).toBe(false);
+    expect(both.webSearchEnabled).toBe(false);
+
+    const malformed = { aiEnabled: true, webSearchEnabled: false, imageGenEnabled: false };
+    applyAcademyAiFlags(malformed, { webSearchEnabled: "true", imageGenEnabled: 1 }, { owner: true });
+    expect(malformed.webSearchEnabled).toBe(false);
+    expect(malformed.imageGenEnabled).toBe(false);
+    expect(malformed.aiEnabled).toBe(true);
+
+    const pair = { aiEnabled: false, webSearchEnabled: false, imageGenEnabled: false };
+    applyAcademyAiFlags(pair, { webSearchEnabled: true, imageGenEnabled: false }, { owner: true });
+    expect(pair).toMatchObject({ aiEnabled: false, webSearchEnabled: true, imageGenEnabled: false });
   });
 });

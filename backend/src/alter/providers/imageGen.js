@@ -14,7 +14,28 @@ export const SCRIPTED_IMAGE_ALT = "생성된 차트";
 const OPENAI_IMAGE_MODEL = "gpt-image-1";
 const GEMINI_IMAGE_MODEL = "gemini-2.5-flash-image";
 
-const failed = (error = "PROVIDER_ERROR") => ({ ok: false, error });
+const failed = (error = "PROVIDER_ERROR", extra = {}) => ({ ok: false, error, ...extra });
+
+/** A short provider code. Messages, prompts, and signed URLs stay out. */
+export const safeProviderCode = (value) => {
+  const code = String(value || "").trim();
+  return /^[A-Za-z0-9_.-]{1,64}$/.test(code) ? code : "";
+};
+
+const providerCodeFrom = (json) => {
+  const error = json?.error;
+  if (!error || typeof error !== "object") return "";
+  return safeProviderCode(error.code) || safeProviderCode(error.status) || safeProviderCode(error.type);
+};
+
+const failureFrom = (status, json, fallback = "") => {
+  const code = providerCodeFrom(json) || safeProviderCode(fallback);
+  const http = Number(status) || 0;
+  return failed("PROVIDER_ERROR", {
+    ...(http >= 100 && http <= 599 ? { status: http } : {}),
+    ...(code ? { providerCode: code } : {}),
+  });
+};
 
 const clip = (value, max) => String(value || "").replace(/\s+/g, " ").trim().slice(0, max);
 
@@ -39,9 +60,16 @@ const postJson = async (fetchImpl, url, { headers, body }) => {
   } catch (_) {
     json = null;
   }
-  if (!response.ok || !json) {
+  if (!response.ok) {
     const err = new Error("image generation failed");
-    err.status = response.status;
+    err.status = Number(response.status) || 0;
+    err.providerCode = providerCodeFrom(json);
+    throw err;
+  }
+  if (!json) {
+    const err = new Error("image generation failed");
+    err.status = Number(response.status) || 0;
+    err.providerCode = "empty_body";
     throw err;
   }
   return json;
@@ -71,7 +99,7 @@ const generateOpenAI = async ({ apiKey, prompt, alt, fetchImpl }) => {
     },
   });
   const row = Array.isArray(json?.data) ? json.data[0] : null;
-  if (!row?.b64_json) return failed();
+  if (!row?.b64_json) return failureFrom(200, json, row?.url ? "url_only" : "empty_image");
   return fromBytes(row.b64_json, "image/png", json?.usage, alt);
 };
 
@@ -92,7 +120,7 @@ const generateGemini = async ({ apiKey, prompt, alt, fetchImpl }) => {
   const image = parts.find((part) => part?.inlineData?.data || part?.inline_data?.data);
   const b64 = image?.inlineData?.data || image?.inline_data?.data;
   const mimeType = image?.inlineData?.mimeType || image?.inline_data?.mime_type || "image/png";
-  if (!b64) return failed();
+  if (!b64) return failureFrom(200, json, "empty_image");
   return fromBytes(b64, mimeType, json?.usageMetadata, alt);
 };
 
@@ -128,7 +156,7 @@ export const runProviderImage = async ({
   if (!generate) return failed("UNSUPPORTED");
   try {
     return await generate({ apiKey, prompt, alt: caption, fetchImpl });
-  } catch (_) {
-    return failed();
+  } catch (err) {
+    return failureFrom(err?.status, null, err?.providerCode);
   }
 };

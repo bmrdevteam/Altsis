@@ -4,7 +4,7 @@
   "role": "teacher",
   "fixture": "eval-teacher",
   "input": {
-    "prompt": "이 양식의 제출 현황을 인원 수로 알려 줘"
+    "prompt": "출석결재 양식의 제출 현황을 인원 수로 알려 줘"
   },
   "expect": {
     "tools": {

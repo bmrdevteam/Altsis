@@ -144,6 +144,22 @@ const cleanupStrippedLinkLines = (text, labels) => {
  * process.env.URL). Anything else keeps the label text, then empty bullets
  * and link lead-ins are removed.
  */
+const FALSE_SOURCE_CLAIM_RE =
+  /URL은\s*답변\s*하단[^\n。]*|출처는\s*답\s*아래에\s*있습니다\.?/g;
+
+/** Drop a claim that URLs were attached. Add that note only when a web source link exists. */
+export const finishSourceNote = (text, links) => {
+  const cleaned = String(text || "")
+    .replace(FALSE_SOURCE_CLAIM_RE, "")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  const hasWeb = (Array.isArray(links) ? links : []).some((link) => link?.kind === "web");
+  if (!hasWeb) return cleaned;
+  const note = "출처는 답 아래에 있습니다.";
+  return cleaned ? `${cleaned}\n\n${note}` : note;
+};
+
 export const stripUnmatchedLinks = (text, links, sourceUrls = []) => {
   const paths = linkPathsFrom(links);
   const sources = new Set(

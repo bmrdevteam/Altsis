@@ -299,6 +299,13 @@ export const checkExpect = (scenario, result, mode = "scripted") => {
       return raw;
     }
   };
+  if (expect.linkProtocol) {
+    const prefix = `${String(expect.linkProtocol).toLowerCase()}:`;
+    const ok = (result.links || []).some((link) =>
+      String(link?.path || "").trim().toLowerCase().startsWith(prefix)
+    );
+    if (!ok) errors.push(fail(id, `${expect.linkProtocol} source link missing`));
+  }
   for (const path of expect.links || []) {
     const paths = (result.links || []).map((link) => linkPath(link.path));
     if (!paths.includes(linkPath(path))) errors.push(fail(id, `link missing ${path}`));

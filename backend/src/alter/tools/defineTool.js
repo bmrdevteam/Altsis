@@ -17,6 +17,7 @@ const NAME_RE = /^[a-z][a-z0-9_]{0,63}$/;
  *   readOnly: boolean,
  *   untrustedOutput?: boolean,
  *   promptHints: string[],
+ *   disabledHint?: string | ((deps: object) => string),
  *   include?: (deps: object) => boolean,
  *   handler: (ctx: object, input: object) => Promise<object>,
  * }} spec
@@ -53,6 +54,7 @@ export const defineTool = (spec) => {
     untrustedOutput: spec.untrustedOutput === true,
     chatOnly: spec.chatOnly === true,
     promptHints,
+    disabledHint: spec.disabledHint,
     include: typeof spec.include === "function" ? spec.include : () => true,
     handler: spec.handler,
     parameters,

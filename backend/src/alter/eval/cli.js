@@ -32,6 +32,12 @@ for (const row of report.scenarios || []) {
   say(`${row.id}\t${row.status}\t${tools}\t${row.latencyMs ?? 0}\t${row.tokens?.total ?? 0}`);
   if (row.status !== "fail") continue;
   for (const line of row.assertions || []) say(`  ${line}`);
+  for (const item of row.diagnostics || []) {
+    const bits = [item.name, item.error, item.status, item.providerCode].filter(
+      (part) => part != null && part !== ""
+    );
+    if (bits.length) say(`  diagnostic ${bits.join(" ")}`);
+  }
 }
 if (report.reportFile) say(report.reportFile);
 process.exit(evalExitCode(report));

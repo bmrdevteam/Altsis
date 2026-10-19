@@ -2,6 +2,10 @@
  * Owner-only academy AI toggles. A flag-only body must not flip aiEnabled.
  */
 
+const FLAG_KEYS = ["alterEventTriggersEnabled", "webSearchEnabled", "imageGenEnabled"];
+
+const mentionsFlag = (body) => FLAG_KEYS.some((key) => Object.prototype.hasOwnProperty.call(body, key));
+
 export const applyAcademyAiFlags = (academy, body = {}, { owner = false } = {}) => {
   const eventFlag = body.alterEventTriggersEnabled;
   const webFlag = body.webSearchEnabled;
@@ -21,11 +25,7 @@ export const applyAcademyAiFlags = (academy, body = {}, { owner = false } = {}) 
   if (typeof eventFlag === "boolean") academy.alterEventTriggersEnabled = eventFlag;
   if (typeof webFlag === "boolean") academy.webSearchEnabled = webFlag;
   if (typeof imageFlag === "boolean") academy.imageGenEnabled = imageFlag;
-  const flagOnly =
-    !("aiEnabled" in body) &&
-    (typeof eventFlag === "boolean" ||
-      typeof webFlag === "boolean" ||
-      typeof imageFlag === "boolean");
+  const flagOnly = !("aiEnabled" in body) && mentionsFlag(body);
   if (typeof body.aiEnabled === "boolean") academy.aiEnabled = body.aiEnabled;
   else if (!flagOnly) academy.aiEnabled = !academy.aiEnabled;
   return { ok: true, eventOnly: false };

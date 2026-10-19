@@ -4,7 +4,20 @@
  * header and are not copied into errors or logs.
  */
 
-import { MAX_WEB_RESULTS, WEB_SNIPPET_MAX, WEB_TITLE_MAX } from "../core/limits.js";
+import {
+  MAX_WEB_RESULTS,
+  WEB_SEARCH_MAX_OUTPUT,
+  WEB_SEARCH_TOKEN_BUDGET,
+  WEB_SNIPPET_MAX,
+  WEB_TITLE_MAX,
+} from "../core/limits.js";
+import {
+  citationsFromAnnotations,
+  citationsFromAnthropic,
+  citationsFromGemini,
+  citationsFromOpenAISources,
+  providerSearchStatus,
+} from "./webCitations.js";
 import { isScriptedDemoKey } from "./scripted.js";
 import { normalizeUsage } from "./usage.js";
 
@@ -70,6 +83,28 @@ const withSnippets = (hits, text) => {
 
 const failed = () => ({ ok: false, error: "PROVIDER_ERROR", results: [] });
 
+const REASONING_MODEL = /gpt-5|\bo[1-9]|luna|reason/i;
+const INCOMPLETE = new Set(["incomplete", "max_tokens", "MAX_TOKENS", "length"]);
+
+const askSources = (query) => `출처의 제목과 주소만 짧게 답하세요.\n질문: ${query}`;
+
+/**
+ * Classify after the provider responds. The request already caps output and,
+ * for reasoning models, asks for low effort. That does not stop a live provider
+ * from billing hidden reasoning before this response is seen. No hits, plus an
+ * unfinished status or a total over the per-call budget, is a tool error.
+ * Partial citations are kept. Usage is returned either way so the caller can record it.
+ */
+export const guardWebSearch = ({ results, usage, status } = {}) => {
+  const hits = Array.isArray(results) ? results : [];
+  const incomplete = INCOMPLETE.has(String(status || ""));
+  const total = Number(usage?.totalTokens) || 0;
+  if (!hits.length && (incomplete || total > WEB_SEARCH_TOKEN_BUDGET)) {
+    return { ok: false, error: "TOOL_ERROR", results: [], usage: usage || null };
+  }
+  return { ok: true, results: hits, usage: usage || null };
+};
+
 const postJson = async (fetchImpl, url, { headers, body }) => {
   const response = await fetchImpl(url, {
     method: "POST",
@@ -91,21 +126,46 @@ const postJson = async (fetchImpl, url, { headers, body }) => {
   return json;
 };
 
+const mergeHits = (groups, limit) => {
+  const hits = [];
+  const seen = new Set();
+  for (const group of groups) {
+    for (const hit of group || []) {
+      if (!hit?.url || seen.has(hit.url) || hits.length >= limit) continue;
+      seen.add(hit.url);
+      hits.push(hit);
+    }
+  }
+  return hits;
+};
+
+const citedOrCollected = (cited, json, limit) => {
+  const hits = cited.length ? cited : collectWebHits(json, limit);
+  return withSnippets(hits, "").slice(0, limit);
+};
+
 const searchOpenAI = async ({ apiKey, model, query, limit, fetchImpl }) => {
+  const body = {
+    model: model || "gpt-4o-mini",
+    tools: [{ type: "web_search", search_context_size: "low" }],
+    include: ["web_search_call.action.sources"],
+    input: askSources(query),
+    max_output_tokens: WEB_SEARCH_MAX_OUTPUT,
+  };
+  if (REASONING_MODEL.test(String(model || ""))) body.reasoning = { effort: "low" };
   const json = await postJson(fetchImpl, "https://api.openai.com/v1/responses", {
     headers: { authorization: `Bearer ${apiKey}` },
-    body: {
-      model: model || "gpt-4o-mini",
-      tools: [{ type: "web_search", search_context_size: "low" }],
-      input: query,
-      max_output_tokens: 800,
-    },
+    body,
   });
-  return {
-    ok: true,
-    results: withSnippets(collectWebHits(json, limit), "").slice(0, limit),
+  const cited = mergeHits(
+    [citationsFromAnnotations(json, limit), citationsFromOpenAISources(json, limit)],
+    limit
+  );
+  return guardWebSearch({
+    results: citedOrCollected(cited, json, limit),
     usage: normalizeUsage(json?.usage),
-  };
+    status: providerSearchStatus("openai", json),
+  });
 };
 
 const searchAnthropic = async ({ apiKey, model, query, limit, fetchImpl }) => {
@@ -116,20 +176,16 @@ const searchAnthropic = async ({ apiKey, model, query, limit, fetchImpl }) => {
     },
     body: {
       model: model || "claude-3-5-sonnet-latest",
-      max_tokens: 800,
+      max_tokens: WEB_SEARCH_MAX_OUTPUT,
       tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 1 }],
-      messages: [{ role: "user", content: query }],
+      messages: [{ role: "user", content: askSources(query) }],
     },
   });
-  const text = (Array.isArray(json?.content) ? json.content : [])
-    .filter((block) => block?.type === "text")
-    .map((block) => block.text || "")
-    .join(" ");
-  return {
-    ok: true,
-    results: withSnippets(collectWebHits(json, limit), text).slice(0, limit),
+  return guardWebSearch({
+    results: citedOrCollected(citationsFromAnthropic(json, limit), json, limit),
     usage: normalizeUsage(json?.usage),
-  };
+    status: providerSearchStatus("anthropic", json),
+  });
 };
 
 const searchGemini = async ({ apiKey, model, query, limit, fetchImpl }) => {
@@ -140,19 +196,17 @@ const searchGemini = async ({ apiKey, model, query, limit, fetchImpl }) => {
     {
       headers: { "x-goog-api-key": apiKey },
       body: {
-        contents: [{ role: "user", parts: [{ text: query }] }],
+        contents: [{ role: "user", parts: [{ text: askSources(query) }] }],
         tools: [{ google_search: {} }],
+        generationConfig: { maxOutputTokens: WEB_SEARCH_MAX_OUTPUT },
       },
     }
   );
-  const text = (json?.candidates?.[0]?.content?.parts || [])
-    .map((part) => part?.text || "")
-    .join(" ");
-  return {
-    ok: true,
-    results: withSnippets(collectWebHits(json, limit), text).slice(0, limit),
+  return guardWebSearch({
+    results: citedOrCollected(citationsFromGemini(json, limit), json, limit),
     usage: normalizeUsage(json?.usageMetadata),
-  };
+    status: providerSearchStatus("gemini", json),
+  });
 };
 
 const SEARCHERS = {

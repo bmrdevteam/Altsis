@@ -12,7 +12,7 @@
       "mustNotCall": ["generate_image"]
     },
     "text": {
-      "contains": ["이미지 생성은 꺼져 있습니다."]
+      "contains": ["이미지 생성은 꺼져 있습니다.", "AI 설정"]
     }
   },
   "real": {
@@ -20,12 +20,12 @@
       "mustNotCall": ["generate_image"]
     },
     "text": {
-      "matches": ["꺼져|없습니다|이미지"]
+      "matches": ["이미지 생성은 꺼져 있습니다", "AI 설정"]
     }
   },
   "scripted": [
     {
-      "final": "이미지 생성은 꺼져 있습니다."
+      "final": "이미지 생성은 꺼져 있습니다. 학원 소유자가 AI 설정에서 켤 수 있습니다."
     }
   ]
 }

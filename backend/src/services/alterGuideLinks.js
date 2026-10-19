@@ -107,7 +107,10 @@ export const GUIDE_LINK_MAP = {
   "getting-started/quick-start.md": { guideTitle: "안내: 빠른 시작" },
 };
 
-const MAX_LINKS = 4;
+const MAX_APP_LINKS = 4;
+const MAX_WEB_LINKS = 5;
+
+const httpsSource = (path) => /^https:\/\/\S+$/i.test(path) && path.length <= 500;
 
 const canSeePage = (pagePath, { user, school, registration } = {}) => {
   const auth = user?.auth;
@@ -198,7 +201,7 @@ export const buildAlterGuideLinks = (hits, ctx = {}) => {
   };
 
   for (const key of keys) {
-    if (out.length >= MAX_LINKS) break;
+    if (out.length >= MAX_APP_LINKS) break;
     const spec = GUIDE_LINK_MAP[key] || {
       guideTitle: "안내",
     };
@@ -222,7 +225,7 @@ export const buildAlterGuideLinks = (hits, ctx = {}) => {
     push("guide", spec.guideTitle || "안내", guideDocPath(key));
   }
 
-  return out.slice(0, MAX_LINKS);
+  return out.slice(0, MAX_APP_LINKS);
 };
 
 /**
@@ -233,16 +236,27 @@ export const normalizeAlterGuideLinks = (links) => {
   const rows = Array.isArray(links) ? links : [];
   const out = [];
   const seen = new Set();
+  let app = 0;
+  let web = 0;
   for (const row of rows) {
-    const kind = row?.kind === "page" || row?.kind === "guide" ? row.kind : "";
     const title = String(row?.title || "").trim().slice(0, 40);
     const path = String(row?.path || "").trim();
-    if (!kind || !title || !isSafeAppPath(path)) continue;
+    if (row?.kind === "web") {
+      if (!title || !httpsSource(path) || web >= MAX_WEB_LINKS) continue;
+      const id = `web:${path}`;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      out.push({ kind: "web", title, path });
+      web += 1;
+      continue;
+    }
+    const kind = row?.kind === "page" || row?.kind === "guide" ? row.kind : "";
+    if (!kind || !title || !isSafeAppPath(path) || app >= MAX_APP_LINKS) continue;
     const id = `${kind}:${path}`;
     if (seen.has(id)) continue;
     seen.add(id);
     out.push({ kind, title, path });
-    if (out.length >= MAX_LINKS) break;
+    app += 1;
   }
   return out;
 };
