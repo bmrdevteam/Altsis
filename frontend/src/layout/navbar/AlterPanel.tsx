@@ -16,6 +16,8 @@ import {
   writeActiveConversation,
 } from "./alterUi/activeConversation";
 import { confirmationCardState } from "./alterUi/confirmationCard";
+import { formApplyPlan } from "./alterUi/formApply";
+import { visibleSkillChips } from "./alterUi/visibleSkillChips";
 import { friendlyAlterError, readAlterSse } from "./alterUi/sse";
 import useAPIv2 from "hooks/useAPIv2";
 import { isEmptyEval } from "utils/evaluationCsv";
@@ -272,7 +274,7 @@ const AlterPanel = ({ onClose }: Props) => {
     currentSchool,
     currentUser,
   } = useAuth();
-  const { AIAPI } = useAPIv2();
+  const { AIAPI, FormAPI } = useAPIv2();
   const {
     pageContext,
     isFullscreen,
@@ -2538,7 +2540,7 @@ const AlterPanel = ({ onClose }: Props) => {
   const answerConfirmation = async (
     msgId: string,
     card: NonNullable<ChatMessage["confirmation"]>,
-    action: "proceed" | "cancel"
+    action: "proceed" | "cancel" | "apply"
   ) => {
     setError("");
     try {
@@ -2546,10 +2548,13 @@ const AlterPanel = ({ onClose }: Props) => {
       setMessages((prev) =>
         prev.map((msg) => {
           if (msg.id !== msgId) return msg;
-          if (action === "cancel") {
+          if (action === "cancel" || action === "apply") {
             return {
               ...msg,
-              confirmation: { ...card, status: "cancelled" },
+              confirmation: {
+                ...card,
+                status: action === "cancel" ? "cancelled" : "consumed",
+              },
             };
           }
           return {
@@ -2708,8 +2713,20 @@ const AlterPanel = ({ onClose }: Props) => {
 
     if (isFormDraft(draftResult)) {
       const confirmationId = (draftResult as { confirmationId?: string }).confirmationId;
-      if (!confirmationId) {
-        setError("확인 없이 양식에 반영할 수 없습니다.");
+      const plan = formApplyPlan(
+        {
+          confirmationId,
+          writeMode: draftResult.writeMode,
+          formType: draftResult.formType,
+          title: draftResult.title,
+          blocks: draftResult.blocks,
+        },
+        !!pageContext?.applyFormDraft
+      );
+      if (!plan.ok || !confirmationId) {
+        setError(
+          plan.ok ? "확인 없이 양식에 반영할 수 없습니다." : plan.message
+        );
         return;
       }
       try {
@@ -2718,36 +2735,64 @@ const AlterPanel = ({ onClose }: Props) => {
         setError(err.message || "확인 없이 양식에 반영할 수 없습니다.");
         return;
       }
-      if (!pageContext?.applyFormDraft) {
-        setError("양식 문서를 연 뒤 초안을 반영할 수 있습니다.");
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === msgId && msg.confirmation
+            ? { ...msg, confirmation: { ...msg.confirmation, status: "consumed" } }
+            : msg
+        )
+      );
+      if (plan.target === "editor") {
+        if (!pageContext?.applyFormDraft) {
+          setError("양식 문서를 연 뒤 초안을 반영할 수 있습니다.");
+          return;
+        }
+        const result = pageContext.applyFormDraft({
+          title: draftResult.title,
+          writeMode: draftResult.writeMode,
+          formType: draftResult.formType,
+          blocks: draftResult.blocks,
+          ops: draftResult.ops,
+        });
+        setAppliedDraftIds((prev) => new Set(prev).add(msgId));
+        if (!result.applied) {
+          setError("반영할 양식 초안이 없었습니다.");
+        } else {
+          setError("");
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `a-applied-${Date.now()}`,
+              role: "assistant",
+              content:
+                draftResult.writeMode === "refine"
+                  ? "요청한 부분만 에디터에 반영했습니다. 확인한 뒤 저장해 주세요."
+                  : "양식 초안을 에디터에 반영했습니다. 확인·수정한 뒤 저장해 주세요.",
+              skill: "form-draft",
+              createdAt: new Date().toISOString(),
+            },
+          ]);
+        }
         return;
       }
-      const result = pageContext.applyFormDraft({
-        title: draftResult.title,
-        writeMode: draftResult.writeMode,
-        formType: draftResult.formType,
-        blocks: draftResult.blocks,
-        ops: draftResult.ops,
-      });
-      setAppliedDraftIds((prev) => new Set(prev).add(msgId));
-      if (!result.applied) {
-        setError("반영할 양식 초안이 없었습니다.");
-      } else {
-        setError("");
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `a-applied-${Date.now()}`,
-            role: "assistant",
-            content:
-              draftResult.writeMode === "refine"
-                ? "요청한 부분만 에디터에 반영했습니다. 확인한 뒤 저장해 주세요."
-                : "양식 초안을 에디터에 반영했습니다. 확인·수정한 뒤 저장해 주세요.",
-            skill: "form-draft",
-            createdAt: new Date().toISOString(),
-          },
-        ]);
+      try {
+        await FormAPI.CForm({ data: plan.body });
+      } catch (err: any) {
+        setError(err.message || "양식을 저장하지 못했습니다.");
+        return;
       }
+      setAppliedDraftIds((prev) => new Set(prev).add(msgId));
+      setError("");
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `a-applied-${Date.now()}`,
+          role: "assistant",
+          content: `양식 「${plan.body.title}」을 저장했습니다.`,
+          skill: "form-draft",
+          createdAt: new Date().toISOString(),
+        },
+      ]);
       return;
     }
 
@@ -3040,15 +3085,12 @@ const AlterPanel = ({ onClose }: Props) => {
     );
   })();
 
-  const skillChips: TAlterSkillId[] = [];
-  const pushSkillChip = (s: TAlterSkillId) => {
-    if (!skillChips.includes(s)) skillChips.push(s);
-  };
-  if (conversationId) pushSkillChip(selectedSkill);
-  suggested.forEach(pushSkillChip);
-  pushSkillChip("agent");
-  pushSkillChip("search");
-  pushSkillChip("chat");
+  const skillChips = visibleSkillChips({
+    auth: currentUser?.auth,
+    registrationRole: currentRegistration?.role,
+    suggested,
+    selected: conversationId ? selectedSkill : undefined,
+  });
 
   const expandToggleBtn = (
     <button
@@ -3774,6 +3816,47 @@ const AlterPanel = ({ onClose }: Props) => {
                   </button>
                 </div>
               </div>
+            ) : null}
+            {msg.role === "assistant" &&
+            msg.confirmation &&
+            confirmationCardState(msg.confirmation) === "apply" ? (
+              <div className={style.scheduleCard}>
+                <div className={style.scheduleCardTitle}>
+                  {msg.confirmation.title || "반영 확인"}
+                </div>
+                <div>
+                  {msg.draft && isFormDraft(msg.draft)
+                    ? "이 초안을 양식에 반영할까요?"
+                    : msg.confirmation.summary || "반영 전에 확인해 주세요."}
+                </div>
+                <div className={style.scheduleCardActions}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (msg.draft && isFormDraft(msg.draft)) {
+                        void applyDraft(msg.id, msg.draft);
+                        return;
+                      }
+                      void answerConfirmation(msg.id, msg.confirmation!, "apply");
+                    }}
+                  >
+                    반영
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void answerConfirmation(msg.id, msg.confirmation!, "cancel")
+                    }
+                  >
+                    취소
+                  </button>
+                </div>
+              </div>
+            ) : null}
+            {msg.role === "assistant" &&
+            msg.confirmation &&
+            confirmationCardState(msg.confirmation) === "cancelled" ? (
+              <div className={style.scheduleCard}>취소한 확인입니다.</div>
             ) : null}
             {msg.role === "assistant" &&
             msg.confirmation &&

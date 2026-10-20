@@ -1,4 +1,5 @@
 import { TAlterSkillId } from "contexts/alterContext";
+import { isLockedChip } from "./visibleSkillChips";
 
 export type ResolveSendSkillArgs = {
   selectedSkill: TAlterSkillId;
@@ -111,6 +112,8 @@ export const resolveSendSkill = ({
   if (selectedSkill === "chat") return "chat";
   if (selectedSkill === "search") return "search";
   if (selectedSkill === "agent") return "agent";
+  // A chosen draft chip stays on that skill even when the page does not match.
+  if (isLockedChip(selectedSkill)) return selectedSkill;
 
   const upgraded = explicitDraftSkill(text, pageType, hasSourceAttachments);
   if (upgraded) return upgraded;

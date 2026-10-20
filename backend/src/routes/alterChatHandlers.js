@@ -23,6 +23,7 @@ import {
   bulkDeleteAlterConversations as bulkDeleteAlterConversationsSvc,
   getActiveAlterConversation as getActiveAlterConversationSvc,
   setActiveAlterConversation as setActiveAlterConversationSvc,
+  syncAlterConfirmationMessage,
 } from "../services/alterConversations.js";
 import { alterMulter } from "../_s3/alterMulter.js";
 import { fileBucket, fileS3 } from "../_s3/fileBucket.js";
@@ -312,6 +313,45 @@ export const postAlterConfirmation = async (req, res) => {
         code: outcome.code,
         message: outcome.message,
       });
+    }
+    try {
+      const imageAttachments = (outcome.images || [])
+        .filter((image) => image?.key)
+        .map((image) => ({
+          kind: "image",
+          name: image.name || image.alt || "생성된 이미지",
+          key: image.key,
+          mimeType: image.mimeType || "image/png",
+        }));
+      if (action === "cancel") {
+        await syncAlterConfirmationMessage({
+          academyId: req.user.academyId,
+          userId: req.user._id,
+          confirmationId: req.params.id,
+          status: "cancelled",
+        });
+      } else if (action === "apply") {
+        await syncAlterConfirmationMessage({
+          academyId: req.user.academyId,
+          userId: req.user._id,
+          confirmationId: req.params.id,
+          status: "consumed",
+        });
+      } else if (action === "proceed") {
+        await syncAlterConfirmationMessage({
+          academyId: req.user.academyId,
+          userId: req.user._id,
+          confirmationId: req.params.id,
+          content: outcome.text || "",
+          draft: outcome.draft || null,
+          ...(outcome.confirmation
+            ? { confirmation: outcome.confirmation }
+            : { status: "consumed" }),
+          attachments: imageAttachments,
+        });
+      }
+    } catch (persistErr) {
+      logger.error(`alter confirmation persist: ${persistErr.message}`);
     }
     return res.status(200).send({
       ok: true,

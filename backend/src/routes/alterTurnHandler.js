@@ -4,6 +4,7 @@
  */
 import { logger } from "../log/logger.js";
 import { AlterError, toPublicAlterError } from "../alter/core/errors.js";
+import { lockedChipRefusal } from "../alter/policy/chipScope.js";
 import { attachApplyConfirmation } from "../alter/skills/dispatch.js";
 import {
   SKILL_IDS,
@@ -110,16 +111,33 @@ export const runAlter = async (req, res) => {
       }
     }
 
-    const result = await runAlterSkill({
-      academyId: req.user.academyId,
-      user: req.user,
-      skill,
-      seasonId,
-      context,
+    const refusal = await lockedChipRefusal({
+      skillId: skill,
       message,
-      history,
-      onEvent: sendEvent,
+      academyId: req.user.academyId,
+      userId: req.user._id,
+      role: req.user.auth,
     });
+    const result = refusal
+      ? {
+          skill,
+          text: refusal.text,
+          review: null,
+          draft: null,
+          tokenUsage: null,
+          links: [],
+          confirmation: null,
+        }
+      : await runAlterSkill({
+          academyId: req.user.academyId,
+          user: req.user,
+          skill,
+          seasonId,
+          context,
+          message,
+          history,
+          onEvent: sendEvent,
+        });
 
     const confirmOnApply = new Set([
       SKILL_IDS.SYLLABUS_DRAFT,

@@ -20,6 +20,10 @@ describe("confirmation cards", () => {
     expect(confirmationCardState({ ...card, status: "consumed" })).toBe("consumed");
   });
 
+  test("a cancelled card does not offer proceed again", () => {
+    expect(confirmationCardState({ ...card, status: "cancelled" })).toBe("cancelled");
+  });
+
   test("before_apply is the editor step", () => {
     expect(
       confirmationCardState({ ...card, stage: "before_apply" }, Date.parse("2026-10-19T00:00:00.000Z"))

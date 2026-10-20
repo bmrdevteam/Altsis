@@ -45,6 +45,23 @@ describe("resolveSendSkill", () => {
     ).toBe("agent");
   });
 
+  test("a form chip on the calendar stays on form-draft", () => {
+    expect(
+      resolveSendSkill({
+        selectedSkill: "form-draft",
+        pageType: "calendar",
+        text: "10학년 주간 시간표 양식 초안을 만들어줘",
+      })
+    ).toBe("form-draft");
+    expect(
+      resolveSendSkill({
+        selectedSkill: "form-draft",
+        pageType: "calendar",
+        text: "오늘 서울 날씨 검색해줘",
+      })
+    ).toBe("form-draft");
+  });
+
   test("search chip stays on search from any page", () => {
     expect(
       resolveSendSkill({

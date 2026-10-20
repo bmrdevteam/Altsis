@@ -625,3 +625,52 @@ export const appendAlterTurn = async ({
     messages: created,
   };
 };
+
+/**
+ * Write a confirmation outcome back onto the assistant message that holds the card.
+ * Cancelled and consumed cards stay that way after a refresh.
+ */
+export const syncAlterConfirmationMessage = async ({
+  academyId,
+  userId,
+  confirmationId,
+  status,
+  content,
+  draft,
+  confirmation,
+  attachments,
+}) => {
+  if (!confirmationId) return null;
+  const Message = AlterMessage(academyId);
+  const msg = await Message.findOne({
+    role: "assistant",
+    isDeleted: false,
+    "confirmation.id": String(confirmationId),
+  });
+  if (!msg) return null;
+  await getOwnedConversation({
+    academyId,
+    userId,
+    conversationId: msg.conversation,
+  });
+  if (content != null) msg.content = String(content);
+  if (draft !== undefined) {
+    msg.draft = draft;
+    if (typeof msg.markModified === "function") msg.markModified("draft");
+  }
+  if (confirmation !== undefined) {
+    msg.confirmation = confirmation;
+  } else if (status && msg.confirmation) {
+    const current =
+      typeof msg.confirmation.toObject === "function"
+        ? msg.confirmation.toObject()
+        : { ...msg.confirmation };
+    msg.confirmation = { ...current, status };
+  }
+  if (typeof msg.markModified === "function") msg.markModified("confirmation");
+  if (attachments) {
+    msg.attachments = normalizeStoredAttachments(attachments);
+  }
+  await msg.save();
+  return typeof msg.toObject === "function" ? msg.toObject() : msg;
+};
