@@ -226,6 +226,7 @@ const searchOpenAI = async ({ apiKey, model, query, limit, fetchImpl }) => {
   const body = {
     model: model || "gpt-4o-mini",
     tools: [{ type: "web_search", search_context_size: "low" }],
+    // action.sources is omitted unless this include is set. Reasoning models such as gpt-5.6-luna use the same request.
     include: ["web_search_call.action.sources"],
     input: askSources(query),
     max_output_tokens: WEB_SEARCH_MAX_OUTPUT,

@@ -455,4 +455,26 @@ describe("alter tool contract", () => {
       spy.mockRestore();
     }
   });
+
+  test("an answer without https sources is marked unverified", async () => {
+    const tool = createAgentTools({ webSearchEnabled: true }).find((item) => item.name === "web_search");
+    const result = await tool.execute(
+      {
+        academy: { webSearchEnabled: true },
+        user: { auth: "member" },
+        registration: { role: "teacher" },
+        searchWeb: async () => ({
+          ok: true,
+          answer: "대체로 맑고 현재 21°C, 최고 22°C입니다.",
+          results: [],
+        }),
+      },
+      { query: "오늘 서울 날씨" }
+    );
+    expect(result.results).toEqual([]);
+    expect(result.links).toEqual([]);
+    expect(result.answer).toContain("21°C");
+    expect(result.summary).toContain("21°C");
+    expect(result.summary).toContain("출처를 확인하지 못한 내용");
+  });
 });

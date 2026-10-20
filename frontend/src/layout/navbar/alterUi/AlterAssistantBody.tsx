@@ -1,4 +1,4 @@
-import { MarkdownViewer } from "components/markdown";
+import MarkdownViewer from "components/markdown/MarkdownViewer";
 import normalizeAlterMarkdown from "utils/normalizeAlterMarkdown";
 import DraftPreviewShell from "./DraftPreviewShell";
 import DraftRichBody from "./DraftRichBody";
@@ -20,6 +20,7 @@ export const AlterAssistantBody = ({ content, className }: Props) => {
       className={className || style.mdContent}
       escapeRawHtml={!isDoc}
       allowHtmlApp={hasFence}
+      singleTilde={false}
     />
   );
 

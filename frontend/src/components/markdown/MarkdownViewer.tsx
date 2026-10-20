@@ -323,6 +323,11 @@ export type Props = {
    * 문서 본문은 false — 에디터 HTML·콜아웃을 유지한다.
    */
   escapeRawHtml?: boolean;
+  /**
+   * false면 단일 물결표(~)를 취소선으로 보지 않는다. ~~취소~~는 그대로다.
+   * 기온 범위 17~19°C가 1719°C로 지워지지 않게 Alter 답변에서 끈다.
+   */
+  singleTilde?: boolean;
 };
 
 const MarkdownViewer = ({
@@ -330,6 +335,7 @@ const MarkdownViewer = ({
   className,
   allowHtmlApp = false,
   escapeRawHtml = false,
+  singleTilde = true,
 }: Props) => {
   const sanitizedContent = useMemo(
     () => preprocessMarkdownForViewer(content, { escapeRawHtml }),
@@ -360,7 +366,7 @@ const MarkdownViewer = ({
   return (
     <div className={`${style.markdown} ${className || ""}`}>
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkMath]}
+        remarkPlugins={[[remarkGfm, { singleTilde }], remarkMath]}
         rehypePlugins={[rehypeRaw, rehypeKatex] as any}
         components={components}
       >

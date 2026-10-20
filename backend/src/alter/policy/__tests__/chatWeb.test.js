@@ -81,6 +81,27 @@ describe("chatbot web search", () => {
     expect(result.links[0].path).toBe("https://weather.example/seoul");
   });
 
+  test("an answer with no sources is labeled unverified and does not fall through", async () => {
+    const result = await runChatWeb({
+      academyId: "eval",
+      user: { _id: "admin-1", auth: "admin" },
+      academy: { webSearchEnabled: true },
+      registration: { role: "teacher" },
+      message: "오늘 서울 날씨 검색해줘",
+      search: async () => ({
+        answer: "대체로 맑고 현재 21°C, 최고 22°C입니다.",
+        results: [],
+        links: [],
+      }),
+    });
+    expect(result.handled).toBe(true);
+    expect(result.preface).toBeUndefined();
+    expect(result.text).toContain("21°C");
+    expect(result.text).toContain("최고 22°C");
+    expect(result.text).toContain("출처를 확인하지 못한 내용");
+    expect(result.links).toEqual([]);
+  });
+
   test("an empty search is answered without falling through to chat", async () => {
     const result = await runChatWeb({
       academyId: "eval",

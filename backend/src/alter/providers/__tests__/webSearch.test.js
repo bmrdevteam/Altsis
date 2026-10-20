@@ -152,6 +152,7 @@ describe("provider web search", () => {
       expect(body.reasoning).toEqual({ effort: "low" });
       expect(body.max_output_tokens).toBe(4096);
       expect(body.tools[0].search_context_size).toBe("low");
+      expect(body.include).toEqual(["web_search_call.action.sources"]);
       expect(body.input).toContain("기온");
       expect(body.input).not.toContain("제목과 주소만");
       expect(result.results[0]).toMatchObject({

@@ -5,7 +5,7 @@
 
 import { actorFromAlterCtx, evaluateSkillAccess, flagsFromAcademy } from "../alter/policy/skillGate.js";
 import { recordSkillAudit } from "../alter/skills/auditPort.js";
-import webSearch from "../alter/tools/defs/webSearch.tool.js";
+import webSearch, { withUnverifiedSource } from "../alter/tools/defs/webSearch.tool.js";
 
 export const asksPublicWeb = (message) => {
   const text = String(message || "");
@@ -72,6 +72,13 @@ export const runChatWeb = async ({
     return {
       handled: true,
       text: "검색은 했지만 확인 가능한 출처를 찾지 못했습니다.",
+      links: [],
+    };
+  }
+  if (answer && hits.length === 0 && links.length === 0) {
+    return {
+      handled: true,
+      text: withUnverifiedSource(answer),
       links: [],
     };
   }
