@@ -18,6 +18,15 @@ export const LOCKED_CHIP_SKILLS: TAlterSkillId[] = [
 export const isLockedChip = (skill: TAlterSkillId) =>
   LOCKED_CHIP_SKILLS.includes(skill);
 
+/** Pressing the selected draft chip again clears it. Mode chips stay selected. */
+export const nextSkillOnChipClick = (
+  current: TAlterSkillId,
+  clicked: TAlterSkillId
+): TAlterSkillId => {
+  if (current === clicked && isLockedChip(clicked)) return "chat";
+  return clicked;
+};
+
 export type VisibleSkillChipArgs = {
   auth?: string;
   registrationRole?: string;

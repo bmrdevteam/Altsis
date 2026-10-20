@@ -86,7 +86,42 @@ const failed = () => ({ ok: false, error: "PROVIDER_ERROR", results: [] });
 const REASONING_MODEL = /gpt-5|\bo[1-9]|luna|reason/i;
 const INCOMPLETE = new Set(["incomplete", "max_tokens", "MAX_TOKENS", "length"]);
 
-const askSources = (query) => `출처의 제목과 주소만 짧게 답하세요.\n질문: ${query}`;
+const DENIAL = /결과(?:가|는)?\s*없|찾을 수 없|정보가 없/;
+
+/** Page facts for the chat model. A denial is not a forecast. */
+export const factualSearchAnswer = (text) => {
+  const clipped = clip(String(text || "").replace(/https?:\/\/\S+/gi, " "), WEB_SNIPPET_MAX);
+  if (!clipped || DENIAL.test(clipped)) return "";
+  return clipped;
+};
+
+const outputText = (blocks) =>
+  (Array.isArray(blocks) ? blocks : [])
+    .map((block) => (typeof block?.text === "string" ? block.text : ""))
+    .filter(Boolean)
+    .join("\n");
+
+export const providerSearchText = (provider, json) => {
+  if (provider === "openai") {
+    return (Array.isArray(json?.output) ? json.output : [])
+      .map((item) => outputText(item?.content))
+      .filter(Boolean)
+      .join("\n");
+  }
+  if (provider === "anthropic") return outputText(json?.content);
+  if (provider === "gemini") {
+    return outputText(json?.candidates?.[0]?.content?.parts);
+  }
+  return "";
+};
+
+const fillEmptySnippets = (hits, answer) => {
+  if (!answer || !hits.length || hits.some((hit) => hit.snippet)) return hits;
+  return hits.map((hit, index) => (index === 0 ? { ...hit, snippet: answer } : hit));
+};
+
+const askSources = (query) =>
+  `검색된 페이지의 사실만 요약하세요. 날씨면 상태·기온·강수를 적으세요. 없는 숫자는 만들지 마세요.\n질문: ${query}`;
 
 /**
  * Classify after the provider responds. The request already caps output and,
@@ -139,9 +174,15 @@ const mergeHits = (groups, limit) => {
   return hits;
 };
 
-const citedOrCollected = (cited, json, limit) => {
+const citedOrCollected = (cited, json, limit, answer = "") => {
   const hits = cited.length ? cited : collectWebHits(json, limit);
-  return withSnippets(hits, "").slice(0, limit);
+  return fillEmptySnippets(withSnippets(hits, "").slice(0, limit), answer);
+};
+
+const finishSearch = (found, provider, json) => {
+  if (!found?.ok) return found;
+  const answer = factualSearchAnswer(providerSearchText(provider, json));
+  return answer ? { ...found, answer } : found;
 };
 
 const searchOpenAI = async ({ apiKey, model, query, limit, fetchImpl }) => {
@@ -161,11 +202,15 @@ const searchOpenAI = async ({ apiKey, model, query, limit, fetchImpl }) => {
     [citationsFromAnnotations(json, limit), citationsFromOpenAISources(json, limit)],
     limit
   );
-  return guardWebSearch({
-    results: citedOrCollected(cited, json, limit),
-    usage: normalizeUsage(json?.usage),
-    status: providerSearchStatus("openai", json),
-  });
+  return finishSearch(
+    guardWebSearch({
+      results: citedOrCollected(cited, json, limit, factualSearchAnswer(providerSearchText("openai", json))),
+      usage: normalizeUsage(json?.usage),
+      status: providerSearchStatus("openai", json),
+    }),
+    "openai",
+    json
+  );
 };
 
 const searchAnthropic = async ({ apiKey, model, query, limit, fetchImpl }) => {
@@ -181,11 +226,16 @@ const searchAnthropic = async ({ apiKey, model, query, limit, fetchImpl }) => {
       messages: [{ role: "user", content: askSources(query) }],
     },
   });
-  return guardWebSearch({
-    results: citedOrCollected(citationsFromAnthropic(json, limit), json, limit),
-    usage: normalizeUsage(json?.usage),
-    status: providerSearchStatus("anthropic", json),
-  });
+  const answer = factualSearchAnswer(providerSearchText("anthropic", json));
+  return finishSearch(
+    guardWebSearch({
+      results: citedOrCollected(citationsFromAnthropic(json, limit), json, limit, answer),
+      usage: normalizeUsage(json?.usage),
+      status: providerSearchStatus("anthropic", json),
+    }),
+    "anthropic",
+    json
+  );
 };
 
 const searchGemini = async ({ apiKey, model, query, limit, fetchImpl }) => {
@@ -202,11 +252,16 @@ const searchGemini = async ({ apiKey, model, query, limit, fetchImpl }) => {
       },
     }
   );
-  return guardWebSearch({
-    results: citedOrCollected(citationsFromGemini(json, limit), json, limit),
-    usage: normalizeUsage(json?.usageMetadata),
-    status: providerSearchStatus("gemini", json),
-  });
+  const answer = factualSearchAnswer(providerSearchText("gemini", json));
+  return finishSearch(
+    guardWebSearch({
+      results: citedOrCollected(citationsFromGemini(json, limit), json, limit, answer),
+      usage: normalizeUsage(json?.usageMetadata),
+      status: providerSearchStatus("gemini", json),
+    }),
+    "gemini",
+    json
+  );
 };
 
 const SEARCHERS = {

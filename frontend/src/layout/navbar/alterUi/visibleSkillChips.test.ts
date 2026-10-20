@@ -1,4 +1,4 @@
-import { visibleSkillChips } from "./visibleSkillChips";
+import { nextSkillOnChipClick, visibleSkillChips } from "./visibleSkillChips";
 
 describe("visibleSkillChips", () => {
   test("an admin sees the form chip even when the page only suggests chat", () => {
@@ -27,5 +27,11 @@ describe("visibleSkillChips", () => {
       suggested: ["form-draft", "chat"],
     });
     expect(chips).toEqual(["agent", "search", "chat"]);
+  });
+
+  test("pressing the selected form chip clears it", () => {
+    expect(nextSkillOnChipClick("form-draft", "form-draft")).toBe("chat");
+    expect(nextSkillOnChipClick("form-draft", "agent")).toBe("agent");
+    expect(nextSkillOnChipClick("chat", "chat")).toBe("chat");
   });
 });

@@ -45,6 +45,9 @@ const httpsHit = (hit) => {
   };
 };
 
+const factualAnswerOf = (value) =>
+  String(value || "").replace(/\s+/g, " ").trim().slice(0, 240);
+
 const publicHits = (rows) => {
   const hits = [];
   const seen = new Set();
@@ -139,8 +142,10 @@ export default defineTool({
         title: hit.title,
         path: hit.url,
       }));
+      const answer = factualAnswerOf(result.answer);
       return {
         summary: titles ? `검색 결과: ${titles}` : "해당하는 공개 검색 결과가 없습니다.",
+        ...(answer ? { answer } : {}),
         results,
         links,
         sourceUrls: links.map((link) => link.path),

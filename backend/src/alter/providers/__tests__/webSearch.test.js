@@ -151,7 +151,8 @@ describe("provider web search", () => {
       expect(body.reasoning).toEqual({ effort: "low" });
       expect(body.max_output_tokens).toBe(4096);
       expect(body.tools[0].search_context_size).toBe("low");
-      expect(body.input).toContain("출처");
+      expect(body.input).toContain("기온");
+      expect(body.input).not.toContain("제목과 주소만");
       expect(result.results[0]).toMatchObject({
         title: "공공 날씨 안내",
         url: "https://example.com/weather",
@@ -287,8 +288,8 @@ describe("provider web search", () => {
       { title: "공공 날씨 안내", url: "https://example.com/weather", snippet: "맑음" },
     ]);
     expect(result.usage.totalTokens).toBe(24000);
-    expect(JSON.stringify(result).length).toBeLessThan(500);
-    expect(JSON.stringify(result)).not.toContain(blob.slice(0, 40));
+    expect(result.answer.length).toBeLessThanOrEqual(240);
+    expect(result.answer.length).toBeLessThan(text.length);
   });
 
   test("untitled search sources stay even when the message says there are none", async () => {
@@ -331,6 +332,50 @@ describe("provider web search", () => {
       { title: "randombasis.com", url: "https://randombasis.com/guide", snippet: "" },
     ]);
     expect(JSON.stringify(result)).not.toContain("검색 결과가 없습니다");
+  });
+
+  test("title-only openai sources keep the page summary", async () => {
+    let body = null;
+    const result = await runProviderWebSearch({
+      provider: "openai",
+      apiKey: "sk-test-secret-value",
+      model: "gpt-4o-mini",
+      query: "오늘 서울 날씨",
+      fetchImpl: async (_url, init) => {
+        body = JSON.parse(init.body);
+        return jsonResponse({
+          status: "completed",
+          output: [
+            {
+              type: "web_search_call",
+              action: {
+                type: "search",
+                sources: [{ type: "url", url: "https://weather.example/seoul" }],
+              },
+            },
+            {
+              type: "message",
+              content: [
+                {
+                  type: "output_text",
+                  text: "서울은 맑고 기온은 18도, 강수 확률은 10%입니다.",
+                  annotations: [],
+                },
+              ],
+            },
+          ],
+          usage: { input_tokens: 20, output_tokens: 20, total_tokens: 40 },
+        });
+      },
+    });
+    expect(body.input).toContain("기온");
+    expect(body.input).not.toContain("제목과 주소만");
+    expect(body.tools[0].type).toBe("web_search");
+    expect(result.answer).toContain("18도");
+    expect(result.results[0]).toMatchObject({
+      url: "https://weather.example/seoul",
+      snippet: "서울은 맑고 기온은 18도, 강수 확률은 10%입니다.",
+    });
   });
 
   test("mixed, duplicate, blank, and empty source lists keep only usable https rows", async () => {

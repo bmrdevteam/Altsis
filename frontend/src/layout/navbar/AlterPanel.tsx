@@ -17,7 +17,8 @@ import {
 } from "./alterUi/activeConversation";
 import { confirmationCardState } from "./alterUi/confirmationCard";
 import { formApplyPlan } from "./alterUi/formApply";
-import { visibleSkillChips } from "./alterUi/visibleSkillChips";
+import { formDraftSendBlock } from "./alterUi/formDraftSend";
+import { nextSkillOnChipClick, visibleSkillChips } from "./alterUi/visibleSkillChips";
 import { friendlyAlterError, readAlterSse } from "./alterUi/sse";
 import useAPIv2 from "hooks/useAPIv2";
 import { isEmptyEval } from "utils/evaluationCsv";
@@ -1088,21 +1089,24 @@ const AlterPanel = ({ onClose }: Props) => {
       };
     }
     if (skill === "form-draft") {
-      const current = pageContext?.getForm?.() || {
-        formId: "",
-        title: "",
-        formType: "timetable",
-        blocks: [],
-      };
+      const onEditor = pageContext?.pageType === "form-editor";
+      const current = onEditor
+        ? pageContext?.getForm?.() || {
+            formId: "",
+            title: "",
+            formType: "timetable",
+            blocks: [],
+          }
+        : { formId: "", title: "", formType: "timetable", blocks: [] };
       return {
-        pageType: "form-editor",
+        pageType: onEditor ? "form-editor" : pageContext?.pageType || "general",
         label: pageContext?.label || "",
-        writeMode: formWriteMode,
+        writeMode: onEditor ? formWriteMode : "create",
         formType: current.formType || "timetable",
-        formId: current.formId || "",
+        formId: onEditor ? current.formId || "" : "",
         guidelineItemIds: formSelectedGuidelineIds,
-        currentTitle: current.title || "",
-        currentBlocks: current.blocks || [],
+        currentTitle: onEditor ? current.title || "" : "",
+        currentBlocks: onEditor ? current.blocks || [] : [],
         sourceText: attachmentText,
         attachments,
       };
@@ -1199,12 +1203,12 @@ const AlterPanel = ({ onClose }: Props) => {
 
   const selectSkill = (skill: TAlterSkillId) => {
     if (isWorking || isRefining) return;
-    // 한 대화에서 여러 Skill 허용 — 칩만 전환
-    setSelectedSkill(skill);
+    const next = nextSkillOnChipClick(selectedSkill, skill);
+    setSelectedSkill(next);
     setExpandedGuidelineId(null);
-    const prep = showsPrepDock(skill);
+    const prep = showsPrepDock(next);
     setShowPrep(prep);
-    if (prep) setPrepCollapsed(shouldDefaultCollapsePrep(skill));
+    if (prep) setPrepCollapsed(shouldDefaultCollapsePrep(next));
   };
 
   const openHistoryList = () => {
@@ -1728,35 +1732,18 @@ const AlterPanel = ({ onClose }: Props) => {
     }
 
     if (skill === "form-draft") {
-      if (pageContext?.pageType !== "form-editor") {
-        setError("관리자 양식 화면에서 초안을 작성할 수 있습니다.");
-        return;
-      }
-      if (!pageContext?.applyFormDraft) {
-        setError("양식 문서를 연 뒤 초안을 작성할 수 있습니다.");
-        return;
-      }
-      const current = pageContext?.getForm?.() || {
-        title: "",
-        blocks: [],
-      };
-      if (
-        formWriteMode === "create" &&
-        !userText.trim() &&
-        sourceAttachments.length === 0
-      ) {
-        setError("초안에 쓸 정보를 입력하거나 파일을 첨부해 주세요.");
-        return;
-      }
-      if (
-        formWriteMode === "refine" &&
-        !(current.blocks || []).length &&
-        !userText.trim() &&
-        sourceAttachments.length === 0
-      ) {
-        setError(
-          "다듬을 양식이 없습니다. 에디터에 내용을 쓰거나 요청을 입력해 주세요."
-        );
+      const onEditor = pageContext?.pageType === "form-editor";
+      const current = onEditor ? pageContext?.getForm?.() : null;
+      const blocked = formDraftSendBlock({
+        pageType: pageContext?.pageType,
+        hasEditorApply: !!pageContext?.applyFormDraft,
+        writeMode: formWriteMode,
+        hasText: !!userText.trim(),
+        hasAttachments: sourceAttachments.length > 0,
+        hasBlocks: !!(current?.blocks || []).length,
+      });
+      if (blocked) {
+        setError(blocked);
         return;
       }
     }

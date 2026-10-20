@@ -61,4 +61,23 @@ describe("chatbot web search", () => {
     expect(result.preface).toContain("화면 맥락이 있어도");
     expect(result.preface).toContain("화면에 없습니다");
   });
+
+  test("a title-only hit still carries the page summary into the answer", async () => {
+    const result = await runChatWeb({
+      academyId: "eval",
+      user: { _id: "admin-1", auth: "admin" },
+      academy: { webSearchEnabled: true },
+      registration: { role: "teacher" },
+      message: "오늘 서울 날씨 검색해줘",
+      search: async () => ({
+        answer: "서울은 맑고 기온은 18도, 강수 확률은 10%입니다.",
+        results: [{ title: "서울 날씨", url: "https://weather.example/seoul", snippet: "" }],
+        links: [{ kind: "web", title: "서울 날씨", path: "https://weather.example/seoul" }],
+      }),
+    });
+    expect(result.preface).toContain("18도");
+    expect(result.preface).toContain("강수 확률은 10%");
+    expect(result.preface).toContain("예보가 없다고 하지 마세요");
+    expect(result.links[0].path).toBe("https://weather.example/seoul");
+  });
 });
