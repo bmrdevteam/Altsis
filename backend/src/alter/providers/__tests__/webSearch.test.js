@@ -376,7 +376,7 @@ describe("provider web search", () => {
     expect(result.answer).toContain("18도");
     expect(result.results[0]).toMatchObject({
       url: "https://weather.example/seoul",
-      snippet: "서울은 맑고 기온은 18도, 강수 확률은 10%입니다",
+      snippet: "서울은 맑고 기온은 18도, 강수 확률은 10%입니다.",
     });
   });
 
@@ -533,6 +533,16 @@ describe("provider web search", () => {
     expect(factualSearchAnswer("맑음, 최고 18℃. 강수 정보가 없습니다.")).toContain("18℃");
     expect(factualSearchAnswer("강수 확률은 10%입니다. 찾을 수 없습니다.")).toContain("10%");
     expect(factualSearchAnswer("검색 결과가 없습니다.")).toBe("");
+  });
+
+  test("a sentence period stays between kept sentences", () => {
+    expect(
+      factualSearchAnswer(
+        "현재 기온은 21°C입니다. 오후에는 흐려지며 최고 22°C, 저녁에는 16~19°C까지 내려갈 전망입니다. 강수 정보가 없습니다."
+      )
+    ).toBe(
+      "현재 기온은 21°C입니다. 오후에는 흐려지며 최고 22°C, 저녁에는 16~19°C까지 내려갈 전망입니다."
+    );
   });
 
   test("sources without citations stay and the log keeps counts only", async () => {

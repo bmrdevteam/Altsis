@@ -90,11 +90,26 @@ const INCOMPLETE = new Set(["incomplete", "max_tokens", "MAX_TOKENS", "length"])
 const DENIAL = /결과(?:가|는)?\s*없|찾을 수 없|정보가 없/;
 const FACT = /\d|℃|%/;
 
-const splitSentences = (text) =>
-  String(text || "")
-    .split(/\n+|\.\.\.\s*|(?<=다)\.\s*|(?<=요)\.\s*|(?<=까)\.\s*|(?<=[^\d])\.\s+(?=\S)/)
-    .map((part) => part.replace(/^[\s.]+|[\s.]+$/g, "").trim())
-    .filter(Boolean);
+const SENTENCE_BOUNDARY =
+  /\n+|\.\.\.\s*|(?<=다)\.\s*|(?<=요)\.\s*|(?<=까)\.\s*|(?<=[^\d])\.\s+(?=\S)/g;
+
+/** Keep the ending period or ellipsis. The boundary whitespace is only a separator. */
+const splitSentences = (text) => {
+  const source = String(text || "");
+  const parts = [];
+  let cursor = 0;
+  for (const match of source.matchAll(SENTENCE_BOUNDARY)) {
+    const boundary = match[0];
+    const at = match.index ?? 0;
+    const keepMark = boundary.startsWith("...") ? 3 : boundary.startsWith(".") ? 1 : 0;
+    const chunk = source.slice(cursor, at + keepMark).replace(/^\s+|\s+$/g, "");
+    if (chunk) parts.push(chunk);
+    cursor = at + boundary.length;
+  }
+  const tail = source.slice(cursor).replace(/^\s+|\s+$/g, "");
+  if (tail) parts.push(tail);
+  return parts;
+};
 
 /**
  * Drop only sentences that deny a result and contain no number.
