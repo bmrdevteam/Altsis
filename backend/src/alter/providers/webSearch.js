@@ -18,6 +18,7 @@ import {
   citationsFromOpenAISources,
   providerSearchStatus,
 } from "./webCitations.js";
+import { logger } from "../../log/logger.js";
 import { isScriptedDemoKey } from "./scripted.js";
 import { normalizeUsage } from "./usage.js";
 
@@ -87,13 +88,36 @@ const REASONING_MODEL = /gpt-5|\bo[1-9]|luna|reason/i;
 const INCOMPLETE = new Set(["incomplete", "max_tokens", "MAX_TOKENS", "length"]);
 
 const DENIAL = /결과(?:가|는)?\s*없|찾을 수 없|정보가 없/;
+const FACT = /\d|℃|%/;
 
-/** Page facts for the chat model. A denial is not a forecast. */
-export const factualSearchAnswer = (text) => {
-  const clipped = clip(String(text || "").replace(/https?:\/\/\S+/gi, " "), WEB_SNIPPET_MAX);
-  if (!clipped || DENIAL.test(clipped)) return "";
-  return clipped;
+const splitSentences = (text) =>
+  String(text || "")
+    .split(/\n+|\.\.\.\s*|(?<=다)\.\s*|(?<=요)\.\s*|(?<=까)\.\s*|(?<=[^\d])\.\s+(?=\S)/)
+    .map((part) => part.replace(/^[\s.]+|[\s.]+$/g, "").trim())
+    .filter(Boolean);
+
+/**
+ * Drop only sentences that deny a result and contain no number.
+ * A temperature or percent in the same text is kept.
+ */
+export const filterSearchAnswer = (text) => {
+  const cleaned = String(text || "").replace(/https?:\/\/\S+/gi, " ");
+  const parts = splitSentences(cleaned);
+  let droppedByDenial = 0;
+  const kept = [];
+  for (const part of parts.length ? parts : [cleaned]) {
+    const row = String(part || "").trim();
+    if (!row) continue;
+    if (DENIAL.test(row) && !FACT.test(row)) {
+      droppedByDenial += 1;
+      continue;
+    }
+    kept.push(row);
+  }
+  return { text: clip(kept.join(" "), WEB_SNIPPET_MAX), droppedByDenial };
 };
+
+export const factualSearchAnswer = (text) => filterSearchAnswer(text).text;
 
 const outputText = (blocks) =>
   (Array.isArray(blocks) ? blocks : [])
@@ -121,7 +145,26 @@ const fillEmptySnippets = (hits, answer) => {
 };
 
 const askSources = (query) =>
-  `검색된 페이지의 사실만 요약하세요. 날씨면 상태·기온·강수를 적으세요. 없는 숫자는 만들지 마세요.\n질문: ${query}`;
+  `검색된 페이지의 사실을 요약하고, 문장마다 출처를 인용하세요. 날씨면 상태·기온·강수를 적으세요. 없는 숫자는 만들지 마세요.\n질문: ${query}`;
+
+const logSearchCounts = ({ hits, answerLen, droppedByDenial, citations, sources }) => {
+  logger.info(
+    `alter web_search hits=${Number(hits) || 0} answerLen=${Number(answerLen) || 0} droppedByDenial=${Number(droppedByDenial) || 0} citations=${Number(citations) || 0} sources=${Number(sources) || 0}`
+  );
+};
+
+const completeSearch = (found, filtered, counts) => {
+  const answer = found?.ok ? filtered?.text || "" : "";
+  const next = answer ? { ...found, answer } : found;
+  logSearchCounts({
+    hits: (next?.results || []).length,
+    answerLen: answer.length,
+    droppedByDenial: filtered?.droppedByDenial || 0,
+    citations: counts?.citations || 0,
+    sources: counts?.sources || 0,
+  });
+  return next;
+};
 
 /**
  * Classify after the provider responds. The request already caps output and,
@@ -179,12 +222,6 @@ const citedOrCollected = (cited, json, limit, answer = "") => {
   return fillEmptySnippets(withSnippets(hits, "").slice(0, limit), answer);
 };
 
-const finishSearch = (found, provider, json) => {
-  if (!found?.ok) return found;
-  const answer = factualSearchAnswer(providerSearchText(provider, json));
-  return answer ? { ...found, answer } : found;
-};
-
 const searchOpenAI = async ({ apiKey, model, query, limit, fetchImpl }) => {
   const body = {
     model: model || "gpt-4o-mini",
@@ -198,18 +235,18 @@ const searchOpenAI = async ({ apiKey, model, query, limit, fetchImpl }) => {
     headers: { authorization: `Bearer ${apiKey}` },
     body,
   });
-  const cited = mergeHits(
-    [citationsFromAnnotations(json, limit), citationsFromOpenAISources(json, limit)],
-    limit
-  );
-  return finishSearch(
+  const citations = citationsFromAnnotations(json, limit);
+  const sources = citationsFromOpenAISources(json, limit);
+  const cited = citations.length ? mergeHits([citations, sources], limit) : sources;
+  const filtered = filterSearchAnswer(providerSearchText("openai", json));
+  return completeSearch(
     guardWebSearch({
-      results: citedOrCollected(cited, json, limit, factualSearchAnswer(providerSearchText("openai", json))),
+      results: citedOrCollected(cited, json, limit, filtered.text),
       usage: normalizeUsage(json?.usage),
       status: providerSearchStatus("openai", json),
     }),
-    "openai",
-    json
+    filtered,
+    { citations: citations.length, sources: sources.length }
   );
 };
 
@@ -226,15 +263,16 @@ const searchAnthropic = async ({ apiKey, model, query, limit, fetchImpl }) => {
       messages: [{ role: "user", content: askSources(query) }],
     },
   });
-  const answer = factualSearchAnswer(providerSearchText("anthropic", json));
-  return finishSearch(
+  const citations = citationsFromAnthropic(json, limit);
+  const filtered = filterSearchAnswer(providerSearchText("anthropic", json));
+  return completeSearch(
     guardWebSearch({
-      results: citedOrCollected(citationsFromAnthropic(json, limit), json, limit, answer),
+      results: citedOrCollected(citations, json, limit, filtered.text),
       usage: normalizeUsage(json?.usage),
       status: providerSearchStatus("anthropic", json),
     }),
-    "anthropic",
-    json
+    filtered,
+    { citations: citations.length, sources: 0 }
   );
 };
 
@@ -252,15 +290,16 @@ const searchGemini = async ({ apiKey, model, query, limit, fetchImpl }) => {
       },
     }
   );
-  const answer = factualSearchAnswer(providerSearchText("gemini", json));
-  return finishSearch(
+  const citations = citationsFromGemini(json, limit);
+  const filtered = filterSearchAnswer(providerSearchText("gemini", json));
+  return completeSearch(
     guardWebSearch({
-      results: citedOrCollected(citationsFromGemini(json, limit), json, limit, answer),
+      results: citedOrCollected(citations, json, limit, filtered.text),
       usage: normalizeUsage(json?.usageMetadata),
       status: providerSearchStatus("gemini", json),
     }),
-    "gemini",
-    json
+    filtered,
+    { citations: citations.length, sources: 0 }
   );
 };
 

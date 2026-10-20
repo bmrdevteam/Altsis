@@ -66,6 +66,15 @@ export const runChatWeb = async ({
     return { handled: true, text: data.summary || "웹 검색을 마치지 못했습니다.", links: [] };
   }
   const answer = String(data?.answer || "").replace(/\s+/g, " ").trim();
+  const hits = Array.isArray(data?.results) ? data.results : [];
+  const links = Array.isArray(data?.links) ? data.links : [];
+  if (!answer && hits.length === 0 && links.length === 0) {
+    return {
+      handled: true,
+      text: "검색은 했지만 확인 가능한 출처를 찾지 못했습니다.",
+      links: [],
+    };
+  }
   const lines = (data?.results || [])
     .slice(0, 5)
     .map((hit) => {

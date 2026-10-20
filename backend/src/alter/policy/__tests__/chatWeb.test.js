@@ -80,4 +80,19 @@ describe("chatbot web search", () => {
     expect(result.preface).toContain("예보가 없다고 하지 마세요");
     expect(result.links[0].path).toBe("https://weather.example/seoul");
   });
+
+  test("an empty search is answered without falling through to chat", async () => {
+    const result = await runChatWeb({
+      academyId: "eval",
+      user: { _id: "admin-1", auth: "admin" },
+      academy: { webSearchEnabled: true },
+      registration: { role: "teacher" },
+      message: "오늘 서울 날씨 검색해줘",
+      search: async () => ({ answer: "", results: [], links: [] }),
+    });
+    expect(result.handled).toBe(true);
+    expect(result.text).toBe("검색은 했지만 확인 가능한 출처를 찾지 못했습니다.");
+    expect(result.preface).toBeUndefined();
+    expect(result.links).toEqual([]);
+  });
 });
