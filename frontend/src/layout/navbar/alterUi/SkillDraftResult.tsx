@@ -903,7 +903,8 @@ const SkillDraftResult = ({
           <ApplyDraftButton
             draft={draft}
             applied={applied}
-            visible={!!pageContext?.applyFormDraft}
+            visible
+            label={pageContext?.applyFormDraft ? undefined : "양식으로 저장"}
             onClick={() => onApply(msgId, draft)}
           />
         }

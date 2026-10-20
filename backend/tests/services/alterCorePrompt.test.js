@@ -247,6 +247,8 @@ describe("buildAlterChatPageData", () => {
     expect(text).toContain("수업A");
     expect(text).toContain("수업 목록");
     expect(ALTER_PAGE_DATA_POLICY).toMatch(/거절하지 마세요/);
+    expect(ALTER_PAGE_DATA_POLICY).toContain("공개 웹 검색 결과");
+    expect(ALTER_PAGE_DATA_POLICY).toContain("화면보다 우선");
   });
 });
 

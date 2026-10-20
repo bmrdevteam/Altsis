@@ -45,6 +45,18 @@ const httpsHit = (hit) => {
   };
 };
 
+const factualAnswerOf = (value) =>
+  String(value || "").replace(/\s+/g, " ").trim().slice(0, 240);
+
+export const UNVERIFIED_SOURCE = "출처를 확인하지 못한 내용";
+
+export const withUnverifiedSource = (text) => {
+  const body = String(text || "").trim();
+  if (!body) return UNVERIFIED_SOURCE;
+  if (body.includes(UNVERIFIED_SOURCE)) return body;
+  return `${body}\n\n${UNVERIFIED_SOURCE}`;
+};
+
 const publicHits = (rows) => {
   const hits = [];
   const seen = new Set();
@@ -139,8 +151,15 @@ export default defineTool({
         title: hit.title,
         path: hit.url,
       }));
+      const answer = factualAnswerOf(result.answer);
+      const unverified = Boolean(answer) && results.length === 0;
       return {
-        summary: titles ? `검색 결과: ${titles}` : "해당하는 공개 검색 결과가 없습니다.",
+        summary: unverified
+          ? withUnverifiedSource(answer)
+          : titles
+            ? `검색 결과: ${titles}`
+            : "해당하는 공개 검색 결과가 없습니다.",
+        ...(answer ? { answer } : {}),
         results,
         links,
         sourceUrls: links.map((link) => link.path),

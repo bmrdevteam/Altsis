@@ -7,6 +7,7 @@ type Props = {
   applied: boolean;
   onClick: () => void;
   visible?: boolean;
+  label?: string;
 };
 
 const ApplyDraftButton = ({
@@ -14,6 +15,7 @@ const ApplyDraftButton = ({
   applied,
   onClick,
   visible = true,
+  label,
 }: Props) => {
   if (!visible) return null;
   return (
@@ -23,7 +25,7 @@ const ApplyDraftButton = ({
       disabled={isApplyDisabled(draft, applied)}
       onClick={onClick}
     >
-      {applyLabelForDraft(draft, applied)}
+      {label || applyLabelForDraft(draft, applied)}
     </button>
   );
 };

@@ -5,6 +5,7 @@
  */
 import mongoose from "mongoose";
 import { conn } from "../_database/mongodb/index.js";
+import { ALTER_MESSAGE_LINK_KINDS } from "./alterMessageLinks.js";
 
 const tokenUsageSchema = mongoose.Schema(
   {
@@ -29,9 +30,9 @@ const alterAttachmentSchema = mongoose.Schema(
   { _id: false }
 );
 
-const alterGuideLinkSchema = mongoose.Schema(
+export const alterGuideLinkSchema = mongoose.Schema(
   {
-    kind: { type: String, enum: ["page", "guide"] },
+    kind: { type: String, enum: ALTER_MESSAGE_LINK_KINDS },
     title: { type: String, default: "" },
     path: { type: String, default: "" },
   },

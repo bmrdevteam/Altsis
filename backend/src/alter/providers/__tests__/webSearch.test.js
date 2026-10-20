@@ -1,5 +1,6 @@
+import { logger } from "../../../log/logger.js";
 import { runAlterWebSearch } from "../../../services/alterWebSearch.js";
-import { runProviderWebSearch } from "../webSearch.js";
+import { factualSearchAnswer, filterSearchAnswer, runProviderWebSearch } from "../webSearch.js";
 
 const jsonResponse = (body, status = 200) => ({
   ok: status >= 200 && status < 300,
@@ -151,7 +152,9 @@ describe("provider web search", () => {
       expect(body.reasoning).toEqual({ effort: "low" });
       expect(body.max_output_tokens).toBe(4096);
       expect(body.tools[0].search_context_size).toBe("low");
-      expect(body.input).toContain("출처");
+      expect(body.include).toEqual(["web_search_call.action.sources"]);
+      expect(body.input).toContain("기온");
+      expect(body.input).not.toContain("제목과 주소만");
       expect(result.results[0]).toMatchObject({
         title: "공공 날씨 안내",
         url: "https://example.com/weather",
@@ -287,8 +290,8 @@ describe("provider web search", () => {
       { title: "공공 날씨 안내", url: "https://example.com/weather", snippet: "맑음" },
     ]);
     expect(result.usage.totalTokens).toBe(24000);
-    expect(JSON.stringify(result).length).toBeLessThan(500);
-    expect(JSON.stringify(result)).not.toContain(blob.slice(0, 40));
+    expect(result.answer.length).toBeLessThanOrEqual(240);
+    expect(result.answer.length).toBeLessThan(text.length);
   });
 
   test("untitled search sources stay even when the message says there are none", async () => {
@@ -331,6 +334,50 @@ describe("provider web search", () => {
       { title: "randombasis.com", url: "https://randombasis.com/guide", snippet: "" },
     ]);
     expect(JSON.stringify(result)).not.toContain("검색 결과가 없습니다");
+  });
+
+  test("title-only openai sources keep the page summary", async () => {
+    let body = null;
+    const result = await runProviderWebSearch({
+      provider: "openai",
+      apiKey: "sk-test-secret-value",
+      model: "gpt-4o-mini",
+      query: "오늘 서울 날씨",
+      fetchImpl: async (_url, init) => {
+        body = JSON.parse(init.body);
+        return jsonResponse({
+          status: "completed",
+          output: [
+            {
+              type: "web_search_call",
+              action: {
+                type: "search",
+                sources: [{ type: "url", url: "https://weather.example/seoul" }],
+              },
+            },
+            {
+              type: "message",
+              content: [
+                {
+                  type: "output_text",
+                  text: "서울은 맑고 기온은 18도, 강수 확률은 10%입니다.",
+                  annotations: [],
+                },
+              ],
+            },
+          ],
+          usage: { input_tokens: 20, output_tokens: 20, total_tokens: 40 },
+        });
+      },
+    });
+    expect(body.input).toContain("기온");
+    expect(body.input).not.toContain("제목과 주소만");
+    expect(body.tools[0].type).toBe("web_search");
+    expect(result.answer).toContain("18도");
+    expect(result.results[0]).toMatchObject({
+      url: "https://weather.example/seoul",
+      snippet: "서울은 맑고 기온은 18도, 강수 확률은 10%입니다.",
+    });
   });
 
   test("mixed, duplicate, blank, and empty source lists keep only usable https rows", async () => {
@@ -473,6 +520,92 @@ describe("provider web search", () => {
     });
     expect(result).toEqual({ ok: false, error: "PROVIDER_ERROR", results: [] });
     expect(JSON.stringify(result)).not.toContain(key);
+  });
+
+  test("a denial sentence is dropped and a fact in the same answer is kept", () => {
+    const mixed = "맑음, 최고 18도... 강수 정보가 없습니다.";
+    const filtered = filterSearchAnswer(mixed);
+    expect(filtered.droppedByDenial).toBe(1);
+    expect(filtered.text).toContain("18");
+    expect(filtered.text).toContain("맑음");
+    expect(filtered.text).not.toContain("정보가 없");
+    expect(factualSearchAnswer(mixed)).toBe(filtered.text);
+    expect(factualSearchAnswer("맑음, 최고 18℃. 강수 정보가 없습니다.")).toContain("18℃");
+    expect(factualSearchAnswer("강수 확률은 10%입니다. 찾을 수 없습니다.")).toContain("10%");
+    expect(factualSearchAnswer("검색 결과가 없습니다.")).toBe("");
+  });
+
+  test("a sentence period stays between kept sentences", () => {
+    expect(
+      factualSearchAnswer(
+        "현재 기온은 21°C입니다. 오후에는 흐려지며 최고 22°C, 저녁에는 16~19°C까지 내려갈 전망입니다. 강수 정보가 없습니다."
+      )
+    ).toBe(
+      "현재 기온은 21°C입니다. 오후에는 흐려지며 최고 22°C, 저녁에는 16~19°C까지 내려갈 전망입니다."
+    );
+  });
+
+  test("sources without citations stay and the log keeps counts only", async () => {
+    const key = "sk-test-secret-value";
+    const bodyText = "맑음, 최고 18도... 강수 정보가 없습니다.";
+    const lines = [];
+    const spy = jest.spyOn(logger, "info").mockImplementation((msg) => {
+      lines.push(String(msg));
+    });
+    try {
+      let body = null;
+      const result = await runProviderWebSearch({
+        provider: "openai",
+        apiKey: key,
+        model: "gpt-4o-mini",
+        query: "오늘 서울 날씨",
+        fetchImpl: async (_url, init) => {
+          body = JSON.parse(init.body);
+          return jsonResponse({
+            status: "completed",
+            output: [
+              {
+                type: "web_search_call",
+                status: "completed",
+                action: {
+                  type: "search",
+                  sources: [{ type: "url", url: "https://weather.example/seoul" }],
+                },
+              },
+              {
+                type: "message",
+                content: [{ type: "output_text", text: bodyText, annotations: [] }],
+              },
+            ],
+            usage: { input_tokens: 20, output_tokens: 20, total_tokens: 40 },
+          });
+        },
+      });
+      expect(body.input).toContain("사실을 요약");
+      expect(body.input).toContain("인용");
+      expect(body.input).toContain("기온");
+      expect(result.ok).toBe(true);
+      expect(result.answer).toContain("18");
+      expect(result.answer).not.toContain("정보가 없");
+      expect(result.results).toEqual([
+        expect.objectContaining({
+          url: "https://weather.example/seoul",
+          snippet: result.answer,
+        }),
+      ]);
+      const log = lines.find((line) => line.startsWith("alter web_search hits="));
+      expect(log).toBe(
+        "alter web_search hits=1 answerLen=" +
+          result.answer.length +
+          " droppedByDenial=1 citations=0 sources=1"
+      );
+      expect(log).not.toContain(bodyText);
+      expect(log).not.toContain("맑음");
+      expect(log).not.toContain(key);
+      expect(log).not.toContain("오늘 서울");
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   test("the daily limit stops the call before any fetch", async () => {

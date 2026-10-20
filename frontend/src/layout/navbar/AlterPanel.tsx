@@ -16,6 +16,9 @@ import {
   writeActiveConversation,
 } from "./alterUi/activeConversation";
 import { confirmationCardState } from "./alterUi/confirmationCard";
+import { formApplyPlan } from "./alterUi/formApply";
+import { formDraftSendBlock } from "./alterUi/formDraftSend";
+import { nextSkillOnChipClick, visibleSkillChips } from "./alterUi/visibleSkillChips";
 import { friendlyAlterError, readAlterSse } from "./alterUi/sse";
 import useAPIv2 from "hooks/useAPIv2";
 import { isEmptyEval } from "utils/evaluationCsv";
@@ -272,7 +275,7 @@ const AlterPanel = ({ onClose }: Props) => {
     currentSchool,
     currentUser,
   } = useAuth();
-  const { AIAPI } = useAPIv2();
+  const { AIAPI, FormAPI } = useAPIv2();
   const {
     pageContext,
     isFullscreen,
@@ -1086,21 +1089,24 @@ const AlterPanel = ({ onClose }: Props) => {
       };
     }
     if (skill === "form-draft") {
-      const current = pageContext?.getForm?.() || {
-        formId: "",
-        title: "",
-        formType: "timetable",
-        blocks: [],
-      };
+      const onEditor = pageContext?.pageType === "form-editor";
+      const current = onEditor
+        ? pageContext?.getForm?.() || {
+            formId: "",
+            title: "",
+            formType: "timetable",
+            blocks: [],
+          }
+        : { formId: "", title: "", formType: "timetable", blocks: [] };
       return {
-        pageType: "form-editor",
+        pageType: onEditor ? "form-editor" : pageContext?.pageType || "general",
         label: pageContext?.label || "",
-        writeMode: formWriteMode,
+        writeMode: onEditor ? formWriteMode : "create",
         formType: current.formType || "timetable",
-        formId: current.formId || "",
+        formId: onEditor ? current.formId || "" : "",
         guidelineItemIds: formSelectedGuidelineIds,
-        currentTitle: current.title || "",
-        currentBlocks: current.blocks || [],
+        currentTitle: onEditor ? current.title || "" : "",
+        currentBlocks: onEditor ? current.blocks || [] : [],
         sourceText: attachmentText,
         attachments,
       };
@@ -1197,12 +1203,12 @@ const AlterPanel = ({ onClose }: Props) => {
 
   const selectSkill = (skill: TAlterSkillId) => {
     if (isWorking || isRefining) return;
-    // 한 대화에서 여러 Skill 허용 — 칩만 전환
-    setSelectedSkill(skill);
+    const next = nextSkillOnChipClick(selectedSkill, skill);
+    setSelectedSkill(next);
     setExpandedGuidelineId(null);
-    const prep = showsPrepDock(skill);
+    const prep = showsPrepDock(next);
     setShowPrep(prep);
-    if (prep) setPrepCollapsed(shouldDefaultCollapsePrep(skill));
+    if (prep) setPrepCollapsed(shouldDefaultCollapsePrep(next));
   };
 
   const openHistoryList = () => {
@@ -1726,35 +1732,18 @@ const AlterPanel = ({ onClose }: Props) => {
     }
 
     if (skill === "form-draft") {
-      if (pageContext?.pageType !== "form-editor") {
-        setError("관리자 양식 화면에서 초안을 작성할 수 있습니다.");
-        return;
-      }
-      if (!pageContext?.applyFormDraft) {
-        setError("양식 문서를 연 뒤 초안을 작성할 수 있습니다.");
-        return;
-      }
-      const current = pageContext?.getForm?.() || {
-        title: "",
-        blocks: [],
-      };
-      if (
-        formWriteMode === "create" &&
-        !userText.trim() &&
-        sourceAttachments.length === 0
-      ) {
-        setError("초안에 쓸 정보를 입력하거나 파일을 첨부해 주세요.");
-        return;
-      }
-      if (
-        formWriteMode === "refine" &&
-        !(current.blocks || []).length &&
-        !userText.trim() &&
-        sourceAttachments.length === 0
-      ) {
-        setError(
-          "다듬을 양식이 없습니다. 에디터에 내용을 쓰거나 요청을 입력해 주세요."
-        );
+      const onEditor = pageContext?.pageType === "form-editor";
+      const current = onEditor ? pageContext?.getForm?.() : null;
+      const blocked = formDraftSendBlock({
+        pageType: pageContext?.pageType,
+        hasEditorApply: !!pageContext?.applyFormDraft,
+        writeMode: formWriteMode,
+        hasText: !!userText.trim(),
+        hasAttachments: sourceAttachments.length > 0,
+        hasBlocks: !!(current?.blocks || []).length,
+      });
+      if (blocked) {
+        setError(blocked);
         return;
       }
     }
@@ -2538,7 +2527,7 @@ const AlterPanel = ({ onClose }: Props) => {
   const answerConfirmation = async (
     msgId: string,
     card: NonNullable<ChatMessage["confirmation"]>,
-    action: "proceed" | "cancel"
+    action: "proceed" | "cancel" | "apply"
   ) => {
     setError("");
     try {
@@ -2546,10 +2535,13 @@ const AlterPanel = ({ onClose }: Props) => {
       setMessages((prev) =>
         prev.map((msg) => {
           if (msg.id !== msgId) return msg;
-          if (action === "cancel") {
+          if (action === "cancel" || action === "apply") {
             return {
               ...msg,
-              confirmation: { ...card, status: "cancelled" },
+              confirmation: {
+                ...card,
+                status: action === "cancel" ? "cancelled" : "consumed",
+              },
             };
           }
           return {
@@ -2708,8 +2700,20 @@ const AlterPanel = ({ onClose }: Props) => {
 
     if (isFormDraft(draftResult)) {
       const confirmationId = (draftResult as { confirmationId?: string }).confirmationId;
-      if (!confirmationId) {
-        setError("확인 없이 양식에 반영할 수 없습니다.");
+      const plan = formApplyPlan(
+        {
+          confirmationId,
+          writeMode: draftResult.writeMode,
+          formType: draftResult.formType,
+          title: draftResult.title,
+          blocks: draftResult.blocks,
+        },
+        !!pageContext?.applyFormDraft
+      );
+      if (!plan.ok || !confirmationId) {
+        setError(
+          plan.ok ? "확인 없이 양식에 반영할 수 없습니다." : plan.message
+        );
         return;
       }
       try {
@@ -2718,36 +2722,64 @@ const AlterPanel = ({ onClose }: Props) => {
         setError(err.message || "확인 없이 양식에 반영할 수 없습니다.");
         return;
       }
-      if (!pageContext?.applyFormDraft) {
-        setError("양식 문서를 연 뒤 초안을 반영할 수 있습니다.");
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === msgId && msg.confirmation
+            ? { ...msg, confirmation: { ...msg.confirmation, status: "consumed" } }
+            : msg
+        )
+      );
+      if (plan.target === "editor") {
+        if (!pageContext?.applyFormDraft) {
+          setError("양식 문서를 연 뒤 초안을 반영할 수 있습니다.");
+          return;
+        }
+        const result = pageContext.applyFormDraft({
+          title: draftResult.title,
+          writeMode: draftResult.writeMode,
+          formType: draftResult.formType,
+          blocks: draftResult.blocks,
+          ops: draftResult.ops,
+        });
+        setAppliedDraftIds((prev) => new Set(prev).add(msgId));
+        if (!result.applied) {
+          setError("반영할 양식 초안이 없었습니다.");
+        } else {
+          setError("");
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `a-applied-${Date.now()}`,
+              role: "assistant",
+              content:
+                draftResult.writeMode === "refine"
+                  ? "요청한 부분만 에디터에 반영했습니다. 확인한 뒤 저장해 주세요."
+                  : "양식 초안을 에디터에 반영했습니다. 확인·수정한 뒤 저장해 주세요.",
+              skill: "form-draft",
+              createdAt: new Date().toISOString(),
+            },
+          ]);
+        }
         return;
       }
-      const result = pageContext.applyFormDraft({
-        title: draftResult.title,
-        writeMode: draftResult.writeMode,
-        formType: draftResult.formType,
-        blocks: draftResult.blocks,
-        ops: draftResult.ops,
-      });
-      setAppliedDraftIds((prev) => new Set(prev).add(msgId));
-      if (!result.applied) {
-        setError("반영할 양식 초안이 없었습니다.");
-      } else {
-        setError("");
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `a-applied-${Date.now()}`,
-            role: "assistant",
-            content:
-              draftResult.writeMode === "refine"
-                ? "요청한 부분만 에디터에 반영했습니다. 확인한 뒤 저장해 주세요."
-                : "양식 초안을 에디터에 반영했습니다. 확인·수정한 뒤 저장해 주세요.",
-            skill: "form-draft",
-            createdAt: new Date().toISOString(),
-          },
-        ]);
+      try {
+        await FormAPI.CForm({ data: plan.body });
+      } catch (err: any) {
+        setError(err.message || "양식을 저장하지 못했습니다.");
+        return;
       }
+      setAppliedDraftIds((prev) => new Set(prev).add(msgId));
+      setError("");
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `a-applied-${Date.now()}`,
+          role: "assistant",
+          content: `양식 「${plan.body.title}」을 저장했습니다.`,
+          skill: "form-draft",
+          createdAt: new Date().toISOString(),
+        },
+      ]);
       return;
     }
 
@@ -3040,15 +3072,12 @@ const AlterPanel = ({ onClose }: Props) => {
     );
   })();
 
-  const skillChips: TAlterSkillId[] = [];
-  const pushSkillChip = (s: TAlterSkillId) => {
-    if (!skillChips.includes(s)) skillChips.push(s);
-  };
-  if (conversationId) pushSkillChip(selectedSkill);
-  suggested.forEach(pushSkillChip);
-  pushSkillChip("agent");
-  pushSkillChip("search");
-  pushSkillChip("chat");
+  const skillChips = visibleSkillChips({
+    auth: currentUser?.auth,
+    registrationRole: currentRegistration?.role,
+    suggested,
+    selected: conversationId ? selectedSkill : undefined,
+  });
 
   const expandToggleBtn = (
     <button
@@ -3774,6 +3803,47 @@ const AlterPanel = ({ onClose }: Props) => {
                   </button>
                 </div>
               </div>
+            ) : null}
+            {msg.role === "assistant" &&
+            msg.confirmation &&
+            confirmationCardState(msg.confirmation) === "apply" ? (
+              <div className={style.scheduleCard}>
+                <div className={style.scheduleCardTitle}>
+                  {msg.confirmation.title || "반영 확인"}
+                </div>
+                <div>
+                  {msg.draft && isFormDraft(msg.draft)
+                    ? "이 초안을 양식에 반영할까요?"
+                    : msg.confirmation.summary || "반영 전에 확인해 주세요."}
+                </div>
+                <div className={style.scheduleCardActions}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (msg.draft && isFormDraft(msg.draft)) {
+                        void applyDraft(msg.id, msg.draft);
+                        return;
+                      }
+                      void answerConfirmation(msg.id, msg.confirmation!, "apply");
+                    }}
+                  >
+                    반영
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void answerConfirmation(msg.id, msg.confirmation!, "cancel")
+                    }
+                  >
+                    취소
+                  </button>
+                </div>
+              </div>
+            ) : null}
+            {msg.role === "assistant" &&
+            msg.confirmation &&
+            confirmationCardState(msg.confirmation) === "cancelled" ? (
+              <div className={style.scheduleCard}>취소한 확인입니다.</div>
             ) : null}
             {msg.role === "assistant" &&
             msg.confirmation &&
