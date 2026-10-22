@@ -1,14 +1,28 @@
-import "../../../env.js";
 import { evalExitCode, parseEvalArgs } from "./args.js";
 import { redactSecrets } from "./redact.js";
-import { runEval } from "./run.js";
+import { realEvalStorageError } from "./realStorage.js";
 
+const shellNodeEnv = Object.prototype.hasOwnProperty.call(process.env, "NODE_ENV")
+  ? process.env.NODE_ENV
+  : undefined;
 const { real, only, academyId } = parseEvalArgs(process.argv.slice(2));
+const { prepareEvalEnv } = await import("./prepareEvalEnv.js");
+prepareEvalEnv(real, { shellNodeEnv });
 
 const secrets = [];
 const say = (line) => {
   process.stdout.write(`${redactSecrets(line, secrets)}\n`);
 };
+
+if (real) {
+  const storageError = realEvalStorageError();
+  if (storageError) {
+    say(storageError);
+    process.exit(1);
+  }
+}
+
+const { runEval } = await import("./run.js");
 
 let report;
 try {
