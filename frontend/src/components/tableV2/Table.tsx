@@ -18,6 +18,24 @@ import {
 import useOutsideClick from "hooks/useOutsideClick";
 import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 
+/** 행 id 집합. 순서만 바뀐 경우는 같은 값이다. */
+function dataIdKey(rows: any[] | undefined): string {
+  if (!Array.isArray(rows)) return "";
+  return rows
+    .map((row) => String(row?._id ?? ""))
+    .sort()
+    .join("\0");
+}
+
+function flattenTableRow(val: any, index: number) {
+  const flat = flattenObject(val);
+  return {
+    ...flat,
+    ...(val?._id != null ? { _id: val._id } : {}),
+    tableRowIndex: index + 1,
+  };
+}
+
 type TTableItems =
   | "text"
   | "checkbox"
@@ -169,6 +187,13 @@ const Table = (props: Props) => {
     return result;
   }, [tableData]);
 
+  const dataIdKeyRef = useRef<string | null>(null);
+  const visibleRowCount = filteredData().length;
+  const pageCount =
+    tableSettings.pageBy !== 0
+      ? Math.ceil(visibleRowCount / tableSettings.pageBy)
+      : 1;
+
   function slicedTableData() {
     if (tableSettings.pageBy !== 0) {
       const pageStart = tableSettings.pageBy * (tableSettings.pageIndex - 1);
@@ -178,18 +203,38 @@ const Table = (props: Props) => {
     return filteredData();
   }
   useEffect(() => {
+    const nextData = Array.isArray(props.data)
+      ? props.type === "object-array"
+        ? props.data.map((val, index) => flattenTableRow(val, index))
+        : props.data.map((val, index) => ({
+            ...[val],
+            tableRowIndex: index + 1,
+          }))
+      : [];
+
+    const nextKey = dataIdKey(nextData);
+    const idsChanged =
+      dataIdKeyRef.current !== null && dataIdKeyRef.current !== nextKey;
+    dataIdKeyRef.current = nextKey;
+
+    setTableData((prev) => ({
+      ...prev,
+      data: nextData,
+      ...(idsChanged
+        ? {
+            orderBy: "",
+            order: "desc" as const,
+            searchParam: "",
+            searchParamName: "",
+          }
+        : {}),
+    }));
+    if (idsChanged) {
+      setTableSettings((prev) =>
+        prev.pageIndex === 1 ? prev : { ...prev, pageIndex: 1 }
+      );
+    }
     if (props.type === "object-array") {
-      setTableData((prev) => ({
-        ...prev,
-        data: 
-        Array.isArray(props.data)
-          ? props.data.map((val, index) => ({
-              ...flattenObject(val),
-              // tableRowId: generateRandomId(8),
-              tableRowIndex: index + 1,
-            }))
-          : [],
-      }));
       setAddRowData(
         props.header
           .filter((val) => val.key)
@@ -201,19 +246,19 @@ const Table = (props: Props) => {
             return acc;
           }, {})
       );
-    } else {
-      setTableData((prev) => ({
-        ...prev,
-        data: 
-        Array.isArray(props.data)
-          ? props.data.map((val, index) => ({
-              ...[val], // 객체 형태로 펼침
-              tableRowIndex: index + 1,
-            }))
-          : [],
-      }));
     }
-  }, [props.data]);
+  }, [props.data, props.type]);
+
+  useEffect(() => {
+    if (tableSettings.pageBy === 0) return;
+    const nextPage =
+      pageCount < 1 ? 1 : Math.min(tableSettings.pageIndex, pageCount);
+    if (tableSettings.pageIndex !== nextPage) {
+      setTableSettings((prev) =>
+        prev.pageIndex !== nextPage ? { ...prev, pageIndex: nextPage } : prev
+      );
+    }
+  }, [pageCount, tableSettings.pageBy, tableSettings.pageIndex]);
   function callOnChangeFunc(data?: any) {
     if (props.onChange) {
       if (data) {
@@ -416,8 +461,7 @@ const Table = (props: Props) => {
                           if (
                             number > 0 &&
                             tableSettings.pageBy !== 0 &&
-                            number <
-                              tableData.data.length / tableSettings.pageBy
+                            number <= pageCount
                           ) {
                             setTableSettings((prev) => ({
                               ...prev,
@@ -426,8 +470,8 @@ const Table = (props: Props) => {
                           }
                           if (
                             tableSettings.pageBy !== 0 &&
-                            number >
-                              tableData.data.length / tableSettings.pageBy
+                            pageCount > 0 &&
+                            number > pageCount
                           ) {
                             setTableSettings((prev) => ({
                               ...prev,
@@ -451,18 +495,14 @@ const Table = (props: Props) => {
                           fontWeight: 500,
                         }}
                       >
-                        {tableSettings.pageBy !== 0
-                          ? Math.ceil(
-                              tableData.data.length / tableSettings.pageBy
-                            )
-                          : 1}
+                        {tableSettings.pageBy !== 0 ? pageCount : 1}
                       </span>
                       <span
                         className={style.arrow}
                         onClick={() => {
                           tableSettings.pageBy !== 0 &&
-                            tableSettings.pageIndex <
-                              tableData.data.length / tableSettings.pageBy &&
+                            pageCount > 0 &&
+                            tableSettings.pageIndex < pageCount &&
                             setTableSettings((prev) => ({
                               ...prev,
                               pageIndex: prev.pageIndex + 1,
@@ -947,7 +987,11 @@ const Table = (props: Props) => {
             slicedTableData().map((row, rowIndex) => {
               return (
                 <tr
-                  key={row.tableRowIndex ?? rowIndex}
+                  key={
+                    row._id != null && row._id !== ""
+                      ? String(row._id)
+                      : (row.tableRowIndex ?? rowIndex)
+                  }
                   className={[
                     dragFromIndex === rowIndex ? style.rowDragging : "",
                     dragOverInsertAt === rowIndex ? style.dropLineBefore : "",
