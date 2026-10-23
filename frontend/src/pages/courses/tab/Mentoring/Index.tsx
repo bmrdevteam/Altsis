@@ -88,6 +88,8 @@ const CoursePid = (props: Props) => {
     useState<boolean>(false);
   const [enrollmentList, setEnrollmentList] = useState<any[]>([]);
   const enrollmentListRef = useRef<any[]>([]);
+  const pidRef = useRef(pid);
+  pidRef.current = pid;
   const [isChecked, setIsChecked] = useState<boolean>(false);
 
   const [enrollBulkPopupActive, setEnrollBulkPopupActive] =
@@ -430,8 +432,12 @@ const CoursePid = (props: Props) => {
 
   useEffect(() => {
     if (isLoadingSyllabus && pid) {
-      SyllabusAPI.RSyllabus({ params: { _id: pid } })
+      const requestedPid = pid;
+      let cancelled = false;
+      SyllabusAPI.RSyllabus({ params: { _id: requestedPid } })
         .then(({ syllabus }) => {
+          if (cancelled || pidRef.current !== requestedPid) return;
+          if (String(syllabus?._id ?? "") !== String(requestedPid)) return;
           if (syllabus.season !== currentSeason?._id) {
             navigate("/courses/list", { replace: true });
           }
@@ -462,6 +468,7 @@ const CoursePid = (props: Props) => {
 
           SeasonAPI.RSeason({ params: { _id: syllabus.season } }).then(
             ({ season }) => {
+              if (cancelled || pidRef.current !== requestedPid) return;
               let _formEvaluationHeader: any[] = [];
 
               if (currentRegistration?.permissionEvaluationV2 && isMentorLocal) {
@@ -522,37 +529,58 @@ const CoursePid = (props: Props) => {
           );
         })
         .then(() => {
+          if (cancelled || pidRef.current !== requestedPid) return;
           setIsLoadingSyllabus(false);
         })
         .catch((err) => {
+          if (cancelled || pidRef.current !== requestedPid) return;
           ALERT_ERROR(err);
           navigate("/courses");
         });
+      return () => {
+        cancelled = true;
+      };
     }
     return () => {};
-  }, [isLoadingSyllabus]);
+  }, [isLoadingSyllabus, pid]);
 
   useEffect(() => {
-    if (isEnrollmentsLoading) {
-      const fetchEnrollments = isMentor
-        ? EnrollmentAPI.REnrollmentsWithEvaluation({
-            query: { syllabus: pid },
-          })
-        : EnrollmentAPI.REnrollments({
-            query: { syllabus: pid! },
-          });
-
-      fetchEnrollments.then(({ enrollments }: any) => {
-        const list = enrollments.map((enrollment: any) => {
-          return { ...enrollment, isModified: false };
+    if (!isEnrollmentsLoading || !pid) return;
+    const requestedPid = pid;
+    let cancelled = false;
+    const fetchEnrollments = isMentor
+      ? EnrollmentAPI.REnrollmentsWithEvaluation({
+          query: { syllabus: requestedPid },
+        })
+      : EnrollmentAPI.REnrollments({
+          query: { syllabus: requestedPid },
         });
+
+    fetchEnrollments
+      .then(({ enrollments }: any) => {
+        if (cancelled || pidRef.current !== requestedPid) return;
+        const list = (Array.isArray(enrollments) ? enrollments : []).map(
+          (enrollment: any) => {
+            return { ...enrollment, isModified: false };
+          }
+        );
         setEnrollmentList(list);
         enrollmentListRef.current = list;
+      })
+      .catch((err) => {
+        if (cancelled || pidRef.current !== requestedPid) return;
+        ALERT_ERROR(err);
+        setEnrollmentList([]);
+        enrollmentListRef.current = [];
+      })
+      .finally(() => {
+        if (cancelled || pidRef.current !== requestedPid) return;
         setIsEnrollmentsLoading(false);
       });
-    }
-    return () => {};
-  }, [isEnrollmentsLoading]);
+    return () => {
+      cancelled = true;
+    };
+  }, [isEnrollmentsLoading, pid, isMentor]);
 
   const studentListHeader = (): TTableHeader[] => {
     const header: TTableHeader[] = [];
