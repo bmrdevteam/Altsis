@@ -477,7 +477,10 @@ export const findEvaluations = async (req, res) => {
         return res.status(404).send({ message: __NOT_FOUND("syllabus") });
       }
 
-      if (!_.find(syllabus.teachers, { _id: req.user._id }) && req.user.auth !== "manager") {
+      if (
+        !_.find(syllabus.teachers, { _id: req.user._id }) &&
+        !isSchoolManager(req.user, syllabus.school)
+      ) {
         return res.status(403).send({ message: PERMISSION_DENIED });
       }
       const enrollments = await Enrollment(req.user.academyId)
