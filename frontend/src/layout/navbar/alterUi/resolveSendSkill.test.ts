@@ -35,6 +35,16 @@ describe("resolveSendSkill", () => {
     ).toBe("document-review");
   });
 
+  test("agent chip stays on agent from any page", () => {
+    expect(
+      resolveSendSkill({
+        selectedSkill: "agent",
+        pageType: "calendar",
+        text: "오늘 할 일과 결재 안내",
+      })
+    ).toBe("agent");
+  });
+
   test("search chip stays on search from any page", () => {
     expect(
       resolveSendSkill({

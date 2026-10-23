@@ -20,6 +20,7 @@ export const LIBRARY_SKILL_IDS = [
   "form-draft",
   "assessment-grade",
   "search",
+  "agent",
 ];
 
 const LEGACY_SKILL_IDS = { "syllabus-review": "syllabus-draft" };

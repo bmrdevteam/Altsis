@@ -723,6 +723,14 @@
   color: #3730a3;
 }
 
+.historyFilterChip.skillToneAgent,
+.skillChip.skillToneAgent,
+.skillTag.skillToneAgent {
+  /* 틸 · 에이전트 */
+  background: color-mix(in srgb, #0f766e 16%, var(--background-color));
+  color: #0f766e;
+}
+
 .historySelectBar {
   display: flex;
   align-items: center;

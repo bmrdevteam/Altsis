@@ -226,6 +226,11 @@ export const FEATURE_PROFILES = {
     temperature: 0.15,
     maxTokens: 4096,
   },
+  agent: {
+    feature: "agent",
+    temperature: 0.2,
+    maxTokens: 2048,
+  },
   documentReview: {
     feature: "document_review",
     temperature: 0.3,

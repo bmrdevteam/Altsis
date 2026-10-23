@@ -111,6 +111,7 @@ import {
 } from "./weekdaySchedule.js";
 import { logger } from "../log/logger.js";
 import { executeSearchSkill } from "./alterSearch.js";
+import { executeAgentSkill } from "./alterAgent.js";
 
 export { parseFormResponseDraftResponse } from "./formResponseDraft.js";
 export {
@@ -170,6 +171,7 @@ export const SKILL_IDS = {
   FORM_DRAFT: "form-draft",
   ASSESSMENT_GRADE: "assessment-grade",
   SEARCH: "search",
+  AGENT: "agent",
 };
 
 /** @type {Record<string, { id: string, name: string, description: string, profile: string }>} */
@@ -244,6 +246,13 @@ export const SKILL_CATALOG = {
       "권한 있는 학사 데이터를 SQL로 찾아 표·통계로 보여 줍니다",
     profile: "search",
   },
+  [SKILL_IDS.AGENT]: {
+    id: SKILL_IDS.AGENT,
+    name: "에이전트",
+    description:
+      "할 일과 제품 안내를 도구로 직접 조회한 뒤 답합니다",
+    profile: "agent",
+  },
 };
 
 export const listSkills = () => Object.values(SKILL_CATALOG);
@@ -317,6 +326,9 @@ const defaultSkillGuide = (skill) => {
   }
   if (skill === SKILL_IDS.SEARCH) {
     return "권한 있는 데이터만 조회하세요. 추측·낙인·민감정보(주민번호·연락처·주소)는 결과에 넣지 마세요. 사실과 숫자는 쿼리 결과에만 근거하세요.";
+  }
+  if (skill === SKILL_IDS.AGENT) {
+    return "읽기 전용 도구 결과에만 근거하세요. 사용자·학교·학기를 도구 인자로 바꾸지 마세요. 추측·낙인·민감정보는 넣지 마세요.";
   }
   return "";
 };
@@ -5938,6 +5950,37 @@ export const runAlterSkill = async ({
     };
   }
 
+  if (skill === SKILL_IDS.AGENT) {
+    const agentPack = await resolveSkillPromptPack(
+      academyId,
+      school,
+      season,
+      SKILL_IDS.AGENT,
+      context?.referenceIndexes
+    );
+    const result = await executeAgentSkill({
+      academyId,
+      user,
+      academy,
+      season,
+      school,
+      registration,
+      context,
+      message,
+      history,
+      guidelines: agentPack.guidelines,
+      onEvent,
+    });
+    return {
+      skill,
+      text: result.text,
+      review: null,
+      draft: null,
+      tokenUsage: result.tokenUsage,
+      links: result.links || [],
+    };
+  }
+
   if (skill === SKILL_IDS.SEARCH) {
     const searchPack = await resolveSkillPromptPack(
       academyId,
@@ -6138,6 +6181,8 @@ export const runAlterSkill = async ({
 export const detectSkillFromMessage = (message = "") => {
   const text = String(message || "").trim();
   if (!text) return SKILL_IDS.CHAT;
+  // \b는 한글 뒤에서 경계가 되지 않으므로, 슬래시 명령 뒤에 글자가 더 붙으면 제외한다.
+  if (/\/(에이전트|agent)(?![가-힣a-z])/i.test(text)) return SKILL_IDS.AGENT;
   if (
     /채점.*(초안|해\s*줘|도와|작성)/.test(text) ||
     /(초안|작성).*채점/.test(text) ||

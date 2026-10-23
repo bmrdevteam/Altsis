@@ -110,6 +110,7 @@ export const resolveSendSkill = ({
 }: ResolveSendSkillArgs): TAlterSkillId => {
   if (selectedSkill === "chat") return "chat";
   if (selectedSkill === "search") return "search";
+  if (selectedSkill === "agent") return "agent";
 
   const upgraded = explicitDraftSkill(text, pageType, hasSourceAttachments);
   if (upgraded) return upgraded;
