@@ -35,8 +35,10 @@ export type VisibleSkillChipArgs = {
 };
 
 /**
- * Mode chips always show. Draft chips follow the role, not the current page.
- * Students and members without a teacher registration only see the three modes.
+ * Mode chips always show. Draft chips are page suggestions ∩ role allowance.
+ * Students and members without a teacher registration see no draft chips.
+ * form-draft is owner, admin, and manager only. A chip already selected in
+ * the current conversation stays visible when the role allows it.
  */
 export const visibleSkillChips = ({
   auth = "",
@@ -62,7 +64,6 @@ export const visibleSkillChips = ({
   };
   MODES.forEach(push);
   suggested.forEach(push);
-  LOCKED_CHIP_SKILLS.forEach(push);
   push(selected);
   return out;
 };
