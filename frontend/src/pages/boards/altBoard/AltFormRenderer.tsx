@@ -102,7 +102,6 @@ import {
 import { useFormResponseDraft } from "./useFormResponseDraft";
 import MultiSelectField from "./MultiSelectField";
 import { getMyAltBoardRole, isFormRespondent } from "./formAccess";
-import FormReusePicker from "./FormReusePicker";
 
 type Props = {
   board: TBoard;
@@ -114,8 +113,9 @@ type Props = {
   initialReviewRowId?: string | null;
   /** standalone에서 URL mode 동기화 */
   onViewModeChange?: (mode: TFormViewMode) => void;
-  /** 다른 양식 구조를 이 보드에 복사한 뒤 편집 화면으로 연다 */
-  onFormReused?: (formId: string) => void;
+  /** 문서 보기에서 복사해 온 새 응답 초안 */
+  initialReuseData?: Record<string, any> | null;
+  initialReuseNotice?: string | null;
 };
 
 type DateInputWithOverlayProps = {
@@ -301,7 +301,8 @@ const AltFormRenderer = ({
   initialViewMode = "compose",
   initialReviewRowId,
   onViewModeChange,
-  onFormReused,
+  initialReuseData,
+  initialReuseNotice,
 }: Props) => {
   const { AltFormAPI, AltSheetRowAPI, ChatAPI, FileAPI, PostAPI } = useAPIv2();
   const { currentSchool, currentRegistration, currentUser, currentSeason } =
@@ -421,7 +422,17 @@ const AltFormRenderer = ({
           (!loadedForm.settings.allowMultipleResponses &&
             submitted.length > 0);
 
-        if (startInReview || (cannotWrite && canReviewSubmitted)) {
+        if (initialReuseData) {
+          setEditingSubmitted(false);
+          setReviewIndex(0);
+          setMyRow(null);
+          setIsSubmitted(false);
+          setComposeDirty(true);
+          setErrors({});
+          setViewMode("compose");
+          setData(applyFieldDefaults(loadedForm.fields, initialReuseData));
+          if (initialReuseNotice) setReuseDroppedNotice(initialReuseNotice);
+        } else if (startInReview || (cannotWrite && canReviewSubmitted)) {
           const row = submitted[submittedIdx] || submitted[0];
           setReviewIndex(submittedIdx);
           setViewMode("review");
@@ -3013,17 +3024,6 @@ const AltFormRenderer = ({
             <Svg type="chevronRight" width="18px" height="18px" />
           </button>
         </div>
-      )}
-
-      {isReviewMode &&
-        (myRole === "admin" || myRole === "writer") &&
-        onFormReused && (
-        <FormReusePicker
-          boardId={board._id}
-          excludeFormId={form._id}
-          seasonId={currentSeason?._id}
-          onReused={onFormReused}
-        />
       )}
 
       </div>

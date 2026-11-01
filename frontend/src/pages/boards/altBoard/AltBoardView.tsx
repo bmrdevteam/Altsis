@@ -113,6 +113,11 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
   };
   const [builderFormId, setBuilderFormId] = useState<string | null>(null);
   const [rendererFormId, setRendererFormId] = useState<string | null>(null);
+  const [reuseSeed, setReuseSeed] = useState<{
+    formId: string;
+    data: Record<string, any>;
+    notice: string | null;
+  } | null>(null);
   /** embedded일 때 URL 없이 작성/내 응답 구분 */
   const [embeddedRendererMode, setEmbeddedRendererMode] =
     useState<TFormViewMode>("compose");
@@ -398,6 +403,7 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
   // Form builder 열기
   const handleOpenBuilder = (formId?: string) => {
     const id = formId || "new";
+    setReuseSeed(null);
     setBuilderFormId(id);
     setRendererFormId(null);
     setEmbeddedSheetFormId(null);
@@ -410,6 +416,7 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
 
   // Form renderer 열기 (작성)
   const handleOpenRenderer = (formId: string) => {
+    setReuseSeed(null);
     setRendererFormId(formId);
     setBuilderFormId(null);
     setEmbeddedSheetFormId(null);
@@ -425,8 +432,35 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
     handleOpenRenderer(formId);
   };
 
+  // 문서 보기의 내용으로 새 응답 작성 화면을 연다
+  const handleReuseDocument = (
+    formId: string,
+    data: Record<string, any>,
+    notice: string | null
+  ) => {
+    setReuseSeed({ formId, data, notice });
+    setRendererFormId(formId);
+    setBuilderFormId(null);
+    setEmbeddedSheetFormId(null);
+    setEmbeddedRendererMode("compose");
+    if (!embedded) {
+      navigate(`/boards/${board._id}?form=${formId}&mode=respond#활동`, {
+        replace: true,
+      });
+    }
+  };
+
+  // 작성 화면을 벗어나면 문서 재사용 초안을 버린다.
+  // 같은 양식을 나중에 다시 열 때 이전 문서 내용이 붙지 않게 한다.
+  useEffect(() => {
+    if (!reuseSeed) return;
+    if (rendererFormId === reuseSeed.formId) return;
+    setReuseSeed(null);
+  }, [rendererFormId, reuseSeed]);
+
   // 내 응답 개별 보기
   const handleOpenMyResponses = (formId: string) => {
+    setReuseSeed(null);
     setRendererFormId(formId);
     setBuilderFormId(null);
     setEmbeddedSheetFormId(null);
@@ -451,6 +485,7 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
 
   // 빌더/렌더러에서 활동 탭으로 복귀
   const handleBackToList = () => {
+    setReuseSeed(null);
     setBuilderFormId(null);
     setRendererFormId(null);
     if (!embedded) {
@@ -588,10 +623,12 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
           initialViewMode={rendererMode}
           initialReviewRowId={urlRowId}
           onViewModeChange={handleRendererViewModeChange}
-          onFormReused={(id) => {
-            loadForms();
-            handleOpenBuilder(id);
-          }}
+          initialReuseData={
+            reuseSeed?.formId === rendererFormId ? reuseSeed.data : null
+          }
+          initialReuseNotice={
+            reuseSeed?.formId === rendererFormId ? reuseSeed.notice : null
+          }
         />
       );
     } else if (activeSheetFormId) {
@@ -615,6 +652,7 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
           onUnreadCleared={clearFormUnread}
           boardName={board.name}
           board={board}
+          onReuseDocument={handleReuseDocument}
         />
       );
     } else {

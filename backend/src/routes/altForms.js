@@ -3,15 +3,12 @@ const router = express.Router();
 import { isLoggedIn } from "../middleware/auth.js";
 
 import * as altForms from "../controllers/altForms.js";
-import * as altFormReuse from "../controllers/altFormReuse.js";
 import * as formAiChat from "../controllers/formAiChat.js";
 
 // 특수 경로 먼저
-router.get("/reusable", isLoggedIn, altFormReuse.listReusable);
 router.post("/import", isLoggedIn, altForms.importForm);
 router.get("/:_id/export", isLoggedIn, altForms.exportForm);
 router.post("/:_id/duplicate", isLoggedIn, altForms.duplicate);
-router.post("/:_id/reuse", isLoggedIn, altFormReuse.reuse);
 router.put("/:_id/sheet-opened", isLoggedIn, altForms.markSheetOpened);
 router.post("/:_id/ai-chat/messages", isLoggedIn, formAiChat.sendMessage);
 router.delete(
