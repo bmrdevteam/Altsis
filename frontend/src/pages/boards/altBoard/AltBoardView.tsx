@@ -588,6 +588,10 @@ const AltBoardView = ({ board, embedded, surface }: Props) => {
           initialViewMode={rendererMode}
           initialReviewRowId={urlRowId}
           onViewModeChange={handleRendererViewModeChange}
+          onFormReused={(id) => {
+            loadForms();
+            handleOpenBuilder(id);
+          }}
         />
       );
     } else if (activeSheetFormId) {
