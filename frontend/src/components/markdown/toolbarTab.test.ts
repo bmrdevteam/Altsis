@@ -52,12 +52,29 @@ describe("resolveToolbarTab", () => {
     ).toBe("format");
   });
 
+  test("keeps an explicit 표 tab outside a table", () => {
+    expect(
+      resolveToolbarTab({
+        context: "none",
+        previousContext: "none",
+        tab: "table",
+      })
+    ).toBe("table");
+  });
+
   test("returns to 서식 when leaving the context", () => {
     expect(
       resolveToolbarTab({
         context: "none",
         previousContext: "table",
         tab: "table",
+      })
+    ).toBe("format");
+    expect(
+      resolveToolbarTab({
+        context: "none",
+        previousContext: "none",
+        tab: "image",
       })
     ).toBe("format");
   });
@@ -91,7 +108,7 @@ describe("activeToolbarPanel", () => {
     ).toBe("format");
   });
 
-  test("shows table or image tools only with matching context", () => {
+  test("shows table tools on the 표 tab, including outside a table", () => {
     expect(
       activeToolbarPanel({
         viewMode: "wysiwyg",
@@ -102,6 +119,23 @@ describe("activeToolbarPanel", () => {
     expect(
       activeToolbarPanel({
         viewMode: "wysiwyg",
+        context: "none",
+        tab: "table",
+      })
+    ).toBe("table");
+    expect(
+      activeToolbarPanel({
+        viewMode: "split",
+        context: "none",
+        tab: "table",
+      })
+    ).toBe("format");
+  });
+
+  test("keeps image tools while an image stays selected", () => {
+    expect(
+      activeToolbarPanel({
+        viewMode: "wysiwyg",
         context: "image",
         tab: "image",
       })
@@ -109,9 +143,9 @@ describe("activeToolbarPanel", () => {
     expect(
       activeToolbarPanel({
         viewMode: "wysiwyg",
-        context: "none",
+        context: "image",
         tab: "table",
       })
-    ).toBe("format");
+    ).toBe("image");
   });
 });

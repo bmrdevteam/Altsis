@@ -188,6 +188,68 @@ export function isCurrentApprover(
   return step?.status === "pending" && step?.approver?.userId === userId;
 }
 
+function stepWasApproved(step: TApprovalStepRuntime | undefined): boolean {
+  return step?.status === "approved" && !!step?.approver?.userId;
+}
+
+/**
+ * Latest approved step that can still be undone.
+ * Keep in sync with backend `cancellableStepIndex`.
+ */
+export function cancellableStepIndex(
+  value: any,
+  field?: Pick<TAltFormField, "approvalLine">
+): number {
+  const v = normalizeApprovalValue(value, field);
+  if (!v?.steps?.length || v.overallStatus === "rejected") return -1;
+
+  if (v.overallStatus === "approved") {
+    const idx = v.steps.length - 1;
+    if (!stepWasApproved(v.steps[idx])) return -1;
+    for (let i = 0; i < idx; i += 1) {
+      if (!stepWasApproved(v.steps[i])) return -1;
+    }
+    return idx;
+  }
+
+  if (v.overallStatus !== "pending") return -1;
+  const currentIdx = v.currentStep;
+  if (
+    !Number.isInteger(currentIdx) ||
+    currentIdx <= 0 ||
+    currentIdx >= v.steps.length
+  ) {
+    return -1;
+  }
+  const current = v.steps[currentIdx];
+  if (current?.status !== "pending" || current.actedAt) return -1;
+  for (let i = currentIdx + 1; i < v.steps.length; i += 1) {
+    const step = v.steps[i];
+    if (!step || step.status !== "waiting" || step.actedAt || step.reason) {
+      return -1;
+    }
+  }
+  const prevIdx = currentIdx - 1;
+  if (!stepWasApproved(v.steps[prevIdx])) return -1;
+  for (let i = 0; i < prevIdx; i += 1) {
+    if (!stepWasApproved(v.steps[i])) return -1;
+  }
+  return prevIdx;
+}
+
+/** 가장 최근 승인자가, 다음 사람이 처리하기 전에 그 승인을 취소할 수 있는지. */
+export function canCancelLastApproval(
+  value: any,
+  userId: string | undefined,
+  field?: Pick<TAltFormField, "approvalLine">
+): boolean {
+  if (!userId) return false;
+  const v = normalizeApprovalValue(value, field);
+  const idx = cancellableStepIndex(v, field);
+  if (idx < 0 || !v) return false;
+  return v.steps[idx]?.approver?.userId === userId;
+}
+
 function approvalFieldValue(
   data: Record<string, any> | Map<string, any> | null | undefined,
   fid: string

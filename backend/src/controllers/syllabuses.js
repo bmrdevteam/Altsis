@@ -23,6 +23,7 @@ import {
   Enrollment,
   Registration,
   School,
+  Season,
   Syllabus,
 } from "../models/index.js";
 import { sendAutoNotification } from "../services/notifications.js";
@@ -35,11 +36,25 @@ import {
 import { getCourseTodosForUser } from "../services/schoolCourseTodos.js";
 import { buildSyllabusListQuery } from "../utils/syllabusListQuery.js";
 import { isSchoolManager } from "../utils/schoolManager.js";
+import { resolveFormEvaluation } from "../utils/evaluationForm.js";
 import _ from "lodash";
 
 const isFullyConfirmed = (syllabus) =>
   _.filter(syllabus.teachers, { confirmed: true }).length ===
   syllabus.teachers.length;
+
+const canWriteEvaluation = (registration, user, schoolRef) =>
+  !!registration?.permissionEvaluationV2 || isSchoolManager(user, schoolRef);
+
+const formEvaluationForRegistration = async (academyId, registration) => {
+  const own = registration?.formEvaluation;
+  if (Array.isArray(own) && own.length > 0) return own;
+  const season = await Season(academyId)
+    .findById(registration.season)
+    .select("formEvaluation")
+    .lean();
+  return resolveFormEvaluation(own, season?.formEvaluation);
+};
 
 const isClassroomAvailable = async (
   academyId,
@@ -1630,7 +1645,7 @@ export const importEvaluationFromBoard = async (req, res) => {
     if (!registration) {
       return res.status(404).send({ message: __NOT_FOUND("registration") });
     }
-    if (!registration.permissionEvaluationV2) {
+    if (!canWriteEvaluation(registration, req.user, syllabus.school)) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
@@ -1638,7 +1653,10 @@ export const importEvaluationFromBoard = async (req, res) => {
       syllabus,
       formId: req.body.form,
       mappings: req.body.mappings,
-      formEvaluation: registration.formEvaluation,
+      formEvaluation: await formEvaluationForRegistration(
+        req.user.academyId,
+        registration
+      ),
     });
 
     return res.status(200).send(result);
@@ -1696,14 +1714,17 @@ export const importEvaluationFromCsvHandler = async (req, res) => {
     if (!registration) {
       return res.status(404).send({ message: __NOT_FOUND("registration") });
     }
-    if (!registration.permissionEvaluationV2) {
+    if (!canWriteEvaluation(registration, req.user, syllabus.school)) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
     const result = await importEvaluationFromCsv(req.user.academyId, {
       syllabus,
       rows: req.body.rows,
-      formEvaluation: registration.formEvaluation,
+      formEvaluation: await formEvaluationForRegistration(
+        req.user.academyId,
+        registration
+      ),
     });
 
     return res.status(200).send(result);

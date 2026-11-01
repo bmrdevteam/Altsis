@@ -13,6 +13,7 @@ import {
   MarkdownWysiwygView,
 } from "components/markdown";
 import {
+  canCancelLastApproval,
   getCirculationConfig,
   isApprovalLocked,
   isCurrentApprover,
@@ -382,6 +383,7 @@ const AltSheetView = ({
   const aiChatPrintRootRef = useRef<HTMLDivElement>(null);
   const approvalPrintRootRef = useRef<HTMLDivElement>(null);
   const docBatchPrintRootRef = useRef<HTMLDivElement>(null);
+  const approvalInflight = useRef(new Set<string>());
   /** 문서 보기 일괄 인쇄: DOM 마운트 후 print */
   const [docBatchPrintActive, setDocBatchPrintActive] = useState(false);
   const [previewFile, setPreviewFile] = useState<TFormFileRef | null>(null);
@@ -1260,15 +1262,26 @@ const AltSheetView = ({
     }
   };
 
-  // 승인/반려 처리
+  // 승인/반려/승인취소 처리
   const handleApproval = async (
     rowId: string,
     fieldId: string,
-    status: "approved" | "rejected",
+    status: "approved" | "rejected" | "cancelled",
     reasonOverride?: string
   ) => {
+    const inflightKey = `${rowId}_${fieldId}`;
+    if (approvalInflight.current.has(inflightKey)) return false;
+    if (status === "cancelled") {
+      const confirmed = window.confirm(
+        "승인을 취소하면 결재가 방금 승인한 단계로 돌아갑니다."
+      );
+      if (!confirmed) return false;
+    }
     const reason =
-      reasonOverride ?? approvalReason[`${rowId}_${fieldId}`] ?? "";
+      status === "cancelled"
+        ? ""
+        : (reasonOverride ?? approvalReason[`${rowId}_${fieldId}`] ?? "");
+    approvalInflight.current.add(inflightKey);
     try {
       const { row } = await AltSheetRowAPI.UAltSheetRow({
         params: { _id: rowId },
@@ -1288,6 +1301,8 @@ const AltSheetView = ({
     } catch (err) {
       ALERT_ERROR(err);
       return false;
+    } finally {
+      approvalInflight.current.delete(inflightKey);
     }
   };
 
@@ -1567,6 +1582,28 @@ const AltSheetView = ({
                 ? `${current.label} 대기`
                 : "대기"}
         </span>
+        {canCancelLastApproval(
+          row.data[field._id],
+          currentUser?.userId,
+          field
+        ) && (
+          <div className={`${style.noPrint} ${NO_PRINT_CLASS}`}>
+            <button
+              type="button"
+              className={style.approvalActionBtn}
+              style={{
+                color: "var(--status-warning)",
+                background: "var(--status-warning-bg)",
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleApproval(row._id, field._id, "cancelled");
+              }}
+            >
+              승인취소
+            </button>
+          </div>
+        )}
         {isApprover && status === "pending" && (
           <div
             className={`${style.noPrint} ${NO_PRINT_CLASS}`}
@@ -2944,6 +2981,9 @@ const AltSheetView = ({
                     }
                     onReject={() =>
                       handleApproval(currentDocRow._id, field._id, "rejected")
+                    }
+                    onCancel={() =>
+                      handleApproval(currentDocRow._id, field._id, "cancelled")
                     }
                   />
                 ))}

@@ -9,11 +9,22 @@ import {
   mergeAdjacentCells,
 } from "./tableCellSelection";
 import UndoRedoButtons from "./UndoRedoButtons";
+import { insertEditorTable } from "./insertEditorTable";
 import style from "./markdown.module.scss";
 
 type Props = {
   editor: Editor;
 };
+
+type TableToolButton =
+  | { divider: true }
+  | {
+      icon: string;
+      title: string;
+      action: () => void;
+      disabled?: () => boolean;
+      isActive?: () => boolean;
+    };
 
 const getCellAttrs = (editor: Editor) => {
   if (editor.isActive("tableHeader")) {
@@ -33,16 +44,7 @@ const TableToolbar = ({ editor }: Props) => {
     editor.chain().focus().setCellAttribute(name, value).run();
   };
 
-  const buttons: Array<
-    | { divider: true }
-    | {
-        icon: string;
-        title: string;
-        action: () => void;
-        disabled?: () => boolean;
-        isActive?: () => boolean;
-      }
-  > = [
+  const editButtons: TableToolButton[] = [
     {
       icon: "tableInsertUp",
       title: "위에 행 추가",
@@ -143,6 +145,16 @@ const TableToolbar = ({ editor }: Props) => {
     },
   ];
 
+  const inTable = editor.isActive("table");
+  const buttons: TableToolButton[] = [
+    {
+      icon: "table",
+      title: "표 삽입 (3x3)",
+      action: () => insertEditorTable(editor),
+    },
+    ...(inTable ? [{ divider: true as const }, ...editButtons] : []),
+  ];
+
   return (
     <div
       className={style.toolbarButtons}
@@ -160,6 +172,7 @@ const TableToolbar = ({ editor }: Props) => {
             key={idx}
             type="button"
             title={btn.title}
+            aria-label={btn.title}
             onClick={btn.action}
             disabled={btn.disabled?.()}
             className={`${style.toolbarBtn} ${
@@ -170,76 +183,80 @@ const TableToolbar = ({ editor }: Props) => {
           </button>
         )
       )}
-      <div className={style.colorBtnWrapper}>
-        <button
-          type="button"
-          title="셀 테두리 (모양·두께·색상)"
-          onClick={() => {
-            setShowBorder(!showBorder);
-            setShowCellColor(false);
-          }}
-          className={`${style.toolbarBtn} ${
-            showBorder ||
-            cellAttrs.borderColor ||
-            cellAttrs.borderStyle ||
-            cellAttrs.borderWidth
-              ? style.toolbarBtnActive
-              : ""
-          }`}
-        >
-          <Svg type="border" width="18px" height="18px" />
-          <span
-            className={style.colorIndicator}
-            style={{
-              backgroundColor: cellAttrs.borderColor || "currentColor",
-            }}
-          />
-        </button>
-        {showBorder && (
-          <TableBorderDropdown
-            borderColor={cellAttrs.borderColor}
-            borderStyle={cellAttrs.borderStyle}
-            borderWidth={cellAttrs.borderWidth}
-            onChangeColor={(color) => setCellAttr("borderColor", color)}
-            onChangeStyle={(borderStyle) =>
-              setCellAttr("borderStyle", borderStyle)
-            }
-            onChangeWidth={(borderWidth) =>
-              setCellAttr("borderWidth", borderWidth)
-            }
-            onReset={() => {
-              editor
-                .chain()
-                .focus()
-                .setCellAttribute("borderColor", null)
-                .setCellAttribute("borderStyle", null)
-                .setCellAttribute("borderWidth", null)
-                .run();
-            }}
-            onClose={() => setShowBorder(false)}
-          />
-        )}
-      </div>
-      <div className={style.colorBtnWrapper}>
-        <button
-          type="button"
-          title="셀 배경색"
-          onClick={() => {
-            setShowCellColor(!showCellColor);
-            setShowBorder(false);
-          }}
-          className={style.toolbarBtn}
-        >
-          <Svg type="highlightColor" width="18px" height="18px" />
-        </button>
-        {showCellColor && (
-          <ColorDropdown
-            currentColor={cellAttrs.backgroundColor}
-            onSelect={(color) => setCellAttr("backgroundColor", color)}
-            onClose={() => setShowCellColor(false)}
-          />
-        )}
-      </div>
+      {inTable && (
+        <>
+          <div className={style.colorBtnWrapper}>
+            <button
+              type="button"
+              title="셀 테두리 (모양·두께·색상)"
+              onClick={() => {
+                setShowBorder(!showBorder);
+                setShowCellColor(false);
+              }}
+              className={`${style.toolbarBtn} ${
+                showBorder ||
+                cellAttrs.borderColor ||
+                cellAttrs.borderStyle ||
+                cellAttrs.borderWidth
+                  ? style.toolbarBtnActive
+                  : ""
+              }`}
+            >
+              <Svg type="border" width="18px" height="18px" />
+              <span
+                className={style.colorIndicator}
+                style={{
+                  backgroundColor: cellAttrs.borderColor || "currentColor",
+                }}
+              />
+            </button>
+            {showBorder && (
+              <TableBorderDropdown
+                borderColor={cellAttrs.borderColor}
+                borderStyle={cellAttrs.borderStyle}
+                borderWidth={cellAttrs.borderWidth}
+                onChangeColor={(color) => setCellAttr("borderColor", color)}
+                onChangeStyle={(borderStyle) =>
+                  setCellAttr("borderStyle", borderStyle)
+                }
+                onChangeWidth={(borderWidth) =>
+                  setCellAttr("borderWidth", borderWidth)
+                }
+                onReset={() => {
+                  editor
+                    .chain()
+                    .focus()
+                    .setCellAttribute("borderColor", null)
+                    .setCellAttribute("borderStyle", null)
+                    .setCellAttribute("borderWidth", null)
+                    .run();
+                }}
+                onClose={() => setShowBorder(false)}
+              />
+            )}
+          </div>
+          <div className={style.colorBtnWrapper}>
+            <button
+              type="button"
+              title="셀 배경색"
+              onClick={() => {
+                setShowCellColor(!showCellColor);
+                setShowBorder(false);
+              }}
+              className={style.toolbarBtn}
+            >
+              <Svg type="highlightColor" width="18px" height="18px" />
+            </button>
+            {showCellColor && (
+              <ColorDropdown
+                currentColor={cellAttrs.backgroundColor}
+                onSelect={(color) => setCellAttr("backgroundColor", color)}
+                onClose={() => setShowCellColor(false)}
+              />
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 };

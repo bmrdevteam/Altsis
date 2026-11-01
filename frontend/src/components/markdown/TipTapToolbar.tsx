@@ -12,11 +12,11 @@ import CheckDropdown from "./CheckDropdown";
 import ToolbarMoreMenu, { type MoreMenuItem } from "./ToolbarMoreMenu";
 import MarkdownShortcutsHelp from "./MarkdownShortcutsHelp";
 import UndoRedoButtons from "./UndoRedoButtons";
+import { FONT_OPTIONS, canonicalFontFamily } from "./editorFonts";
 import {
-  FONT_OPTIONS,
-  canonicalFontFamily,
-  parseFontSizePx,
-} from "./editorFonts";
+  formatToolbarFontSize,
+  resolveSelectionFontSize,
+} from "./selectionFontSize";
 import { clampIndent } from "./blockIndent";
 import { clampLineHeight } from "./blockLineHeight";
 import style from "./markdown.module.scss";
@@ -59,20 +59,21 @@ const TipTapToolbar = ({
 
   if (!editor) return null;
 
-  const handleTableInsert = () => {
-    editor
-      .chain()
-      .focus()
-      .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-      .run();
-  };
-
   const headingBadge = getHeadingBadge(editor);
   const textStyle = editor.getAttributes("textStyle") as {
-    fontSize?: string | null;
     fontFamily?: string | null;
   };
-  const currentFontPx = parseFontSizePx(textStyle.fontSize);
+  const selectionFontSize = resolveSelectionFontSize(editor.state);
+  const fontSizeLabel =
+    selectionFontSize.status === "uniform"
+      ? formatToolbarFontSize(selectionFontSize.px)
+      : null;
+  const fontSizeTitle =
+    selectionFontSize.status === "uniform"
+      ? `글자 크기 ${fontSizeLabel}px`
+      : selectionFontSize.status === "mixed"
+        ? "글자 크기가 서로 다릅니다"
+        : "글자 크기";
   const currentFontFamily = canonicalFontFamily(textStyle.fontFamily);
   const blockAttrs = editor.isActive("heading")
     ? editor.getAttributes("heading")
@@ -96,12 +97,6 @@ const TipTapToolbar = ({
       icon: "horizontalRule",
       label: "가로줄",
       onClick: () => editor.chain().focus().setHorizontalRule().run(),
-    },
-    {
-      icon: "table",
-      label: "표 (3x3)",
-      onClick: handleTableInsert,
-      active: editor.isActive("table"),
     },
     {
       icon: "youtube",
@@ -184,22 +179,31 @@ const TipTapToolbar = ({
       <div className={style.colorBtnWrapper}>
         <button
           type="button"
-          title="글자 크기"
-          aria-label="글자 크기"
+          title={fontSizeTitle}
+          aria-label={fontSizeTitle}
           onClick={() =>
             setActiveDropdown(
               activeDropdown === "fontSize" ? null : "fontSize"
             )
           }
-          className={`${style.toolbarBtn} ${
-            currentFontPx != null ? style.toolbarBtnActive : ""
+          className={`${style.toolbarBtn} ${style.toolbarFontSizeBtn} ${
+            selectionFontSize.status === "uniform" && selectionFontSize.explicit
+              ? style.toolbarBtnActive
+              : ""
           }`}
         >
-          <Svg type="fontSize" width="18px" height="18px" />
+          <Svg type="fontSize" width="16px" height="16px" />
+          <span className={style.toolbarFontSizeValue}>
+            {fontSizeLabel ?? "–"}
+          </span>
         </button>
         {activeDropdown === "fontSize" && (
           <FontSizeDropdown
-            currentPx={currentFontPx}
+            currentPx={
+              selectionFontSize.status === "uniform"
+                ? selectionFontSize.px
+                : null
+            }
             onSelect={(size) => {
               if (size) editor.chain().focus().setFontSize(size).run();
               else editor.chain().focus().unsetFontSize().run();

@@ -2,6 +2,7 @@ import { Extension } from "@tiptap/core";
 import Suggestion, { type SuggestionOptions } from "@tiptap/suggestion";
 import { ReactRenderer } from "@tiptap/react";
 import { PluginKey } from "@tiptap/pm/state";
+import { insertEditorTable } from "../insertEditorTable";
 import SlashCommandList, {
   type SlashCommandItem,
 } from "../SlashCommandList";
@@ -110,12 +111,7 @@ export const createSlashSuggestion = (
       {
         title: "표",
         keywords: ["table", "표"],
-        command: () =>
-          editor
-            .chain()
-            .focus()
-            .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-            .run(),
+        command: () => insertEditorTable(editor),
       },
       {
         title: "코드 블록",
