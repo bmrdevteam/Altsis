@@ -1,4 +1,5 @@
 import {
+  canReuseViewedDocument,
   copyRowDataForReuse,
   filterReusedPickPeople,
   formatReusedDroppedNotice,
@@ -439,6 +440,55 @@ describe("seedComposePickDefaults", () => {
     expect(formatReusedDroppedNotice(dropped)).toBe(
       "더 이상 지정할 수 없는 승인자·회람자는 제외했습니다. (조은길, 김민수)"
     );
+  });
+});
+
+describe("canReuseViewedDocument", () => {
+  const open = {
+    isRespondent: true,
+    periodOpen: true,
+    occurrenceOpen: true,
+    allowMultipleResponses: true,
+    mySubmittedCount: 1,
+    myDraftCount: 0,
+    requiredTarget: null as number | null,
+  };
+
+  test("allows another response on a form the viewer can submit", () => {
+    expect(canReuseViewedDocument(open)).toBe(true);
+  });
+
+  test("blocks viewers who cannot submit, closed forms, and full quotas", () => {
+    expect(canReuseViewedDocument({ ...open, isRespondent: false })).toBe(false);
+    expect(canReuseViewedDocument({ ...open, isDraftForm: true })).toBe(false);
+    expect(canReuseViewedDocument({ ...open, directInput: true })).toBe(false);
+    expect(canReuseViewedDocument({ ...open, periodOpen: false })).toBe(false);
+    expect(canReuseViewedDocument({ ...open, occurrenceOpen: false })).toBe(false);
+    expect(
+      canReuseViewedDocument({
+        ...open,
+        allowMultipleResponses: false,
+        mySubmittedCount: 1,
+      })
+    ).toBe(false);
+    expect(
+      canReuseViewedDocument({
+        ...open,
+        mySubmittedCount: 2,
+        requiredTarget: 2,
+      })
+    ).toBe(false);
+  });
+
+  test("allows the first response when multiple responses are off", () => {
+    expect(
+      canReuseViewedDocument({
+        ...open,
+        allowMultipleResponses: false,
+        mySubmittedCount: 0,
+        myDraftCount: 0,
+      })
+    ).toBe(true);
   });
 });
 

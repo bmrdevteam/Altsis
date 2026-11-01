@@ -21,6 +21,7 @@ import {
 } from "utils/approvalLine";
 import { TBoard } from "types/board";
 import ApprovalCirculationPicker, {
+  approvalCandidatesForForm,
   circulationCandidatesForBoard,
 } from "./ApprovalCirculationPicker";
 import { NO_PRINT_CLASS, printArea } from "utils/printArea";
@@ -71,6 +72,21 @@ import FormAiChatField from "./FormAiChatField";
 import SheetAiChatView from "./SheetAiChatView";
 import { formatAiChatCell, isAiChatFieldType, parseAiChatSummary } from "./formAiChat";
 import { formatReadableValue } from "./formFieldDisplay";
+import {
+  canReuseViewedDocument,
+  copyRowDataForReuse,
+  filterReusedPickPeople,
+  formatReusedDroppedNotice,
+} from "./reuseResponseDraft";
+import { getRequiredResponseCount } from "./activityStatusVisual";
+import {
+  getOpenOccurrences,
+  hasSubmittedOccurrence,
+  isWeekdayScheduleEnabled,
+  isWithinFormPeriod,
+} from "./weekdaySchedule";
+import { isDraftSheetRow } from "./sheetRowDraft";
+import { getMyAltBoardRole, isFormRespondent } from "./formAccess";
 
 type Props = {
   forms: TAltForm[];
@@ -91,6 +107,12 @@ type Props = {
   onUnreadCleared?: (formId: string) => void;
   boardName?: string;
   board: TBoard;
+  /** 보고 있는 문서 내용으로 새 응답 작성 화면을 연다 */
+  onReuseDocument?: (
+    formId: string,
+    data: Record<string, any>,
+    notice: string | null
+  ) => void;
 };
 
 type SortConfig = {
@@ -221,9 +243,10 @@ const AltSheetView = ({
   onUnreadCleared,
   boardName,
   board,
+  onReuseDocument,
 }: Props) => {
   const { AltFormAPI, AltSheetRowAPI, PostAPI } = useAPIv2();
-  const { currentUser } = useAuth();
+  const { currentUser, currentRegistration } = useAuth();
   const circulationCandidates = useMemo(
     () => circulationCandidatesForBoard(board),
     [board]
@@ -1011,6 +1034,81 @@ const AltSheetView = ({
   }, [currentDocRowId, viewMode]);
 
   const currentDocRow = filteredRows[docIndex] ?? null;
+
+  const schoolRole = currentRegistration?.role || null;
+  const myBoardRole = getMyAltBoardRole(board, currentUser, schoolRole);
+  const mySheetRows = useMemo(() => {
+    if (!currentUser?._id) return [];
+    return rows.filter(
+      (row) => String(row._respondent) === String(currentUser._id)
+    );
+  }, [rows, currentUser?._id]);
+  const canReuseCurrentDoc = useMemo(() => {
+    if (!selectedForm || !onReuseDocument || !currentDocRow) return false;
+    const mySubmitted = mySheetRows.filter((row) => !isDraftSheetRow(row));
+    const myDrafts = mySheetRows.filter((row) => isDraftSheetRow(row));
+    const now = new Date();
+    const weekdayOn = isWeekdayScheduleEnabled(selectedForm);
+    const openOccurrences = weekdayOn
+      ? getOpenOccurrences(selectedForm, now)
+      : [];
+    const occurrenceOpen =
+      !weekdayOn ||
+      openOccurrences.some(
+        (occ) => !hasSubmittedOccurrence(selectedForm, mySubmitted, occ)
+      );
+    return canReuseViewedDocument({
+      isRespondent: isFormRespondent(
+        selectedForm,
+        currentUser,
+        myBoardRole,
+        schoolRole,
+        board.school || board.schoolId
+      ),
+      isDraftForm: !!selectedForm.isDraft,
+      directInput: !!selectedForm.settings?.directInputMode,
+      periodOpen: isWithinFormPeriod(selectedForm, now),
+      occurrenceOpen,
+      allowMultipleResponses: !!selectedForm.settings?.allowMultipleResponses,
+      mySubmittedCount: mySubmitted.length,
+      myDraftCount: myDrafts.length,
+      requiredTarget: getRequiredResponseCount(selectedForm),
+    });
+  }, [
+    selectedForm,
+    onReuseDocument,
+    currentDocRow,
+    mySheetRows,
+    currentUser,
+    myBoardRole,
+    schoolRole,
+    board,
+  ]);
+
+  const reuseCurrentDocument = () => {
+    if (!selectedForm || !currentDocRow || !onReuseDocument) return;
+    const copied = copyRowDataForReuse(
+      currentDocRow.data,
+      selectedForm.fields
+    );
+    const { data, dropped } = filterReusedPickPeople(copied, selectedForm.fields, {
+      approvalCandidateIds: approvalCandidatesForForm(
+        selectedForm,
+        board,
+        board.circulationCandidates ?? []
+      )
+        .map((user) => user.userId)
+        .filter(Boolean),
+      circulationCandidateIds: circulationCandidates
+        .map((user) => user.userId)
+        .filter(Boolean),
+    });
+    onReuseDocument(
+      selectedForm._id,
+      data,
+      formatReusedDroppedNotice(dropped)
+    );
+  };
 
   const inAssessmentGradeMode =
     !!canManageSelected &&
@@ -2857,6 +2955,17 @@ const AltSheetView = ({
                     <span
                       className={`${style.docViewHeaderActions} ${style.noPrint} ${NO_PRINT_CLASS}`}
                     >
+                      {canReuseCurrentDoc &&
+                        editingRowId !== currentDocRow._id && (
+                          <Button
+                            type="ghost"
+                            onClick={reuseCurrentDocument}
+                            style={{ padding: "2px 8px", fontSize: "12px" }}
+                            ariaLabel="이 내용으로 새로 작성"
+                          >
+                            재사용
+                          </Button>
+                        )}
                       {canEditRowDoc(currentDocRow) &&
                         editingRowId !== currentDocRow._id && (
                           <Button
