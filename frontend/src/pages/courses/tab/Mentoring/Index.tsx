@@ -106,6 +106,15 @@ const CoursePid = (props: Props) => {
 
   const [statusPopupActive, setStatusPopupActive] = useState<boolean>(false);
   const [ratio, setRatio] = useState<number>(0);
+  const [loadedPid, setLoadedPid] = useState(pid);
+  if (pid !== loadedPid) {
+    setLoadedPid(pid);
+    setSyllabus(undefined);
+    setEnrollmentList([]);
+    enrollmentListRef.current = [];
+    setIsLoadingSyllabus(true);
+    setIsEnrollmentsLoading(false);
+  }
 
   const boardFeatureEnabled =
     currentSchool?.boardEnabled !== false &&
@@ -292,9 +301,11 @@ const CoursePid = (props: Props) => {
   const isSyllabusPlanTab =
     !activeCourseTab || activeCourseTab === "계획서";
   const isEvaluationTab = activeCourseTab === "평가";
+  const syllabusMatchesPid =
+    !!syllabus?._id && String(syllabus._id) === String(pid ?? "");
 
   useRegisterAlterSyllabusView({
-    enabled: !!syllabus?._id && !isLoadingSyllabus && isSyllabusPlanTab,
+    enabled: syllabusMatchesPid && !isLoadingSyllabus && isSyllabusPlanTab,
     course: syllabus,
     formSyllabus: currentSeason?.formSyllabus,
   });
@@ -303,7 +314,7 @@ const CoursePid = (props: Props) => {
     enabled:
       !!isMentor &&
       !!currentRegistration?.permissionEvaluationV2 &&
-      !!syllabus?._id &&
+      syllabusMatchesPid &&
       !isLoadingSyllabus &&
       isEvaluationTab,
     label: syllabus?.classTitle
@@ -688,7 +699,7 @@ const CoursePid = (props: Props) => {
   return (
     <>
       <div className={style.section}>
-        {!isLoadingSyllabus && syllabus?._id ? (
+        {!isLoadingSyllabus && syllabusMatchesPid ? (
           <div className={"syllabus-enrollments-wrapper"}>
             <div className={"syllabus"}>
               <div className={style.course_header}>
