@@ -59,14 +59,6 @@ const TipTapToolbar = ({
 
   if (!editor) return null;
 
-  const handleTableInsert = () => {
-    editor
-      .chain()
-      .focus()
-      .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-      .run();
-  };
-
   const headingBadge = getHeadingBadge(editor);
   const textStyle = editor.getAttributes("textStyle") as {
     fontSize?: string | null;
@@ -96,12 +88,6 @@ const TipTapToolbar = ({
       icon: "horizontalRule",
       label: "가로줄",
       onClick: () => editor.chain().focus().setHorizontalRule().run(),
-    },
-    {
-      icon: "table",
-      label: "표 (3x3)",
-      onClick: handleTableInsert,
-      active: editor.isActive("table"),
     },
     {
       icon: "youtube",
