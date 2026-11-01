@@ -1,10 +1,10 @@
 import Table, { TTableHeader } from "components/tableV2/Table";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
 
 import { defaultHeaderList } from "./defaultHeaderList";
-import _ from "lodash";
+import { structureCourseRows } from "./structureCourseRows";
 
 import ViewPopup from "../view/ViewPopup";
 import StatusPopup from "../view/StatusPopup";
@@ -43,8 +43,11 @@ const CourseTable = (props: Props) => {
   const { SyllabusAPI } = useAPIv2();
   const { currentUser, currentSchool, currentRegistration, currentSeason } =
     useAuth();
-  const [courseList, setCourseList] = useState<any[]>([]);
   const [headerList, setHeaderList] = useState<TTableHeader[]>([]);
+  const courseList = useMemo(
+    () => structureCourseRows(props.data ?? [], props.subjectLabels ?? []),
+    [props.data, props.subjectLabels]
+  );
 
   const [courseId, setCourseId] = useState<string | undefined>(undefined);
   const [statusPopupActive, setStatusPopupActive] = useState<boolean>(false);
@@ -61,54 +64,11 @@ const CourseTable = (props: Props) => {
     }
   };
 
-  const structuring = (data: any[]) => {
-    return _.sortBy(
-      data.map((syllabus: any) => {
-        for (let idx = 0; idx < props.subjectLabels.length; idx++) {
-          syllabus[props.subjectLabels[idx]] = syllabus.subject[idx];
-        }
-        syllabus.timeText = _.join(
-          syllabus.time.map((timeBlock: any) => timeBlock.label),
-          ", "
-        );
-        syllabus.mentorText = _.join(
-          syllabus.teachers.map((teacher: any) => teacher.userName),
-          ", "
-        );
-        syllabus.confirmed = true;
-        for (let teacher of syllabus.teachers) {
-          if (!teacher.confirmed) {
-            syllabus.confirmed = false;
-            break;
-          }
-        }
-
-        const confirmedCnt = _.filter(syllabus.teachers, {
-          confirmed: true,
-        }).length;
-        syllabus.confirmedStatus =
-          confirmedCnt === 0
-            ? "notConfirmed"
-            : confirmedCnt === syllabus.teachers.length
-            ? "fullyConfirmed"
-            : "semiConfirmed";
-
-        if (!syllabus.count_limit) {
-          syllabus.count_limit = `${syllabus?.count || 0}/${syllabus.limit}`;
-        }
-
-        return syllabus;
-      }),
-      ["subject", "classTitle"]
-    );
-  };
-
   useEffect(() => {
-    /* set dataList */
-    setCourseList(structuring(props.data));
-
     /* set headerList */
-    const subjectLabelHeaderList: TTableHeader[] = props.subjectLabels.map(
+    const subjectLabelHeaderList: TTableHeader[] = (
+      props.subjectLabels ?? []
+    ).map(
       (label: string) => {
         return {
           text: label,
@@ -121,7 +81,7 @@ const CourseTable = (props: Props) => {
       }
     );
     
-    const postHeaderList = props.postHeaderList ?? [];
+    const postHeaderList = [...(props.postHeaderList ?? [])];
     if (props.showStatus) {
       postHeaderList.push({
         text: "상태",
@@ -272,12 +232,14 @@ const CourseTable = (props: Props) => {
 
     return () => {};
   }, [
-    props.data,
     props.subjectLabels,
     props.visibleKeys,
     props.preHeaderList,
+    props.postHeaderList,
     props.evaluationBySyllabusId,
     props.showStatus,
+    props.onClickDetail,
+    props.isMentor,
   ]);
 
   return (
