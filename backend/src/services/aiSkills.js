@@ -59,6 +59,10 @@ import {
 } from "../utils/evaluationCsv.js";
 import { isSchoolManager } from "../utils/schoolManager.js";
 import {
+  isTeacherEditableField,
+  resolveFormEvaluation,
+} from "../utils/evaluationForm.js";
+import {
   FIELD_REQUIRED,
   PERMISSION_DENIED,
   __NOT_FOUND,
@@ -1807,13 +1811,6 @@ export const executeEvaluationDraftSkill = async ({
     throw err;
   }
 
-  if (!registration?.permissionEvaluationV2) {
-    const err = new Error(PERMISSION_DENIED);
-    err.status = 403;
-    err.code = PERMISSION_DENIED;
-    throw err;
-  }
-
   const syllabus = await Syllabus(academyId).findById(syllabusId).lean();
   if (!syllabus) {
     const err = new Error(__NOT_FOUND("syllabus"));
@@ -1832,6 +1829,12 @@ export const executeEvaluationDraftSkill = async ({
     (t) => String(t._id) === String(user._id)
   );
   const isManager = isSchoolManager(user, syllabus.school || season.school);
+  if (!registration?.permissionEvaluationV2 && !isManager) {
+    const err = new Error(PERMISSION_DENIED);
+    err.status = 403;
+    err.code = PERMISSION_DENIED;
+    throw err;
+  }
   if (!isMentor && !isManager) {
     const err = new Error(PERMISSION_DENIED);
     err.status = 403;
@@ -1839,16 +1842,16 @@ export const executeEvaluationDraftSkill = async ({
     throw err;
   }
 
-  const formEvaluation =
-    (Array.isArray(context.formEvaluation) && context.formEvaluation.length > 0
+  const fromContext =
+    Array.isArray(context.formEvaluation) && context.formEvaluation.length > 0
       ? context.formEvaluation
-      : null) ||
-    registration.formEvaluation ||
-    season.formEvaluation ||
-    [];
+      : null;
+  const formEvaluation =
+    fromContext ||
+    resolveFormEvaluation(registration.formEvaluation, season.formEvaluation);
 
-  const teacherEditable = formEvaluation.filter(
-    (f) => f?.label && f?.auth?.edit?.teacher
+  const teacherEditable = formEvaluation.filter((f) =>
+    isTeacherEditableField(f)
   );
   const teacherEditableByLabel = new Map(
     teacherEditable.map((f) => [f.label, f])

@@ -33,6 +33,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
+import { isSchoolManager } from "utils/schoolManager";
 import style from "style/pages/courses/course.module.scss";
 
 import _ from "lodash";
@@ -53,7 +54,8 @@ type Props = {};
 
 const CoursePid = (props: Props) => {
   const { pid } = useParams<"pid">();
-  const { currentSeason, currentUser, currentRegistration } = useAuth();
+  const { currentSeason, currentUser, currentRegistration, currentSchool } =
+    useAuth();
   const { SyllabusAPI } = useAPIv2();
   const navigate = useAppNavigate();
 
@@ -110,12 +112,21 @@ const CoursePid = (props: Props) => {
 
           if (syllabus.season !== currentSeason._id) {
             navigate("/courses#개설%20수업", { replace: true });
+            return;
           }
-          if (_.find(syllabus.teachers, { _id: currentUser._id })) {
+          if (
+            _.find(syllabus.teachers, { _id: currentUser._id }) ||
+            isSchoolManager(
+              currentUser,
+              syllabus.school || currentSchool?._id
+            )
+          ) {
             navigate("/courses/mentoring/" + syllabus._id, { replace: true });
+            return;
           }
           if (syllabus.user !== currentUser._id) {
             navigate("/courses#개설%20수업", { replace: true });
+            return;
           }
 
           // is this syllabus fully confirmed?

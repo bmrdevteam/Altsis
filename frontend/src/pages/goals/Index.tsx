@@ -32,6 +32,8 @@ import {
   schoolGoalsSettingsPath,
 } from "./goalSidebarVisibility";
 import style from "./goals.module.scss";
+import { mentoringSyllabusQuery } from "utils/mentoringSyllabusQuery";
+import { isSchoolManager } from "utils/schoolManager";
 
 type Section = {
   key: string;
@@ -58,6 +60,10 @@ const GoalsDashboard = () => {
   const seasonId =
     currentRegistration?.season || currentSeason?._id || undefined;
   const isTeacher = currentRegistration?.role === "teacher";
+  const canMentorAll = isSchoolManager(
+    currentUser,
+    currentRegistration?.school || currentSchool?._id
+  );
 
   const [me, setMe] = useState<TGoalsMe | null>(null);
   const [enrolledList, setEnrolledList] = useState<any[]>([]);
@@ -114,7 +120,11 @@ const GoalsDashboard = () => {
               query: { season: seasonId, user: currentUser._id },
             }),
             SyllabusAPI.RSyllabuses({
-              query: { season: seasonId, teacher: currentUser._id },
+              query: mentoringSyllabusQuery(
+                currentUser,
+                seasonId,
+                currentRegistration?.school || currentSchool?._id
+              ),
             }),
           ]),
         ]);
@@ -154,7 +164,7 @@ const GoalsDashboard = () => {
         }
 
         if (
-          isTeacher &&
+          (isTeacher || canMentorAll) &&
           meRes.display?.mentoring !== false &&
           mentoring.length > 0 &&
           currentSeason?.formEvaluation?.length
@@ -192,6 +202,7 @@ const GoalsDashboard = () => {
     currentUser?._id,
     seasonId,
     isTeacher,
+    canMentorAll,
     dataTick,
     currentSeason?._id,
     currentSeason?.formEvaluation,

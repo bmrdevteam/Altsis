@@ -31,6 +31,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
+import { isSchoolManager } from "utils/schoolManager";
 import style from "style/pages/courses/course.module.scss";
 
 import _ from "lodash";
@@ -58,7 +59,7 @@ const CoursePid = (props: Props) => {
   const { SyllabusAPI } = useAPIv2();
 
   const navigate = useAppNavigate();
-  const { currentUser, currentSeason } = useAuth();
+  const { currentUser, currentSeason, currentSchool } = useAuth();
 
   const [courseData, setCourseData] = useState<any>();
 
@@ -160,7 +161,8 @@ const CoursePid = (props: Props) => {
         .then(({ syllabus }) => {
           if (
             syllabus.user !== currentUser._id &&
-            !_.find(syllabus.teachers, { _id: currentUser._id }) && currentUser.auth !== "manager"
+            !_.find(syllabus.teachers, { _id: currentUser._id }) &&
+            !isSchoolManager(currentUser, syllabus.school || currentSchool?._id)
           ) {
             navigate("/courses#개설%20수업", { replace: true });
           }
