@@ -46,7 +46,6 @@ import useAPIv2 from "hooks/useAPIv2";
 import useRegisterAlterCourseList from "hooks/useRegisterAlterCourseList";
 import { countAttentionCourseTodos } from "./groupCourseTodos";
 import { useCourseTodos } from "./useCourseTodos";
-import { mentoringSyllabusQuery } from "utils/mentoringSyllabusQuery";
 
 type Props = {};
 
@@ -55,8 +54,7 @@ const Course = (props: Props) => {
   const location = useLocation();
   const { SyllabusAPI } = useAPIv2();
 
-  const { currentSeason, currentUser, currentRegistration, currentSchool } =
-    useAuth();
+  const { currentSeason, currentUser, currentRegistration } = useAuth();
   const {
     items: courseTodoItems,
     evaluationBySyllabusId,
@@ -99,11 +97,10 @@ const Course = (props: Props) => {
         },
       }),
       SyllabusAPI.RSyllabuses({
-        query: mentoringSyllabusQuery(
-          currentUser,
-          currentRegistration.season,
-          currentRegistration.school || currentSchool?._id
-        ),
+        query: {
+          season: currentRegistration.season,
+          teacher: currentUser._id,
+        },
       }),
     ]);
     for (let syllabus of syllabusesEnrolled) {
