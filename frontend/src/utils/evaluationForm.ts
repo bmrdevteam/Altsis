@@ -95,7 +95,8 @@ export const isCourseMentor = (
   if (isSchoolManager(user, syllabus?.school ?? schoolRef)) return true;
   const meId = user?._id != null ? String(user._id) : "";
   const meLogin = user?.userId ?? "";
-  const teachers = Array.isArray(syllabus?.teachers) ? syllabus.teachers : [];
+  const teacherList = syllabus?.teachers;
+  const teachers = Array.isArray(teacherList) ? teacherList : [];
   return teachers.some(
     (teacher) =>
       (meLogin !== "" && teacher?.userId === meLogin) ||
