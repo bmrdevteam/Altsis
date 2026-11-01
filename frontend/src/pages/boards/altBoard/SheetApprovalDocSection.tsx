@@ -3,6 +3,7 @@ import Button from "components/button/Button";
 import { TAltFormField } from "types/altForm";
 import { TAltSheetRow } from "types/altSheet";
 import {
+  canCancelLastApproval,
   isCurrentApprover,
   normalizeApprovalValue,
   TApprovalValueV2,
@@ -18,6 +19,8 @@ type Props = {
   onReasonChange: (value: string) => void;
   onApprove: () => void;
   onReject: () => void;
+  onCancel?: () => void;
+  actionsDisabled?: boolean;
 };
 
 const overallLabel = (status: TApprovalValueV2["overallStatus"]) => {
@@ -34,6 +37,8 @@ const SheetApprovalDocSection = ({
   onReasonChange,
   onApprove,
   onReject,
+  onCancel,
+  actionsDisabled = false,
 }: Props) => {
   const approvalData = normalizeApprovalValue(row.data[field._id], field);
 
@@ -69,6 +74,9 @@ const SheetApprovalDocSection = ({
     currentUserId,
     field
   );
+  const canCancel =
+    !!onCancel &&
+    canCancelLastApproval(row.data[field._id], currentUserId, field);
   const hasLegacyReason =
     !approvalData.steps.some((s) => s.reason) && !!approvalData.reason;
 
@@ -102,10 +110,31 @@ const SheetApprovalDocSection = ({
             onChange={(e) => onReasonChange(e.target.value)}
           />
           <div className={style.docSectionActions}>
-            <Button type="ghost" onClick={onReject}>
+            <Button type="ghost" onClick={onReject} disabled={actionsDisabled}>
               반려
             </Button>
-            <Button onClick={onApprove}>승인</Button>
+            <Button onClick={onApprove} disabled={actionsDisabled}>
+              승인
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {canCancel && (
+        <div
+          className={`${style.approvalReasonSection} ${style.noPrint} ${NO_PRINT_CLASS}`}
+        >
+          <p className={style.approvalCancelHint}>
+            직전 승인을 취소하면 결재가 그 단계로 돌아갑니다.
+          </p>
+          <div className={style.docSectionActions}>
+            <Button
+              type="ghost"
+              onClick={() => onCancel?.()}
+              disabled={actionsDisabled}
+            >
+              승인취소
+            </Button>
           </div>
         </div>
       )}

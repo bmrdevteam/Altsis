@@ -4509,6 +4509,13 @@ tbody tr:hover .actionCell {
   background: var(--background-color);
 }
 
+.approvalCancelHint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-color-2);
+}
+
 .approvalReasonLabel {
   display: block;
   font-size: 13px;

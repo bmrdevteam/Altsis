@@ -18,6 +18,7 @@ const APPROVER_NON_EDITABLE_FIELD_TYPES = new Set([
 /**
  * Classify one PUT /alt-sheet-rows/:id field update.
  * Approval state is always a server-side transition.
+ * Cancel is allowed only for the latest approver (`canCancelThisField`).
  * Pick circulation may be rewritten by an admin or current approver.
  */
 export function authorizeSheetRowFieldUpdate({
@@ -26,12 +27,19 @@ export function authorizeSheetRowFieldUpdate({
   isAdmin,
   canApproveAny,
   isCurrentFieldApprover,
+  canCancelThisField,
 }) {
   if (!field) {
     return { ok: false, message: "존재하지 않는 항목입니다." };
   }
 
   if (field.type === "approval") {
+    if (value?.status === "cancelled") {
+      if (!canCancelThisField) {
+        return { ok: false, message: "승인 취소 권한이 없습니다." };
+      }
+      return { ok: true, kind: "approvalCancel" };
+    }
     if (value?.status !== "approved" && value?.status !== "rejected") {
       return { ok: false, message: "잘못된 승인 상태입니다." };
     }
