@@ -10,6 +10,9 @@ import {
   firstShortTextAnswer,
   approvalNotificationTitle,
   isApprovalLocked,
+  canCancelLastApproval,
+  applyApprovalCancel,
+  applyApprovalAction,
 } from "../../src/utils/approvalLine.js";
 
 const approver = {
@@ -573,6 +576,15 @@ describe("approvalNotificationTitle", () => {
     expect(approvalNotificationTitle(form, data, "stepApproved", "2차")).toBe(
       "현장학습 · 「2차」승인됨"
     );
+    expect(approvalNotificationTitle(form, data, "stepCancelled", "담임")).toBe(
+      "현장학습 · 「담임」승인 취소"
+    );
+    expect(approvalNotificationTitle(form, data, "approvalReopened")).toBe(
+      "현장학습 · 최종 승인 취소"
+    );
+    expect(approvalNotificationTitle(form, data, "requestWithdrawn")).toBe(
+      "현장학습 · 승인 요청 철회"
+    );
   });
 });
 
@@ -701,6 +713,126 @@ describe("isApprovalLocked", () => {
 
   test("submitted row with no approval value stays unlocked", () => {
     expect(isApprovalLocked({ data: { ap1: null } }, [field])).toBe(false);
+  });
+});
+
+describe("applyApprovalCancel", () => {
+  const step = (label, person, status, extra = {}) => ({
+    order: 0,
+    label,
+    mode: "pick",
+    approver: person,
+    status,
+    ...extra,
+  });
+
+  const midLine = {
+    version: 2,
+    lineSource: "group",
+    currentStep: 1,
+    overallStatus: "pending",
+    circulation: [{ user: "u3", userId: "lee", userName: "이회람" }],
+    steps: [
+      step("담임", approver, "approved", {
+        actedAt: "2026-10-01T00:00:00.000Z",
+        reason: "확인",
+      }),
+      step("교감", approverB, "pending"),
+    ],
+  };
+
+  test("rewinds one approved step and keeps history", () => {
+    expect(canCancelLastApproval(midLine, "jo")).toBe(true);
+    expect(canCancelLastApproval(midLine, "kim")).toBe(false);
+    const result = applyApprovalCancel(midLine, {}, "jo");
+    expect(result.ok).toBe(true);
+    expect(result.reopenedFinal).toBe(false);
+    expect(result.withdrawnApprover.userId).toBe("kim");
+    expect(result.value.overallStatus).toBe("pending");
+    expect(result.value.currentStep).toBe(0);
+    expect(result.value.currentApproverUserId).toBe("jo");
+    expect(result.value.lineSource).toBe("group");
+    expect(result.value.steps[0].status).toBe("pending");
+    expect(result.value.steps[0].actedAt).toBeUndefined();
+    expect(result.value.steps[0].reason).toBeUndefined();
+    expect(result.value.steps[1].status).toBe("waiting");
+    expect(result.value.cancelHistory).toHaveLength(1);
+    expect(result.value.cancelHistory[0]).toMatchObject({
+      stepIndex: 0,
+      stepLabel: "담임",
+      userId: "jo",
+      reason: "확인",
+      reopenedFinal: false,
+    });
+    expect(canCancelLastApproval(result.value, "jo")).toBe(false);
+    expect(
+      isApprovalLocked({ data: { ap1: result.value } }, [
+        { _id: "ap1", type: "approval" },
+      ])
+    ).toBe(false);
+  });
+
+  test("reopens a final approval onto the last step only", () => {
+    const finalValue = {
+      version: 2,
+      currentStep: 1,
+      overallStatus: "approved",
+      steps: [
+        step("담임", approver, "approved", {
+          actedAt: "2026-10-01T00:00:00.000Z",
+        }),
+        step("교감", approverB, "approved", {
+          actedAt: "2026-10-02T00:00:00.000Z",
+          reason: "결재",
+        }),
+      ],
+    };
+    expect(canCancelLastApproval(finalValue, "jo")).toBe(false);
+    const result = applyApprovalCancel(finalValue, {}, "kim");
+    expect(result.ok).toBe(true);
+    expect(result.reopenedFinal).toBe(true);
+    expect(result.withdrawnApprover).toBeNull();
+    expect(result.value.overallStatus).toBe("pending");
+    expect(result.value.currentStep).toBe(1);
+    expect(result.value.steps[0].status).toBe("approved");
+    expect(result.value.steps[1].status).toBe("pending");
+    expect(result.value.steps[1].reason).toBeUndefined();
+    expect(
+      isApprovalLocked({ data: { ap1: result.value } }, [
+        { _id: "ap1", type: "approval" },
+      ])
+    ).toBe(true);
+  });
+
+  test("refuses cancel after rejection or when a later step already moved", () => {
+    const rejected = {
+      version: 2,
+      currentStep: 1,
+      overallStatus: "rejected",
+      steps: [
+        step("담임", approver, "approved"),
+        step("교감", approverB, "rejected"),
+      ],
+    };
+    expect(applyApprovalCancel(rejected, {}, "jo").ok).toBe(false);
+    expect(applyApprovalCancel(midLine, {}, "kim")).toEqual({
+      ok: false,
+      message: "승인 취소 권한이 없습니다.",
+    });
+    expect(applyApprovalCancel(null, {}, "jo")).toEqual({
+      ok: false,
+      message: "승인 데이터가 없습니다.",
+    });
+  });
+
+  test("a later approval keeps the cancel history", () => {
+    const cancelled = applyApprovalCancel(midLine, {}, "jo");
+    const again = applyApprovalAction(cancelled.value, {}, "jo", "approved", "");
+    expect(again.ok).toBe(true);
+    expect(again.value.currentStep).toBe(1);
+    expect(again.value.steps[1].status).toBe("pending");
+    expect(again.value.cancelHistory).toHaveLength(1);
+    expect(again.value.lineSource).toBe("group");
   });
 });
 

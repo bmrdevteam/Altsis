@@ -43,7 +43,7 @@ type Props = {
   onDecide: (
     rowId: string,
     fieldId: string,
-    status: "approved" | "rejected",
+    status: "approved" | "rejected" | "cancelled",
     reason: string
   ) => Promise<boolean>;
   onBulkDecide: (
@@ -240,6 +240,16 @@ const SheetApprovalView = ({
       return;
     }
     setSelectedKeys(new Set(visibleItems.map(approvalItemKey)));
+  };
+
+  const handleCancelApproval = async () => {
+    if (busy || !activeItem) return;
+    setBusy(true);
+    try {
+      await onDecide(activeItem.rowId, activeItem.fieldId, "cancelled", "");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handleSingleDecide = async (status: "approved" | "rejected") => {
@@ -722,6 +732,8 @@ const SheetApprovalView = ({
                 onReasonChange={setPopupReason}
                 onApprove={() => handleSingleDecide("approved")}
                 onReject={() => handleSingleDecide("rejected")}
+                onCancel={handleCancelApproval}
+                actionsDisabled={busy}
               />
             </div>
           </div>
