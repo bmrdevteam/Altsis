@@ -144,6 +144,34 @@ describe("assembleCourseTodos", () => {
     ]);
   });
 
+  test("authOption만 있는 교사 항목도 평가 할 일로 센다", () => {
+    const { items } = assembleCourseTodos({
+      registration: {
+        ...baseRegistration,
+        formEvaluation: [{ label: "멘토평가", authOption: "editByTeacher" }],
+      },
+      season: {
+        formEvaluation: [{ label: "멘토평가", authOption: "editByTeacher" }],
+      },
+      userId,
+      mentoringSyllabi: [
+        {
+          _id: "s1",
+          classTitle: "수학",
+          teachers: [{ _id: userId, confirmed: true }],
+        },
+      ],
+      enrollments: [
+        {
+          syllabus: "s1",
+          student: "stu1",
+          evaluation: {},
+        },
+      ],
+    });
+    expect(items.find((i) => i.kind === "evaluation")?.evalStatus).toBe("평가중");
+  });
+
   test("mentoring incomplete in period → 평가중", () => {
     const { items, count } = assembleCourseTodos({
       registration: baseRegistration,

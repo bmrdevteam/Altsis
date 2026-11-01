@@ -2,6 +2,11 @@
  * Pure course-todos assembly (no DB) — used by service + unit tests
  */
 
+import {
+  isStudentEditableField,
+  isTeacherEditableField,
+} from "./evaluationForm.js";
+
 const idStr = (v) => {
   if (v == null) return "";
   if (typeof v === "string") return v;
@@ -119,9 +124,7 @@ export const assembleCourseTodos = ({
 
   // evaluation status: 없음 | 대기 | 평가중 | 완료 (every relevant syllabus)
   const periodOpen = !!registration.permissionEvaluationV2;
-  const teacherFields = formEvaluation.filter(
-    (f) => f?.auth?.edit?.teacher === true
-  );
+  const teacherFields = formEvaluation.filter((f) => isTeacherEditableField(f));
   if (teacherFields.length > 0) {
     for (const syllabus of mentoringSyllabi) {
       const sid = idStr(syllabus._id);
@@ -151,9 +154,7 @@ export const assembleCourseTodos = ({
     }
   }
 
-  const studentFields = formEvaluation.filter(
-    (f) => f?.auth?.edit?.student === true
-  );
+  const studentFields = formEvaluation.filter((f) => isStudentEditableField(f));
   if (studentFields.length > 0) {
     for (const syllabus of enrolledSyllabi) {
       const sid = idStr(syllabus._id);

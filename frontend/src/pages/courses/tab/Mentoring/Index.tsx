@@ -32,6 +32,13 @@ import { useLocation, useParams } from "react-router-dom";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
 import { isSchoolManager } from "utils/schoolManager";
+import {
+  buildMentorEvaluationColumns,
+  isCourseMentor,
+  isStudentViewField,
+  isTeacherEditableField,
+  resolveFormEvaluation,
+} from "utils/evaluationForm";
 import style from "style/pages/courses/course.module.scss";
 
 import _ from "lodash";
@@ -293,10 +300,14 @@ const CoursePid = (props: Props) => {
     handleEvalShowAllColumns();
   };
 
-  const formEvaluationForAlter: TFormEvaluation =
-    (currentRegistration?.formEvaluation as TFormEvaluation) ||
-    currentSeason?.formEvaluation ||
-    [];
+  const formEvaluationForAlter: TFormEvaluation = resolveFormEvaluation(
+    currentRegistration?.formEvaluation as TFormEvaluation,
+    currentSeason?.formEvaluation
+  );
+  const canEditEvaluation =
+    !!isMentor &&
+    (!!currentRegistration?.permissionEvaluationV2 ||
+      isSchoolManager(currentUser, syllabus?.school || currentSchool?._id));
 
   const isSyllabusPlanTab =
     !activeCourseTab || activeCourseTab === "계획서";
@@ -312,8 +323,7 @@ const CoursePid = (props: Props) => {
 
   useRegisterAlterEvaluation({
     enabled:
-      !!isMentor &&
-      !!currentRegistration?.permissionEvaluationV2 &&
+      canEditEvaluation &&
       syllabusMatchesPid &&
       !isLoadingSyllabus &&
       isEvaluationTab,
@@ -331,14 +341,14 @@ const CoursePid = (props: Props) => {
   });
 
   const downloadEvaluationCsvTemplate = () => {
-    const formEvaluation: TFormEvaluation =
-      (currentRegistration?.formEvaluation as TFormEvaluation) ||
-      currentSeason?.formEvaluation ||
-      [];
+    const formEvaluation: TFormEvaluation = resolveFormEvaluation(
+      currentRegistration?.formEvaluation as TFormEvaluation,
+      currentSeason?.formEvaluation
+    );
     // 화면과 동일: 읽기 전용(자기평가 등) 포함. 가져오기는 edit.teacher만 반영
     const downloadLabels = formEvaluation
       .filter(
-        (item) => item.auth?.edit?.teacher || item.auth?.view?.student
+        (item) => isTeacherEditableField(item) || isStudentViewField(item)
       )
       .map((item) => item.label);
 
@@ -456,88 +466,61 @@ const CoursePid = (props: Props) => {
           setSyllabus(syllabus);
 
           // is this syllabus fully confirmed?
-          // Is this user is mentor of this syllabus?
+          // 학교·아카데미 관리자는 담당 교사로 등록되지 않아도 평가를 연다.
+          const teachers = Array.isArray(syllabus?.teachers)
+            ? syllabus.teachers
+            : [];
           let confirmedCnt = 0;
-          let isMentorLocal = false;
-          for (let teacher of syllabus?.teachers) {
+          for (const teacher of teachers) {
             if (teacher.confirmed) {
               confirmedCnt += 1;
             }
-            if (teacher.userId === currentUser?.userId || isSchoolManager(currentUser, syllabus.school || currentSchool?._id)) {
-              isMentorLocal = true;
-            }
           }
+          const isMentorLocal = isCourseMentor(
+            currentUser,
+            syllabus,
+            currentSchool?._id
+          );
           setConfirmedStatus(
             confirmedCnt === 0
               ? "notConfirmed"
-              : confirmedCnt === syllabus?.teachers.length
+              : confirmedCnt === teachers.length
               ? "fullyConfirmed"
               : "semiConfirmed"
           );
           setIsMentor(isMentorLocal);
           setIsEnrollmentsLoading(true);
 
-          SeasonAPI.RSeason({ params: { _id: syllabus.season } }).then(
-            ({ season }) => {
+          return SeasonAPI.RSeason({ params: { _id: syllabus.season } })
+            .then(({ season }) => season)
+            .catch(() => ({
+              formEvaluation: currentSeason?.formEvaluation,
+            }))
+            .then((season) => {
               if (cancelled || pidRef.current !== requestedPid) return;
-              let _formEvaluationHeader: any[] = [];
-
-              if (currentRegistration?.permissionEvaluationV2 && isMentorLocal) {
-                season.formEvaluation.forEach((val: any) => {
-                  const text = val.label;
-                  const key = "evaluation." + text;
-
-                  if (val.auth.edit.teacher) {
-                    fieldEvaluationList.push({
-                      text,
-                      key,
-                    });
-                    if (val.type === "input-number") {
-                      _formEvaluationHeader.push({
-                        text,
-                        key,
-                        type: "input-number",
-                      });
-                    } else if (val.type === "select") {
-                      _formEvaluationHeader.push({
-                        text,
-                        key,
-                        type: "select",
-                        option: val.options,
-                      });
-                    } else {
-                      _formEvaluationHeader.push({
-                        text,
-                        key,
-                        type: "input",
-                        inputMinHeight: "72px",
-                      });
-                    }
-                  } else if (val.auth.view.student) {
-                    _formEvaluationHeader.push({
-                      text,
-                      key,
-                      type: "text",
-                      whiteSpace: "pre-wrap",
-                      maxLines: 4,
-                    });
-                  }
-                });
-              } else {
-                season.formEvaluation.forEach((val: any) => {
-                  _formEvaluationHeader.push({
-                    text: val.label,
-                    key: "evaluation." + val.label,
-                    type: "text",
-                    whiteSpace: "pre-wrap",
-                    maxLines: 4,
-                  });
-                });
-              }
-              setFieldEvaluationList(fieldEvaluationList);
+              const formEvaluation = resolveFormEvaluation(
+                currentRegistration?.formEvaluation as TFormEvaluation,
+                season?.formEvaluation || currentSeason?.formEvaluation
+              );
+              const canEdit = !!(
+                isMentorLocal &&
+                (currentRegistration?.permissionEvaluationV2 ||
+                  isSchoolManager(
+                    currentUser,
+                    syllabus.school || currentSchool?._id
+                  ))
+              );
+              const _formEvaluationHeader = buildMentorEvaluationColumns(
+                formEvaluation,
+                canEdit
+              );
+              setFieldEvaluationList(
+                _formEvaluationHeader
+                  .filter((column) => column.type !== "text")
+                  .map((column) => ({ text: column.text, key: column.key }))
+              );
               setFormEvaluationHeader(_formEvaluationHeader);
-            }
-          );
+            });
         })
         .then(() => {
           if (cancelled || pidRef.current !== requestedPid) return;
@@ -668,7 +651,7 @@ const CoursePid = (props: Props) => {
       (h) => h.key && effectiveVisibleEvalKeys.has(h.key)
     );
     header.push(...visibleFormHeaders);
-    if (currentRegistration?.permissionEvaluationV2) {
+    if (canEditEvaluation) {
       header.push({
         text: "저장",
         key: "isModified",
@@ -989,18 +972,17 @@ const CoursePid = (props: Props) => {
                               onShowAll={handleEvalShowAllColumns}
                               onReset={handleEvalFilterReset}
                               onDownloadCsvTemplate={
-                                currentRegistration?.permissionEvaluationV2
+                                canEditEvaluation
                                   ? downloadEvaluationCsvTemplate
                                   : undefined
                               }
                               onImportFromCsv={
-                                currentRegistration?.permissionEvaluationV2
+                                canEditEvaluation
                                   ? () => setShowImportCsvPopup(true)
                                   : undefined
                               }
                               onImportFromBoard={
-                                altBoard &&
-                                currentRegistration?.permissionEvaluationV2
+                                altBoard && canEditEvaluation
                                   ? () => setShowImportEvalPopup(true)
                                   : undefined
                               }

@@ -6,6 +6,10 @@ import Button from "components/button/Button";
 import Select from "components/select/Select";
 import { TAltForm, TAltFormField, TAltFormFieldType } from "types/altForm";
 import { TFormEvaluation } from "types/seasons";
+import {
+  isTeacherEditableField,
+  resolveFormEvaluation,
+} from "utils/evaluationForm";
 import { TAltSheetRow } from "types/altSheet";
 
 const IMPORTABLE_FIELD_TYPES = new Set<TAltFormFieldType>([
@@ -51,15 +55,15 @@ const ImportEvaluationFromBoardPopup = ({
   const { currentSeason, currentRegistration } = useAuth();
   const { AltFormAPI, AltSheetRowAPI, EnrollmentAPI, SyllabusAPI } = useAPIv2();
 
-  const formEvaluation: TFormEvaluation =
-    (currentRegistration?.formEvaluation as TFormEvaluation) ||
-    currentSeason?.formEvaluation ||
-    [];
+  const formEvaluation: TFormEvaluation = resolveFormEvaluation(
+    currentRegistration?.formEvaluation as TFormEvaluation,
+    currentSeason?.formEvaluation
+  );
 
   const editableEvalLabels = useMemo(
     () =>
       formEvaluation
-        .filter((item) => item.auth?.edit?.teacher)
+        .filter((item) => isTeacherEditableField(item))
         .map((item) => item.label),
     [formEvaluation]
   );
