@@ -5,6 +5,10 @@ import Popup from "components/popup/Popup";
 import Button from "components/button/Button";
 import { TFormEvaluation } from "types/seasons";
 import {
+  isTeacherEditableField,
+  resolveFormEvaluation,
+} from "utils/evaluationForm";
+import {
   isEmptyEval,
   parseEvaluationCsv,
   TEvaluationCsvRow,
@@ -42,15 +46,15 @@ const ImportEvaluationFromCsvPopup = ({
   const { SyllabusAPI } = useAPIv2();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const formEvaluation: TFormEvaluation =
-    (currentRegistration?.formEvaluation as TFormEvaluation) ||
-    currentSeason?.formEvaluation ||
-    [];
+  const formEvaluation: TFormEvaluation = resolveFormEvaluation(
+    currentRegistration?.formEvaluation as TFormEvaluation,
+    currentSeason?.formEvaluation
+  );
 
   const editableEvalLabels = useMemo(
     () =>
       formEvaluation
-        .filter((item) => item.auth?.edit?.teacher)
+        .filter((item) => isTeacherEditableField(item))
         .map((item) => item.label),
     [formEvaluation]
   );

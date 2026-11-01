@@ -6,6 +6,7 @@ import {
   getApprovalComposeRows,
   getCirculationConfig,
   getRequiredApprovalError,
+  canCancelLastApproval,
   isCurrentApprover,
   isApprovalLocked,
   liftNestedCirculationFields,
@@ -270,6 +271,92 @@ describe("isCurrentApprover", () => {
         "kim"
       )
     ).toBe(true);
+  });
+});
+
+describe("canCancelLastApproval", () => {
+  const kim = { user: "u2", userId: "kim", userName: "김민수" };
+  const midLine = {
+    version: 2 as const,
+    currentStep: 1,
+    overallStatus: "pending" as const,
+    steps: [
+      {
+        order: 0,
+        label: "담임",
+        mode: "pick" as const,
+        approver,
+        status: "approved" as const,
+        actedAt: "2026-10-01T00:00:00.000Z",
+      },
+      {
+        order: 1,
+        label: "교감",
+        mode: "pick" as const,
+        approver: kim,
+        status: "pending" as const,
+      },
+    ],
+  };
+
+  test("only the latest approver can cancel while the next step is still pending", () => {
+    expect(canCancelLastApproval(midLine, "jo")).toBe(true);
+    expect(canCancelLastApproval(midLine, "kim")).toBe(false);
+    expect(canCancelLastApproval(midLine, undefined)).toBe(false);
+  });
+
+  test("the earlier approver cannot cancel after the next step is approved", () => {
+    expect(
+      canCancelLastApproval(
+        {
+          version: 2,
+          currentStep: 1,
+          overallStatus: "approved",
+          steps: [
+            { ...midLine.steps[0] },
+            {
+              ...midLine.steps[1],
+              status: "approved" as const,
+              actedAt: "2026-10-02T00:00:00.000Z",
+            },
+          ],
+        },
+        "jo"
+      )
+    ).toBe(false);
+    expect(
+      canCancelLastApproval(
+        {
+          version: 2,
+          currentStep: 1,
+          overallStatus: "approved",
+          steps: [
+            { ...midLine.steps[0] },
+            {
+              ...midLine.steps[1],
+              status: "approved" as const,
+            },
+          ],
+        },
+        "kim"
+      )
+    ).toBe(true);
+  });
+
+  test("a rejected line cannot be cancelled", () => {
+    expect(
+      canCancelLastApproval(
+        {
+          ...midLine,
+          overallStatus: "rejected",
+          steps: [
+            midLine.steps[0],
+            { ...midLine.steps[1], status: "rejected" as const },
+          ],
+        },
+        "jo"
+      )
+    ).toBe(false);
   });
 });
 

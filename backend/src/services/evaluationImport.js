@@ -4,6 +4,7 @@ import {
   Enrollment,
 } from "../models/index.js";
 import { isEmptyValue } from "../utils/isEmptyValue.js";
+import { isTeacherEditableField } from "../utils/evaluationForm.js";
 import { submittedSheetRowFilter } from "../utils/sheetRowQuery.js";
 
 /** 평가로 가져올 수 있는 활동 양식 필드 타입 */
@@ -143,7 +144,7 @@ export const importEvaluationFromBoardForm = async (
     const evalItem = evalByLabel.get(evaluationLabel);
     if (!field || !evalItem) continue;
     if (!IMPORTABLE_FIELD_TYPES.has(field.type)) continue;
-    if (!evalItem.auth?.edit?.teacher) {
+    if (!isTeacherEditableField(evalItem)) {
       stats.skippedNoPermission += 1;
       continue;
     }
@@ -375,7 +376,7 @@ export const importEvaluationFromCsv = async (
         stats.skippedUnknownLabel += 1;
         continue;
       }
-      if (!evalItem.auth?.edit?.teacher) {
+      if (!isTeacherEditableField(evalItem)) {
         stats.skippedNoPermission += 1;
         continue;
       }

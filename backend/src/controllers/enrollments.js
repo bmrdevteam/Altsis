@@ -6,6 +6,11 @@
 
 import { Enrollment, Syllabus, Registration, CalendarEvent, Board, Season } from "../models/index.js";
 import { isSchoolManager } from "../utils/schoolManager.js";
+import {
+  isStudentEditableField,
+  isTeacherEditableField,
+  resolveFormEvaluation,
+} from "../utils/evaluationForm.js";
 import { getIoEnrollment } from "../utils/webSocket.js";
 import { logger } from "../log/logger.js";
 import { sendAutoNotification } from "../services/notifications.js";
@@ -507,8 +512,10 @@ export const findEvaluations = async (req, res) => {
     }
     if ("school" in req.query && "student" in req.query) {
       const isOwnData = req.user._id.toString() === req.query.student;
+      const staff = isSchoolManager(req.user, req.query.school);
       if (
         !isOwnData &&
+        !staff &&
         !(await Registration(req.user.academyId).findOne({
           user: req.user._id,
           role: "teacher",
@@ -581,8 +588,21 @@ export const updateEvaluation = async (req, res) => {
     if (!registration) {
       return res.status(404).send({ message: __NOT_FOUND("registration") });
     }
-    if (!registration.permissionEvaluationV2) {
+    const schoolManager = isSchoolManager(req.user, enrollment.school);
+    if (!registration.permissionEvaluationV2 && !(byMentor && schoolManager)) {
       return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    let formEvaluation = registration.formEvaluation;
+    if (!Array.isArray(formEvaluation) || formEvaluation.length === 0) {
+      const season = await Season(req.user.academyId)
+        .findById(enrollment.season)
+        .select("formEvaluation")
+        .lean();
+      formEvaluation = resolveFormEvaluation(
+        formEvaluation,
+        season?.formEvaluation
+      );
     }
 
     const enrollmentsByTerm = await Enrollment(req.user.academyId)
@@ -606,10 +626,10 @@ export const updateEvaluation = async (req, res) => {
       .select("+evaluation");
 
     for (let label in req.body.evaluation) {
-      const obj = _.find(registration.formEvaluation, { label });
+      const obj = _.find(formEvaluation, { label });
       if (
-        (byMentor && obj?.auth.edit["teacher"]) ||
-        (byStudent && obj?.auth.edit["student"])
+        (byMentor && isTeacherEditableField(obj)) ||
+        (byStudent && isStudentEditableField(obj))
       ) {
         enrollment.evaluation = {
           ...enrollment.evaluation,

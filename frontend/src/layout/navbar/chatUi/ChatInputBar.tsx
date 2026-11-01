@@ -28,6 +28,8 @@ type Props = {
   bare?: boolean;
   /** 값이 바뀌면 textarea에 포커스하고 인용 다음으로 커서를 둔다 */
   focusNonce?: number;
+  /** 마운트될 때 메시지 입력칸에 포커스한다 */
+  autoFocus?: boolean;
   onRefine?: () => void;
   refineDisabled?: boolean;
   refineActive?: boolean;
@@ -70,6 +72,7 @@ const ChatInputBar = ({
   onPaste,
   bare,
   focusNonce,
+  autoFocus,
   onRefine,
   refineDisabled,
   refineActive,
@@ -124,6 +127,7 @@ const ChatInputBar = ({
           className={style.textarea}
           value={value}
           disabled={disabled}
+          autoFocus={autoFocus}
           placeholder={placeholder}
           onChange={handleChange}
           onKeyDown={handleKeyDown}

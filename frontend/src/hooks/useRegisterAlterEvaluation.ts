@@ -9,6 +9,10 @@ import {
   clipText,
   finalizeChatSnapshot,
 } from "utils/alterChatSnapshot";
+import {
+  isStudentViewField,
+  isTeacherEditableField,
+} from "utils/evaluationForm";
 
 type Params = {
   enabled: boolean;
@@ -33,8 +37,8 @@ const useRegisterAlterEvaluation = (params: Params) => {
   const formKey = (params.formEvaluation || [])
     .map(
       (f) =>
-        `${f.label}:${f.type}:${f.auth?.edit?.teacher ? 1 : 0}:${
-          f.auth?.view?.student ? 1 : 0
+        `${f.label}:${f.type}:${isTeacherEditableField(f) ? 1 : 0}:${
+          isStudentViewField(f) ? 1 : 0
         }`
     )
     .join("|");
@@ -45,11 +49,11 @@ const useRegisterAlterEvaluation = (params: Params) => {
     const formEvaluation = params.formEvaluation || [];
     const downloadLabels = formEvaluation
       .filter(
-        (item) => item.auth?.edit?.teacher || item.auth?.view?.student
+        (item) => isTeacherEditableField(item) || isStudentViewField(item)
       )
       .map((item) => item.label);
     const editableLabels = formEvaluation
-      .filter((item) => item.auth?.edit?.teacher)
+      .filter((item) => isTeacherEditableField(item))
       .map((item) => item.label);
 
     return registerPageContext({

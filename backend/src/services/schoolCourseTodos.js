@@ -10,6 +10,7 @@ import {
   Syllabus,
 } from "../models/index.js";
 import { assembleCourseTodos } from "../utils/courseTodosAssemble.js";
+import { isSchoolManager } from "../utils/schoolManager.js";
 
 /**
  * @param {string} academyId
@@ -66,14 +67,19 @@ export const getCourseTodosForUser = async (
   const loadEnrolled =
     registration.permissionEnrollmentV2 || hasFormEvaluation;
 
+  const mentorAll = isSchoolManager(user, school?._id);
+  const mentoringFilter = {
+    season: seasonId,
+    school: school._id,
+  };
+  if (!mentorAll) {
+    mentoringFilter["teachers._id"] = user._id;
+  }
+
   const [mentoringSyllabi, createdSyllabi, myEnrollments] = await Promise.all([
     loadMentoring
       ? Syllabus(academyId)
-          .find({
-            season: seasonId,
-            school: school._id,
-            "teachers._id": user._id,
-          })
+          .find(mentoringFilter)
           .select("_id classTitle point teachers user")
           .lean()
       : Promise.resolve([]),

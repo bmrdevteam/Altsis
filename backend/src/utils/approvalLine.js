@@ -578,6 +578,113 @@ export function isCurrentApprover(value, userId, field) {
   return step?.status === "pending" && step?.approver?.userId === userId;
 }
 
+function stepWasApproved(step) {
+  return step?.status === "approved" && !!step?.approver?.userId;
+}
+
+/**
+ * Index of the approval that can still be undone: the latest approved step,
+ * and only while every later step is still untouched.
+ * @returns {number}
+ */
+export function cancellableStepIndex(value, field) {
+  const v = normalizeApprovalValue(value, field);
+  if (!v?.steps?.length || v.overallStatus === "rejected") return -1;
+
+  if (v.overallStatus === "approved") {
+    const idx = v.steps.length - 1;
+    if (!stepWasApproved(v.steps[idx])) return -1;
+    for (let i = 0; i < idx; i += 1) {
+      if (!stepWasApproved(v.steps[i])) return -1;
+    }
+    return idx;
+  }
+
+  if (v.overallStatus !== "pending") return -1;
+  const currentIdx = v.currentStep;
+  if (
+    !Number.isInteger(currentIdx) ||
+    currentIdx <= 0 ||
+    currentIdx >= v.steps.length
+  ) {
+    return -1;
+  }
+  const current = v.steps[currentIdx];
+  if (current?.status !== "pending" || current.actedAt) return -1;
+  for (let i = currentIdx + 1; i < v.steps.length; i += 1) {
+    const step = v.steps[i];
+    if (!step || step.status !== "waiting" || step.actedAt || step.reason) {
+      return -1;
+    }
+  }
+  const prevIdx = currentIdx - 1;
+  if (!stepWasApproved(v.steps[prevIdx])) return -1;
+  for (let i = 0; i < prevIdx; i += 1) {
+    if (!stepWasApproved(v.steps[i])) return -1;
+  }
+  return prevIdx;
+}
+
+/** True when this user approved the latest step and nobody after them has acted. */
+export function canCancelLastApproval(value, userId, field) {
+  if (!userId) return false;
+  const v = normalizeApprovalValue(value, field);
+  const idx = cancellableStepIndex(v, field);
+  if (idx < 0) return false;
+  return v.steps[idx]?.approver?.userId === userId;
+}
+
+const CANCEL_HISTORY_MAX = 20;
+
+function sanitizeCancelHistory(raw) {
+  if (!Array.isArray(raw)) return [];
+  const out = [];
+  for (const item of raw.slice(-CANCEL_HISTORY_MAX)) {
+    if (!item || typeof item !== "object") continue;
+    const entry = {
+      stepIndex: Number.isInteger(item.stepIndex) ? item.stepIndex : 0,
+      stepLabel: String(item.stepLabel || "").slice(0, 200),
+      userId: String(item.userId || "").slice(0, 80),
+      reopenedFinal: item.reopenedFinal === true,
+    };
+    if (typeof item.actedAt === "string" && item.actedAt.length <= 40) {
+      entry.actedAt = item.actedAt;
+    }
+    if (typeof item.reason === "string" && item.reason) {
+      entry.reason = item.reason.slice(0, 500);
+    }
+    if (typeof item.cancelledAt === "string" && item.cancelledAt.length <= 40) {
+      entry.cancelledAt = item.cancelledAt;
+    }
+    out.push(entry);
+  }
+  return out;
+}
+
+function storedApprovalValue(previous, patch) {
+  const next = {
+    version: 2,
+    currentStep: patch.currentStep,
+    overallStatus: patch.overallStatus,
+    status: patch.overallStatus,
+    approver: patch.approver,
+    currentApproverUserId: patch.approver?.userId,
+    reason: patch.reason,
+    steps: patch.steps,
+    circulation: previous?.circulation,
+  };
+  if (previous?.lineSource === "group" || previous?.lineSource === "form") {
+    next.lineSource = previous.lineSource;
+  }
+  const history = sanitizeCancelHistory(
+    patch.cancelHistory !== undefined
+      ? patch.cancelHistory
+      : previous?.cancelHistory
+  );
+  if (history.length > 0) next.cancelHistory = history;
+  return next;
+}
+
 function hasApprovalAction(value, field) {
   const v = normalizeApprovalValue(value, field);
   if (!v) return false;
@@ -634,51 +741,118 @@ export function applyApprovalAction(value, field, userId, status, reason) {
   );
 
   if (status === "rejected") {
-    const next = {
-      version: 2,
-      currentStep: idx,
-      overallStatus: "rejected",
-      status: "rejected",
-      approver: step.approver,
-      currentApproverUserId: step.approver?.userId,
-      reason: reason || undefined,
-      steps,
-      circulation: v.circulation,
+    return {
+      ok: true,
+      value: storedApprovalValue(v, {
+        currentStep: idx,
+        overallStatus: "rejected",
+        approver: step.approver,
+        reason: reason || undefined,
+        steps,
+      }),
+      finished: true,
+      nextApprover: null,
     };
-    return { ok: true, value: next, finished: true, nextApprover: null };
   }
 
   // approved
   const nextIdx = idx + 1;
   if (nextIdx >= steps.length) {
-    const next = {
-      version: 2,
-      currentStep: idx,
-      overallStatus: "approved",
-      status: "approved",
-      approver: step.approver,
-      currentApproverUserId: step.approver?.userId,
-      reason: reason || undefined,
-      steps,
-      circulation: v.circulation,
+    return {
+      ok: true,
+      value: storedApprovalValue(v, {
+        currentStep: idx,
+        overallStatus: "approved",
+        approver: step.approver,
+        reason: reason || undefined,
+        steps,
+      }),
+      finished: true,
+      nextApprover: null,
     };
-    return { ok: true, value: next, finished: true, nextApprover: null };
   }
 
   steps[nextIdx] = { ...steps[nextIdx], status: "pending" };
   const nextApprover = steps[nextIdx].approver;
-  const next = {
-    version: 2,
-    currentStep: nextIdx,
-    overallStatus: "pending",
-    status: "pending",
-    approver: nextApprover,
-    currentApproverUserId: nextApprover?.userId,
-    reason: undefined,
-    steps,
-    circulation: v.circulation,
+  return {
+    ok: true,
+    value: storedApprovalValue(v, {
+      currentStep: nextIdx,
+      overallStatus: "pending",
+      approver: nextApprover,
+      reason: undefined,
+      steps,
+    }),
+    finished: false,
+    nextApprover,
   };
-  return { ok: true, value: next, finished: false, nextApprover };
+}
+
+/**
+ * Undo the latest approval and return the line to that step.
+ * @returns {{ ok: true, value: object, cancelled: true, reopenedFinal: boolean, restoredStepLabel: string, withdrawnApprover: object|null } | { ok: false, message: string }}
+ */
+export function applyApprovalCancel(value, field, userId) {
+  const v = normalizeApprovalValue(value, field);
+  if (!v) return { ok: false, message: "승인 데이터가 없습니다." };
+  if (!canCancelLastApproval(v, userId, field)) {
+    return { ok: false, message: "승인 취소 권한이 없습니다." };
+  }
+  const idx = cancellableStepIndex(v, field);
+  const wasFinal = v.overallStatus === "approved";
+  const now = new Date().toISOString();
+  const steps = v.steps.map((step) => ({ ...step }));
+  const acted = steps[idx];
+  const history = sanitizeCancelHistory(v.cancelHistory);
+  history.push({
+    stepIndex: idx,
+    stepLabel: String(acted.label || "").slice(0, 200),
+    userId: String(userId),
+    reopenedFinal: wasFinal,
+    actedAt:
+      typeof acted.actedAt === "string" && acted.actedAt.length <= 40
+        ? acted.actedAt
+        : undefined,
+    reason:
+      typeof acted.reason === "string" && acted.reason
+        ? acted.reason.slice(0, 500)
+        : undefined,
+    cancelledAt: now,
+  });
+  steps[idx] = {
+    ...acted,
+    status: "pending",
+    reason: undefined,
+    actedAt: undefined,
+  };
+
+  let withdrawnApprover = null;
+  if (!wasFinal && steps[idx + 1]) {
+    const nextStep = steps[idx + 1];
+    if (nextStep.approver?.userId) withdrawnApprover = nextStep.approver;
+    steps[idx + 1] = {
+      ...nextStep,
+      status: "waiting",
+      reason: undefined,
+      actedAt: undefined,
+    };
+  }
+
+  return {
+    ok: true,
+    value: storedApprovalValue(v, {
+      currentStep: idx,
+      overallStatus: "pending",
+      approver: steps[idx].approver,
+      reason: undefined,
+      steps,
+      cancelHistory: history.slice(-CANCEL_HISTORY_MAX),
+    }),
+    cancelled: true,
+    reopenedFinal: wasFinal,
+    restoredStepLabel: acted.label || "",
+    withdrawnApprover,
+  };
 }
 
 const TITLE_SNIPPET_MAX = 40;
@@ -720,7 +894,7 @@ export function approvalNotificationHeadline(form, rowData) {
 }
 
 /**
- * @param {"request"|"circulation"|"approved"|"rejected"|"stepApproved"} kind
+ * @param {"request"|"circulation"|"approved"|"rejected"|"stepApproved"|"stepCancelled"|"approvalReopened"|"requestWithdrawn"} kind
  * @param {string} [stepLabel]
  */
 export function approvalNotificationTitle(form, rowData, kind, stepLabel) {
@@ -736,6 +910,12 @@ export function approvalNotificationTitle(form, rowData, kind, stepLabel) {
       return `${head} · 반려됨`;
     case "stepApproved":
       return `${head} · 「${stepLabel || "이전 단계"}」승인됨`;
+    case "stepCancelled":
+      return `${head} · 「${stepLabel || "이전 단계"}」승인 취소`;
+    case "approvalReopened":
+      return `${head} · 최종 승인 취소`;
+    case "requestWithdrawn":
+      return `${head} · 승인 요청 철회`;
     default:
       return head;
   }

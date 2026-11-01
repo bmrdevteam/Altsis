@@ -972,6 +972,7 @@ const ChatWindow = ({ room: initialRoom, rooms, boardRooms = [], archivedRooms =
             />
             <ChatInputBar
               bare
+              autoFocus={!showStorage}
               value={newMessage}
               onChange={setNewMessage}
               onSend={handleSend}

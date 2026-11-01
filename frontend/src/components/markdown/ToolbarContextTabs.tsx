@@ -8,7 +8,7 @@ type Props = {
 };
 
 const ToolbarContextTabs = ({ context, tab, onChange }: Props) => {
-  if (context === "none") return null;
+  const showTable = context !== "image";
 
   return (
     <div className={style.toolTabs} role="tablist" aria-label="편집 도구">
@@ -21,7 +21,7 @@ const ToolbarContextTabs = ({ context, tab, onChange }: Props) => {
       >
         서식
       </button>
-      {context === "table" && (
+      {showTable && (
         <button
           type="button"
           role="tab"

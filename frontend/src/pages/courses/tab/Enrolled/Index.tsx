@@ -33,6 +33,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
+import { isSchoolManager } from "utils/schoolManager";
 // tab pages
 import style from "style/pages/courses/course.module.scss";
 
@@ -190,6 +191,17 @@ const CourseEnrollment = (props: Props) => {
         .then(({ enrollment }) => {
           if (enrollment.season !== currentSeason._id) {
             navigate("/courses#수강신청%20현황", { replace: true });
+          }
+
+          if (
+            enrollment.student !== currentUser._id &&
+            isSchoolManager(
+              currentUser,
+              enrollment.school || currentSchool?._id
+            )
+          ) {
+            navigate(`../mentoring/${enrollment.syllabus}`, { replace: true });
+            return;
           }
 
           if (_.find(enrollment.teachers, { _id: currentUser._id })) {

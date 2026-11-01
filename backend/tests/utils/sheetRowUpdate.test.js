@@ -34,6 +34,28 @@ describe("authorizeSheetRowFieldUpdate", () => {
         isCurrentFieldApprover: true,
       })
     ).toEqual({ ok: true, kind: "approval" });
+
+    expect(
+      authorizeSheetRowFieldUpdate({
+        field: approvalField,
+        value: { status: "cancelled" },
+        isAdmin: true,
+        canApproveAny: false,
+        isCurrentFieldApprover: false,
+        canCancelThisField: false,
+      })
+    ).toEqual({ ok: false, message: "승인 취소 권한이 없습니다." });
+
+    expect(
+      authorizeSheetRowFieldUpdate({
+        field: approvalField,
+        value: { status: "cancelled" },
+        isAdmin: false,
+        canApproveAny: false,
+        isCurrentFieldApprover: false,
+        canCancelThisField: true,
+      })
+    ).toEqual({ ok: true, kind: "approvalCancel" });
   });
 
   test("current approver cannot write unknown, owner, or complex fields", () => {

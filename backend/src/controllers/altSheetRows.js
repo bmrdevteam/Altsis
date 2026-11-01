@@ -49,7 +49,10 @@ import {
 import { getSchoolTodosForUser } from "../services/schoolTodos.js";
 import { isSchoolManager } from "../utils/schoolManager.js";
 import { sendAutoNotification, isBoardNotificationEnabled } from "../services/notifications.js";
-import { sendApprovalActionNotifications } from "../services/approvalActionNotify.js";
+import {
+  sendApprovalActionNotifications,
+  sendApprovalCancelNotifications,
+} from "../services/approvalActionNotify.js";
 import { validateBulkApproveRequest } from "../utils/bulkApproveGuard.js";
 import { authorizeSheetRowFieldUpdate } from "../utils/sheetRowUpdate.js";
 import {
@@ -68,6 +71,8 @@ import {
   addedCirculatees,
   buildApprovalAccessOr,
   applyApprovalAction,
+  applyApprovalCancel,
+  canCancelLastApproval,
   isCurrentApprover,
   isApprovalLocked,
   isCirculatee,
@@ -1237,12 +1242,28 @@ export const update = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("form") });
     }
 
+    const approvalFieldValue = (field) => {
+      const fid = field?._id != null ? String(field._id) : "";
+      if (!fid) return undefined;
+      return row.data?.get?.(fid) || row.data?.[fid];
+    };
+
     // 승인 필드: 현재 단계 승인자 본인도 허용된 응답 필드를 업데이트 가능
     const canApproveAny = form.fields.some((f) => {
       if (f.type !== "approval") return false;
-      const approvalData =
-        row.data?.get?.(f._id.toString()) || row.data?.[f._id.toString()];
-      return isCurrentApprover(approvalData, req.user.userId, f);
+      return isCurrentApprover(
+        approvalFieldValue(f),
+        req.user.userId,
+        f
+      );
+    });
+    const canCancelAny = form.fields.some((f) => {
+      if (f.type !== "approval") return false;
+      return canCancelLastApproval(
+        approvalFieldValue(f),
+        req.user.userId,
+        f
+      );
     });
 
     const schoolRole = await schoolRoleOf(
@@ -1255,7 +1276,7 @@ export const update = async (req, res) => {
       role === "admin" ||
       isSchoolManager(req.user, board?.school || board?.schoolId);
 
-    if (!isAdmin && !canApproveAny) {
+    if (!isAdmin && !canApproveAny && !canCancelAny) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
@@ -1269,12 +1290,16 @@ export const update = async (req, res) => {
         const currentFieldApprover =
           field?.type === "approval" &&
           isCurrentApprover(prev, req.user.userId, field);
+        const canCancelThisField =
+          field?.type === "approval" &&
+          canCancelLastApproval(prev, req.user.userId, field);
         const authorization = authorizeSheetRowFieldUpdate({
           field,
           value,
           isAdmin,
           canApproveAny,
           isCurrentFieldApprover: currentFieldApprover,
+          canCancelThisField,
         });
         if (!authorization.ok) {
           return res.status(403).send({ message: authorization.message });
@@ -1292,7 +1317,18 @@ export const update = async (req, res) => {
             return res.status(403).send({ message: result.message });
           }
           row.data.set(key, result.value);
-          notifications.push({ result, reason: value.reason || "" });
+          notifications.push({
+            kind: "action",
+            result,
+            reason: value.reason || "",
+          });
+        } else if (authorization.kind === "approvalCancel") {
+          const result = applyApprovalCancel(prev, field, req.user.userId);
+          if (!result.ok) {
+            return res.status(403).send({ message: result.message });
+          }
+          row.data.set(key, result.value);
+          notifications.push({ kind: "cancel", result });
         } else if (authorization.kind === "circulation") {
           if (!circulationCandidates) {
             const workflowCandidates = await getBoardWorkflowCandidates(
@@ -1326,6 +1362,17 @@ export const update = async (req, res) => {
     await row.save();
 
     for (const notification of notifications) {
+      if (notification.kind === "cancel") {
+        await sendApprovalCancelNotifications({
+          academyId: req.user.academyId,
+          board,
+          form,
+          row,
+          fromUser: req.user,
+          result: notification.result,
+        });
+        continue;
+      }
       await sendApprovalActionNotifications({
         academyId: req.user.academyId,
         board,

@@ -34,6 +34,8 @@ import {
   TSummaryItem,
 } from "utils/computeCourseSummaries";
 import style from "./sidebar.module.scss";
+import { mentoringSyllabusQuery } from "utils/mentoringSyllabusQuery";
+import { isSchoolManager } from "utils/schoolManager";
 
 type Props = {
   open: boolean;
@@ -112,6 +114,10 @@ const GoalsSidebarWidget = ({ open, onNavigate }: Props) => {
   const seasonId =
     currentRegistration?.season || currentSeason?._id || undefined;
   const isTeacher = currentRegistration?.role === "teacher";
+  const canMentorAll = isSchoolManager(
+    currentUser,
+    currentRegistration?.school || currentSchool?._id
+  );
 
   useEffect(() => {
     if (!currentSchool?._id || !currentUser?._id) return;
@@ -163,7 +169,11 @@ const GoalsSidebarWidget = ({ open, onNavigate }: Props) => {
               query: { season: seasonId, user: currentUser._id },
             }),
             SyllabusAPI.RSyllabuses({
-              query: { season: seasonId, teacher: currentUser._id },
+              query: mentoringSyllabusQuery(
+                currentUser,
+                seasonId,
+                currentRegistration?.school || currentSchool?._id
+              ),
             }),
           ]),
         ]);
@@ -200,7 +210,7 @@ const GoalsSidebarWidget = ({ open, onNavigate }: Props) => {
           total: number;
         }[] = [];
         if (
-          isTeacher &&
+          (isTeacher || canMentorAll) &&
           d.mentoring !== false &&
           mentoring.length > 0 &&
           currentSeason?.formEvaluation?.length
@@ -307,6 +317,7 @@ const GoalsSidebarWidget = ({ open, onNavigate }: Props) => {
     currentUser?._id,
     seasonId,
     isTeacher,
+    canMentorAll,
     dataTick,
     currentSeason?._id,
     currentSeason?.formEvaluation,
