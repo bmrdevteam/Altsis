@@ -102,6 +102,7 @@ import {
 import { useFormResponseDraft } from "./useFormResponseDraft";
 import MultiSelectField from "./MultiSelectField";
 import { getMyAltBoardRole, isFormRespondent } from "./formAccess";
+import FormReusePicker from "./FormReusePicker";
 
 type Props = {
   board: TBoard;
@@ -113,6 +114,8 @@ type Props = {
   initialReviewRowId?: string | null;
   /** standalone에서 URL mode 동기화 */
   onViewModeChange?: (mode: TFormViewMode) => void;
+  /** 다른 양식 구조를 이 보드에 복사한 뒤 편집 화면으로 연다 */
+  onFormReused?: (formId: string) => void;
 };
 
 type DateInputWithOverlayProps = {
@@ -298,6 +301,7 @@ const AltFormRenderer = ({
   initialViewMode = "compose",
   initialReviewRowId,
   onViewModeChange,
+  onFormReused,
 }: Props) => {
   const { AltFormAPI, AltSheetRowAPI, ChatAPI, FileAPI, PostAPI } = useAPIv2();
   const { currentSchool, currentRegistration, currentUser, currentSeason } =
@@ -3009,6 +3013,17 @@ const AltFormRenderer = ({
             <Svg type="chevronRight" width="18px" height="18px" />
           </button>
         </div>
+      )}
+
+      {isReviewMode &&
+        (myRole === "admin" || myRole === "writer") &&
+        onFormReused && (
+        <FormReusePicker
+          boardId={board._id}
+          excludeFormId={form._id}
+          seasonId={currentSeason?._id}
+          onReused={onFormReused}
+        />
       )}
 
       </div>
