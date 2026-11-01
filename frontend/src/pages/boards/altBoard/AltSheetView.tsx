@@ -1043,8 +1043,8 @@ const AltSheetView = ({
       (row) => String(row._respondent) === String(currentUser._id)
     );
   }, [rows, currentUser?._id]);
-  const canReuseCurrentDoc = useMemo(() => {
-    if (!selectedForm || !onReuseDocument || !currentDocRow) return false;
+  const canReuseOnForm = useMemo(() => {
+    if (!selectedForm || !onReuseDocument) return false;
     const mySubmitted = mySheetRows.filter((row) => !isDraftSheetRow(row));
     const myDrafts = mySheetRows.filter((row) => isDraftSheetRow(row));
     const now = new Date();
@@ -1077,20 +1077,17 @@ const AltSheetView = ({
   }, [
     selectedForm,
     onReuseDocument,
-    currentDocRow,
     mySheetRows,
     currentUser,
     myBoardRole,
     schoolRole,
     board,
   ]);
+  const canReuseCurrentDoc = canReuseOnForm && !!currentDocRow;
 
-  const reuseCurrentDocument = () => {
-    if (!selectedForm || !currentDocRow || !onReuseDocument) return;
-    const copied = copyRowDataForReuse(
-      currentDocRow.data,
-      selectedForm.fields
-    );
+  const reuseSheetRow = (row: TAltSheetRow) => {
+    if (!selectedForm || !onReuseDocument) return;
+    const copied = copyRowDataForReuse(row.data, selectedForm.fields);
     const { data, dropped } = filterReusedPickPeople(copied, selectedForm.fields, {
       approvalCandidateIds: approvalCandidatesForForm(
         selectedForm,
@@ -1108,6 +1105,11 @@ const AltSheetView = ({
       data,
       formatReusedDroppedNotice(dropped)
     );
+  };
+
+  const reuseCurrentDocument = () => {
+    if (!currentDocRow) return;
+    reuseSheetRow(currentDocRow);
   };
 
   const inAssessmentGradeMode =
@@ -2852,6 +2854,8 @@ const AltSheetView = ({
             canDeleteAnyRow || isCurrentRowApprover(row)
           }
           onEditRow={openRowInDocEdit}
+          canReuseDocument={canReuseOnForm}
+          onReuseDocument={reuseSheetRow}
         />
       ) : !isLoading && viewMode === "doc" ? (
         /* ── 문서 뷰 (양식형 개별 보기) ── */
