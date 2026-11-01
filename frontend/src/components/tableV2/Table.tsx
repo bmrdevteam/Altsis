@@ -2,6 +2,7 @@ import React, {
   DragEvent,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -34,6 +35,20 @@ function flattenTableRow(val: any, index: number) {
     ...(val?._id != null ? { _id: val._id } : {}),
     tableRowIndex: index + 1,
   };
+}
+
+function rowsFromProps(
+  data: any[] | string[] | undefined,
+  type: "object-array" | "string-array"
+) {
+  if (!Array.isArray(data)) return [];
+  if (type === "object-array") {
+    return data.map((val, index) => flattenTableRow(val, index));
+  }
+  return data.map((val, index) => ({
+    ...[val],
+    tableRowIndex: index + 1,
+  }));
 }
 
 type TTableItems =
@@ -150,44 +165,92 @@ const Table = (props: Props) => {
   const [dragOverInsertAt, setDragOverInsertAt] = useState<number | null>(null);
   const dragFromIndexRef = useRef<number | null>(null);
 
+  const nextData = useMemo(
+    () => rowsFromProps(props.data, props.type),
+    [props.data, props.type]
+  );
+  const nextKey = dataIdKey(nextData);
+  const [rowKey, setRowKey] = useState<string | null>(null);
+  const rowsChanged = rowKey !== nextKey;
+  if (rowsChanged) {
+    setRowKey(nextKey);
+    setTableData((prev) => {
+      const reset = rowKey !== null;
+      if (
+        prev.data === nextData &&
+        (!reset ||
+          (prev.orderBy === "" &&
+            prev.searchParam === "" &&
+            prev.order === "desc"))
+      ) {
+        return prev;
+      }
+      return {
+        ...prev,
+        data: nextData,
+        ...(reset
+          ? {
+              orderBy: "",
+              order: "desc" as const,
+              searchParam: "",
+              searchParamName: "",
+            }
+          : {}),
+      };
+    });
+    if (rowKey !== null) {
+      setTableSettings((prev) =>
+        prev.pageIndex === 1 ? prev : { ...prev, pageIndex: 1 }
+      );
+    }
+  }
+
+  const viewData = rowsChanged ? nextData : tableData.data;
+  const resetView = rowsChanged && rowKey !== null;
+  const viewOrderBy = resetView ? "" : tableData.orderBy;
+  const viewOrder = resetView ? "desc" : tableData.order;
+  const viewSearch =
+    props.onSearchChange || resetView ? "" : tableData.searchParam;
+  const viewPageIndex = resetView ? 1 : tableSettings.pageIndex;
+
   const filteredData = useCallback(() => {
+    // 부모가 검색을 갖고 있으면 표 안에서 한 번 더 거르지 않는다.
     let result = [];
 
-    if (!tableData.orderBy) {
-      result = tableData.data.filter((val) => {
+    if (!viewOrderBy) {
+      result = viewData.filter((val) => {
+        if (!viewSearch) return true;
         const text = Object.values(val).join("");
-        return text.includes(tableData.searchParam);
+        return text.includes(viewSearch);
       });
+    } else if (!viewSearch) {
+      result = _.sortBy(viewData, viewOrderBy);
     } else {
-      result = tableData.data.filter((val) => {
-        const param = val[tableData.orderBy];
+      result = viewData.filter((val) => {
+        const param = val[viewOrderBy];
         if (isBoolean(param)) {
-          return `${param}`.includes(tableData.searchParam);
+          return `${param}`.includes(viewSearch);
         }
         if (param) {
           if (isNumber(param)) {
-            return (
-              tableData.searchParam === "" ||
-              param === parseFloat(tableData.searchParam)
-            );
+            return viewSearch === "" || param === parseFloat(viewSearch);
           }
 
           return param
             .toString()
             .toLowerCase()
-            .includes(tableData.searchParam.toLowerCase());
+            .includes(viewSearch.toLowerCase());
         }
         return false;
       });
-      result = _.sortBy(result, tableData.orderBy);
+      result = _.sortBy(result, viewOrderBy);
     }
 
-    if (tableData.order === "asc") result.reverse();
+    if (viewOrder === "asc") result = [...result].reverse();
 
     return result;
-  }, [tableData]);
+  }, [viewData, viewOrderBy, viewOrder, viewSearch]);
 
-  const dataIdKeyRef = useRef<string | null>(null);
   const visibleRowCount = filteredData().length;
   const pageCount =
     tableSettings.pageBy !== 0
@@ -196,44 +259,18 @@ const Table = (props: Props) => {
 
   function slicedTableData() {
     if (tableSettings.pageBy !== 0) {
-      const pageStart = tableSettings.pageBy * (tableSettings.pageIndex - 1);
-      const pageEnd = tableSettings.pageBy * tableSettings.pageIndex;
+      const pageStart = tableSettings.pageBy * (viewPageIndex - 1);
+      const pageEnd = tableSettings.pageBy * viewPageIndex;
       return filteredData().slice(pageStart, pageEnd);
     }
     return filteredData();
   }
   useEffect(() => {
-    const nextData = Array.isArray(props.data)
-      ? props.type === "object-array"
-        ? props.data.map((val, index) => flattenTableRow(val, index))
-        : props.data.map((val, index) => ({
-            ...[val],
-            tableRowIndex: index + 1,
-          }))
-      : [];
-
-    const nextKey = dataIdKey(nextData);
-    const idsChanged =
-      dataIdKeyRef.current !== null && dataIdKeyRef.current !== nextKey;
-    dataIdKeyRef.current = nextKey;
-
-    setTableData((prev) => ({
-      ...prev,
-      data: nextData,
-      ...(idsChanged
-        ? {
-            orderBy: "",
-            order: "desc" as const,
-            searchParam: "",
-            searchParamName: "",
-          }
-        : {}),
-    }));
-    if (idsChanged) {
-      setTableSettings((prev) =>
-        prev.pageIndex === 1 ? prev : { ...prev, pageIndex: 1 }
-      );
-    }
+    setTableData((prev) => {
+      if (dataIdKey(prev.data) !== nextKey) return prev;
+      if (prev.data === nextData) return prev;
+      return { ...prev, data: nextData };
+    });
     if (props.type === "object-array") {
       setAddRowData(
         props.header
@@ -247,7 +284,7 @@ const Table = (props: Props) => {
           }, {})
       );
     }
-  }, [props.data, props.type]);
+  }, [nextData, nextKey, props.type, props.header]);
 
   useEffect(() => {
     if (tableSettings.pageBy === 0) return;
