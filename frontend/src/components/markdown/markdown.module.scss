@@ -2046,6 +2046,21 @@
   letter-spacing: -0.02em;
 }
 
+.toolbarFontSizeBtn {
+  width: auto;
+  min-width: 44px;
+  padding: 0 6px;
+  gap: 3px;
+}
+
+.toolbarFontSizeValue {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
 .fontCustomRow {
   display: flex;
   align-items: center;

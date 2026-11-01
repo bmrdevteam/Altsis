@@ -21,6 +21,10 @@ const FontSizeDropdown = ({ currentPx, onSelect, onClose }: Props) => {
   );
 
   useEffect(() => {
+    setCustom(currentPx != null ? String(currentPx) : "");
+  }, [currentPx]);
+
+  useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         onClose();
