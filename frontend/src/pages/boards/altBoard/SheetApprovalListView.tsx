@@ -60,6 +60,9 @@ type Props = {
   }) => void;
   canEditRow?: (row: TAltSheetRow) => boolean;
   onEditRow?: (row: TAltSheetRow) => void;
+  /** 이 결재 문서 내용으로 새 응답을 시작할 수 있는지 */
+  canReuseDocument?: boolean;
+  onReuseDocument?: (row: TAltSheetRow) => void;
 };
 
 const INBOX_CHIPS: {
@@ -139,6 +142,8 @@ const SheetApprovalView = ({
   onPrintableRowsChange,
   canEditRow,
   onEditRow,
+  canReuseDocument = false,
+  onReuseDocument,
 }: Props) => {
   const [inboxFilter, setInboxFilter] =
     useState<TApprovalInboxFilter>("mine");
@@ -672,6 +677,16 @@ const SheetApprovalView = ({
                 </Button>
               </div>
               <div className={style.sheetApprovalPopupActions}>
+                {canReuseDocument && onReuseDocument && (
+                  <Button
+                    type="ghost"
+                    disabled={busy}
+                    onClick={() => onReuseDocument(activeItem.row)}
+                    ariaLabel="이 내용으로 새로 작성"
+                  >
+                    재사용
+                  </Button>
+                )}
                 {onEditRow &&
                   canEditRow?.(activeItem.row) && (
                     <Button
