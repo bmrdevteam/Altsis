@@ -817,6 +817,7 @@ const BoardDMPanel = ({
         />
         <ChatInputBar
           bare
+          autoFocus
           value={newMessage}
           onChange={handleInputChange}
           onSend={handleSend}

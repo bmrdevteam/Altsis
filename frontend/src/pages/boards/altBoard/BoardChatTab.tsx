@@ -879,6 +879,7 @@ const BoardChatTab = ({
         />
         <ChatInputBar
           bare
+          autoFocus
           value={newMessage}
           onChange={handleInputChange}
           onSend={handleSend}
