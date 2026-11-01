@@ -1,0 +1,17 @@
+---
+description: 사용자가 「서버 확인」이라고 하면 원격 최신 코드를 받아 로컬 BE/FE 서버에 반영한다
+alwaysApply: true
+---
+
+# 「서버 확인」 워크플로
+
+사용자가 **서버 확인** / **서버확인** / **서버 재시작** / **서버 재시동**이라고 말하면 아래를 **순서대로** 실행한다. 따로 물어보지 않는다. macOS Terminal.app(`osascript`)로 서버를 띄우지 않는다.
+
+1. **원격 최신 반영**: 현재 작업 브랜치에서 `git fetch` 후 `origin/<현재브랜치>`를 fast-forward(필요 시 merge)로 맞춘다. 비밀·환경 파일은 건드리지 않는다. 로컬에 커밋할 제품 변경이 있어 pull이 막히면 원인만 보고하고 강제 reset하지 않는다.
+2. **의존성**: 백엔드 기동에 필요한 패키지(예: `nodemailer`)가 없으면 `cd backend && yarn install`을 한다.
+3. **서버 재기동**: 8080(백엔드)·3030(프론트) 리스너를 정리한 뒤, Cursor 셸과 분리된 세션으로 다시 띄운다.
+   - Backend: `cd backend && yarn dev` → `http://127.0.0.1:8080` (루트 `404`면 정상)
+   - Frontend: `BROWSER=none PORT=3030 NODE_OPTIONS=--max-old-space-size=8192 yarn start` → `http://127.0.0.1:3030` (`200`)
+   - 브랜치 전환·파일 삭제 이력이 있으면 `frontend/node_modules/.cache`를 지운다.
+4. **검증**: curl로 BE/FE 응답을 확인하고, 수 초 뒤에도 유지되는지 본다. FE는 가능하면 컴파일 성공(`No issues found` / `webpack compiled`)까지 확인한다.
+5. **보고**: 브랜치·HEAD 요약, pull로 받은 커밋, BE/FE 상태, 재기동·장애 원인을 짧게 한국어로 보고한다.

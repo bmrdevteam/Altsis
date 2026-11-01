@@ -364,6 +364,42 @@ export const seedComposePickDefaults = (
   return { data: next, dropped };
 };
 
+/**
+ * 문서 보기에서 이 문서로 새 응답을 시작할 수 있는지.
+ * 문서를 볼 수 있는 양식이고, 지금 한 건을 더 제출할 수 있을 때.
+ */
+export const canReuseViewedDocument = ({
+  isRespondent,
+  isDraftForm = false,
+  directInput = false,
+  periodOpen,
+  occurrenceOpen,
+  allowMultipleResponses,
+  mySubmittedCount,
+  myDraftCount,
+  requiredTarget,
+}: {
+  isRespondent: boolean;
+  isDraftForm?: boolean;
+  directInput?: boolean;
+  periodOpen: boolean;
+  occurrenceOpen: boolean;
+  allowMultipleResponses: boolean;
+  mySubmittedCount: number;
+  myDraftCount: number;
+  requiredTarget: number | null;
+}): boolean => {
+  if (!isRespondent || isDraftForm || directInput) return false;
+  if (!periodOpen || !occurrenceOpen) return false;
+  if (!allowMultipleResponses) {
+    return mySubmittedCount === 0 && myDraftCount === 0;
+  }
+  if (requiredTarget != null && mySubmittedCount + myDraftCount >= requiredTarget) {
+    return false;
+  }
+  return true;
+};
+
 export const formatReusedDroppedNotice = (
   dropped: TReusedDroppedPerson[]
 ): string | null => {

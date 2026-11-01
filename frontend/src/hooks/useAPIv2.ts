@@ -5488,40 +5488,6 @@ export default function useAPIv2() {
     return { form: form as TAltForm, sheet: sheet as TAltSheet };
   }
 
-  type TReusableAltForm = {
-    _id: string;
-    title: string;
-    description: string;
-    boardId: string;
-    boardName: string;
-    isMine: boolean;
-    isDraft: boolean;
-    updatedAt?: string | null;
-  };
-
-  async function RReusableAltForms(props: {
-    query: { board: string; q?: string; exclude?: string };
-  }) {
-    const { forms, truncated } = await database.R({
-      location: "alt-forms/reusable" + QUERY_BUILDER(props.query),
-    });
-    return {
-      forms: (forms || []) as TReusableAltForm[],
-      truncated: !!truncated,
-    };
-  }
-
-  async function CReuseAltForm(props: {
-    params: { _id: string };
-    data: { board: string; season?: string };
-  }) {
-    const { form, sheet } = await database.C({
-      location: `alt-forms/${props.params._id}/reuse`,
-      data: props.data,
-    });
-    return { form: form as TAltForm, sheet: sheet as TAltSheet };
-  }
-
   /**
    * ##########################################################################
    * Alt Sheet Row API
@@ -6223,8 +6189,6 @@ export default function useAPIv2() {
       ExportAltForm,
       ImportAltForm,
       DuplicateAltForm,
-      RReusableAltForms,
-      CReuseAltForm,
       CFormAiChatMessage,
       RFormAiChatSessions,
       RFormAiChatMessages,
