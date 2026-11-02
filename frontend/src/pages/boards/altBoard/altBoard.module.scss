@@ -6057,6 +6057,11 @@ tbody tr:hover .actionCell {
     padding: 4px 6px !important;
   }
 
+  /* sticky 헤더는 인쇄에서 행 수만큼 빈 쪽을 만든다 */
+  .sheetTable th {
+    position: static !important;
+  }
+
   .colAction,
   .actionCell {
     display: none !important;

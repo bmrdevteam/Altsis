@@ -123,6 +123,14 @@ svg {
     overflow: visible !important;
   }
 
+  /*
+   * visibility:hidden 만으로는 결재 목록의 sticky 표가 행마다 빈 쪽을 만든다.
+   * printArea()가 루트를 body 직계로 옮긴 뒤, 그 형제(앱 전체)는 자리에서 뺀다.
+   */
+  body.altsis-printing > *:not([data-print-root]) {
+    display: none !important;
+  }
+
   body.altsis-printing [data-print-root] {
     position: absolute !important;
     left: 0 !important;
