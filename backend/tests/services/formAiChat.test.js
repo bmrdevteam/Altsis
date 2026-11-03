@@ -1,5 +1,6 @@
 import {
   annotateSessionsWithRowStatus,
+  assertFormAiChatUploadAllowed,
   buildAiChatRowSummary,
   buildFormAiChatModelMessages,
   buildFormAiChatSystemPrompt,
@@ -481,6 +482,43 @@ describe("formAiChat helpers", () => {
     expect(message.attachments[1].previewUrl).toBeUndefined();
     expect(message.attachments[2].text).toBeUndefined();
     expect(sign).toHaveBeenCalledTimes(1);
+  });
+
+  const respondentBoard = {
+    creator: { equals: () => false },
+    altBoardRole: new Map([["student1", "respondent"]]),
+  };
+  const student = { _id: { toString: () => "student1" }, auth: "member" };
+
+  test("assertFormAiChatUploadAllowed lets a responding student upload", () => {
+    expect(() =>
+      assertFormAiChatUploadAllowed({
+        form: { isDraft: false, settings: {} },
+        board: respondentBoard,
+        user: student,
+      })
+    ).not.toThrow();
+  });
+
+  test("assertFormAiChatUploadAllowed rejects a non-member and a closed form", () => {
+    expect(() =>
+      assertFormAiChatUploadAllowed({
+        form: { isDraft: false, settings: {} },
+        board: respondentBoard,
+        user: { _id: { toString: () => "other" }, auth: "member" },
+      })
+    ).toThrow("이 양식의 멤버가 아닙니다.");
+
+    expect(() =>
+      assertFormAiChatUploadAllowed({
+        form: {
+          isDraft: false,
+          settings: { closeAt: new Date("2000-01-01") },
+        },
+        board: respondentBoard,
+        user: student,
+      })
+    ).toThrow("양식이 마감되었습니다.");
   });
 
   test("withFormAiChatAttachmentPreviews keeps the image when signing fails", () => {
