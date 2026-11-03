@@ -13,6 +13,7 @@ type PrintAreaOptions = {
  * 지정한 루트만 인쇄한다. 나머지는 body.altsis-printing 규칙으로 숨긴다.
  * overflow 조상에 가두면 body height:0 인쇄에서 빈 장이 되므로, 같은 노드를
  * 잠시 body로 옮겼다가 정리 때 되돌린다.
+ * 루트는 body 직계가 되어야 한다. 인쇄 CSS가 그 형제만 display:none 한다.
  */
 export function printArea(
   root: HTMLElement | null | undefined,
