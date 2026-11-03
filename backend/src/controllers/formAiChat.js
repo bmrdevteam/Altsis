@@ -5,12 +5,15 @@ import { logger } from "../log/logger.js";
 import { AltForm, Board, School } from "../models/index.js";
 import { getUserRoleInSeason, isSeasonScopedBoard } from "../services/boards.js";
 import {
+  assertFormAiChatUploadAllowed,
+  assertFormAiInfrastructure,
   deleteFormAiChatSession,
   listFormAiChatMessages,
   listFormAiChatSessions,
   resolveSeasonForFormAi,
   sendFormAiChatMessage,
 } from "../services/formAiChat.js";
+import { receiveAlterAttachment } from "../services/alterAttachmentUpload.js";
 import { FIELD_REQUIRED, __NOT_FOUND } from "../messages/index.js";
 
 const schoolRoleOf = (academyId, board, user) =>
@@ -40,6 +43,49 @@ const sendServiceError = (res, err) => {
   }
   logger.error(err.message);
   return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+};
+
+/**
+ * @memberof APIs.AltFormAPI
+ * @function CFormAiChatAttachment
+ * @route POST /alt-forms/:_id/ai-chat/attachment
+ * @description 양식에 응답할 수 있는 학생·교사의 챗봇 첨부. Alter 교사 전용 업로드와 분리한다.
+ */
+export const uploadAttachment = async (req, res) => {
+  try {
+    const { form, board, error } = await loadFormBoard(
+      req.user.academyId,
+      req.params._id
+    );
+    if (error) return res.status(error.status).send({ message: error.message });
+
+    const schoolRole = await schoolRoleOf(req.user.academyId, board, req.user);
+    assertFormAiChatUploadAllowed({
+      form,
+      board,
+      user: req.user,
+      schoolRole,
+    });
+
+    const season = await resolveSeasonForFormAi(
+      req.user.academyId,
+      board,
+      req.user,
+      req.query.season || req.body?.season
+    );
+    const school = await loadSchool(req.user.academyId, board);
+    await assertFormAiInfrastructure({
+      academyId: req.user.academyId,
+      user: req.user,
+      season,
+      school,
+      checkQuota: true,
+    });
+
+    receiveAlterAttachment(req, res, season._id);
+  } catch (err) {
+    return sendServiceError(res, err);
+  }
 };
 
 /**
