@@ -55,11 +55,22 @@ export const sendMessage = async (req, res) => {
     );
     if (error) return res.status(error.status).send({ message: error.message });
 
-    const { fieldId, rowId, content, skill, season: seasonId } = req.body || {};
+    const { fieldId, rowId, content, skill, season: seasonId, attachments } =
+      req.body || {};
+    const incomingAttachments = Array.isArray(attachments) ? attachments : [];
     if (!fieldId) {
       return res.status(400).send({ message: FIELD_REQUIRED("fieldId") });
     }
-    if (!content && skill !== "assessment-grade") {
+    if (skill === "assessment-grade" && incomingAttachments.length > 0) {
+      return res
+        .status(400)
+        .send({ message: "피드백에는 파일을 첨부할 수 없습니다." });
+    }
+    if (
+      !String(content || "").trim() &&
+      skill !== "assessment-grade" &&
+      incomingAttachments.length === 0
+    ) {
       return res.status(400).send({ message: FIELD_REQUIRED("content") });
     }
 
@@ -80,6 +91,7 @@ export const sendMessage = async (req, res) => {
       fieldId,
       rowId,
       content,
+      attachments: incomingAttachments,
       skill,
       season,
       school,

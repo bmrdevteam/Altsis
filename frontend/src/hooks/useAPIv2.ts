@@ -5337,6 +5337,12 @@ export default function useAPIv2() {
       rowId?: string;
       season?: string;
       skill?: "assessment-grade";
+      attachments?: Array<{
+        kind: "text" | "image";
+        name: string;
+        key: string;
+        mimeType?: string;
+      }>;
     };
   }) {
     return (await database.C({

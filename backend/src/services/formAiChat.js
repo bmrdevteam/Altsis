@@ -17,6 +17,11 @@ import {
   executeAssessmentGradeSkill,
 } from "./aiSkills.js";
 import { maskSensitiveText } from "./aiSafety.js";
+import {
+  attachmentsToSourceText,
+  loadAlterImageParts,
+  processAlterUpload,
+} from "./alterAttachments.js";
 import { logAIUsage } from "./aiUsage.js";
 import { assertAiUserQuota } from "./aiUsageQuota.js";
 import { ALTER_SAFETY_ETHICS } from "./alterCorePrompt.js";
@@ -39,6 +44,7 @@ export const FORM_AI_CHAT_FEATURE = "form-ai-chat";
 
 const PREVIEW_CHARS = 100;
 const HISTORY_LIMIT = 16;
+export const FORM_AI_CHAT_ATTACHMENT_LIMIT = 3;
 const GUIDELINE_CHARS = 8000;
 const LINK_LIST_LIMIT = 10;
 
@@ -146,6 +152,183 @@ const throwHttp = (status, message, code) => {
   err.code = code || message;
   throw err;
 };
+
+const attachmentKeyPrefix = (academyId) => `${academyId}/alter/`;
+
+/**
+ * 클라이언트가 보낸 첨부 메타만 남긴다. 추출 텍스트는 받지 않는다.
+ * 3개를 넘는 첨부는 앞의 3개만 사용한다.
+ */
+export const normalizeFormAiChatAttachments = (attachments, academyId) => {
+  const prefix = attachmentKeyPrefix(academyId);
+  const list = Array.isArray(attachments) ? attachments : [];
+  return list.slice(0, FORM_AI_CHAT_ATTACHMENT_LIMIT).map((raw) => {
+    const kind = raw?.kind === "image" || raw?.kind === "text" ? raw.kind : "";
+    if (!kind) throwHttp(400, "지원하지 않는 첨부입니다.");
+    const key = String(raw?.key || "");
+    if (!key.startsWith(prefix) || key.includes("..") || key.length > 500) {
+      throwHttp(400, "첨부 파일을 확인할 수 없습니다.");
+    }
+    const name =
+      String(raw?.name || "첨부")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 200) || "첨부";
+    return {
+      kind,
+      name,
+      key,
+      mimeType: String(raw?.mimeType || "").slice(0, 100),
+    };
+  });
+};
+
+const attachmentLabelContent = (attachments) =>
+  (attachments || []).map((item) => `[첨부: ${item.name}]`).join(" ");
+
+/** 대화는 본문 또는 첨부가 있어야 하고, 피드백 스킬은 첨부를 받지 않는다. */
+export const resolveFormAiChatOutgoing = ({
+  content,
+  skill,
+  attachments,
+  academyId,
+}) => {
+  const incoming = Array.isArray(attachments) ? attachments : [];
+  const isGradeSkill = String(skill || "") === SKILL_IDS.ASSESSMENT_GRADE;
+  if (isGradeSkill && incoming.length > 0) {
+    throwHttp(400, "피드백에는 파일을 첨부할 수 없습니다.");
+  }
+  const normalized = isGradeSkill
+    ? []
+    : normalizeFormAiChatAttachments(incoming, academyId);
+  const raw = String(content || "").trim();
+  if (!isGradeSkill && !raw && normalized.length === 0) {
+    throwHttp(400, FIELD_REQUIRED("content"));
+  }
+  return { isGradeSkill, normalized, raw };
+};
+
+/** 문서 추출문과 이번 턴 이미지를 모델 content로 만든다. 이미지 part 형식은 buildMultimodalUserContent와 같다. */
+export const composeFormAiChatTurnContent = (
+  userText,
+  preparedAttachments,
+  imageParts
+) => {
+  const source = attachmentsToSourceText(preparedAttachments);
+  const combined = [source, String(userText || "").trim()]
+    .filter(Boolean)
+    .join("\n\n");
+  const text = maskSensitiveText(combined).text;
+  const images = (imageParts || []).filter((img) => img?.data);
+  if (!images.length) return text;
+  const parts = [];
+  if (text) parts.push({ type: "text", text });
+  for (const img of images) {
+    parts.push({
+      type: "image",
+      mimeType: String(img.mimeType || "image/jpeg"),
+      data: img.data,
+    });
+  }
+  return parts;
+};
+
+/** 이전 턴은 저장된 글만 두고, 마지막 사용자 메시지만 이번 턴 content로 바꾼다. */
+export const buildFormAiChatModelMessages = (history, currentContent) => {
+  const messages = (history || []).map((msg) => ({
+    role: msg.senderType === "ai" ? "assistant" : "user",
+    content: maskSensitiveText(msg.content || "").text,
+  }));
+  if (messages.length > 0 && currentContent != null) {
+    messages[messages.length - 1] = {
+      role: "user",
+      content: currentContent,
+    };
+  }
+  return messages;
+};
+
+export const withFormAiChatAttachmentPreviews = (messages, academyId, sign) => {
+  const prefix = attachmentKeyPrefix(academyId);
+  return (messages || []).map((msg) => {
+    const raw = typeof msg?.toObject === "function" ? msg.toObject() : { ...msg };
+    const attachments = (
+      Array.isArray(raw.attachments) ? raw.attachments : []
+    ).map((item) => {
+      const next = {
+        kind: item?.kind,
+        name: item?.name || "첨부",
+        key: item?.key || "",
+        mimeType: item?.mimeType || "",
+      };
+      if (
+        next.kind === "image" &&
+        next.key.startsWith(prefix) &&
+        typeof sign === "function"
+      ) {
+        try {
+          return { ...next, previewUrl: sign(next.key, 3600) };
+        } catch {
+          // 서명에 실패해도 대화 조회는 유지하고, 화면은 파일 이름만 보여 준다.
+          return next;
+        }
+      }
+      return next;
+    });
+    return { ...raw, attachments };
+  });
+};
+
+const attachFormAiChatPreviews = async (messages, academyId) => {
+  const needsSign = (messages || []).some((msg) => {
+    const raw = typeof msg?.toObject === "function" ? msg.toObject() : msg;
+    return (raw?.attachments || []).some(
+      (item) => item?.kind === "image" && item?.key
+    );
+  });
+  let sign;
+  if (needsSign) {
+    const { signUrlForView } = await import("../_s3/fileBucket.js");
+    sign = signUrlForView;
+  }
+  return withFormAiChatAttachmentPreviews(messages, academyId, sign);
+};
+
+const readFormAiChatAttachment = async (attachment) => {
+  const { fileBucket, fileS3 } = await import("../_s3/fileBucket.js");
+  let obj;
+  try {
+    obj = await fileS3
+      .getObject({ Bucket: fileBucket, Key: attachment.key })
+      .promise();
+  } catch {
+    throwHttp(400, `"${attachment.name}" 파일을 읽지 못했습니다.`);
+  }
+  const buf = Buffer.isBuffer(obj.Body) ? obj.Body : Buffer.from(obj.Body || "");
+  return processAlterUpload({
+    buffer: buf,
+    mimeType: attachment.mimeType,
+    originalName: attachment.name,
+    fileKey: attachment.key,
+    fileSize: buf.length,
+  });
+};
+
+const loadFormAiChatPromptAttachments = async (attachments) => {
+  const prepared = [];
+  for (const attachment of attachments) {
+    prepared.push(await readFormAiChatAttachment(attachment));
+  }
+  return prepared;
+};
+
+const storedAttachmentMeta = (prepared) =>
+  (prepared || []).map((item) => ({
+    kind: item.kind,
+    name: String(item.name || "첨부").slice(0, 200),
+    key: String(item.key || ""),
+    mimeType: String(item.mimeType || ""),
+  }));
 
 export const assertFormAiInfrastructure = async ({
   academyId,
@@ -620,14 +803,18 @@ export const sendFormAiChatMessage = async ({
   fieldId,
   rowId,
   content,
+  attachments,
   skill,
   season,
   school,
   schoolRole,
 }) => {
-  const isGradeSkill = String(skill || "") === SKILL_IDS.ASSESSMENT_GRADE;
-  const raw = String(content || "").trim();
-  if (!isGradeSkill && !raw) throwHttp(400, FIELD_REQUIRED("content"));
+  const { isGradeSkill, normalized, raw } = resolveFormAiChatOutgoing({
+    content,
+    skill,
+    attachments,
+    academyId,
+  });
   if (isGradeSkill && !form.settings?.assessmentMode) {
     throwHttp(400, "평가 모드 양식에서만 채점할 수 있습니다.");
   }
@@ -668,8 +855,30 @@ export const sendFormAiChatMessage = async ({
     user,
   });
 
+  const prepared = normalized.length
+    ? await loadFormAiChatPromptAttachments(normalized)
+    : [];
+  const storedAttachments = storedAttachmentMeta(prepared);
+  const imageParts = prepared.length ? await loadAlterImageParts(prepared) : [];
+  const imageCount = prepared.filter((item) => item?.kind === "image" && item?.key)
+    .length;
+  if (imageCount && imageParts.length < imageCount) {
+    throwHttp(400, "이미지를 읽지 못했습니다.");
+  }
+  const currentContent = composeFormAiChatTurnContent(raw, prepared, imageParts);
+  if (
+    prepared.length &&
+    (currentContent === "" ||
+      (Array.isArray(currentContent) && currentContent.length === 0))
+  ) {
+    throwHttp(400, "첨부 파일을 읽지 못했습니다.");
+  }
+
   const safeUserText = maskSensitiveText(
-    raw || "이 작성 중인 답을 루브릭에 맞게 피드백해 주세요."
+    raw ||
+      (storedAttachments.length
+        ? attachmentLabelContent(storedAttachments)
+        : "이 작성 중인 답을 루브릭에 맞게 피드백해 주세요.")
   ).text;
   const usedSkill = isGradeSkill ? SKILL_IDS.ASSESSMENT_GRADE : FORM_AI_CHAT_FEATURE;
   const userMsg = await AIChatMessage(academyId).create({
@@ -681,6 +890,7 @@ export const sendFormAiChatMessage = async ({
     senderName: user.userName,
     content: safeUserText,
     skill: usedSkill,
+    ...(storedAttachments.length ? { attachments: storedAttachments } : {}),
   });
 
   let text;
@@ -710,10 +920,7 @@ export const sendFormAiChatMessage = async ({
       .limit(HISTORY_LIMIT)
       .lean();
     recent.reverse();
-    const chatMessages = recent.map((msg) => ({
-      role: msg.senderType === "ai" ? "assistant" : "user",
-      content: maskSensitiveText(msg.content || "").text,
-    }));
+    const chatMessages = buildFormAiChatModelMessages(recent, currentContent);
     const systemInstruction = buildFormAiChatSystemPrompt({ form, field, board });
     const generated = await callFormAi(
       academyId,
@@ -749,7 +956,7 @@ export const sendFormAiChatMessage = async ({
   return {
     row,
     session,
-    messages: [userMsg, aiMsg],
+    messages: await attachFormAiChatPreviews([userMsg, aiMsg], academyId),
     summary: buildAiChatRowSummary(session),
   };
 };
@@ -846,7 +1053,10 @@ export const listFormAiChatMessages = async ({
     .sort({ createdAt: 1 })
     .limit(cap)
     .lean();
-  return { session, messages };
+  return {
+    session,
+    messages: await attachFormAiChatPreviews(messages, academyId),
+  };
 };
 
 export const deleteFormAiChatSession = async ({
