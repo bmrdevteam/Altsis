@@ -153,6 +153,20 @@ const throwHttp = (status, message, code) => {
   throw err;
 };
 
+/** 활동 챗봇 첨부는 양식에 응답할 수 있는 사용자만 올린다. Alter 교사 검사와 분리한다. */
+export const assertFormAiChatUploadAllowed = ({
+  form,
+  board,
+  user,
+  schoolRole = null,
+  now = new Date(),
+}) => {
+  const respondCheck = canRespondForm(form, board, user, now, schoolRole);
+  if (!respondCheck.allowed) {
+    throwHttp(403, respondCheck.message || PERMISSION_DENIED);
+  }
+};
+
 const attachmentKeyPrefix = (academyId) => `${academyId}/alter/`;
 
 /**
