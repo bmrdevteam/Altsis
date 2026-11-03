@@ -59,8 +59,8 @@ type PendingAttachment = TAIChatAttachment & {
   uploading?: boolean;
 };
 
-const alterAttachmentUrl = (seasonId: string) =>
-  `${process.env.REACT_APP_SERVER_URL}/api/ai/alter/attachment?season=${encodeURIComponent(
+const formAttachmentUrl = (formId: string, seasonId: string) =>
+  `${process.env.REACT_APP_SERVER_URL}/api/alt-forms/${formId}/ai-chat/attachment?season=${encodeURIComponent(
     seasonId
   )}`;
 
@@ -352,6 +352,10 @@ const FormAiChatField = ({
       setAttachError("피드백에는 파일을 첨부할 수 없습니다.");
       return;
     }
+    if (!formId) {
+      setAttachError("양식 정보가 없어 첨부할 수 없습니다.");
+      return;
+    }
     if (!seasonId) {
       setAttachError("학기 정보가 없어 첨부할 수 없습니다.");
       return;
@@ -400,7 +404,7 @@ const FormAiChatField = ({
       try {
         const body = new FormData();
         body.append("file", file);
-        const res = await fetch(alterAttachmentUrl(seasonId), {
+        const res = await fetch(formAttachmentUrl(formId, seasonId), {
           method: "POST",
           credentials: "include",
           body,
