@@ -39,6 +39,15 @@ export type TAssessmentGradeChatPayload = {
   final?: { comment?: string };
 };
 
+export type TAIChatAttachment = {
+  kind: "text" | "image";
+  name: string;
+  key?: string;
+  mimeType?: string;
+  /** 조회 응답에서만 채움. 저장하지 않음 */
+  previewUrl?: string;
+};
+
 export type TAIChatMessage = {
   _id: string;
   session: string;
@@ -49,6 +58,7 @@ export type TAIChatMessage = {
   senderName: string;
   senderProfile?: string;
   content: string;
+  attachments?: TAIChatAttachment[];
   /** Alter Skill id (chat | syllabus-draft …) */
   skill?: string;
   payload?: TAssessmentGradeChatPayload;
