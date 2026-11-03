@@ -6726,6 +6726,151 @@ tbody tr:hover .actionCell {
   gap: 6px;
 }
 
+.aiChatAttachMenuItem {
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-family: inherit;
+  text-align: left;
+  color: var(--text-color-1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  svg {
+    fill: currentColor;
+    flex-shrink: 0;
+  }
+
+  &:hover:not(:disabled) {
+    background: var(--background-secondary, #f5f5f5);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color, var(--accent-1));
+    outline-offset: -2px;
+  }
+}
+
+.aiChatAttachRow {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.aiChatAttachList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 6px;
+  max-width: 100%;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.aiChatAttachListCompact {
+  flex-direction: row;
+  flex-wrap: wrap;
+  margin-bottom: 0;
+}
+
+.aiChatAttachItem {
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+}
+
+.aiChatAttachImage {
+  flex-direction: column;
+}
+
+.aiChatAttachImg {
+  display: block;
+  max-width: min(220px, 70vw);
+  max-height: 180px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: var(--background-secondary, #f1f3f4);
+}
+
+.aiChatAttachListCompact .aiChatAttachImg {
+  max-width: 72px;
+  max-height: 72px;
+  border-radius: 8px;
+}
+
+.aiChatAttachFileInner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--background-secondary, #f1f3f4);
+  color: var(--text-color-1);
+  max-width: 100%;
+
+  svg {
+    fill: currentColor;
+    flex-shrink: 0;
+    opacity: 0.75;
+  }
+}
+
+.aiChatAttachListCompact .aiChatAttachFileInner {
+  padding: 6px 8px;
+  border-radius: 999px;
+}
+
+.aiChatAttachFileName {
+  font-size: 12px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}
+
+.aiChatAttachUploading {
+  opacity: 0.7;
+}
+
+.aiChatAttachRemove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  padding: 0;
+  line-height: 18px;
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--text-color-1);
+  background: var(--component-color, var(--background-color));
+  box-shadow: 0 0 0 1px var(--border-color);
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color, var(--accent-1));
+    outline-offset: 2px;
+  }
+}
+
+.aiChatAttachError {
+  margin: 0;
+  font-size: 12px;
+  color: var(--status-error, #b42318);
+}
+
 .aiChatNotice {
   font-size: 12px;
   color: var(--text-color-2);

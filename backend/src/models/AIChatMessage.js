@@ -46,7 +46,21 @@ const tokenUsageSchema = mongoose.Schema(
  * @prop {object?} payload - 스킬 결과(채점 초안 등)
  * @prop {TTokenUsage?} tokenUsage - 토큰 사용량
  * @prop {boolean} isDeleted=false - 삭제 여부
+ * @prop {Array<{kind: "text"|"image", name: string, key: string, mimeType: string}>} attachments - 첨부 메타. 문서 본문·미리보기 URL은 저장하지 않음
  */
+const aiChatAttachmentSchema = mongoose.Schema(
+  {
+    kind: {
+      type: String,
+      enum: ["text", "image"],
+      required: true,
+    },
+    name: { type: String, default: "" },
+    key: { type: String, default: "" },
+    mimeType: { type: String, default: "" },
+  },
+  { _id: false }
+);
 const aiChatMessageSchema = mongoose.Schema(
   {
     session: { type: mongoose.Types.ObjectId, required: true },
@@ -62,6 +76,7 @@ const aiChatMessageSchema = mongoose.Schema(
     content: { type: String, required: true },
     skill: { type: String, default: "chat" },
     payload: { type: mongoose.Schema.Types.Mixed, default: undefined },
+    attachments: { type: [aiChatAttachmentSchema], default: [] },
     tokenUsage: tokenUsageSchema,
     isDeleted: { type: Boolean, default: false },
   },

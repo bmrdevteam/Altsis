@@ -1,18 +1,23 @@
 import {
   annotateSessionsWithRowStatus,
   buildAiChatRowSummary,
+  buildFormAiChatModelMessages,
   buildFormAiChatSystemPrompt,
   canReadFormAiChatSession,
   buildAssessmentGradeChatPayload,
+  composeFormAiChatTurnContent,
   formatAssessmentGradeChatText,
   hasSchoolSkillConfig,
   isAiChatFieldType,
   isAiChatRequiredMet,
   isAiChatSendLocked,
   newAiChatFieldIds,
+  normalizeFormAiChatAttachments,
   parseAiChatSummary,
   resolveAiRolePermission,
+  resolveFormAiChatOutgoing,
   rowSummaryPointsToSession,
+  withFormAiChatAttachmentPreviews,
 } from "../../src/services/formAiChat.js";
 
 describe("formAiChat helpers", () => {
@@ -332,5 +337,167 @@ describe("formAiChat helpers", () => {
         isMember: false,
       })
     ).toBe(false);
+  });
+
+  const academyId = "academy1";
+  const key = (name) => `${academyId}/alter/season/${name}`;
+
+  test("normalizeFormAiChatAttachments rejects a key outside the academy prefix", () => {
+    expect(() =>
+      normalizeFormAiChatAttachments(
+        [{ kind: "image", name: "a.png", key: "other/alter/a.png" }],
+        academyId
+      )
+    ).toThrow("첨부 파일을 확인할 수 없습니다.");
+    expect(() =>
+      normalizeFormAiChatAttachments(
+        [{ kind: "text", name: "a.txt", key: `${academyId}/alter/../secret.txt` }],
+        academyId
+      )
+    ).toThrow("첨부 파일을 확인할 수 없습니다.");
+  });
+
+  test("normalizeFormAiChatAttachments keeps the first three and drops client text", () => {
+    const normalized = normalizeFormAiChatAttachments(
+      [
+        { kind: "image", name: "1.png", key: key("1.png"), text: "무시" },
+        { kind: "text", name: "2.txt", key: key("2.txt") },
+        { kind: "image", name: "3.png", key: key("3.png") },
+        { kind: "text", name: "4.txt", key: key("4.txt") },
+      ],
+      academyId
+    );
+    expect(normalized).toHaveLength(3);
+    expect(normalized.map((item) => item.name)).toEqual(["1.png", "2.txt", "3.png"]);
+    expect(normalized[0].text).toBeUndefined();
+  });
+
+  test("normalizeFormAiChatAttachments rejects an unknown kind", () => {
+    expect(() =>
+      normalizeFormAiChatAttachments(
+        [{ kind: "video", name: "a.mp4", key: key("a.mp4") }],
+        academyId
+      )
+    ).toThrow("지원하지 않는 첨부입니다.");
+  });
+
+  test("resolveFormAiChatOutgoing rejects attachments on the grade skill", () => {
+    expect(() =>
+      resolveFormAiChatOutgoing({
+        content: "봐 주세요",
+        skill: "assessment-grade",
+        attachments: [{ kind: "image", name: "a.png", key: key("a.png") }],
+        academyId,
+      })
+    ).toThrow("피드백에는 파일을 첨부할 수 없습니다.");
+  });
+
+  test("resolveFormAiChatOutgoing allows an attachment without text", () => {
+    const resolved = resolveFormAiChatOutgoing({
+      content: "  ",
+      skill: "chat",
+      attachments: [{ kind: "text", name: "note.txt", key: key("note.txt") }],
+      academyId,
+    });
+    expect(resolved.raw).toBe("");
+    expect(resolved.normalized).toHaveLength(1);
+    expect(resolved.isGradeSkill).toBe(false);
+  });
+
+  test("resolveFormAiChatOutgoing still requires text when nothing is attached", () => {
+    expect(() =>
+      resolveFormAiChatOutgoing({
+        content: " ",
+        skill: "chat",
+        attachments: [],
+        academyId,
+      })
+    ).toThrow("CONTENT_REQUIRED");
+  });
+
+  test("buildFormAiChatModelMessages keeps earlier turns as text and attaches this turn only", () => {
+    const current = composeFormAiChatTurnContent(
+      "이게 뭐야",
+      [{ kind: "text", name: "note.txt", text: "본문입니다" }],
+      [{ mimeType: "image/png", data: "abc", name: "shot.png" }]
+    );
+    const messages = buildFormAiChatModelMessages(
+      [
+        { senderType: "user", content: "이전 질문" },
+        { senderType: "ai", content: "이전 답" },
+        { senderType: "user", content: "[첨부: shot.png]" },
+      ],
+      current
+    );
+    expect(messages[0]).toEqual({ role: "user", content: "이전 질문" });
+    expect(messages[1]).toEqual({ role: "assistant", content: "이전 답" });
+    expect(messages[2].role).toBe("user");
+    expect(messages[2].content).toEqual([
+      {
+        type: "text",
+        text: "### note.txt\n본문입니다\n\n이게 뭐야",
+      },
+      { type: "image", mimeType: "image/png", data: "abc" },
+    ]);
+  });
+
+  test("withFormAiChatAttachmentPreviews signs only this academy's images", () => {
+    const sign = jest.fn((fileKey) => `https://files.example/${fileKey}`);
+    const [message] = withFormAiChatAttachmentPreviews(
+      [
+        {
+          content: "안녕",
+          attachments: [
+            {
+              kind: "image",
+              name: "ok.png",
+              key: key("ok.png"),
+              mimeType: "image/png",
+              text: "저장되면 안 됨",
+            },
+            {
+              kind: "image",
+              name: "other.png",
+              key: "other-academy/alter/other.png",
+              mimeType: "image/png",
+            },
+            {
+              kind: "text",
+              name: "note.txt",
+              key: key("note.txt"),
+              mimeType: "text/plain",
+              text: "본문",
+            },
+          ],
+        },
+      ],
+      academyId,
+      sign
+    );
+    expect(message.attachments[0].previewUrl).toBe(
+      `https://files.example/${key("ok.png")}`
+    );
+    expect(message.attachments[0].text).toBeUndefined();
+    expect(message.attachments[1].previewUrl).toBeUndefined();
+    expect(message.attachments[2].text).toBeUndefined();
+    expect(sign).toHaveBeenCalledTimes(1);
+  });
+
+  test("withFormAiChatAttachmentPreviews keeps the image when signing fails", () => {
+    const [message] = withFormAiChatAttachmentPreviews(
+      [
+        {
+          attachments: [
+            { kind: "image", name: "ok.png", key: key("ok.png"), mimeType: "image/png" },
+          ],
+        },
+      ],
+      academyId,
+      () => {
+        throw new Error("sign failed");
+      }
+    );
+    expect(message.attachments[0].previewUrl).toBeUndefined();
+    expect(message.attachments[0].name).toBe("ok.png");
   });
 });
