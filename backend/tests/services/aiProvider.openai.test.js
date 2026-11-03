@@ -4,9 +4,28 @@ import {
   openaiContentText,
   openaiBuildBody,
   openaiBodyForUnsupportedParams,
+  generateText,
+  resetOpenAINoneReasoningEffortCache,
 } from "../../src/services/aiProvider.js";
 
+const SAMPLE_TOOL = {
+  name: "get_my_todos",
+  description: "todos",
+  parameters: { type: "object", additionalProperties: false, properties: {} },
+};
+
+const jsonResponse = (body, status = 200) => ({
+  ok: status >= 200 && status < 300,
+  status,
+  json: async () => body,
+  text: async () => JSON.stringify(body),
+});
+
 describe("openai GPT-5 / o-series Chat Completions params", () => {
+  beforeEach(() => {
+    resetOpenAINoneReasoningEffortCache();
+  });
+
   test.each([
     ["gpt-5.6-luna", true],
     ["gpt-5", true],
@@ -62,6 +81,76 @@ describe("openai GPT-5 / o-series Chat Completions params", () => {
     });
   });
 
+  test("gpt-5.6-luna sends reasoning_effort none when tools are present", () => {
+    const withTools = openaiBuildBody({
+      model: "gpt-5.6-luna",
+      messages: [{ role: "user", content: "평가할 수업" }],
+      temperature: 0.2,
+      maxTokens: 2048,
+      tools: [SAMPLE_TOOL],
+    });
+    expect(withTools.reasoning_effort).toBe("none");
+    expect(withTools.tool_choice).toBe("auto");
+    expect(withTools.tools).toHaveLength(1);
+    expect(withTools.temperature).toBeUndefined();
+    expect(withTools.max_completion_tokens).toBe(4096);
+
+    const forcedFinal = openaiBuildBody({
+      model: "gpt-5.6-luna",
+      messages: [{ role: "user", content: "평가할 수업" }],
+      temperature: 0.2,
+      maxTokens: 2048,
+      tools: [SAMPLE_TOOL],
+      toolChoice: "none",
+    });
+    expect(forcedFinal.reasoning_effort).toBe("none");
+    expect(forcedFinal.tool_choice).toBe("none");
+    expect(forcedFinal.tools).toHaveLength(1);
+  });
+
+  test("gpt-5.6-luna without tools still sends reasoning_effort low", () => {
+    const body = openaiBuildBody({
+      model: "gpt-5.6-luna",
+      messages: [{ role: "user", content: "안녕" }],
+      temperature: 0.2,
+      maxTokens: 2048,
+    });
+    expect(body.tools).toBeUndefined();
+    expect(body.reasoning_effort).toBe("low");
+    expect(body.temperature).toBeUndefined();
+  });
+
+  test("gpt-5-mini keeps reasoning_effort low even with tools", () => {
+    const body = openaiBuildBody({
+      model: "gpt-5-mini",
+      messages: [{ role: "user", content: "안녕" }],
+      temperature: 0.2,
+      maxTokens: 2048,
+      tools: [SAMPLE_TOOL],
+      toolChoice: "none",
+    });
+    expect(body.reasoning_effort).toBe("low");
+    expect(body.tool_choice).toBe("none");
+    expect(body.tools).toHaveLength(1);
+    expect(body.temperature).toBeUndefined();
+    expect(body.max_completion_tokens).toBe(4096);
+  });
+
+  test("gpt-4o-mini with tools does not send reasoning_effort", () => {
+    const body = openaiBuildBody({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: "안녕" }],
+      temperature: 0.2,
+      maxTokens: 2048,
+      tools: [SAMPLE_TOOL],
+    });
+    expect(body.reasoning_effort).toBeUndefined();
+    expect(body.temperature).toBe(0.2);
+    expect(body.max_tokens).toBe(2048);
+    expect(body.tool_choice).toBe("auto");
+    expect(body.tools[0].function.name).toBe("get_my_todos");
+  });
+
   test("gpt-5-chat does not send reasoning_effort", () => {
     const body = openaiBuildBody({
       model: "gpt-5-chat-latest",
@@ -104,6 +193,94 @@ describe("openai GPT-5 / o-series Chat Completions params", () => {
     );
     expect(retried.reasoning_effort).toBeUndefined();
     expect(retried.max_completion_tokens).toBe(4096);
+  });
+
+  test("retries set reasoning_effort to none when the error says so", () => {
+    const retried = openaiBodyForUnsupportedParams(
+      { model: "gpt-5-mini", reasoning_effort: "low", max_completion_tokens: 4096 },
+      {
+        status: 400,
+        apiMessage:
+          "Function tools with reasoning_effort are not supported for gpt-5-mini in /v1/chat/completions. Set reasoning_effort to 'none'.",
+      }
+    );
+    expect(retried.reasoning_effort).toBe("none");
+    expect(retried.max_completion_tokens).toBe(4096);
+    expect(
+      openaiBodyForUnsupportedParams(
+        { model: "gpt-5-mini", reasoning_effort: "none" },
+        {
+          status: 400,
+          apiMessage: "Set reasoning_effort to 'none'.",
+        }
+      )
+    ).toBeNull();
+  });
+
+  test("caches a model after the none-effort 400 so the next tool call does not retry", async () => {
+    const realFetch = global.fetch;
+    const bodies = [];
+    let calls = 0;
+    const lunaError = {
+      error: {
+        message:
+          "Function tools with reasoning_effort are not supported for gpt-5-mini in /v1/chat/completions. Set reasoning_effort to 'none'.",
+      },
+    };
+    global.fetch = jest.fn(async (_url, options) => {
+      const body = JSON.parse(options.body);
+      bodies.push(body);
+      calls += 1;
+      if (calls === 1) return jsonResponse(lunaError, 400);
+      return jsonResponse({
+        choices: [{ message: { role: "assistant", content: "ok" } }],
+        usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+      });
+    });
+
+    try {
+      const first = await generateText({
+        provider: "openai",
+        apiKey: "sk-test",
+        model: "gpt-5-mini",
+        messages: [{ role: "user", content: "할 일" }],
+        temperature: 0.2,
+        tools: [SAMPLE_TOOL],
+      });
+      expect(first.text).toBe("ok");
+      expect(bodies.map((body) => body.reasoning_effort)).toEqual(["low", "none"]);
+      expect(bodies[1].tools).toHaveLength(1);
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+
+      bodies.length = 0;
+      await generateText({
+        provider: "openai",
+        apiKey: "sk-test",
+        model: "gpt-5-mini",
+        messages: [{ role: "user", content: "한 번 더" }],
+        tools: [SAMPLE_TOOL],
+        toolChoice: "none",
+      });
+      expect(bodies).toHaveLength(1);
+      expect(bodies[0].reasoning_effort).toBe("none");
+      expect(bodies[0].tool_choice).toBe("none");
+      expect(global.fetch).toHaveBeenCalledTimes(3);
+
+      bodies.length = 0;
+      await generateText({
+        provider: "openai",
+        apiKey: "sk-test",
+        model: "gpt-5-mini",
+        messages: [{ role: "user", content: "도구 없음" }],
+        maxTokens: 128,
+      });
+      expect(bodies).toHaveLength(1);
+      expect(bodies[0].reasoning_effort).toBe("low");
+      expect(bodies[0].tools).toBeUndefined();
+    } finally {
+      global.fetch = realFetch;
+      resetOpenAINoneReasoningEffortCache();
+    }
   });
 
   test("non-400 errors are not rewritten", () => {
