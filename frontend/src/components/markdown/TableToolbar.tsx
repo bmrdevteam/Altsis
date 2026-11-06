@@ -18,7 +18,8 @@ type Props = {
   onSizeMenuOpenChange: (open: boolean) => void;
 };
 
-const SIZE_GRID = 10;
+const SIZE_GRID_START = 5;
+const SIZE_GRID_MAX = 20;
 
 type TableToolButton =
   | { divider: true }
@@ -46,6 +47,10 @@ const TableToolbar = ({
   const [showCellColor, setShowCellColor] = useState(false);
   const [showBorder, setShowBorder] = useState(false);
   const [sizeHover, setSizeHover] = useState({ rows: 0, cols: 0 });
+  const [sizeGrid, setSizeGrid] = useState({
+    rows: SIZE_GRID_START,
+    cols: SIZE_GRID_START,
+  });
   const sizeMenuRef = useRef<HTMLDivElement>(null);
   const cellAttrs = getCellAttrs(editor);
   const vAlign = cellAttrs.verticalAlign || null;
@@ -157,6 +162,26 @@ const TableToolbar = ({
 
   useEffect(() => {
     if (!sizeMenuOpen) return;
+    setSizeHover({ rows: 0, cols: 0 });
+    setSizeGrid({ rows: SIZE_GRID_START, cols: SIZE_GRID_START });
+  }, [sizeMenuOpen]);
+
+  const growSizeGrid = (row: number, col: number) => {
+    setSizeHover({ rows: row, cols: col });
+    setSizeGrid((grid) => ({
+      rows:
+        row === grid.rows && grid.rows < SIZE_GRID_MAX
+          ? grid.rows + 1
+          : grid.rows,
+      cols:
+        col === grid.cols && grid.cols < SIZE_GRID_MAX
+          ? grid.cols + 1
+          : grid.cols,
+    }));
+  };
+
+  useEffect(() => {
+    if (!sizeMenuOpen) return;
     const onPointer = (event: MouseEvent) => {
       if (sizeMenuRef.current?.contains(event.target as Node)) return;
       onSizeMenuOpenChange(false);
@@ -192,10 +217,7 @@ const TableToolbar = ({
           title="표 삽입"
           aria-label="표 삽입"
           aria-expanded={sizeMenuOpen}
-          onClick={() => {
-            setSizeHover({ rows: 0, cols: 0 });
-            onSizeMenuOpenChange(!sizeMenuOpen);
-          }}
+          onClick={() => onSizeMenuOpenChange(!sizeMenuOpen)}
           className={style.toolbarBtn}
         >
           <Svg type="table" width="18px" height="18px" />
@@ -208,21 +230,25 @@ const TableToolbar = ({
           >
             <div
               className={style.tableSizeGrid}
-              style={{ gridTemplateColumns: `repeat(${SIZE_GRID}, 14px)` }}
+              style={{
+                gridTemplateColumns: `repeat(${sizeGrid.cols}, 14px)`,
+              }}
             >
-              {Array.from({ length: SIZE_GRID * SIZE_GRID }, (_, index) => {
-                const row = Math.floor(index / SIZE_GRID) + 1;
-                const col = (index % SIZE_GRID) + 1;
+              {Array.from(
+                { length: sizeGrid.rows * sizeGrid.cols },
+                (_, index) => {
+                const row = Math.floor(index / sizeGrid.cols) + 1;
+                const col = (index % sizeGrid.cols) + 1;
                 const active = row <= sizeHover.rows && col <= sizeHover.cols;
                 return (
                   <button
-                    key={index}
+                    key={`${row}-${col}`}
                     type="button"
                     aria-label={`${row}행 ${col}열`}
                     className={
                       active ? style.tableSizeCellOn : style.tableSizeCell
                     }
-                    onMouseEnter={() => setSizeHover({ rows: row, cols: col })}
+                    onMouseEnter={() => growSizeGrid(row, col)}
                     onClick={() => {
                       insertEditorTable(editor, row, col);
                       onSizeMenuOpenChange(false);
