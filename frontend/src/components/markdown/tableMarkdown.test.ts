@@ -1,7 +1,10 @@
 import { readFileSync } from "fs";
 import { join } from "path";
 import { Schema } from "prosemirror-model";
-import { tableHasCellStyles } from "./tableHasCellStyles";
+import {
+  tableContainsNestedTable,
+  tableHasCellStyles,
+} from "./tableHasCellStyles";
 
 const schema = new Schema({
   nodes: {
@@ -69,6 +72,45 @@ describe("tableHasCellStyles", () => {
     const cell = schema.node("tableCell", null, [p]);
     const row = schema.node("tableRow", null, [cell]);
     expect(tableHasCellStyles(schema.node("table", null, [row]))).toBe(true);
+  });
+});
+
+describe("tableContainsNestedTable", () => {
+  test("칸 안 표는 파이프 표로 쓰지 않는다", () => {
+    const nest = new Schema({
+      nodes: {
+        doc: { content: "block+" },
+        paragraph: { group: "block", content: "inline*" },
+        text: { group: "inline" },
+        table: { group: "block", content: "tableRow+" },
+        tableRow: { content: "(tableCell | tableHeader)+" },
+        tableHeader: { content: "block+" },
+        tableCell: { content: "block+" },
+      },
+    });
+    const inner = nest.node("table", null, [
+      nest.node("tableRow", null, [
+        nest.node("tableCell", null, [nest.node("paragraph")]),
+      ]),
+    ]);
+    const outer = nest.node("table", null, [
+      nest.node("tableRow", null, [
+        nest.node("tableHeader", null, [nest.node("paragraph")]),
+      ]),
+      nest.node("tableRow", null, [
+        nest.node("tableCell", null, [inner]),
+      ]),
+    ]);
+    expect(tableContainsNestedTable(outer)).toBe(true);
+    const plain = nest.node("table", null, [
+      nest.node("tableRow", null, [
+        nest.node("tableHeader", null, [nest.node("paragraph")]),
+      ]),
+      nest.node("tableRow", null, [
+        nest.node("tableCell", null, [nest.node("paragraph")]),
+      ]),
+    ]);
+    expect(tableContainsNestedTable(plain)).toBe(false);
   });
 });
 
