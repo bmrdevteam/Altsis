@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Editor } from "@tiptap/react";
 import { useEditorChromeTick } from "./hooks/useEditorChromeTick";
 import Svg from "assets/svg/Svg";
@@ -14,7 +14,11 @@ import style from "./markdown.module.scss";
 
 type Props = {
   editor: Editor;
+  sizeMenuOpen: boolean;
+  onSizeMenuOpenChange: (open: boolean) => void;
 };
+
+const SIZE_GRID = 10;
 
 type TableToolButton =
   | { divider: true }
@@ -33,10 +37,16 @@ const getCellAttrs = (editor: Editor) => {
   return editor.getAttributes("tableCell");
 };
 
-const TableToolbar = ({ editor }: Props) => {
+const TableToolbar = ({
+  editor,
+  sizeMenuOpen,
+  onSizeMenuOpenChange,
+}: Props) => {
   useEditorChromeTick(editor);
   const [showCellColor, setShowCellColor] = useState(false);
   const [showBorder, setShowBorder] = useState(false);
+  const [sizeHover, setSizeHover] = useState({ rows: 0, cols: 0 });
+  const sizeMenuRef = useRef<HTMLDivElement>(null);
   const cellAttrs = getCellAttrs(editor);
   const vAlign = cellAttrs.verticalAlign || null;
 
@@ -145,15 +155,27 @@ const TableToolbar = ({ editor }: Props) => {
     },
   ];
 
+  useEffect(() => {
+    if (!sizeMenuOpen) return;
+    const onPointer = (event: MouseEvent) => {
+      if (sizeMenuRef.current?.contains(event.target as Node)) return;
+      onSizeMenuOpenChange(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onSizeMenuOpenChange(false);
+    };
+    document.addEventListener("mousedown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [sizeMenuOpen, onSizeMenuOpenChange]);
+
   const inTable = editor.isActive("table");
-  const buttons: TableToolButton[] = [
-    {
-      icon: "table",
-      title: "표 삽입 (3x3)",
-      action: () => insertEditorTable(editor),
-    },
-    ...(inTable ? [{ divider: true as const }, ...editButtons] : []),
-  ];
+  const buttons: TableToolButton[] = inTable
+    ? [{ divider: true }, ...editButtons]
+    : [];
 
   return (
     <div
@@ -164,6 +186,59 @@ const TableToolbar = ({ editor }: Props) => {
     >
       <UndoRedoButtons editor={editor} />
       <span className={style.tableBubbleDivider} />
+      <div className={style.colorBtnWrapper} ref={sizeMenuRef}>
+        <button
+          type="button"
+          title="표 삽입"
+          aria-label="표 삽입"
+          aria-expanded={sizeMenuOpen}
+          onClick={() => {
+            setSizeHover({ rows: 0, cols: 0 });
+            onSizeMenuOpenChange(!sizeMenuOpen);
+          }}
+          className={style.toolbarBtn}
+        >
+          <Svg type="table" width="18px" height="18px" />
+        </button>
+        {sizeMenuOpen && (
+          <div
+            className={style.tableSizePopover}
+            data-editor-popup
+            onMouseDown={(event) => event.preventDefault()}
+          >
+            <div
+              className={style.tableSizeGrid}
+              style={{ gridTemplateColumns: `repeat(${SIZE_GRID}, 14px)` }}
+            >
+              {Array.from({ length: SIZE_GRID * SIZE_GRID }, (_, index) => {
+                const row = Math.floor(index / SIZE_GRID) + 1;
+                const col = (index % SIZE_GRID) + 1;
+                const active = row <= sizeHover.rows && col <= sizeHover.cols;
+                return (
+                  <button
+                    key={index}
+                    type="button"
+                    aria-label={`${row}행 ${col}열`}
+                    className={
+                      active ? style.tableSizeCellOn : style.tableSizeCell
+                    }
+                    onMouseEnter={() => setSizeHover({ rows: row, cols: col })}
+                    onClick={() => {
+                      insertEditorTable(editor, row, col);
+                      onSizeMenuOpenChange(false);
+                    }}
+                  />
+                );
+              })}
+            </div>
+            <div className={style.tableSizeLabel}>
+              {sizeHover.rows > 0
+                ? `${sizeHover.rows} × ${sizeHover.cols}`
+                : "크기 선택"}
+            </div>
+          </div>
+        )}
+      </div>
       {buttons.map((btn, idx) =>
         "divider" in btn ? (
           <span key={idx} className={style.tableBubbleDivider} />
