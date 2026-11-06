@@ -21,6 +21,18 @@ type WalkableNode = {
   descendants: (fn: (node: WalkableNode) => boolean | void) => void;
 };
 
+/** 칸 안에 또 표가 있으면 GFM 파이프 표로 쓸 수 없다. */
+export const tableContainsNestedTable = (node: WalkableNode): boolean => {
+  let nested = false;
+  node.descendants((child) => {
+    if (child.type.name === "table") {
+      nested = true;
+      return false;
+    }
+  });
+  return nested;
+};
+
 /** 셀 스타일·열 너비·칸 안 가로 정렬처럼 GFM 파이프 표로 표현할 수 없는 속성이 있는지 */
 export const tableHasCellStyles = (node: WalkableNode): boolean => {
   let styled = false;
