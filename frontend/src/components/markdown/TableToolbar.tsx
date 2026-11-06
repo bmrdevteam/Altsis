@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Editor } from "@tiptap/react";
 import { useEditorChromeTick } from "./hooks/useEditorChromeTick";
 import Svg from "assets/svg/Svg";
@@ -14,7 +14,12 @@ import style from "./markdown.module.scss";
 
 type Props = {
   editor: Editor;
+  sizeMenuOpen: boolean;
+  onSizeMenuOpenChange: (open: boolean) => void;
 };
+
+const SIZE_GRID_START = 5;
+const SIZE_GRID_MAX = 20;
 
 type TableToolButton =
   | { divider: true }
@@ -33,10 +38,20 @@ const getCellAttrs = (editor: Editor) => {
   return editor.getAttributes("tableCell");
 };
 
-const TableToolbar = ({ editor }: Props) => {
+const TableToolbar = ({
+  editor,
+  sizeMenuOpen,
+  onSizeMenuOpenChange,
+}: Props) => {
   useEditorChromeTick(editor);
   const [showCellColor, setShowCellColor] = useState(false);
   const [showBorder, setShowBorder] = useState(false);
+  const [sizeHover, setSizeHover] = useState({ rows: 0, cols: 0 });
+  const [sizeGrid, setSizeGrid] = useState({
+    rows: SIZE_GRID_START,
+    cols: SIZE_GRID_START,
+  });
+  const sizeMenuRef = useRef<HTMLDivElement>(null);
   const cellAttrs = getCellAttrs(editor);
   const vAlign = cellAttrs.verticalAlign || null;
 
@@ -145,15 +160,47 @@ const TableToolbar = ({ editor }: Props) => {
     },
   ];
 
+  useEffect(() => {
+    if (!sizeMenuOpen) return;
+    setSizeHover({ rows: 0, cols: 0 });
+    setSizeGrid({ rows: SIZE_GRID_START, cols: SIZE_GRID_START });
+  }, [sizeMenuOpen]);
+
+  const growSizeGrid = (row: number, col: number) => {
+    setSizeHover({ rows: row, cols: col });
+    setSizeGrid((grid) => ({
+      rows:
+        row === grid.rows && grid.rows < SIZE_GRID_MAX
+          ? grid.rows + 1
+          : grid.rows,
+      cols:
+        col === grid.cols && grid.cols < SIZE_GRID_MAX
+          ? grid.cols + 1
+          : grid.cols,
+    }));
+  };
+
+  useEffect(() => {
+    if (!sizeMenuOpen) return;
+    const onPointer = (event: MouseEvent) => {
+      if (sizeMenuRef.current?.contains(event.target as Node)) return;
+      onSizeMenuOpenChange(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onSizeMenuOpenChange(false);
+    };
+    document.addEventListener("mousedown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [sizeMenuOpen, onSizeMenuOpenChange]);
+
   const inTable = editor.isActive("table");
-  const buttons: TableToolButton[] = [
-    {
-      icon: "table",
-      title: "표 삽입 (3x3)",
-      action: () => insertEditorTable(editor),
-    },
-    ...(inTable ? [{ divider: true as const }, ...editButtons] : []),
-  ];
+  const buttons: TableToolButton[] = inTable
+    ? [{ divider: true }, ...editButtons]
+    : [];
 
   return (
     <div
@@ -164,6 +211,60 @@ const TableToolbar = ({ editor }: Props) => {
     >
       <UndoRedoButtons editor={editor} />
       <span className={style.tableBubbleDivider} />
+      <div className={style.colorBtnWrapper} ref={sizeMenuRef}>
+        <button
+          type="button"
+          title="표 삽입"
+          aria-label="표 삽입"
+          aria-expanded={sizeMenuOpen}
+          onClick={() => onSizeMenuOpenChange(!sizeMenuOpen)}
+          className={style.toolbarBtn}
+        >
+          <Svg type="table" width="18px" height="18px" />
+        </button>
+        {sizeMenuOpen && (
+          <div
+            className={style.tableSizePopover}
+            data-editor-popup
+            onMouseDown={(event) => event.preventDefault()}
+          >
+            <div
+              className={style.tableSizeGrid}
+              style={{
+                gridTemplateColumns: `repeat(${sizeGrid.cols}, 14px)`,
+              }}
+            >
+              {Array.from(
+                { length: sizeGrid.rows * sizeGrid.cols },
+                (_, index) => {
+                const row = Math.floor(index / sizeGrid.cols) + 1;
+                const col = (index % sizeGrid.cols) + 1;
+                const active = row <= sizeHover.rows && col <= sizeHover.cols;
+                return (
+                  <button
+                    key={`${row}-${col}`}
+                    type="button"
+                    aria-label={`${row}행 ${col}열`}
+                    className={
+                      active ? style.tableSizeCellOn : style.tableSizeCell
+                    }
+                    onMouseEnter={() => growSizeGrid(row, col)}
+                    onClick={() => {
+                      insertEditorTable(editor, row, col);
+                      onSizeMenuOpenChange(false);
+                    }}
+                  />
+                );
+              })}
+            </div>
+            <div className={style.tableSizeLabel}>
+              {sizeHover.rows > 0
+                ? `${sizeHover.rows} × ${sizeHover.cols}`
+                : "크기 선택"}
+            </div>
+          </div>
+        )}
+      </div>
       {buttons.map((btn, idx) =>
         "divider" in btn ? (
           <span key={idx} className={style.tableBubbleDivider} />

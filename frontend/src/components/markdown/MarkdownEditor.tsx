@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import { getMarkRange } from "@tiptap/core";
 import { NodeSelection, TextSelection } from "@tiptap/pm/state";
+import type { EditorView } from "@tiptap/pm/view";
+import type { Slice } from "@tiptap/pm/model";
 import { type SlashDialogActions } from "./extensions/slashCommand";
 import { type MathEditRequest } from "./extensions/mathExtension";
 import TipTapToolbar from "./TipTapToolbar";
@@ -31,6 +33,7 @@ import { handleTableCellClick } from "./tableCellClick";
 import { serializeClipboardPlainText } from "./clipboardPlainText";
 import { flattenPastedTableStyles } from "./pasteTableStyles";
 import { applyMarkdownEditorHotkey } from "./markdownEditorHotkeys";
+import { nestPastedTable } from "./insertEditorTable";
 import { createMarkdownExtensions } from "./createMarkdownExtensions";
 import {
   activeToolbarPanel,
@@ -42,6 +45,13 @@ import {
 import style from "./markdown.module.scss";
 import Svg from "assets/svg/Svg";
 import "katex/dist/katex.min.css";
+
+const nestPastedTableAtCursor = (view: EditorView, slice: Slice): boolean => {
+  const tr = view.state.tr;
+  if (!nestPastedTable(tr, view.state.selection, slice)) return false;
+  view.dispatch(tr.scrollIntoView());
+  return true;
+};
 
 type MathDialogState =
   | null
@@ -156,6 +166,7 @@ const MarkdownEditor = ({
     editorProps: {
       clipboardTextSerializer: serializeClipboardPlainText,
       transformPastedHTML: (html) => flattenPastedTableStyles(html),
+      handlePaste: (view, _event, slice) => nestPastedTableAtCursor(view, slice),
       handleKeyDown: (_view, event) =>
         applyMarkdownEditorHotkey(event, {
           openLink: () => openLinkDialogRef.current(),
@@ -230,6 +241,7 @@ const MarkdownEditor = ({
   const [bubbleKind, setBubbleKind] = useState<"none" | "link">("none");
   const [editorContext, setEditorContext] = useState<EditorContext>("none");
   const [toolbarTab, setToolbarTab] = useState<ToolbarTab>("format");
+  const [tableSizeOpen, setTableSizeOpen] = useState(false);
   const editorContextRef = useRef<EditorContext>("none");
   const toolbarTabRef = useRef<ToolbarTab>("format");
   editorContextRef.current = editorContext;
@@ -475,6 +487,13 @@ const MarkdownEditor = ({
     setViewMode(mode);
   };
 
+  slashActionsRef.current.openTable = () => {
+    if (viewModeRef.current !== "wysiwyg") switchMode("wysiwyg");
+    toolbarTabRef.current = "table";
+    setToolbarTab("table");
+    setTableSizeOpen(true);
+  };
+
   const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault();
     dragCountRef.current++;
@@ -602,7 +621,11 @@ const MarkdownEditor = ({
         </div>
         <div className={style.toolbarRight}>
           {toolbarPanel === "table" && editor ? (
-            <TableToolbar editor={editor} />
+            <TableToolbar
+              editor={editor}
+              sizeMenuOpen={tableSizeOpen}
+              onSizeMenuOpenChange={setTableSizeOpen}
+            />
           ) : toolbarPanel === "image" && editor ? (
             <ImageToolbar editor={editor} />
           ) : (
