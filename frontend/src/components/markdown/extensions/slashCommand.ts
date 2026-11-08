@@ -2,7 +2,6 @@ import { Extension } from "@tiptap/core";
 import Suggestion, { type SuggestionOptions } from "@tiptap/suggestion";
 import { ReactRenderer } from "@tiptap/react";
 import { PluginKey } from "@tiptap/pm/state";
-import { insertEditorTable } from "../insertEditorTable";
 import SlashCommandList, {
   type SlashCommandItem,
 } from "../SlashCommandList";
@@ -12,6 +11,7 @@ export type SlashDialogActions = {
   openYouTube?: () => void;
   openEmbed?: () => void;
   openMath?: () => void;
+  openTable?: () => void;
 };
 
 const slashPluginKey = new PluginKey("slashCommand");
@@ -111,7 +111,7 @@ export const createSlashSuggestion = (
       {
         title: "표",
         keywords: ["table", "표"],
-        command: () => insertEditorTable(editor),
+        command: () => actions.openTable?.(),
       },
       {
         title: "코드 블록",
