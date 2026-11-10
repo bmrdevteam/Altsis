@@ -340,7 +340,8 @@ export const runAlter = async (req, res) => {
     skill === SKILL_IDS.ACTIVITY_DRAFT ||
     skill === SKILL_IDS.FORM_DRAFT ||
     skill === SKILL_IDS.ASSESSMENT_GRADE ||
-    skill === SKILL_IDS.SEARCH;
+    skill === SKILL_IDS.SEARCH ||
+    skill === SKILL_IDS.AGENT;
 
   if (wantsSse) {
     res.setHeader("Content-Type", "text/event-stream");
@@ -444,6 +445,7 @@ export const runAlter = async (req, res) => {
         message: result.text,
         links: result.links || [],
         conversationId: savedConversationId,
+        ...(result.tokenUsage ? { tokenUsage: result.tokenUsage } : {}),
       });
       return res.end();
     }

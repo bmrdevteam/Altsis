@@ -1,0 +1,140 @@
+/**
+ * Dev/test stand-in for the Alter agent loop.
+ *
+ * Active only outside production, and only for the academy whose aiApiKey is
+ * the dummy SCRIPTED_AGENT_API_KEY. A second academy on the same process with
+ * a real key still calls the real provider. Other skills on this key never
+ * reach a provider: outside production they get a Korean notice, and in
+ * production the key is rejected before any network call.
+ */
+
+/** Dummy academy.aiApiKey that selects the scripted agent. Not a secret. */
+export const SCRIPTED_AGENT_API_KEY = "scripted-local-dev";
+
+export const SCRIPTED_DEMO_ONLY_AGENT_MESSAGE =
+  "로컬 데모용 가짜 키라 에이전트 모드만 쓸 수 있어요. 진짜 AI는 실제 API 키가 있는 학원에서 테스트하세요.";
+
+const TOKEN_USAGE = {
+  promptTokens: 8,
+  candidatesTokens: 24,
+  thoughtsTokens: 0,
+  totalTokens: 32,
+};
+
+const TOOL_TURN = [
+  "```alter",
+  JSON.stringify({
+    type: "tool",
+    name: "get_my_todos",
+    arguments: { scope: "all", limit: 10 },
+  }),
+  "```",
+].join("\n");
+
+const FINAL_TEXT =
+  "로그인한 계정의 할 일을 조회했습니다. 보드에는 필수 양식 「출석 점검」이 남아 있고, 수업 「문학 탐구」는 확인이 필요합니다.";
+
+const FINAL_TURN = [
+  "```alter",
+  JSON.stringify({ type: "final", text: FINAL_TEXT }),
+  "```",
+].join("\n");
+
+const isProduction = () => String(process.env.NODE_ENV || "").trim() === "production";
+
+export const isScriptedDemoKey = (apiKey) =>
+  String(apiKey || "").trim() === SCRIPTED_AGENT_API_KEY;
+
+export const isAlterAgentScriptedEnabled = (apiKey) => {
+  if (isProduction()) return false;
+  return isScriptedDemoKey(apiKey);
+};
+
+/**
+ * Dummy key, but not the agent script. Production rejects it as an invalid
+ * key. Anywhere else, return a notice and do not call a provider.
+ * @param {string} [apiKey]
+ * @returns {{ text: string, toolCalls: object[], tokenUsage: object } | null}
+ */
+export const scriptedDemoKeyBlocked = (apiKey) => {
+  if (!isScriptedDemoKey(apiKey)) return null;
+  if (isProduction()) {
+    const err = new Error("AI API key is not valid");
+    err.status = 401;
+    err.code = "AI_INVALID_API_KEY";
+    throw err;
+  }
+  return {
+    text: SCRIPTED_DEMO_ONLY_AGENT_MESSAGE,
+    toolCalls: [],
+    tokenUsage: {
+      promptTokens: 0,
+      candidatesTokens: 0,
+      thoughtsTokens: 0,
+      totalTokens: 0,
+    },
+  };
+};
+
+const delayMs = () => {
+  const n = Number(process.env.ALTER_AGENT_SCRIPTED_DELAY_MS || 0);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.min(Math.floor(n), 10000);
+};
+
+const isAgentPrompt = (systemInstruction) =>
+  /읽기 전용 에이전트/.test(String(systemInstruction || ""));
+
+const sawToolResult = (messages) =>
+  (messages || []).some((row) => {
+    if (row?.role === "tool") return true;
+    if (Array.isArray(row?.toolCalls) && row.toolCalls.length) return true;
+    return String(row?.content || "").includes("<tool_result");
+  });
+
+/**
+ * Fence path (no tools): ```alter get_my_todos, then a fenced final answer.
+ * Native path (tools passed): the same turn as OpenAI/Anthropic tool_calls,
+ * then a plain-text final answer.
+ * @param {{ apiKey?: string, systemInstruction?: string, messages?: object[], tools?: object[], toolChoice?: string }} params
+ * @returns {Promise<{ text: string, toolCalls?: object[], tokenUsage: object } | null>}
+ */
+export const scriptedAgentGenerate = async ({
+  apiKey,
+  systemInstruction,
+  messages,
+  tools,
+  toolChoice,
+} = {}) => {
+  if (!isAlterAgentScriptedEnabled(apiKey)) return null;
+  if (!isAgentPrompt(systemInstruction)) return null;
+
+  const native = Array.isArray(tools) && tools.length > 0;
+  const sawResult = sawToolResult(messages);
+  const wait = delayMs();
+  if (wait) {
+    await new Promise((resolve) => setTimeout(resolve, wait));
+  }
+  if (native) {
+    if (!sawResult && toolChoice !== "none") {
+      return {
+        text: "",
+        toolCalls: [
+          {
+            id: "scripted-call-1",
+            name: "get_my_todos",
+            arguments: { scope: "all", limit: 10 },
+          },
+        ],
+        tokenUsage: { ...TOKEN_USAGE },
+      };
+    }
+    return { text: FINAL_TEXT, toolCalls: [], tokenUsage: { ...TOKEN_USAGE } };
+  }
+  return {
+    text: sawResult ? FINAL_TURN : TOOL_TURN,
+    tokenUsage: { ...TOKEN_USAGE },
+  };
+};
+
+export const SCRIPTED_AGENT_FINAL_TEXT = FINAL_TEXT;

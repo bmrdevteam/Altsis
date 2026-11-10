@@ -77,6 +77,7 @@ const VALID_SKILL_IDS = [
   "form-draft",
   "assessment-grade",
   "search",
+  "agent",
 ];
 const LEGACY_SKILL_IDS = { "syllabus-review": "syllabus-draft" };
 const MAX_LIBRARY_ITEMS_PER_SKILL = 20;
